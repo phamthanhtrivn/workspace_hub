@@ -1,6 +1,6 @@
 import { useWatch, UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { CALENDAR_FORM_COPY as copy } from "../constants/calendar-form-copy";
 import { CalendarEventEditorValues } from "../schemas/calendar-event-form.schema";
 import {
   composeDateTimeLocal,
@@ -13,14 +13,13 @@ import {
 export function useCalendarEventTime(
   form: UseFormReturn<CalendarEventEditorValues>,
 ) {
-  const intl = useAppIntl();
   const { control, setValue } = form;
   const startAt = useWatch({ control, name: "startAt" });
   const endAt = useWatch({ control, name: "endAt" });
   const allDay = useWatch({ control, name: "allDay" });
 
   const showRangeError = () => {
-    toast.error(intl.formatMessage({ id: "calendar.invalidMinimumRange" }));
+    toast.error(copy.endRangeTooShort);
   };
 
   const handleStartDateChange = (nextDate: string) => {

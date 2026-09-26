@@ -1,14 +1,17 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useQueryClient } from "@tanstack/react-query";
+import { cancelScheduledMeeting } from "@/features/meeting/api/meeting.api";
+import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import { CalendarEvent, RecurrenceScope } from "../types/calendar.types";
 import { createEventEndFromStart } from "../utils/calendar-event.utils";
+import { parseCalendarMeetingJoinToken } from "../utils/calendar-conference.utils";
 import { CalendarEventMoveInfo } from "./calendar-workspace.types";
 import { useUpdateCalendarEvent } from "./use-calendar-queries";
 
 export function useCalendarEventMove(events: CalendarEvent[]) {
-  const intl = useAppIntl();
-  const updateEvent = useUpdateCalendarEvent();
+  const queryClient = useQueryClient();
+  const { mutateAsync: updateEventAsync } = useUpdateCalendarEvent();
   const [pendingEventMove, setPendingEventMove] =
     useState<CalendarEventMoveInfo | null>(null);
 
@@ -37,22 +40,43 @@ export function useCalendarEventMove(events: CalendarEvent[]) {
                 return d;
               })()
             : rawEnd;
-        await updateEvent.mutateAsync({
+
+        const isMovedToPast = info.event.start.getTime() <= Date.now();
+        const existingMeetingToken = parseCalendarMeetingJoinToken(model.location);
+        let locationPayload: string | null | undefined = undefined;
+
+        if (existingMeetingToken && isMovedToPast) {
+          try {
+            await cancelScheduledMeeting(existingMeetingToken);
+          } catch {
+            // Ignore non-fatal error
+          }
+          locationPayload = null;
+          toast.info(
+            "Video conference is no longer available for past events and has been canceled.",
+          );
+          void queryClient.invalidateQueries({
+            queryKey: meetingKeys.upcomingRoot,
+          });
+        }
+
+        await updateEventAsync({
           eventId: info.event.id,
           payload: {
             startAt: info.event.start.toISOString(),
             endAt: end.toISOString(),
             allDay: info.event.allDay,
             recurrenceScope,
+            ...(locationPayload === null ? { location: null } : {}),
           },
         });
-        toast.success(intl.formatMessage({ id: "calendar.eventMoved" }));
+        toast.success("Event updated");
       } catch {
         info.revert();
-        toast.error(intl.formatMessage({ id: "calendar.eventMoveFailed" }));
+        toast.error("Failed to update event position");
       }
     },
-    [events, intl, updateEvent],
+    [events, queryClient, updateEventAsync],
   );
 
   const handleEventMove = useCallback(

@@ -6,6 +6,8 @@ export const CALENDAR_DEFAULT_NAME = "Personal";
 export const CALENDAR_DEFAULT_ICON = "📅";
 export const CALENDAR_DEFAULT_EVENT_DURATION_MS = 60 * 60 * 1000;
 export const CALENDAR_MIN_EVENT_DURATION_MS = 15 * 60 * 1000;
+export const CALENDAR_MAX_REMINDERS = 5;
+export const CALENDAR_MAX_REMINDER_MINUTES_BEFORE = 30 * 24 * 60;
 export const CALENDAR_INITIAL_RANGE_LOOKBACK_DAYS = 14;
 export const CALENDAR_INITIAL_RANGE_LOOKAHEAD_DAYS = 45;
 export const CALENDAR_INITIAL_VIEW = "timeGridWeek";
@@ -46,21 +48,11 @@ export const CALENDAR_ICON_CHOICES = [
 ] as const;
 
 export const CALENDAR_VIEW_OPTIONS = [
-  { value: "listYear", labelId: "calendar.view.year" },
-  { value: "dayGridMonth", labelId: "calendar.view.month" },
-  { value: "timeGridWeek", labelId: "calendar.view.week" },
-  { value: "timeGridDay", labelId: "calendar.view.day" },
-  { value: "listWeek", labelId: "calendar.view.list" },
-] as const;
-
-export const CALENDAR_REMINDER_OPTIONS = [
-  { value: "0", labelId: "calendar.reminder.atTime" },
-  { value: "5", labelId: "calendar.reminder.5m" },
-  { value: "10", labelId: "calendar.reminder.10m" },
-  { value: "30", labelId: "calendar.reminder.30m" },
-  { value: "60", labelId: "calendar.reminder.1h" },
-  { value: "1440", labelId: "calendar.reminder.1d" },
-  { value: "custom", labelId: "calendar.reminder.custom" },
+  { value: "listYear", label: "Year" },
+  { value: "dayGridMonth", label: "Month" },
+  { value: "timeGridWeek", label: "Week" },
+  { value: "timeGridDay", label: "Day" },
+  { value: "listWeek", label: "List" },
 ] as const;
 
 export const CALENDAR_RECURRENCE_PRESET_VALUES = {
@@ -74,18 +66,18 @@ export const CALENDAR_RECURRENCE_PRESET_VALUES = {
 } as const;
 
 export const CALENDAR_RECURRENCE_FREQUENCY_OPTIONS = [
-  { value: "DAILY", labelId: "calendar.recurrence.unit.day" },
-  { value: "WEEKLY", labelId: "calendar.recurrence.unit.week" },
-  { value: "MONTHLY", labelId: "calendar.recurrence.unit.month" },
-  { value: "YEARLY", labelId: "calendar.recurrence.unit.year" },
+  { value: "DAILY" },
+  { value: "WEEKLY" },
+  { value: "MONTHLY" },
+  { value: "YEARLY" },
 ] as const;
 
 export const CALENDAR_RECURRENCE_WEEKDAY_OPTIONS = [
-  { value: "MO", labelId: "calendar.weekday.mo" },
-  { value: "TU", labelId: "calendar.weekday.tu" },
-  { value: "WE", labelId: "calendar.weekday.we" },
-  { value: "TH", labelId: "calendar.weekday.th" },
-  { value: "FR", labelId: "calendar.weekday.fr" },
-  { value: "SA", labelId: "calendar.weekday.sa" },
-  { value: "SU", labelId: "calendar.weekday.su" },
+  { value: "MO" },
+  { value: "TU" },
+  { value: "WE" },
+  { value: "TH" },
+  { value: "FR" },
+  { value: "SA" },
+  { value: "SU" },
 ] as const;

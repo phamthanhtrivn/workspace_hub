@@ -212,6 +212,52 @@ export class CalendarEventService {
       dto.endAt ?? event.endAt.toISOString(),
     );
 
+    const oldAttendeeIds = (event.attendees ?? []).map((a) => a.userId);
+    let keptAttendeeIds = oldAttendeeIds.filter((id) => id !== userId);
+
+    if (dto.attendees !== undefined) {
+      const newAttendeeIds = this.relations
+        .normalizeAttendees(userId, dto.attendees)
+        .map((a) => a.userId);
+
+      const removedAttendeeIds = oldAttendeeIds.filter(
+        (id) => !newAttendeeIds.includes(id),
+      );
+      const addedAttendeeIds = newAttendeeIds.filter(
+        (id) => !oldAttendeeIds.includes(id),
+      );
+      keptAttendeeIds = newAttendeeIds.filter(
+        (id) => oldAttendeeIds.includes(id) && id !== userId,
+      );
+
+      if (removedAttendeeIds.length > 0) {
+        await this.notificationOutbox.enqueueAttendeeRemoval(this.prisma, {
+          eventTitle: event.title,
+          eventId: event.id,
+          removerId: userId,
+          recipientIds: removedAttendeeIds,
+        });
+      }
+
+      if (addedAttendeeIds.length > 0) {
+        await this.notificationOutbox.enqueueEventInvitations(this.prisma, {
+          eventTitle: dto.title || event.title,
+          eventId: event.id,
+          creatorId: userId,
+          recipientIds: addedAttendeeIds,
+        });
+      }
+    }
+
+    if (keptAttendeeIds.length > 0) {
+      await this.notificationOutbox.enqueueEventUpdate(this.prisma, {
+        eventTitle: dto.title || event.title,
+        eventId: event.id,
+        updaterId: userId,
+        recipientIds: keptAttendeeIds,
+      });
+    }
+
     const updatedId = await this.updateByRecurrenceState(
       userId,
       event,
@@ -229,7 +275,14 @@ export class CalendarEventService {
     const event = await this.accessPolicy.findEventOrThrow(eventId);
     this.accessPolicy.assertCanManageEvent(userId, event);
     this.accessPolicy.assertUserManagedEvent(event);
+    const recipientIds = (event.attendees ?? []).map((attendee) => attendee.userId);
     await this.recurrenceMutations.cancelEvent(userId, event, scope);
+    await this.notificationOutbox.enqueueEventCancellation(this.prisma, {
+      eventTitle: event.title,
+      eventId: event.id,
+      cancellerId: userId,
+      recipientIds,
+    });
   }
 
   async updateTaskCompletion(

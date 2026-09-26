@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -106,6 +106,7 @@ export default function ProjectDetailScreen() {
   const [showMembers, setShowMembers] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const hasOpenedUrlTaskRef = useRef(false);
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -113,6 +114,19 @@ export default function ProjectDetailScreen() {
     const timer = window.setTimeout(() => setShowProjectSettings(true), 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (hasOpenedUrlTaskRef.current || serverTasks.length === 0) return;
+    const query = new URLSearchParams(window.location.search);
+    const targetTaskId = query.get("taskId") || query.get("task");
+    if (!targetTaskId) return;
+
+    const foundTask = serverTasks.find((task) => task.id === targetTaskId);
+    if (foundTask) {
+      hasOpenedUrlTaskRef.current = true;
+      setSelectedTask(foundTask);
+    }
+  }, [serverTasks]);
 
   const {
     isOpen: showTaskForm,

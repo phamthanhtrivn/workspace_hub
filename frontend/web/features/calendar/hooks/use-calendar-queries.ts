@@ -18,6 +18,7 @@ import {
   updateCalendarEventResponse,
   updateCalendarTaskCompletion,
 } from "../api/calendar.api";
+import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import {
   AttendeeResponseStatus,
   CalendarEventFilters,
@@ -106,10 +107,23 @@ export function useCalendarTasks() {
 export function useCalendarEvent(eventId?: string | null) {
   return useQuery({
     queryKey: calendarKeys.event(eventId || ""),
-    queryFn: () => getCalendarEvent(eventId!),
+    queryFn: async () => {
+      try {
+        return await getCalendarEvent(eventId!);
+      } catch (error: any) {
+        if (error?.response?.status === 403) {
+          return null;
+        }
+        throw error;
+      }
+    },
     enabled: Boolean(eventId),
     staleTime: 0,
     refetchOnMount: "always",
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 403) return false;
+      return failureCount < 2;
+    },
   });
 }
 
@@ -190,6 +204,9 @@ export function useUpdateCalendarEventResponse() {
       void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
       void queryClient.invalidateQueries({
         queryKey: calendarKeys.event(variables.eventId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.upcomingRoot,
       });
     },
   });

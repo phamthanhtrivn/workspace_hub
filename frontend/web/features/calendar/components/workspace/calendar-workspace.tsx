@@ -1,51 +1,71 @@
 "use client";
 
 import FullCalendar from "@fullcalendar/react";
+import type { EventClickArg } from "@fullcalendar/core";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useProjectTasks } from "@/features/project/hooks/use-tasks";
+import type { Task } from "@/features/project/types/project";
 import { CalendarSidebar } from "../sidebar/calendar-sidebar";
 import { CalendarToolbar } from "../toolbar/calendar-toolbar";
 import { CalendarGrid } from "./calendar-grid";
 import { CalendarTasksDrawer } from "../drawer/calendar-tasks-drawer";
+import { CalendarModal, type CalendarModalValues } from "../modal/calendar-modal";
+import { EventDetailModal } from "../modal/event-detail-modal";
+import { EventFormModal } from "../modal/event-form-modal";
 import { useCalendarWorkspace } from "../../hooks/use-calendar-workspace";
+import { useCalendarProjects } from "../../hooks/use-calendar-projects";
+import {
+  mapProjectTasksToCalendarEvents,
+  mapProjectTasksToDomainCalendarEvents,
+} from "../../utils/project-task-event.utils";
+import { ProjectTaskDetailModal } from "../modal/project-task-detail-modal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCalendarKeyboardShortcuts } from "../../hooks/use-calendar-keyboard-shortcuts";
 import {
   calendarKeys,
   useCalendarEvent,
   useCalendarTasks,
+  useCreateCalendar,
 } from "../../hooks/use-calendar-queries";
 import { isTaskCalendarEvent } from "../../utils/calendar-event.utils";
 import { CalendarEvent, EventStatus } from "../../types/calendar.types";
 
-const EventDetailModal = dynamic(() =>
-  import("../modal/event-detail-modal").then(
-    (module) => module.EventDetailModal,
-  ),
-);
-const EventFormModal = dynamic(() =>
-  import("../modal/event-form-modal").then((module) => module.EventFormModal),
-);
 const RecurrenceScopeModal = dynamic(() =>
   import("../modal/recurrence-scope-modal").then(
     (module) => module.RecurrenceScopeModal,
   ),
 );
-const CreateCalendarModal = dynamic(() =>
-  import("../modal/create-calendar-modal").then(
-    (module) => module.CreateCalendarModal,
-  ),
-);
 
 export function CalendarWorkspace() {
-  const intl = useAppIntl();
+
   const calendarRef = useRef<FullCalendar | null>(null);
   const calendar = useCalendarWorkspace(calendarRef);
+  const projectsQuery = useCalendarProjects();
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectTask, setSelectedProjectTask] = useState<Task | null>(null);
+  const projects = projectsQuery.data ?? [];
+  const selectedProject = projects.find((project) => project.id === selectedProjectId);
+  const projectTasksQuery = useProjectTasks(selectedProject?.id ?? "");
+  const projectTaskEvents = useMemo(
+    () => mapProjectTasksToCalendarEvents(projectTasksQuery.data ?? [], selectedProject),
+    [projectTasksQuery.data, selectedProject],
+  );
+  const domainProjectTaskEvents = useMemo(
+    () => mapProjectTasksToDomainCalendarEvents(projectTasksQuery.data ?? [], selectedProject),
+    [projectTasksQuery.data, selectedProject],
+  );
+  const displayEvents = useMemo(
+    () => [...calendar.fullCalendarEvents, ...projectTaskEvents],
+    [calendar.fullCalendarEvents, projectTaskEvents],
+  );
   const tasksQuery = useCalendarTasks();
+  const createCalendar = useCreateCalendar();
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [tasksDrawerOpen, setTasksDrawerOpen] = useState(false);
@@ -56,6 +76,20 @@ export function CalendarWorkspace() {
   const timeParam = searchParams.get("t");
   const lastOpenedKeyRef = useRef<string | null>(null);
   const directEventQuery = useCalendarEvent(eventParam);
+
+  const handleCreateCalendar = async (values: CalendarModalValues) => {
+    try {
+      await createCalendar.mutateAsync({
+        ...values,
+        isVisible: true,
+      });
+      toast.success("Calendar created");
+      return true;
+    } catch {
+      toast.error("Failed to create calendar");
+      return false;
+    }
+  };
 
   const {
     handleCalendarNavigate,
@@ -112,14 +146,16 @@ export function CalendarWorkspace() {
   ]);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("calendar_sidebar_open");
-      if (saved !== null) {
-        setDesktopSidebarOpen(saved === "true");
+    queueMicrotask(() => {
+      try {
+        const saved = localStorage.getItem("calendar_sidebar_open");
+        if (saved !== null) {
+          setDesktopSidebarOpen(saved === "true");
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
-    }
+    });
   }, []);
 
   const handleToggleSidebar = useCallback(() => {
@@ -166,8 +202,37 @@ export function CalendarWorkspace() {
     setTasksDrawerOpen(false);
   }, []);
 
+  const handleToggleProject = useCallback((projectId: string) => {
+    setSelectedProjectId((current) => current === projectId ? null : projectId);
+    setSelectedProjectTask(null);
+  }, []);
+
+  const handlePersonalEventClick = calendar.handleEventClick;
+  const handleEventClick = useCallback((arg: EventClickArg) => {
+    const projectTask = arg.event.extendedProps.projectTask as Task | undefined;
+    if (projectTask) {
+      setSelectedProjectTask(projectTask);
+      return;
+    }
+    handlePersonalEventClick(arg);
+  }, [handlePersonalEventClick]);
+
+  const handleSelectDate = useCallback((date: Date) => {
+    handleMiniCalendarDateSelect(date);
+    setMobileSidebarOpen(false);
+  }, [handleMiniCalendarDateSelect]);
+
+  const handleRetryProjects = useCallback(() => {
+    if (projectsQuery.isError) void projectsQuery.refetch();
+    if (projectTasksQuery.isError) void projectTasksQuery.refetch();
+  }, [projectsQuery, projectTasksQuery]);
+
   const calendarEvents = calendar.events;
   const tasksData = tasksQuery.data;
+  const projectCalendarIds = useMemo(
+    () => new Set(calendar.calendars.filter((item) => item.projectId).map((item) => item.id)),
+    [calendar.calendars],
+  );
 
   // Merge tasks from dedicated query + visible calendar events (guarantees tasks on the calendar grid are NEVER missing)
   const allTasks = useMemo(() => {
@@ -176,7 +241,7 @@ export function CalendarWorkspace() {
     // 1. Tasks from dedicated paginated task query (across all dates)
     if (Array.isArray(tasksData)) {
       for (const t of tasksData) {
-        if (isTaskCalendarEvent(t) && t.status !== EventStatus.CANCELLED) {
+        if (isTaskCalendarEvent(t) && t.status !== EventStatus.CANCELLED && !t.calendar?.projectId && !projectCalendarIds.has(t.calendarId)) {
           taskMap.set(t.id, t);
         }
       }
@@ -185,22 +250,23 @@ export function CalendarWorkspace() {
     // 2. Tasks from current workspace calendar events (guarantees tasks visible on grid are never missing)
     const workspaceEvents = Array.isArray(calendarEvents) ? calendarEvents : [];
     for (const e of workspaceEvents) {
-      if (isTaskCalendarEvent(e) && e.status !== EventStatus.CANCELLED) {
+      if (isTaskCalendarEvent(e) && e.status !== EventStatus.CANCELLED && !e.calendar?.projectId && !projectCalendarIds.has(e.calendarId)) {
         taskMap.set(e.id, e);
       }
     }
 
     return Array.from(taskMap.values());
-  }, [tasksData, calendarEvents]);
+  }, [tasksData, calendarEvents, projectCalendarIds]);
 
   return (
     <section className="relative h-full w-full overflow-hidden bg-white">
       {mobileSidebarOpen && (
-        <button
+        <Button
           type="button"
-          className="fixed inset-0 z-40 cursor-default bg-slate-950/30 lg:hidden"
+          variant="ghost"
+          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-slate-950/30 p-0 lg:hidden"
           onClick={() => setMobileSidebarOpen(false)}
-          aria-label={intl.formatMessage({ id: "app.close" })}
+          aria-label="Close"
         />
       )}
       <div className="flex h-full min-h-0 w-full overflow-hidden">
@@ -225,14 +291,18 @@ export function CalendarWorkspace() {
               tasksVisible={calendar.tasksVisible}
               tasksColor={calendar.tasksColor}
               tasksDrawerOpen={tasksDrawerOpen}
+              projects={projects}
+              selectedProjectId={selectedProject?.id ?? null}
+              projectsLoading={projectsQuery.isLoading}
+              projectsError={projectsQuery.isError}
+              projectTasksError={projectTasksQuery.isError}
+              onToggleProject={handleToggleProject}
+              onRetryProjects={handleRetryProjects}
               onToggleCalendar={calendar.toggleCalendar}
               onToggleTasks={calendar.toggleTasks}
               onOpenTasksDrawer={handleOpenTasksDrawer}
               onTasksColorChange={calendar.changeTasksColor}
-              onSelectDate={(date) => {
-                calendar.handleMiniCalendarDateSelect(date);
-                setMobileSidebarOpen(false);
-              }}
+              onSelectDate={handleSelectDate}
               onCreateEvent={() => {
                 calendar.openCreateModal();
                 setMobileSidebarOpen(false);
@@ -259,20 +329,20 @@ export function CalendarWorkspace() {
               <div className="rounded-xl border border-red-100 bg-white px-5 py-4 text-center shadow-sm">
                 <AlertCircle className="mx-auto h-8 w-8 text-red-500" />
                 <p className="mt-2 text-sm font-bold text-slate-700">
-                  {intl.formatMessage({ id: "calendar.loadFailed" })}
+                  Failed to load calendar events
                 </p>
               </div>
             </div>
           ) : (
             <CalendarGrid
               calendarRef={calendarRef}
-              events={calendar.fullCalendarEvents}
+              events={displayEvents}
               timeZone={calendar.displayTimeZone}
-              loading={calendar.loading}
+              loading={calendar.loading || projectTasksQuery.isLoading}
               onDatesSet={calendar.handleDatesSet}
               onSelect={calendar.handleSelect}
               onDateClick={calendar.handleDateClick}
-              onEventClick={calendar.handleEventClick}
+              onEventClick={handleEventClick}
               onEventMove={calendar.handleEventMove}
               onTaskCompletionToggle={calendar.handleTaskCompletionQuickToggle}
               taskCompletionBusy={calendar.taskCompletionBusy}
@@ -283,6 +353,10 @@ export function CalendarWorkspace() {
         <CalendarTasksDrawer
           open={tasksDrawerOpen}
           tasks={allTasks}
+          projectTaskEvents={domainProjectTaskEvents}
+          projects={projects}
+          selectedProject={selectedProject}
+          onSelectProject={handleToggleProject}
           color={calendar.tasksColor}
           loading={tasksQuery.isLoading && allTasks.length === 0}
           error={tasksQuery.isError}
@@ -291,7 +365,14 @@ export function CalendarWorkspace() {
           onClose={handleCloseTasksDrawer}
           onRetry={() => void tasksQuery.refetch()}
           onToggleTask={calendar.handleTaskCompletionQuickToggle}
-          onSelectTask={(task) => calendar.openDetail(task)}
+          onSelectTask={(task) => {
+            const projectTask = task.extendedProps?.projectTask as Task | undefined;
+            if (projectTask) {
+              setSelectedProjectTask(projectTask);
+            } else {
+              calendar.openDetail(task);
+            }
+          }}
         />
       </div>
 
@@ -326,6 +407,14 @@ export function CalendarWorkspace() {
         />
       )}
 
+      {selectedProject && selectedProjectTask && (
+        <ProjectTaskDetailModal
+          task={selectedProjectTask}
+          project={selectedProject}
+          onClose={() => setSelectedProjectTask(null)}
+        />
+      )}
+
       {calendar.pendingEventMove && (
         <RecurrenceScopeModal
           open
@@ -335,9 +424,11 @@ export function CalendarWorkspace() {
       )}
 
       {createCalendarOpen && (
-        <CreateCalendarModal
-          open
+        <CalendarModal
+          mode="create"
+          pending={createCalendar.isPending}
           onClose={() => setCreateCalendarOpen(false)}
+          onSave={handleCreateCalendar}
         />
       )}
     </section>

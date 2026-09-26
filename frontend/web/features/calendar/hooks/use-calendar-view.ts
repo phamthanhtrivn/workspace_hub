@@ -10,7 +10,9 @@ export function useCalendarView(calendarRef: RefObject<FullCalendar | null>) {
   const [title, setTitle] = useState("");
   const [activeView, setActiveView] = useState(CALENDAR_INITIAL_VIEW);
   const [currentDate, setCurrentDate] = useState(() => new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(
+    () => new Date(),
+  );
 
   const handleDatesSet = useCallback(
     (arg: DatesSetArg) => {

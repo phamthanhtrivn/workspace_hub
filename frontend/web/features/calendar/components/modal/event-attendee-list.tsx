@@ -1,6 +1,5 @@
 import Image from "next/image";
 import { User } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   AttendeeResponseStatus,
   CalendarEventAttendee,
@@ -13,29 +12,31 @@ interface EventAttendeeListProps {
   currentUserId?: string | null;
 }
 
+const responseStatusLabels: Record<AttendeeResponseStatus, string> = {
+  [AttendeeResponseStatus.ACCEPTED]: "Accepted",
+  [AttendeeResponseStatus.TENTATIVE]: "Tentative",
+  [AttendeeResponseStatus.DECLINED]: "Declined",
+  [AttendeeResponseStatus.NEEDS_ACTION]: "Awaiting response",
+};
+
 export function EventAttendeeList({
   attendees,
   resolvedProfiles,
   currentUserId,
 }: EventAttendeeListProps) {
-  const intl = useAppIntl();
-
   if (attendees.length === 0) return null;
 
   return (
     <div>
       <h3 className="text-xs font-black uppercase text-slate-400">
-        {intl.formatMessage({ id: "calendar.attendees" })}
+        Attendees
       </h3>
       <div className="mt-2 space-y-2">
         {attendees.map((attendee) => {
           const profile = attendee.profile?.fullName
             ? attendee.profile
             : resolvedProfiles[attendee.userId] || attendee.profile;
-          const displayName =
-            profile?.fullName ||
-            profile?.email ||
-            intl.formatMessage({ id: "app.user" });
+          const displayName = profile?.fullName || profile?.email || "User";
 
           return (
             <div
@@ -62,7 +63,7 @@ export function EventAttendeeList({
                     {displayName}
                     {currentUserId && attendee.userId === currentUserId && (
                       <span className="ml-1.5 text-xs font-normal text-slate-400">
-                        ({intl.locale === "vi" ? "Bạn" : "You"})
+                        (You)
                       </span>
                     )}
                   </p>
@@ -94,7 +95,7 @@ export function EventAttendeeList({
                       statusStyles[AttendeeResponseStatus.NEEDS_ACTION]
                     }`}
                   >
-                    {intl.formatMessage({ id: `calendar.response.${status}` })}
+                    {responseStatusLabels[status] || "Awaiting response"}
                   </span>
                 );
               })()}

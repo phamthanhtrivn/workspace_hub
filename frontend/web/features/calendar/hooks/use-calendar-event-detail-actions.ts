@@ -1,7 +1,7 @@
 import { EventClickArg } from "@fullcalendar/core";
-import { useCallback } from "react";
+import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
 import {
   AttendeeResponseStatus,
   CalendarEvent,
@@ -16,12 +16,19 @@ import {
   useUpdateCalendarTaskCompletion,
 } from "./use-calendar-queries";
 import { isTaskCalendarEvent } from "../utils/calendar-event.utils";
+import { parseCalendarMeetingJoinToken } from "../utils/calendar-conference.utils";
+import {
+  acceptScheduledMeetingInvitation,
+  cancelScheduledMeeting,
+  declineScheduledMeetingInvitation,
+  updateScheduledMeeting,
+} from "@/features/meeting/api/meeting.api";
 import { useAppSelector } from "@/store/store";
 
 interface UseCalendarEventDetailActionsInput {
   detailEvent: CalendarEvent | null;
   onEdit: (event: CalendarEvent) => void;
-  setDetailEvent: (event: CalendarEvent | null) => void;
+  setDetailEvent: Dispatch<SetStateAction<CalendarEvent | null>>;
 }
 
 export function useCalendarEventDetailActions({
@@ -29,12 +36,15 @@ export function useCalendarEventDetailActions({
   onEdit,
   setDetailEvent,
 }: UseCalendarEventDetailActionsInput) {
-  const intl = useAppIntl();
+
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const cancelEvent = useCancelCalendarEvent();
   const updateEvent = useUpdateCalendarEvent();
   const updateResponse = useUpdateCalendarEventResponse();
-  const updateTaskCompletion = useUpdateCalendarTaskCompletion();
+  const {
+    mutateAsync: updateTaskCompletionAsync,
+    isPending: taskCompletionPending,
+  } = useUpdateCalendarTaskCompletion();
 
   const handleEventClick = useCallback(
     (arg: EventClickArg) => {
@@ -67,21 +77,29 @@ export function useCalendarEventDetailActions({
     async (scope: RecurrenceScope) => {
       if (!detailEvent) return;
       const targetEvent = detailEvent;
+      const meetingToken = parseCalendarMeetingJoinToken(targetEvent.location);
       try {
         await cancelEvent.mutateAsync({ eventId: targetEvent.id, scope });
+        if (meetingToken) {
+          try {
+            await cancelScheduledMeeting(meetingToken);
+          } catch {
+            // Non-fatal if meeting already cancelled
+          }
+        }
         setDetailEvent(null);
         toast.success(
-          targetEvent.sourceType === EventSourceType.TASK
-            ? intl.locale === "vi"
-              ? `Đã xóa "${targetEvent.title}"`
-              : `Deleted "${targetEvent.title}"`
-            : intl.locale === "vi"
-              ? `Đã xóa "${targetEvent.title}"`
-              : `Deleted "${targetEvent.title}"`,
+          `Deleted "${targetEvent.title}"`,
+
+
+
+
+
+
           {
             duration: 6000,
             action: {
-              label: intl.locale === "vi" ? "Hoàn tác" : "Undo",
+              label: "Undo",
               onClick: async () => {
                 try {
                   await updateEvent.mutateAsync({
@@ -89,13 +107,13 @@ export function useCalendarEventDetailActions({
                     payload: { status: EventStatus.CONFIRMED },
                   });
                   toast.success(
-                    intl.locale === "vi" ? "Đã hoàn tác" : "Restored",
+                    "Restored",
                   );
                 } catch {
                   toast.error(
-                    intl.locale === "vi"
-                      ? "Không thể hoàn tác"
-                      : "Could not restore",
+                    "Could not restore",
+
+
                   );
                 }
               },
@@ -103,10 +121,10 @@ export function useCalendarEventDetailActions({
           },
         );
       } catch {
-        toast.error(intl.formatMessage({ id: "calendar.eventCancelFailed" }));
+        toast.error("Failed to delete event");
       }
     },
-    [cancelEvent, detailEvent, intl, setDetailEvent, updateEvent],
+    [cancelEvent, detailEvent, setDetailEvent, updateEvent],
   );
 
   const handleRespond = useCallback(
@@ -125,46 +143,83 @@ export function useCalendarEventDetailActions({
           eventId: detailEvent.id,
           responseStatus,
         });
-        toast.success(intl.formatMessage({ id: "calendar.responseSaved" }));
+        const meetingToken = parseCalendarMeetingJoinToken(detailEvent.location);
+        if (meetingToken) {
+          try {
+            if (responseStatus === AttendeeResponseStatus.ACCEPTED) {
+              await acceptScheduledMeetingInvitation(meetingToken);
+            } else if (responseStatus === AttendeeResponseStatus.DECLINED) {
+              await declineScheduledMeetingInvitation(meetingToken);
+            }
+          } catch {
+            // Non-fatal if meeting invitation response error
+          }
+
+          if (detailEvent.createdBy === currentUserId) {
+            const updatedAttendees = detailEvent.attendees?.map((a) =>
+              a.userId === currentUserId || (!currentUserId && a.userId !== detailEvent.createdBy)
+                ? { ...a, responseStatus }
+                : a,
+            );
+            const acceptedUserIds = (updatedAttendees ?? [])
+              .filter(
+                (a) =>
+                  a.responseStatus === AttendeeResponseStatus.ACCEPTED ||
+                  a.userId === detailEvent.createdBy,
+              )
+              .map((a) => a.userId);
+            try {
+              await updateScheduledMeeting(meetingToken, {
+                inviteeIds: acceptedUserIds,
+              });
+            } catch {
+              // Non-fatal
+            }
+          }
+        }
+        toast.success("Response saved");
       } catch {
-        toast.error(intl.formatMessage({ id: "calendar.responseSaveFailed" }));
+        toast.error("Failed to save response");
       }
     },
-    [currentUserId, detailEvent, intl, setDetailEvent, updateResponse],
+    [currentUserId, detailEvent, setDetailEvent, updateResponse],
   );
 
   const updateTaskCompletionForEvent = useCallback(
     async (event: CalendarEvent) => {
-      if (
-        !isTaskCalendarEvent(event) ||
-        updateTaskCompletion.isPending
-      ) {
+      if (!isTaskCalendarEvent(event) || taskCompletionPending) {
         return;
       }
 
       const completed = !event.completedAt;
       try {
-        const updatedEvent = await updateTaskCompletion.mutateAsync({
+        const updatedEvent = await updateTaskCompletionAsync({
           eventId: event.id,
           completed,
         });
-        if (detailEvent?.id === updatedEvent.id) {
-          setDetailEvent(updatedEvent);
-        }
+        setDetailEvent((current) =>
+          current?.id === updatedEvent.id ? updatedEvent : current,
+        );
         toast.success(
-          intl.formatMessage({
-            id: completed
-              ? "calendar.task.markedCompleted"
-              : "calendar.task.markedIncomplete",
-          }),
+          completed ? "Task marked as completed" : "Task marked as incomplete",
         );
+
+
+
+
+
+
       } catch {
-        toast.error(
-          intl.formatMessage({ id: "calendar.task.completionFailed" }),
-        );
+        toast.error("Failed to update task status");
+
+
       }
     },
-    [detailEvent, intl, setDetailEvent, updateTaskCompletion],
+    [
+      setDetailEvent,
+      taskCompletionPending,
+      updateTaskCompletionAsync,
+    ],
   );
 
   const handleTaskCompletionChange = useCallback(async () => {
@@ -177,7 +232,7 @@ export function useCalendarEventDetailActions({
     detailBusy:
       cancelEvent.isPending ||
       updateResponse.isPending ||
-      updateTaskCompletion.isPending,
+      taskCompletionPending,
     handleCancelEvent,
     handleEventClick,
     handleRespond,
@@ -185,6 +240,6 @@ export function useCalendarEventDetailActions({
     handleTaskCompletionQuickToggle: updateTaskCompletionForEvent,
     openDetail,
     startEditingDetailEvent,
-    taskCompletionBusy: updateTaskCompletion.isPending,
+    taskCompletionBusy: taskCompletionPending,
   };
 }

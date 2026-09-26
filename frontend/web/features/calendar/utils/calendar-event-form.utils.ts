@@ -49,16 +49,19 @@ function getDefaultEnd(
 function getEditableAttendees(event?: CalendarEvent | null) {
   return (event?.attendees ?? [])
     .filter((attendee) => attendee.userId !== event?.createdBy)
-    .map(({ userId, optional, profile }) => ({
+    .map(({ userId, optional, profile, responseStatus }) => ({
       userId,
+      responseStatus,
       optional: optional ?? false,
-      profile: profile
+      ...(profile
         ? {
-            fullName: profile.fullName ?? null,
-            email: profile.email ?? null,
-            avatarUrl: profile.avatarUrl ?? null,
+            profile: {
+              fullName: profile.fullName ?? null,
+              email: profile.email ?? null,
+              avatarUrl: profile.avatarUrl ?? null,
+            },
           }
-        : null,
+        : {}),
     }));
 }
 

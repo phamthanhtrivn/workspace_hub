@@ -50,7 +50,7 @@ export function useAttendeeProfiles(
             .filter(
               (attendee) =>
                 attendee.userId !== event?.createdBy &&
-                !attendee.profile?.fullName,
+                !attendee.profile?.email,
             )
             .map((attendee) => attendee.userId),
         ),

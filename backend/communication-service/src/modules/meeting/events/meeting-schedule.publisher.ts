@@ -62,7 +62,57 @@ export class MeetingSchedulePublisher {
       profile,
       type: KAFKA_EVENTS.NOTIFICATION.MEETING_UPDATED,
       title: 'Meeting updated',
-      content: `${this.getSenderName(profile)} updated "${meeting.title}" scheduled for ${this.formatScheduleRange(meeting)}.`,
+      content: `${this.getSenderName(profile)} updated "${meeting.title}".`,
+    });
+  }
+
+  publishTargetedUpdateNotifications(
+    meeting: MeetingScheduleSnapshot,
+    recipientIds: string[],
+    profile: MeetingNotificationProfile,
+    changeDetails: string,
+  ): void {
+    this.publishNotifications({
+      meeting,
+      recipientIds: recipientIds.filter(
+        (recipientId) => recipientId !== meeting.hostUserId,
+      ),
+      profile,
+      type: KAFKA_EVENTS.NOTIFICATION.MEETING_UPDATED,
+      title: 'Calendar event updated',
+      content: `${this.getSenderName(profile)} updated "${meeting.title}" (${changeDetails}).`,
+    });
+  }
+
+  publishAddedInvitationNotifications(
+    meeting: MeetingScheduleSnapshot,
+    addedUserIds: string[],
+    profile: MeetingNotificationProfile,
+  ): void {
+    this.publishNotifications({
+      meeting,
+      recipientIds: addedUserIds,
+      profile,
+      type: KAFKA_EVENTS.NOTIFICATION.MEETING_INVITATION,
+      title: 'Meeting invitation',
+      content: `${this.getSenderName(profile)} invited you to "${meeting.title}".`,
+      status: 'PENDING',
+    });
+  }
+
+  publishRemovalNotifications(
+    meeting: MeetingScheduleSnapshot,
+    removedUserIds: string[],
+    profile: MeetingNotificationProfile,
+  ): void {
+    this.publishNotifications({
+      meeting,
+      recipientIds: removedUserIds,
+      profile,
+      type: KAFKA_EVENTS.NOTIFICATION.MEETING_UPDATED,
+      title: 'Removed from meeting',
+      content: `${this.getSenderName(profile)} removed you from "${meeting.title}".`,
+      status: 'CANCELLED',
     });
   }
 

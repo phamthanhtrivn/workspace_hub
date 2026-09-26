@@ -6,10 +6,9 @@ import StoreProvider from "@/store/store-provider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import QueryProvider from "@/store/query-provider";
 import NotificationManagers from "@/features/notification/components/notification-managers";
-import AppIntlProvider from "@/features/i18n/app-intl-provider";
 
 const inter = Inter({
-  subsets: ["latin", "vietnamese"],
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -24,17 +23,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={inter.className}>
+    <html lang="en" className={inter.className}>
       <body className="min-h-screen">
         <GoogleOAuthProvider
           clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
         >
           <QueryProvider>
             <StoreProvider>
-              <AppIntlProvider>
-                {children}
-                <NotificationManagers />
-              </AppIntlProvider>
+              {children}
+              <NotificationManagers />
             </StoreProvider>
           </QueryProvider>
         </GoogleOAuthProvider>

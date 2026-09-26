@@ -133,6 +133,16 @@ export class MeetingController {
     };
   }
 
+  @Post('scheduled/cleanup')
+  async cleanupStaleScheduledMeetings() {
+    const cleanedCount =
+      await this.meetingService.cleanupStaleScheduledMeetings();
+    return {
+      message: 'Stale scheduled meetings cleaned up successfully',
+      data: { cleanedCount },
+    };
+  }
+
   @Get('history/summary')
   async getMeetingHistorySummary(@Headers('x-user-id') userId: string) {
     if (!userId) {

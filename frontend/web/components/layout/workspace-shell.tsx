@@ -22,55 +22,54 @@ import UserSettingsModal from "@/features/user-setting/components/user-settings-
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { cn } from "@/lib/utils";
 import WorkspaceHeader from "./workspace-header";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const menuItems = [
   {
     href: "/dashboard",
-    labelId: "nav.dashboard",
-    descriptionId: "nav.dashboard.description",
+    label: "Dashboard",
+    description: "Overview & Analytics",
     icon: LayoutDashboard,
   },
   {
     href: "/projects",
-    labelId: "nav.projects",
-    descriptionId: "nav.projects.description",
+    label: "Projects",
+    description: "Tasks & Workflows",
     icon: FolderKanban,
   },
   {
     href: "/chat",
-    labelId: "nav.chat",
-    descriptionId: "nav.chat.description",
+    label: "Messages",
+    description: "Team Channels & DMs",
     icon: MessageSquareText,
   },
   {
     href: "/calendar",
-    labelId: "nav.calendar",
-    descriptionId: "nav.calendar.description",
+    label: "Calendar",
+    description: "Events & Schedules",
     icon: CalendarDays,
   },
   {
     href: "/meetings",
-    labelId: "nav.meetings",
-    descriptionId: "nav.meetings.description",
+    label: "Meetings",
+    description: "Video Calls & Rooms",
     icon: Video,
   },
   {
     href: "/documents",
-    labelId: "nav.documents",
-    descriptionId: "nav.documents.description",
+    label: "Documents",
+    description: "Notes & File Storage",
     icon: Files,
   },
   {
     href: "/pomodoro",
-    labelId: "nav.pomodoro",
-    descriptionId: "nav.pomodoro.description",
+    label: "Pomodoro",
+    description: "Focus & Time Tracker",
     icon: Clock3,
   },
   {
     href: "/ai",
-    labelId: "nav.ai",
-    descriptionId: "nav.ai.description",
+    label: "AI Assistant",
+    description: "Chat & Smart Insights",
     icon: Bot,
   },
 ];
@@ -84,14 +83,11 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
 }: {
   children: React.ReactNode;
 }) {
-  const intl = useAppIntl();
   const pathname = usePathname();
   const currentItem = menuItems.find((item) =>
     isWorkspaceRouteActive(pathname, item.href),
   );
-  const currentTitle = currentItem
-    ? intl.formatMessage({ id: currentItem.labelId })
-    : intl.formatMessage({ id: "app.workspace" });
+  const currentTitle = currentItem ? currentItem.label : "Workspace";
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -185,10 +181,10 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
             >
               <div className="pl-3 whitespace-nowrap">
                 <span className="block text-base font-black leading-tight">
-                  {intl.formatMessage({ id: "app.workspaceHub" })}
+                  WorkspaceHub
                 </span>
                 <span className="block text-xs font-semibold text-slate-500">
-                  {intl.formatMessage({ id: "app.intelligentWorkspace" })}
+                  Intelligent Workspace
                 </span>
               </div>
             </div>
@@ -204,13 +200,13 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
 
         <nav
           className="mt-8 flex-1 space-y-1.5 overflow-y-auto pr-2 -mr-2"
-          aria-label={intl.formatMessage({ id: "nav.workspaceMenu" })}
+          aria-label="Workspace navigation menu"
         >
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = isWorkspaceRouteActive(pathname, item.href);
-            const label = intl.formatMessage({ id: item.labelId });
-            const description = intl.formatMessage({ id: item.descriptionId });
+            const label = item.label;
+            const description = item.description;
 
             return (
               <Link
@@ -291,7 +287,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
               >
                 <div className="pl-3 whitespace-nowrap">
                   <p className="text-sm font-black text-slate-800 hover:text-[var(--color-primary-dark)]">
-                    {intl.formatMessage({ id: "nav.generalSettings" })}
+                    Settings
                   </p>
                   <p className="truncate text-[0.7rem] font-semibold text-slate-500">
                     {email}

@@ -479,9 +479,16 @@ export function ScheduleMeetingModal({
           </div>
 
           <section className="space-y-2">
-            <label className="text-xs font-black uppercase text-slate-400">
-              Invite people
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black uppercase text-slate-400">
+                Invite people
+              </label>
+              {isEditing ? (
+                <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                  Calendar events auto-sync guests
+                </span>
+              ) : null}
+            </div>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
               <MeetingInput

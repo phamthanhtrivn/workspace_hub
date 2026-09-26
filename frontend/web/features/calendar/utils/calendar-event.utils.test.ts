@@ -7,6 +7,7 @@ import {
 } from "../types/calendar.types";
 import { formatLocalDateKey } from "./calendar-date.utils";
 import { mapCalendarEventToFullCalendar } from "./calendar-event.utils";
+import { readTaskDeadline, writeTaskDeadline } from "./calendar-task-deadline.utils";
 
 function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
   return {
@@ -114,5 +115,34 @@ describe("mapCalendarEventToFullCalendar", () => {
     expect(mapped.extendedProps?.calendarColor).toBe("#f97316");
     expect(mapped.extendedProps?.eventColor).toBe("#f97316");
     expect(mapped.extendedProps?.hasCustomEventColor).toBe(false);
+  });
+});
+
+describe("task deadline markers", () => {
+  it("reads old Vietnamese and new English deadlines", () => {
+    expect(readTaskDeadline("[TASK] Notes\n[Hạn chót: 2026-09-25 14:30]")).toEqual({
+      date: "2026-09-25",
+      time: "14:30",
+    });
+    expect(readTaskDeadline("[TASK]\n[Deadline: 2026-09-26]")).toEqual({
+      date: "2026-09-26",
+      time: "",
+    });
+  });
+
+  it("replaces legacy markers with a single English deadline", () => {
+    const description = "[TASK] Notes\n[Hạn chót: 2026-09-25 14:30]\n[Deadline: 2026-09-24]";
+    const result = writeTaskDeadline(description, "2026-09-27", "09:00", true);
+
+    expect(result).toContain("[TASK] Notes");
+    expect(result.match(/\[Deadline:/g)).toHaveLength(1);
+    expect(result).toContain("[Deadline: 2026-09-27 09:00]");
+    expect(result).not.toContain("Hạn chót");
+  });
+
+  it("removes a previous deadline when the option is disabled", () => {
+    expect(writeTaskDeadline("[TASK] Notes\n[Hạn chót: 2026-09-25]", "", "", false)).toBe(
+      "[TASK] Notes",
+    );
   });
 });

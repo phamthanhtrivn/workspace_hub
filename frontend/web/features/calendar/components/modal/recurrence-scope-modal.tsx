@@ -2,9 +2,15 @@
 
 import { Repeat2, X } from "lucide-react";
 import { useRef } from "react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Button } from "@/components/ui/button";
 import { useModalDialog } from "../../hooks/use-modal-dialog";
 import { RecurrenceScope } from "../../types/calendar.types";
+
+const SCOPE_LABELS: Record<RecurrenceScope, string> = {
+  [RecurrenceScope.THIS]: "This event",
+  [RecurrenceScope.THIS_AND_FOLLOWING]: "This and following events",
+  [RecurrenceScope.ALL]: "All events in series",
+};
 
 export function RecurrenceScopeModal({
   open,
@@ -15,7 +21,6 @@ export function RecurrenceScopeModal({
   onClose: () => void;
   onSelect: (scope: RecurrenceScope) => void;
 }) {
-  const intl = useAppIntl();
   const dialogRef = useRef<HTMLDivElement>(null);
   useModalDialog({ dialogRef, onClose });
   if (!open) return null;
@@ -37,40 +42,44 @@ export function RecurrenceScopeModal({
             id="calendar-recurrence-scope-title"
             className="min-w-0 flex-1 text-base font-semibold text-slate-800"
           >
-            {intl.formatMessage({ id: "calendar.moveRecurringEvent" })}
+            Move recurring event
           </h2>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-500 hover:bg-slate-100"
-            aria-label={intl.formatMessage({ id: "app.close" })}
+            aria-label="Close"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-1 p-3">
           {Object.values(RecurrenceScope).map((scope) => (
-            <button
+            <Button
               key={scope}
               data-modal-initial-focus={scope === RecurrenceScope.THIS || undefined}
               type="button"
+              variant="ghost"
               onClick={() => onSelect(scope)}
-              className="w-full cursor-pointer rounded-lg px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-blue-50 hover:text-blue-800"
+              className="h-auto w-full cursor-pointer justify-start rounded-lg px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-blue-50 hover:text-blue-800"
             >
-              {intl.formatMessage({ id: `calendar.scope.${scope}` })}
-            </button>
+              {SCOPE_LABELS[scope]}
+            </Button>
           ))}
         </div>
 
         <div className="flex justify-end border-t border-slate-200 px-4 py-3">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={onClose}
             className="cursor-pointer rounded-md px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
           >
-            {intl.formatMessage({ id: "app.cancel" })}
-          </button>
+            Cancel
+          </Button>
         </div>
       </div>
     </div>

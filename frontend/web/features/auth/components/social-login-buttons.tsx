@@ -7,7 +7,6 @@ import { useGoogleLogin } from "@react-oauth/google";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { setCredentials } from "@/store/auth/auth-slice";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { AppDispatch } from "@/store/store";
 import { useSocialLoginMutation } from "../hooks/useAuthMutations";
 import { AuthProvider } from "../types/auth.constants";
@@ -18,7 +17,6 @@ import {
 } from "../utils/auth-redirect";
 
 const SocialLoginButtons = React.memo(function SocialLoginButtons() {
-  const intl = useAppIntl();
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
   const socialLoginMutation = useSocialLoginMutation();
@@ -46,8 +44,7 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
             );
 
             toast.success(
-              response.message ||
-                intl.formatMessage({ id: "auth.googleSignInSuccess" }),
+              response.message || "Google Sign In successful",
             );
             router.replace(
               getReturnToFromSearch(window.location.search) ??
@@ -58,7 +55,7 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
             toast.error(
               getAuthErrorMessage(
                 error,
-                intl.formatMessage({ id: "auth.googleSignInFailed" }),
+                "Google Sign In failed",
               ),
             );
           },
@@ -66,7 +63,7 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
       );
     },
     onError: () =>
-      toast.error(intl.formatMessage({ id: "auth.googleSignInFailed" })),
+      toast.error("Google Sign In failed"),
   });
 
   return (
@@ -83,7 +80,7 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
           width={20}
           height={20}
         />
-        {intl.formatMessage({ id: "auth.google" })}
+        Google
       </button>
     </div>
   );
