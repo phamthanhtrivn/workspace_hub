@@ -161,7 +161,7 @@ export function UpcomingMeetingCard({
             type="button"
             disabled={!canStart && !canJoin}
             onClick={() => router.push(MEETING_ROUTES.room(meeting.joinToken))}
-            className="h-10 flex-1 cursor-pointer disabled:bg-slate-200 disabled:text-slate-500"
+            className="h-9 flex-1 cursor-pointer rounded-xl font-bold shadow-sm shadow-blue-600/20 active:scale-[0.98] disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
           >
             {canStart ? (
               <Play className="h-4 w-4" />
@@ -179,6 +179,7 @@ export function UpcomingMeetingCard({
               tone="outline"
               controlSize="md"
               onClick={() => onEdit?.(meeting)}
+              className="h-9 w-9 rounded-xl"
             />
           ) : null}
           <MeetingIconButton
@@ -187,6 +188,7 @@ export function UpcomingMeetingCard({
             tone="outline"
             controlSize="md"
             onClick={copyLink}
+            className="h-9 w-9 rounded-xl"
           />
           {canManage ? (
             <MeetingIconButton
@@ -196,7 +198,9 @@ export function UpcomingMeetingCard({
               controlSize="md"
               disabled={cancelMeeting.isPending}
               onClick={cancelScheduledMeeting}
-              className={cancelMeeting.isPending ? "[&_svg]:animate-spin" : ""}
+              className={`h-9 w-9 rounded-xl ${
+                cancelMeeting.isPending ? "[&_svg]:animate-spin" : ""
+              }`}
             />
           ) : null}
         </div>
