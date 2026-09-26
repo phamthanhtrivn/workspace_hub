@@ -266,15 +266,36 @@ export class EventRelationService {
     attendees?: CalendarEventAttendeeDto[],
   ): Promise<void> {
     if (attendees === undefined) return;
+    const existing = await tx.calendarEventAttendee.findMany({
+      where: { eventId: target.id },
+    });
+    const existingStatusMap = new Map(
+      existing.map((a) => [a.userId, a.responseStatus]),
+    );
+
     await tx.calendarEventAttendee.deleteMany({
       where: { eventId: target.id },
     });
-    await this.createAttendees(
-      tx,
-      target.id,
-      target.createdBy,
-      this.normalizeAttendees(target.createdBy, attendees),
-    );
+
+    const normalized = this.normalizeAttendees(target.createdBy, attendees);
+    if (normalized.length === 0) return;
+
+    await tx.calendarEventAttendee.createMany({
+      data: normalized.map((attendee) => {
+        const prevStatus = existingStatusMap.get(attendee.userId);
+        const defaultStatus =
+          attendee.userId === target.createdBy
+            ? AttendeeResponseStatus.ACCEPTED
+            : AttendeeResponseStatus.NEEDS_ACTION;
+        return {
+          eventId: target.id,
+          userId: attendee.userId,
+          optional: attendee.optional ?? false,
+          responseStatus: prevStatus ?? defaultStatus,
+        };
+      }),
+      skipDuplicates: true,
+    });
   }
 
   private async replaceReminders(

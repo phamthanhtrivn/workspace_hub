@@ -282,6 +282,7 @@ export class MeetingScheduleService {
     }
     this.assertValidRange(nextStartAt, nextEndAt);
 
+    const previousUserIds = meeting.participants.map((p) => p.userId);
     const inviteeIds =
       dto.inviteeIds === undefined
         ? undefined
@@ -333,7 +334,73 @@ export class MeetingScheduleService {
       });
     });
 
-    await this.publishScheduledMeetingUpdated(updatedMeeting);
+    const nextUserIds = updatedMeeting.participants.map((p) => p.userId);
+    const addedUserIds = nextUserIds.filter((id) => !previousUserIds.includes(id));
+    const removedUserIds = previousUserIds.filter((id) => !nextUserIds.includes(id));
+    const keptUserIds = nextUserIds.filter(
+      (id) => previousUserIds.includes(id) && id !== meeting.hostId,
+    );
+
+    const snapshot = this.toPublisherSnapshot(updatedMeeting);
+    const profile = await this.getPublisherProfile(meeting.hostId);
+
+    if (removedUserIds.length > 0) {
+      this.meetingSchedulePublisher.publishRemovalNotifications(
+        snapshot,
+        removedUserIds,
+        profile,
+      );
+      for (const removedId of removedUserIds) {
+        this.meetingRealtimeService.emitUserEvent(
+          removedId,
+          MeetingEvent.PARTICIPANT_REMOVED,
+          { meetingId: meeting.id, joinToken: meeting.joinToken, userId: removedId },
+        );
+      }
+    }
+
+    if (addedUserIds.length > 0) {
+      this.meetingSchedulePublisher.publishAddedInvitationNotifications(
+        snapshot,
+        addedUserIds,
+        profile,
+      );
+    }
+
+    const titleChanged = Boolean(dto.title && dto.title.trim() !== meeting.title);
+    const timeChanged = Boolean(
+      (dto.scheduledStartAt &&
+        new Date(dto.scheduledStartAt).getTime() !==
+          meeting.scheduledStartAt?.getTime()) ||
+        (dto.scheduledEndAt &&
+          new Date(dto.scheduledEndAt).getTime() !==
+            meeting.scheduledEndAt?.getTime()),
+    );
+    const changes = [
+      titleChanged ? 'title' : '',
+      timeChanged ? 'time' : '',
+    ]
+      .filter(Boolean)
+      .join(' & ');
+
+    if (changes && keptUserIds.length > 0) {
+      this.meetingSchedulePublisher.publishTargetedUpdateNotifications(
+        snapshot,
+        keptUserIds,
+        profile,
+        changes,
+      );
+    }
+
+    this.meetingRealtimeService.emitMeetingEvent(
+      updatedMeeting.id,
+      MeetingEvent.STATUS_UPDATED,
+      {
+        meetingId: updatedMeeting.id,
+        joinToken: updatedMeeting.joinToken,
+        status: updatedMeeting.status,
+      },
+    );
 
     return this.toScheduledMeetingResponse(updatedMeeting);
   }
@@ -369,6 +436,7 @@ export class MeetingScheduleService {
       });
     });
 
+    await this.meetingRealtimeService.deleteLiveKitRoom(meeting.roomName);
     await this.publishScheduledMeetingCancelled(cancelledMeeting);
 
     return this.toScheduledMeetingResponse(cancelledMeeting);
@@ -422,27 +490,23 @@ export class MeetingScheduleService {
       throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED);
     }
 
-    const participant = meeting.participants[0];
-    if (!participant) {
-      throw new ForbiddenException(
-        MEETING_ERROR_MESSAGES.MEETING_INVITATION_NOT_FOUND,
-      );
-    }
-    if (participant.status !== MeetingParticipantStatus.INVITED) {
-      throw new BadRequestException(
-        MEETING_ERROR_MESSAGES.MEETING_INVITATION_ALREADY_HANDLED,
-      );
-    }
-
     const respondedAt = new Date();
-    const updatedParticipant = await this.prisma.meetingParticipant.update({
+    const updatedParticipant = await this.prisma.meetingParticipant.upsert({
       where: {
         meetingId_userId: {
           meetingId: meeting.id,
           userId,
         },
       },
-      data: {
+      create: {
+        meetingId: meeting.id,
+        userId,
+        role: MeetingRole.PARTICIPANT,
+        status: participantStatus,
+        invitedAt: respondedAt,
+        lastSeenAt: respondedAt,
+      },
+      update: {
         status: participantStatus,
         lastSeenAt: respondedAt,
       },

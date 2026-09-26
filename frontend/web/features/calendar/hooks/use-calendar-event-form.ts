@@ -15,7 +15,9 @@ import {
   calendarEventFormSchema,
 } from "../schemas/calendar-event-form.schema";
 import { CALENDAR_DEFAULT_EVENT_COLOR } from "../types/calendar.constants";
+import { useAppSelector } from "@/store/store";
 import {
+  AttendeeResponseStatus,
   CalendarEvent,
   CalendarEventAttendeePayload,
   CalendarEventDraft,
@@ -85,7 +87,9 @@ export function useCalendarEventForm({
     defaultValues: defaults.values,
   });
   const [attendees, setAttendees] = useState(defaults.attendees);
-  const [documentIds, setDocumentIds] = useState<string[]>(defaults.documentIds);
+  const [documentIds, setDocumentIds] = useState<string[]>(
+    defaults.documentIds,
+  );
   const [showCustomEventColor, setShowCustomEventColor] = useState(
     defaults.showCustomEventColor,
   );
@@ -102,8 +106,9 @@ export function useCalendarEventForm({
 
   const watchStartAt = form.watch("startAt");
   const isPastEvent =
-    new Date(fromDateTimeLocal(watchStartAt || defaults.values.startAt)).getTime() <=
-    Date.now();
+    new Date(
+      fromDateTimeLocal(watchStartAt || defaults.values.startAt),
+    ).getTime() <= Date.now();
 
   const handleToggleConference = (enabled: boolean) => {
     if (enabled && isPastEvent) {
@@ -116,10 +121,22 @@ export function useCalendarEventForm({
     }
   };
 
+  const currentUserId = useAppSelector((state) => state.auth.userId);
+
   const submitValidForm = async (values: CalendarEventEditorValues) => {
     let finalLocation = values.location.trim() || null;
-    const attendeeUserIds = attendees.map((a) => a.userId);
-    const existingMeetingToken = parseCalendarMeetingJoinToken(finalLocation);
+    const hostId = event?.createdBy || currentUserId;
+    const acceptedAttendeeUserIds = attendees
+      .filter(
+        (a) =>
+          a.responseStatus === AttendeeResponseStatus.ACCEPTED ||
+          a.userId === hostId,
+      )
+      .map((a) => a.userId);
+    const existingMeetingToken =
+      parseCalendarMeetingJoinToken(finalLocation) ||
+      parseCalendarMeetingJoinToken(event?.location) ||
+      parseCalendarMeetingJoinToken(defaults.values.location);
     const eventStartMs = new Date(fromDateTimeLocal(values.startAt)).getTime();
     const isPast = eventStartMs <= Date.now();
 
@@ -145,14 +162,23 @@ export function useCalendarEventForm({
         fromDateTimeLocal(values.endAt),
       );
 
+      const eventTag = event?.id
+        ? `[Calendar Event:${event.id}]`
+        : "[Calendar Event]";
+      const calendarMeetingDesc = values.description.trim()
+        ? values.description.trim().includes("[Calendar Event")
+          ? values.description.trim()
+          : `${values.description.trim()}\n${eventTag}`
+        : eventTag;
+
       if (hasConference && !existingMeetingToken) {
         try {
           const meetingRes = await createScheduledMeeting({
             title: values.title.trim() || "Event Meeting",
             scheduledStartAt: meetingRange.scheduledStartAt,
             scheduledEndAt: meetingRange.scheduledEndAt,
-            description: values.description.trim() || null,
-            inviteeIds: attendeeUserIds,
+            description: calendarMeetingDesc,
+            inviteeIds: acceptedAttendeeUserIds,
           });
           if (meetingRes.data?.joinToken) {
             finalLocation = buildCalendarMeetingUrl(meetingRes.data.joinToken);
@@ -167,8 +193,8 @@ export function useCalendarEventForm({
               title: values.title.trim() || "Event Meeting",
               scheduledStartAt: meetingRange.scheduledStartAt,
               scheduledEndAt: meetingRange.scheduledEndAt,
-              description: values.description.trim() || null,
-              inviteeIds: attendeeUserIds,
+              description: calendarMeetingDesc,
+              inviteeIds: acceptedAttendeeUserIds,
             });
           } catch {
             // Non-fatal
@@ -195,7 +221,10 @@ export function useCalendarEventForm({
       color: values.useEventColor ? values.color : null,
       recurrenceRule: recurrence.getRecurrenceRule(values.startAt),
       recurrenceScope: event ? values.recurrenceScope : undefined,
-      attendees: attendees.map(({ userId, optional }) => ({ userId, optional })),
+      attendees: attendees.map(({ userId, optional }) => ({
+        userId,
+        optional,
+      })),
       reminders: values.reminders.filter(
         (reminder) =>
           Number.isFinite(reminder.minutesBefore) &&

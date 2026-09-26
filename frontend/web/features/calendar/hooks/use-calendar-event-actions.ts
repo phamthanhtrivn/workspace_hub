@@ -18,6 +18,7 @@ export function useCalendarEventActions({
   const activeDetailEvent = useMemo(() => {
     if (!detailEvent) return null;
     const fromList = events.find((e) => e.id === detailEvent.id);
+    if (!fromList && events.length > 0) return null;
     if (!fromList) return detailEvent;
     const detailTime = new Date(detailEvent.updatedAt || 0).getTime();
     const listTime = new Date(fromList.updatedAt || 0).getTime();

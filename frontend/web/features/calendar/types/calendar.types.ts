@@ -157,6 +157,7 @@ export interface UpdateCalendarPayload {
 
 export interface CalendarEventAttendeePayload {
   userId: string;
+  responseStatus?: AttendeeResponseStatus;
   optional?: boolean;
   /** Client-side only: used for display in the attendee picker chip */
   profile?: Pick<UserProfileSnapshot, "fullName" | "email" | "avatarUrl"> | null;
