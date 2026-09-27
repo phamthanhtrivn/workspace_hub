@@ -17,10 +17,8 @@ import { ProjectSummaryPanel } from "../summary/project-summary-panel";
 import { PriorityDistributionBar } from "../summary/priority-distribution-bar";
 import { MemberWorkloadList } from "../summary/member-workload-list";
 
-import {
-  useProjectSummaryMetrics,
-  isWithinLastDays,
-} from "@/features/project/hooks/use-project-summary-metrics";
+import { formatTimeAgo } from "@/lib/date";
+import { useProjectSummaryMetrics } from "@/features/project/hooks/use-project-summary-metrics";
 
 export default function SummaryView({
   tasks,
@@ -31,13 +29,20 @@ export default function SummaryView({
 }) {
   const formatDate = (value?: string) =>
     value
-      ? new Date(value).toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })
+      ? new Date(value).toLocaleDateString(undefined, {
+          day: "2-digit",
+          month: "2-digit",
+        })
       : "Not set";
   const {
     now,
+    activeTasks,
     rootTasks,
     subtasks,
+    subtaskCompletionPercent,
     completed,
+    completedRecently,
+    createdRecently,
     overdue,
     dueSoon,
     unscheduled,
@@ -51,49 +56,48 @@ export default function SummaryView({
   } = useProjectSummaryMetrics(tasks, members, { isSoftware: false });
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4 pb-8">
-      <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-5 py-4">
-        <p className="text-sm font-bold text-[#172B4D]">
-          Project Overview
-        </p>
-        <p className="mt-1 text-xs text-slate-600">
-          Track high-level progress, upcoming milestones, and task distribution across your team.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+    <div className="w-full space-y-4 pb-8">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
         <ProjectMetricCard
           icon={ListChecks}
           value={rootTasks.length}
           label="Tasks"
+          sublabel={`+${createdRecently.length} created this week`}
           color="bg-blue-50 text-blue-600"
         />
         <ProjectMetricCard
           icon={Activity}
           value={subtasks.length}
           label="Subtasks"
+          sublabel={`${subtaskCompletionPercent}% completed`}
           color="bg-violet-50 text-violet-600"
         />
         <ProjectMetricCard
           icon={CheckCircle2}
           value={completed.length}
           label="Completed"
+          sublabel={`+${completedRecently.length} done this week`}
           color="bg-emerald-50 text-emerald-600"
         />
         <ProjectMetricCard
           icon={CircleAlert}
           value={overdue.length}
           label="Overdue"
+          sublabel={
+            overdue.length > 0
+              ? `${dueSoon.length} due in next 7 days`
+              : "All deadlines on track"
+          }
           color="bg-red-50 text-red-600"
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
         <ProjectSummaryPanel
           title="Work Progress"
           description="Overall completion percentage and status breakdown."
         >
-          <div className="flex items-center gap-5">
+          <div className="flex flex-col items-center gap-5 sm:flex-row">
             <div
               className="grid h-32 w-32 shrink-0 place-items-center rounded-full"
               style={{
@@ -136,7 +140,7 @@ export default function SummaryView({
             </p>
           ) : (
             <div className="space-y-2">
-              {dueSoon.slice(0, 6).map((task) => (
+              {dueSoon.map((task) => (
                 <div
                   key={task.id}
                   className="flex items-center gap-3 rounded border border-slate-100 px-3 py-2"
@@ -213,9 +217,7 @@ export default function SummaryView({
                     {task.title}
                   </span>
                   <span className="text-[10px] font-semibold text-slate-400">
-                    {isWithinLastDays(task.updatedAt, now)
-                      ? "Just updated"
-                      : formatDate(task.updatedAt)}
+                    {formatTimeAgo(task.updatedAt || task.createdAt)}
                   </span>
                 </div>
               ))}
