@@ -129,6 +129,12 @@ export function useProjectSummaryMetrics(
 
     const rootTasks = activeTasks.filter((task) => !task.parentTaskId);
     const subtasks = activeTasks.filter((task) => Boolean(task.parentTaskId));
+    const completedSubtasks = subtasks.filter(
+      (task) => task.status === TaskStatus.DONE,
+    );
+    const subtaskCompletionPercent = subtasks.length
+      ? Math.round((completedSubtasks.length / subtasks.length) * 100)
+      : 0;
 
     return {
       now,
@@ -136,6 +142,8 @@ export function useProjectSummaryMetrics(
       workItems,
       rootTasks,
       subtasks,
+      completedSubtasks,
+      subtaskCompletionPercent,
       completed,
       cancelled,
       terminal,

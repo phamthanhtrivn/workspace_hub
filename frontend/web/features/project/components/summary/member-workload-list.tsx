@@ -33,7 +33,7 @@ export function MemberWorkloadList({
       {items.map((item) => (
         <div
           key={item.name}
-          className="grid grid-cols-[120px_1fr_28px] items-center gap-3 text-xs"
+          className="grid grid-cols-[100px_1fr_28px] items-center gap-3 text-xs sm:grid-cols-[140px_1fr_28px]"
         >
           <span className="flex min-w-0 items-center gap-2 truncate text-slate-600">
             <Users className="h-3.5 w-3.5 shrink-0 text-slate-400" />
