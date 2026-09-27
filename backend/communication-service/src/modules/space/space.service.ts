@@ -756,6 +756,9 @@ export class SpaceService {
     taskTitle: string,
     actorId?: string,
     channelId?: string,
+    status?: string,
+    priority?: string,
+    dueDate?: string,
   ) {
     const space = await this.prisma.space.findFirst({
       where: { projectId },
@@ -846,9 +849,13 @@ export class SpaceService {
 
     if (!rootMessage) {
       const messageContent = JSON.stringify({
+        type: 'TASK',
         title: taskTitle,
         taskId,
         projectId,
+        status: status || undefined,
+        priority: priority || undefined,
+        dueDate: dueDate || undefined,
         tag: taskTag,
       });
 

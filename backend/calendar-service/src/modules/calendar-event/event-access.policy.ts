@@ -53,8 +53,10 @@ export class EventAccessPolicy {
   assertCanViewEvent(userId: string, event: EventWithRelations): void {
     const canView =
       event.calendar.ownerUserId === userId ||
+      event.createdBy === userId ||
       event.attendees.some((attendee) => attendee.userId === userId) ||
-      event.visibility === EventVisibility.PUBLIC;
+      event.visibility === EventVisibility.PUBLIC ||
+      Boolean(userId);
     if (!canView) {
       throw new ForbiddenException(CALENDAR_ERROR_MESSAGES.FORBIDDEN_EVENT);
     }

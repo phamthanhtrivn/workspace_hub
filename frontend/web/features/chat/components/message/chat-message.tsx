@@ -12,6 +12,7 @@ import NoteMessage from "./note-message";
 import MeetingCardMessage from "./meeting-card-message";
 import DocumentMessage from "./document-message";
 import TaskCardMessage from "./task-card-message";
+import EventCardMessage from "./event-card-message";
 import { CHAT_MESSAGE_TYPES } from "../../types/document.constants";
 import MediaLightbox from "./media-lightbox";
 import { renderMessageContent } from "../../utils/message-formatter";
@@ -198,11 +199,21 @@ const ChatMessage = React.memo(function ChatMessage({
     );
   }
 
-  const isTaskCard =
-    msg.type === "TASK" ||
-    (msg.content &&
-      (msg.content.includes("[Task #") ||
-        msg.content.trim().startsWith('{"title":')));
+  const isTaskCard = useMemo(() => {
+    if (msg.type === "TASK") return true;
+    if (!msg.content) return false;
+    const trimmed = msg.content.trim();
+    if (trimmed.includes("[Task #")) return true;
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      try {
+        const json = JSON.parse(trimmed);
+        return json.type === "TASK" || Boolean(json.taskId);
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }, [msg.type, msg.content]);
 
   return (
     <div

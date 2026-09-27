@@ -110,6 +110,9 @@ export class SpaceController {
       taskTitle: string;
       actorId?: string;
       channelId?: string;
+      status?: string;
+      priority?: string;
+      dueDate?: string;
     },
   ) {
     this.assertInternalServiceKey(serviceKey);
@@ -119,6 +122,9 @@ export class SpaceController {
       body.taskTitle,
       body.actorId,
       body.channelId,
+      body.status,
+      body.priority,
+      body.dueDate,
     );
     return {
       message: 'Task thread retrieved successfully',

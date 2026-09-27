@@ -14,7 +14,6 @@ import {
   Paperclip,
   CheckSquare,
   BarChart2,
-  Calendar,
   FileText,
   Smile,
   Plus,
@@ -54,6 +53,13 @@ import { useSpeechToText } from "../../hooks/input/useSpeechToText";
 import { useAudioRecorder } from "../../hooks/input/useAudioRecorder";
 import MyFilesSelectModal from "../modals/shared/my-files-select-modal";
 import { getChannelMentionOptions } from "../../utils/mention-member-utils";
+import { useQuery } from "@tanstack/react-query";
+import TaskFormDialog, {
+  TaskFormValues,
+} from "@/features/project/components/dialogs/task-form-dialog";
+import { createTask } from "@/features/project/api/task.api";
+import { getSpaceDetails } from "@/features/chat/api/space.api";
+import { chatKeys } from "@/features/chat/types/chat.constant";
 
 interface ChannelChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -101,6 +107,17 @@ const ChannelChatInput = React.memo(
       const [isDraggingOver, setIsDraggingOver] = useState(false);
       const dragCounter = useRef(0);
       const [isMyFilesModalOpen, setIsMyFilesModalOpen] = useState(false);
+      const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+      const [isSubmittingTask, setIsSubmittingTask] = useState(false);
+
+      const activeSpaceId = useAppSelector(
+        (state: any) => state.chat.activeSpaceId,
+      );
+      const { data: spaceDetail } = useQuery({
+        queryKey: chatKeys.spaceDetails(activeSpaceId || ""),
+        queryFn: async () => (await getSpaceDetails(activeSpaceId!)).data,
+        enabled: Boolean(activeSpaceId),
+      });
 
       const { activeChat: activeChannel, activeChatType } = useActiveChat();
       const memberProfiles = useChatMemberProfiles();
@@ -127,11 +144,39 @@ const ChannelChatInput = React.memo(
         channelId: activeChannelId,
         searchQuery: mentionQuery ?? "",
         enabled:
-          mentionQuery !== null &&
-          activeChatType === ChatContextType.CHANNEL,
+          mentionQuery !== null && activeChatType === ChatContextType.CHANNEL,
       });
 
-      // Close options on outside click
+      const handleTaskSubmit = async (values: TaskFormValues) => {
+        const projectId =
+          spaceDetail?.projectId || (activeChannel as any)?.projectId;
+        if (!projectId) {
+          toast.error("Project ID not found for this space");
+          return;
+        }
+        setIsSubmittingTask(true);
+        try {
+          const createdTask = await createTask(projectId, values);
+          toast.success("Task created successfully");
+          setIsTaskModalOpen(false);
+
+          const taskMessagePayload = JSON.stringify({
+            type: "TASK",
+            taskId: createdTask.id,
+            projectId: createdTask.projectId,
+            title: createdTask.title,
+            status: createdTask.status,
+            priority: createdTask.priority,
+            dueDate: createdTask.dueDate,
+          });
+
+          onSendMessage?.(taskMessagePayload);
+        } catch (error: any) {
+          toast.error(error?.message || "Failed to create task");
+        } finally {
+          setIsSubmittingTask(false);
+        }
+      };
       useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
           if (
@@ -811,6 +856,19 @@ const ChannelChatInput = React.memo(
                     <div className="h-px bg-gray-100 my-1"></div>
 
                     <button
+                      onClick={() => {
+                        setShowOptions(false);
+                        if (
+                          !spaceDetail?.projectId &&
+                          !(activeChannel as any)?.projectId
+                        ) {
+                          toast.info(
+                            "This space is not linked to any project. Please link a project in Space Settings first.",
+                          );
+                          return;
+                        }
+                        setIsTaskModalOpen(true);
+                      }}
                       disabled={isUploading}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50"
                     >
@@ -831,14 +889,6 @@ const ChannelChatInput = React.memo(
                         Poll
                       </button>
                     )}
-
-                    <button
-                      disabled={isUploading}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50"
-                    >
-                      <Calendar size={16} className="text-orange-500" />
-                      Event
-                    </button>
 
                     {allowCreateNote && (
                       <button
@@ -1161,6 +1211,15 @@ const ChannelChatInput = React.memo(
             onClose={() => setIsMyFilesModalOpen(false)}
             onSelect={handleSelectMyFiles}
           />
+          {isTaskModalOpen && (
+            <TaskFormDialog
+              open={isTaskModalOpen}
+              projectName={spaceDetail?.name}
+              onClose={() => setIsTaskModalOpen(false)}
+              onSubmit={handleTaskSubmit}
+              isSubmitting={isSubmittingTask}
+            />
+          )}
         </div>
       );
     },

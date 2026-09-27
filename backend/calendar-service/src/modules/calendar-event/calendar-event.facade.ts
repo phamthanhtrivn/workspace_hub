@@ -328,25 +328,40 @@ export class CalendarEventService {
     const attendee = await this.prisma.calendarEventAttendee.findUnique({
       where: { eventId_userId: { eventId, userId } },
     });
-    if (!attendee) {
-      throw new ForbiddenException(CALENDAR_ERROR_MESSAGES.FORBIDDEN_RESPONSE);
-    }
+
     return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.calendarEventAttendee.update({
-        where: { id: attendee.id },
-        data: { responseStatus },
-      });
+      let updated;
+      if (attendee) {
+        updated = await tx.calendarEventAttendee.update({
+          where: { id: attendee.id },
+          data: { responseStatus },
+        });
+      } else {
+        updated = await tx.calendarEventAttendee.create({
+          data: {
+            eventId,
+            userId,
+            responseStatus,
+            role: 'OPTIONAL',
+          },
+        });
+      }
+
       await tx.calendarEvent.update({
         where: { id: eventId },
         data: { updatedAt: new Date() },
       });
-      await this.notificationOutbox.enqueueAttendeeResponse(tx, {
-        eventTitle: event.title,
-        eventId: event.id,
-        recipientId: event.createdBy,
-        responderId: userId,
-        status: responseStatus,
-      });
+
+      if (event.createdBy !== userId) {
+        await this.notificationOutbox.enqueueAttendeeResponse(tx, {
+          eventTitle: event.title,
+          eventId: event.id,
+          recipientId: event.createdBy,
+          responderId: userId,
+          status: responseStatus,
+        });
+      }
+
       return updated;
     });
   }

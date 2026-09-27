@@ -181,10 +181,13 @@ export function useCancelCalendarEvent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ eventId, scope }: { eventId: string; scope: RecurrenceScope }) =>
-      cancelCalendarEvent(eventId, scope),
-    onSuccess: () => {
+    mutationFn: ({ eventId, scope }: { eventId: string; scope?: RecurrenceScope }) =>
+      cancelCalendarEvent(eventId, scope ?? RecurrenceScope.THIS),
+    onSuccess: (_, variables) => {
       void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: calendarKeys.event(variables.eventId),
+      });
     },
   });
 }
