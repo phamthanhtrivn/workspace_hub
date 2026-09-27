@@ -41,6 +41,48 @@ function NestedDialogHarness({
   );
 }
 
+function NoDocumentLockDialogHarness({ onClose }: { onClose: () => void }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
+
+  return (
+    <div ref={dialogRef} role="dialog" aria-modal="true">
+      <button type="button">First</button>
+    </div>
+  );
+}
+
+function InnerDialog({ onClose }: { onClose: () => void }) {
+  const innerRef = useRef<HTMLDivElement>(null);
+  useModalDialog({ dialogRef: innerRef, onClose });
+
+  return (
+    <div ref={innerRef} role="dialog" aria-modal="true">
+      <button type="button">Inner</button>
+    </div>
+  );
+}
+
+function ControlledNestedDialogHarness({
+  showInner,
+  onInnerClose,
+  onOuterClose,
+}: {
+  showInner: boolean;
+  onInnerClose: () => void;
+  onOuterClose: () => void;
+}) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  useModalDialog({ dialogRef: outerRef, onClose: onOuterClose });
+
+  return (
+    <div ref={outerRef} role="dialog" aria-modal="true">
+      <button type="button">Outer</button>
+      {showInner && <InnerDialog onClose={onInnerClose} />}
+    </div>
+  );
+}
+
 describe("useModalDialog", () => {
   it("focuses the first control and closes on Escape", () => {
     const onClose = vi.fn();
@@ -79,5 +121,48 @@ describe("useModalDialog", () => {
 
     expect(onInnerClose).toHaveBeenCalledOnce();
     expect(onOuterClose).not.toHaveBeenCalled();
+  });
+
+  it("locks background scroll until the last dialog closes", () => {
+    const { rerender, unmount } = render(
+      <ControlledNestedDialogHarness
+        showInner
+        onInnerClose={vi.fn()}
+        onOuterClose={vi.fn()}
+      />,
+    );
+
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.documentElement.style.overflow).toBe("hidden");
+
+    rerender(
+      <ControlledNestedDialogHarness
+        showInner={false}
+        onInnerClose={vi.fn()}
+        onOuterClose={vi.fn()}
+      />,
+    );
+
+    expect(document.body.style.overflow).toBe("hidden");
+    expect(document.documentElement.style.overflow).toBe("hidden");
+
+    unmount();
+
+    expect(document.body.style.overflow).toBe("");
+    expect(document.documentElement.style.overflow).toBe("");
+  });
+
+  it("can skip document scroll locking", () => {
+    const { unmount } = render(
+      <NoDocumentLockDialogHarness onClose={vi.fn()} />,
+    );
+
+    expect(document.body.style.overflow).toBe("");
+    expect(document.documentElement.style.overflow).toBe("");
+
+    unmount();
+
+    expect(document.body.style.overflow).toBe("");
+    expect(document.documentElement.style.overflow).toBe("");
   });
 });

@@ -1,4 +1,10 @@
-import { toDateTimeLocal } from "./calendar-date.utils";
+import {
+  composeDateTimeLocal,
+  getDateInputValue,
+  getTimeInputValue,
+  hasMinimumEventDuration,
+  toDateTimeLocal,
+} from "./calendar-date.utils";
 
 export interface CalendarTimeOption {
   value: string;
@@ -67,6 +73,22 @@ export function createEndTimeOptions(
   const start = new Date(startAt);
   const currentEnd = new Date(currentEndAt);
   if (Number.isNaN(start.getTime())) return [];
+
+  if (getDateInputValue(startAt) !== getDateInputValue(currentEndAt)) {
+    const endDate = getDateInputValue(currentEndAt);
+    return createStartTimeOptions(locale, getTimeInputValue(currentEndAt))
+      .map((option) => {
+        const value = composeDateTimeLocal(endDate, option.value);
+        const minutes = Math.round(
+          (new Date(value).getTime() - start.getTime()) / 60_000,
+        );
+        return {
+          value,
+          label: `${option.label} (${formatDuration(minutes, locale)})`,
+        };
+      })
+      .filter((option) => hasMinimumEventDuration(startAt, option.value));
+  }
 
   const durations = [...GOOGLE_STYLE_DURATIONS];
   const currentDuration = Math.round(

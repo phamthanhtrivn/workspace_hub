@@ -3,11 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { LogIn, UserPlus } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function PublicPage() {
-  const intl = useAppIntl();
-
   return (
     <div className="grid min-h-screen grid-cols-1 grid-rows-1 bg-slate-50 selection:bg-[var(--color-primary)] selection:text-white">
       <div className="pointer-events-none col-start-1 row-start-1 grid h-full min-h-0 w-full grid-cols-1 grid-rows-1 overflow-hidden">
@@ -59,13 +56,13 @@ export default function PublicPage() {
                 href="/login"
                 className="hidden items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200/50 hover:text-[var(--color-primary-dark)] sm:inline-flex"
               >
-                {intl.formatMessage({ id: "public.nav.login" })}
+                Sign In
               </Link>
               <Link
                 href="/register"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 sm:px-5 sm:py-2.5"
               >
-                {intl.formatMessage({ id: "public.nav.register" })}
+                Sign Up
               </Link>
             </div>
           </nav>
@@ -75,22 +72,22 @@ export default function PublicPage() {
           <div className="mx-auto max-w-2xl py-12 text-center sm:py-20 lg:py-24">
             <div className="mb-8 flex justify-center">
               <div className="cursor-default rounded-full px-3 py-1 text-xs leading-6 text-slate-600 ring-1 ring-slate-900/10 transition-all hover:ring-slate-900/20 sm:text-sm">
-                {intl.formatMessage({ id: "public.badge" })}{" "}
+                Next generation workspace management.{" "}
                 <Link
                   href="/register"
                   className="font-semibold text-[var(--color-primary)]"
                 >
-                  {intl.formatMessage({ id: "public.badgeCta" })}{" "}
+                  Get Started{" "}
                   <span aria-hidden="true">&rarr;</span>
                 </Link>
               </div>
             </div>
 
             <h1 className="text-3xl font-black tracking-tight text-[var(--color-primary-dark)] drop-shadow-sm sm:text-5xl md:text-6xl">
-              {intl.formatMessage({ id: "public.heroTitle" })}
+              Smart workspace for teams and individuals.
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
-              {intl.formatMessage({ id: "public.heroDescription" })}
+              Streamline your projects, tasks, documents, schedules and collaboration with AI power.
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-x-6">
@@ -99,14 +96,14 @@ export default function PublicPage() {
                 className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-8 text-base font-bold text-white shadow-[0_16px_32px_rgba(15,40,84,0.22)] transition hover:-translate-y-1 hover:bg-[var(--color-primary)] active:translate-y-0 sm:w-auto"
               >
                 <UserPlus className="h-5 w-5" />
-                {intl.formatMessage({ id: "public.startFree" })}
+                Get Started Free
               </Link>
               <Link
                 href="/login"
                 className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-8 text-base font-bold text-slate-700 shadow-sm transition hover:-translate-y-1 hover:border-slate-300 hover:bg-slate-50 active:translate-y-0 sm:w-auto"
               >
                 <LogIn className="h-5 w-5" />
-                {intl.formatMessage({ id: "public.nav.login" })}
+                Sign In
               </Link>
             </div>
           </div>

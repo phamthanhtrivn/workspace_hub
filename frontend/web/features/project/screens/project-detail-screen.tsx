@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -17,6 +17,8 @@ import {
   useUpdateProject,
   useArchiveProject,
   useOpenProjectSpace,
+  useOpenTaskChannel,
+  useOpenTaskThread,
 } from "@/features/project/hooks/use-projects";
 import {
   useCreateTask,
@@ -37,6 +39,7 @@ import {
 } from "@/features/project/components/layout/project-detail-fallback";
 import TaskDetailDrawer from "@/features/project/components/task-detail/task-detail-drawer";
 import TaskChatDialog from "@/features/project/components/dialogs/task-chat-dialog";
+import SelectTaskChannelDialog from "@/features/project/components/dialogs/select-task-channel-dialog";
 import TaskFormDialog from "@/features/project/components/dialogs/task-form-dialog";
 import InviteMemberDialog from "@/features/project/components/dialogs/invite-member-dialog";
 import ProjectSettingsDialog from "@/features/project/components/dialogs/project-settings-dialog";
@@ -72,6 +75,44 @@ export default function ProjectDetailScreen() {
   const archiveProjectMutation = useArchiveProject(projectId);
   const projectSpaceStatusQuery = useProjectSpaceStatus(projectId);
   const openProjectSpaceMutation = useOpenProjectSpace(projectId);
+  const openTaskChannelMutation = useOpenTaskChannel(projectId);
+  const openTaskThreadMutation = useOpenTaskThread(projectId);
+  const [channelPickerTask, setChannelPickerTask] = useState<Task | null>(null);
+
+  const handleOpenTaskChannel = async (task: Task) => {
+    try {
+      const res = await openTaskChannelMutation.mutateAsync(task.id);
+      if (res.spaceId && res.channelId) {
+        toast.success(`Opening #${res.channelName} in Space Chat`);
+        setChatTask(null);
+        router.push(`/chat?spaceId=${res.spaceId}&channelId=${res.channelId}`);
+      }
+    } catch {
+      toast.error("Failed to open task channel in space chat");
+    }
+  };
+
+  const handleOpenTaskThread = async (
+    task: Task,
+    channelId?: string,
+  ) => {
+    try {
+      const res = await openTaskThreadMutation.mutateAsync({
+        taskId: task.id,
+        channelId,
+      });
+      if (res.spaceId && res.channelId && res.threadId) {
+        toast.success(`Opening Thread in #${res.channelName}`);
+        setChatTask(null);
+        setChannelPickerTask(null);
+        router.push(
+          `/chat?spaceId=${res.spaceId}&channelId=${res.channelId}&threadId=${res.threadId}`,
+        );
+      }
+    } catch {
+      toast.error("Failed to open task discussion thread");
+    }
+  };
   const { data: labels = [] } = useProjectLabels(projectId);
 
   useEffect(() => {
@@ -106,6 +147,7 @@ export default function ProjectDetailScreen() {
   const [showMembers, setShowMembers] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const hasOpenedUrlTaskRef = useRef(false);
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -113,6 +155,19 @@ export default function ProjectDetailScreen() {
     const timer = window.setTimeout(() => setShowProjectSettings(true), 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (hasOpenedUrlTaskRef.current || serverTasks.length === 0) return;
+    const query = new URLSearchParams(window.location.search);
+    const targetTaskId = query.get("taskId") || query.get("task");
+    if (!targetTaskId) return;
+
+    const foundTask = serverTasks.find((task) => task.id === targetTaskId);
+    if (foundTask) {
+      hasOpenedUrlTaskRef.current = true;
+      setSelectedTask(foundTask);
+    }
+  }, [serverTasks]);
 
   const {
     isOpen: showTaskForm,
@@ -417,7 +472,7 @@ export default function ProjectDetailScreen() {
       {/* ── Task detail drawer ── */}
       {selectedTask && (
         <TaskDetailDrawer
-          key={selectedTask.id}
+          key={`task-drawer-${selectedTask.id}`}
           task={selectedTask}
           tasks={tasks}
           members={projectWithMembers.members}
@@ -450,11 +505,34 @@ export default function ProjectDetailScreen() {
       )}
 
       <TaskChatDialog
-        key={chatTask?.id ?? "closed"}
+        key={`task-chat-dialog-${chatTask?.id ?? "closed"}`}
         task={chatTask}
         members={members}
         canComment={Boolean(permissions.role)}
         onClose={() => setChatTask(null)}
+        onOpenTaskChannel={
+          chatTask ? () => handleOpenTaskChannel(chatTask) : undefined
+        }
+        onOpenTaskThread={
+          chatTask ? () => setChannelPickerTask(chatTask) : undefined
+        }
+        isOpeningChannel={
+          openTaskChannelMutation.isPending || openTaskThreadMutation.isPending
+        }
+      />
+
+      <SelectTaskChannelDialog
+        key={`task-select-channel-${channelPickerTask?.id ?? "closed"}`}
+        task={channelPickerTask}
+        spaceId={projectSpaceStatusQuery.data?.spaceId ?? null}
+        isOpen={Boolean(channelPickerTask)}
+        isSubmitting={openTaskThreadMutation.isPending}
+        onClose={() => setChannelPickerTask(null)}
+        onSubmit={({ channelId }) => {
+          if (channelPickerTask) {
+            handleOpenTaskThread(channelPickerTask, channelId);
+          }
+        }}
       />
 
       {permissions.canInviteMembers && (

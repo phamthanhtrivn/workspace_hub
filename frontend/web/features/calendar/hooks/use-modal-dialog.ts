@@ -12,7 +12,13 @@ const FOCUSABLE_SELECTOR = [
 interface UseModalDialogOptions {
   dialogRef: RefObject<HTMLElement | null>;
   onClose: () => void;
+  lockDocumentScroll?: boolean;
 }
+
+let modalScrollLockCount = 0;
+let originalBodyOverflow = "";
+let originalBodyPaddingRight = "";
+let originalDocumentOverflow = "";
 
 function getFocusableElements(container: HTMLElement) {
   return Array.from(
@@ -20,16 +26,56 @@ function getFocusableElements(container: HTMLElement) {
   ).filter((element) => !element.hidden);
 }
 
-export function useModalDialog({ dialogRef, onClose }: UseModalDialogOptions) {
+function focusWithoutScroll(element: HTMLElement | null | undefined) {
+  element?.focus({ preventScroll: true });
+}
+
+function lockBackgroundScroll() {
+  if (modalScrollLockCount === 0) {
+    originalBodyOverflow = document.body.style.overflow;
+    originalBodyPaddingRight = document.body.style.paddingRight;
+    originalDocumentOverflow = document.documentElement.style.overflow;
+
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+  }
+
+  modalScrollLockCount += 1;
+}
+
+function unlockBackgroundScroll() {
+  modalScrollLockCount = Math.max(0, modalScrollLockCount - 1);
+  if (modalScrollLockCount > 0) return;
+
+  document.body.style.overflow = originalBodyOverflow;
+  document.body.style.paddingRight = originalBodyPaddingRight;
+  document.documentElement.style.overflow = originalDocumentOverflow;
+}
+
+export function useModalDialog({
+  dialogRef,
+  onClose,
+  lockDocumentScroll = true,
+}: UseModalDialogOptions) {
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
+
+    if (lockDocumentScroll) {
+      lockBackgroundScroll();
+    }
 
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const initialFocus =
       dialog.querySelector<HTMLElement>("[data-modal-initial-focus]") ??
       getFocusableElements(dialog)[0];
-    initialFocus?.focus();
+    focusWithoutScroll(initialFocus);
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const openDialogs = document.querySelectorAll<HTMLElement>(
@@ -51,17 +97,22 @@ export function useModalDialog({ dialogRef, onClose }: UseModalDialogOptions) {
       const last = focusableElements[focusableElements.length - 1];
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
-        last.focus();
+        focusWithoutScroll(last);
       } else if (!event.shiftKey && document.activeElement === last) {
         event.preventDefault();
-        first.focus();
+        focusWithoutScroll(first);
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      previouslyFocused?.focus();
+      if (lockDocumentScroll) {
+        unlockBackgroundScroll();
+      }
+      if (previouslyFocused && document.contains(previouslyFocused)) {
+        focusWithoutScroll(previouslyFocused);
+      }
     };
-  }, [dialogRef, onClose]);
+  }, [dialogRef, lockDocumentScroll, onClose]);
 }

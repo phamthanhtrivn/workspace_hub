@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { RootState, useAppDispatch, useAppSelector } from "@/store/store";
@@ -114,6 +115,13 @@ export function useNotificationSocket() {
       }
 
       if (noti.type === NotificationType.CALENDAR_REMINDER) {
+        if (noti.metadata?.type === "ATTENDEE_REMOVED") {
+          const title =
+            typeof noti.metadata.eventTitle === "string"
+              ? noti.metadata.eventTitle
+              : "Calendar Event";
+          toast.info(`You were removed from event: "${title}"`);
+        }
         queryClient.invalidateQueries({
           queryKey: ["calendar"],
         });

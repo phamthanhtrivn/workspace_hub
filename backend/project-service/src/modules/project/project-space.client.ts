@@ -85,6 +85,58 @@ export class ProjectSpaceClient {
     return response.data;
   }
 
+  async ensureTaskChannel(
+    projectId: string,
+    taskId: string,
+    taskTitle: string,
+    actorId?: string,
+  ): Promise<{ spaceId: string; channelId: string; channelName: string }> {
+    const response = await this.http.request<
+      ApiResponse<{ spaceId: string; channelId: string; channelName: string }>
+    >({
+      service: 'communication-service',
+      url: `${this.config.communicationServiceUrl}/api/spaces/internal/project/${projectId}/task-channel`,
+      method: 'POST',
+      headers: this.internalHeaders(),
+      body: { taskId, taskTitle, actorId },
+    });
+    return response.data;
+  }
+
+  async ensureTaskThread(
+    projectId: string,
+    taskId: string,
+    taskTitle: string,
+    actorId?: string,
+    channelId?: string,
+    status?: string,
+    priority?: string,
+    dueDate?: string,
+  ): Promise<{
+    spaceId: string;
+    channelId: string;
+    channelName: string;
+    threadId: string;
+    threadTitle: string;
+  }> {
+    const response = await this.http.request<
+      ApiResponse<{
+        spaceId: string;
+        channelId: string;
+        channelName: string;
+        threadId: string;
+        threadTitle: string;
+      }>
+    >({
+      service: 'communication-service',
+      url: `${this.config.communicationServiceUrl}/api/spaces/internal/project/${projectId}/task-thread`,
+      method: 'POST',
+      headers: this.internalHeaders(),
+      body: { taskId, taskTitle, actorId, channelId, status, priority, dueDate },
+    });
+    return response.data;
+  }
+
   private internalHeaders(): Record<string, string> {
     return { 'x-internal-service-key': this.config.internalServiceKey };
   }

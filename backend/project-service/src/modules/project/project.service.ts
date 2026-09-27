@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {
@@ -285,6 +286,63 @@ export class ProjectService {
       return await this.projectSpaces.getProjectSpaceStatus(projectId);
     } catch {
       throw new BadGatewayException('Unable to load project chat space status');
+    }
+  }
+
+  async openTaskChannel(userId: string, projectId: string, taskId: string) {
+    await this.access.requireReadAccess(userId, projectId);
+    const task = await this.prisma.task.findFirst({
+      where: { id: taskId, projectId },
+      select: { id: true, title: true },
+    });
+    if (!task) {
+      throw new NotFoundException('Task not found in project');
+    }
+
+    await this.openProjectSpace(userId, projectId);
+
+    try {
+      return await this.projectSpaces.ensureTaskChannel(
+        projectId,
+        taskId,
+        task.title,
+        userId,
+      );
+    } catch {
+      throw new BadGatewayException('Unable to open task chat channel');
+    }
+  }
+
+  async openTaskThread(
+    userId: string,
+    projectId: string,
+    taskId: string,
+    channelId?: string,
+  ) {
+    await this.access.requireReadAccess(userId, projectId);
+    const task = await this.prisma.task.findFirst({
+      where: { id: taskId, projectId },
+      select: { id: true, title: true, status: true, priority: true, dueDate: true },
+    });
+    if (!task) {
+      throw new NotFoundException('Task not found in project');
+    }
+
+    await this.openProjectSpace(userId, projectId);
+
+    try {
+      return await this.projectSpaces.ensureTaskThread(
+        projectId,
+        taskId,
+        task.title,
+        userId,
+        channelId,
+        task.status,
+        task.priority,
+        task.dueDate ? task.dueDate.toISOString() : undefined,
+      );
+    } catch {
+      throw new BadGatewayException('Unable to open task discussion thread');
     }
   }
 

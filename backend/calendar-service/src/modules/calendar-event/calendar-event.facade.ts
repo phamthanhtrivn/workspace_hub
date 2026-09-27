@@ -212,6 +212,52 @@ export class CalendarEventService {
       dto.endAt ?? event.endAt.toISOString(),
     );
 
+    const oldAttendeeIds = (event.attendees ?? []).map((a) => a.userId);
+    let keptAttendeeIds = oldAttendeeIds.filter((id) => id !== userId);
+
+    if (dto.attendees !== undefined) {
+      const newAttendeeIds = this.relations
+        .normalizeAttendees(userId, dto.attendees)
+        .map((a) => a.userId);
+
+      const removedAttendeeIds = oldAttendeeIds.filter(
+        (id) => !newAttendeeIds.includes(id),
+      );
+      const addedAttendeeIds = newAttendeeIds.filter(
+        (id) => !oldAttendeeIds.includes(id),
+      );
+      keptAttendeeIds = newAttendeeIds.filter(
+        (id) => oldAttendeeIds.includes(id) && id !== userId,
+      );
+
+      if (removedAttendeeIds.length > 0) {
+        await this.notificationOutbox.enqueueAttendeeRemoval(this.prisma, {
+          eventTitle: event.title,
+          eventId: event.id,
+          removerId: userId,
+          recipientIds: removedAttendeeIds,
+        });
+      }
+
+      if (addedAttendeeIds.length > 0) {
+        await this.notificationOutbox.enqueueEventInvitations(this.prisma, {
+          eventTitle: dto.title || event.title,
+          eventId: event.id,
+          creatorId: userId,
+          recipientIds: addedAttendeeIds,
+        });
+      }
+    }
+
+    if (keptAttendeeIds.length > 0) {
+      await this.notificationOutbox.enqueueEventUpdate(this.prisma, {
+        eventTitle: dto.title || event.title,
+        eventId: event.id,
+        updaterId: userId,
+        recipientIds: keptAttendeeIds,
+      });
+    }
+
     const updatedId = await this.updateByRecurrenceState(
       userId,
       event,
@@ -229,7 +275,14 @@ export class CalendarEventService {
     const event = await this.accessPolicy.findEventOrThrow(eventId);
     this.accessPolicy.assertCanManageEvent(userId, event);
     this.accessPolicy.assertUserManagedEvent(event);
+    const recipientIds = (event.attendees ?? []).map((attendee) => attendee.userId);
     await this.recurrenceMutations.cancelEvent(userId, event, scope);
+    await this.notificationOutbox.enqueueEventCancellation(this.prisma, {
+      eventTitle: event.title,
+      eventId: event.id,
+      cancellerId: userId,
+      recipientIds,
+    });
   }
 
   async updateTaskCompletion(
@@ -275,25 +328,40 @@ export class CalendarEventService {
     const attendee = await this.prisma.calendarEventAttendee.findUnique({
       where: { eventId_userId: { eventId, userId } },
     });
-    if (!attendee) {
-      throw new ForbiddenException(CALENDAR_ERROR_MESSAGES.FORBIDDEN_RESPONSE);
-    }
+
     return this.prisma.$transaction(async (tx) => {
-      const updated = await tx.calendarEventAttendee.update({
-        where: { id: attendee.id },
-        data: { responseStatus },
-      });
+      let updated;
+      if (attendee) {
+        updated = await tx.calendarEventAttendee.update({
+          where: { id: attendee.id },
+          data: { responseStatus },
+        });
+      } else {
+        updated = await tx.calendarEventAttendee.create({
+          data: {
+            eventId,
+            userId,
+            responseStatus,
+            role: 'OPTIONAL',
+          },
+        });
+      }
+
       await tx.calendarEvent.update({
         where: { id: eventId },
         data: { updatedAt: new Date() },
       });
-      await this.notificationOutbox.enqueueAttendeeResponse(tx, {
-        eventTitle: event.title,
-        eventId: event.id,
-        recipientId: event.createdBy,
-        responderId: userId,
-        status: responseStatus,
-      });
+
+      if (event.createdBy !== userId) {
+        await this.notificationOutbox.enqueueAttendeeResponse(tx, {
+          eventTitle: event.title,
+          eventId: event.id,
+          recipientId: event.createdBy,
+          responderId: userId,
+          status: responseStatus,
+        });
+      }
+
       return updated;
     });
   }

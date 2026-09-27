@@ -9,6 +9,7 @@ import { IntegrationsModule } from './infrastructure/integrations/integrations.m
 import { ScheduleModule } from '@nestjs/schedule';
 import { ReminderDispatchModule } from './modules/reminder-dispatch/reminder-dispatch.module';
 import { HealthController } from './common/health.controller';
+import { PomodoroModule } from './modules/pomodoro/pomodoro.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { HealthController } from './common/health.controller';
     IntegrationsModule,
     ScheduleModule.forRoot(),
     ReminderDispatchModule,
+    PomodoroModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],

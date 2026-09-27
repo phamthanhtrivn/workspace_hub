@@ -408,7 +408,13 @@ export class DocumentController {
     );
     return {
       message: 'Document access verified',
-      data: { id: item.id, name: item.name, type: item.type },
+      data: {
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        sizeBytes: Number(item.sizeBytes ?? 0),
+        mimeType: item.mimeType,
+      },
     };
   }
 

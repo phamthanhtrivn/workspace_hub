@@ -46,20 +46,32 @@ function getDefaultEnd(
   return endAt;
 }
 
-function getEditableAttendees(event?: CalendarEvent | null) {
-  return (event?.attendees ?? [])
-    .filter((attendee) => attendee.userId !== event?.createdBy)
-    .map(({ userId, optional, profile }) => ({
-      userId,
-      optional: optional ?? false,
-      profile: profile
-        ? {
-            fullName: profile.fullName ?? null,
-            email: profile.email ?? null,
-            avatarUrl: profile.avatarUrl ?? null,
-          }
-        : null,
-    }));
+function getEditableAttendees(
+  event?: CalendarEvent | null,
+  draft?: CalendarEventDraft | null,
+) {
+  if (event) {
+    return (event.attendees ?? [])
+      .filter((attendee) => attendee.userId !== event?.createdBy)
+      .map(({ userId, optional, profile, responseStatus }) => ({
+        userId,
+        responseStatus,
+        optional: optional ?? false,
+        ...(profile
+          ? {
+              profile: {
+                fullName: profile.fullName ?? null,
+                email: profile.email ?? null,
+                avatarUrl: profile.avatarUrl ?? null,
+              },
+            }
+          : {}),
+      }));
+  }
+  if (draft?.attendees) {
+    return draft.attendees;
+  }
+  return [];
 }
 
 export function createCalendarEventFormDefaults({
@@ -99,7 +111,7 @@ export function createCalendarEventFormDefaults({
 
   return {
     defaultStart,
-    attendees: getEditableAttendees(event),
+    attendees: getEditableAttendees(event, draft),
     documentIds: [...(event?.documentIds ?? [])],
     showCustomEventColor: Boolean(
       event?.color &&

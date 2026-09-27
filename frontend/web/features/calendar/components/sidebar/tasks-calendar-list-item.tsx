@@ -1,7 +1,9 @@
 "use client";
 
-import { Check, ChevronRight, ListTodo } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { ChevronRight, ListTodo } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { cn } from "@/lib/utils";
 import { CalendarColorPopover } from "./calendar-color-popover";
 
@@ -20,8 +22,8 @@ export function TasksCalendarListItem({
   onOpenDrawer?: () => void;
   onColorChange: (color: string) => void;
 }) {
-  const intl = useAppIntl();
-  const label = intl.formatMessage({ id: "calendar.tasks" });
+
+  const label = "Tasks";
 
   return (
     <div
@@ -30,25 +32,23 @@ export function TasksCalendarListItem({
         isDrawerOpen && "bg-slate-100/90",
       )}
     >
-      <button
-        type="button"
-        onClick={onToggle}
-        className="grid h-4.5 w-4.5 cursor-pointer place-items-center rounded-[5px] border bg-white transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+      <Checkbox
+        checked={selected}
+        onCheckedChange={onToggle}
+        className="h-4.5 w-4.5 cursor-pointer rounded-[5px] border bg-white transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-blue-500/40"
         style={{
           borderColor: color,
           backgroundColor: selected ? color : "#ffffff",
         }}
         aria-label={label}
-        aria-pressed={selected}
-      >
-        {selected && <Check className="h-3 w-3 stroke-[2.5] text-white" />}
-      </button>
+      />
 
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={onOpenDrawer}
-        className="group/task-trigger -my-1 flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-md py-1 pr-1 text-left transition-colors hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-        title={intl.formatMessage({ id: "calendar.tasks.openDrawer" })}
+        className="group/task-trigger -my-1 flex h-auto min-w-0 flex-1 cursor-pointer items-center justify-start gap-2.5 rounded-md py-1 pr-1 pl-0 text-left transition-colors hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+        title="Open tasks"
       >
         <ListTodo className="h-4 w-4 shrink-0" style={{ color }} />
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700 select-none group-hover:text-slate-900">
@@ -62,12 +62,11 @@ export function TasksCalendarListItem({
         >
           <ChevronRight className="h-4 w-4 stroke-[2.5]" />
         </span>
-      </button>
+      </Button>
 
       <CalendarColorPopover
         value={color}
-        label={intl.formatMessage({ id: "calendar.color" })}
-        triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+        label="Color"
         onChange={onColorChange}
       />
     </div>

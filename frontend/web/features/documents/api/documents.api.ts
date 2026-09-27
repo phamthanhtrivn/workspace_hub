@@ -558,4 +558,9 @@ export const documentsApi = {
     const response = await api.get(`/api/documents/${id}/breadcrumbs`);
     return response.data.data;
   },
+
+  getAccessibleItem: async (id: string): Promise<DocumentItem> => {
+    const response = await api.get(`/api/documents/${id}/access`);
+    return response.data.data;
+  },
 };

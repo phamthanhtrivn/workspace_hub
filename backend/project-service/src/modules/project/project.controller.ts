@@ -63,6 +63,36 @@ export class ProjectController {
     );
   }
 
+  @Post(':projectId/tasks/:taskId/channel')
+  async openTaskChannel(
+    @CurrentUserId() userId: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Param('taskId', new ParseUUIDPipe()) taskId: string,
+  ) {
+    return ApiResponse.success(
+      await this.projects.openTaskChannel(userId, projectId, taskId),
+      'Task channel opened successfully',
+    );
+  }
+
+  @Post(':projectId/tasks/:taskId/thread')
+  async openTaskThread(
+    @CurrentUserId() userId: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Param('taskId', new ParseUUIDPipe()) taskId: string,
+    @Body() body?: { channelId?: string },
+  ) {
+    return ApiResponse.success(
+      await this.projects.openTaskThread(
+        userId,
+        projectId,
+        taskId,
+        body?.channelId,
+      ),
+      'Task discussion thread opened successfully',
+    );
+  }
+
   @Post(':projectId/documents')
   async openProjectDocuments(
     @CurrentUserId() userId: string,

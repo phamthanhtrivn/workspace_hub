@@ -10,13 +10,13 @@ import {
   Repeat,
 } from "lucide-react";
 import { ReactNode, useMemo, useState } from "react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarEvent } from "../../types/calendar.types";
 import {
   formatTaskDueDate,
   groupCalendarTasks,
   TaskStatusFilter,
-  TaskTimeFilter,
 } from "../../utils/calendar-tasks.utils";
 import { cleanTaskDescription } from "../../utils/calendar-event.utils";
 
@@ -25,7 +25,6 @@ interface CalendarTaskListProps {
   color: string;
   readOnly: boolean;
   showCompleted: boolean;
-  timeFilter?: TaskTimeFilter;
   statusFilter?: TaskStatusFilter;
   onToggleTask: (task: CalendarEvent) => void;
   onSelectTask: (task: CalendarEvent) => void;
@@ -36,12 +35,10 @@ export function CalendarTaskList({
   color,
   readOnly,
   showCompleted,
-  timeFilter = "all",
   statusFilter = "all",
   onToggleTask,
   onSelectTask,
 }: CalendarTaskListProps) {
-  const intl = useAppIntl();
   const [completedOpen, setCompletedOpen] = useState(false);
   const grouped = useMemo(
     () =>
@@ -59,7 +56,7 @@ export function CalendarTaskList({
       key={task.id}
       task={task}
       color={color}
-      locale={intl.locale}
+      locale="en"
       isOverdue={isOverdue}
       readOnly={readOnly}
       onToggle={readOnly ? undefined : () => onToggleTask(task)}
@@ -72,7 +69,7 @@ export function CalendarTaskList({
       return (
         <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
           <p className="text-xs font-semibold text-slate-500">
-            {intl.formatMessage({ id: "calendar.tasks.noCompletedTasks" })}
+            No completed tasks
           </p>
         </div>
       );
@@ -80,7 +77,7 @@ export function CalendarTaskList({
     return (
       <div className="space-y-4">
         <TaskSection
-          title={intl.formatMessage({ id: "calendar.tasks.completed" })}
+          title="Completed"
           count={grouped.completed.length}
           tone="neutral"
         >
@@ -94,7 +91,7 @@ export function CalendarTaskList({
     <div className="space-y-4">
       {grouped.overdue.length > 0 && (
         <TaskSection
-          title={intl.formatMessage({ id: "calendar.tasks.overdue" })}
+          title="Overdue"
           count={grouped.overdue.length}
           tone="danger"
         >
@@ -103,18 +100,14 @@ export function CalendarTaskList({
       )}
 
       {grouped.today.length > 0 && (
-        <TaskSection
-          title={intl.formatMessage({ id: "calendar.tasks.today" })}
-          count={grouped.today.length}
-          tone="primary"
-        >
+        <TaskSection title="Today" count={grouped.today.length} tone="primary">
           {grouped.today.map((task) => renderTask(task))}
         </TaskSection>
       )}
 
       {grouped.upcoming.length > 0 && (
         <TaskSection
-          title={intl.formatMessage({ id: "calendar.tasks.upcoming" })}
+          title="Upcoming"
           count={grouped.upcoming.length}
           tone="neutral"
         >
@@ -128,39 +121,41 @@ export function CalendarTaskList({
             <Check className="h-5 w-5 stroke-[2.5]" />
           </div>
           <p className="mt-2 text-xs font-semibold text-slate-700">
-            {intl.formatMessage({ id: "calendar.tasks.allDone" })}
+            All caught up!
           </p>
           <p className="mt-0.5 text-[11px] text-slate-400">
-            {intl.formatMessage({ id: "calendar.tasks.allDoneDescription" })}
+            You have no pending tasks right now
           </p>
         </div>
       )}
 
-      {showCompleted && statusFilter === "all" && grouped.completed.length > 0 && (
-        <div className="border-t border-slate-100 pt-2">
-          <button
-            type="button"
-            onClick={() => setCompletedOpen((current) => !current)}
-            className="flex w-full cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100"
-          >
-            <span className="flex items-center gap-1.5">
-              {completedOpen ? (
-                <ChevronDown className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5" />
-              )}
-              {intl.formatMessage({ id: "calendar.tasks.completed" })} (
-              {grouped.completed.length})
-            </span>
-          </button>
+      {showCompleted &&
+        statusFilter === "all" &&
+        grouped.completed.length > 0 && (
+          <div className="border-t border-slate-100 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setCompletedOpen((current) => !current)}
+              className="flex h-auto w-full cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100"
+            >
+              <span className="flex items-center gap-1.5">
+                {completedOpen ? (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5" />
+                )}
+                Completed ({grouped.completed.length})
+              </span>
+            </Button>
 
-          {completedOpen && (
-            <div className="mt-1 space-y-1">
-              {grouped.completed.map((task) => renderTask(task))}
-            </div>
-          )}
-        </div>
-      )}
+            {completedOpen && (
+              <div className="mt-1 space-y-1">
+                {grouped.completed.map((task) => renderTask(task))}
+              </div>
+            )}
+          </div>
+        )}
     </div>
   );
 }
@@ -235,47 +230,35 @@ function TaskRowItem({
           <FolderKanban className="h-3.5 w-3.5" />
         </span>
       ) : (
-        <button
-          type="button"
-          onClick={onToggle}
-          className="mt-0.5 grid h-5 w-5 shrink-0 cursor-pointer place-items-center rounded-full border transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+        <Checkbox
+          checked={completed}
+          onCheckedChange={() => onToggle?.()}
+          onClick={(event) => event.stopPropagation()}
+          className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-full border transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/40"
           style={{
             borderColor: completed ? taskColor : "#cbd5e1",
             backgroundColor: completed ? taskColor : "transparent",
           }}
           aria-label={task.title}
-          aria-checked={completed}
-          role="checkbox"
-        >
-          <Check
-            className={`h-3 w-3 stroke-[2.5] transition-opacity ${
-              completed ? "text-white" : "opacity-0 group-hover:opacity-40"
-            }`}
-            style={completed ? undefined : { color: taskColor }}
-          />
-        </button>
+        />
       )}
 
-      <button
+      <Button
         type="button"
-        className="min-w-0 flex-1 cursor-pointer text-left"
+        variant="ghost"
+        className="h-auto min-w-0 flex-1 cursor-pointer justify-start rounded-none p-0 text-left hover:bg-transparent"
         onClick={onSelect}
       >
         <span
-          className={`block break-words text-sm font-medium leading-snug ${
+          className={`block truncate text-sm font-medium leading-snug ${
             completed
               ? "line-through text-slate-400"
               : "text-slate-700 group-hover:text-slate-900"
           }`}
+          title={task.title}
         >
           {task.title}
         </span>
-
-        {readOnly && task.calendar?.name && (
-          <span className="mt-0.5 block truncate text-[11px] font-medium text-slate-500">
-            {task.calendar.name}
-          </span>
-        )}
 
         {dateLabel && (
           <span
@@ -310,7 +293,7 @@ function TaskRowItem({
             {cleanTaskDescription(task.description)}
           </span>
         )}
-      </button>
+      </Button>
     </div>
   );
 }

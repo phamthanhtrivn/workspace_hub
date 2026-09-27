@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Calendar,
   CalendarClock,
   Copy,
   Loader2,
@@ -51,6 +52,12 @@ function formatMeetingRange(startAt: string | null, endAt: string | null) {
   })}`;
 }
 
+function parseCalendarEventId(description?: string | null): string | null {
+  if (!description) return null;
+  const match = description.match(/\[Calendar Event(?::([a-zA-Z0-9_-]+))?\]/);
+  return match?.[1] || null;
+}
+
 export function UpcomingMeetingCard({
   meeting,
   isHighlighted = false,
@@ -65,14 +72,30 @@ export function UpcomingMeetingCard({
     (meeting.hostUserId === currentUserId
       ? MEETING_ROLE.HOST
       : MEETING_ROLE.PARTICIPANT);
+  const isCalendarEvent = Boolean(
+    meeting.description?.includes("[Calendar Event"),
+  );
   const canStart = role === MEETING_ROLE.HOST || role === MEETING_ROLE.COHOST;
-  const canManage = canStart && meeting.status === "SCHEDULED";
+  const canManage =
+    canStart && meeting.status === "SCHEDULED" && !isCalendarEvent;
   const canJoin = meeting.status === "LIVE";
   const primaryLabel = canStart
     ? "Start"
     : canJoin
       ? "Join"
       : "Waiting for host";
+
+  const handleNavigateToCalendar = () => {
+    const eventId = parseCalendarEventId(meeting.description);
+    if (eventId) {
+      router.push(`/calendar?event=${eventId}`);
+    } else if (meeting.scheduledStartAt) {
+      const dateStr = meeting.scheduledStartAt.slice(0, 10);
+      router.push(`/calendar?date=${dateStr}`);
+    } else {
+      router.push("/calendar");
+    }
+  };
 
   const copyLink = async () => {
     const path = MEETING_ROUTES.room(meeting.joinToken);
@@ -135,15 +158,18 @@ export function UpcomingMeetingCard({
                 </span>
               </p>
             </div>
-            <MeetingStatusTag status={meeting.status} />
+            <div className="shrink-0">
+              <MeetingStatusTag status={meeting.status} />
+            </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
+          {/* Host & Avatar Stack */}
+          <div className="flex items-center justify-between gap-3 pt-0.5">
             <div className="min-w-0">
-              <p className="text-xs font-black uppercase text-slate-400">
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                 Host
               </p>
-              <p className="truncate text-sm font-bold text-slate-600">
+              <p className="truncate text-xs font-extrabold text-slate-700">
                 {meeting.hostProfile?.fullName ||
                   meeting.hostProfile?.email ||
                   meeting.hostUserId}
@@ -156,22 +182,36 @@ export function UpcomingMeetingCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <MeetingButton
-            type="button"
-            disabled={!canStart && !canJoin}
-            onClick={() => router.push(MEETING_ROUTES.room(meeting.joinToken))}
-            className="h-10 flex-1 cursor-pointer disabled:bg-slate-200 disabled:text-slate-500"
-          >
-            {canStart ? (
-              <Play className="h-4 w-4" />
-            ) : canJoin ? (
-              <LogIn className="h-4 w-4" />
-            ) : (
-              <UsersRound className="h-4 w-4" />
-            )}
-            {primaryLabel}
-          </MeetingButton>
+        {/* Footer Actions */}
+        <div className="flex items-center gap-2 pt-3">
+          {isCalendarEvent ? (
+            <MeetingButton
+              type="button"
+              tone="primary"
+              controlSize="md"
+              onClick={handleNavigateToCalendar}
+              className="h-9 flex-1 cursor-pointer rounded-xl font-bold shadow-sm shadow-blue-600/20 active:scale-[0.98]"
+            >
+              <Calendar className="mr-1.5 h-4 w-4 shrink-0" />
+              View Event
+            </MeetingButton>
+          ) : (
+            <MeetingButton
+              type="button"
+              disabled={!canStart && !canJoin}
+              onClick={() => router.push(MEETING_ROUTES.room(meeting.joinToken))}
+              className="h-9 flex-1 cursor-pointer rounded-xl font-bold shadow-sm shadow-blue-600/20 active:scale-[0.98] disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
+            >
+              {canStart ? (
+                <Play className="h-4 w-4" />
+              ) : canJoin ? (
+                <LogIn className="h-4 w-4" />
+              ) : (
+                <UsersRound className="h-4 w-4" />
+              )}
+              {primaryLabel}
+            </MeetingButton>
+          )}
           {canManage ? (
             <MeetingIconButton
               label="Edit"
@@ -179,6 +219,7 @@ export function UpcomingMeetingCard({
               tone="outline"
               controlSize="md"
               onClick={() => onEdit?.(meeting)}
+              className="h-9 w-9 rounded-xl"
             />
           ) : null}
           <MeetingIconButton
@@ -187,6 +228,7 @@ export function UpcomingMeetingCard({
             tone="outline"
             controlSize="md"
             onClick={copyLink}
+            className="h-9 w-9 rounded-xl"
           />
           {canManage ? (
             <MeetingIconButton
@@ -196,7 +238,9 @@ export function UpcomingMeetingCard({
               controlSize="md"
               disabled={cancelMeeting.isPending}
               onClick={cancelScheduledMeeting}
-              className={cancelMeeting.isPending ? "[&_svg]:animate-spin" : ""}
+              className={`h-9 w-9 rounded-xl ${
+                cancelMeeting.isPending ? "[&_svg]:animate-spin" : ""
+              }`}
             />
           ) : null}
         </div>

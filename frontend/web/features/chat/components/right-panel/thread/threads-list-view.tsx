@@ -16,6 +16,7 @@ import { formatDateTime } from "@/lib/date";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import { logApiError } from "@/lib/interceptors";
+import ThreadSnippetPreview from "./thread-snippet-preview";
 
 interface ThreadsListViewProps {
   conversationId: string;
@@ -196,9 +197,7 @@ export default function ThreadsListView({
                 </div>
 
                 {/* Message body snippet */}
-                <p className="text-xs text-slate-600 line-clamp-2 break-words">
-                  {msg.content || "Attachment"}
-                </p>
+                <ThreadSnippetPreview content={msg.content} />
 
                 {/* Footer status */}
                 <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100/50 mt-1 shrink-0">

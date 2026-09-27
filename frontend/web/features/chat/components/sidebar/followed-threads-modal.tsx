@@ -26,6 +26,10 @@ import {
   MAX_UNREAD_COUNT,
 } from "../../types/chat.constant";
 
+import ThreadSnippetPreview, {
+  formatThreadSnippet,
+} from "../right-panel/thread/thread-snippet-preview";
+
 const EMPTY_THREADS: FollowedThreadResponse[] = [];
 
 interface FollowedThreadsModalProps {
@@ -43,6 +47,10 @@ export function getThreadPreview(
   thread: FollowedThreadResponse,
   attachmentFallback = "[Attachment]",
 ) {
+  const snippet = formatThreadSnippet(thread.rootMessage.content);
+  if (snippet.isTask) {
+    return `${snippet.title} ${snippet.tag || ""}`.trim();
+  }
   return thread.rootMessage.content?.trim() || attachmentFallback;
 }
 
@@ -242,12 +250,7 @@ export default function FollowedThreadsModal({
                         </span>
                       )}
                     </span>
-                    <span className="text-xs text-slate-600 line-clamp-2 break-words">
-                      {getThreadPreview(
-                        thread,
-                        "[Attachment]",
-                      )}
-                    </span>
+                    <ThreadSnippetPreview content={thread.rootMessage.content} />
                     <span className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100/50 mt-1 shrink-0">
                       <span className="flex items-center gap-1 text-blue-600 font-bold">
                         <MessageSquare size={11} />

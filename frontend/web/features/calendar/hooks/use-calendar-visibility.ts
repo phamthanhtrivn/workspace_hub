@@ -61,7 +61,7 @@ export function useCalendarVisibility(
       selectedCalendarIds ??
       new Set(
         calendars
-          .filter((calendar) => calendar.isVisible)
+          .filter((calendar) => calendar.isVisible && !calendar.projectId)
           .map((calendar) => calendar.id),
       ),
     [calendars, selectedCalendarIds],
@@ -72,6 +72,7 @@ export function useCalendarVisibility(
       calendars
         .filter(
           (calendar) =>
+            !calendar.projectId &&
             calendar.isVisible &&
             effectiveSelectedCalendarIds.has(calendar.id),
         )
@@ -80,7 +81,12 @@ export function useCalendarVisibility(
     const calendarColors = new Map(
       calendars.map((calendar) => [calendar.id, calendar.color]),
     );
-    const userCalendarIds = new Set(calendars.map((calendar) => calendar.id));
+    const projectCalendarIds = new Set(
+      calendars.filter((calendar) => calendar.projectId).map((calendar) => calendar.id),
+    );
+    const userCalendarIds = new Set(
+      calendars.filter((calendar) => !calendar.projectId).map((calendar) => calendar.id),
+    );
     const defaultCalendar =
       calendars.find((c) => !c.projectId && c.isDefault) ??
       calendars.find((c) => !c.projectId) ??
@@ -91,6 +97,7 @@ export function useCalendarVisibility(
 
     return events
       .filter((event) => event.status !== EventStatus.CANCELLED)
+      .filter((event) => !projectCalendarIds.has(event.calendarId) && !event.calendar?.projectId)
       .filter((event) => {
         if (isTaskCalendarEvent(event)) {
           if (!tasksVisible) return false;

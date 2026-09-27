@@ -283,7 +283,12 @@ html {
 }
 
 .calendar-shell .fc-event-main {
+  border-radius: inherit;
   overflow: hidden;
+}
+
+.calendar-shell .fc-timegrid-event-harness > .fc-timegrid-event {
+  right: 8px;
 }
 
 .calendar-shell .fc-timegrid-event-harness-inset > .fc-timegrid-event {

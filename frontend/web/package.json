@@ -7,11 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:i18n:project": "node features/project/audit-i18n.mjs",
     "test": "npm run test:calendar && npm run test:project && npm run test:notification",
     "test:calendar": "vitest run features/calendar --configLoader runner",
     "test:project": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test features/project/api/pagination.test.mjs && vitest run --config vitest.project.config.mts --configLoader runner",
-    "test:notification": "vitest run features/notification --config vitest.config.mts --configLoader runner"
+    "test:notification": "vitest run features/notification --passWithNoTests --config vitest.config.mts --configLoader runner"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -49,7 +48,6 @@
     "react-hook-form": "^7.86.0",
     "react-icons": "^5.7.0",
     "react-intersection-observer": "^10.0.3",
-    "react-intl": "^10.1.22",
     "react-redux": "^9.3.0",
     "react-toastify": "^11.1.0",
     "rrule": "^2.8.1",

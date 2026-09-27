@@ -47,12 +47,12 @@ export class CalendarNotificationService {
 
     const actionText =
       params.status === AttendeeResponseStatus.ACCEPTED
-        ? 'đồng ý tham gia'
+        ? 'accepted'
         : params.status === AttendeeResponseStatus.DECLINED
-          ? 'từ chối tham gia'
-          : 'đã phản hồi về';
+          ? 'declined'
+          : 'responded to';
 
-    const displayName = params.responderName || 'Một người tham dự';
+    const displayName = params.responderName || 'An attendee';
 
     await this.sendNotification({
       recipientId: params.recipientId,
@@ -60,8 +60,8 @@ export class CalendarNotificationService {
       senderName: displayName,
       senderAvatar: params.responderAvatar || undefined,
       type: 'CALENDAR_REMINDER',
-      title: 'Phản hồi sự kiện',
-      content: `${displayName} đã ${actionText} sự kiện: ${params.eventTitle}`,
+      title: 'Event Response',
+      content: `${displayName} has ${actionText} the event: ${params.eventTitle}`,
       link: `/calendar?event=${params.eventId}`,
       metadata: {
         eventId: params.eventId,
@@ -83,7 +83,7 @@ export class CalendarNotificationService {
       return;
     }
 
-    const displayName = params.creatorName || 'Một người dùng';
+    const displayName = params.creatorName || 'A user';
 
     await this.sendNotification({
       recipientId: params.recipientId,
@@ -91,13 +91,106 @@ export class CalendarNotificationService {
       senderName: displayName,
       senderAvatar: params.creatorAvatar || undefined,
       type: 'CALENDAR_REMINDER',
-      title: 'Lời mời sự kiện',
-      content: `${displayName} đã mời bạn tham gia sự kiện: ${params.eventTitle}`,
+      title: 'Event Invitation',
+      content: `${displayName} invited you to the event: ${params.eventTitle}`,
       link: `/calendar?event=${params.eventId}`,
       metadata: {
         eventId: params.eventId,
         eventTitle: params.eventTitle,
         type: 'INVITATION',
+      },
+    });
+  }
+
+  async notifyEventCancellation(params: {
+    eventTitle: string;
+    eventId: string;
+    recipientId: string;
+    cancellerId: string;
+    cancellerName?: string | null;
+    cancellerAvatar?: string | null;
+  }): Promise<void> {
+    if (!params.recipientId || params.recipientId === params.cancellerId) {
+      return;
+    }
+
+    const displayName = params.cancellerName || 'A user';
+
+    await this.sendNotification({
+      recipientId: params.recipientId,
+      senderId: params.cancellerId,
+      senderName: displayName,
+      senderAvatar: params.cancellerAvatar || undefined,
+      type: 'CALENDAR_REMINDER',
+      title: 'Event Cancelled',
+      content: `${displayName} cancelled the event: ${params.eventTitle}`,
+      link: '/calendar',
+      metadata: {
+        eventId: params.eventId,
+        eventTitle: params.eventTitle,
+        type: 'CANCELLATION',
+      },
+    });
+  }
+
+  async notifyAttendeeRemoval(params: {
+    eventTitle: string;
+    eventId: string;
+    recipientId: string;
+    removerId: string;
+    removerName?: string | null;
+    removerAvatar?: string | null;
+  }): Promise<void> {
+    if (!params.recipientId || params.recipientId === params.removerId) {
+      return;
+    }
+
+    const displayName = params.removerName || 'A user';
+
+    await this.sendNotification({
+      recipientId: params.recipientId,
+      senderId: params.removerId,
+      senderName: displayName,
+      senderAvatar: params.removerAvatar || undefined,
+      type: 'CALENDAR_REMINDER',
+      title: 'Removed from Event',
+      content: `${displayName} removed you from the event: ${params.eventTitle}`,
+      link: '/calendar',
+      metadata: {
+        eventId: params.eventId,
+        eventTitle: params.eventTitle,
+        type: 'ATTENDEE_REMOVED',
+      },
+    });
+  }
+
+  async notifyEventUpdate(params: {
+    eventTitle: string;
+    eventId: string;
+    recipientId: string;
+    updaterId: string;
+    updaterName?: string | null;
+    updaterAvatar?: string | null;
+  }): Promise<void> {
+    if (!params.recipientId || params.recipientId === params.updaterId) {
+      return;
+    }
+
+    const displayName = params.updaterName || 'A user';
+
+    await this.sendNotification({
+      recipientId: params.recipientId,
+      senderId: params.updaterId,
+      senderName: displayName,
+      senderAvatar: params.updaterAvatar || undefined,
+      type: 'CALENDAR_REMINDER',
+      title: 'Event Updated',
+      content: `${displayName} updated the event: ${params.eventTitle}`,
+      link: `/calendar?event=${params.eventId}`,
+      metadata: {
+        eventId: params.eventId,
+        eventTitle: params.eventTitle,
+        type: 'EVENT_UPDATED',
       },
     });
   }

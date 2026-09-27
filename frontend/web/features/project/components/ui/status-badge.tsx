@@ -4,6 +4,7 @@ import React from "react";
 import {
   TaskStatus,
   ProjectStatus,
+  TaskPriority,
 } from "@/features/project/types/project";
 import {
   Circle,
@@ -13,6 +14,10 @@ import {
   Pause,
   Archive,
   Ban,
+  ChevronsUp,
+  ChevronUp,
+  Equal,
+  ChevronDown,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CustomBadge } from "@/components/ui/custom/custom-badge";
@@ -123,6 +128,63 @@ export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
       variant="outline"
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold transition-all",
+        cfg.bg,
+        cfg.color
+      )}
+    >
+      <Icon className="h-3 w-3 shrink-0" strokeWidth={2.5} />
+      {cfg.label}
+    </Badge>
+  );
+}
+
+// ─── Task Priority ────────────────────────────────────────────────────────────
+
+const taskPriorityConfig: Record<
+  TaskPriority,
+  { label: string; color: string; bg: string; icon: React.ElementType }
+> = {
+  [TaskPriority.URGENT]: {
+    label: "Urgent",
+    color: "text-red-700",
+    bg: "bg-red-50 border-red-200",
+    icon: ChevronsUp,
+  },
+  [TaskPriority.HIGH]: {
+    label: "High",
+    color: "text-amber-700",
+    bg: "bg-amber-50 border-amber-200",
+    icon: ChevronUp,
+  },
+  [TaskPriority.MEDIUM]: {
+    label: "Medium",
+    color: "text-blue-700",
+    bg: "bg-blue-50 border-blue-200",
+    icon: Equal,
+  },
+  [TaskPriority.LOW]: {
+    label: "Low",
+    color: "text-slate-600",
+    bg: "bg-slate-100 border-slate-200",
+    icon: ChevronDown,
+  },
+};
+
+export function TaskPriorityBadge({
+  priority,
+  compact = false,
+}: {
+  priority: TaskPriority;
+  compact?: boolean;
+}) {
+  const cfg = taskPriorityConfig[priority] || taskPriorityConfig[TaskPriority.LOW];
+  const Icon = cfg.icon;
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "inline-flex items-center gap-1.5 font-bold transition-all",
+        compact ? "rounded-md px-1.5 py-0.5 text-[10px]" : "rounded-full px-2.5 py-0.5 text-xs",
         cfg.bg,
         cfg.color
       )}

@@ -1,5 +1,6 @@
 import { CalendarEvent } from "../types/calendar.types";
 import { CALENDAR_MIN_EVENT_DURATION_MS } from "../types/calendar.constants";
+import { formatReminderOptionLabel } from "./calendar-reminder.utils";
 
 export function toDateTimeLocal(value: Date | string): string {
   const date = typeof value === "string" ? new Date(value) : value;
@@ -196,29 +197,11 @@ export function formatCalendarEventRange(
   return `${startStr} – ${endStr}`;
 }
 
-export function formatReminderLabel(
-  minutesBefore: number,
-  locale: string,
-): string {
-  const isVi = locale.toLowerCase().startsWith("vi");
+export function formatReminderLabel(minutesBefore: number): string {
   if (minutesBefore === 0) {
-    return isVi ? "Đúng giờ sự kiện" : "At time of event";
+    return "At time of event";
   }
-  if (minutesBefore < 60) {
-    return isVi
-      ? `${minutesBefore} phút trước`
-      : `${minutesBefore} minutes before`;
-  }
-  if (minutesBefore < 1440) {
-    const hours = Math.floor(minutesBefore / 60);
-    return isVi
-      ? `${hours} giờ trước`
-      : `${hours} hour${hours > 1 ? "s" : ""} before`;
-  }
-  const days = Math.floor(minutesBefore / 1440);
-  return isVi
-    ? `${days} ngày trước`
-    : `${days} day${days > 1 ? "s" : ""} before`;
+  return formatReminderOptionLabel(minutesBefore);
 }
 
 export function isSameDate(first?: Date | null, second?: Date | null) {
