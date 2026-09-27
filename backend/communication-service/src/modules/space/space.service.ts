@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { PrismaService } from '../../prisma/prisma.service';
-import { InvitationStatus, SpaceRole } from '@prisma/client';
+import { InvitationStatus, SpaceRole, MessageType } from '@prisma/client';
 import {
   KAFKA_EVENTS,
   KAFKA_TOPICS,
@@ -686,6 +686,189 @@ export class SpaceService {
       exists: true,
       spaceId: space.id,
       channelId: defaultChannel?.id ?? null,
+    };
+  }
+
+  async ensureTaskChannel(
+    projectId: string,
+    taskId: string,
+    taskTitle: string,
+    actorId?: string,
+  ) {
+    const space = await this.prisma.space.findFirst({
+      where: { projectId },
+    });
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+
+    const cleanTitle =
+      taskTitle
+        ?.toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 30) || 'task';
+    const channelName = `task-${cleanTitle}`;
+
+    let channel = await this.prisma.channel.findFirst({
+      where: {
+        spaceId: space.id,
+        name: { equals: channelName, mode: 'insensitive' },
+      },
+    });
+
+    if (!channel) {
+      channel = await this.prisma.channel.create({
+        data: {
+          spaceId: space.id,
+          name: channelName,
+          createdBy: actorId || space.createdBy,
+        },
+      });
+
+      const spaceMembers = await this.prisma.spaceMember.findMany({
+        where: { spaceId: space.id },
+        select: { userId: true },
+      });
+
+      if (spaceMembers.length > 0) {
+        await this.prisma.channelMember.createMany({
+          data: spaceMembers.map((m) => ({
+            channelId: channel!.id,
+            userId: m.userId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    return {
+      spaceId: space.id,
+      channelId: channel!.id,
+      channelName: channel!.name,
+    };
+  }
+
+  async ensureTaskThread(
+    projectId: string,
+    taskId: string,
+    taskTitle: string,
+    actorId?: string,
+    channelId?: string,
+  ) {
+    const space = await this.prisma.space.findFirst({
+      where: { projectId },
+    });
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+
+    const senderId = actorId || space.createdBy;
+    let targetChannel: { id: string; name: string } | null = null;
+
+    if (channelId) {
+      const channelCandidate = await this.prisma.channel.findFirst({
+        where: { spaceId: space.id, id: channelId },
+        include: { setting: true, members: true },
+      });
+      if (channelCandidate) {
+        const isMember = channelCandidate.members.some((m) => m.userId === senderId);
+        let canPost = isMember;
+        if (isMember && channelCandidate.setting?.allowSendMessage === false) {
+          const spaceMem = await this.prisma.spaceMember.findUnique({
+            where: { spaceId_userId: { spaceId: space.id, userId: senderId } },
+          });
+          canPost = spaceMem?.role === SpaceRole.ADMIN || space.createdBy === senderId;
+        }
+
+        if (canPost) {
+          targetChannel = { id: channelCandidate.id, name: channelCandidate.name };
+        }
+      }
+    }
+
+    if (!targetChannel) {
+      targetChannel = await this.prisma.channel.findFirst({
+        where: {
+          spaceId: space.id,
+          name: { equals: 'task-discussions', mode: 'insensitive' },
+        },
+        select: { id: true, name: true },
+      });
+    }
+
+    if (!targetChannel) {
+      const defaultChannel = await this.prisma.channel.findFirst({
+        where: { spaceId: space.id, isDefault: true },
+        select: { id: true, name: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      targetChannel = defaultChannel;
+    }
+
+    if (!targetChannel) {
+      targetChannel = await this.prisma.channel.create({
+        data: {
+          spaceId: space.id,
+          name: 'task-discussions',
+          createdBy: senderId,
+        },
+        select: { id: true, name: true },
+      });
+    }
+
+    const spaceMembers = await this.prisma.spaceMember.findMany({
+      where: { spaceId: space.id },
+      select: { userId: true },
+    });
+    if (spaceMembers.length > 0) {
+      await this.prisma.channelMember.createMany({
+        data: spaceMembers.map((m) => ({
+          channelId: targetChannel!.id,
+          userId: m.userId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    const taskTag = `[Task #${taskId.slice(0, 8)}]`;
+    let rootMessage = await this.prisma.message.findFirst({
+      where: {
+        channelId: targetChannel.id,
+        threadParentId: null,
+        OR: [
+          { content: { contains: taskId } },
+          { content: { contains: taskTag } },
+        ],
+      },
+    });
+
+    if (!rootMessage) {
+      const messageContent = JSON.stringify({
+        title: taskTitle,
+        taskId,
+        projectId,
+        tag: taskTag,
+      });
+
+      rootMessage = await this.prisma.message.create({
+        data: {
+          channelId: targetChannel.id,
+          senderId,
+          content: messageContent,
+          type: MessageType.TASK,
+          threadParentId: null,
+        },
+      });
+    }
+
+    return {
+      spaceId: space.id,
+      channelId: targetChannel.id,
+      channelName: targetChannel.name,
+      threadId: rootMessage.id,
+      threadTitle: taskTitle,
     };
   }
 

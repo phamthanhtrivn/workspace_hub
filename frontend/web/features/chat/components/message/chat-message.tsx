@@ -11,6 +11,7 @@ import PollMessage from "./poll-message";
 import NoteMessage from "./note-message";
 import MeetingCardMessage from "./meeting-card-message";
 import DocumentMessage from "./document-message";
+import TaskCardMessage from "./task-card-message";
 import { CHAT_MESSAGE_TYPES } from "../../types/document.constants";
 import MediaLightbox from "./media-lightbox";
 import { renderMessageContent } from "../../utils/message-formatter";
@@ -197,6 +198,12 @@ const ChatMessage = React.memo(function ChatMessage({
     );
   }
 
+  const isTaskCard =
+    msg.type === "TASK" ||
+    (msg.content &&
+      (msg.content.includes("[Task #") ||
+        msg.content.trim().startsWith('{"title":')));
+
   return (
     <div
       id={`msg-${msg.id}`}
@@ -262,17 +269,24 @@ const ChatMessage = React.memo(function ChatMessage({
               )}
 
               <div className="flex flex-col relative max-w-full">
-                {hasText && (
-                  <div
-                    className={cn(
-                      "p-3 text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden leading-relaxed transition-all duration-200 font-medium rounded-2xl rounded-tl-none",
-                      msg.threadReplyCount && msg.threadReplyCount > 0
-                        ? "bg-indigo-50 border border-indigo-100 text-indigo-950 shadow-sm"
-                        : "bg-white border border-slate-100 text-slate-800 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.06)]",
-                    )}
-                  >
-                    {renderedMessageContent}
-                  </div>
+                {isTaskCard ? (
+                  <TaskCardMessage
+                    content={msg.content || ""}
+                    projectId={(msg as any).projectId}
+                  />
+                ) : (
+                  hasText && (
+                    <div
+                      className={cn(
+                        "p-3 text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden leading-relaxed transition-all duration-200 font-medium rounded-2xl rounded-tl-none",
+                        msg.threadReplyCount && msg.threadReplyCount > 0
+                          ? "bg-indigo-50 border border-indigo-100 text-indigo-950 shadow-sm"
+                          : "bg-white border border-slate-100 text-slate-800 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.06)]",
+                      )}
+                    >
+                      {renderedMessageContent}
+                    </div>
+                  )
                 )}
 
                 <MessageReactions

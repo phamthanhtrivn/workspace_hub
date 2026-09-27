@@ -50,7 +50,14 @@ export default function TaskCommentsSection({
   const updateComment = useUpdateTaskComment(task.id);
   const deleteComment = useDeleteTaskComment(task.id);
 
-  const comments = (loadedComments ?? task.comments).map((comment) => {
+  const rawComments = loadedComments ?? task.comments ?? [];
+  const uniqueCommentsMap = new Map<string, (typeof rawComments)[0]>();
+  for (const c of rawComments) {
+    if (c.id && !uniqueCommentsMap.has(c.id)) {
+      uniqueCommentsMap.set(c.id, c);
+    }
+  }
+  const comments = Array.from(uniqueCommentsMap.values()).map((comment) => {
     const author = members.find((member) => member.userId === comment.authorId);
     return author
       ? {
@@ -136,8 +143,8 @@ export default function TaskCommentsSection({
       )}
       {comments.length ? (
         <div className="space-y-3">
-          {comments.map((comment) => (
-            <div key={comment.id} className="flex gap-2.5">
+          {comments.map((comment, index) => (
+            <div key={`${comment.id}-${index}`} className="flex gap-2.5">
               <Avatar
                 user={{
                   userId: comment.authorId,
