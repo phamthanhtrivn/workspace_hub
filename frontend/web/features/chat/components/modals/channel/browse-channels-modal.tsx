@@ -5,7 +5,8 @@ import { createPortal } from "react-dom";
 import { X, Loader2, Search, Hash, Check, Globe, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import Swal from "sweetalert2";
+import ChatConfirmDialog from "@/features/chat/components/ui/chat-confirm-dialog";
+import { useChatConfirmDialog } from "@/features/chat/hooks/useChatConfirmDialog";
 import { getSpaceDetails } from "@/features/chat/api/space.api";
 import { chatKeys } from "@/features/chat/types/chat.constant";
 import { useSpaceChannelsQuery } from "@/features/chat/hooks/useChatQueries";
@@ -34,6 +35,7 @@ export default function BrowseChannelsModal({
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
+  const { confirm: confirmAction, confirmDialogProps } = useChatConfirmDialog();
 
   const { data: spaceDetail } = useQuery({
     queryKey: chatKeys.spaceDetails(spaceId),
@@ -114,18 +116,15 @@ export default function BrowseChannelsModal({
   });
 
   const handleDeleteChannel = async (channelId: string) => {
-    const result = await Swal.fire({
+    const confirmed = await confirmAction({
       title: "Delete Channel",
-      text: "Are you sure you want to delete this channel? All messages and attachments will be lost.",
-      icon: "error",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
+      description: "Are you sure you want to delete this channel? All messages and attachments will be lost.",
+      variant: "danger",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
     });
 
-    if (result.isConfirmed) {
+    if (confirmed) {
       deleteMutation.mutate(channelId);
     }
   };
@@ -267,6 +266,7 @@ export default function BrowseChannelsModal({
           </button>
         </div>
       </div>
+      <ChatConfirmDialog {...confirmDialogProps} />
     </div>,
     document.body,
   );

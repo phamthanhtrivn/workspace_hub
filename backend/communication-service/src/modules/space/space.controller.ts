@@ -81,6 +81,57 @@ export class SpaceController {
     };
   }
 
+  @Post('internal/project/:projectId/task-channel')
+  async ensureTaskChannel(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body() body: { taskId: string; taskTitle: string; actorId?: string },
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    const result = await this.spaceService.ensureTaskChannel(
+      projectId,
+      body.taskId,
+      body.taskTitle,
+      body.actorId,
+    );
+    return {
+      message: 'Task channel retrieved successfully',
+      data: result,
+    };
+  }
+
+  @Post('internal/project/:projectId/task-thread')
+  async ensureTaskThread(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body()
+    body: {
+      taskId: string;
+      taskTitle: string;
+      actorId?: string;
+      channelId?: string;
+      status?: string;
+      priority?: string;
+      dueDate?: string;
+    },
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    const result = await this.spaceService.ensureTaskThread(
+      projectId,
+      body.taskId,
+      body.taskTitle,
+      body.actorId,
+      body.channelId,
+      body.status,
+      body.priority,
+      body.dueDate,
+    );
+    return {
+      message: 'Task thread retrieved successfully',
+      data: result,
+    };
+  }
+
   @Patch('internal/project/:projectId/name')
   async renameProjectSpaceFromProject(
     @Headers('x-internal-service-key') serviceKey: string,

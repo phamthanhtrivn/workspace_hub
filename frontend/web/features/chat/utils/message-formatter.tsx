@@ -111,22 +111,23 @@ export const formatMessageContent = (
 
   let parts: (string | React.ReactNode)[] = [content];
 
-  // Process @All mention
-  const searchAllStr = "@All";
-  if (content.includes(searchAllStr)) {
+  // 1. Process Special Mentions (@All, @all, @channel, @here)
+  const specialMentions = ["@All", "@all", "@channel", "@here"];
+  specialMentions.forEach((specialStr) => {
+    if (!content.includes(specialStr)) return;
     const newParts: (string | React.ReactNode)[] = [];
     parts.forEach((part, partIdx) => {
       if (typeof part === "string") {
-        const split = part.split(searchAllStr);
+        const split = part.split(specialStr);
         split.forEach((s, idx) => {
           newParts.push(s);
           if (idx < split.length - 1) {
             newParts.push(
               <span
-                key={`all-${partIdx}-${idx}`}
-                className="font-semibold text-blue-600 px-1 rounded transition-colors"
+                key={`special-${specialStr}-${partIdx}-${idx}`}
+                className="font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded-md transition-colors"
               >
-                {searchAllStr}
+                {specialStr}
               </span>,
             );
           }
@@ -136,19 +137,19 @@ export const formatMessageContent = (
       }
     });
     parts = newParts;
-  }
+  });
 
+  // 2. Process Member Profile Mentions from memberProfiles map
   const allProfiles = Object.values(memberProfiles || {})
     .map((profile: any) => ({
-      userId: profile.userId,
-      name: profile.fullName || "Someone",
+      userId: profile.userId || profile.id,
+      name: profile.fullName || profile.displayName || "Someone",
     }))
-    .sort((a: any, b: any) => b.name.length - a.name.length);
+    .filter((p) => p.name && p.name !== "Someone")
+    .sort((a, b) => b.name.length - a.name.length);
 
   allProfiles.forEach(({ userId, name }: any) => {
     const searchStr = `@${name}`;
-    if (!content.includes(searchStr)) return;
-
     const newParts: (string | React.ReactNode)[] = [];
     parts.forEach((part, partIdx) => {
       if (typeof part === "string") {
@@ -158,8 +159,8 @@ export const formatMessageContent = (
           if (idx < split.length - 1) {
             newParts.push(
               <span
-                key={`${userId}-${partIdx}-${idx}`}
-                className="font-semibold text-blue-600 px-1 rounded transition-colors"
+                key={`user-${userId}-${partIdx}-${idx}`}
+                className="font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
               >
                 {searchStr}
               </span>,
@@ -172,6 +173,39 @@ export const formatMessageContent = (
     });
     parts = newParts;
   });
+
+  // 3. Fallback General Mention Regex for single-word @mentions (no spaces allowed to prevent swallowing following text)
+  const mentionRegex = /@([\p{L}\p{N}_\-]+)/gu;
+  const fallbackParts: (string | React.ReactNode)[] = [];
+  parts.forEach((part, partIdx) => {
+    if (typeof part === "string") {
+      let lastIdx = 0;
+      let match;
+      mentionRegex.lastIndex = 0;
+      while ((match = mentionRegex.exec(part)) !== null) {
+        const matchIdx = match.index;
+        const fullMention = match[0];
+        if (matchIdx > lastIdx) {
+          fallbackParts.push(part.substring(lastIdx, matchIdx));
+        }
+        fallbackParts.push(
+          <span
+            key={`mention-regex-${partIdx}-${matchIdx}`}
+            className="font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
+          >
+            {fullMention}
+          </span>,
+        );
+        lastIdx = mentionRegex.lastIndex;
+      }
+      if (lastIdx < part.length) {
+        fallbackParts.push(part.substring(lastIdx));
+      }
+    } else {
+      fallbackParts.push(part);
+    }
+  });
+  parts = fallbackParts;
 
   // Process Markdown Links [text](url)
   const mdLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;

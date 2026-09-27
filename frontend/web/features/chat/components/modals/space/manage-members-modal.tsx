@@ -13,7 +13,8 @@ import {
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
-import Swal from "sweetalert2";
+import ChatConfirmDialog from "@/features/chat/components/ui/chat-confirm-dialog";
+import { useChatConfirmDialog } from "@/features/chat/hooks/useChatConfirmDialog";
 import { FaKey } from "react-icons/fa";
 import {
   ChannelResponse,
@@ -68,6 +69,7 @@ export default function ManageMembersModal({
   const [searchTerm, setSearchTerm] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
+  const { confirm: confirmAction, confirmDialogProps } = useChatConfirmDialog();
 
   const { data: spaceDetail } = useQuery({
     queryKey: chatKeys.spaceDetails(channel.spaceId),
@@ -101,18 +103,15 @@ export default function ManageMembersModal({
       role === "ADMIN"
         ? "promote this user to Admin"
         : "demote this user to Member";
-    const result = await Swal.fire({
+    const confirmed = await confirmAction({
       title: "Update Member Role",
-      text: `Are you sure you want to ${actionText}?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes",
-      cancelButtonText: "Cancel",
+      description: `Are you sure you want to ${actionText}?`,
+      variant: "warning",
+      confirmLabel: "Confirm",
+      cancelLabel: "Cancel",
     });
 
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
 
     setIsProcessing(true);
     try {
@@ -138,18 +137,15 @@ export default function ManageMembersModal({
 
     const memberName =
       memberProfiles?.[memberId]?.fullName || "this user";
-    const result = await Swal.fire({
+    const confirmed = await confirmAction({
       title: "Transfer Space Ownership",
-      text: `Are you sure you want to transfer ownership of this space to ${memberName}? You will no longer be the primary owner.`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Transfer",
-      cancelButtonText: "Cancel",
+      description: `Are you sure you want to transfer ownership of this space to ${memberName}? You will no longer be the primary owner.`,
+      variant: "warning",
+      confirmLabel: "Transfer",
+      cancelLabel: "Cancel",
     });
 
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
 
     setIsProcessing(true);
     try {
@@ -175,18 +171,15 @@ export default function ManageMembersModal({
 
   const handleKickMember = async (memberId: string) => {
     if (isProcessing) return;
-    const result = await Swal.fire({
+    const confirmed = await confirmAction({
       title: "Remove Member",
-      text: "Are you sure you want to remove this member from the channel?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Remove",
-      cancelButtonText: "Cancel",
+      description: "Are you sure you want to remove this member from the channel?",
+      variant: "warning",
+      confirmLabel: "Remove",
+      cancelLabel: "Cancel",
     });
 
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
     setIsProcessing(true);
     try {
       await kickMember(channel.id, memberId);
@@ -209,20 +202,17 @@ export default function ManageMembersModal({
   const handleLeaveSpace = async () => {
     if (isProcessing) return;
 
-    const result = await Swal.fire({
+    const confirmed = await confirmAction({
       title: `Confirm: ${leaveLabel}`,
-      text: channel.isDefault
+      description: channel.isDefault
         ? "Leaving the default channel will remove you from this space. Are you sure?"
         : "Are you sure you want to leave this channel?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: leaveLabel,
-      cancelButtonText: "Cancel",
+      variant: "warning",
+      confirmLabel: leaveLabel,
+      cancelLabel: "Cancel",
     });
 
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
     setIsProcessing(true);
     try {
       await leaveChannel(channel.id);
@@ -247,18 +237,15 @@ export default function ManageMembersModal({
 
   const handleDisbandChannel = async () => {
     if (isProcessing) return;
-    const result = await Swal.fire({
+    const confirmed = await confirmAction({
       title: "Disband Channel",
-      text: "Are you sure you want to disband this channel? This action cannot be undone.",
-      icon: "error",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Disband",
-      cancelButtonText: "Cancel",
+      description: "Are you sure you want to disband this channel? This action cannot be undone.",
+      variant: "danger",
+      confirmLabel: "Disband",
+      cancelLabel: "Cancel",
     });
 
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
     setIsProcessing(true);
     try {
       await disbandChannel(channel.id);
@@ -468,6 +455,7 @@ export default function ManageMembersModal({
           )}
         </div>
       </div>
+      <ChatConfirmDialog {...confirmDialogProps} />
     </div>,
     document.body,
   );

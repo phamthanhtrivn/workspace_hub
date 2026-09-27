@@ -284,6 +284,42 @@ export async function openProjectSpace(
   return unwrap(response);
 }
 
+export interface TaskChannelResponse {
+  spaceId: string;
+  channelId: string;
+  channelName: string;
+}
+
+export async function openTaskChannel(
+  projectId: string,
+  taskId: string,
+): Promise<TaskChannelResponse> {
+  const response = await api.post<ApiResponse<TaskChannelResponse>>(
+    `/api/projects/${projectId}/tasks/${taskId}/channel`,
+  );
+  return unwrap(response);
+}
+
+export interface TaskThreadResponse {
+  spaceId: string;
+  channelId: string;
+  channelName: string;
+  threadId: string;
+  threadTitle: string;
+}
+
+export async function openTaskThread(
+  projectId: string,
+  taskId: string,
+  payload?: { channelId?: string },
+): Promise<TaskThreadResponse> {
+  const response = await api.post<ApiResponse<TaskThreadResponse>>(
+    `/api/projects/${projectId}/tasks/${taskId}/thread`,
+    payload,
+  );
+  return unwrap(response);
+}
+
 export async function getProjectSpaceStatus(
   projectId: string,
 ): Promise<ProjectSpaceStatusResponse> {

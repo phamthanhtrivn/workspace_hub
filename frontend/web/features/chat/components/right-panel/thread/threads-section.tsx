@@ -16,6 +16,7 @@ import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import SeeAllButton from "../see-all-button";
 import { logApiError } from "@/lib/interceptors";
+import ThreadSnippetPreview from "./thread-snippet-preview";
 
 interface ThreadsSectionProps {
   conversationId: string;
@@ -136,9 +137,7 @@ export default function ThreadsSection({
                       <span className="block truncate text-xs font-semibold text-gray-800">
                         {name}
                       </span>
-                      <span className="block truncate text-xs text-gray-500">
-                        {message.content || "Attachment"}
-                      </span>
+                      <ThreadSnippetPreview content={message.content} />
                       <span className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-blue-600">
                         <MessageSquare size={11} />
                         {`${message.threadReplyCount} ${message.threadReplyCount === 1 ? "reply" : "replies"}`}

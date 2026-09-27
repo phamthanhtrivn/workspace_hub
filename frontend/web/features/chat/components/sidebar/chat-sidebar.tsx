@@ -52,7 +52,8 @@ import {
   sortChannelsByPin,
 } from "../../utils/direct-conversation-utils";
 import { cn } from "@/lib/utils";
-import Swal from "sweetalert2";
+import ChatConfirmDialog from "../ui/chat-confirm-dialog";
+import { useChatConfirmDialog } from "../../hooks/useChatConfirmDialog";
 import { toast } from "sonner";
 import { getErrorMessage } from "../../types/space-settings/space-settings.types";
 import {
@@ -128,6 +129,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS,
   );
   const isSearchingSidebar = debouncedSearchQuery.length > 0;
+  const { confirm: confirmAction, confirmDialogProps } = useChatConfirmDialog();
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -256,37 +258,31 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const handleLeaveChannel = async (channel: ChannelResponse) => {
     const isDefault = channel.isDefault;
     const actionLabel = isDefault ? "Leave space" : "Leave channel";
-    const result = await Swal.fire({
+    const confirmed = await confirmAction({
       title: `${actionLabel}?`,
-      text: isDefault
+      description: isDefault
         ? "Leaving the default channel will remove you from this space."
         : "Are you sure you want to leave this channel?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: actionLabel,
-      cancelButtonText: "Cancel",
+      variant: "warning",
+      confirmLabel: actionLabel,
+      cancelLabel: "Cancel",
     });
 
-    if (result.isConfirmed) {
+    if (confirmed) {
       leaveChannelMutation.mutate(channel.id);
     }
   };
 
   const handleDeleteChannel = async (channel: ChannelResponse) => {
-    const result = await Swal.fire({
+    const confirmed = await confirmAction({
       title: "Delete channel?",
-      text: "This channel and its messages will be permanently deleted.",
-      icon: "error",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
+      description: "This channel and its messages will be permanently deleted.",
+      variant: "danger",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
     });
 
-    if (result.isConfirmed) {
+    if (confirmed) {
       deleteChannelMutation.mutate(channel.id);
     }
   };
@@ -1042,6 +1038,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         onClose={() => setIsFollowedThreadsModalOpen(false)}
         onSelectThread={handleSelectThread}
       />
+      <ChatConfirmDialog {...confirmDialogProps} />
     </div>
   );
 }

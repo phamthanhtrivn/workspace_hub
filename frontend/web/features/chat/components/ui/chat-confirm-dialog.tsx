@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { AlertTriangle, Trash2, Info } from "lucide-react";
+import { AlertTriangle, Trash2, Info, HelpCircle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -11,13 +11,13 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 
-export type ChatConfirmVariant = "danger" | "warning" | "info";
+export type ChatConfirmVariant = "danger" | "warning" | "info" | "question";
 
 export interface ChatConfirmDialogProps {
   open: boolean;
   title: string;
   description?: string;
-  confirmLabel: string;
+  confirmLabel?: string;
   cancelLabel?: string;
   variant?: ChatConfirmVariant;
   isLoading?: boolean;
@@ -34,18 +34,21 @@ const iconByVariant = {
   danger: Trash2,
   warning: AlertTriangle,
   info: Info,
+  question: HelpCircle,
 };
 
-const iconBgByVariant = {
+const iconBgByVariant: Record<ChatConfirmVariant, string> = {
   danger: "bg-red-50 text-red-600 ring-1 ring-red-100",
   warning: "bg-amber-50 text-amber-600 ring-1 ring-amber-100",
   info: "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
+  question: "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
 };
 
-const confirmButtonClassByVariant = {
+const confirmButtonClassByVariant: Record<ChatConfirmVariant, string> = {
   danger: "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500",
   warning: "bg-amber-600 text-white hover:bg-amber-700 focus-visible:ring-amber-500",
   info: "bg-[#0052CC] text-white hover:bg-[#0043A8] focus-visible:ring-blue-500",
+  question: "bg-[#0052CC] text-white hover:bg-[#0043A8] focus-visible:ring-blue-500",
 };
 
 export function ChatConfirmDialog({

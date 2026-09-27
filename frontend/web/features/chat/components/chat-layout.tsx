@@ -9,7 +9,11 @@ import { useAppDispatch, useAppSelector } from "@/store/store";
 import { MessageCircle } from "lucide-react";
 import UserProfileModal from "./modals/shared/user-profile-modal";
 import { useChatSocket } from "../hooks/socket/useChatSocket";
-import { setActiveChat, setActiveSpaceId } from "@/store/chat/chat-slice";
+import {
+  setActiveChat,
+  setActiveSpaceId,
+  setActiveThreadRootMessage,
+} from "@/store/chat/chat-slice";
 import { ChatContextType } from "../types/chat.types";
 
 export default function ChatLayout() {
@@ -27,6 +31,7 @@ export default function ChatLayout() {
     const searchParams = new URLSearchParams(window.location.search);
     const spaceId = searchParams.get("spaceId");
     const channelId = searchParams.get("channelId");
+    const threadId = searchParams.get("threadId");
     if (!spaceId || !channelId) return;
 
     dispatch(setActiveSpaceId(spaceId));
@@ -36,6 +41,20 @@ export default function ChatLayout() {
         chatType: ChatContextType.CHANNEL,
       }),
     );
+    if (threadId) {
+      dispatch(
+        setActiveThreadRootMessage({
+          id: threadId,
+          channelId,
+          content: "",
+          senderId: "",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        } as any),
+      );
+      setShowRightPanel(true);
+      setRightPanelTab(null);
+    }
     setMobileView("chat");
   }, [dispatch]);
 

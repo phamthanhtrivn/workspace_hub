@@ -12,6 +12,8 @@ import {
   getProjects,
   openProjectDocuments,
   openProjectSpace,
+  openTaskChannel,
+  openTaskThread,
   updateProject,
   type CreateProjectPayload,
   type ProjectListQuery,
@@ -102,6 +104,38 @@ export function useOpenProjectSpace(projectId: string) {
 
   return useMutation({
     mutationFn: () => openProjectSpace(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.spaceStatus(projectId),
+      });
+    },
+  });
+}
+
+export function useOpenTaskChannel(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (taskId: string) => openTaskChannel(projectId, taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.spaceStatus(projectId),
+      });
+    },
+  });
+}
+
+export function useOpenTaskThread(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      taskId,
+      channelId,
+    }: {
+      taskId: string;
+      channelId?: string;
+    }) => openTaskThread(projectId, taskId, { channelId }),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: projectKeys.spaceStatus(projectId),

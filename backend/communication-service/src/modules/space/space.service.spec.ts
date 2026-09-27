@@ -79,7 +79,7 @@ describe('SpaceService project-linked spaces', () => {
           ownerId,
           projectSpaceId,
           [{ userId: memberId }],
-          { fullName: 'Owner', avatarUrl: null },
+          { fullName: 'Owner', avatarUrl: "" },
         ),
     ],
   ])('rejects %s from project-linked spaces', async (_name, action) => {

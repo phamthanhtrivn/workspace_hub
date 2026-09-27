@@ -201,6 +201,7 @@ export interface CalendarEventDraft {
   allDay?: boolean;
   calendarId?: string;
   sourceType?: EventSourceType;
+  attendees?: CalendarEventAttendeePayload[];
 }
 
 export type CalendarTaskGroup = "overdue" | "today" | "upcoming" | "completed";

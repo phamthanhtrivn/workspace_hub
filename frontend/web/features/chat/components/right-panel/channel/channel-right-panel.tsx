@@ -14,7 +14,6 @@ import ChannelActionsSection from "./channel-actions-section";
 import FilesSection from "../files/files-section";
 import PollsSection from "../polls/polls-section";
 import NotesSection from "../notes/notes-section";
-import TasksSection from "../tasks-section";
 import PinnedMessagesSection from "../pinned-messages/pinned-messages-section";
 import PollDetailView from "../polls/poll-detail-view";
 import NoteDetailView from "../notes/note-detail-view";
@@ -314,9 +313,7 @@ export default function ChannelRightPanel({
     <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
       {/* Header */}
       <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">
-          Channel Details
-        </h2>
+        <h2 className="font-semibold text-gray-800">Channel Details</h2>
         <button
           onClick={onClose}
           className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
@@ -406,11 +403,6 @@ export default function ChannelRightPanel({
             isExpanded={expandedSection === "notes"}
             onToggle={() => toggleSection("notes")}
             onSeeAll={() => setDetailView("notes")}
-          />
-
-          <TasksSection
-            isExpanded={expandedSection === "tasks"}
-            onToggle={() => toggleSection("tasks")}
           />
         </div>
       </div>

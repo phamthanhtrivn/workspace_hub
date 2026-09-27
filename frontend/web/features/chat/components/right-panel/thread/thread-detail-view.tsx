@@ -43,6 +43,7 @@ import ThreadChatInput, {
   ThreadChatInputRef,
 } from "../../input/thread-chat-input";
 import { renderMessageContent } from "../../../utils/message-formatter";
+import TaskCardMessage from "../../message/task-card-message";
 import MediaLightbox from "../../message/media-lightbox";
 import MessageAvatar from "../../message/message-avatar";
 import { upsertMessageById } from "../../../utils/message-state-utils";
@@ -223,6 +224,7 @@ export default function ThreadDetailView({
     staleTime: 1000 * 30, // 30s
   });
 
+  const activeRootMessage = threadData?.data?.rootMessage || rootMessage;
   const replies = threadData?.data?.replies || [];
 
   const appendThreadReply = useCallback(
@@ -284,8 +286,13 @@ export default function ThreadDetailView({
         ids.add(reply.senderId);
       }
     });
+    if (activeChat && "members" in activeChat && Array.isArray(activeChat.members)) {
+      activeChat.members.forEach((m: any) => {
+        if (m.userId) ids.add(m.userId);
+      });
+    }
     return Array.from(ids);
-  }, [replies, rootMessage.senderId]);
+  }, [replies, rootMessage.senderId, activeChat]);
   const memberProfiles = useChatMemberProfiles(threadSenderIds);
 
   // Listen to new replies via WebSockets
@@ -405,7 +412,7 @@ export default function ThreadDetailView({
     return memberProfiles[userId] || null;
   };
   const rootProfile =
-    rootMessage.senderProfile || getProfile(rootMessage.senderId);
+    activeRootMessage.senderProfile || getProfile(activeRootMessage.senderId);
   const rootAvatarUrl = rootProfile?.avatarUrl || undefined;
 
   const renderThreadMessageMedias = (messageItem: any) => {
@@ -588,22 +595,33 @@ export default function ThreadDetailView({
                   {rootProfile?.fullName || "User"}
                 </span>
                 <span className="text-[10px] text-gray-400">
-                  {formatDateTime(rootMessage.createdAt)}
+                  {formatDateTime(activeRootMessage.createdAt)}
                 </span>
               </div>
-              <div className="text-xs text-gray-800 break-words bg-gray-200 p-2.5 rounded-lg border border-gray-100">
-                {rootMessage.content ? (
-                  renderMessageContent(
-                    rootMessage.content,
-                    memberProfiles ?? undefined,
-                  )
-                ) : (
-                  <span className="text-gray-400 italic">
-                    Attachment
-                  </span>
-                )}
-                {renderThreadMessageMedias(rootMessage)}
-              </div>
+              {activeRootMessage.type === "TASK" ||
+              (activeRootMessage.content &&
+                (activeRootMessage.content.includes("[Task #") ||
+                  activeRootMessage.content.trim().startsWith('{"title":'))) ? (
+                <TaskCardMessage
+                  content={activeRootMessage.content || ""}
+                  projectId={spaceDetail?.projectId}
+                  className="max-w-full"
+                />
+              ) : (
+                <div className="text-xs text-gray-800 break-words bg-[#F4F5F7] p-3 rounded-2xl border border-gray-200/60 shadow-xs">
+                  {activeRootMessage.content ? (
+                    renderMessageContent(
+                      activeRootMessage.content,
+                      memberProfiles ?? undefined,
+                    )
+                  ) : (
+                    <span className="text-gray-400 italic">
+                      Attachment
+                    </span>
+                  )}
+                  {renderThreadMessageMedias(activeRootMessage)}
+                </div>
+              )}
             </div>
           </div>
           <div className="mt-2 pl-11 text-[10px] font-semibold text-gray-500">
