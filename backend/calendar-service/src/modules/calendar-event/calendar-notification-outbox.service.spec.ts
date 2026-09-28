@@ -5,7 +5,7 @@ type SqlCall = [TemplateStringsArray, ...unknown[]];
 
 function createExecuteRawMock() {
   const calls: SqlCall[] = [];
-  const mock = jest.fn<(...args: SqlCall) => Promise<number>>((...args) => {
+  const mock = jest.fn<Promise<number>, SqlCall>((...args) => {
     calls.push(args);
     return Promise.resolve(1);
   });

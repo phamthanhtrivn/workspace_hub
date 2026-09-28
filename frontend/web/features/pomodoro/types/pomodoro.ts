@@ -27,6 +27,7 @@ export interface PomodoroTaskChecklistItem {
 
 export interface PomodoroActiveTask {
   id: string;
+  calendarEventId?: string;
   projectId?: string;
   projectName?: string;
   projectColor?: string;
@@ -39,6 +40,7 @@ export interface PomodoroActiveTask {
 
 export interface PomodoroSessionRecord {
   id: string;
+  eventId?: string;
   userId?: string;
   taskId?: string;
   taskTitle?: string;
@@ -50,7 +52,6 @@ export interface PomodoroSessionRecord {
   endedAt: string; // ISO string
   durationMinutes: number;
   actualSeconds: number;
-  interruptionReason?: string;
   notes?: string;
 }
 
@@ -61,5 +62,4 @@ export interface PomodoroDailyStats {
   completedTasks: number;
   dailyGoalPomodoros: number;
   currentStreak: number;
-  interruptionCounts: Record<string, number>;
 }

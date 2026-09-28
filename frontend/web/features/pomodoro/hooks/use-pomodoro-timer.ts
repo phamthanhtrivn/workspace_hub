@@ -14,7 +14,9 @@ import {
   getPomodoroConfig,
   recordPomodoroSession,
   savePomodoroConfig,
-} from "../api/pomodoro.api";
+} from "../api/pomodoro-server.api";
+import { getCalendarPomodoroTimerState, saveCalendarPomodoroTimerState } from "@/features/calendar/api/calendar.api";
+import { toast } from "sonner";
 import { playPomodoroSound } from "../utils/sound";
 import { ambientAudio } from "../utils/ambient-audio";
 import {
@@ -24,19 +26,7 @@ import {
   type CustomTrackRecord,
 } from "../utils/audio-storage";
 
-const TIMER_STORAGE_KEY = "workspace_hub_pomodoro_state";
-const AMBIENT_STORAGE_KEY = "workspace_hub_pomodoro_ambient";
-
-interface PersistedTimerState {
-  mode: PomodoroMode;
-  status: PomodoroStatus;
-  targetEndTime: number | null;
-  remainingSeconds: number;
-  cycleCount: number;
-  sessionStartTime: number | null;
-  activeTask: PomodoroActiveTask | null;
-  notes: string;
-}
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function getDurationForMode(
   targetMode: PomodoroMode,
@@ -44,11 +34,11 @@ function getDurationForMode(
 ): number {
   switch (targetMode) {
     case "FOCUS":
-      return (cfg.focusDuration || 25) * 60;
+      return (cfg.focusDuration ?? 25) * 60;
     case "SHORT_BREAK":
-      return (cfg.shortBreak || 5) * 60;
+      return (cfg.shortBreak ?? 5) * 60;
     case "LONG_BREAK":
-      return (cfg.longBreak || 15) * 60;
+      return (cfg.longBreak ?? 15) * 60;
   }
 }
 
@@ -56,6 +46,9 @@ export function usePomodoroTimer() {
   const [config, setConfig] = useState<PomodoroConfig>(DEFAULT_POMODORO_CONFIG);
   const [mode, setMode] = useState<PomodoroMode>("FOCUS");
   const [status, setStatus] = useState<PomodoroStatus>("IDLE");
+  const [isReady, setIsReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [sessionRevision, setSessionRevision] = useState(0);
   const [timeLeft, setTimeLeft] = useState<number>(25 * 60);
   const [totalDuration, setTotalDuration] = useState<number>(25 * 60);
   const [cycleCount, setCycleCount] = useState<number>(0);
@@ -63,7 +56,6 @@ export function usePomodoroTimer() {
   const [notes, setNotes] = useState<string>("");
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [isInterruptionOpen, setIsInterruptionOpen] = useState<boolean>(false);
 
   // Ambient Audio State
   const [ambientTrack, setAmbientTrack] = useState<AmbientTrackId>("lofi_relax");
@@ -76,132 +68,67 @@ export function usePomodoroTimer() {
   const sessionStartTimeRef = useRef<number | null>(null);
   const initialTitleRef = useRef<string>("");
   const isHydratedRef = useRef<boolean>(false);
+  const stateVersionRef = useRef(0);
+  const stateSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const lastQueuedStateRef = useRef("");
+  const timeLeftRef = useRef(timeLeft);
 
-  // Load config & ambient preferences & custom tracks on mount
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
+
+  useEffect(() => {
+    ambientAudio.setPlaybackListener(setIsAmbientPlaying);
+    return () => ambientAudio.setPlaybackListener(null);
+  }, []);
+
+  // Load server-backed config and timer state on mount.
   useEffect(() => {
     if (typeof document !== "undefined") {
       initialTitleRef.current = document.title || "WorkSpaceHub";
     }
 
-    getPomodoroConfig().then((cfg) => {
-      setConfig(cfg);
-      setIsMuted(!cfg.soundEnabled);
-    });
+    ambientAudio.setTrack("lofi_relax");
+    ambientAudio.setVolume(0.5);
+    void loadCustomAudioTracks().then(setCustomTracks);
 
-    // Load custom uploaded audio tracks from IndexedDB
-    loadCustomAudioTracks().then((tracks) => {
-      setCustomTracks(tracks);
-
-      try {
-        const savedAmbient = localStorage.getItem(AMBIENT_STORAGE_KEY);
-        if (savedAmbient) {
-          const parsed = JSON.parse(savedAmbient);
-          if (parsed.track) {
-            setAmbientTrack(parsed.track);
-            const foundCustom = tracks.find((t) => t.id === parsed.track);
-            ambientAudio.setTrack(parsed.track, foundCustom?.url);
-          }
-          if (typeof parsed.volume === "number") {
-            setAmbientVolume(parsed.volume);
-            ambientAudio.setVolume(parsed.volume);
-          }
-          if (typeof parsed.autoPlay === "boolean") {
-            setAutoPlayAmbient(parsed.autoPlay);
-          }
+    let mounted = true;
+    void Promise.all([getPomodoroConfig(), getCalendarPomodoroTimerState()])
+      .then(([cfg, saved]) => {
+        if (!mounted) return;
+        setConfig(cfg);
+        setIsMuted(!cfg.soundEnabled);
+        stateVersionRef.current = saved?.version ?? 0;
+        if (saved) {
+          const restoredMode = saved.mode as PomodoroMode;
+          const duration = getDurationForMode(restoredMode, cfg);
+          setMode(restoredMode);
+          setCycleCount(saved.cycleCount);
+          setActiveTask(saved.activeTask as unknown as PomodoroActiveTask | null);
+          setNotes(saved.notes);
+          setTotalDuration(duration);
+          sessionStartTimeRef.current = saved.sessionStartAt ? new Date(saved.sessionStartAt).getTime() : null;
+          const target = saved.targetEndAt ? new Date(saved.targetEndAt).getTime() : null;
+          const remaining = target ? Math.max(0, Math.round((target - Date.now()) / 1000)) : saved.remainingSeconds;
+          targetEndTimeRef.current = saved.status === "RUNNING" && remaining > 0 ? target : null;
+          setTimeLeft(saved.status === "IDLE" ? saved.remainingSeconds || duration : remaining);
+          setStatus(saved.status === "RUNNING" && remaining === 0 ? "IDLE" : saved.status);
         } else {
-          ambientAudio.setTrack("lofi_relax");
-          ambientAudio.setVolume(0.5);
+          setTimeLeft(getDurationForMode("FOCUS", cfg));
+          setTotalDuration(getDurationForMode("FOCUS", cfg));
         }
-      } catch {
-        // ignore
-      }
-    });
+        isHydratedRef.current = true;
+        setIsReady(true);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setLoadError(true);
+        toast.error("Không tải được Pomodoro từ máy chủ.");
+      });
+    return () => { mounted = false; };
   }, []);
 
-  // Restore persisted timer state on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(TIMER_STORAGE_KEY);
-      if (saved) {
-        const parsed: PersistedTimerState = JSON.parse(saved);
-        const validModes: PomodoroMode[] = [
-          "FOCUS",
-          "SHORT_BREAK",
-          "LONG_BREAK",
-        ];
-        const restoredMode = validModes.includes(parsed.mode)
-          ? parsed.mode
-          : "FOCUS";
-
-        setMode(restoredMode);
-        setCycleCount(parsed.cycleCount || 0);
-        setActiveTask(parsed.activeTask || null);
-        setNotes(parsed.notes || "");
-        const sessionFullDur =
-          getDurationForMode(restoredMode, config) ||
-          config.focusDuration * 60;
-        setTotalDuration(sessionFullDur);
-
-        if (parsed.status === "RUNNING" && parsed.targetEndTime) {
-          const now = Date.now();
-          const remaining = Math.max(
-            0,
-            Math.round((parsed.targetEndTime - now) / 1000),
-          );
-
-          if (remaining > 0) {
-            targetEndTimeRef.current = parsed.targetEndTime;
-            setTimeLeft(remaining);
-            setStatus("RUNNING");
-          } else {
-            // Completed while away
-            setTimeLeft(0);
-            setStatus("IDLE");
-          }
-        } else if (parsed.status === "PAUSED") {
-          setTimeLeft(parsed.remainingSeconds);
-          setStatus("PAUSED");
-        } else {
-          // IDLE
-          setTimeLeft(sessionFullDur);
-          setStatus("IDLE");
-        }
-      } else {
-        const dur = (config.focusDuration || 25) * 60;
-        setTimeLeft(dur);
-        setTotalDuration(dur);
-      }
-    } catch {
-      // ignore
-    }
-  }, [config.focusDuration, config.shortBreak, config.longBreak]);
-
-  // Persist activeTask and notes immediately when modified
-  useEffect(() => {
-    if (!isHydratedRef.current) {
-      isHydratedRef.current = true;
-      return;
-    }
-    try {
-      const saved = localStorage.getItem(TIMER_STORAGE_KEY);
-      const prev = saved ? JSON.parse(saved) : {};
-      localStorage.setItem(
-        TIMER_STORAGE_KEY,
-        JSON.stringify({
-          ...prev,
-          mode,
-          status,
-          cycleCount,
-          activeTask,
-          notes,
-        }),
-      );
-    } catch {
-      // ignore
-    }
-  }, [activeTask, notes, mode, status, cycleCount]);
-
-  // Sync state to LocalStorage
+  // Serialize writes so each update uses the version returned by the server.
   const persistState = useCallback(
     (
       newMode: PomodoroMode,
@@ -212,24 +139,51 @@ export function usePomodoroTimer() {
       task: PomodoroActiveTask | null,
       noteText: string,
     ) => {
-      try {
-        const state: PersistedTimerState = {
-          mode: newMode,
-          status: newStatus,
-          targetEndTime: targetEnd,
-          remainingSeconds: remainingSec,
-          cycleCount: cycle,
-          sessionStartTime: sessionStartTimeRef.current,
-          activeTask: task,
-          notes: noteText,
-        };
-        localStorage.setItem(TIMER_STORAGE_KEY, JSON.stringify(state));
-      } catch {
-        // ignore
-      }
+      if (!isHydratedRef.current) return;
+      const sessionStart = sessionStartTimeRef.current;
+      const snapshot = {
+        mode: newMode,
+        status: newStatus,
+        targetEndAt: targetEnd ? new Date(targetEnd).toISOString() : null,
+        remainingSeconds: remainingSec,
+        cycleCount: cycle,
+        sessionStartAt: sessionStart ? new Date(sessionStart).toISOString() : null,
+        taskId: task?.id && UUID.test(task.id) ? task.id : null,
+        activeTask: task as unknown as Record<string, unknown> | null,
+        notes: noteText,
+        eventId: task?.calendarEventId ?? null,
+      };
+      const signature = JSON.stringify(snapshot);
+      if (signature === lastQueuedStateRef.current) return;
+      lastQueuedStateRef.current = signature;
+      stateSaveQueueRef.current = stateSaveQueueRef.current
+        .then(async () => {
+          if (!isHydratedRef.current) return;
+          const saved = await saveCalendarPomodoroTimerState({
+            ...snapshot,
+            expectedVersion: stateVersionRef.current,
+          });
+          stateVersionRef.current = saved.version;
+        })
+        .catch(() => {
+          lastQueuedStateRef.current = "";
+          isHydratedRef.current = false;
+          setLoadError(true);
+          setIsReady(false);
+          setStatus("PAUSED");
+          targetEndTimeRef.current = null;
+          ambientAudio.pause();
+          toast.error("Không lưu được Pomodoro. Hãy tải lại trang để đồng bộ với máy chủ.");
+        });
     },
     [],
   );
+
+  useEffect(() => {
+    if (isHydratedRef.current) {
+      persistState(mode, status, targetEndTimeRef.current, timeLeftRef.current, cycleCount, activeTask, notes);
+    }
+  }, [activeTask, notes, mode, status, cycleCount, persistState]);
 
   // Notification trigger
   const sendBrowserNotification = useCallback(
@@ -281,7 +235,8 @@ export function usePomodoroTimer() {
       : new Date(Date.now() - totalDuration * 1000).toISOString();
     const endedAt = new Date().toISOString();
 
-    recordPomodoroSession({
+    void recordPomodoroSession({
+      eventId: activeTask?.calendarEventId,
       taskId: activeTask?.id,
       taskTitle: activeTask?.title,
       projectId: activeTask?.projectId,
@@ -293,7 +248,8 @@ export function usePomodoroTimer() {
       durationMinutes: Math.round(totalDuration / 60),
       actualSeconds: totalDuration,
       notes: notes.trim() || undefined,
-    });
+    }).then(() => setSessionRevision((revision) => revision + 1))
+      .catch(() => toast.error("Không lưu được phiên Pomodoro lên máy chủ."));
 
     // 4. Update task completed pomodoros count if Focus
     if (mode === "FOCUS" && activeTask) {
@@ -313,14 +269,14 @@ export function usePomodoroTimer() {
 
     if (mode === "FOCUS") {
       nextCycle = cycleCount + 1;
-      setCycleCount(nextCycle);
 
       if (nextCycle >= (config.longBreakInterval || 4)) {
         nextMode = "LONG_BREAK";
-        setCycleCount(0);
+        nextCycle = 0;
       } else {
         nextMode = "SHORT_BREAK";
       }
+      setCycleCount(nextCycle);
     } else {
       nextMode = "FOCUS";
     }
@@ -343,7 +299,6 @@ export function usePomodoroTimer() {
       // Auto start ambient audio if starting Focus
       if (nextMode === "FOCUS" && autoPlayAmbient && ambientTrack !== "none") {
         ambientAudio.play();
-        setIsAmbientPlaying(true);
       }
 
       persistState(
@@ -379,7 +334,6 @@ export function usePomodoroTimer() {
     cycleCount,
     autoPlayAmbient,
     ambientTrack,
-    getDurationForMode,
     persistState,
     sendBrowserNotification,
   ]);
@@ -435,6 +389,7 @@ export function usePomodoroTimer() {
   // -----------------------------------------------------------
 
   const start = useCallback(() => {
+    if (!isHydratedRef.current) return;
     // Request notification permission if needed
     if (
       config.notificationEnabled &&
@@ -463,7 +418,6 @@ export function usePomodoroTimer() {
     // Start ambient music if Focus mode and autoPlay enabled
     if (mode === "FOCUS" && autoPlayAmbient && ambientTrack !== "none") {
       ambientAudio.play();
-      setIsAmbientPlaying(true);
     }
 
     persistState(
@@ -478,13 +432,14 @@ export function usePomodoroTimer() {
   }, [
     config,
     timeLeft,
+    totalDuration,
+    status,
     mode,
     cycleCount,
     activeTask,
     notes,
     autoPlayAmbient,
     ambientTrack,
-    getDurationForMode,
     persistState,
   ]);
 
@@ -519,7 +474,6 @@ export function usePomodoroTimer() {
     // Resume ambient music if in Focus
     if (mode === "FOCUS" && autoPlayAmbient && ambientTrack !== "none") {
       ambientAudio.play();
-      setIsAmbientPlaying(true);
     }
 
     persistState(
@@ -534,17 +488,16 @@ export function usePomodoroTimer() {
   }, [status, timeLeft, mode, cycleCount, activeTask, notes, autoPlayAmbient, ambientTrack, persistState]);
 
   const reset = useCallback(
-    (reason?: string) => {
+    () => {
       ambientAudio.pause();
       setIsAmbientPlaying(false);
 
       // Save partial session if it was running for at least 30s
       if (sessionStartTimeRef.current && status !== "IDLE") {
-        const actualSeconds = Math.round(
-          (Date.now() - sessionStartTimeRef.current) / 1000,
-        );
+        const actualSeconds = Math.max(0, totalDuration - timeLeft);
         if (actualSeconds >= 30) {
-          recordPomodoroSession({
+          void recordPomodoroSession({
+            eventId: activeTask?.calendarEventId,
             taskId: activeTask?.id,
             taskTitle: activeTask?.title,
             projectId: activeTask?.projectId,
@@ -555,9 +508,9 @@ export function usePomodoroTimer() {
             endedAt: new Date().toISOString(),
             durationMinutes: Math.round(actualSeconds / 60),
             actualSeconds,
-            interruptionReason: reason,
             notes: notes.trim() || undefined,
-          });
+          }).then(() => setSessionRevision((revision) => revision + 1))
+            .catch(() => toast.error("Không lưu được phiên Pomodoro lên máy chủ."));
         }
       }
 
@@ -577,7 +530,7 @@ export function usePomodoroTimer() {
         notes,
       );
     },
-    [status, mode, config, cycleCount, activeTask, notes, getDurationForMode, persistState],
+    [status, mode, config, cycleCount, activeTask, notes, totalDuration, timeLeft, persistState],
   );
 
   const skip = useCallback(
@@ -586,11 +539,9 @@ export function usePomodoroTimer() {
       setIsAmbientPlaying(false);
 
       if (sessionStartTimeRef.current) {
-        const actualSeconds = Math.max(
-          1,
-          Math.round((Date.now() - sessionStartTimeRef.current) / 1000),
-        );
-        recordPomodoroSession({
+        const actualSeconds = Math.max(0, totalDuration - timeLeft);
+        void recordPomodoroSession({
+          eventId: activeTask?.calendarEventId,
           taskId: activeTask?.id,
           taskTitle: activeTask?.title,
           projectId: activeTask?.projectId,
@@ -602,7 +553,8 @@ export function usePomodoroTimer() {
           durationMinutes: Math.round(actualSeconds / 60),
           actualSeconds,
           notes: notes.trim() || undefined,
-        });
+        }).then(() => setSessionRevision((revision) => revision + 1))
+          .catch(() => toast.error("Không lưu được phiên Pomodoro lên máy chủ."));
       }
 
       // Switch to next mode
@@ -611,12 +563,12 @@ export function usePomodoroTimer() {
 
       if (mode === "FOCUS") {
         nextCycle = cycleCount + 1;
-        setCycleCount(nextCycle);
         nextMode =
           nextCycle >= (config.longBreakInterval || 4)
             ? "LONG_BREAK"
             : "SHORT_BREAK";
-        if (nextMode === "LONG_BREAK") setCycleCount(0);
+        if (nextMode === "LONG_BREAK") nextCycle = 0;
+        setCycleCount(nextCycle);
       } else {
         nextMode = "FOCUS";
       }
@@ -638,7 +590,7 @@ export function usePomodoroTimer() {
         notes,
       );
     },
-    [mode, cycleCount, config, activeTask, notes, getDurationForMode, persistState],
+    [mode, cycleCount, config, activeTask, notes, totalDuration, timeLeft, persistState],
   );
 
   const switchMode = useCallback(
@@ -666,42 +618,35 @@ export function usePomodoroTimer() {
         notes,
       );
     },
-    [mode, config, cycleCount, activeTask, notes, getDurationForMode, persistState],
+    [mode, config, cycleCount, activeTask, notes, persistState],
   );
 
   const updateConfig = useCallback(
     async (newConfig: PomodoroConfig) => {
       setConfig(newConfig);
       setIsMuted(!newConfig.soundEnabled);
-      await savePomodoroConfig(newConfig);
+      try {
+        await savePomodoroConfig(newConfig);
+      } catch {
+        toast.error("Không lưu được cài đặt Pomodoro lên máy chủ.");
+      }
 
       if (status === "IDLE") {
         const dur = getDurationForMode(mode, newConfig);
         setTimeLeft(dur);
         setTotalDuration(dur);
+        persistState(mode, "IDLE", null, dur, cycleCount, activeTask, notes);
       }
     },
-    [status, mode, getDurationForMode],
+    [status, mode, cycleCount, activeTask, notes, persistState],
   );
-
-  const toggleChecklistItem = useCallback((itemId: string) => {
-    setActiveTask((prev) => {
-      if (!prev || !prev.checklists) return prev;
-      return {
-        ...prev,
-        checklists: prev.checklists.map((c) =>
-          c.id === itemId ? { ...c, completed: !c.completed } : c,
-        ),
-      };
-    });
-  }, []);
 
   const toggleSound = useCallback(() => {
     setIsMuted((prev) => {
       const next = !prev;
       const updatedConfig = { ...config, soundEnabled: !next };
       setConfig(updatedConfig);
-      savePomodoroConfig(updatedConfig);
+      void savePomodoroConfig(updatedConfig).catch(() => toast.error("Không lưu được cài đặt Pomodoro lên máy chủ."));
       return next;
     });
   }, [config]);
@@ -734,26 +679,13 @@ export function usePomodoroTimer() {
 
       if (trackId !== "none" && (status === "RUNNING" || isAmbientPlaying)) {
         ambientAudio.play();
-        setIsAmbientPlaying(true);
       } else if (trackId === "none") {
         ambientAudio.stop();
         setIsAmbientPlaying(false);
       }
 
-      try {
-        localStorage.setItem(
-          AMBIENT_STORAGE_KEY,
-          JSON.stringify({
-            track: trackId,
-            volume: ambientVolume,
-            autoPlay: autoPlayAmbient,
-          }),
-        );
-      } catch {
-        // ignore
-      }
     },
-    [status, isAmbientPlaying, ambientVolume, autoPlayAmbient, customTracks],
+    [status, isAmbientPlaying, customTracks],
   );
 
   const toggleAmbientPlay = useCallback(() => {
@@ -762,7 +694,6 @@ export function usePomodoroTimer() {
       setIsAmbientPlaying(false);
     } else {
       ambientAudio.play();
-      setIsAmbientPlaying(true);
     }
   }, [isAmbientPlaying]);
 
@@ -770,39 +701,15 @@ export function usePomodoroTimer() {
     (vol: number) => {
       setAmbientVolume(vol);
       ambientAudio.setVolume(vol);
-      try {
-        localStorage.setItem(
-          AMBIENT_STORAGE_KEY,
-          JSON.stringify({
-            track: ambientTrack,
-            volume: vol,
-            autoPlay: autoPlayAmbient,
-          }),
-        );
-      } catch {
-        // ignore
-      }
     },
-    [ambientTrack, autoPlayAmbient],
+    [],
   );
 
   const toggleAutoPlayAmbient = useCallback(
     (enabled: boolean) => {
       setAutoPlayAmbient(enabled);
-      try {
-        localStorage.setItem(
-          AMBIENT_STORAGE_KEY,
-          JSON.stringify({
-            track: ambientTrack,
-            volume: ambientVolume,
-            autoPlay: enabled,
-          }),
-        );
-      } catch {
-        // ignore
-      }
     },
-    [ambientTrack, ambientVolume],
+    [],
   );
 
   const uploadCustomTrack = useCallback(
@@ -827,6 +734,9 @@ export function usePomodoroTimer() {
   );
 
   return {
+    isReady,
+    loadError,
+    sessionRevision,
     mode,
     status,
     timeLeft,
@@ -837,7 +747,6 @@ export function usePomodoroTimer() {
     notes,
     isMuted,
     isFullscreen,
-    isInterruptionOpen,
     ambientTrack,
     ambientVolume,
     autoPlayAmbient,
@@ -851,11 +760,9 @@ export function usePomodoroTimer() {
     switchMode,
     setActiveTask,
     setNotes,
-    toggleChecklistItem,
     toggleSound,
     toggleFullscreen,
     updateConfig,
-    setIsInterruptionOpen,
     selectAmbientTrack,
     toggleAmbientPlay,
     changeAmbientVolume,

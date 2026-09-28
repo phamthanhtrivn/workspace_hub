@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import {
   AMBIENT_TRACKS,
-  type AmbientTrack,
   type AmbientTrackId,
 } from "../types/ambient";
 import type { CustomTrackRecord } from "../utils/audio-storage";

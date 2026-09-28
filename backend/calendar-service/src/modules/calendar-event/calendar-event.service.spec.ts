@@ -160,6 +160,8 @@ describe('CalendarEventService', () => {
     const notificationOutbox = {
       enqueueEventInvitations: jest.fn().mockResolvedValue(undefined),
       enqueueAttendeeResponse: jest.fn().mockResolvedValue(undefined),
+      enqueueEventUpdate: jest.fn().mockResolvedValue(undefined),
+      enqueueEventCancellation: jest.fn().mockResolvedValue(undefined),
     };
 
     const recurrence = {
@@ -276,6 +278,20 @@ describe('CalendarEventService', () => {
         status: AttendeeResponseStatus.ACCEPTED,
       },
     );
+  });
+
+  it('rejects a response from a user who cannot view the event', async () => {
+    const { service, prisma } = createService();
+
+    await expect(
+      service.updateResponse(
+        outsiderId,
+        eventId,
+        AttendeeResponseStatus.ACCEPTED,
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+
+    expect(prisma.calendarEventAttendee.findUnique).not.toHaveBeenCalled();
   });
 
   it('rejects an event whose endAt is not after startAt', async () => {

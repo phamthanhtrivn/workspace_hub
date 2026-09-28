@@ -1,22 +1,127 @@
-import { BadRequestException, Body, Controller, Get, Headers, Post, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { CreatePomodoroSessionDto } from './dto/create-pomodoro-session.dto';
+import { ClearPomodoroTimerStateDto } from './dto/clear-pomodoro-timer-state.dto';
+import { GetDailyStatsQueryDto } from './dto/get-daily-stats-query.dto';
 import { GetPomodoroSessionsQueryDto } from './dto/get-pomodoro-sessions-query.dto';
+import { GetTodaySessionsQueryDto } from './dto/get-today-sessions-query.dto';
+import { SavePomodoroConfigDto } from './dto/save-pomodoro-config.dto';
+import { SavePomodoroTimerStateDto } from './dto/save-pomodoro-timer-state.dto';
 import { PomodoroService } from './pomodoro.service';
 
-@Controller('api/calendar/pomodoro/sessions')
+@Controller('api/calendar/pomodoro')
 export class PomodoroController {
   constructor(private readonly service: PomodoroService) {}
 
-  @Post()
-  async create(@Headers('x-user-id') userId: string, @Body() dto: CreatePomodoroSessionDto) {
+  @Get('config')
+  async getConfig(@Headers('x-user-id') userId: string) {
     this.requireUser(userId);
-    return { data: await this.service.create(userId, dto) };
+    return {
+      message: 'Pomodoro config retrieved',
+      data: await this.service.getConfig(userId),
+    };
   }
 
-  @Get()
-  async list(@Headers('x-user-id') userId: string, @Query() query: GetPomodoroSessionsQueryDto) {
+  @Put('config')
+  async saveConfig(
+    @Headers('x-user-id') userId: string,
+    @Body() dto: SavePomodoroConfigDto,
+  ) {
     this.requireUser(userId);
-    return { data: await this.service.list(userId, query) };
+    return {
+      message: 'Pomodoro config saved',
+      data: await this.service.saveConfig(userId, dto),
+    };
+  }
+
+  @Get('stats/daily')
+  async dailyStats(
+    @Headers('x-user-id') userId: string,
+    @Query() query: GetDailyStatsQueryDto,
+  ) {
+    this.requireUser(userId);
+    return {
+      message: 'Daily Pomodoro stats retrieved',
+      data: await this.service.dailyStats(userId, query.date, query.timeZone),
+    };
+  }
+
+  @Get('state')
+  async getState(@Headers('x-user-id') userId: string) {
+    this.requireUser(userId);
+    return {
+      message: 'Pomodoro timer state retrieved',
+      data: await this.service.getState(userId),
+    };
+  }
+
+  @Put('state')
+  async saveState(
+    @Headers('x-user-id') userId: string,
+    @Body() dto: SavePomodoroTimerStateDto,
+  ) {
+    this.requireUser(userId);
+    return {
+      message: 'Pomodoro timer state saved',
+      data: await this.service.saveState(userId, dto),
+    };
+  }
+
+  @Delete('state')
+  async deleteState(
+    @Headers('x-user-id') userId: string,
+    @Body() dto: ClearPomodoroTimerStateDto,
+  ) {
+    this.requireUser(userId);
+    return {
+      message: 'Pomodoro timer state cleared',
+      data: await this.service.deleteState(userId, dto.expectedVersion),
+    };
+  }
+
+  @Get('sessions/today')
+  async today(
+    @Headers('x-user-id') userId: string,
+    @Query() query: GetTodaySessionsQueryDto,
+  ) {
+    this.requireUser(userId);
+    return {
+      message: 'Today Pomodoro sessions listed',
+      data: await this.service.today(userId, query.timeZone),
+    };
+  }
+
+  @Post('sessions')
+  async create(
+    @Headers('x-user-id') userId: string,
+    @Body() dto: CreatePomodoroSessionDto,
+  ) {
+    this.requireUser(userId);
+    return {
+      message: 'Pomodoro session created',
+      data: await this.service.create(userId, dto),
+    };
+  }
+
+  @Get('sessions')
+  async list(
+    @Headers('x-user-id') userId: string,
+    @Query() query: GetPomodoroSessionsQueryDto,
+  ) {
+    this.requireUser(userId);
+    return {
+      message: 'Pomodoro sessions listed',
+      data: await this.service.list(userId, query),
+    };
   }
 
   private requireUser(userId: string) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -29,10 +29,6 @@ export function PomodoroSettingsDialog({
   onSaveConfig,
 }: PomodoroSettingsDialogProps) {
   const [form, setForm] = useState<PomodoroConfig>(config);
-
-  useEffect(() => {
-    setForm(config);
-  }, [config, isOpen]);
 
   const handleTestSound = () => {
     playPomodoroSound(form.soundType, form.soundVolume);

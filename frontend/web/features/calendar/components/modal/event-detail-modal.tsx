@@ -43,6 +43,7 @@ import {
 import { CalendarConfirmDialog } from "../ui/calendar-confirm-dialog";
 import { CalendarRadioGroup } from "../ui/calendar-radio-group";
 import { EventAttendeeList } from "./event-attendee-list";
+import { CalendarPomodoroPanel } from "./calendar-pomodoro-panel";
 
 export function EventDetailModal({
   event: initialEvent,
@@ -342,6 +343,10 @@ export function EventDetailModal({
               </p>
             </div>
           </div>
+
+          {currentUserId && event.permissions?.canManage && event.status !== "CANCELLED" && (
+            <CalendarPomodoroPanel event={event} userId={currentUserId} />
+          )}
 
           {/* Row 2: Reminders (Bell icon) */}
           <div className="flex items-start gap-4">

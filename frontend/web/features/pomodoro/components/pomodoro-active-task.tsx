@@ -1,9 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  CheckSquare,
-  Square,
   Plus,
   StickyNote,
   X,
@@ -12,7 +10,6 @@ import {
   ChevronRight,
   Pencil,
   Check,
-  Trash2,
   Sparkles,
   Minus,
 } from "lucide-react";
@@ -20,15 +17,15 @@ import type { PomodoroActiveTask } from "../types/pomodoro";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { defaultFocusStart, scheduleFocusTask } from "../utils/schedule-task";
+import { getAllCalendarTasks, getCalendars } from "@/features/calendar/api/calendar.api";
+import { EventStatus, type CalendarEvent } from "@/features/calendar/types/calendar.types";
 
 interface PomodoroActiveTaskProps {
   activeTask: PomodoroActiveTask | null;
   notes: string;
   onSelectTaskClick: () => void;
   onClearTask: () => void;
-  onToggleChecklistItem: (itemId: string) => void;
-  onAddChecklistItem: (title: string) => void;
-  onDeleteChecklistItem?: (itemId: string) => void;
   onNotesChange: (notes: string) => void;
   onSetCustomTask?: (task: PomodoroActiveTask) => void;
   onUpdateActiveTask?: (task: PomodoroActiveTask) => void;
@@ -39,15 +36,14 @@ export function PomodoroActiveTaskCard({
   notes,
   onSelectTaskClick,
   onClearTask,
-  onToggleChecklistItem,
-  onAddChecklistItem,
-  onDeleteChecklistItem,
   onNotesChange,
   onSetCustomTask,
   onUpdateActiveTask,
 }: PomodoroActiveTaskProps) {
   // Empty state custom task input
   const [quickTitle, setQuickTitle] = useState("");
+  const [quickError, setQuickError] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
   const [quickPomodoros, setQuickPomodoros] = useState(2);
   const [quickPriority, setQuickPriority] = useState<
     "LOW" | "MEDIUM" | "HIGH" | "URGENT"
@@ -58,15 +54,70 @@ export function PomodoroActiveTaskCard({
   const [editedTitle, setEditedTitle] = useState("");
 
   // Subtask & Notes states
-  const [newChecklistText, setNewChecklistText] = useState("");
   const [showNotes, setShowNotes] = useState(false);
+  const [todayTasks, setTodayTasks] = useState<CalendarEvent[]>([]);
+  const [calendarTaskError, setCalendarTaskError] = useState(false);
 
-  const handleCreateCustomTask = (e: React.FormEvent) => {
+  useEffect(() => {
+    let mounted = true;
+    const refreshTasks = () => {
+      void Promise.all([getAllCalendarTasks(), getCalendars()])
+        .then(([events, calendars]) => {
+          if (!mounted) return;
+          const today = new Date();
+          const projectCalendarIds = new Set(calendars.filter((calendar) => calendar.projectId).map((calendar) => calendar.id));
+          setTodayTasks(events.filter((event) => {
+            const start = new Date(event.startAt);
+            return event.status !== EventStatus.CANCELLED && !event.completedAt &&
+              !event.calendar?.projectId && !projectCalendarIds.has(event.calendarId) &&
+              start.getFullYear() === today.getFullYear() &&
+              start.getMonth() === today.getMonth() &&
+              start.getDate() === today.getDate();
+          }));
+          setCalendarTaskError(false);
+        })
+        .catch(() => { if (mounted) setCalendarTaskError(true); });
+    };
+    refreshTasks();
+    window.addEventListener("focus", refreshTasks);
+    return () => {
+      mounted = false;
+      window.removeEventListener("focus", refreshTasks);
+    };
+  }, [activeTask]);
+
+  const selectCalendarTask = (event: CalendarEvent) => {
+    onSetCustomTask?.({
+      id: event.sourceId ?? event.id,
+      calendarEventId: event.id,
+      title: event.title,
+      projectId: event.calendar?.projectId ?? undefined,
+      projectName: event.calendar?.projectId ? event.calendar.name : "Nhiệm vụ Calendar",
+      projectColor: event.calendar?.color ?? event.color ?? "#1C4D8D",
+      estimatedPomodoros: Math.max(1, Math.ceil((new Date(event.endAt).getTime() - new Date(event.startAt).getTime()) / (25 * 60_000))),
+      completedPomodoros: 0,
+      checklists: [],
+    });
+  };
+
+  const handleCreateCustomTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quickTitle.trim()) return;
+    if (!quickTitle.trim() || isCreating) return;
+
+    setIsCreating(true);
+    setQuickError("");
+    let calendarEventId: string;
+    try {
+      calendarEventId = await scheduleFocusTask(quickTitle.trim(), defaultFocusStart(), quickPomodoros);
+    } catch (error) {
+      setQuickError(error instanceof Error ? error.message : "Không thể tạo nhiệm vụ trên Calendar.");
+      setIsCreating(false);
+      return;
+    }
 
     const newTask: PomodoroActiveTask = {
-      id: `custom-${Date.now()}`,
+      id: calendarEventId,
+      calendarEventId,
       title: quickTitle.trim(),
       projectName: "Nhiệm vụ cá nhân",
       projectColor: "#1C4D8D",
@@ -80,6 +131,7 @@ export function PomodoroActiveTaskCard({
       onSetCustomTask(newTask);
     }
     setQuickTitle("");
+    setIsCreating(false);
   };
 
   const handleStartEditingTitle = () => {
@@ -108,19 +160,28 @@ export function PomodoroActiveTaskCard({
     });
   };
 
-  const handleAddChecklist = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newChecklistText.trim()) return;
-    onAddChecklistItem(newChecklistText.trim());
-    setNewChecklistText("");
-  };
-
   const priorityStyles = {
     LOW: "bg-slate-100 text-slate-700 border-slate-200",
     MEDIUM: "bg-sky-50 text-sky-700 border-sky-200",
     HIGH: "bg-amber-50 text-amber-700 border-amber-200",
     URGENT: "bg-rose-50 text-rose-700 border-rose-200 font-bold",
   }[activeTask?.priority || "MEDIUM"];
+
+  const todayTaskList = (
+    <div className="mt-4 border-t border-slate-100 pt-3">
+      <p className="text-xs font-semibold text-slate-700">Task Calendar hôm nay</p>
+      {calendarTaskError ? <p role="alert" className="mt-2 text-xs text-rose-600">Không tải được task Calendar.</p> :
+        todayTasks.length === 0 ? <p className="mt-2 text-xs text-slate-400">Chưa có task Calendar nào hôm nay.</p> :
+        <div className="mt-2 max-h-40 space-y-1 overflow-y-auto">
+          {todayTasks.map((event) => (
+            <button key={event.id} type="button" onClick={() => selectCalendarTask(event)} className={cn("flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs hover:border-blue-300 hover:bg-blue-50", activeTask?.calendarEventId === event.id ? "border-blue-300 bg-blue-50" : "border-slate-200")}>
+              <span className="truncate font-medium text-slate-800">{event.title}</span>
+              <span className="ml-3 shrink-0 text-slate-500">{new Date(event.startAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</span>
+            </button>
+          ))}
+        </div>}
+    </div>
+  );
 
   // -------------------------------------------------------------
   // EMPTY STATE: User can directly type task here or pick project
@@ -140,6 +201,7 @@ export function PomodoroActiveTaskCard({
               </h4>
             </div>
           </div>
+
           <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
             <Sparkles className="size-2.5 text-amber-500" /> Tự do / Dự án
           </span>
@@ -156,6 +218,8 @@ export function PomodoroActiveTaskCard({
               className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[var(--color-primary,#1C4D8D)] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
             />
           </div>
+
+          {quickError && <p role="alert" className="text-xs text-rose-600">{quickError}</p>}
 
           {/* Quick Settings: Estimate & Priority */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
@@ -216,11 +280,11 @@ export function PomodoroActiveTaskCard({
             <Button
               type="submit"
               size="sm"
-              disabled={!quickTitle.trim()}
+              disabled={!quickTitle.trim() || isCreating}
               className="flex-1 rounded-xl bg-[var(--color-primary,#1C4D8D)] text-white hover:bg-[var(--color-primary-strong,#0F2854)] text-xs font-semibold shadow-xs h-9"
             >
               <Plus className="mr-1.5 size-4" />
-              Đặt mục tiêu & Focus ngay
+              {isCreating ? "Đang tạo..." : "Đặt mục tiêu & thêm vào Calendar"}
             </Button>
 
             <Button
@@ -231,10 +295,11 @@ export function PomodoroActiveTaskCard({
               className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold h-9 px-3 shrink-0 shadow-2xs"
             >
               <FolderKanban className="mr-1.5 size-3.5 text-slate-500" />
-              Từ Dự án
+              Chọn task
             </Button>
           </div>
         </form>
+        {todayTaskList}
       </div>
     );
   }
@@ -242,15 +307,6 @@ export function PomodoroActiveTaskCard({
   // -------------------------------------------------------------
   // ACTIVE STATE: Task is chosen or created
   // -------------------------------------------------------------
-  const completedChecklistCount = (activeTask.checklists || []).filter(
-    (c) => c.completed,
-  ).length;
-  const totalChecklistCount = (activeTask.checklists || []).length;
-  const checklistPercent =
-    totalChecklistCount > 0
-      ? Math.round((completedChecklistCount / totalChecklistCount) * 100)
-      : 0;
-
   const isCustomTask = !activeTask.projectId;
 
   return (
@@ -387,99 +443,10 @@ export function PomodoroActiveTaskCard({
             )}
           </div>
 
-          {totalChecklistCount > 0 && (
-            <span className="text-[11px] text-slate-400 font-semibold">
-              Checklist: {completedChecklistCount}/{totalChecklistCount} (
-              {checklistPercent}%)
-            </span>
-          )}
         </div>
       </div>
 
-      {/* Interactive Subtasks / Checklist */}
-      <div className="mt-4 border-t border-slate-100 pt-3">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Checklist các bước hoàn thành
-          </p>
-          {totalChecklistCount > 0 && (
-            <span className="text-[11px] font-bold text-slate-600">
-              {completedChecklistCount}/{totalChecklistCount}
-            </span>
-          )}
-        </div>
-
-        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-          {activeTask.checklists && activeTask.checklists.length > 0 ? (
-            activeTask.checklists.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => onToggleChecklistItem(item.id)}
-                className={cn(
-                  "group flex items-center justify-between gap-2.5 rounded-xl px-2.5 py-1.5 text-xs transition-all cursor-pointer",
-                  item.completed
-                    ? "bg-slate-50 text-slate-400"
-                    : "bg-white text-slate-700 hover:bg-blue-50/50 hover:text-slate-900 border border-transparent hover:border-blue-100",
-                )}
-              >
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  {item.completed ? (
-                    <CheckSquare className="size-4 text-emerald-600 shrink-0" />
-                  ) : (
-                    <Square className="size-4 text-slate-300 group-hover:text-blue-500 shrink-0" />
-                  )}
-                  <span
-                    className={cn(
-                      "truncate select-none",
-                      item.completed && "line-through text-slate-400",
-                    )}
-                  >
-                    {item.title}
-                  </span>
-                </div>
-
-                {onDeleteChecklistItem && (
-                  <button
-                    type="button"
-                    title="Xóa mục việc này"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteChecklistItem(item.id);
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-rose-600 rounded transition-all shrink-0"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
-                )}
-              </div>
-            ))
-          ) : (
-            <p className="text-xs italic text-slate-400 py-1">
-              Chưa có mục việc nhỏ nào. Bạn có thể thêm nhanh bên dưới!
-            </p>
-          )}
-        </div>
-
-        {/* Add quick subtask input */}
-        <form onSubmit={handleAddChecklist} className="mt-2.5 flex items-center gap-2">
-          <input
-            type="text"
-            value={newChecklistText}
-            onChange={(e) => setNewChecklistText(e.target.value)}
-            placeholder="Thêm bước việc nhỏ cần làm..."
-            className="flex-1 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:outline-none transition-all shadow-2xs"
-          />
-          <Button
-            type="submit"
-            size="sm"
-            variant="ghost"
-            disabled={!newChecklistText.trim()}
-            className="h-8 px-3 text-xs font-semibold text-blue-700 hover:bg-blue-50 shrink-0"
-          >
-            <Plus className="size-3.5 mr-1" /> Thêm
-          </Button>
-        </form>
-      </div>
+      {todayTaskList}
 
       {/* Quick Notes Scratchpad */}
       <div className="mt-3.5 border-t border-slate-100 pt-3">

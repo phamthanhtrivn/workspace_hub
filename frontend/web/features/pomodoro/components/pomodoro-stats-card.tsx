@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Clock, CheckCircle2, Flame, TrendingUp, Download, ArrowUpRight } from "lucide-react";
-import { getDailyStats, getRecentSessions } from "../api/pomodoro.api";
+import { Clock, CheckCircle2, Flame, TrendingUp, Download } from "lucide-react";
+import { getDailyStats, getRecentSessions } from "../api/pomodoro-server.api";
 import type { PomodoroDailyStats } from "../types/pomodoro";
 import { Button } from "@/components/ui/button";
 
@@ -14,7 +14,7 @@ export function PomodoroStatsOverview({ lastUpdated }: PomodoroStatsCardProps) {
   const [stats, setStats] = useState<PomodoroDailyStats | null>(null);
 
   useEffect(() => {
-    getDailyStats().then(setStats);
+    getDailyStats().then(setStats).catch(() => setStats(null));
   }, [lastUpdated]);
 
   const handleExportData = async () => {

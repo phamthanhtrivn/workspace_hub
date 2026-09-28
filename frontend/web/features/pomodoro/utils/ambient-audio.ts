@@ -7,6 +7,9 @@ class AmbientAudioManager {
   private currentCustomUrl: string | null = null;
   private volume: number = 0.5;
   private isPlayingState: boolean = false;
+  private failedSources = new Set<string>();
+  private playbackVersion = 0;
+  private playbackListener: ((isPlaying: boolean) => void) | null = null;
 
   // Web Audio Context for Procedural Synthesis (Alpha Drone)
   private audioCtx: AudioContext | null = null;
@@ -33,6 +36,16 @@ class AmbientAudioManager {
     return this.volume;
   }
 
+  public setPlaybackListener(listener: ((isPlaying: boolean) => void) | null) {
+    this.playbackListener = listener;
+    listener?.(this.isPlayingState);
+  }
+
+  private setPlaying(isPlaying: boolean) {
+    this.isPlayingState = isPlaying;
+    this.playbackListener?.(isPlaying);
+  }
+
   public setVolume(newVolume: number) {
     this.volume = Math.max(0, Math.min(1, newVolume));
     if (this.audioElement) {
@@ -55,18 +68,15 @@ class AmbientAudioManager {
       return;
     }
 
-    const wasPlaying = this.isPlayingState;
     this.stop();
 
     this.currentTrackId = trackId;
     this.currentCustomUrl = customUrl || null;
 
-    if (wasPlaying && trackId !== "none") {
-      this.play();
-    }
   }
 
   public async play() {
+    const version = ++this.playbackVersion;
     if (this.currentTrackId === "none") {
       this.stop();
       return;
@@ -74,6 +84,7 @@ class AmbientAudioManager {
 
     // Custom user track from device
     if (this.currentTrackId.startsWith("custom_") && this.currentCustomUrl && this.audioElement) {
+      if (this.failedSources.has(this.currentCustomUrl)) return;
       try {
         if (this.audioElement.src !== this.currentCustomUrl) {
           this.audioElement.src = this.currentCustomUrl;
@@ -81,10 +92,16 @@ class AmbientAudioManager {
         }
         this.audioElement.volume = this.volume;
         await this.audioElement.play();
-        this.isPlayingState = true;
+        if (version === this.playbackVersion) this.setPlaying(true);
       } catch (err) {
-        console.warn("Autoplay was blocked or custom audio failed to play:", err);
-        this.isPlayingState = false;
+        if (version !== this.playbackVersion) return;
+        if (err instanceof DOMException && err.name === "NotSupportedError") {
+          this.failedSources.add(this.currentCustomUrl);
+          console.warn("Custom audio source is unsupported:", this.currentCustomUrl);
+        } else {
+          console.warn("Custom audio could not play:", err);
+        }
+        this.setPlaying(false);
       }
       return;
     }
@@ -95,38 +112,47 @@ class AmbientAudioManager {
 
     if (track.isProcedural) {
       this.startProceduralAlphaDrone();
-      this.isPlayingState = true;
+      this.setPlaying(true);
     } else if (track.url && this.audioElement) {
+      if (this.failedSources.has(track.url)) return;
       try {
-        if (this.audioElement.src !== track.url) {
+        if (this.audioElement.getAttribute("src") !== track.url) {
           this.audioElement.src = track.url;
           this.audioElement.load();
         }
         this.audioElement.volume = this.volume;
         await this.audioElement.play();
-        this.isPlayingState = true;
+        if (version === this.playbackVersion) this.setPlaying(true);
       } catch (err) {
-        console.warn("Autoplay was blocked or audio failed to load:", err);
-        this.isPlayingState = false;
+        if (version !== this.playbackVersion) return;
+        if (err instanceof DOMException && err.name === "NotSupportedError") {
+          this.failedSources.add(track.url);
+          console.warn("Ambient audio source is unavailable or unsupported:", track.url);
+        } else {
+          console.warn("Ambient audio could not play:", err);
+        }
+        this.setPlaying(false);
       }
     }
   }
 
   public pause() {
+    ++this.playbackVersion;
     if (this.audioElement) {
       this.audioElement.pause();
     }
     this.stopProceduralAlphaDrone();
-    this.isPlayingState = false;
+    this.setPlaying(false);
   }
 
   public stop() {
+    ++this.playbackVersion;
     if (this.audioElement) {
       this.audioElement.pause();
-      this.audioElement.currentTime = 0;
+      if (this.audioElement.readyState > 0) this.audioElement.currentTime = 0;
     }
     this.stopProceduralAlphaDrone();
-    this.isPlayingState = false;
+    this.setPlaying(false);
   }
 
   // ---------------------------------------------------------------------------

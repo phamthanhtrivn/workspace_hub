@@ -8,15 +8,17 @@ import { PomodoroAmbientPlayer } from "./pomodoro-ambient-player";
 import { PomodoroActiveTaskCard } from "./pomodoro-active-task";
 import { PomodoroTaskPickerDialog } from "./pomodoro-task-picker-dialog";
 import { PomodoroSettingsDialog } from "./pomodoro-settings-dialog";
-import { PomodoroInterruptionDialog } from "./pomodoro-interruption-dialog";
 import { PomodoroStatsOverview } from "./pomodoro-stats-card";
 import { PomodoroSessionHistory } from "./pomodoro-session-history";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Sparkles, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PomodoroView() {
   const {
+    isReady,
+    loadError,
+    sessionRevision,
     mode,
     status,
     timeLeft,
@@ -27,7 +29,6 @@ export function PomodoroView() {
     notes,
     isMuted,
     isFullscreen,
-    isInterruptionOpen,
     ambientTrack,
     ambientVolume,
     autoPlayAmbient,
@@ -41,11 +42,9 @@ export function PomodoroView() {
     switchMode,
     setActiveTask,
     setNotes,
-    toggleChecklistItem,
     toggleSound,
     toggleFullscreen,
     updateConfig,
-    setIsInterruptionOpen,
     selectAmbientTrack,
     toggleAmbientPlay,
     changeAmbientVolume,
@@ -57,43 +56,6 @@ export function PomodoroView() {
   const [isTaskPickerOpen, setIsTaskPickerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [minimalMode, setMinimalMode] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
-
-  const handleResetWithRefresh = (reason?: string) => {
-    reset(reason);
-    setLastUpdated(Date.now());
-  };
-
-  const handleSkipWithRefresh = () => {
-    skip();
-    setLastUpdated(Date.now());
-  };
-
-  const handleAddChecklist = (title: string) => {
-    if (!activeTask) return;
-    const newItem = {
-      id: `chk-${Date.now()}`,
-      title,
-      completed: false,
-    };
-    setActiveTask({
-      ...activeTask,
-      checklists: [...(activeTask.checklists || []), newItem],
-    });
-  };
-
-  const handleDeleteChecklist = (itemId: string) => {
-    if (!activeTask) return;
-    setActiveTask({
-      ...activeTask,
-      checklists: (activeTask.checklists || []).filter((c) => c.id !== itemId),
-    });
-  };
-
-  const handleInterruptionReason = (reason: string) => {
-    handleResetWithRefresh(reason);
-  };
-
   const isRunning = status === "RUNNING";
 
   return (
@@ -183,6 +145,7 @@ export function PomodoroView() {
 
           {/* Controls Dock */}
           <PomodoroControls
+            disabled={!isReady}
             status={status}
             mode={mode}
             isMuted={isMuted}
@@ -190,13 +153,17 @@ export function PomodoroView() {
             onStart={start}
             onPause={pause}
             onResume={resume}
-            onReset={() => handleResetWithRefresh()}
-            onSkip={handleSkipWithRefresh}
+            onReset={() => reset()}
+            onSkip={() => skip()}
             onToggleSound={toggleSound}
             onToggleFullscreen={toggleFullscreen}
             onOpenSettings={() => setIsSettingsOpen(true)}
-            onOpenInterruption={() => setIsInterruptionOpen(true)}
           />
+          {!isReady && (
+            <p role={loadError ? "alert" : "status"} className="text-xs text-amber-700">
+              {loadError ? "Không kết nối được calendar-service. Hãy tải lại trang khi dịch vụ hoạt động." : "Đang tải Pomodoro từ máy chủ..."}
+            </p>
+          )}
 
           {/* Ambient Music & Focus Sound Capsule */}
           <div className="w-full flex justify-center">
@@ -216,50 +183,48 @@ export function PomodoroView() {
           </div>
 
           {/* Active Focus Target Card */}
-          <div className="w-full flex justify-center">
-            <PomodoroActiveTaskCard
-              activeTask={activeTask}
-              notes={notes}
-              onSelectTaskClick={() => setIsTaskPickerOpen(true)}
-              onClearTask={() => setActiveTask(null)}
-              onToggleChecklistItem={toggleChecklistItem}
-              onAddChecklistItem={handleAddChecklist}
-              onDeleteChecklistItem={handleDeleteChecklist}
-              onNotesChange={setNotes}
-              onSetCustomTask={setActiveTask}
-              onUpdateActiveTask={setActiveTask}
-            />
-          </div>
+          {isReady && (
+            <div className="w-full flex justify-center">
+              <PomodoroActiveTaskCard
+                activeTask={activeTask}
+                notes={notes}
+                onSelectTaskClick={() => setIsTaskPickerOpen(true)}
+                onClearTask={() => setActiveTask(null)}
+                onNotesChange={setNotes}
+                onSetCustomTask={setActiveTask}
+                onUpdateActiveTask={setActiveTask}
+              />
+            </div>
+          )}
         </div>
 
         {/* Right Column: Live Metrics & Session Log (Hidden in Minimal Mode) */}
         {!minimalMode && (
           <div className="lg:col-span-5 flex flex-col gap-6">
-            <PomodoroStatsOverview lastUpdated={lastUpdated} />
-            <PomodoroSessionHistory lastUpdated={lastUpdated} />
+            <PomodoroStatsOverview lastUpdated={sessionRevision} />
+            <PomodoroSessionHistory lastUpdated={sessionRevision} />
           </div>
         )}
       </div>
 
       {/* Dialog Modals */}
-      <PomodoroTaskPickerDialog
-        isOpen={isTaskPickerOpen}
-        onClose={() => setIsTaskPickerOpen(false)}
-        onSelectTask={setActiveTask}
-      />
+      {isTaskPickerOpen && (
+        <PomodoroTaskPickerDialog
+          isOpen={isTaskPickerOpen}
+          onClose={() => setIsTaskPickerOpen(false)}
+          onSelectTask={setActiveTask}
+        />
+      )}
 
-      <PomodoroSettingsDialog
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        config={config}
-        onSaveConfig={updateConfig}
-      />
+      {isSettingsOpen && (
+        <PomodoroSettingsDialog
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          config={config}
+          onSaveConfig={updateConfig}
+        />
+      )}
 
-      <PomodoroInterruptionDialog
-        isOpen={isInterruptionOpen}
-        onClose={() => setIsInterruptionOpen(false)}
-        onSelectReason={handleInterruptionReason}
-      />
     </div>
   );
 }

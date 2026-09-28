@@ -55,8 +55,7 @@ export class EventAccessPolicy {
       event.calendar.ownerUserId === userId ||
       event.createdBy === userId ||
       event.attendees.some((attendee) => attendee.userId === userId) ||
-      event.visibility === EventVisibility.PUBLIC ||
-      Boolean(userId);
+      event.visibility === EventVisibility.PUBLIC;
     if (!canView) {
       throw new ForbiddenException(CALENDAR_ERROR_MESSAGES.FORBIDDEN_EVENT);
     }

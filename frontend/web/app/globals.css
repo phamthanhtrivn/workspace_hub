@@ -288,7 +288,51 @@ html {
 }
 
 .calendar-shell .fc-timegrid-event-harness > .fc-timegrid-event {
-  right: 8px;
+  right: 2px;
+}
+
+.calendar-shell .fc-timegrid-more-link {
+  z-index: 3;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 0.7rem;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgb(154 52 18 / 8%);
+}
+
+.calendar-shell .fc-timegrid-more-link:hover,
+.calendar-shell .fc-timegrid-more-link:focus-visible {
+  border-color: #fb923c;
+  background: #ffedd5;
+  color: #7c2d12;
+}
+
+.calendar-shell .fc-timegrid-more-link:focus-visible {
+  outline: 2px solid #ea580c;
+  outline-offset: 2px;
+}
+
+.calendar-shell .fc-timegrid-more-link-inner {
+  padding: 5px 6px;
+  white-space: nowrap;
+}
+
+.calendar-shell .fc-popover {
+  max-width: min(320px, calc(100vw - 24px));
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgb(15 23 42 / 16%);
+  overflow: hidden;
+}
+
+.calendar-shell .fc-popover-header {
+  padding: 8px 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .calendar-shell .fc-timegrid-event-harness-inset > .fc-timegrid-event {

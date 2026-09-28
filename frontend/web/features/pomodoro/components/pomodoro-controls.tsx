@@ -11,14 +11,13 @@ import {
   Maximize2,
   Minimize2,
   Settings,
-  HelpCircle,
-  AlertCircle,
 } from "lucide-react";
 import type { PomodoroMode, PomodoroStatus } from "../types/pomodoro";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface PomodoroControlsProps {
+  disabled: boolean;
   status: PomodoroStatus;
   mode: PomodoroMode;
   isMuted: boolean;
@@ -31,10 +30,10 @@ interface PomodoroControlsProps {
   onToggleSound: () => void;
   onToggleFullscreen: () => void;
   onOpenSettings: () => void;
-  onOpenInterruption: () => void;
 }
 
 export function PomodoroControls({
+  disabled,
   status,
   mode,
   isMuted,
@@ -47,10 +46,8 @@ export function PomodoroControls({
   onToggleSound,
   onToggleFullscreen,
   onOpenSettings,
-  onOpenInterruption,
 }: PomodoroControlsProps) {
   const isRunning = status === "RUNNING";
-  const isPaused = status === "PAUSED";
   const isFocus = mode === "FOCUS";
 
   return (
@@ -63,6 +60,7 @@ export function PomodoroControls({
           variant="ghost"
           size="icon"
           onClick={onReset}
+          disabled={disabled}
           title="Đặt lại phiên (Reset)"
           className="size-11 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-transform active:scale-90"
         >
@@ -74,6 +72,7 @@ export function PomodoroControls({
           <Button
             type="button"
             onClick={onStart}
+            disabled={disabled}
             className={cn(
               "h-13 px-8 rounded-full text-sm font-black tracking-wider uppercase shadow-md transition-all duration-200 active:scale-95",
               isFocus
@@ -88,6 +87,7 @@ export function PomodoroControls({
           <Button
             type="button"
             onClick={onPause}
+            disabled={disabled}
             className="h-13 px-8 rounded-full text-sm font-black tracking-wider uppercase bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-900/20 hover:brightness-110 transition-all duration-200 active:scale-95"
           >
             <Pause className="mr-2 size-4.5 fill-current" />
@@ -97,6 +97,7 @@ export function PomodoroControls({
           <Button
             type="button"
             onClick={onResume}
+            disabled={disabled}
             className={cn(
               "h-13 px-8 rounded-full text-sm font-black tracking-wider uppercase shadow-md transition-all duration-200 active:scale-95",
               isFocus
@@ -115,6 +116,7 @@ export function PomodoroControls({
           variant="ghost"
           size="icon"
           onClick={onSkip}
+          disabled={disabled}
           title="Bỏ qua phiên này (Skip)"
           className="size-11 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-transform active:scale-90"
         >
@@ -124,18 +126,6 @@ export function PomodoroControls({
 
       {/* Auxiliary Floating Bar */}
       <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/80 border border-slate-200/60 shadow-2xs backdrop-blur-sm text-slate-600">
-        {/* Interruption Button */}
-        {status !== "IDLE" && (
-          <button
-            type="button"
-            onClick={onOpenInterruption}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold text-amber-700 hover:bg-amber-100/80 transition-colors"
-          >
-            <AlertCircle className="size-3.5" />
-            <span>Ghi gián đoạn</span>
-          </button>
-        )}
-
         {/* Sound Alert Toggle */}
         <button
           type="button"

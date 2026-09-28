@@ -283,8 +283,12 @@ enum PomodoroSessionStatus {
 model PomodoroSession {
   id                 String                @id @default(uuid()) @db.Uuid
   userId             String                @map("user_id") @db.Uuid
+  clientSessionId    String?               @map("client_session_id") @db.VarChar(100)
   eventId            String?               @map("event_id") @db.Uuid
   taskId             String?               @map("task_id") @db.Uuid
+  taskTitle          String?               @map("task_title") @db.VarChar(500)
+  projectId          String?               @map("project_id") @db.Uuid
+  projectName        String?               @map("project_name") @db.VarChar(500)
   sessionType        PomodoroSessionType   @map("session_type")
   status             PomodoroSessionStatus
   startedAt          DateTime              @map("started_at") @db.Timestamptz(3)
@@ -298,9 +302,52 @@ model PomodoroSession {
   event CalendarEvent? @relation(fields: [eventId], references: [id], onDelete: SetNull)
 
   @@index([userId, startedAt])
+  @@unique([userId, clientSessionId])
   @@index([eventId, startedAt])
   @@index([taskId, startedAt])
   @@map("calendar_pomodoro_sessions")
+}
+
+model PomodoroConfig {
+  userId              String   @id @map("user_id") @db.Uuid
+  focusDuration       Int      @default(25) @map("focus_duration")
+  shortBreak          Int      @default(5) @map("short_break")
+  longBreak           Int      @default(15) @map("long_break")
+  longBreakInterval   Int      @default(4) @map("long_break_interval")
+  autoStartBreak      Boolean  @default(false) @map("auto_start_break")
+  autoStartFocus      Boolean  @default(false) @map("auto_start_focus")
+  soundEnabled        Boolean  @default(true) @map("sound_enabled")
+  soundType           String   @default("chime") @map("sound_type") @db.VarChar(20)
+  soundVolume         Float    @default(0.7) @map("sound_volume")
+  notificationEnabled Boolean  @default(true) @map("notification_enabled")
+  dailyGoalPomodoros  Int      @default(8) @map("daily_goal_pomodoros")
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("calendar_pomodoro_configs")
+}
+
+enum PomodoroTimerStatus {
+  IDLE
+  RUNNING
+  PAUSED
+}
+
+model PomodoroTimerState {
+  userId           String               @id @map("user_id") @db.Uuid
+  mode             PomodoroSessionType
+  status           PomodoroTimerStatus
+  targetEndAt      DateTime?            @map("target_end_at") @db.Timestamptz(3)
+  remainingSeconds Int                  @map("remaining_seconds")
+  cycleCount       Int                  @map("cycle_count")
+  sessionStartAt   DateTime?            @map("session_start_at") @db.Timestamptz(3)
+  eventId          String?              @map("event_id") @db.Uuid
+  taskId           String?              @map("task_id") @db.Uuid
+  activeTask       Json?                @map("active_task")
+  notes            String               @default("")
+  version          Int                  @default(1)
+  updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("calendar_pomodoro_timer_states")
 }
 
 model NotificationOutbox {

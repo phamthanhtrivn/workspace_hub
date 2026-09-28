@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { History, CheckCircle, AlertCircle, FastForward, Clock } from "lucide-react";
-import { getRecentSessions } from "../api/pomodoro.api";
+import { getRecentSessions } from "../api/pomodoro-server.api";
 import type { PomodoroSessionRecord } from "../types/pomodoro";
 import { Badge } from "@/components/ui/badge";
 
@@ -16,13 +16,10 @@ export function PomodoroSessionHistory({
   const [sessions, setSessions] = useState<PomodoroSessionRecord[]>([]);
 
   useEffect(() => {
-    getRecentSessions().then(setSessions);
+    getRecentSessions().then(setSessions).catch(() => setSessions([]));
   }, [lastUpdated]);
 
-  const todayStr = new Date().toISOString().split("T")[0];
-  const todaySessions = sessions.filter(
-    (s) => s.startedAt.split("T")[0] === todayStr,
-  );
+  const todaySessions = sessions;
 
   return (
     <div className="w-full rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm shadow-slate-200/40 backdrop-blur-md">
@@ -114,14 +111,6 @@ export function PomodoroSessionHistory({
                       <span className="font-medium text-slate-600">
                         {s.durationMinutes} phút
                       </span>
-                      {s.interruptionReason && (
-                        <>
-                          <span>•</span>
-                          <span className="text-amber-600 font-medium">
-                            Gián đoạn: {s.interruptionReason}
-                          </span>
-                        </>
-                      )}
                     </div>
                   </div>
                 </div>

@@ -35,7 +35,7 @@ export const AMBIENT_TRACKS: AmbientTrack[] = [
     category: "music",
     icon: "Headphones",
     description: "Giai điệu lofi không lời nhẹ nhàng giúp tập trung sâu",
-    url: "https://actions.google.com/sounds/v1/relaxing/relaxing_music.ogg",
+    url: "/assets/sounds/lofi_relax.wav",
   },
   {
     id: "gentle_piano",
@@ -43,7 +43,7 @@ export const AMBIENT_TRACKS: AmbientTrack[] = [
     category: "music",
     icon: "Music",
     description: "Tiếng đàn piano êm dịu tạo không gian làm việc tĩnh lặng",
-    url: "https://actions.google.com/sounds/v1/relaxing/bell_chime_meditation.ogg",
+    url: "/assets/sounds/gentle_piano.wav",
   },
   {
     id: "alpha_drone_432hz",
@@ -59,7 +59,7 @@ export const AMBIENT_TRACKS: AmbientTrack[] = [
     category: "nature",
     icon: "CloudRain",
     description: "Tiếng mưa rào đều đặn che bớt tạp âm xung quanh",
-    url: "https://actions.google.com/sounds/v1/weather/rain_heavy.ogg",
+    url: "/assets/sounds/rain_heavy.wav",
   },
   {
     id: "coffee_shop",
@@ -67,7 +67,7 @@ export const AMBIENT_TRACKS: AmbientTrack[] = [
     category: "ambient",
     icon: "Coffee",
     description: "Âm hưởng quán cafe ấm cúng quen thuộc khi làm việc",
-    url: "https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg",
+    url: "/assets/sounds/coffee_shop.wav",
   },
   {
     id: "ocean_waves",
@@ -75,7 +75,7 @@ export const AMBIENT_TRACKS: AmbientTrack[] = [
     category: "nature",
     icon: "Waves",
     description: "Nhịp sóng biển vỗ bờ thư thái, sảng khoái tinh thần",
-    url: "https://actions.google.com/sounds/v1/water/waves_crashing_on_rocks_close_perspective.ogg",
+    url: "/assets/sounds/ocean_waves.wav",
   },
   {
     id: "forest_wind",
@@ -83,6 +83,6 @@ export const AMBIENT_TRACKS: AmbientTrack[] = [
     category: "nature",
     icon: "Wind",
     description: "Tiếng gió lùa qua rừng cây mang lại cảm giác tươi mới",
-    url: "https://actions.google.com/sounds/v1/weather/wind_blowing_softly.ogg",
+    url: "/assets/sounds/forest_wind.wav",
   },
 ];
