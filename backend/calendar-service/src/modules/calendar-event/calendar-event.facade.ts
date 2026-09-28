@@ -293,11 +293,7 @@ export class CalendarEventService {
     this.accessPolicy.assertCanManageEvent(userId, event);
     this.accessPolicy.assertPersonalCalendar(event.calendar);
     this.accessPolicy.assertUserManagedEvent(event);
-    const isTask =
-      event.sourceType === EventSourceType.TASK ||
-      (typeof event.description === 'string' &&
-        event.description.includes('[TASK]'));
-    if (!isTask) {
+    if (!this.isTaskEvent(event)) {
       throw new BadRequestException(
         CALENDAR_ERROR_MESSAGES.ONLY_TASKS_CAN_BE_COMPLETED,
       );
@@ -313,6 +309,39 @@ export class CalendarEventService {
       },
     });
     return this.getEventById(userId, event.id);
+  }
+
+  async updateTaskOrder(userId: string, eventIds: string[]) {
+    const events = await this.prisma.calendarEvent.findMany({
+      where: { id: { in: eventIds } },
+      include: eventWithRelationsInclude,
+    });
+    if (events.length !== eventIds.length) {
+      throw new BadRequestException(CALENDAR_ERROR_MESSAGES.INVALID_TASK_ORDER);
+    }
+
+    for (const event of events) {
+      this.accessPolicy.assertCanManageEvent(userId, event);
+      this.accessPolicy.assertPersonalCalendar(event.calendar);
+      this.accessPolicy.assertUserManagedEvent(event);
+      if (!this.isTaskEvent(event)) {
+        throw new BadRequestException(
+          CALENDAR_ERROR_MESSAGES.INVALID_TASK_ORDER,
+        );
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await Promise.all(
+        eventIds.map((eventId, taskOrder) =>
+          tx.calendarEvent.update({
+            where: { id: eventId },
+            data: { taskOrder, updatedBy: userId },
+          }),
+        ),
+      );
+    });
+    return eventIds;
   }
 
   async updateResponse(
@@ -475,5 +504,15 @@ export class CalendarEventService {
   private getCancelledAt(status?: EventStatus): Date | null | undefined {
     if (status === EventStatus.CANCELLED) return new Date();
     return status ? null : undefined;
+  }
+
+  private isTaskEvent(
+    event: Pick<EventWithRelations, 'sourceType' | 'description'>,
+  ) {
+    return (
+      event.sourceType === EventSourceType.TASK ||
+      (typeof event.description === 'string' &&
+        event.description.includes('[TASK]'))
+    );
   }
 }

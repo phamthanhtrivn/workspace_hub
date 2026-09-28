@@ -6,12 +6,11 @@ import { PomodoroTimerDisplay } from "./pomodoro-timer-display";
 import { PomodoroControls } from "./pomodoro-controls";
 import { PomodoroAmbientPlayer } from "./pomodoro-ambient-player";
 import { PomodoroActiveTaskCard } from "./pomodoro-active-task";
-import { PomodoroTaskPickerDialog } from "./pomodoro-task-picker-dialog";
 import { PomodoroSettingsDialog } from "./pomodoro-settings-dialog";
 import { PomodoroStatsOverview } from "./pomodoro-stats-card";
 import { PomodoroSessionHistory } from "./pomodoro-session-history";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Settings, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PomodoroView() {
@@ -27,8 +26,6 @@ export function PomodoroView() {
     activeTask,
     config,
     notes,
-    isMuted,
-    isFullscreen,
     ambientTrack,
     ambientVolume,
     autoPlayAmbient,
@@ -42,8 +39,6 @@ export function PomodoroView() {
     switchMode,
     setActiveTask,
     setNotes,
-    toggleSound,
-    toggleFullscreen,
     updateConfig,
     selectAmbientTrack,
     toggleAmbientPlay,
@@ -53,7 +48,6 @@ export function PomodoroView() {
     removeCustomTrack,
   } = usePomodoroTimer();
 
-  const [isTaskPickerOpen, setIsTaskPickerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [minimalMode, setMinimalMode] = useState(false);
   const isRunning = status === "RUNNING";
@@ -74,7 +68,7 @@ export function PomodoroView() {
       />
 
       {/* Top Header & Context Bar */}
-      <div className="flex items-center justify-between border-b border-slate-200/80 pb-4 mb-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="text-2xl font-black tracking-tight text-[var(--color-primary-dark,#0F2854)]">
@@ -89,29 +83,43 @@ export function PomodoroView() {
           </p>
         </div>
 
-        {/* Minimal Focus View Toggle */}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setMinimalMode(!minimalMode)}
-          className={cn(
-            "rounded-full border-slate-200 text-xs font-bold transition-all shadow-xs h-9 px-4",
-            minimalMode
-              ? "bg-[var(--color-primary,#1C4D8D)] text-white hover:bg-[var(--color-primary-strong,#0F2854)] hover:text-white border-transparent"
-              : "text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50",
-          )}
-        >
-          {minimalMode ? (
-            <>
-              <Eye className="size-3.5 mr-1.5" /> Chế độ đầy đủ
-            </>
-          ) : (
-            <>
-              <EyeOff className="size-3.5 mr-1.5" /> Chế độ Siêu tập trung (Zen)
-            </>
-          )}
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setIsSettingsOpen(true)}
+            title="Cài đặt Pomodoro"
+            aria-label="Mở cài đặt Pomodoro"
+            className="size-9 rounded-full border-slate-200 bg-white text-slate-600 shadow-xs transition-colors hover:bg-slate-50 hover:text-slate-900"
+          >
+            <Settings className="size-4" />
+          </Button>
+
+          {/* Minimal Focus View Toggle */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setMinimalMode(!minimalMode)}
+            className={cn(
+              "rounded-full border-slate-200 text-xs font-bold transition-all shadow-xs h-9 px-4",
+              minimalMode
+                ? "bg-[var(--color-primary,#1C4D8D)] text-white hover:bg-[var(--color-primary-strong,#0F2854)] hover:text-white border-transparent"
+                : "text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50",
+            )}
+          >
+            {minimalMode ? (
+              <>
+                <Eye className="size-3.5 mr-1.5" /> Chế độ đầy đủ
+              </>
+            ) : (
+              <>
+                <EyeOff className="size-3.5 mr-1.5" /> Chế độ Siêu tập trung (Zen)
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Main Grid Layout */}
@@ -139,6 +147,7 @@ export function PomodoroView() {
               totalDuration={totalDuration}
               cycleCount={cycleCount}
               longBreakInterval={config.longBreakInterval || 4}
+              activeTaskTitle={activeTask?.title}
               onSwitchMode={switchMode}
             />
           </div>
@@ -148,16 +157,11 @@ export function PomodoroView() {
             disabled={!isReady || (status === "RUNNING" && timeLeft === 0)}
             status={status}
             mode={mode}
-            isMuted={isMuted}
-            isFullscreen={isFullscreen}
             onStart={start}
             onPause={pause}
             onResume={resume}
             onReset={() => reset()}
             onSkip={() => skip()}
-            onToggleSound={toggleSound}
-            onToggleFullscreen={toggleFullscreen}
-            onOpenSettings={() => setIsSettingsOpen(true)}
           />
           {!isReady && (
             <p role={loadError ? "alert" : "status"} className="text-xs text-amber-700">
@@ -191,7 +195,6 @@ export function PomodoroView() {
               <PomodoroActiveTaskCard
                 activeTask={activeTask}
                 notes={notes}
-                onSelectTaskClick={() => setIsTaskPickerOpen(true)}
                 onClearTask={() => setActiveTask(null)}
                 onNotesChange={setNotes}
                 onSetCustomTask={setActiveTask}
@@ -211,14 +214,6 @@ export function PomodoroView() {
       </div>
 
       {/* Dialog Modals */}
-      {isTaskPickerOpen && (
-        <PomodoroTaskPickerDialog
-          isOpen={isTaskPickerOpen}
-          onClose={() => setIsTaskPickerOpen(false)}
-          onSelectTask={setActiveTask}
-        />
-      )}
-
       {isSettingsOpen && (
         <PomodoroSettingsDialog
           isOpen={isSettingsOpen}

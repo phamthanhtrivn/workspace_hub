@@ -3,7 +3,7 @@
 import React from "react";
 import type { PomodoroMode, PomodoroStatus } from "../types/pomodoro";
 import { cn } from "@/lib/utils";
-import { Sparkles, Coffee, Palmtree } from "lucide-react";
+import { Sparkles, Coffee, Palmtree, Target } from "lucide-react";
 
 interface PomodoroTimerDisplayProps {
   mode: PomodoroMode;
@@ -12,6 +12,7 @@ interface PomodoroTimerDisplayProps {
   totalDuration: number;
   cycleCount: number;
   longBreakInterval: number;
+  activeTaskTitle?: string;
   onSwitchMode: (mode: PomodoroMode) => void;
 }
 
@@ -22,6 +23,7 @@ export function PomodoroTimerDisplay({
   totalDuration,
   cycleCount,
   longBreakInterval,
+  activeTaskTitle,
   onSwitchMode,
 }: PomodoroTimerDisplayProps) {
   const minutes = Math.floor(timeLeft / 60);
@@ -60,6 +62,13 @@ export function PomodoroTimerDisplay({
   const knobY = 170 + radius * Math.sin(knobAngleRad);
 
   const isRunning = status === "RUNNING";
+  const taskContextLabel = safeMode !== "FOCUS"
+    ? "Sau giờ nghỉ"
+    : status === "RUNNING"
+      ? "Đang tập trung vào"
+      : status === "PAUSED"
+        ? "Đang tạm dừng"
+        : "Nhiệm vụ tiếp theo";
 
   const defaultTheme = {
     name: "Tập trung",
@@ -154,8 +163,27 @@ export function PomodoroTimerDisplay({
         </button>
       </div>
 
+      {activeTaskTitle && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="mt-3 flex max-w-[340px] items-center gap-2 rounded-xl border border-blue-200/80 bg-blue-50/80 px-3.5 py-2 text-xs shadow-xs"
+        >
+          <Target className="size-3.5 shrink-0 text-blue-600" />
+          <span className="shrink-0 font-medium text-slate-500">
+            {taskContextLabel}:
+          </span>
+          <strong
+            className="min-w-0 truncate font-bold text-slate-900"
+            title={activeTaskTitle}
+          >
+            {activeTaskTitle}
+          </strong>
+        </div>
+      )}
+
       {/* Center Dial & Precision Timepiece Ring */}
-      <div className="relative my-7 flex items-center justify-center">
+      <div className={cn("relative flex items-center justify-center", activeTaskTitle ? "my-5" : "my-7")}>
         {/* Outer Decorative Track Ring with tick marks */}
         <div className="relative flex size-[340px] items-center justify-center rounded-full bg-white/80 p-3 shadow-xl shadow-slate-200/50 border border-slate-100 backdrop-blur-md">
           {/* Subtle Inner Bezel */}

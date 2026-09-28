@@ -17,12 +17,19 @@ export async function getTodayCalendarTasks(): Promise<CalendarEvent[]> {
     calendars.filter((calendar) => !calendar.projectId).map((calendar) => calendar.id),
   );
 
-  return events.filter((event) =>
-    isTaskCalendarEvent(event) &&
-    new Date(event.startAt) < end &&
-    new Date(event.endAt) > start &&
-    event.status !== EventStatus.CANCELLED &&
-    !event.completedAt &&
-    personalCalendarIds.has(event.calendarId),
-  );
+  return events
+    .filter((event) =>
+      isTaskCalendarEvent(event) &&
+      new Date(event.startAt) < end &&
+      new Date(event.endAt) > start &&
+      event.status !== EventStatus.CANCELLED &&
+      !event.completedAt &&
+      personalCalendarIds.has(event.calendarId),
+    )
+    .sort((first, second) => {
+      const firstOrder = first.taskOrder ?? Number.MAX_SAFE_INTEGER;
+      const secondOrder = second.taskOrder ?? Number.MAX_SAFE_INTEGER;
+      return firstOrder - secondOrder ||
+        new Date(first.startAt).getTime() - new Date(second.startAt).getTime();
+    });
 }

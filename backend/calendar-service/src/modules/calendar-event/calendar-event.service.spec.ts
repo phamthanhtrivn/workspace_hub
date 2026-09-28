@@ -55,6 +55,7 @@ describe('CalendarEventService', () => {
     isRecurrenceOverride: false,
     sourceType: EventSourceType.USER,
     sourceId: null,
+    taskOrder: null,
     completedAt: null,
     cancelledAt: null,
     createdAt: new Date(),
@@ -325,6 +326,45 @@ describe('CalendarEventService', () => {
         isRecurrenceOverride: undefined,
       },
     });
+  });
+
+  it('stores task order in one transaction without changing event times', async () => {
+    const { service, prisma, tx } = createService();
+    const secondEventId = '88888888-8888-8888-8888-888888888888';
+    prisma.calendarEvent.findMany.mockResolvedValue([
+      { ...event, sourceType: EventSourceType.TASK },
+      { ...event, id: secondEventId, sourceType: EventSourceType.TASK },
+    ]);
+
+    const result = await service.updateTaskOrder(ownerId, [
+      secondEventId,
+      eventId,
+    ]);
+
+    expect(result).toEqual([secondEventId, eventId]);
+    expect(tx.calendarEvent.update).toHaveBeenNthCalledWith(1, {
+      where: { id: secondEventId },
+      data: { taskOrder: 0, updatedBy: ownerId },
+    });
+    expect(tx.calendarEvent.update).toHaveBeenNthCalledWith(2, {
+      where: { id: eventId },
+      data: { taskOrder: 1, updatedBy: ownerId },
+    });
+    expect(tx.calendarEvent.update).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ startAt: expect.anything() }),
+      }),
+    );
+  });
+
+  it('rejects task order updates containing regular events', async () => {
+    const { service, prisma, tx } = createService();
+    prisma.calendarEvent.findMany.mockResolvedValue([event]);
+
+    await expect(
+      service.updateTaskOrder(ownerId, [eventId]),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(tx.calendarEvent.update).not.toHaveBeenCalled();
   });
 
   it('marks only the selected recurring task occurrence as incomplete', async () => {

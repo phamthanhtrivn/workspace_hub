@@ -126,6 +126,7 @@ model CalendarEvent {
   isRecurrenceOverride Boolean         @default(false) @map("is_recurrence_override")
   sourceType           EventSourceType @default(USER) @map("source_type")
   sourceId             String?         @map("source_id") @db.Uuid
+  taskOrder            Int?            @map("task_order")
   completedAt          DateTime?       @map("completed_at") @db.Timestamptz(3)
   cancelledAt          DateTime?       @map("cancelled_at") @db.Timestamptz(3)
   createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -141,6 +142,7 @@ model CalendarEvent {
   @@unique([recurrenceSeriesId, originalStartAt])
   @@unique([calendarId, sourceType, sourceId])
   @@index([calendarId, startAt])
+  @@index([calendarId, taskOrder])
   @@index([createdBy])
   @@index([startAt, endAt])
   @@index([recurrenceSeriesId, startAt])

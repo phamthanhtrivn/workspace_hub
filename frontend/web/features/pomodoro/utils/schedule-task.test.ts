@@ -19,12 +19,18 @@ beforeEach(() => {
 
 describe("scheduleFocusTask", () => {
   it("creates a Calendar task in the personal calendar with the selected duration", async () => {
-    const eventId = await scheduleFocusTask("Write report", "2026-09-27T09:30", 2);
+    const eventId = await scheduleFocusTask({
+      title: "Write report",
+      startsAt: "2026-09-27T09:30",
+      pomodoros: 2,
+      description: "Draft the executive summary",
+    });
     expect(eventId).toBe("calendar-event-1");
 
     expect(createCalendarEvent).toHaveBeenCalledWith({
       calendarId: "personal",
       title: "Write report",
+      description: "Draft the executive summary",
       startAt: new Date("2026-09-27T09:30").toISOString(),
       endAt: new Date(new Date("2026-09-27T09:30").getTime() + 50 * 60_000).toISOString(),
       sourceType: EventSourceType.TASK,
@@ -35,7 +41,11 @@ describe("scheduleFocusTask", () => {
   it("does not create a task when no calendar exists", async () => {
     vi.mocked(getCalendars).mockResolvedValue([]);
 
-    await expect(scheduleFocusTask("Write report", "2026-09-27T09:30", 2)).rejects.toThrow("Chưa có lịch");
+    await expect(scheduleFocusTask({
+      title: "Write report",
+      startsAt: "2026-09-27T09:30",
+      pomodoros: 2,
+    })).rejects.toThrow("Chưa có lịch");
     expect(createCalendarEvent).not.toHaveBeenCalled();
   });
 });

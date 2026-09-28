@@ -6,11 +6,6 @@ import {
   Pause,
   RotateCcw,
   SkipForward,
-  Volume2,
-  VolumeX,
-  Maximize2,
-  Minimize2,
-  Settings,
 } from "lucide-react";
 import type { PomodoroMode, PomodoroStatus } from "../types/pomodoro";
 import { Button } from "@/components/ui/button";
@@ -20,38 +15,28 @@ interface PomodoroControlsProps {
   disabled: boolean;
   status: PomodoroStatus;
   mode: PomodoroMode;
-  isMuted: boolean;
-  isFullscreen: boolean;
   onStart: () => void;
   onPause: () => void;
   onResume: () => void;
   onReset: () => void;
   onSkip: () => void;
-  onToggleSound: () => void;
-  onToggleFullscreen: () => void;
-  onOpenSettings: () => void;
 }
 
 export function PomodoroControls({
   disabled,
   status,
   mode,
-  isMuted,
-  isFullscreen,
   onStart,
   onPause,
   onResume,
   onReset,
   onSkip,
-  onToggleSound,
-  onToggleFullscreen,
-  onOpenSettings,
 }: PomodoroControlsProps) {
   const isRunning = status === "RUNNING";
   const isFocus = mode === "FOCUS";
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="flex items-center justify-center">
       {/* Primary Action Dock */}
       <div className="flex items-center gap-3 p-1.5 rounded-full bg-white/90 border border-slate-200/90 shadow-lg shadow-slate-200/40 backdrop-blur-md">
         {/* Reset Button */}
@@ -124,46 +109,6 @@ export function PomodoroControls({
         </Button>
       </div>
 
-      {/* Auxiliary Floating Bar */}
-      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/80 border border-slate-200/60 shadow-2xs backdrop-blur-sm text-slate-600">
-        {/* Sound Alert Toggle */}
-        <button
-          type="button"
-          onClick={onToggleSound}
-          title={isMuted ? "Bật chuông thông báo" : "Tắt chuông thông báo"}
-          className="p-1.5 hover:bg-white hover:text-slate-900 rounded-full transition-all"
-        >
-          {isMuted ? (
-            <VolumeX className="size-4 text-slate-400" />
-          ) : (
-            <Volume2 className="size-4 text-slate-700" />
-          )}
-        </button>
-
-        {/* Fullscreen Toggle */}
-        <button
-          type="button"
-          onClick={onToggleFullscreen}
-          title={isFullscreen ? "Thoát toàn màn hình" : "Toàn màn hình tập trung"}
-          className="p-1.5 hover:bg-white hover:text-slate-900 rounded-full transition-all"
-        >
-          {isFullscreen ? (
-            <Minimize2 className="size-4 text-slate-700" />
-          ) : (
-            <Maximize2 className="size-4 text-slate-700" />
-          )}
-        </button>
-
-        {/* Settings Dialog Trigger */}
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          title="Cài đặt Pomodoro"
-          className="p-1.5 hover:bg-white hover:text-slate-900 rounded-full transition-all"
-        >
-          <Settings className="size-4 text-slate-700" />
-        </button>
-      </div>
     </div>
   );
 }

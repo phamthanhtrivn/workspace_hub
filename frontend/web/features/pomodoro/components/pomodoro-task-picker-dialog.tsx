@@ -166,7 +166,11 @@ export function PomodoroTaskPickerDialog({
     setCreateError("");
     let calendarEventId: string;
     try {
-      calendarEventId = await scheduleFocusTask(customTaskTitle.trim(), customStart, 2);
+      calendarEventId = await scheduleFocusTask({
+        title: customTaskTitle.trim(),
+        startsAt: customStart,
+        pomodoros: 2,
+      });
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : "Không thể tạo nhiệm vụ trên Calendar.");
       setIsCreating(false);

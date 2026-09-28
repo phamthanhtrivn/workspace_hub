@@ -6,7 +6,6 @@ import {
   StickyNote,
   X,
   Target,
-  FolderKanban,
   ChevronRight,
   Pencil,
   Check,
@@ -20,25 +19,28 @@ import { cn } from "@/lib/utils";
 import { defaultFocusStart, scheduleFocusTask } from "../utils/schedule-task";
 import type { CalendarEvent } from "@/features/calendar/types/calendar.types";
 import { getTodayCalendarTasks } from "../utils/today-calendar-tasks";
-import { updateCalendarEvent } from "@/features/calendar/api/calendar.api";
+import { updateCalendarEvent, updateCalendarTaskOrder } from "@/features/calendar/api/calendar.api";
 import { updateTask } from "@/features/project/api/task.api";
 import { useQueryClient } from "@tanstack/react-query";
 import { calendarKeys } from "@/features/calendar/hooks/use-calendar-queries";
+import { PomodoroCalendarTaskList } from "./pomodoro-calendar-task-list";
 
 interface PomodoroActiveTaskProps {
   activeTask: PomodoroActiveTask | null;
   notes: string;
-  onSelectTaskClick: () => void;
   onClearTask: () => void;
   onNotesChange: (notes: string) => void;
   onSetCustomTask?: (task: PomodoroActiveTask) => void;
   onUpdateActiveTask?: (task: PomodoroActiveTask) => void;
 }
 
+const DEFAULT_QUICK_POMODOROS = 2;
+const MAX_QUICK_POMODOROS = 20;
+const DEFAULT_QUICK_PRIORITY = "MEDIUM" as const;
+
 export function PomodoroActiveTaskCard({
   activeTask,
   notes,
-  onSelectTaskClick,
   onClearTask,
   onNotesChange,
   onSetCustomTask,
@@ -46,12 +48,12 @@ export function PomodoroActiveTaskCard({
 }: PomodoroActiveTaskProps) {
   // Empty state custom task input
   const [quickTitle, setQuickTitle] = useState("");
+  const [quickNote, setQuickNote] = useState("");
+  const [quickPomodoros, setQuickPomodoros] = useState(DEFAULT_QUICK_POMODOROS);
   const [quickError, setQuickError] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [quickPomodoros, setQuickPomodoros] = useState(2);
-  const [quickPriority, setQuickPriority] = useState<
-    "LOW" | "MEDIUM" | "HIGH" | "URGENT"
-  >("MEDIUM");
+  const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
+  const [calendarTaskRevision, setCalendarTaskRevision] = useState(0);
 
   // Inline editing state for active task title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -64,6 +66,8 @@ export function PomodoroActiveTaskCard({
   const [showNotes, setShowNotes] = useState(false);
   const [todayTasks, setTodayTasks] = useState<CalendarEvent[]>([]);
   const [calendarTaskError, setCalendarTaskError] = useState(false);
+  const [taskOrderError, setTaskOrderError] = useState("");
+  const [isSavingTaskOrder, setIsSavingTaskOrder] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -84,7 +88,7 @@ export function PomodoroActiveTaskCard({
       mounted = false;
       window.removeEventListener("focus", refreshTasks);
     };
-  }, [activeTask]);
+  }, [activeTask, calendarTaskRevision]);
 
   const selectCalendarTask = (event: CalendarEvent) => {
     onSetCustomTask?.({
@@ -100,15 +104,48 @@ export function PomodoroActiveTaskCard({
     });
   };
 
+  const reorderCalendarTasks = async (activeId: string, overId: string) => {
+    if (activeId === overId || isSavingTaskOrder) return;
+    const oldIndex = todayTasks.findIndex((event) => event.id === activeId);
+    const newIndex = todayTasks.findIndex((event) => event.id === overId);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const previousTasks = todayTasks;
+    const reorderedTasks = [...todayTasks];
+    const [movedTask] = reorderedTasks.splice(oldIndex, 1);
+    reorderedTasks.splice(newIndex, 0, movedTask);
+    const orderedTasks = reorderedTasks.map((event, taskOrder) => ({
+      ...event,
+      taskOrder,
+    }));
+    setTodayTasks(orderedTasks);
+    setTaskOrderError("");
+    setIsSavingTaskOrder(true);
+    try {
+      await updateCalendarTaskOrder(orderedTasks.map((event) => event.id));
+    } catch {
+      setTodayTasks(previousTasks);
+      setTaskOrderError("Không lưu được thứ tự task. Hãy thử lại.");
+    } finally {
+      setIsSavingTaskOrder(false);
+    }
+  };
+
   const handleCreateCustomTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickTitle.trim() || isCreating) return;
+    const scheduledPomodoros = activeTask ? quickPomodoros : DEFAULT_QUICK_POMODOROS;
 
     setIsCreating(true);
     setQuickError("");
     let calendarEventId: string;
     try {
-      calendarEventId = await scheduleFocusTask(quickTitle.trim(), defaultFocusStart(), quickPomodoros);
+      calendarEventId = await scheduleFocusTask({
+        title: quickTitle.trim(),
+        startsAt: defaultFocusStart(),
+        pomodoros: scheduledPomodoros,
+        description: quickNote,
+      });
     } catch (error) {
       setQuickError(error instanceof Error ? error.message : "Không thể tạo nhiệm vụ trên Calendar.");
       setIsCreating(false);
@@ -121,16 +158,21 @@ export function PomodoroActiveTaskCard({
       title: quickTitle.trim(),
       projectName: "Nhiệm vụ cá nhân",
       projectColor: "#1C4D8D",
-      priority: quickPriority,
-      estimatedPomodoros: quickPomodoros,
+      priority: DEFAULT_QUICK_PRIORITY,
+      estimatedPomodoros: scheduledPomodoros,
       completedPomodoros: 0,
       checklists: [],
     };
 
-    if (onSetCustomTask) {
-      onSetCustomTask(newTask);
+    if (!activeTask) {
+      onSetCustomTask?.(newTask);
+    } else {
+      setCalendarTaskRevision((revision) => revision + 1);
     }
     setQuickTitle("");
+    setQuickNote("");
+    setQuickPomodoros(DEFAULT_QUICK_POMODOROS);
+    setIsQuickCreateOpen(false);
     setIsCreating(false);
   };
 
@@ -187,14 +229,15 @@ export function PomodoroActiveTaskCard({
       <p className="text-xs font-semibold text-slate-700">Task Calendar hôm nay</p>
       {calendarTaskError ? <p role="alert" className="mt-2 text-xs text-rose-600">Không tải được task Calendar.</p> :
         todayTasks.length === 0 ? <p className="mt-2 text-xs text-slate-400">Chưa có task Calendar nào hôm nay.</p> :
-        <div className="mt-2 max-h-40 space-y-1 overflow-y-auto">
-          {todayTasks.map((event) => (
-            <button key={event.id} type="button" onClick={() => selectCalendarTask(event)} className={cn("flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-xs hover:border-blue-300 hover:bg-blue-50", activeTask?.calendarEventId === event.id ? "border-blue-300 bg-blue-50" : "border-slate-200")}>
-              <span className="truncate font-medium text-slate-800">{event.title}</span>
-              <span className="ml-3 shrink-0 text-slate-500">{new Date(event.startAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</span>
-            </button>
-          ))}
-        </div>}
+        <PomodoroCalendarTaskList
+          tasks={todayTasks}
+          activeEventId={activeTask?.calendarEventId}
+          isSaving={isSavingTaskOrder}
+          onSelect={selectCalendarTask}
+          onReorder={(activeId, overId) => void reorderCalendarTasks(activeId, overId)}
+        />}
+      {isSavingTaskOrder && <p role="status" className="mt-1.5 text-[11px] text-slate-400">Đang lưu thứ tự...</p>}
+      {taskOrderError && <p role="alert" className="mt-1.5 text-xs text-rose-600">{taskOrderError}</p>}
     </div>
   );
 
@@ -234,83 +277,27 @@ export function PomodoroActiveTaskCard({
             />
           </div>
 
+          <textarea
+            value={quickNote}
+            onChange={(e) => setQuickNote(e.target.value)}
+            placeholder="Ghi chú cho task (không bắt buộc)..."
+            maxLength={2000}
+            rows={2}
+            className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[var(--color-primary,#1C4D8D)] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
+          />
+
           {quickError && <p role="alert" className="text-xs text-rose-600">{quickError}</p>}
 
-          {/* Quick Settings: Estimate & Priority */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
-            {/* Tomato Estimate Selector */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-slate-500">
-                Ước tính:
-              </span>
-              <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-lg border border-slate-200/50">
-                {[1, 2, 3, 4].map((num) => (
-                  <button
-                    key={num}
-                    type="button"
-                    onClick={() => setQuickPomodoros(num)}
-                    className={cn(
-                      "px-2 py-0.5 rounded-md text-[11px] font-bold transition-all",
-                      quickPomodoros === num
-                        ? "bg-white text-rose-600 shadow-2xs"
-                        : "text-slate-500 hover:text-slate-800",
-                    )}
-                  >
-                    {num} 🍅
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Priority Selector */}
-            <div className="flex items-center gap-1">
-              {(
-                [
-                  { key: "LOW", label: "Thấp", color: "text-slate-600" },
-                  { key: "MEDIUM", label: "Vừa", color: "text-sky-600" },
-                  { key: "HIGH", label: "Cao", color: "text-amber-600" },
-                  { key: "URGENT", label: "Gấp", color: "text-rose-600" },
-                ] as const
-              ).map((p) => (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => setQuickPriority(p.key)}
-                  className={cn(
-                    "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase transition-all border",
-                    quickPriority === p.key
-                      ? "bg-white border-slate-300 shadow-2xs font-extrabold " +
-                          p.color
-                      : "bg-transparent border-transparent text-slate-400 hover:text-slate-600",
-                  )}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Action Row */}
-          <div className="flex items-center gap-2 pt-1">
+          <div className="pt-1">
             <Button
               type="submit"
               size="sm"
               disabled={!quickTitle.trim() || isCreating}
-              className="flex-1 rounded-xl bg-[var(--color-primary,#1C4D8D)] text-white hover:bg-[var(--color-primary-strong,#0F2854)] text-xs font-semibold shadow-xs h-9"
+              className="w-full rounded-xl bg-[var(--color-primary,#1C4D8D)] text-white hover:bg-[var(--color-primary-strong,#0F2854)] text-xs font-semibold shadow-xs h-9"
             >
               <Plus className="mr-1.5 size-4" />
               {isCreating ? "Đang tạo..." : "Đặt mục tiêu & thêm vào Calendar"}
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onSelectTaskClick}
-              className="rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold h-9 px-3 shrink-0 shadow-2xs"
-            >
-              <FolderKanban className="mr-1.5 size-3.5 text-slate-500" />
-              Chọn task
             </Button>
           </div>
         </form>
@@ -327,7 +314,7 @@ export function PomodoroActiveTaskCard({
   return (
     <div className="w-full max-w-lg rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm shadow-slate-200/40 backdrop-blur-md transition-all">
       {/* Top Header Row */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2 overflow-hidden">
           {activeTask.projectName && !isCustomTask ? (
             <span
@@ -357,13 +344,19 @@ export function PomodoroActiveTaskCard({
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1">
           <button
             type="button"
-            onClick={onSelectTaskClick}
-            className="text-xs font-semibold text-[var(--color-primary,#1C4D8D)] hover:text-blue-700 px-2 py-1 rounded-md hover:bg-blue-50 transition-colors"
+            onClick={() => {
+              setQuickError("");
+              setIsQuickCreateOpen((isOpen) => !isOpen);
+            }}
+            aria-expanded={isQuickCreateOpen}
+            aria-controls="active-task-quick-create"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 hover:text-blue-800"
           >
-            Đổi task
+            <Plus className="size-3.5" />
+            Tạo task mới
           </button>
           <button
             type="button"
@@ -375,6 +368,106 @@ export function PomodoroActiveTaskCard({
           </button>
         </div>
       </div>
+
+      {isQuickCreateOpen && (
+        <form
+          id="active-task-quick-create"
+          onSubmit={handleCreateCustomTask}
+          className="mt-3 space-y-2.5 rounded-xl border border-blue-100 bg-blue-50/50 p-3"
+        >
+          <div>
+            <label htmlFor="active-task-title" className="mb-1 block text-xs font-semibold text-slate-700">
+              Task mới
+            </label>
+            <input
+              id="active-task-title"
+              type="text"
+              value={quickTitle}
+              onChange={(e) => setQuickTitle(e.target.value)}
+              placeholder="Nhập tên task..."
+              autoFocus
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+          <div>
+            <label htmlFor="active-task-note" className="mb-1 block text-xs font-semibold text-slate-700">
+              Ghi chú <span className="font-normal text-slate-400">(không bắt buộc)</span>
+            </label>
+            <textarea
+              id="active-task-note"
+              value={quickNote}
+              onChange={(e) => setQuickNote(e.target.value)}
+              placeholder="Thêm ghi chú cho task..."
+              maxLength={2000}
+              rows={2}
+              className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <div>
+              <p className="text-xs font-semibold text-slate-700">Số Pomodoro</p>
+              <p className="text-[11px] text-slate-400">{quickPomodoros * 25} phút dự kiến</p>
+            </div>
+            <div
+              role="group"
+              aria-label="Chọn số Pomodoro"
+              className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5"
+            >
+              <button
+                type="button"
+                onClick={() => setQuickPomodoros((count) => Math.max(1, count - 1))}
+                disabled={quickPomodoros === 1}
+                aria-label="Giảm số Pomodoro"
+                className="flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <Minus className="size-3.5" />
+              </button>
+              <output
+                aria-live="polite"
+                className="min-w-20 px-2 text-center text-xs font-bold tabular-nums text-slate-800"
+              >
+                {quickPomodoros} Pomodoro
+              </output>
+              <button
+                type="button"
+                onClick={() => setQuickPomodoros((count) => Math.min(MAX_QUICK_POMODOROS, count + 1))}
+                disabled={quickPomodoros === MAX_QUICK_POMODOROS}
+                aria-label="Tăng số Pomodoro"
+                className="flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <Plus className="size-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {quickError && <p role="alert" className="text-xs text-rose-600">{quickError}</p>}
+
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setQuickError("");
+                setIsQuickCreateOpen(false);
+              }}
+              className="h-8 px-3 text-xs text-slate-600"
+            >
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              disabled={!quickTitle.trim() || isCreating}
+              className="h-8 bg-[var(--color-primary,#1C4D8D)] px-3 text-xs font-semibold text-white hover:bg-[var(--color-primary-strong,#0F2854)]"
+            >
+              <Plus className="mr-1 size-3.5" />
+              {isCreating ? "Đang tạo..." : "Thêm vào Calendar"}
+            </Button>
+          </div>
+        </form>
+      )}
 
       {/* Task Title & Inline Editing */}
       <div className="mt-3.5">

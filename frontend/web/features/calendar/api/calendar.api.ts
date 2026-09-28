@@ -254,6 +254,16 @@ export async function updateCalendarTaskCompletion(
   return unwrap(response);
 }
 
+export async function updateCalendarTaskOrder(
+  eventIds: string[],
+): Promise<string[]> {
+  const response = await api.patch<ApiResponse<string[]>>(
+    "/api/calendar/events/task-order",
+    { eventIds },
+  );
+  return unwrap(response);
+}
+
 export async function cancelCalendarEvent(
   eventId: string,
   scope: RecurrenceScope = RecurrenceScope.THIS,

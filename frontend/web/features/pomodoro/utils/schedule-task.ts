@@ -8,11 +8,19 @@ export function defaultFocusStart(): string {
   return local.toISOString().slice(0, 16);
 }
 
-export async function scheduleFocusTask(
-  title: string,
-  startsAt: string,
-  pomodoros: number,
-): Promise<string> {
+interface ScheduleFocusTaskInput {
+  title: string;
+  startsAt: string;
+  pomodoros: number;
+  description?: string;
+}
+
+export async function scheduleFocusTask({
+  title,
+  startsAt,
+  pomodoros,
+  description,
+}: ScheduleFocusTaskInput): Promise<string> {
   const start = new Date(startsAt);
   if (!startsAt || Number.isNaN(start.getTime())) {
     throw new Error("Vui lòng chọn ngày và giờ bắt đầu hợp lệ.");
@@ -30,6 +38,7 @@ export async function scheduleFocusTask(
   const event = await createCalendarEvent({
     calendarId: calendar.id,
     title,
+    description: description?.trim() || undefined,
     startAt: start.toISOString(),
     endAt: new Date(start.getTime() + pomodoros * 25 * 60_000).toISOString(),
     sourceType: EventSourceType.TASK,

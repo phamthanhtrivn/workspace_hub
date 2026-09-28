@@ -47,3 +47,30 @@ it("fetches one local day and keeps only visible personal Calendar tasks", async
   expect(end.getTime() - start.getTime()).toBeGreaterThanOrEqual(23 * 60 * 60 * 1000 - 1);
   expect(end.getTime() - start.getTime()).toBeLessThanOrEqual(25 * 60 * 60 * 1000 - 1);
 });
+
+it("uses saved task order before falling back to start time", async () => {
+  const base = new Date();
+  base.setHours(9, 0, 0, 0);
+  const event = (id: string, hour: number, taskOrder: number | null) => ({
+    id,
+    calendarId: "personal-calendar",
+    sourceType: EventSourceType.TASK,
+    status: EventStatus.CONFIRMED,
+    completedAt: null,
+    taskOrder,
+    startAt: new Date(base.getFullYear(), base.getMonth(), base.getDate(), hour).toISOString(),
+    endAt: new Date(base.getFullYear(), base.getMonth(), base.getDate(), hour + 1).toISOString(),
+  }) as CalendarEvent;
+  vi.mocked(getCalendars).mockResolvedValue([
+    { id: "personal-calendar", projectId: null } as WorkspaceCalendar,
+  ]);
+  vi.mocked(getCalendarEvents).mockResolvedValue([
+    event("unsorted", 8, null),
+    event("second", 10, 1),
+    event("first", 12, 0),
+  ]);
+
+  const result = await getTodayCalendarTasks();
+
+  expect(result.map((item) => item.id)).toEqual(["first", "second", "unsorted"]);
+});

@@ -166,6 +166,7 @@ export interface CalendarEvent {
   originalStartAt: string | null;
   sourceType: EventSourceType;
   sourceId: string | null;
+  taskOrder: number | null;
   completedAt: string | null;
   exceptionDates: string[];
   documentIds: string[];
