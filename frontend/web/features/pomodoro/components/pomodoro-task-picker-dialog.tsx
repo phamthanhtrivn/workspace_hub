@@ -14,6 +14,7 @@ import { Search, Plus, Check, Loader2 } from "lucide-react";
 import { getProjects } from "@/features/project/api/project.api";
 import { getProjectTasks } from "@/features/project/api/task.api";
 import type { CalendarEvent } from "@/features/calendar/types/calendar.types";
+import { cleanTaskDescription } from "@/features/calendar/utils/calendar-event.utils";
 import { getTodayCalendarTasks } from "../utils/today-calendar-tasks";
 import type { Project, Task } from "@/features/project/types/project";
 import type { PomodoroActiveTask } from "../types/pomodoro";
@@ -87,8 +88,12 @@ export function PomodoroTaskPickerDialog({
         setCalendarTasks([]);
         setCalendarError(true);
       })
-      .finally(() => { if (mounted) setCalendarLoading(false); });
-    return () => { mounted = false; };
+      .finally(() => {
+        if (mounted) setCalendarLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, [isOpen]);
 
   const handlePickCalendarTask = (event: CalendarEvent) => {
@@ -96,10 +101,20 @@ export function PomodoroTaskPickerDialog({
       id: event.sourceId ?? event.id,
       calendarEventId: event.id,
       title: event.title,
+      description: cleanTaskDescription(event.description) || undefined,
       projectId: event.calendar?.projectId ?? undefined,
-      projectName: event.calendar?.projectId ? event.calendar.name : "Nhiệm vụ Calendar",
+      projectName: event.calendar?.projectId
+        ? event.calendar.name
+        : "Nhiệm vụ Calendar",
       projectColor: event.calendar?.color ?? event.color ?? "#1C4D8D",
-      estimatedPomodoros: Math.max(1, Math.ceil((new Date(event.endAt).getTime() - new Date(event.startAt).getTime()) / (25 * 60_000))),
+      estimatedPomodoros: Math.max(
+        1,
+        Math.ceil(
+          (new Date(event.endAt).getTime() -
+            new Date(event.startAt).getTime()) /
+            (25 * 60_000),
+        ),
+      ),
       completedPomodoros: 0,
       checklists: [],
     });
@@ -139,6 +154,7 @@ export function PomodoroTaskPickerDialog({
       projectName: curProject?.name || "Dự án",
       projectColor: curProject?.color || "#1C4D8D",
       title: task.title,
+      description: task.description?.trim() || undefined,
       priority: task.priority,
       estimatedPomodoros: Math.max(
         1,
@@ -172,7 +188,11 @@ export function PomodoroTaskPickerDialog({
         pomodoros: 2,
       });
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : "Không thể tạo nhiệm vụ trên Calendar.");
+      setCreateError(
+        error instanceof Error
+          ? error.message
+          : "Không thể tạo nhiệm vụ trên Calendar.",
+      );
       setIsCreating(false);
       return;
     }
@@ -224,28 +244,75 @@ export function PomodoroTaskPickerDialog({
               size="sm"
               className="h-9 px-3 text-xs font-semibold bg-[var(--color-primary,#1C4D8D)] text-white shrink-0"
             >
-              <Plus className="size-3.5 mr-1" /> {isCreating ? "Đang tạo..." : "Tạo"}
+              <Plus className="size-3.5 mr-1" />{" "}
+              {isCreating ? "Đang tạo..." : "Tạo"}
             </Button>
           </div>
           <label className="block text-[11px] font-semibold text-slate-600">
             Ngày và giờ trên Calendar
-            <Input type="datetime-local" required value={customStart} onChange={(event) => setCustomStart(event.target.value)} className="mt-1 text-xs h-9" />
+            <Input
+              type="datetime-local"
+              required
+              value={customStart}
+              onChange={(event) => setCustomStart(event.target.value)}
+              className="mt-1 text-xs h-9"
+            />
           </label>
-          {createError && <p role="alert" className="text-xs text-rose-600">{createError}</p>}
+          {createError && (
+            <p role="alert" className="text-xs text-rose-600">
+              {createError}
+            </p>
+          )}
         </form>
 
         <div className="mt-4 border-t border-slate-200 pt-3">
-          <p className="text-xs font-semibold text-slate-700">Task trên Calendar hôm nay</p>
+          <p className="text-xs font-semibold text-slate-700">
+            Task trên Calendar hôm nay
+          </p>
           <div className="mt-2 max-h-36 space-y-1 overflow-y-auto">
-            {calendarLoading ? <p className="text-xs text-slate-400">Đang tải task Calendar...</p> :
-              calendarError ? <p role="alert" className="text-xs text-rose-600">Không tải được task Calendar.</p> :
-              calendarTasks.length === 0 ? <p className="text-xs text-slate-400">Hôm nay chưa có task Calendar nào.</p> :
-              calendarTasks.map((event) => (
-                <button key={event.id} type="button" onClick={() => handlePickCalendarTask(event)} className="flex w-full items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-left text-xs hover:bg-blue-50">
-                  <span className="truncate font-medium text-slate-800">{event.title}</span>
-                  <span className="ml-3 shrink-0 text-slate-500">{new Date(event.startAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</span>
-                </button>
-              ))}
+            {calendarLoading ? (
+              <p className="text-xs text-slate-400">
+                Đang tải task Calendar...
+              </p>
+            ) : calendarError ? (
+              <p role="alert" className="text-xs text-rose-600">
+                Không tải được task Calendar.
+              </p>
+            ) : calendarTasks.length === 0 ? (
+              <p className="text-xs text-slate-400">
+                Hôm nay chưa có task Calendar nào.
+              </p>
+            ) : (
+              calendarTasks.map((event) => {
+                const note = cleanTaskDescription(event.description);
+                return (
+                  <button
+                    key={event.id}
+                    type="button"
+                    onClick={() => handlePickCalendarTask(event)}
+                    title={note ? `${event.title} — ${note}` : event.title}
+                    className="flex w-full flex-col rounded-lg border border-slate-200 px-3 py-2 text-left text-xs hover:bg-blue-50 transition-colors"
+                  >
+                    <div className="flex w-full items-center justify-between">
+                      <span className="truncate font-medium text-slate-800">
+                        {event.title}
+                      </span>
+                      <span className="ml-3 shrink-0 text-slate-500">
+                        {new Date(event.startAt).toLocaleTimeString("vi-VN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    {note && (
+                      <span className="mt-0.5 truncate text-[11px] text-slate-500">
+                        {note}
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -264,7 +331,10 @@ export function PomodoroTaskPickerDialog({
               <button
                 key={proj.id}
                 type="button"
-                onClick={() => { setLoading(true); setSelectedProjectId(proj.id); }}
+                onClick={() => {
+                  setLoading(true);
+                  setSelectedProjectId(proj.id);
+                }}
                 className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium shrink-0 transition-colors ${
                   selectedProjectId === proj.id
                     ? "bg-[var(--color-primary,#1C4D8D)] text-white shadow-xs"
@@ -336,7 +406,9 @@ export function PomodoroTaskPickerDialog({
             ))
           ) : (
             <div className="py-6 text-center text-xs text-slate-400">
-              {projectError ? "Không tải được nhiệm vụ từ máy chủ. Hãy thử lại sau." : "Không tìm thấy nhiệm vụ nào đang mở trong dự án này."}
+              {projectError
+                ? "Không tải được nhiệm vụ từ máy chủ. Hãy thử lại sau."
+                : "Không tìm thấy nhiệm vụ nào đang mở trong dự án này."}
             </div>
           )}
         </div>

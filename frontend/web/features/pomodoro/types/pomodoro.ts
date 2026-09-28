@@ -32,6 +32,7 @@ export interface PomodoroActiveTask {
   projectName?: string;
   projectColor?: string;
   title: string;
+  description?: string;
   priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
   estimatedPomodoros?: number;
   completedPomodoros?: number;

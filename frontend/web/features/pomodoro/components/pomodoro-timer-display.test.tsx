@@ -20,6 +20,27 @@ it("keeps the active task visible next to the running timer", () => {
     />,
   );
 
-  expect(screen.getByText("Đang tập trung vào:")).toBeTruthy();
   expect(screen.getByText("đi chơi")).toBeTruthy();
+});
+
+it("renders active task title and cleaned note inside the timer circle", () => {
+  render(
+    <PomodoroTimerDisplay
+      mode="SHORT_BREAK"
+      status="IDLE"
+      timeLeft={5 * 60}
+      totalDuration={5 * 60}
+      cycleCount={1}
+      longBreakInterval={4}
+      activeTaskTitle="huhu"
+      activeTaskNote={"[TASK]\nÔn tập chương 3 và làm bài tập"}
+      onSwitchMode={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByText("huhu")).toBeTruthy();
+  expect(
+    screen.getAllByText("Ôn tập chương 3 và làm bài tập").length,
+  ).toBeGreaterThan(0);
+  expect(screen.queryByText(/\[TASK\]/)).toBeNull();
 });

@@ -79,7 +79,8 @@ export function PomodoroView() {
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            Không gian tập trung sâu, quản lý nhịp độ làm việc và triệt tiêu xao nhãng.
+            Không gian tập trung sâu, quản lý nhịp độ làm việc và triệt tiêu xao
+            nhãng.
           </p>
         </div>
 
@@ -115,7 +116,8 @@ export function PomodoroView() {
               </>
             ) : (
               <>
-                <EyeOff className="size-3.5 mr-1.5" /> Chế độ Siêu tập trung (Zen)
+                <EyeOff className="size-3.5 mr-1.5" /> Chế độ Siêu tập trung
+                (Zen)
               </>
             )}
           </Button>
@@ -148,6 +150,9 @@ export function PomodoroView() {
               cycleCount={cycleCount}
               longBreakInterval={config.longBreakInterval || 4}
               activeTaskTitle={activeTask?.title}
+              activeTaskNote={activeTask?.description}
+              activeTaskCompletedPomodoros={activeTask?.completedPomodoros}
+              activeTaskEstimatedPomodoros={activeTask?.estimatedPomodoros}
               onSwitchMode={switchMode}
             />
           </div>
@@ -164,12 +169,20 @@ export function PomodoroView() {
             onSkip={() => skip()}
           />
           {!isReady && (
-            <p role={loadError ? "alert" : "status"} className="text-xs text-amber-700">
-              {loadError ? "Không kết nối được calendar-service. Hãy tải lại trang khi dịch vụ hoạt động." : "Đang tải Pomodoro từ máy chủ..."}
+            <p
+              role={loadError ? "alert" : "status"}
+              className="text-xs text-amber-700"
+            >
+              {loadError
+                ? "Không kết nối được calendar-service. Hãy tải lại trang khi dịch vụ hoạt động."
+                : "Đang tải Pomodoro từ máy chủ..."}
             </p>
           )}
           {isReady && status === "RUNNING" && timeLeft === 0 && (
-            <p role="status" className="text-xs text-slate-500">Đang lưu phiên hoàn thành. Nếu mạng gián đoạn, hệ thống sẽ thử lại.</p>
+            <p role="status" className="text-xs text-slate-500">
+              Đang lưu phiên hoàn thành. Nếu mạng gián đoạn, hệ thống sẽ thử
+              lại.
+            </p>
           )}
 
           {/* Ambient Music & Focus Sound Capsule */}
@@ -222,7 +235,6 @@ export function PomodoroView() {
           onSaveConfig={updateConfig}
         />
       )}
-
     </div>
   );
 }
