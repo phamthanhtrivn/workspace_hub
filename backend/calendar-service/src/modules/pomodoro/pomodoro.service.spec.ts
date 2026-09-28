@@ -38,6 +38,7 @@ describe('PomodoroService', () => {
     prisma.pomodoroSession.findMany
       .mockResolvedValueOnce([
         {
+          startedAt: new Date('2026-09-27T08:00:00Z'),
           sessionType: PomodoroSessionType.FOCUS,
           status: PomodoroSessionStatus.COMPLETED,
           actualSeconds: 1500,
@@ -45,6 +46,7 @@ describe('PomodoroService', () => {
           interruptionReason: null,
         },
         {
+          startedAt: new Date('2026-09-27T08:05:00Z'),
           sessionType: PomodoroSessionType.FOCUS,
           status: PomodoroSessionStatus.STOPPED,
           actualSeconds: 300,
@@ -52,6 +54,7 @@ describe('PomodoroService', () => {
           interruptionReason: 'phone',
         },
         {
+          startedAt: new Date('2026-09-27T08:10:00Z'),
           sessionType: PomodoroSessionType.SHORT_BREAK,
           status: PomodoroSessionStatus.COMPLETED,
           actualSeconds: 300,

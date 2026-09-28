@@ -16,7 +16,11 @@ export function PomodoroSessionHistory({
   const [sessions, setSessions] = useState<PomodoroSessionRecord[]>([]);
 
   useEffect(() => {
-    getRecentSessions().then(setSessions).catch(() => setSessions([]));
+    let active = true;
+    getRecentSessions()
+      .then((items) => { if (active) setSessions(items); })
+      .catch(() => { if (active) setSessions([]); });
+    return () => { active = false; };
   }, [lastUpdated]);
 
   const todaySessions = sessions;

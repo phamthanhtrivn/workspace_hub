@@ -15,11 +15,15 @@ import { Volume2 } from "lucide-react";
 import type { PomodoroConfig } from "../types/pomodoro";
 import { playPomodoroSound } from "../utils/sound";
 
+function boundedMinutes(value: string, fallback: number, max: number): number {
+  return Math.min(max, Math.max(1, Number.parseInt(value, 10) || fallback));
+}
+
 interface PomodoroSettingsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   config: PomodoroConfig;
-  onSaveConfig: (newConfig: PomodoroConfig) => void;
+  onSaveConfig: (newConfig: PomodoroConfig) => Promise<void>;
 }
 
 export function PomodoroSettingsDialog({
@@ -29,15 +33,24 @@ export function PomodoroSettingsDialog({
   onSaveConfig,
 }: PomodoroSettingsDialogProps) {
   const [form, setForm] = useState<PomodoroConfig>(config);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleTestSound = () => {
     playPomodoroSound(form.soundType, form.soundVolume);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSaveConfig(form);
-    onClose();
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      await onSaveConfig(form);
+      setIsSaving(false);
+      onClose();
+    } catch {
+      // The timer hook reports the save error; keep the form open for retry.
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -68,7 +81,7 @@ export function PomodoroSettingsDialog({
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      focusDuration: Math.max(1, parseInt(e.target.value) || 25),
+                      focusDuration: boundedMinutes(e.target.value, 25, 120),
                     })
                   }
                   className="h-9 text-xs"
@@ -87,7 +100,7 @@ export function PomodoroSettingsDialog({
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      shortBreak: Math.max(1, parseInt(e.target.value) || 5),
+                      shortBreak: boundedMinutes(e.target.value, 5, 60),
                     })
                   }
                   className="h-9 text-xs"
@@ -106,7 +119,7 @@ export function PomodoroSettingsDialog({
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      longBreak: Math.max(1, parseInt(e.target.value) || 15),
+                      longBreak: boundedMinutes(e.target.value, 15, 90),
                     })
                   }
                   className="h-9 text-xs"
@@ -129,7 +142,7 @@ export function PomodoroSettingsDialog({
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    longBreakInterval: Math.max(1, parseInt(e.target.value) || 4),
+                    longBreakInterval: boundedMinutes(e.target.value, 4, 12),
                   })
                 }
                 className="h-9 text-xs"
@@ -151,7 +164,7 @@ export function PomodoroSettingsDialog({
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    dailyGoalPomodoros: Math.max(1, parseInt(e.target.value) || 8),
+                    dailyGoalPomodoros: boundedMinutes(e.target.value, 8, 30),
                   })
                 }
                 className="h-9 text-xs"
@@ -287,6 +300,7 @@ export function PomodoroSettingsDialog({
             <Button
               type="submit"
               size="sm"
+              disabled={isSaving}
               className="text-xs font-semibold bg-[var(--color-primary,#1C4D8D)] text-white"
             >
               Lưu cài đặt

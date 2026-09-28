@@ -18,8 +18,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { defaultFocusStart, scheduleFocusTask } from "../utils/schedule-task";
-import { getAllCalendarTasks, getCalendars } from "@/features/calendar/api/calendar.api";
-import { EventStatus, type CalendarEvent } from "@/features/calendar/types/calendar.types";
+import type { CalendarEvent } from "@/features/calendar/types/calendar.types";
+import { getTodayCalendarTasks } from "../utils/today-calendar-tasks";
+import { updateCalendarEvent } from "@/features/calendar/api/calendar.api";
+import { updateTask } from "@/features/project/api/task.api";
+import { useQueryClient } from "@tanstack/react-query";
+import { calendarKeys } from "@/features/calendar/hooks/use-calendar-queries";
 
 interface PomodoroActiveTaskProps {
   activeTask: PomodoroActiveTask | null;
@@ -52,6 +56,9 @@ export function PomodoroActiveTaskCard({
   // Inline editing state for active task title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState("");
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const [titleError, setTitleError] = useState("");
+  const queryClient = useQueryClient();
 
   // Subtask & Notes states
   const [showNotes, setShowNotes] = useState(false);
@@ -60,23 +67,16 @@ export function PomodoroActiveTaskCard({
 
   useEffect(() => {
     let mounted = true;
+    let requestId = 0;
     const refreshTasks = () => {
-      void Promise.all([getAllCalendarTasks(), getCalendars()])
-        .then(([events, calendars]) => {
-          if (!mounted) return;
-          const today = new Date();
-          const projectCalendarIds = new Set(calendars.filter((calendar) => calendar.projectId).map((calendar) => calendar.id));
-          setTodayTasks(events.filter((event) => {
-            const start = new Date(event.startAt);
-            return event.status !== EventStatus.CANCELLED && !event.completedAt &&
-              !event.calendar?.projectId && !projectCalendarIds.has(event.calendarId) &&
-              start.getFullYear() === today.getFullYear() &&
-              start.getMonth() === today.getMonth() &&
-              start.getDate() === today.getDate();
-          }));
+      const currentRequest = ++requestId;
+      void getTodayCalendarTasks()
+        .then((events) => {
+          if (!mounted || currentRequest !== requestId) return;
+          setTodayTasks(events);
           setCalendarTaskError(false);
         })
-        .catch(() => { if (mounted) setCalendarTaskError(true); });
+        .catch(() => { if (mounted && currentRequest === requestId) setCalendarTaskError(true); });
     };
     refreshTasks();
     window.addEventListener("focus", refreshTasks);
@@ -136,18 +136,33 @@ export function PomodoroActiveTaskCard({
 
   const handleStartEditingTitle = () => {
     if (!activeTask) return;
+    setTitleError("");
     setEditedTitle(activeTask.title);
     setIsEditingTitle(true);
   };
 
-  const handleSaveTitle = (e?: React.FormEvent) => {
+  const handleSaveTitle = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!activeTask || !editedTitle.trim() || !onUpdateActiveTask) return;
-    onUpdateActiveTask({
-      ...activeTask,
-      title: editedTitle.trim(),
-    });
-    setIsEditingTitle(false);
+    if (!activeTask || !editedTitle.trim() || !onUpdateActiveTask || isSavingTitle) return;
+    const title = editedTitle.trim();
+    setIsSavingTitle(true);
+    setTitleError("");
+    try {
+      if (activeTask.calendarEventId) {
+        await updateCalendarEvent(activeTask.calendarEventId, { title });
+        void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+      } else if (activeTask.projectId) {
+        await updateTask(activeTask.id, { title });
+        void queryClient.invalidateQueries({ queryKey: ["projects", activeTask.projectId, "tasks"] });
+        void queryClient.invalidateQueries({ queryKey: ["tasks", activeTask.id] });
+      }
+      onUpdateActiveTask({ ...activeTask, title });
+      setIsEditingTitle(false);
+    } catch {
+      setTitleError("Không lưu được tên task. Hãy thử lại.");
+    } finally {
+      setIsSavingTitle(false);
+    }
   };
 
   const handleAdjustPomodoroEstimate = (delta: number) => {
@@ -375,6 +390,7 @@ export function PomodoroActiveTaskCard({
             <Button
               type="submit"
               size="sm"
+              disabled={isSavingTitle}
               className="h-8 px-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs"
             >
               <Check className="size-3.5 mr-1" /> Lưu
@@ -406,6 +422,7 @@ export function PomodoroActiveTaskCard({
             )}
           </div>
         )}
+        {titleError && <p role="alert" className="mt-1 text-xs text-rose-600">{titleError}</p>}
 
         {/* Progress Bar & Pomodoro Stepper */}
         <div className="mt-2.5 flex items-center justify-between text-xs text-slate-500">

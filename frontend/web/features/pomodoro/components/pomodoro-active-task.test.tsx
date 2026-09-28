@@ -1,14 +1,19 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactElement } from "react";
 import { PomodoroActiveTaskCard } from "./pomodoro-active-task";
-import { getAllCalendarTasks, getCalendars } from "@/features/calendar/api/calendar.api";
+import { getTodayCalendarTasks } from "../utils/today-calendar-tasks";
+import { updateCalendarEvent } from "@/features/calendar/api/calendar.api";
 import { EventSourceType, EventStatus, type CalendarEvent } from "@/features/calendar/types/calendar.types";
 
+vi.mock("../utils/today-calendar-tasks", () => ({
+  getTodayCalendarTasks: vi.fn(),
+}));
 vi.mock("@/features/calendar/api/calendar.api", () => ({
-  getAllCalendarTasks: vi.fn(),
-  getCalendars: vi.fn(),
+  updateCalendarEvent: vi.fn(),
 }));
 
 afterEach(() => {
@@ -16,11 +21,14 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+function renderWithQueryClient(element: ReactElement) {
+  return render(<QueryClientProvider client={new QueryClient()}>{element}</QueryClientProvider>);
+}
+
 it("shows today's Calendar task on the main Pomodoro card and selects its linked IDs", async () => {
-  vi.mocked(getCalendars).mockResolvedValue([]);
   const start = new Date();
   start.setHours(12, 30, 0, 0);
-  vi.mocked(getAllCalendarTasks).mockResolvedValue([{
+  vi.mocked(getTodayCalendarTasks).mockResolvedValue([{
     id: "11111111-1111-1111-1111-111111111111",
     sourceId: "22222222-2222-2222-2222-222222222222",
     sourceType: EventSourceType.TASK,
@@ -32,7 +40,7 @@ it("shows today's Calendar task on the main Pomodoro card and selects its linked
   } as CalendarEvent]);
   const onSetCustomTask = vi.fn();
 
-  render(<PomodoroActiveTaskCard
+  renderWithQueryClient(<PomodoroActiveTaskCard
     activeTask={null}
     notes=""
     onSelectTaskClick={vi.fn()}
@@ -50,10 +58,9 @@ it("shows today's Calendar task on the main Pomodoro card and selects its linked
 });
 
 it("keeps other Calendar tasks visible when a task is already active", async () => {
-  vi.mocked(getCalendars).mockResolvedValue([]);
   const start = new Date();
   start.setHours(14, 15, 0, 0);
-  vi.mocked(getAllCalendarTasks).mockResolvedValue([{
+  vi.mocked(getTodayCalendarTasks).mockResolvedValue([{
     id: "33333333-3333-3333-3333-333333333333",
     sourceId: null,
     sourceType: EventSourceType.TASK,
@@ -65,7 +72,7 @@ it("keeps other Calendar tasks visible when a task is already active", async () 
   } as CalendarEvent]);
   const onSetCustomTask = vi.fn();
 
-  render(<PomodoroActiveTaskCard
+  renderWithQueryClient(<PomodoroActiveTaskCard
     activeTask={{ id: "11111111-1111-1111-1111-111111111111", title: "haha", calendarEventId: "11111111-1111-1111-1111-111111111111" }}
     notes=""
     onSelectTaskClick={vi.fn()}
@@ -82,41 +89,24 @@ it("keeps other Calendar tasks visible when a task is already active", async () 
   }));
 });
 
-it("hides project calendar tasks just like the Calendar grid", async () => {
-  const start = new Date();
-  start.setHours(21, 30, 0, 0);
-  vi.mocked(getCalendars).mockResolvedValue([{
-    id: "project-calendar",
-    projectId: "project-1",
-  } as Awaited<ReturnType<typeof getCalendars>>[number]]);
-  vi.mocked(getAllCalendarTasks).mockResolvedValue([
-    {
-      id: "project-task",
-      calendarId: "project-calendar",
-      title: "hehe",
-      startAt: start.toISOString(),
-      status: EventStatus.CONFIRMED,
-      completedAt: null,
-    } as CalendarEvent,
-    {
-      id: "personal-task",
-      calendarId: "personal-calendar",
-      title: "haha",
-      startAt: start.toISOString(),
-      status: EventStatus.CONFIRMED,
-      completedAt: null,
-    } as CalendarEvent,
-  ]);
+it("saves a Calendar task title before updating the Pomodoro card", async () => {
+  vi.mocked(getTodayCalendarTasks).mockResolvedValue([]);
+  vi.mocked(updateCalendarEvent).mockResolvedValue({ id: "event-1", title: "Tên mới" } as CalendarEvent);
+  const onUpdateActiveTask = vi.fn();
 
-  render(<PomodoroActiveTaskCard
-    activeTask={null}
+  renderWithQueryClient(<PomodoroActiveTaskCard
+    activeTask={{ id: "event-1", calendarEventId: "event-1", title: "Tên cũ" }}
     notes=""
     onSelectTaskClick={vi.fn()}
     onClearTask={vi.fn()}
     onNotesChange={vi.fn()}
-    onSetCustomTask={vi.fn()}
+    onUpdateActiveTask={onUpdateActiveTask}
   />);
 
-  expect(await screen.findByRole("button", { name: /haha/ })).toBeTruthy();
-  expect(screen.queryByRole("button", { name: /hehe/ })).toBeNull();
+  fireEvent.click(screen.getByTitle("Đổi tên nhiệm vụ"));
+  fireEvent.change(screen.getByDisplayValue("Tên cũ"), { target: { value: "Tên mới" } });
+  fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+
+  await waitFor(() => expect(updateCalendarEvent).toHaveBeenCalledWith("event-1", { title: "Tên mới" }));
+  await waitFor(() => expect(onUpdateActiveTask).toHaveBeenCalledWith(expect.objectContaining({ title: "Tên mới" })));
 });

@@ -111,8 +111,7 @@ class AmbientAudioManager {
     if (!track) return;
 
     if (track.isProcedural) {
-      this.startProceduralAlphaDrone();
-      this.setPlaying(true);
+      this.setPlaying(this.startProceduralAlphaDrone());
     } else if (track.url && this.audioElement) {
       if (this.failedSources.has(track.url)) return;
       try {
@@ -158,16 +157,16 @@ class AmbientAudioManager {
   // ---------------------------------------------------------------------------
   // Procedural Web Audio: 432Hz Alpha Deep Focus Drone
   // ---------------------------------------------------------------------------
-  private startProceduralAlphaDrone() {
+  private startProceduralAlphaDrone(): boolean {
     this.stopProceduralAlphaDrone();
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") return false;
 
     try {
       const AudioContextClass =
         window.AudioContext ||
         (window as unknown as { webkitAudioContext: typeof AudioContext })
           .webkitAudioContext;
-      if (!AudioContextClass) return;
+      if (!AudioContextClass) return false;
 
       this.audioCtx = new AudioContextClass();
       const ctx = this.audioCtx;
@@ -198,8 +197,11 @@ class AmbientAudioManager {
         osc.start();
         return osc;
       });
+      return true;
     } catch (err) {
+      this.stopProceduralAlphaDrone();
       console.warn("Could not start procedural audio drone:", err);
+      return false;
     }
   }
 

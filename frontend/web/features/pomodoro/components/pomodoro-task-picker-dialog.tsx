@@ -13,8 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Plus, Check, Loader2 } from "lucide-react";
 import { getProjects } from "@/features/project/api/project.api";
 import { getProjectTasks } from "@/features/project/api/task.api";
-import { getAllCalendarTasks, getCalendars } from "@/features/calendar/api/calendar.api";
-import { EventStatus, type CalendarEvent } from "@/features/calendar/types/calendar.types";
+import type { CalendarEvent } from "@/features/calendar/types/calendar.types";
+import { getTodayCalendarTasks } from "../utils/today-calendar-tasks";
 import type { Project, Task } from "@/features/project/types/project";
 import type { PomodoroActiveTask } from "../types/pomodoro";
 import { defaultFocusStart, scheduleFocusTask } from "../utils/schedule-task";
@@ -76,19 +76,10 @@ export function PomodoroTaskPickerDialog({
   useEffect(() => {
     if (!isOpen) return;
     let mounted = true;
-    Promise.all([getAllCalendarTasks(), getCalendars()])
-      .then(([events, calendars]) => {
+    getTodayCalendarTasks()
+      .then((events) => {
         if (!mounted) return;
-        const today = new Date();
-        const projectCalendarIds = new Set(calendars.filter((calendar) => calendar.projectId).map((calendar) => calendar.id));
-        setCalendarTasks(events.filter((event) => {
-          const start = new Date(event.startAt);
-          return event.status !== EventStatus.CANCELLED && !event.completedAt &&
-            !event.calendar?.projectId && !projectCalendarIds.has(event.calendarId) &&
-            start.getFullYear() === today.getFullYear() &&
-            start.getMonth() === today.getMonth() &&
-            start.getDate() === today.getDate();
-        }));
+        setCalendarTasks(events);
         setCalendarError(false);
       })
       .catch(() => {

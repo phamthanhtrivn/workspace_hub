@@ -5,6 +5,7 @@ import { Clock, CheckCircle2, Flame, TrendingUp, Download } from "lucide-react";
 import { getDailyStats, getRecentSessions } from "../api/pomodoro-server.api";
 import type { PomodoroDailyStats } from "../types/pomodoro";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface PomodoroStatsCardProps {
   lastUpdated: number;
@@ -14,11 +15,21 @@ export function PomodoroStatsOverview({ lastUpdated }: PomodoroStatsCardProps) {
   const [stats, setStats] = useState<PomodoroDailyStats | null>(null);
 
   useEffect(() => {
-    getDailyStats().then(setStats).catch(() => setStats(null));
+    let active = true;
+    getDailyStats()
+      .then((data) => { if (active) setStats(data); })
+      .catch(() => { if (active) setStats(null); });
+    return () => { active = false; };
   }, [lastUpdated]);
 
   const handleExportData = async () => {
-    const sessions = await getRecentSessions();
+    let sessions;
+    try {
+      sessions = await getRecentSessions();
+    } catch {
+      toast.error("Không tải được dữ liệu phiên để xuất.");
+      return;
+    }
     const dataStr =
       "data:text/json;charset=utf-8," +
       encodeURIComponent(JSON.stringify({ stats, sessions }, null, 2));

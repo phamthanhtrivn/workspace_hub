@@ -145,7 +145,7 @@ export function PomodoroView() {
 
           {/* Controls Dock */}
           <PomodoroControls
-            disabled={!isReady}
+            disabled={!isReady || (status === "RUNNING" && timeLeft === 0)}
             status={status}
             mode={mode}
             isMuted={isMuted}
@@ -163,6 +163,9 @@ export function PomodoroView() {
             <p role={loadError ? "alert" : "status"} className="text-xs text-amber-700">
               {loadError ? "Không kết nối được calendar-service. Hãy tải lại trang khi dịch vụ hoạt động." : "Đang tải Pomodoro từ máy chủ..."}
             </p>
+          )}
+          {isReady && status === "RUNNING" && timeLeft === 0 && (
+            <p role="status" className="text-xs text-slate-500">Đang lưu phiên hoàn thành. Nếu mạng gián đoạn, hệ thống sẽ thử lại.</p>
           )}
 
           {/* Ambient Music & Focus Sound Capsule */}

@@ -28,6 +28,8 @@ import {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+type PendingTimerState = Omit<Parameters<typeof saveCalendarPomodoroTimerState>[0], "expectedVersion">;
+
 function getDurationForMode(
   targetMode: PomodoroMode,
   cfg: PomodoroConfig,
@@ -69,7 +71,10 @@ export function usePomodoroTimer() {
   const initialTitleRef = useRef<string>("");
   const isHydratedRef = useRef<boolean>(false);
   const stateVersionRef = useRef(0);
-  const stateSaveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const pendingStateRef = useRef<PendingTimerState | null>(null);
+  const stateSaveInFlightRef = useRef(false);
+  const completionInProgressRef = useRef(false);
+  const lastCompletionAttemptRef = useRef(0);
   const lastQueuedStateRef = useRef("");
   const timeLeftRef = useRef(timeLeft);
 
@@ -88,11 +93,13 @@ export function usePomodoroTimer() {
       initialTitleRef.current = document.title || "WorkSpaceHub";
     }
 
+    let mounted = true;
     ambientAudio.setTrack("lofi_relax");
     ambientAudio.setVolume(0.5);
-    void loadCustomAudioTracks().then(setCustomTracks);
+    void loadCustomAudioTracks()
+      .then((tracks) => { if (mounted) setCustomTracks(tracks); })
+      .catch(() => { if (mounted) toast.error("Không tải được âm thanh đã thêm."); });
 
-    let mounted = true;
     void Promise.all([getPomodoroConfig(), getCalendarPomodoroTimerState()])
       .then(([cfg, saved]) => {
         if (!mounted) return;
@@ -110,9 +117,10 @@ export function usePomodoroTimer() {
           sessionStartTimeRef.current = saved.sessionStartAt ? new Date(saved.sessionStartAt).getTime() : null;
           const target = saved.targetEndAt ? new Date(saved.targetEndAt).getTime() : null;
           const remaining = target ? Math.max(0, Math.round((target - Date.now()) / 1000)) : saved.remainingSeconds;
-          targetEndTimeRef.current = saved.status === "RUNNING" && remaining > 0 ? target : null;
+          // Keep expired running sessions active so the tick loop records completion.
+          targetEndTimeRef.current = saved.status === "RUNNING" ? target : null;
           setTimeLeft(saved.status === "IDLE" ? saved.remainingSeconds || duration : remaining);
-          setStatus(saved.status === "RUNNING" && remaining === 0 ? "IDLE" : saved.status);
+          setStatus(saved.status);
         } else {
           setTimeLeft(getDurationForMode("FOCUS", cfg));
           setTotalDuration(getDurationForMode("FOCUS", cfg));
@@ -128,7 +136,35 @@ export function usePomodoroTimer() {
     return () => { mounted = false; };
   }, []);
 
-  // Serialize writes so each update uses the version returned by the server.
+  // Keep one write in flight and replace queued changes with the latest state.
+  const flushPendingState = useCallback(async () => {
+    if (stateSaveInFlightRef.current) return;
+    stateSaveInFlightRef.current = true;
+    try {
+      while (pendingStateRef.current && isHydratedRef.current) {
+        const snapshot = pendingStateRef.current;
+        pendingStateRef.current = null;
+        const saved = await saveCalendarPomodoroTimerState({
+          ...snapshot,
+          expectedVersion: stateVersionRef.current,
+        });
+        stateVersionRef.current = saved.version;
+      }
+    } catch {
+      pendingStateRef.current = null;
+      lastQueuedStateRef.current = "";
+      isHydratedRef.current = false;
+      setLoadError(true);
+      setIsReady(false);
+      setStatus("PAUSED");
+      targetEndTimeRef.current = null;
+      ambientAudio.pause();
+      toast.error("Không lưu được Pomodoro. Hãy tải lại trang để đồng bộ với máy chủ.");
+    } finally {
+      stateSaveInFlightRef.current = false;
+    }
+  }, []);
+
   const persistState = useCallback(
     (
       newMode: PomodoroMode,
@@ -156,27 +192,10 @@ export function usePomodoroTimer() {
       const signature = JSON.stringify(snapshot);
       if (signature === lastQueuedStateRef.current) return;
       lastQueuedStateRef.current = signature;
-      stateSaveQueueRef.current = stateSaveQueueRef.current
-        .then(async () => {
-          if (!isHydratedRef.current) return;
-          const saved = await saveCalendarPomodoroTimerState({
-            ...snapshot,
-            expectedVersion: stateVersionRef.current,
-          });
-          stateVersionRef.current = saved.version;
-        })
-        .catch(() => {
-          lastQueuedStateRef.current = "";
-          isHydratedRef.current = false;
-          setLoadError(true);
-          setIsReady(false);
-          setStatus("PAUSED");
-          targetEndTimeRef.current = null;
-          ambientAudio.pause();
-          toast.error("Không lưu được Pomodoro. Hãy tải lại trang để đồng bộ với máy chủ.");
-        });
+      pendingStateRef.current = snapshot;
+      void flushPendingState();
     },
-    [],
+    [flushPendingState],
   );
 
   useEffect(() => {
@@ -209,33 +228,23 @@ export function usePomodoroTimer() {
   );
 
   // Handle session completion
-  const handleSessionComplete = useCallback(() => {
+  const handleSessionComplete = useCallback(async () => {
+    const now = Date.now();
+    if (completionInProgressRef.current || now - lastCompletionAttemptRef.current < 15_000) return;
+    completionInProgressRef.current = true;
+    lastCompletionAttemptRef.current = now;
     // Stop ambient sound during alert & break transition
     ambientAudio.pause();
     setIsAmbientPlaying(false);
 
-    // 1. Play alert sound
-    if (!isMuted && config.soundEnabled) {
-      playPomodoroSound(config.soundType, config.soundVolume);
-    }
-
-    // 2. Browser notification
-    const modeLabel =
-      mode === "FOCUS" ? "Phiên tập trung" : "Thời gian nghỉ ngơi";
-    sendBrowserNotification(
-      `${modeLabel} đã kết thúc!`,
-      mode === "FOCUS"
-        ? "Tuyệt vời! Hãy cho mắt và đầu óc nghỉ ngơi một chút."
-        : "Đã hết giờ giải lao. Sẵn sàng cho phiên tập trung tiếp theo?",
-    );
-
-    // 3. Save session to record
+    // Save the session before leaving its expired running state.
     const startedAt = sessionStartTimeRef.current
       ? new Date(sessionStartTimeRef.current).toISOString()
       : new Date(Date.now() - totalDuration * 1000).toISOString();
     const endedAt = new Date().toISOString();
 
-    void recordPomodoroSession({
+    try {
+      await recordPomodoroSession({
       eventId: activeTask?.calendarEventId,
       taskId: activeTask?.id,
       taskTitle: activeTask?.title,
@@ -248,22 +257,31 @@ export function usePomodoroTimer() {
       durationMinutes: Math.round(totalDuration / 60),
       actualSeconds: totalDuration,
       notes: notes.trim() || undefined,
-    }).then(() => setSessionRevision((revision) => revision + 1))
-      .catch(() => toast.error("Không lưu được phiên Pomodoro lên máy chủ."));
-
-    // 4. Update task completed pomodoros count if Focus
-    if (mode === "FOCUS" && activeTask) {
-      setActiveTask((prev) =>
-        prev
-          ? {
-              ...prev,
-              completedPomodoros: (prev.completedPomodoros || 0) + 1,
-            }
-          : null,
-      );
+      });
+      setSessionRevision((revision) => revision + 1);
+      if (mode === "FOCUS" && activeTask) {
+        setActiveTask((current) => current?.id === activeTask.id
+          ? { ...current, completedPomodoros: (current.completedPomodoros || 0) + 1 }
+          : current);
+      }
+    } catch {
+      completionInProgressRef.current = false;
+      toast.error("Không lưu được phiên Pomodoro. Hệ thống sẽ thử lại.");
+      return;
     }
 
-    // 5. Determine next mode
+    if (!isMuted && config.soundEnabled) {
+      playPomodoroSound(config.soundType, config.soundVolume);
+    }
+    const modeLabel = mode === "FOCUS" ? "Phiên tập trung" : "Thời gian nghỉ ngơi";
+    sendBrowserNotification(
+      `${modeLabel} đã kết thúc!`,
+      mode === "FOCUS"
+        ? "Tuyệt vời! Hãy cho mắt và đầu óc nghỉ ngơi một chút."
+        : "Đã hết giờ giải lao. Sẵn sàng cho phiên tập trung tiếp theo?",
+    );
+
+    // 4. Determine next mode
     let nextMode: PomodoroMode = "FOCUS";
     let nextCycle = cycleCount;
 
@@ -324,6 +342,7 @@ export function usePomodoroTimer() {
         notes,
       );
     }
+    completionInProgressRef.current = false;
   }, [
     isMuted,
     config,
@@ -369,8 +388,7 @@ export function usePomodoroTimer() {
         }
 
         if (diff <= 0) {
-          clearInterval(interval!);
-          handleSessionComplete();
+          void handleSessionComplete();
         }
       }, 1000);
     } else {
@@ -445,6 +463,7 @@ export function usePomodoroTimer() {
 
   const pause = useCallback(() => {
     if (status !== "RUNNING") return;
+    if (completionInProgressRef.current || (targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())) return;
 
     setStatus("PAUSED");
     targetEndTimeRef.current = null;
@@ -489,6 +508,7 @@ export function usePomodoroTimer() {
 
   const reset = useCallback(
     () => {
+      if (completionInProgressRef.current || (status === "RUNNING" && targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())) return;
       ambientAudio.pause();
       setIsAmbientPlaying(false);
 
@@ -535,6 +555,7 @@ export function usePomodoroTimer() {
 
   const skip = useCallback(
     (statusToRecord: PomodoroSessionStatus = "SKIPPED") => {
+      if (completionInProgressRef.current || (status === "RUNNING" && targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())) return;
       ambientAudio.pause();
       setIsAmbientPlaying(false);
 
@@ -590,13 +611,16 @@ export function usePomodoroTimer() {
         notes,
       );
     },
-    [mode, cycleCount, config, activeTask, notes, totalDuration, timeLeft, persistState],
+    [mode, status, cycleCount, config, activeTask, notes, totalDuration, timeLeft, persistState],
   );
 
   const switchMode = useCallback(
     (newMode: PomodoroMode) => {
       if (mode === newMode) return;
-      if (newMode !== "FOCUS") {
+      if (completionInProgressRef.current || (status === "RUNNING" && targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())) return;
+      if (status !== "IDLE") {
+        reset();
+      } else if (newMode !== "FOCUS") {
         ambientAudio.pause();
         setIsAmbientPlaying(false);
       }
@@ -618,18 +642,20 @@ export function usePomodoroTimer() {
         notes,
       );
     },
-    [mode, config, cycleCount, activeTask, notes, persistState],
+    [mode, status, reset, config, cycleCount, activeTask, notes, persistState],
   );
 
   const updateConfig = useCallback(
     async (newConfig: PomodoroConfig) => {
-      setConfig(newConfig);
-      setIsMuted(!newConfig.soundEnabled);
       try {
         await savePomodoroConfig(newConfig);
       } catch {
         toast.error("Không lưu được cài đặt Pomodoro lên máy chủ.");
+        throw new Error("Pomodoro config save failed");
       }
+
+      setConfig(newConfig);
+      setIsMuted(!newConfig.soundEnabled);
 
       if (status === "IDLE") {
         const dur = getDurationForMode(mode, newConfig);
@@ -642,13 +668,13 @@ export function usePomodoroTimer() {
   );
 
   const toggleSound = useCallback(() => {
-    setIsMuted((prev) => {
-      const next = !prev;
-      const updatedConfig = { ...config, soundEnabled: !next };
-      setConfig(updatedConfig);
-      void savePomodoroConfig(updatedConfig).catch(() => toast.error("Không lưu được cài đặt Pomodoro lên máy chủ."));
-      return next;
-    });
+    const updatedConfig = { ...config, soundEnabled: !config.soundEnabled };
+    void savePomodoroConfig(updatedConfig)
+      .then(() => {
+        setConfig(updatedConfig);
+        setIsMuted(!updatedConfig.soundEnabled);
+      })
+      .catch(() => toast.error("Không lưu được cài đặt Pomodoro lên máy chủ."));
   }, [config]);
 
   const toggleFullscreen = useCallback(() => {
