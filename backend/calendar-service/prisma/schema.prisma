@@ -26,17 +26,6 @@ enum AttendeeResponseStatus {
   TENTATIVE
 }
 
-enum EventVisibility {
-  DEFAULT
-  PRIVATE
-  PUBLIC
-}
-
-enum EventSourceType {
-  USER
-  TASK
-}
-
 enum ReminderDeliveryStatus {
   PENDING
   PROCESSING
@@ -86,8 +75,7 @@ model RecurrenceSeries {
   allDay                   Boolean         @default(false) @map("all_day")
   color                    String?
   status                   EventStatus     @default(CONFIRMED)
-  visibility               EventVisibility @default(DEFAULT)
-  sourceType               EventSourceType @default(USER) @map("source_type")
+
   recurrenceRule           String          @map("recurrence_rule")
   timeZone                 String          @map("time_zone")
   recurrenceGeneratedUntil DateTime?       @map("recurrence_generated_until") @db.Timestamptz(3)
@@ -120,12 +108,9 @@ model CalendarEvent {
   allDay               Boolean         @default(false) @map("all_day")
   color                String?
   status               EventStatus     @default(CONFIRMED)
-  visibility           EventVisibility @default(DEFAULT)
   recurrenceSeriesId   String?         @map("recurrence_series_id") @db.Uuid
   originalStartAt      DateTime?       @map("original_start_at") @db.Timestamptz(3)
   isRecurrenceOverride Boolean         @default(false) @map("is_recurrence_override")
-  sourceType           EventSourceType @default(USER) @map("source_type")
-  sourceId             String?         @map("source_id") @db.Uuid
   completedAt          DateTime?       @map("completed_at") @db.Timestamptz(3)
   cancelledAt          DateTime?       @map("cancelled_at") @db.Timestamptz(3)
   createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -138,12 +123,10 @@ model CalendarEvent {
   documents        CalendarEventDocument[]
 
   @@unique([recurrenceSeriesId, originalStartAt])
-  @@unique([calendarId, sourceType, sourceId])
   @@index([calendarId, startAt])
   @@index([createdBy])
   @@index([startAt, endAt])
   @@index([recurrenceSeriesId, startAt])
-  @@index([sourceType, sourceId])
   @@map("calendar_events")
 }
 
@@ -255,16 +238,6 @@ model UserProfileSnapshot {
   syncedAt  DateTime @default(now()) @updatedAt @map("synced_at") @db.Timestamptz(3)
 
   @@map("user_profile_snapshots")
-}
-
-model TaskCalendarSyncCheckpoint {
-  taskId     String   @id @map("task_id") @db.Uuid
-  occurredAt DateTime @map("occurred_at") @db.Timestamptz(3)
-  eventType  String   @map("event_type")
-  syncedAt   DateTime @default(now()) @updatedAt @map("synced_at") @db.Timestamptz(3)
-
-  @@index([occurredAt])
-  @@map("task_calendar_sync_checkpoints")
 }
 
 model NotificationOutbox {

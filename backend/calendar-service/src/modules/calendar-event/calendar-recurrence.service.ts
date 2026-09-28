@@ -265,10 +265,8 @@ export class CalendarRecurrenceService {
             allDay: root.allDay,
             color: root.color,
             status: root.status,
-            visibility: root.visibility,
             originalStartAt: occurrenceStart,
             isRecurrenceOverride: false,
-            sourceType: root.sourceType,
           },
         });
 

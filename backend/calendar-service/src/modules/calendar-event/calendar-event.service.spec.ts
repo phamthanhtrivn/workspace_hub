@@ -3,8 +3,6 @@ import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import {
   AttendeeResponseStatus,
   EventStatus,
-  EventSourceType,
-  EventVisibility,
   ReminderMethod,
 } from '@prisma/client';
 import { CalendarEventService } from './calendar-event.service';
@@ -49,12 +47,9 @@ describe('CalendarEventService', () => {
     allDay: false,
     color: '#2563eb',
     status: EventStatus.CONFIRMED,
-    visibility: EventVisibility.DEFAULT,
     recurrenceSeriesId: null,
     originalStartAt: null,
     isRecurrenceOverride: false,
-    sourceType: EventSourceType.USER,
-    sourceId: null,
     completedAt: null,
     cancelledAt: null,
     createdAt: new Date(),
@@ -160,6 +155,9 @@ describe('CalendarEventService', () => {
     const notificationOutbox = {
       enqueueEventInvitations: jest.fn().mockResolvedValue(undefined),
       enqueueAttendeeResponse: jest.fn().mockResolvedValue(undefined),
+      enqueueAttendeeRemoval: jest.fn().mockResolvedValue(undefined),
+      enqueueEventUpdate: jest.fn().mockResolvedValue(undefined),
+      enqueueEventCancellation: jest.fn().mockResolvedValue(undefined),
     };
 
     const recurrence = {
@@ -295,7 +293,7 @@ describe('CalendarEventService', () => {
     const { service, prisma } = createService();
     prisma.calendarEvent.findUnique.mockResolvedValue({
       ...event,
-      sourceType: EventSourceType.TASK,
+      description: '[TASK] Review code',
     });
 
     await service.updateTaskCompletion(ownerId, eventId, true);
@@ -303,7 +301,6 @@ describe('CalendarEventService', () => {
     expect(prisma.calendarEvent.update).toHaveBeenCalledWith({
       where: { id: eventId },
       data: {
-        sourceType: EventSourceType.TASK,
         completedAt: expect.any(Date),
         updatedBy: ownerId,
         isRecurrenceOverride: undefined,
@@ -315,7 +312,7 @@ describe('CalendarEventService', () => {
     const { service, prisma } = createService();
     prisma.calendarEvent.findUnique.mockResolvedValue({
       ...recurringFirstOccurrence(),
-      sourceType: EventSourceType.TASK,
+      description: '[TASK] Daily sync',
       completedAt: new Date('2026-09-14T12:00:00.000Z'),
     });
 
@@ -324,7 +321,6 @@ describe('CalendarEventService', () => {
     expect(prisma.calendarEvent.update).toHaveBeenCalledWith({
       where: { id: eventId },
       data: {
-        sourceType: EventSourceType.TASK,
         completedAt: null,
         updatedBy: ownerId,
         isRecurrenceOverride: true,
@@ -332,36 +328,6 @@ describe('CalendarEventService', () => {
     });
   });
 
-  it('rejects completion updates for project tasks', async () => {
-    const { service, prisma } = createService();
-    prisma.calendarEvent.findUnique.mockResolvedValue({
-      ...event,
-      sourceType: EventSourceType.TASK,
-      calendar: {
-        ...calendar,
-        projectId: '88888888-8888-8888-8888-888888888888',
-      },
-    });
-
-    await expect(
-      service.updateTaskCompletion(ownerId, eventId, true),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(prisma.calendarEvent.update).not.toHaveBeenCalled();
-  });
-
-  it('rejects completion updates for synchronized tasks', async () => {
-    const { service, prisma } = createService();
-    prisma.calendarEvent.findUnique.mockResolvedValue({
-      ...event,
-      sourceType: EventSourceType.TASK,
-      sourceId: '99999999-9999-9999-9999-999999999999',
-    });
-
-    await expect(
-      service.updateTaskCompletion(ownerId, eventId, true),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(prisma.calendarEvent.update).not.toHaveBeenCalled();
-  });
 
   it('rejects completion updates for regular events', async () => {
     const { service } = createService();
@@ -411,10 +377,7 @@ describe('CalendarEventService', () => {
       startAt: event.startAt,
       endAt: event.endAt,
       allDay: false,
-      color: event.color,
       status: EventStatus.CONFIRMED,
-      visibility: EventVisibility.DEFAULT,
-      sourceType: EventSourceType.USER,
       recurrenceRule: 'FREQ=DAILY;COUNT=10',
       timeZone: calendar.timeZone,
       recurrenceGeneratedUntil: new Date('2027-01-01T00:00:00.000Z'),
@@ -481,7 +444,7 @@ describe('CalendarEventService', () => {
     const { service, prisma } = createService();
     const taskEvent = {
       ...event,
-      sourceType: EventSourceType.TASK,
+      description: '[TASK] Complete report',
       completedAt: null,
     };
     prisma.calendarEvent.findMany.mockResolvedValue([taskEvent]);
@@ -493,10 +456,7 @@ describe('CalendarEventService', () => {
       expect.objectContaining({
         where: {
           status: { not: EventStatus.CANCELLED },
-          OR: [
-            { sourceType: EventSourceType.TASK },
-            { description: { contains: '[TASK]' } },
-          ],
+          description: { contains: '[TASK]' },
           AND: [
             {
               OR: [

@@ -28,7 +28,6 @@ enum MessageType {
   TASK
   POLL
   NOTE
-  EVENT
   AI
   DOCUMENT
   MEETING
