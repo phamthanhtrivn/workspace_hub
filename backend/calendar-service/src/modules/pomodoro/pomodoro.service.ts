@@ -255,6 +255,7 @@ export class PomodoroService {
           status: true,
           actualSeconds: true,
           taskId: true,
+          eventId: true,
           interruptionReason: true,
         },
       }),
@@ -303,7 +304,9 @@ export class PomodoroService {
       ),
       completedPomodoros: completed.length,
       completedTasks: new Set(
-        completed.map((session) => session.taskId).filter(Boolean),
+        completed
+          .map((session) => session.taskId ?? session.eventId)
+          .filter(Boolean),
       ).size,
       dailyGoalPomodoros: config.dailyGoalPomodoros,
       currentStreak: streak,

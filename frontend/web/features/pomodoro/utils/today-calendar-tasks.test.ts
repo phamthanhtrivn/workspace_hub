@@ -23,11 +23,13 @@ it("fetches one local day and keeps only visible personal Calendar tasks", async
     ...extra,
   }) as CalendarEvent;
   vi.mocked(getCalendars).mockResolvedValue([
+    { id: "personal-calendar", projectId: null } as WorkspaceCalendar,
     { id: "project-calendar", projectId: "project-1" } as WorkspaceCalendar,
   ]);
   vi.mocked(getCalendarEvents).mockResolvedValue([
     task("personal", "personal-calendar"),
     task("project", "project-calendar"),
+    task("someone-else-public-task", "other-user-calendar"),
     task("completed", "personal-calendar", { completedAt: new Date().toISOString() }),
     task("cancelled", "personal-calendar", { status: EventStatus.CANCELLED }),
     task("meeting", "personal-calendar", { sourceType: EventSourceType.USER }),

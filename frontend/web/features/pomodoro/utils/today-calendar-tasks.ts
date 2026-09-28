@@ -13,8 +13,8 @@ export async function getTodayCalendarTasks(): Promise<CalendarEvent[]> {
     getCalendarEvents({ startAt: start.toISOString(), endAt: endInclusive.toISOString() }),
     getCalendars(),
   ]);
-  const projectCalendarIds = new Set(
-    calendars.filter((calendar) => calendar.projectId).map((calendar) => calendar.id),
+  const personalCalendarIds = new Set(
+    calendars.filter((calendar) => !calendar.projectId).map((calendar) => calendar.id),
   );
 
   return events.filter((event) =>
@@ -23,7 +23,6 @@ export async function getTodayCalendarTasks(): Promise<CalendarEvent[]> {
     new Date(event.endAt) > start &&
     event.status !== EventStatus.CANCELLED &&
     !event.completedAt &&
-    !event.calendar?.projectId &&
-    !projectCalendarIds.has(event.calendarId),
+    personalCalendarIds.has(event.calendarId),
   );
 }

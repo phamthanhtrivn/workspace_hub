@@ -115,6 +115,37 @@ describe('PomodoroService', () => {
     expect(stats.currentStreak).toBe(1);
   });
 
+  it('counts completed Calendar tasks that have no project task ID', async () => {
+    prisma.pomodoroSession.findMany
+      .mockResolvedValueOnce([
+        {
+          startedAt: new Date('2026-09-27T08:00:00Z'),
+          sessionType: PomodoroSessionType.FOCUS,
+          status: PomodoroSessionStatus.COMPLETED,
+          actualSeconds: 1500,
+          taskId: null,
+          eventId,
+          interruptionReason: null,
+        },
+        {
+          startedAt: new Date('2026-09-27T09:00:00Z'),
+          sessionType: PomodoroSessionType.FOCUS,
+          status: PomodoroSessionStatus.COMPLETED,
+          actualSeconds: 1500,
+          taskId: null,
+          eventId,
+          interruptionReason: null,
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    prisma.pomodoroConfig.findUnique.mockResolvedValue(null);
+
+    const stats = await service.dailyStats(userId, '2026-09-27');
+
+    expect(stats.completedPomodoros).toBe(2);
+    expect(stats.completedTasks).toBe(1);
+  });
+
   it('rejects an invalid time zone before querying sessions', async () => {
     await expect(
       service.dailyStats(userId, '2026-09-27', 'Invalid/Zone'),
