@@ -5,9 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   AttendeeResponseStatus,
-  EventSourceType,
   EventStatus,
-  EventVisibility,
   Prisma,
 } from '@prisma/client';
 import {
@@ -91,8 +89,6 @@ export class CalendarEventService {
           allDay: dto.allDay ?? false,
           color: dto.color ?? calendar.color,
           status: dto.status ?? EventStatus.CONFIRMED,
-          visibility: dto.visibility,
-          sourceType: dto.sourceType ?? EventSourceType.USER,
         },
       });
       await this.relations.createEventRelations(
@@ -145,10 +141,7 @@ export class CalendarEventService {
   async getTasks(userId: string, filters: GetCalendarTasksQueryDto) {
     const where: Prisma.CalendarEventWhereInput = {
       status: { not: EventStatus.CANCELLED },
-      OR: [
-        { sourceType: EventSourceType.TASK },
-        { description: { contains: '[TASK]' } },
-      ],
+      description: { contains: '[TASK]' },
       AND: [
         {
           OR: [
@@ -295,9 +288,8 @@ export class CalendarEventService {
     this.accessPolicy.assertPersonalCalendar(event.calendar);
     this.accessPolicy.assertUserManagedEvent(event);
     const isTask =
-      event.sourceType === EventSourceType.TASK ||
-      (typeof event.description === 'string' &&
-        event.description.includes('[TASK]'));
+      typeof event.description === 'string' &&
+      event.description.includes('[TASK]');
     if (!isTask) {
       throw new BadRequestException(
         CALENDAR_ERROR_MESSAGES.ONLY_TASKS_CAN_BE_COMPLETED,
@@ -307,7 +299,6 @@ export class CalendarEventService {
     await this.prisma.calendarEvent.update({
       where: { id: event.id },
       data: {
-        sourceType: EventSourceType.TASK,
         completedAt: completed ? new Date() : null,
         updatedBy: userId,
         isRecurrenceOverride: event.recurrenceSeries ? true : undefined,
@@ -342,7 +333,7 @@ export class CalendarEventService {
             eventId,
             userId,
             responseStatus,
-            role: 'OPTIONAL',
+            optional: true,
           },
         });
       }
@@ -414,7 +405,6 @@ export class CalendarEventService {
           allDay: dto.allDay,
           color: dto.color,
           status: dto.status,
-          visibility: dto.visibility,
           cancelledAt: this.getCancelledAt(dto.status),
         },
       });
@@ -431,7 +421,6 @@ export class CalendarEventService {
       OR: [
         { calendar: { ownerUserId: userId } },
         { attendees: { some: { userId } } },
-        { visibility: EventVisibility.PUBLIC },
       ],
       calendarId: filters.calendarId,
     };

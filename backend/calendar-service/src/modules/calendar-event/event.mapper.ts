@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { EventSourceType } from '@prisma/client';
 import { EventWithRelations } from './calendar-event.types';
 
 @Injectable()
@@ -7,7 +6,6 @@ export class EventMapper {
   toPublicEvent<T extends EventWithRelations>(userId: string, event: T) {
     const canManage =
       !event.calendar.projectId &&
-      (event.sourceType === EventSourceType.USER || !event.sourceId) &&
       (event.calendar.ownerUserId === userId || event.createdBy === userId);
     const canRespond = event.attendees.some(
       (attendee) => attendee.userId === userId,

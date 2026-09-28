@@ -12,7 +12,7 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { EventSourceType, EventStatus, EventVisibility } from '@prisma/client';
+import { EventStatus } from '@prisma/client';
 import { CALENDAR_DEFAULTS } from '../../../common/constants/calendar.constants';
 import { CalendarEventAttendeeDto } from './calendar-event-attendee.dto';
 import { CalendarEventReminderDto } from './calendar-event-reminder.dto';
@@ -20,10 +20,6 @@ import { CalendarEventReminderDto } from './calendar-event-reminder.dto';
 export class CreateCalendarEventDto {
   @IsUUID()
   calendarId: string;
-
-  @IsOptional()
-  @IsEnum(EventSourceType)
-  sourceType?: EventSourceType;
 
   @IsString()
   @IsNotEmpty()
@@ -58,10 +54,6 @@ export class CreateCalendarEventDto {
   @IsOptional()
   @IsEnum(EventStatus)
   status?: EventStatus;
-
-  @IsOptional()
-  @IsEnum(EventVisibility)
-  visibility?: EventVisibility;
 
   @IsOptional()
   @IsString()
