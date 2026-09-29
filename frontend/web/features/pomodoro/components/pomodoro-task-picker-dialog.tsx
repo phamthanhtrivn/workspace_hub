@@ -24,12 +24,14 @@ interface PomodoroTaskPickerDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSelectTask: (task: PomodoroActiveTask) => void;
+  focusDurationMinutes?: number;
 }
 
 export function PomodoroTaskPickerDialog({
   isOpen,
   onClose,
   onSelectTask,
+  focusDurationMinutes = 25,
 }: PomodoroTaskPickerDialogProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
@@ -112,7 +114,7 @@ export function PomodoroTaskPickerDialog({
         Math.ceil(
           (new Date(event.endAt).getTime() -
             new Date(event.startAt).getTime()) /
-            (25 * 60_000),
+            (focusDurationMinutes * 60_000),
         ),
       ),
       completedPomodoros: 0,
@@ -158,7 +160,10 @@ export function PomodoroTaskPickerDialog({
       priority: task.priority,
       estimatedPomodoros: Math.max(
         1,
-        Math.round((task.estimatedMinutes || 25) / 25),
+        Math.round(
+          (task.estimatedMinutes || focusDurationMinutes) /
+            focusDurationMinutes,
+        ),
       ),
       completedPomodoros: task.pomodoroSessions
         ? task.pomodoroSessions.filter((s) => s.status === "COMPLETED").length
@@ -186,6 +191,7 @@ export function PomodoroTaskPickerDialog({
         title: customTaskTitle.trim(),
         startsAt: customStart,
         pomodoros: 2,
+        focusDurationMinutes,
       });
     } catch (error) {
       setCreateError(

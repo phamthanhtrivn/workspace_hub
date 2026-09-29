@@ -34,6 +34,12 @@ export function PomodoroControls({
 }: PomodoroControlsProps) {
   const isRunning = status === "RUNNING";
   const isFocus = mode === "FOCUS";
+  const startLabel =
+    mode === "FOCUS"
+      ? "BẮT ĐẦU FOCUS"
+      : mode === "SHORT_BREAK"
+        ? "BẮT ĐẦU NGHỈ NGẮN"
+        : "BẮT ĐẦU NGHỈ DÀI";
 
   return (
     <div className="flex items-center justify-center">
@@ -66,7 +72,7 @@ export function PomodoroControls({
             )}
           >
             <Play className="mr-2 size-4.5 fill-current" />
-            BẮT ĐẦU FOCUS
+            {startLabel}
           </Button>
         ) : isRunning ? (
           <Button

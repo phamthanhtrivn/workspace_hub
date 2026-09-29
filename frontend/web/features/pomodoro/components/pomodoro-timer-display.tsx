@@ -11,6 +11,9 @@ interface PomodoroTimerDisplayProps {
   status: PomodoroStatus;
   timeLeft: number;
   totalDuration: number;
+  focusDuration?: number;
+  shortBreakDuration?: number;
+  longBreakDuration?: number;
   cycleCount?: number;
   longBreakInterval?: number;
   activeTaskTitle?: string;
@@ -25,6 +28,9 @@ export function PomodoroTimerDisplay({
   status,
   timeLeft,
   totalDuration,
+  focusDuration = 25,
+  shortBreakDuration = 5,
+  longBreakDuration = 15,
   activeTaskTitle,
   activeTaskNote,
   onSwitchMode,
@@ -145,7 +151,7 @@ export function PomodoroTimerDisplay({
           )}
         >
           <Sparkles className="size-3.5" />
-          <span>Tập trung (25m)</span>
+          <span>Tập trung ({focusDuration}m)</span>
         </button>
 
         <button
@@ -159,7 +165,7 @@ export function PomodoroTimerDisplay({
           )}
         >
           <Coffee className="size-3.5" />
-          <span>Nghỉ ngắn (5m)</span>
+          <span>Nghỉ ngắn ({shortBreakDuration}m)</span>
         </button>
 
         <button
@@ -173,7 +179,7 @@ export function PomodoroTimerDisplay({
           )}
         >
           <Palmtree className="size-3.5" />
-          <span>Nghỉ dài (15m)</span>
+          <span>Nghỉ dài ({longBreakDuration}m)</span>
         </button>
       </div>
 

@@ -147,6 +147,9 @@ export function PomodoroView() {
               status={status}
               timeLeft={timeLeft}
               totalDuration={totalDuration}
+              focusDuration={config.focusDuration}
+              shortBreakDuration={config.shortBreak}
+              longBreakDuration={config.longBreak}
               cycleCount={cycleCount}
               longBreakInterval={config.longBreakInterval || 2}
               activeTaskTitle={activeTask?.title}
@@ -212,6 +215,7 @@ export function PomodoroView() {
                 onNotesChange={setNotes}
                 onSetCustomTask={setActiveTask}
                 onUpdateActiveTask={setActiveTask}
+                focusDurationMinutes={config.focusDuration}
               />
             </div>
           )}

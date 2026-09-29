@@ -15,8 +15,13 @@ import { Volume2 } from "lucide-react";
 import type { PomodoroConfig } from "../types/pomodoro";
 import { playPomodoroSound } from "../utils/sound";
 
-function boundedMinutes(value: string, fallback: number, max: number): number {
-  return Math.min(max, Math.max(1, Number.parseInt(value, 10) || fallback));
+function boundedMinutes(
+  value: string,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  return Math.min(max, Math.max(min, Number.parseInt(value, 10) || fallback));
 }
 
 interface PomodoroSettingsDialogProps {
@@ -81,7 +86,7 @@ export function PomodoroSettingsDialog({
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      focusDuration: boundedMinutes(e.target.value, 25, 120),
+                      focusDuration: boundedMinutes(e.target.value, 25, 1, 120),
                     })
                   }
                   className="h-9 text-xs"
@@ -100,7 +105,7 @@ export function PomodoroSettingsDialog({
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      shortBreak: boundedMinutes(e.target.value, 5, 60),
+                      shortBreak: boundedMinutes(e.target.value, 5, 1, 60),
                     })
                   }
                   className="h-9 text-xs"
@@ -119,7 +124,7 @@ export function PomodoroSettingsDialog({
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      longBreak: boundedMinutes(e.target.value, 15, 90),
+                      longBreak: boundedMinutes(e.target.value, 15, 1, 90),
                     })
                   }
                   className="h-9 text-xs"
@@ -142,7 +147,7 @@ export function PomodoroSettingsDialog({
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    longBreakInterval: boundedMinutes(e.target.value, 2, 12),
+                    longBreakInterval: boundedMinutes(e.target.value, 2, 2, 12),
                   })
                 }
                 className="h-9 text-xs"
@@ -164,7 +169,7 @@ export function PomodoroSettingsDialog({
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    dailyGoalPomodoros: boundedMinutes(e.target.value, 8, 30),
+                    dailyGoalPomodoros: boundedMinutes(e.target.value, 8, 1, 30),
                   })
                 }
                 className="h-9 text-xs"

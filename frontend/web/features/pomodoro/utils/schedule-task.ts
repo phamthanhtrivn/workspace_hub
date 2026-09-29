@@ -12,6 +12,7 @@ interface ScheduleFocusTaskInput {
   title: string;
   startsAt: string;
   pomodoros: number;
+  focusDurationMinutes?: number;
   description?: string;
 }
 
@@ -19,6 +20,7 @@ export async function scheduleFocusTask({
   title,
   startsAt,
   pomodoros,
+  focusDurationMinutes = 25,
   description,
 }: ScheduleFocusTaskInput): Promise<string> {
   const start = new Date(startsAt);
@@ -40,7 +42,9 @@ export async function scheduleFocusTask({
     title,
     description: description?.trim() || undefined,
     startAt: start.toISOString(),
-    endAt: new Date(start.getTime() + pomodoros * 25 * 60_000).toISOString(),
+    endAt: new Date(
+      start.getTime() + pomodoros * focusDurationMinutes * 60_000,
+    ).toISOString(),
     sourceType: EventSourceType.TASK,
     color: "#f59e0b",
   });

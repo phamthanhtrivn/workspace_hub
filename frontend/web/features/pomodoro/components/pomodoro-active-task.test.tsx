@@ -111,6 +111,7 @@ it("saves a quick task note in the Calendar event description", async () => {
       title: "Viết báo cáo",
       startsAt: "2026-09-28T09:30",
       pomodoros: 2,
+      focusDurationMinutes: 25,
       description: "Hoàn thành phần kết luận",
     }),
   );
@@ -129,6 +130,7 @@ it("creates another Calendar task without replacing the active Pomodoro task", a
         calendarEventId: "active-event-1",
         title: "Task đang chạy",
       }}
+      focusDurationMinutes={40}
       notes=""
       onClearTask={vi.fn()}
       onNotesChange={vi.fn()}
@@ -143,10 +145,10 @@ it("creates another Calendar task without replacing the active Pomodoro task", a
   fireEvent.change(screen.getByLabelText(/Ghi chú/), {
     target: { value: "Không đổi task đang chạy" },
   });
-  expect(screen.getByText("50 phút dự kiến")).toBeTruthy();
+  expect(screen.getByText("80 phút dự kiến")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Tăng số Pomodoro" }));
   expect(screen.getByText("3 Pomodoro")).toBeTruthy();
-  expect(screen.getByText("75 phút dự kiến")).toBeTruthy();
+  expect(screen.getByText("120 phút dự kiến")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Thêm vào Calendar" }));
 
   await waitFor(() =>
@@ -154,6 +156,7 @@ it("creates another Calendar task without replacing the active Pomodoro task", a
       title: "Task làm sau",
       startsAt: "2026-09-28T09:30",
       pomodoros: 3,
+      focusDurationMinutes: 40,
       description: "Không đổi task đang chạy",
     }),
   );

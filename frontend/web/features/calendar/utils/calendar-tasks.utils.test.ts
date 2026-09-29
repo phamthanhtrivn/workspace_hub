@@ -35,6 +35,7 @@ function makeMockTask(overrides: Partial<CalendarEvent>): CalendarEvent {
     sourceType: EventSourceType.TASK,
     sourceId: null,
     completedAt: null,
+    taskOrder: null,
     exceptionDates: [],
     documentIds: [],
     cancelledAt: null,

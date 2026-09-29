@@ -44,3 +44,22 @@ it("renders active task title and cleaned note inside the timer circle", () => {
   ).toBeGreaterThan(0);
   expect(screen.queryByText(/\[TASK\]/)).toBeNull();
 });
+
+it("shows the configured duration for every timer mode", () => {
+  render(
+    <PomodoroTimerDisplay
+      mode="FOCUS"
+      status="IDLE"
+      timeLeft={40 * 60}
+      totalDuration={40 * 60}
+      focusDuration={40}
+      shortBreakDuration={8}
+      longBreakDuration={20}
+      onSwitchMode={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByText("Tập trung (40m)")).toBeTruthy();
+  expect(screen.getByText("Nghỉ ngắn (8m)")).toBeTruthy();
+  expect(screen.getByText("Nghỉ dài (20m)")).toBeTruthy();
+});

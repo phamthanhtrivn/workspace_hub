@@ -31,6 +31,7 @@ function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     sourceType: EventSourceType.USER,
     sourceId: null,
     completedAt: null,
+    taskOrder: null,
     exceptionDates: [],
     documentIds: [],
     cancelledAt: null,

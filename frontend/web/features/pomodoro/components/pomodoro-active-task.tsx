@@ -37,6 +37,7 @@ interface PomodoroActiveTaskProps {
   onNotesChange: (notes: string) => void;
   onSetCustomTask?: (task: PomodoroActiveTask) => void;
   onUpdateActiveTask?: (task: PomodoroActiveTask) => void;
+  focusDurationMinutes?: number;
 }
 
 const DEFAULT_QUICK_POMODOROS = 2;
@@ -50,6 +51,7 @@ export function PomodoroActiveTaskCard({
   onNotesChange,
   onSetCustomTask,
   onUpdateActiveTask,
+  focusDurationMinutes = 25,
 }: PomodoroActiveTaskProps) {
   // Empty state custom task input
   const [quickTitle, setQuickTitle] = useState("");
@@ -139,7 +141,7 @@ export function PomodoroActiveTaskCard({
         Math.ceil(
           (new Date(event.endAt).getTime() -
             new Date(event.startAt).getTime()) /
-            (25 * 60_000),
+            (focusDurationMinutes * 60_000),
         ),
       ),
       completedPomodoros: 0,
@@ -203,6 +205,7 @@ export function PomodoroActiveTaskCard({
         title: quickTitle.trim(),
         startsAt: defaultFocusStart(),
         pomodoros: scheduledPomodoros,
+        focusDurationMinutes,
         description: quickNote,
       });
     } catch (error) {
@@ -578,7 +581,7 @@ export function PomodoroActiveTaskCard({
                 Số Pomodoro
               </p>
               <p className="text-[11px] text-slate-400">
-                {quickPomodoros * 25} phút dự kiến
+                {quickPomodoros * focusDurationMinutes} phút dự kiến
               </p>
             </div>
             <div

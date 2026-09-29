@@ -23,6 +23,7 @@ describe("scheduleFocusTask", () => {
       title: "Write report",
       startsAt: "2026-09-27T09:30",
       pomodoros: 2,
+      focusDurationMinutes: 40,
       description: "Draft the executive summary",
     });
     expect(eventId).toBe("calendar-event-1");
@@ -32,7 +33,7 @@ describe("scheduleFocusTask", () => {
       title: "Write report",
       description: "Draft the executive summary",
       startAt: new Date("2026-09-27T09:30").toISOString(),
-      endAt: new Date(new Date("2026-09-27T09:30").getTime() + 50 * 60_000).toISOString(),
+      endAt: new Date(new Date("2026-09-27T09:30").getTime() + 80 * 60_000).toISOString(),
       sourceType: EventSourceType.TASK,
       color: "#f59e0b",
     });
