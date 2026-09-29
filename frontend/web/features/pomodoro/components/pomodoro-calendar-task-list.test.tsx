@@ -37,6 +37,7 @@ it("supports moving tasks with keyboard arrow keys", () => {
       isSaving={false}
       onSelect={vi.fn()}
       onReorder={onReorder}
+      onDelete={vi.fn()}
     />,
   );
 
@@ -57,6 +58,7 @@ it("starts dragging from the task content instead of requiring the handle", asyn
       isSaving={false}
       onSelect={vi.fn()}
       onReorder={onReorder}
+      onDelete={vi.fn()}
     />,
   );
 
@@ -83,6 +85,7 @@ it("displays task note preview and expands full note on toggle click", () => {
       isSaving={false}
       onSelect={vi.fn()}
       onReorder={vi.fn()}
+      onDelete={vi.fn()}
     />,
   );
 
@@ -113,6 +116,7 @@ it("strips internal [TASK] marker so empty task descriptions are not shown as no
       isSaving={false}
       onSelect={vi.fn()}
       onReorder={vi.fn()}
+      onDelete={vi.fn()}
     />,
   );
 
@@ -120,4 +124,33 @@ it("strips internal [TASK] marker so empty task descriptions are not shown as no
   expect(
     screen.queryByRole("button", { name: /Xem đầy đủ ghi chú/ }),
   ).toBeNull();
+});
+
+it("asks for confirmation before deleting a Calendar task", () => {
+  const onDelete = vi.fn().mockResolvedValue(undefined);
+
+  render(
+    <PomodoroCalendarTaskList
+      tasks={[task("delete-task", "Task cần xóa")]}
+      isSaving={false}
+      onSelect={vi.fn()}
+      onReorder={vi.fn()}
+      onDelete={onDelete}
+    />,
+  );
+
+  fireEvent.click(
+    screen.getByRole("button", { name: "Thao tác cho task Task cần xóa" }),
+  );
+  fireEvent.click(screen.getByRole("menuitem", { name: "Xóa task" }));
+
+  expect(screen.getByRole("alertdialog")).toBeTruthy();
+  expect(screen.getByText("Xóa task?")).toBeTruthy();
+  expect(onDelete).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByRole("button", { name: "Xóa task" }));
+
+  expect(onDelete).toHaveBeenCalledWith(
+    expect.objectContaining({ id: "delete-task" }),
+  );
 });

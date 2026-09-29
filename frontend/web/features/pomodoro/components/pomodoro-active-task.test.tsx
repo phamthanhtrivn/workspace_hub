@@ -14,6 +14,7 @@ import { PomodoroActiveTaskCard } from "./pomodoro-active-task";
 import { getTodayCalendarTasks } from "../utils/today-calendar-tasks";
 import { scheduleFocusTask } from "../utils/schedule-task";
 import {
+  cancelCalendarEvent,
   updateCalendarEvent,
   updateCalendarTaskOrder,
 } from "@/features/calendar/api/calendar.api";
@@ -31,6 +32,7 @@ vi.mock("../utils/schedule-task", () => ({
   scheduleFocusTask: vi.fn(),
 }));
 vi.mock("@/features/calendar/api/calendar.api", () => ({
+  cancelCalendarEvent: vi.fn(),
   updateCalendarEvent: vi.fn(),
   updateCalendarTaskOrder: vi.fn(),
 }));
@@ -372,4 +374,46 @@ it("displays and inline-edits the active task note synced with Calendar", async 
       expect.objectContaining({ description: "Ghi chú đã cập nhật" }),
     ),
   );
+});
+
+it("deletes a confirmed Calendar task and clears it when active", async () => {
+  const event = {
+    id: "event-to-delete",
+    sourceId: null,
+    sourceType: EventSourceType.TASK,
+    title: "Task cần xóa",
+    startAt: new Date().toISOString(),
+    endAt: new Date(Date.now() + 25 * 60_000).toISOString(),
+    status: EventStatus.CONFIRMED,
+    completedAt: null,
+  } as CalendarEvent;
+  vi.mocked(getTodayCalendarTasks).mockResolvedValue([event]);
+  vi.mocked(cancelCalendarEvent).mockResolvedValue(undefined);
+  const onClearTask = vi.fn();
+
+  renderWithQueryClient(
+    <PomodoroActiveTaskCard
+      activeTask={{
+        id: event.id,
+        calendarEventId: event.id,
+        title: event.title,
+      }}
+      notes=""
+      onClearTask={onClearTask}
+      onNotesChange={vi.fn()}
+    />,
+  );
+
+  fireEvent.click(
+    await screen.findByRole("button", {
+      name: "Thao tác cho task Task cần xóa",
+    }),
+  );
+  fireEvent.click(screen.getByRole("menuitem", { name: "Xóa task" }));
+  fireEvent.click(screen.getByRole("button", { name: "Xóa task" }));
+
+  expect(cancelCalendarEvent).toHaveBeenCalledWith("event-to-delete");
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(onClearTask).toHaveBeenCalledTimes(1);
 });

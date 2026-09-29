@@ -21,6 +21,7 @@ import type { CalendarEvent } from "@/features/calendar/types/calendar.types";
 import { cleanTaskDescription } from "@/features/calendar/utils/calendar-event.utils";
 import { getTodayCalendarTasks } from "../utils/today-calendar-tasks";
 import {
+  cancelCalendarEvent,
   updateCalendarEvent,
   updateCalendarTaskOrder,
 } from "@/features/calendar/api/calendar.api";
@@ -45,6 +46,7 @@ const DEFAULT_QUICK_PRIORITY = "MEDIUM" as const;
 export function PomodoroActiveTaskCard({
   activeTask,
   notes,
+  onClearTask,
   onNotesChange,
   onSetCustomTask,
   onUpdateActiveTask,
@@ -170,6 +172,20 @@ export function PomodoroActiveTaskCard({
     } finally {
       setIsSavingTaskOrder(false);
     }
+  };
+
+  const deleteCalendarTask = async (event: CalendarEvent) => {
+    await cancelCalendarEvent(event.id);
+    setTodayTasks((current) =>
+      current.filter((currentEvent) => currentEvent.id !== event.id),
+    );
+    void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+
+    const deletedActiveTask =
+      activeTask?.calendarEventId === event.id ||
+      activeTask?.id === event.id ||
+      Boolean(event.sourceId && activeTask?.id === event.sourceId);
+    if (deletedActiveTask) onClearTask?.();
   };
 
   const handleCreateCustomTask = async (e: React.FormEvent) => {
@@ -367,6 +383,7 @@ export function PomodoroActiveTaskCard({
           onReorder={(activeId, overId) =>
             void reorderCalendarTasks(activeId, overId)
           }
+          onDelete={deleteCalendarTask}
         />
       )}
       {isSavingTaskOrder && (
