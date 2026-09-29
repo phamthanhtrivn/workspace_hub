@@ -19,6 +19,7 @@ import { getCalendarPomodoroTimerState, saveCalendarPomodoroTimerState } from "@
 import { toast } from "sonner";
 import { playPomodoroSound } from "../utils/sound";
 import { ambientAudio } from "../utils/ambient-audio";
+import { getNextPomodoroCycleStep } from "../utils/pomodoro-cycle";
 import {
   deleteCustomAudioTrack,
   loadCustomAudioTracks,
@@ -282,22 +283,14 @@ export function usePomodoroTimer() {
     );
 
     // 4. Determine next mode
-    let nextMode: PomodoroMode = "FOCUS";
-    let nextCycle = cycleCount;
-
-    if (mode === "FOCUS") {
-      nextCycle = cycleCount + 1;
-
-      if (nextCycle >= (config.longBreakInterval || 4)) {
-        nextMode = "LONG_BREAK";
-        nextCycle = 0;
-      } else {
-        nextMode = "SHORT_BREAK";
-      }
-      setCycleCount(nextCycle);
-    } else {
-      nextMode = "FOCUS";
-    }
+    const nextStep = getNextPomodoroCycleStep(
+      mode,
+      cycleCount,
+      config.longBreakInterval || 2,
+    );
+    const nextMode = nextStep.mode;
+    const nextCycle = nextStep.cycleCount;
+    setCycleCount(nextCycle);
 
     setMode(nextMode);
     const nextDuration = getDurationForMode(nextMode, config);
@@ -579,20 +572,14 @@ export function usePomodoroTimer() {
       }
 
       // Switch to next mode
-      let nextMode: PomodoroMode = "FOCUS";
-      let nextCycle = cycleCount;
-
-      if (mode === "FOCUS") {
-        nextCycle = cycleCount + 1;
-        nextMode =
-          nextCycle >= (config.longBreakInterval || 4)
-            ? "LONG_BREAK"
-            : "SHORT_BREAK";
-        if (nextMode === "LONG_BREAK") nextCycle = 0;
-        setCycleCount(nextCycle);
-      } else {
-        nextMode = "FOCUS";
-      }
+      const nextStep = getNextPomodoroCycleStep(
+        mode,
+        cycleCount,
+        config.longBreakInterval || 2,
+      );
+      const nextMode = nextStep.mode;
+      const nextCycle = nextStep.cycleCount;
+      setCycleCount(nextCycle);
 
       setMode(nextMode);
       const nextDuration = getDurationForMode(nextMode, config);

@@ -34,6 +34,14 @@ describe('PomodoroService', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
+  it('uses a two-focus cycle for the default configuration', async () => {
+    prisma.pomodoroConfig.findUnique.mockResolvedValue(null);
+
+    await expect(service.getConfig(userId)).resolves.toEqual(
+      expect.objectContaining({ longBreakInterval: 2 }),
+    );
+  });
+
   it('calculates daily focus, distinct tasks, interruptions and a consecutive streak', async () => {
     prisma.pomodoroSession.findMany
       .mockResolvedValueOnce([

@@ -136,13 +136,13 @@ export function PomodoroSettingsDialog({
               </label>
               <Input
                 type="number"
-                min={1}
+                min={2}
                 max={12}
                 value={form.longBreakInterval}
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    longBreakInterval: boundedMinutes(e.target.value, 4, 12),
+                    longBreakInterval: boundedMinutes(e.target.value, 2, 12),
                   })
                 }
                 className="h-9 text-xs"

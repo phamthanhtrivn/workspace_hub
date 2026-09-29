@@ -148,7 +148,7 @@ export function PomodoroView() {
               timeLeft={timeLeft}
               totalDuration={totalDuration}
               cycleCount={cycleCount}
-              longBreakInterval={config.longBreakInterval || 4}
+              longBreakInterval={config.longBreakInterval || 2}
               activeTaskTitle={activeTask?.title}
               activeTaskNote={activeTask?.description}
               activeTaskCompletedPomodoros={activeTask?.completedPomodoros}

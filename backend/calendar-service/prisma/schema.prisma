@@ -315,7 +315,7 @@ model PomodoroConfig {
   focusDuration       Int      @default(25) @map("focus_duration")
   shortBreak          Int      @default(5) @map("short_break")
   longBreak           Int      @default(15) @map("long_break")
-  longBreakInterval   Int      @default(4) @map("long_break_interval")
+  longBreakInterval   Int      @default(2) @map("long_break_interval")
   autoStartBreak      Boolean  @default(false) @map("auto_start_break")
   autoStartFocus      Boolean  @default(false) @map("auto_start_focus")
   soundEnabled        Boolean  @default(true) @map("sound_enabled")

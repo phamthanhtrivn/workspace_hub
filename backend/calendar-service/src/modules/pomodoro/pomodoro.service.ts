@@ -24,7 +24,7 @@ const DEFAULT_CONFIG: SavePomodoroConfigDto = {
   focusDuration: 25,
   shortBreak: 5,
   longBreak: 15,
-  longBreakInterval: 4,
+  longBreakInterval: 2,
   autoStartBreak: false,
   autoStartFocus: false,
   soundEnabled: true,
