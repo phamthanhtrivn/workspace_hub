@@ -13,8 +13,6 @@ it("keeps the active task visible next to the running timer", () => {
       status="RUNNING"
       timeLeft={24 * 60 + 32}
       totalDuration={25 * 60}
-      cycleCount={0}
-      longBreakInterval={4}
       activeTaskTitle="đi chơi"
       onSwitchMode={vi.fn()}
     />,
@@ -30,8 +28,6 @@ it("renders active task title and cleaned note inside the timer circle", () => {
       status="IDLE"
       timeLeft={5 * 60}
       totalDuration={5 * 60}
-      cycleCount={1}
-      longBreakInterval={4}
       activeTaskTitle="huhu"
       activeTaskNote={"[TASK]\nÔn tập chương 3 và làm bài tập"}
       onSwitchMode={vi.fn()}

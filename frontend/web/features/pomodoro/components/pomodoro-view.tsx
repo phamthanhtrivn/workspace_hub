@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { usePomodoroTimer } from "../hooks/use-pomodoro-timer";
 import { PomodoroTimerDisplay } from "./pomodoro-timer-display";
 import { PomodoroControls } from "./pomodoro-controls";
@@ -22,7 +22,6 @@ export function PomodoroView() {
     status,
     timeLeft,
     totalDuration,
-    cycleCount,
     activeTask,
     config,
     notes,
@@ -51,6 +50,9 @@ export function PomodoroView() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [minimalMode, setMinimalMode] = useState(false);
   const isRunning = status === "RUNNING";
+  const handleReset = useCallback(() => reset(), [reset]);
+  const handleSkip = useCallback(() => skip(), [skip]);
+  const handleClearTask = useCallback(() => setActiveTask(null), [setActiveTask]);
 
   return (
     <div className="relative min-h-[85vh] w-full max-w-6xl mx-auto py-3 px-1">
@@ -150,12 +152,8 @@ export function PomodoroView() {
               focusDuration={config.focusDuration}
               shortBreakDuration={config.shortBreak}
               longBreakDuration={config.longBreak}
-              cycleCount={cycleCount}
-              longBreakInterval={config.longBreakInterval || 2}
               activeTaskTitle={activeTask?.title}
               activeTaskNote={activeTask?.description}
-              activeTaskCompletedPomodoros={activeTask?.completedPomodoros}
-              activeTaskEstimatedPomodoros={activeTask?.estimatedPomodoros}
               onSwitchMode={switchMode}
             />
           </div>
@@ -168,17 +166,20 @@ export function PomodoroView() {
             onStart={start}
             onPause={pause}
             onResume={resume}
-            onReset={() => reset()}
-            onSkip={() => skip()}
+            onReset={handleReset}
+            onSkip={handleSkip}
           />
           {!isReady && (
             <p
-              role={loadError ? "alert" : "status"}
+              role="status"
               className="text-xs text-amber-700"
             >
-              {loadError
-                ? "Không kết nối được calendar-service. Hãy tải lại trang khi dịch vụ hoạt động."
-                : "Đang tải Pomodoro từ máy chủ..."}
+              Đang tải Pomodoro...
+            </p>
+          )}
+          {isReady && loadError && (
+            <p role="status" className="text-xs text-amber-700">
+              Đang dùng dữ liệu cục bộ. Hệ thống sẽ tự đồng bộ khi Calendar hoạt động lại.
             </p>
           )}
           {isReady && status === "RUNNING" && timeLeft === 0 && (
@@ -211,7 +212,7 @@ export function PomodoroView() {
               <PomodoroActiveTaskCard
                 activeTask={activeTask}
                 notes={notes}
-                onClearTask={() => setActiveTask(null)}
+                onClearTask={handleClearTask}
                 onNotesChange={setNotes}
                 onSetCustomTask={setActiveTask}
                 onUpdateActiveTask={setActiveTask}

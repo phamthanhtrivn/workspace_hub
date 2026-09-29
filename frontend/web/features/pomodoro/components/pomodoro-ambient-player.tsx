@@ -48,7 +48,7 @@ interface PomodoroAmbientPlayerProps {
   onRemoveCustomTrack: (id: string) => Promise<void>;
 }
 
-export function PomodoroAmbientPlayer({
+export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
   currentTrackId,
   isPlaying,
   volume,
@@ -404,4 +404,4 @@ export function PomodoroAmbientPlayer({
       </div>
     </div>
   );
-}
+});

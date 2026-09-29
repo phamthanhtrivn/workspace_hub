@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Plus,
   StickyNote,
@@ -19,16 +19,12 @@ import { cn } from "@/lib/utils";
 import { defaultFocusStart, scheduleFocusTask } from "../utils/schedule-task";
 import type { CalendarEvent } from "@/features/calendar/types/calendar.types";
 import { cleanTaskDescription } from "@/features/calendar/utils/calendar-event.utils";
-import { getTodayCalendarTasks } from "../utils/today-calendar-tasks";
-import {
-  cancelCalendarEvent,
-  updateCalendarEvent,
-  updateCalendarTaskOrder,
-} from "@/features/calendar/api/calendar.api";
+import { updateCalendarEvent } from "@/features/calendar/api/calendar.api";
 import { updateTask } from "@/features/project/api/task.api";
 import { useQueryClient } from "@tanstack/react-query";
 import { calendarKeys } from "@/features/calendar/hooks/use-calendar-queries";
 import { PomodoroCalendarTaskList } from "./pomodoro-calendar-task-list";
+import { usePomodoroCalendarTasks } from "../hooks/use-pomodoro-calendar-tasks";
 
 interface PomodoroActiveTaskProps {
   activeTask: PomodoroActiveTask | null;
@@ -44,7 +40,7 @@ const DEFAULT_QUICK_POMODOROS = 2;
 const MAX_QUICK_POMODOROS = 20;
 const DEFAULT_QUICK_PRIORITY = "MEDIUM" as const;
 
-export function PomodoroActiveTaskCard({
+export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard({
   activeTask,
   notes,
   onClearTask,
@@ -60,7 +56,6 @@ export function PomodoroActiveTaskCard({
   const [quickError, setQuickError] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
-  const [calendarTaskRevision, setCalendarTaskRevision] = useState(0);
 
   // Inline editing state for active task title & task note
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -76,49 +71,20 @@ export function PomodoroActiveTaskCard({
 
   // Subtask & Notes states
   const [showNotes, setShowNotes] = useState(false);
-  const [todayTasks, setTodayTasks] = useState<CalendarEvent[]>([]);
-  const [calendarTaskError, setCalendarTaskError] = useState(false);
-  const [taskOrderError, setTaskOrderError] = useState("");
-  const [isSavingTaskOrder, setIsSavingTaskOrder] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    let requestId = 0;
-    const refreshTasks = () => {
-      const currentRequest = ++requestId;
-      void getTodayCalendarTasks()
-        .then((events) => {
-          if (!mounted || currentRequest !== requestId) return;
-          setTodayTasks(events);
-          setCalendarTaskError(false);
-          if (activeTask && activeTask.description === undefined) {
-            const matched = events.find(
-              (event) =>
-                event.id === activeTask.calendarEventId ||
-                event.id === activeTask.id ||
-                (event.sourceId && event.sourceId === activeTask.id),
-            );
-            const cleanedNote = cleanTaskDescription(matched?.description);
-            if (cleanedNote) {
-              onUpdateActiveTask?.({
-                ...activeTask,
-                description: cleanedNote,
-              });
-            }
-          }
-        })
-        .catch(() => {
-          if (mounted && currentRequest === requestId)
-            setCalendarTaskError(true);
-        });
-    };
-    refreshTasks();
-    window.addEventListener("focus", refreshTasks);
-    return () => {
-      mounted = false;
-      window.removeEventListener("focus", refreshTasks);
-    };
-  }, [activeTask, calendarTaskRevision, onUpdateActiveTask]);
+  const {
+    todayTasks,
+    calendarTaskError,
+    taskOrderError,
+    isSavingTaskOrder,
+    refreshTasks,
+    updateLocalTask,
+    reorderTasks: reorderCalendarTasks,
+    deleteTask: deleteCalendarTask,
+  } = usePomodoroCalendarTasks({
+    activeTask,
+    onClearTask,
+    onUpdateActiveTask,
+  });
 
   const selectCalendarTask = (event: CalendarEvent) => {
     setIsEditingTitle(false);
@@ -147,47 +113,6 @@ export function PomodoroActiveTaskCard({
       completedPomodoros: 0,
       checklists: [],
     });
-  };
-
-  const reorderCalendarTasks = async (activeId: string, overId: string) => {
-    if (activeId === overId || isSavingTaskOrder) return;
-    const oldIndex = todayTasks.findIndex((event) => event.id === activeId);
-    const newIndex = todayTasks.findIndex((event) => event.id === overId);
-    if (oldIndex < 0 || newIndex < 0) return;
-
-    const previousTasks = todayTasks;
-    const reorderedTasks = [...todayTasks];
-    const [movedTask] = reorderedTasks.splice(oldIndex, 1);
-    reorderedTasks.splice(newIndex, 0, movedTask);
-    const orderedTasks = reorderedTasks.map((event, taskOrder) => ({
-      ...event,
-      taskOrder,
-    }));
-    setTodayTasks(orderedTasks);
-    setTaskOrderError("");
-    setIsSavingTaskOrder(true);
-    try {
-      await updateCalendarTaskOrder(orderedTasks.map((event) => event.id));
-    } catch {
-      setTodayTasks(previousTasks);
-      setTaskOrderError("Không lưu được thứ tự task. Hãy thử lại.");
-    } finally {
-      setIsSavingTaskOrder(false);
-    }
-  };
-
-  const deleteCalendarTask = async (event: CalendarEvent) => {
-    await cancelCalendarEvent(event.id);
-    setTodayTasks((current) =>
-      current.filter((currentEvent) => currentEvent.id !== event.id),
-    );
-    void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
-
-    const deletedActiveTask =
-      activeTask?.calendarEventId === event.id ||
-      activeTask?.id === event.id ||
-      Boolean(event.sourceId && activeTask?.id === event.sourceId);
-    if (deletedActiveTask) onClearTask?.();
   };
 
   const handleCreateCustomTask = async (e: React.FormEvent) => {
@@ -234,7 +159,7 @@ export function PomodoroActiveTaskCard({
     if (!activeTask) {
       onSetCustomTask?.(newTask);
     } else {
-      setCalendarTaskRevision((revision) => revision + 1);
+      refreshTasks();
     }
     setQuickTitle("");
     setQuickNote("");
@@ -265,13 +190,7 @@ export function PomodoroActiveTaskCard({
     try {
       if (activeTask.calendarEventId) {
         await updateCalendarEvent(activeTask.calendarEventId, { title });
-        setTodayTasks((current) =>
-          current.map((event) =>
-            event.id === activeTask.calendarEventId
-              ? { ...event, title }
-              : event,
-          ),
-        );
+        updateLocalTask(activeTask.calendarEventId, { title });
         void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
       } else if (activeTask.projectId) {
         await updateTask(activeTask.id, { title });
@@ -318,13 +237,9 @@ export function PomodoroActiveTaskCard({
         await updateCalendarEvent(activeTask.calendarEventId, {
           description: description || null,
         });
-        setTodayTasks((current) =>
-          current.map((event) =>
-            event.id === activeTask.calendarEventId
-              ? { ...event, description: description || null }
-              : event,
-          ),
-        );
+        updateLocalTask(activeTask.calendarEventId, {
+          description: description || null,
+        });
         void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
       } else if (activeTask.projectId) {
         await updateTask(activeTask.id, { description });
@@ -882,4 +797,4 @@ export function PomodoroActiveTaskCard({
       </div>
     </div>
   );
-}
+});

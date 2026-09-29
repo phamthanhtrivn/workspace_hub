@@ -22,7 +22,7 @@ interface PomodoroControlsProps {
   onSkip: () => void;
 }
 
-export function PomodoroControls({
+export const PomodoroControls = React.memo(function PomodoroControls({
   disabled,
   status,
   mode,
@@ -117,4 +117,4 @@ export function PomodoroControls({
 
     </div>
   );
-}
+});

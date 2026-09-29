@@ -11,7 +11,7 @@ interface PomodoroStatsCardProps {
   lastUpdated: number;
 }
 
-export function PomodoroStatsOverview({ lastUpdated }: PomodoroStatsCardProps) {
+export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({ lastUpdated }: PomodoroStatsCardProps) {
   const [stats, setStats] = useState<PomodoroDailyStats | null>(null);
 
   useEffect(() => {
@@ -148,4 +148,4 @@ export function PomodoroStatsOverview({ lastUpdated }: PomodoroStatsCardProps) {
       </div>
     </div>
   );
-}
+});

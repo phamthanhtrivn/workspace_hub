@@ -14,12 +14,8 @@ interface PomodoroTimerDisplayProps {
   focusDuration?: number;
   shortBreakDuration?: number;
   longBreakDuration?: number;
-  cycleCount?: number;
-  longBreakInterval?: number;
   activeTaskTitle?: string;
   activeTaskNote?: string;
-  activeTaskCompletedPomodoros?: number;
-  activeTaskEstimatedPomodoros?: number;
   onSwitchMode: (mode: PomodoroMode) => void;
 }
 

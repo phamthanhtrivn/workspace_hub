@@ -10,7 +10,7 @@ interface PomodoroSessionHistoryProps {
   lastUpdated: number;
 }
 
-export function PomodoroSessionHistory({
+export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory({
   lastUpdated,
 }: PomodoroSessionHistoryProps) {
   const [sessions, setSessions] = useState<PomodoroSessionRecord[]>([]);
@@ -133,4 +133,4 @@ export function PomodoroSessionHistory({
       )}
     </div>
   );
-}
+});
