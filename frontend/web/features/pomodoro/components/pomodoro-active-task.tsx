@@ -12,7 +12,7 @@ import {
   Sparkles,
   Minus,
 } from "lucide-react";
-import type { PomodoroActiveTask } from "../types/pomodoro";
+import type { PomodoroActiveTask, PomodoroStatus, PomodoroTaskAction } from "../types/pomodoro";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -25,8 +25,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { calendarKeys } from "@/features/calendar/hooks/use-calendar-queries";
 import { PomodoroCalendarTaskList } from "./pomodoro-calendar-task-list";
 import { usePomodoroCalendarTasks } from "../hooks/use-pomodoro-calendar-tasks";
+import { PomodoroProjectTaskList } from "./pomodoro-project-task-list";
+import { PomodoroTaskActions } from "./pomodoro-task-actions";
 
 interface PomodoroActiveTaskProps {
+  taskRevision?: number;
+  timerStatus?: PomodoroStatus;
+  taskActionDisabled?: boolean;
+  onTaskAction?: (action: PomodoroTaskAction) => Promise<void>;
   activeTask: PomodoroActiveTask | null;
   notes: string;
   onClearTask?: () => void;
@@ -41,6 +47,10 @@ const MAX_QUICK_POMODOROS = 20;
 const DEFAULT_QUICK_PRIORITY = "MEDIUM" as const;
 
 export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard({
+  taskRevision,
+  timerStatus = "IDLE",
+  taskActionDisabled = false,
+  onTaskAction,
   activeTask,
   notes,
   onClearTask,
@@ -81,6 +91,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
     reorderTasks: reorderCalendarTasks,
     deleteTask: deleteCalendarTask,
   } = usePomodoroCalendarTasks({
+    taskRevision,
     activeTask,
     onClearTask,
     onUpdateActiveTask,
@@ -194,6 +205,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
         void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
       } else if (activeTask.projectId) {
         await updateTask(activeTask.id, { title });
+        void queryClient.invalidateQueries({ queryKey: ["projects", "pomodoro-today"] });
         void queryClient.invalidateQueries({
           queryKey: ["projects", activeTask.projectId, "tasks"],
         });
@@ -243,6 +255,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
         void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
       } else if (activeTask.projectId) {
         await updateTask(activeTask.id, { description });
+        void queryClient.invalidateQueries({ queryKey: ["projects", "pomodoro-today"] });
         void queryClient.invalidateQueries({
           queryKey: ["projects", activeTask.projectId, "tasks"],
         });
@@ -317,6 +330,21 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
     </div>
   );
 
+  const todayProjectTaskList = (
+    <PomodoroProjectTaskList
+      activeTask={activeTask}
+      focusDurationMinutes={focusDurationMinutes}
+      onSelect={(task) => {
+        setIsEditingTitle(false);
+        setTitleError("");
+        setIsEditingTaskNote(false);
+        setTaskNoteError("");
+        setIsTaskNoteExpanded(false);
+        onSetCustomTask?.(task);
+      }}
+    />
+  );
+
   // -------------------------------------------------------------
   // EMPTY STATE: User can directly type task here or pick project
   // -------------------------------------------------------------
@@ -382,6 +410,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
           </div>
         </form>
         {todayTaskList}
+        {todayProjectTaskList}
       </div>
     );
   }
@@ -762,7 +791,19 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
         </div>
       </div>
 
+      {onTaskAction && (
+        <PomodoroTaskActions
+          key={activeTask.id}
+          task={activeTask}
+          timerStatus={timerStatus}
+          disabled={taskActionDisabled}
+          onAction={onTaskAction}
+        />
+      )}
+
       {todayTaskList}
+
+      {todayProjectTaskList}
 
       {/* Quick Notes Scratchpad */}
       <div className="mt-3.5 border-t border-slate-100 pt-3">

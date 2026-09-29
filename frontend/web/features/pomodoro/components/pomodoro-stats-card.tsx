@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Clock, CheckCircle2, Flame, TrendingUp, Download } from "lucide-react";
-import { getDailyStats, getRecentSessions } from "../api/pomodoro-server.api";
+import { Clock, CheckCircle2, Flame, TrendingUp } from "lucide-react";
+import { getDailyStats } from "../api/pomodoro-server.api";
 import type { PomodoroDailyStats } from "../types/pomodoro";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 interface PomodoroStatsCardProps {
   lastUpdated: number;
@@ -21,28 +19,6 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
       .catch(() => { if (active) setStats(null); });
     return () => { active = false; };
   }, [lastUpdated]);
-
-  const handleExportData = async () => {
-    let sessions;
-    try {
-      sessions = await getRecentSessions();
-    } catch {
-      toast.error("Không tải được dữ liệu phiên để xuất.");
-      return;
-    }
-    const dataStr =
-      "data:text/json;charset=utf-8," +
-      encodeURIComponent(JSON.stringify({ stats, sessions }, null, 2));
-    const downloadAnchor = document.createElement("a");
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute(
-      "download",
-      `workspace_hub_pomodoro_${new Date().toISOString().split("T")[0]}.json`,
-    );
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  };
 
   if (!stats) return null;
 
@@ -67,16 +43,6 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
             Dữ liệu nhịp độ làm việc và độ tập trung
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleExportData}
-          title="Xuất dữ liệu phục vụ nghiên cứu & báo cáo đồ án"
-          className="h-8 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
-        >
-          <Download className="size-3.5 mr-1.5" /> Xuất dữ liệu
-        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-3">

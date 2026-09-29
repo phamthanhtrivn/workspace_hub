@@ -41,10 +41,13 @@ vi.mock("../hooks/use-pomodoro-timer", () => ({
 }));
 
 vi.mock("./pomodoro-timer-display", () => ({ PomodoroTimerDisplay: () => <div /> }));
+vi.mock("../hooks/use-pomodoro-task-actions", () => ({
+  usePomodoroTaskActions: () => ({ runTaskAction: vi.fn(), taskRevision: 0 }),
+}));
 vi.mock("./pomodoro-ambient-player", () => ({ PomodoroAmbientPlayer: () => <div /> }));
 vi.mock("./pomodoro-active-task", () => ({ PomodoroActiveTaskCard: () => <div /> }));
 vi.mock("./pomodoro-stats-card", () => ({ PomodoroStatsOverview: () => <div /> }));
-vi.mock("./pomodoro-session-history", () => ({ PomodoroSessionHistory: () => <div /> }));
+vi.mock("./pomodoro-report", () => ({ PomodoroReport: () => <div /> }));
 vi.mock("./pomodoro-settings-dialog", () => ({
   PomodoroSettingsDialog: ({ isOpen }: { isOpen: boolean }) =>
     isOpen ? <div role="dialog" aria-label="Cài đặt Pomodoro" /> : null,

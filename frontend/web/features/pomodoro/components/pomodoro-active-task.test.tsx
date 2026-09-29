@@ -7,12 +7,15 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 import { PomodoroActiveTaskCard } from "./pomodoro-active-task";
 import { getTodayCalendarTasks } from "../utils/today-calendar-tasks";
 import { scheduleFocusTask } from "../utils/schedule-task";
+import { getTodayProjectTasks } from "../utils/today-project-tasks";
+import { normalizeTask, updateTask } from "@/features/project/api/task.api";
+import { TaskPriority, TaskStatus, type Project } from "@/features/project/types/project";
 import {
   cancelCalendarEvent,
   updateCalendarEvent,
@@ -27,6 +30,13 @@ import {
 vi.mock("../utils/today-calendar-tasks", () => ({
   getTodayCalendarTasks: vi.fn(),
 }));
+vi.mock("../utils/today-project-tasks", () => ({ getTodayProjectTasks: vi.fn() }));
+vi.mock("@/store/store", () => ({ useAppSelector: () => "user-1" }));
+vi.mock("@/features/project/api/task.api", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/features/project/api/task.api")>(),
+  updateTask: vi.fn(),
+}));
+beforeEach(() => vi.mocked(getTodayProjectTasks).mockResolvedValue([]));
 vi.mock("../utils/schedule-task", () => ({
   defaultFocusStart: () => "2026-09-28T09:30",
   scheduleFocusTask: vi.fn(),
@@ -44,7 +54,7 @@ afterEach(() => {
 
 function renderWithQueryClient(element: ReactElement) {
   return render(
-    <QueryClientProvider client={new QueryClient()}>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       {element}
     </QueryClientProvider>,
   );
@@ -71,6 +81,58 @@ it("hides quick estimate and priority controls", () => {
   expect(
     screen.getByPlaceholderText("Ghi chú cho task (không bắt buộc)..."),
   ).toBeTruthy();
+});
+
+it("shows Project tasks alongside Calendar tasks and selects the real task ID without a Calendar event ID", async () => {
+  vi.mocked(getTodayCalendarTasks).mockResolvedValue([{
+    id: "calendar-1", title: "Calendar task", sourceType: EventSourceType.TASK,
+    startAt: new Date().toISOString(), endAt: new Date(Date.now() + 1_500_000).toISOString(),
+  } as CalendarEvent]);
+  const project = { id: "project-1", name: "Workspace", color: "#123456" } as Project;
+  const task = normalizeTask({
+    id: "task-1", projectId: project.id, title: "My project task", taskNumber: 1,
+    description: "Task description", status: TaskStatus.TODO, priority: TaskPriority.HIGH,
+    createdBy: "user-1", reporterId: "user-1", archived: false, allDay: false, estimatedMinutes: 50,
+  });
+  vi.mocked(getTodayProjectTasks).mockResolvedValue([{ task, project }]);
+  const onSetCustomTask = vi.fn();
+  renderWithQueryClient(<PomodoroActiveTaskCard activeTask={null} notes="" onNotesChange={vi.fn()} onSetCustomTask={onSetCustomTask} />);
+
+  expect(await screen.findByText("Calendar task")).toBeTruthy();
+  fireEvent.click(await screen.findByRole("button", { name: "My project task Workspace" }));
+  expect(getTodayProjectTasks).toHaveBeenCalledWith("user-1");
+  expect(onSetCustomTask).toHaveBeenCalledWith(expect.objectContaining({
+    id: task.id, projectId: project.id, projectName: project.name, estimatedPomodoros: 2,
+  }));
+  expect(onSetCustomTask.mock.calls[0][0].calendarEventId).toBeUndefined();
+});
+
+it("keeps Calendar tasks available when Project is unavailable and supports retry", async () => {
+  vi.mocked(getTodayCalendarTasks).mockResolvedValue([{
+    id: "calendar-1", title: "Available Calendar task", sourceType: EventSourceType.TASK,
+    startAt: new Date().toISOString(), endAt: new Date(Date.now() + 1_500_000).toISOString(),
+  } as CalendarEvent]);
+  vi.mocked(getTodayProjectTasks).mockRejectedValueOnce(new Error("Offline"));
+  renderWithQueryClient(<PomodoroActiveTaskCard activeTask={null} notes="" onNotesChange={vi.fn()} />);
+  expect(await screen.findByText("Không tải được task Project.")).toBeTruthy();
+  expect(screen.getByText("Available Calendar task")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Thử lại" }));
+  expect(await screen.findByText("Không có task Project được giao cho bạn trong hôm nay.")).toBeTruthy();
+});
+
+it("edits an active Project task through Project service rather than Calendar", async () => {
+  vi.mocked(getTodayCalendarTasks).mockResolvedValue([]);
+  const onUpdateActiveTask = vi.fn();
+  renderWithQueryClient(<PomodoroActiveTaskCard
+    activeTask={{ id: "project-task-1", projectId: "project-1", title: "Project title", description: "Project note" }}
+    notes="" onNotesChange={vi.fn()} onUpdateActiveTask={onUpdateActiveTask}
+  />);
+  fireEvent.click(screen.getByTitle("Đổi tên nhiệm vụ"));
+  fireEvent.change(screen.getByDisplayValue("Project title"), { target: { value: "Updated project title" } });
+  fireEvent.click(screen.getByRole("button", { name: "Lưu" }));
+  await waitFor(() => expect(updateTask).toHaveBeenCalledWith("project-task-1", { title: "Updated project title" }));
+  await waitFor(() => expect(onUpdateActiveTask).toHaveBeenCalled());
+  expect(updateCalendarEvent).not.toHaveBeenCalled();
 });
 
 it("saves a quick task note in the Calendar event description", async () => {

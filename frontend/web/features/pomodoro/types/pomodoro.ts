@@ -4,6 +4,8 @@ export type PomodoroStatus = "IDLE" | "RUNNING" | "PAUSED";
 
 export type PomodoroSessionStatus = "COMPLETED" | "STOPPED" | "SKIPPED";
 
+export type PomodoroTaskAction = "COMPLETE" | "REVIEW";
+
 export interface PomodoroConfig {
   id?: string;
   focusDuration: number; // in minutes
@@ -31,6 +33,7 @@ export interface PomodoroActiveTask {
   projectId?: string;
   projectName?: string;
   projectColor?: string;
+  projectStatus?: "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE" | "CANCELLED";
   title: string;
   description?: string;
   priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";

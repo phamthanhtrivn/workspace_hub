@@ -2,13 +2,14 @@
 
 import React, { useCallback, useState } from "react";
 import { usePomodoroTimer } from "../hooks/use-pomodoro-timer";
+import { usePomodoroTaskActions } from "../hooks/use-pomodoro-task-actions";
 import { PomodoroTimerDisplay } from "./pomodoro-timer-display";
 import { PomodoroControls } from "./pomodoro-controls";
 import { PomodoroAmbientPlayer } from "./pomodoro-ambient-player";
 import { PomodoroActiveTaskCard } from "./pomodoro-active-task";
 import { PomodoroSettingsDialog } from "./pomodoro-settings-dialog";
 import { PomodoroStatsOverview } from "./pomodoro-stats-card";
-import { PomodoroSessionHistory } from "./pomodoro-session-history";
+import { PomodoroReport } from "./pomodoro-report";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Settings, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,8 @@ export function PomodoroView() {
     isReady,
     loadError,
     sessionRevision,
+    isTaskActionPending,
+    finishActiveTask,
     mode,
     status,
     timeLeft,
@@ -46,6 +49,7 @@ export function PomodoroView() {
     uploadCustomTrack,
     removeCustomTrack,
   } = usePomodoroTimer();
+  const { runTaskAction, taskRevision } = usePomodoroTaskActions(finishActiveTask);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [minimalMode, setMinimalMode] = useState(false);
@@ -160,7 +164,7 @@ export function PomodoroView() {
 
           {/* Controls Dock */}
           <PomodoroControls
-            disabled={!isReady || (status === "RUNNING" && timeLeft === 0)}
+            disabled={!isReady || isTaskActionPending || (status === "RUNNING" && timeLeft === 0)}
             status={status}
             mode={mode}
             onStart={start}
@@ -208,8 +212,12 @@ export function PomodoroView() {
 
           {/* Active Focus Target Card */}
           {isReady && (
-            <div className="w-full flex justify-center">
+            <fieldset disabled={isTaskActionPending} className="w-full min-w-0 flex justify-center">
               <PomodoroActiveTaskCard
+                taskRevision={taskRevision}
+                timerStatus={status}
+                taskActionDisabled={isTaskActionPending || (status === "RUNNING" && timeLeft === 0)}
+                onTaskAction={runTaskAction}
                 activeTask={activeTask}
                 notes={notes}
                 onClearTask={handleClearTask}
@@ -218,7 +226,7 @@ export function PomodoroView() {
                 onUpdateActiveTask={setActiveTask}
                 focusDurationMinutes={config.focusDuration}
               />
-            </div>
+            </fieldset>
           )}
         </div>
 
@@ -226,7 +234,7 @@ export function PomodoroView() {
         {!minimalMode && (
           <div className="lg:col-span-5 flex flex-col gap-6">
             <PomodoroStatsOverview lastUpdated={sessionRevision} />
-            <PomodoroSessionHistory lastUpdated={sessionRevision} />
+            <PomodoroReport lastUpdated={sessionRevision} />
           </div>
         )}
       </div>

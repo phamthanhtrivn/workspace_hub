@@ -71,12 +71,12 @@ export async function listCalendarPomodoroSessions(params: {
   taskId?: string;
   page?: number;
   limit?: number;
-}) {
+}, signal?: AbortSignal) {
   const response = await api.get<ApiResponse<{
     sessions: CalendarPomodoroSession[];
     summary: { focusSeconds: number; completedFocusSessions: number };
     pagination: ApiPagination;
-  }>>("/api/calendar/pomodoro/sessions", { params });
+  }>>("/api/calendar/pomodoro/sessions", { params, signal });
   return unwrap(response);
 }
 

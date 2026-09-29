@@ -13,12 +13,14 @@ import type { PomodoroActiveTask } from "../types/pomodoro";
 import { getTodayCalendarTasks } from "../utils/today-calendar-tasks";
 
 interface UsePomodoroCalendarTasksOptions {
+  taskRevision?: number;
   activeTask: PomodoroActiveTask | null;
   onClearTask?: () => void;
   onUpdateActiveTask?: (task: PomodoroActiveTask) => void;
 }
 
 export function usePomodoroCalendarTasks({
+  taskRevision = 0,
   activeTask,
   onClearTask,
   onUpdateActiveTask,
@@ -52,7 +54,7 @@ export function usePomodoroCalendarTasks({
       mounted = false;
       window.removeEventListener("focus", refreshTasks);
     };
-  }, [refreshRevision]);
+  }, [refreshRevision, taskRevision]);
 
   useEffect(() => {
     if (!activeTask || activeTask.description !== undefined) return;
