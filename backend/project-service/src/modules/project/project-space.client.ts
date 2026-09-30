@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { HttpJsonClient } from '../../common/adapters/http-json.client';
+import { BadRequestException, ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { HttpJsonClient, ServiceHttpError } from '../../common/adapters/http-json.client';
 import { RuntimeConfigService } from '../../common/config/runtime-config.service';
 
 export type ProjectSpaceRole = 'ADMIN' | 'MEMBER';
@@ -68,6 +68,32 @@ export class ProjectSpaceClient {
       headers: this.internalHeaders(),
     });
     return response.data;
+  }
+
+  async assertCanCreateTaskInChannel(
+    projectId: string,
+    channelId: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      await this.http.request<ApiResponse<{ allowed: true }>>({
+        service: 'communication-service',
+        url: `${this.config.communicationServiceUrl}/api/channels/internal/${channelId}/task-create-permission`,
+        method: 'POST',
+        headers: this.internalHeaders(),
+        body: { projectId, userId },
+      });
+    } catch (error) {
+      if (error instanceof ServiceHttpError) {
+        if (error.status === 403) {
+          throw new ForbiddenException('Task creation is disabled in this channel');
+        }
+        if (error.status === 400) {
+          throw new BadRequestException('Channel does not belong to this project');
+        }
+      }
+      throw new ServiceUnavailableException('Channel task permission could not be verified');
+    }
   }
 
   async renameProjectSpace(

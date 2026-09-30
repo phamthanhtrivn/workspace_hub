@@ -56,6 +56,7 @@ export interface ConversationSetting {
   allowSendMessage: boolean;
   allowCreatePoll: boolean;
   allowCreateNote: boolean;
+  allowCreateTask?: boolean;
   allowPinMessage: boolean;
 }
 

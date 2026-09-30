@@ -23,6 +23,7 @@ import { ProjectSpaceClient } from "./project-space.client";
   exports: [
     ProjectService,
     ProjectAccessService,
+    ProjectSpaceClient,
   ],
 })
 export class ProjectModule {}
