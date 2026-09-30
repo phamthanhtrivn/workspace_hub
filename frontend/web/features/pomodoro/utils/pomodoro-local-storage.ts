@@ -4,6 +4,7 @@ import type { PomodoroConfig } from "../types/pomodoro";
 const STORAGE_SCHEMA_VERSION = 1;
 const CONFIG_KEY = "workspace-hub:pomodoro:config";
 const TIMER_STATE_KEY = "workspace-hub:pomodoro:timer-state";
+const PENDING_CONFIG_KEY = "workspace-hub:pomodoro:pending-config";
 
 interface StorageEnvelope<T> {
   schemaVersion: number;
@@ -101,8 +102,19 @@ export function loadLocalPomodoroConfig(userId: string): PomodoroConfig | null {
   return userId ? readEnvelope(`${CONFIG_KEY}:${userId}`, isPomodoroConfig) : null;
 }
 
-export function saveLocalPomodoroConfig(userId: string, config: PomodoroConfig): void {
-  if (userId) writeEnvelope(`${CONFIG_KEY}:${userId}`, config);
+export function loadPendingPomodoroConfig(userId: string): PomodoroConfig | null {
+  return userId ? readEnvelope(`${PENDING_CONFIG_KEY}:${userId}`, isPomodoroConfig) : null;
+}
+
+export function saveLocalPomodoroConfig(userId: string, config: PomodoroConfig, pending = false): void {
+  if (!userId) return;
+  const unsynced = loadPendingPomodoroConfig(userId);
+  if (!pending && unsynced && JSON.stringify(unsynced) !== JSON.stringify(config)) return;
+  writeEnvelope(`${CONFIG_KEY}:${userId}`, config);
+  if (pending) writeEnvelope(`${PENDING_CONFIG_KEY}:${userId}`, config);
+  else if (typeof window !== "undefined") {
+    try { window.localStorage.removeItem(`${PENDING_CONFIG_KEY}:${userId}`); } catch { /* Storage may be disabled. */ }
+  }
 }
 
 export function loadLocalPomodoroTimerState(userId: string): CalendarPomodoroTimerState | null {
@@ -120,6 +132,7 @@ export function clearLocalPomodoroData(userId: string): void {
   try {
     window.localStorage.removeItem(`${CONFIG_KEY}:${userId}`);
     window.localStorage.removeItem(`${TIMER_STATE_KEY}:${userId}`);
+    window.localStorage.removeItem(`${PENDING_CONFIG_KEY}:${userId}`);
   } catch {
     // Storage may be disabled.
   }

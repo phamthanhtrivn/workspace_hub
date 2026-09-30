@@ -7,20 +7,26 @@ import type { PomodoroDailyStats } from "../types/pomodoro";
 
 interface PomodoroStatsCardProps {
   lastUpdated: number;
+  dailyGoalPomodoros?: number;
 }
 
-export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({ lastUpdated }: PomodoroStatsCardProps) {
+export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({ lastUpdated, dailyGoalPomodoros }: PomodoroStatsCardProps) {
   const [stats, setStats] = useState<PomodoroDailyStats | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [retryRevision, setRetryRevision] = useState(0);
 
   useEffect(() => {
     let active = true;
     getDailyStats()
-      .then((data) => { if (active) setStats(data); })
-      .catch(() => { if (active) setStats(null); });
+      .then((data) => { if (active) { setStats(data); setFailed(false); } })
+      .catch(() => { if (active) { setStats(null); setFailed(true); } });
     return () => { active = false; };
-  }, [lastUpdated]);
+  }, [lastUpdated, retryRevision]);
 
-  if (!stats) return null;
+  if (failed) return <p role="alert" className="text-xs text-rose-600">
+    Không tải được thống kê hôm nay. <button type="button" className="underline" onClick={() => setRetryRevision((value) => value + 1)}>Thử lại</button>
+  </p>;
+  if (!stats) return <p role="status" className="text-xs text-slate-500">Đang tải thống kê...</p>;
 
   const hours = Math.floor(stats.totalFocusMinutes / 60);
   const mins = stats.totalFocusMinutes % 60;
@@ -29,7 +35,7 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
 
   const goalPercent = Math.min(
     100,
-    Math.round((stats.completedPomodoros / (stats.dailyGoalPomodoros || 8)) * 100),
+    Math.round((stats.completedPomodoros / ((dailyGoalPomodoros ?? stats.dailyGoalPomodoros) || 8)) * 100),
   );
 
   return (
@@ -87,7 +93,7 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
             <span className="font-bold">{goalPercent}%</span>
           </div>
           <div className="mt-3 text-xl font-extrabold text-slate-900">
-            {stats.completedPomodoros} / {stats.dailyGoalPomodoros} phiên
+            {stats.completedPomodoros} / {dailyGoalPomodoros ?? stats.dailyGoalPomodoros} phiên
           </div>
           <div className="mt-2 w-full h-2 rounded-full bg-slate-200/80 overflow-hidden">
             <div

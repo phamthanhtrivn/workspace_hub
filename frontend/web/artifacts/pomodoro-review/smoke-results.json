@@ -1,0 +1,16 @@
+{
+  "apiMode": "mocked",
+  "realDatabaseVerified": false,
+  "checks": [
+    "Start/pause/reload retain remaining time",
+    "Task switch attributes time to previous task",
+    "Daily goal updates; original session duration survives settings change/reload",
+    "Notes capped at 2000; failed reset preserves session and retry saves it",
+    "Completion advances cycle and refreshes stats",
+    "Report JSON exports correct completed focus count",
+    "390px mobile view has no horizontal document or main content overflow",
+    "320px narrow mobile view fits timer and controls",
+    "Account B does not inherit account A timer/task/notes",
+    "No uncaught browser JavaScript errors"
+  ]
+}

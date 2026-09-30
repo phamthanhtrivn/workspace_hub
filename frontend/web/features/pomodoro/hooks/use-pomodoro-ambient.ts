@@ -12,7 +12,7 @@ import {
   type CustomTrackRecord,
 } from "../utils/audio-storage";
 
-export function usePomodoroAmbient(status: PomodoroStatus) {
+export function usePomodoroAmbient(status: PomodoroStatus, userId: string) {
   const [ambientTrack, setAmbientTrack] = useState<AmbientTrackId>("lofi_relax");
   const [ambientVolume, setAmbientVolume] = useState(0.5);
   const [autoPlayAmbient, setAutoPlayAmbient] = useState(true);
@@ -24,7 +24,7 @@ export function usePomodoroAmbient(status: PomodoroStatus) {
     ambientAudio.setTrack("lofi_relax");
     ambientAudio.setVolume(0.5);
     ambientAudio.setPlaybackListener(setIsAmbientPlaying);
-    void loadCustomAudioTracks()
+    void loadCustomAudioTracks(userId)
       .then((tracks) => {
         if (mounted) setCustomTracks(tracks);
       })
@@ -35,8 +35,9 @@ export function usePomodoroAmbient(status: PomodoroStatus) {
     return () => {
       mounted = false;
       ambientAudio.setPlaybackListener(null);
+      ambientAudio.pause();
     };
-  }, []);
+  }, [userId]);
 
   const playAmbient = useCallback(() => ambientAudio.play(), []);
   const pauseAmbient = useCallback(() => {
@@ -78,17 +79,17 @@ export function usePomodoroAmbient(status: PomodoroStatus) {
   }, []);
 
   const uploadCustomTrack = useCallback(async (file: File) => {
-    const saved = await saveCustomAudioTrack(file);
+    const saved = await saveCustomAudioTrack(userId, file);
     setCustomTracks((current) => [saved, ...current]);
     selectAmbientTrack(saved.id, saved.url);
     return saved;
-  }, [selectAmbientTrack]);
+  }, [selectAmbientTrack, userId]);
 
   const removeCustomTrack = useCallback(async (id: string) => {
-    await deleteCustomAudioTrack(id);
+    await deleteCustomAudioTrack(userId, id);
     setCustomTracks((current) => current.filter((track) => track.id !== id));
     if (ambientTrack === id) selectAmbientTrack("none");
-  }, [ambientTrack, selectAmbientTrack]);
+  }, [ambientTrack, selectAmbientTrack, userId]);
 
   return {
     ambientTrack,

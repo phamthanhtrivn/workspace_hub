@@ -70,7 +70,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
       {/* Dynamic Background Atmosphere Glow */}
       <div
         className={cn(
-          "pointer-events-none fixed -top-40 left-1/2 -z-10 h-[600px] w-[900px] -translate-x-1/2 rounded-full blur-[140px] transition-all duration-1000",
+          "pointer-events-none fixed -top-40 left-1/2 -z-10 h-[600px] w-[90%] max-w-[900px] -translate-x-1/2 rounded-full blur-[140px] transition-all duration-1000",
           mode === "FOCUS"
             ? "bg-blue-600/10"
             : mode === "SHORT_BREAK"
@@ -103,6 +103,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
             variant="outline"
             size="icon"
             onClick={() => setIsSettingsOpen(true)}
+            disabled={!isReady || isTaskActionPending}
             title="Cài đặt Pomodoro"
             aria-label="Mở cài đặt Pomodoro"
             className="size-9 rounded-full border-slate-200 bg-white text-slate-600 shadow-xs transition-colors hover:bg-slate-50 hover:text-slate-900"
@@ -240,7 +241,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
         {/* Right Column: Live Metrics & Session Log (Hidden in Minimal Mode) */}
         {!minimalMode && (
           <div className="lg:col-span-5 flex flex-col gap-6">
-            <PomodoroStatsOverview lastUpdated={sessionRevision} />
+            <PomodoroStatsOverview lastUpdated={sessionRevision} dailyGoalPomodoros={config.dailyGoalPomodoros} />
             <PomodoroReport lastUpdated={sessionRevision} />
           </div>
         )}

@@ -20,6 +20,7 @@ import { playPomodoroSound } from "../utils/sound";
 import { getNextPomodoroCycleStep } from "../utils/pomodoro-cycle";
 import {
   loadLocalPomodoroConfig,
+  loadPendingPomodoroConfig,
   loadLocalPomodoroTimerState,
   saveLocalPomodoroConfig,
   saveLocalPomodoroTimerState,
@@ -95,7 +96,7 @@ export function usePomodoroTimer(userId: string) {
     toggleAutoPlayAmbient,
     uploadCustomTrack,
     removeCustomTrack,
-  } = usePomodoroAmbient(status);
+  } = usePomodoroAmbient(status, userId);
 
   const targetEndTimeRef = useRef<number | null>(null);
   const sessionStartTimeRef = useRef<number | null>(null);
@@ -129,14 +130,15 @@ export function usePomodoroTimer(userId: string) {
 
     let mounted = true;
     const localConfig = loadLocalPomodoroConfig(userId);
+    const pendingLocalConfig = loadPendingPomodoroConfig(userId);
     const localTimerState = loadLocalPomodoroTimerState(userId);
 
     void Promise.allSettled([getPomodoroConfig(), getCalendarPomodoroTimerState()])
       .then(([configResult, timerStateResult]) => {
         if (!mounted) return;
-        const cfg = configResult.status === "fulfilled"
+        const cfg = pendingLocalConfig ?? (configResult.status === "fulfilled"
           ? configResult.value
-          : localConfig ?? DEFAULT_POMODORO_CONFIG;
+          : localConfig ?? DEFAULT_POMODORO_CONFIG);
         const serverState = timerStateResult.status === "fulfilled"
           ? timerStateResult.value
           : null;
@@ -145,11 +147,12 @@ export function usePomodoroTimer(userId: string) {
             ? localTimerState
             : serverState
           : serverState ?? localTimerState;
-        configSyncFailedRef.current = configResult.status === "rejected";
+        configSyncFailedRef.current = configResult.status === "rejected" || Boolean(pendingLocalConfig);
         stateSyncFailedRef.current = timerStateResult.status === "rejected";
         const hasServerError = configSyncFailedRef.current || stateSyncFailedRef.current;
 
-        if (configResult.status === "fulfilled") saveLocalPomodoroConfig(userId, cfg);
+        if (pendingLocalConfig) pendingConfigRef.current = pendingLocalConfig;
+        else if (configResult.status === "fulfilled") saveLocalPomodoroConfig(userId, cfg);
         else if (localConfig) pendingConfigRef.current = localConfig;
         if (saved) saveLocalPomodoroTimerState(userId, saved);
         if (saved && saved === localTimerState && saved !== serverState) {
@@ -186,6 +189,7 @@ export function usePomodoroTimer(userId: string) {
     return () => {
       mounted = false;
       mountedRef.current = false;
+      document.title = initialTitleRef.current;
       isHydratedRef.current = false;
       pendingStateRef.current = null;
       pendingConfigRef.current = null;
@@ -202,6 +206,8 @@ export function usePomodoroTimer(userId: string) {
         failedConfig = pendingConfig;
         pendingConfigRef.current = null;
         await savePomodoroConfig(pendingConfig);
+        if (!mountedRef.current) return;
+        saveLocalPomodoroConfig(userId, pendingConfig);
         failedConfig = null;
       }
       configSyncFailedRef.current = false;
@@ -215,7 +221,7 @@ export function usePomodoroTimer(userId: string) {
     } finally {
       configSaveInFlightRef.current = false;
     }
-  }, []);
+  }, [userId]);
 
   // Keep one write in flight and replace queued changes with the latest state.
   const flushPendingState = useCallback(async () => {
@@ -239,7 +245,7 @@ export function usePomodoroTimer(userId: string) {
         });
         if (!mountedRef.current) return;
         stateVersionRef.current = saved.version;
-        saveLocalPomodoroTimerState(userId, {
+        if (!pendingStateRef.current) saveLocalPomodoroTimerState(userId, {
           ...snapshot,
           version: saved.version,
           updatedAt: saved.updatedAt ?? new Date().toISOString(),
@@ -554,7 +560,7 @@ export function usePomodoroTimer(userId: string) {
   // -----------------------------------------------------------
 
   const start = useCallback(() => {
-    if (!isHydratedRef.current || taskActionInProgressRef.current) return;
+    if (!isHydratedRef.current || taskActionInProgressRef.current || status !== "IDLE") return;
     // Request notification permission if needed
     if (
       config.notificationEnabled &&
@@ -566,7 +572,7 @@ export function usePomodoroTimer(userId: string) {
     }
 
     const now = Date.now();
-    const duration = timeLeft > 0 ? timeLeft : getDurationForMode(mode, config);
+    const duration = getDurationForMode(mode, config);
     targetEndTimeRef.current = now + duration * 1000;
     if (!sessionStartTimeRef.current) {
       sessionStartTimeRef.current = now;
@@ -596,7 +602,6 @@ export function usePomodoroTimer(userId: string) {
     );
   }, [
     config,
-    timeLeft,
     totalDuration,
     status,
     mode,
@@ -615,6 +620,11 @@ export function usePomodoroTimer(userId: string) {
     if (status !== "RUNNING") return;
     if (completionInProgressRef.current || (targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())) return;
 
+    const remaining = targetEndTimeRef.current !== null
+      ? Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000))
+      : timeLeftRef.current;
+    timeLeftRef.current = remaining;
+    setTimeLeft(remaining);
     setStatus("PAUSED");
     targetEndTimeRef.current = null;
 
@@ -625,12 +635,12 @@ export function usePomodoroTimer(userId: string) {
       mode,
       "PAUSED",
       null,
-      timeLeft,
+      remaining,
       cycleCount,
       activeTask,
       notes,
     );
-  }, [status, mode, timeLeft, cycleCount, activeTask, notes, persistState, pauseAmbient]);
+  }, [status, mode, cycleCount, activeTask, notes, persistState, pauseAmbient]);
 
   const resume = useCallback(() => {
     if (taskActionInProgressRef.current) return;
@@ -656,138 +666,82 @@ export function usePomodoroTimer(userId: string) {
     );
   }, [status, timeLeft, mode, cycleCount, activeTask, notes, autoPlayAmbient, ambientTrack, persistState, playAmbient]);
 
-  const reset = useCallback(
-    () => {
-      if (taskActionInProgressRef.current) return;
-      if (completionInProgressRef.current || (status === "RUNNING" && targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())) return;
-      pauseAmbient();
+  const saveInterruptedSession = useCallback(async (
+    sessionStatus: PomodoroSessionStatus,
+    minimumSeconds: number,
+  ): Promise<boolean> => {
+    if (!isHydratedRef.current || taskActionInProgressRef.current || completionInProgressRef.current ||
+      (status === "RUNNING" && targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())) return false;
+    pauseAmbient();
+    const startedAt = sessionStartTimeRef.current;
+    if (startedAt === null || status === "IDLE") return true;
+    const remaining = targetEndTimeRef.current !== null
+      ? Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000))
+      : timeLeftRef.current;
+    const actualSeconds = Math.max(0, totalDurationRef.current - remaining);
+    if (actualSeconds < minimumSeconds) return true;
 
-      // Save partial session if it was running for at least 30s
-      if (sessionStartTimeRef.current && status !== "IDLE") {
-        const actualSeconds = Math.max(0, totalDuration - timeLeft);
-        if (actualSeconds >= 30) {
-          void recordPomodoroSession({
-            eventId: activeTask?.calendarEventId,
-            taskId: activeTask?.id,
-            taskTitle: activeTask?.title,
-            projectId: activeTask?.projectId,
-            projectName: activeTask?.projectName,
-            sessionType: mode,
-            status: "STOPPED",
-            startedAt: new Date(sessionStartTimeRef.current).toISOString(),
-            endedAt: new Date().toISOString(),
-            durationMinutes: Math.round(actualSeconds / 60),
-            actualSeconds,
-            notes: notes.trim() || undefined,
-          }).then(() => setSessionRevision((revision) => revision + 1))
-            .catch(() => toast.error("Không lưu được phiên Pomodoro lên máy chủ."));
-        }
-      }
+    taskActionInProgressRef.current = true;
+    setIsTaskActionPending(true);
+    targetEndTimeRef.current = null;
+    timeLeftRef.current = remaining;
+    setTimeLeft(remaining);
+    setStatus("PAUSED");
+    persistState(mode, "PAUSED", null, remaining, cycleCount, activeTask, notes);
+    try {
+      await recordPomodoroSession({
+        eventId: activeTask?.calendarEventId,
+        taskId: activeTask?.id,
+        taskTitle: activeTask?.title,
+        projectId: activeTask?.projectId,
+        projectName: activeTask?.projectName,
+        sessionType: mode,
+        status: sessionStatus,
+        startedAt: new Date(startedAt).toISOString(),
+        endedAt: new Date().toISOString(),
+        durationMinutes: Math.round(totalDurationRef.current / 60),
+        actualSeconds,
+        notes: notes.trim() || undefined,
+      });
+      if (!mountedRef.current) return false;
+      setSessionRevision((revision) => revision + 1);
+      return true;
+    } catch {
+      if (mountedRef.current) toast.error("Chưa lưu được phiên. Đã tạm dừng và giữ dữ liệu; hãy thử lại.");
+      return false;
+    } finally {
+      taskActionInProgressRef.current = false;
+      setIsTaskActionPending(false);
+    }
+  }, [status, mode, cycleCount, activeTask, notes, persistState, pauseAmbient]);
 
-      const defaultDur = getDurationForMode(mode, config);
-      setStatus("IDLE");
-      setTimeLeft(defaultDur);
-      setTotalDuration(defaultDur);
-      targetEndTimeRef.current = null;
-      sessionStartTimeRef.current = null;
-      persistState(
-        mode,
-        "IDLE",
-        null,
-        defaultDur,
-        cycleCount,
-        activeTask,
-        notes,
-      );
-    },
-    [status, mode, config, cycleCount, activeTask, notes, totalDuration, timeLeft, persistState, pauseAmbient, setTotalDuration],
-  );
+  const setIdleMode = useCallback((nextMode: PomodoroMode, nextCycle: number) => {
+    const duration = getDurationForMode(nextMode, config);
+    sessionStartTimeRef.current = null;
+    targetEndTimeRef.current = null;
+    timeLeftRef.current = duration;
+    setMode(nextMode);
+    setStatus("IDLE");
+    setCycleCount(nextCycle);
+    setTimeLeft(duration);
+    setTotalDuration(duration);
+    persistState(nextMode, "IDLE", null, duration, nextCycle, activeTask, notes);
+  }, [config, activeTask, notes, persistState, setTotalDuration]);
 
-  const skip = useCallback(
-    (statusToRecord: PomodoroSessionStatus = "SKIPPED") => {
-      if (taskActionInProgressRef.current) return;
-      if (completionInProgressRef.current || (status === "RUNNING" && targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())) return;
-      pauseAmbient();
+  const reset = useCallback(async () => {
+    if (await saveInterruptedSession("STOPPED", 30)) setIdleMode(mode, cycleCount);
+  }, [mode, cycleCount, saveInterruptedSession, setIdleMode]);
 
-      if (sessionStartTimeRef.current) {
-        const actualSeconds = Math.max(0, totalDuration - timeLeft);
-        void recordPomodoroSession({
-          eventId: activeTask?.calendarEventId,
-          taskId: activeTask?.id,
-          taskTitle: activeTask?.title,
-          projectId: activeTask?.projectId,
-          projectName: activeTask?.projectName,
-          sessionType: mode,
-          status: statusToRecord,
-          startedAt: new Date(sessionStartTimeRef.current).toISOString(),
-          endedAt: new Date().toISOString(),
-          durationMinutes: Math.round(actualSeconds / 60),
-          actualSeconds,
-          notes: notes.trim() || undefined,
-        }).then(() => setSessionRevision((revision) => revision + 1))
-          .catch(() => toast.error("Không lưu được phiên Pomodoro lên máy chủ."));
-      }
+  const skip = useCallback(async (statusToRecord: PomodoroSessionStatus = "SKIPPED") => {
+    if (!await saveInterruptedSession(statusToRecord, 0)) return;
+    const next = getNextPomodoroCycleStep(mode, cycleCount, config.longBreakInterval);
+    setIdleMode(next.mode, next.cycleCount);
+  }, [mode, cycleCount, config.longBreakInterval, saveInterruptedSession, setIdleMode]);
 
-      // Switch to next mode
-      const nextStep = getNextPomodoroCycleStep(
-        mode,
-        cycleCount,
-        config.longBreakInterval || 2,
-      );
-      const nextMode = nextStep.mode;
-      const nextCycle = nextStep.cycleCount;
-      setCycleCount(nextCycle);
-
-      setMode(nextMode);
-      const nextDuration = getDurationForMode(nextMode, config);
-      setStatus("IDLE");
-      setTimeLeft(nextDuration);
-      setTotalDuration(nextDuration);
-      targetEndTimeRef.current = null;
-      sessionStartTimeRef.current = null;
-      persistState(
-        nextMode,
-        "IDLE",
-        null,
-        nextDuration,
-        nextCycle,
-        activeTask,
-        notes,
-      );
-    },
-    [mode, status, cycleCount, config, activeTask, notes, totalDuration, timeLeft, persistState, pauseAmbient, setTotalDuration],
-  );
-
-  const switchMode = useCallback(
-    (newMode: PomodoroMode) => {
-      if (taskActionInProgressRef.current) return;
-      if (mode === newMode) return;
-      if (completionInProgressRef.current || (status === "RUNNING" && targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())) return;
-      if (status !== "IDLE") {
-        reset();
-      } else if (newMode !== "FOCUS") {
-        pauseAmbient();
-      }
-
-      setMode(newMode);
-      const newDur = getDurationForMode(newMode, config);
-      setStatus("IDLE");
-      setTimeLeft(newDur);
-      setTotalDuration(newDur);
-      targetEndTimeRef.current = null;
-      sessionStartTimeRef.current = null;
-      persistState(
-        newMode,
-        "IDLE",
-        null,
-        newDur,
-        cycleCount,
-        activeTask,
-        notes,
-      );
-    },
-    [mode, status, reset, config, cycleCount, activeTask, notes, persistState, pauseAmbient, setTotalDuration],
-  );
+  const switchMode = useCallback(async (newMode: PomodoroMode) => {
+    if (mode === newMode || !await saveInterruptedSession("STOPPED", 30)) return;
+    setIdleMode(newMode, cycleCount);
+  }, [mode, cycleCount, saveInterruptedSession, setIdleMode]);
 
   const transitionTask = useCallback(async (
     nextTask: PomodoroActiveTask | null,
@@ -882,9 +836,9 @@ export function usePomodoroTimer(userId: string) {
 
   const updateConfig = useCallback(
     async (newConfig: PomodoroConfig) => {
-      if (taskActionInProgressRef.current) return;
+      if (!isHydratedRef.current || taskActionInProgressRef.current) return;
       setConfig(newConfig);
-      saveLocalPomodoroConfig(userId, newConfig);
+      saveLocalPomodoroConfig(userId, newConfig, true);
       pendingConfigRef.current = newConfig;
       void flushPendingConfig();
 

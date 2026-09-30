@@ -124,23 +124,23 @@ export function PomodoroTimerDisplay({
   const ModeIcon = modeThemes?.icon || Sparkles;
 
   return (
-    <div className="flex flex-col items-center justify-center relative select-none">
+    <div className="flex w-full min-w-0 flex-col items-center justify-center relative select-none">
       {/* Ambient background aura */}
       <div
         className={cn(
-          "absolute -inset-10 -z-10 rounded-full blur-3xl transition-opacity duration-1000 pointer-events-none",
+          "absolute inset-0 -z-10 rounded-full blur-3xl transition-opacity duration-1000 pointer-events-none",
           modeThemes.glowBg,
-          isRunning ? "opacity-100 scale-105" : "opacity-40",
+          isRunning ? "opacity-100" : "opacity-40",
         )}
       />
 
       {/* Segmented Mode Selector */}
-      <div className="flex items-center gap-1 rounded-2xl bg-slate-100/90 p-1.5 border border-slate-200/70 shadow-inner backdrop-blur-sm">
+      <div className="flex max-w-full items-center gap-1 rounded-2xl bg-slate-100/90 p-1.5 border border-slate-200/70 shadow-inner backdrop-blur-sm">
         <button
           type="button"
           onClick={() => onSwitchMode("FOCUS")}
           className={cn(
-            "flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-medium tracking-tight transition-all duration-200",
+            "flex items-center gap-1.5 rounded-xl px-2 sm:px-4 py-2 text-xs font-medium tracking-tight transition-all duration-200",
             mode === "FOCUS"
               ? modeThemes.activeTab
               : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
@@ -154,7 +154,7 @@ export function PomodoroTimerDisplay({
           type="button"
           onClick={() => onSwitchMode("SHORT_BREAK")}
           className={cn(
-            "flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-medium tracking-tight transition-all duration-200",
+            "flex items-center gap-1.5 rounded-xl px-2 sm:px-4 py-2 text-xs font-medium tracking-tight transition-all duration-200",
             mode === "SHORT_BREAK"
               ? modeThemes.activeTab
               : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
@@ -168,7 +168,7 @@ export function PomodoroTimerDisplay({
           type="button"
           onClick={() => onSwitchMode("LONG_BREAK")}
           className={cn(
-            "flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-medium tracking-tight transition-all duration-200",
+            "flex items-center gap-1.5 rounded-xl px-2 sm:px-4 py-2 text-xs font-medium tracking-tight transition-all duration-200",
             mode === "LONG_BREAK"
               ? modeThemes.activeTab
               : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
@@ -180,9 +180,9 @@ export function PomodoroTimerDisplay({
       </div>
 
       {/* Center Dial & Precision Timepiece Ring */}
-      <div className="relative my-6 flex items-center justify-center">
+      <div className="relative my-6 flex w-full max-w-[360px] items-center justify-center">
         {/* Outer Decorative Track Ring with tick marks */}
-        <div className="relative flex size-[360px] shrink-0 aspect-square items-center justify-center rounded-full bg-white shadow-[0_12px_40px_-12px_rgba(15,40,84,0.12)] border border-slate-200/80">
+        <div className="relative flex w-full aspect-square items-center justify-center rounded-full bg-white shadow-[0_12px_40px_-12px_rgba(15,40,84,0.12)] border border-slate-200/80">
           {/* SVG Progress Circle */}
           <svg
             width={dialSize}

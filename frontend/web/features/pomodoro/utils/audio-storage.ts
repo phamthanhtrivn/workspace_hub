@@ -18,13 +18,13 @@ interface StoredTrackEntity {
   createdAt: number;
 }
 
-function openAudioDatabase(): Promise<IDBDatabase> {
+function openAudioDatabase(userId: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    if (typeof window === "undefined" || !("indexedDB" in window)) {
+    if (!userId || typeof window === "undefined" || !("indexedDB" in window)) {
       return reject(new Error("IndexedDB is not supported"));
     }
 
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(`${DB_NAME}:${userId}`, DB_VERSION);
 
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -38,8 +38,8 @@ function openAudioDatabase(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveCustomAudioTrack(file: File): Promise<CustomTrackRecord> {
-  const db = await openAudioDatabase();
+export async function saveCustomAudioTrack(userId: string, file: File): Promise<CustomTrackRecord> {
+  const db = await openAudioDatabase(userId);
   const id = `custom_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const cleanName = file.name.replace(/\.[^/.]+$/, ""); // Strip file extension
 
@@ -70,9 +70,9 @@ export async function saveCustomAudioTrack(file: File): Promise<CustomTrackRecor
   };
 }
 
-export async function loadCustomAudioTracks(): Promise<CustomTrackRecord[]> {
+export async function loadCustomAudioTracks(userId: string): Promise<CustomTrackRecord[]> {
   try {
-    const db = await openAudioDatabase();
+    const db = await openAudioDatabase(userId);
     const entities = await new Promise<StoredTrackEntity[]>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readonly");
       const store = tx.objectStore(STORE_NAME);
@@ -93,9 +93,9 @@ export async function loadCustomAudioTracks(): Promise<CustomTrackRecord[]> {
   }
 }
 
-export async function deleteCustomAudioTrack(id: string): Promise<void> {
+export async function deleteCustomAudioTrack(userId: string, id: string): Promise<void> {
   try {
-    const db = await openAudioDatabase();
+    const db = await openAudioDatabase(userId);
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);

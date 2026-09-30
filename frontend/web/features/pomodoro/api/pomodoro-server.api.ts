@@ -82,7 +82,7 @@ export async function recordPomodoroSession(
 }
 
 export async function getRecentSessions(): Promise<PomodoroSessionRecord[]> {
-  const sessions = await getTodayCalendarPomodoroSessions();
+  const sessions = await getTodayCalendarPomodoroSessions(Intl.DateTimeFormat().resolvedOptions().timeZone);
   return sessions.map((session) => ({
     ...session,
     startedAt: String(session.startedAt),
@@ -97,5 +97,5 @@ export async function getRecentSessions(): Promise<PomodoroSessionRecord[]> {
 }
 
 export async function getDailyStats(): Promise<PomodoroDailyStats> {
-  return getCalendarPomodoroDailyStats();
+  return getCalendarPomodoroDailyStats(undefined, Intl.DateTimeFormat().resolvedOptions().timeZone);
 }

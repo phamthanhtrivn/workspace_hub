@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npm run test:calendar && npm run test:project && npm run test:notification",
+    "test": "npm run test:calendar && npm run test:project && npm run test:notification && npm run test:pomodoro",
+    "test:pomodoro": "vitest run features/pomodoro --configLoader runner --maxWorkers 2",
     "test:calendar": "vitest run features/calendar --configLoader runner",
     "test:project": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test features/project/api/pagination.test.mjs && vitest run --config vitest.project.config.mts --configLoader runner",
     "test:notification": "vitest run features/notification --passWithNoTests --config vitest.config.mts --configLoader runner"

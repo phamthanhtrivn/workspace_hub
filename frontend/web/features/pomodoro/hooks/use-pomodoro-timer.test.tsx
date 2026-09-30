@@ -44,6 +44,69 @@ function restoreTaskSession(status: "RUNNING" | "PAUSED" | "IDLE" = "RUNNING") {
   return task;
 }
 
+it.each(["reset", "skip", "switchMode"] as const)("preserves the session when %s cannot save it", async (action) => {
+  restoreTaskSession("PAUSED");
+  const state = await getCalendarPomodoroTimerState();
+  vi.mocked(getCalendarPomodoroTimerState).mockResolvedValue({ ...state!, remainingSeconds: 900 });
+  vi.mocked(recordPomodoroSession).mockRejectedValueOnce(new Error("offline"));
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(result.current.isReady).toBe(true));
+  await act(async () => {
+    if (action === "switchMode") await result.current.switchMode("SHORT_BREAK");
+    else await result.current[action]();
+  });
+  expect(result.current.status).toBe("PAUSED");
+  expect(result.current.mode).toBe("FOCUS");
+  expect(result.current.timeLeft).toBe(900);
+  await act(async () => {
+    if (action === "switchMode") await result.current.switchMode("SHORT_BREAK");
+    else await result.current[action]();
+  });
+  expect(recordPomodoroSession).toHaveBeenCalledTimes(2);
+  expect(result.current.status).toBe("IDLE");
+});
+
+it("keeps unsynced settings through reload even when the server returns old settings", async () => {
+  restoreTaskSession("IDLE");
+  vi.mocked(savePomodoroConfig).mockRejectedValue(new Error("offline"));
+  const first = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(first.result.current.isReady).toBe(true));
+  await act(async () => first.result.current.updateConfig({ ...DEFAULT_POMODORO_CONFIG, focusDuration: 40 }));
+  first.unmount();
+  const second = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(second.result.current.isReady).toBe(true));
+  expect(second.result.current.config.focusDuration).toBe(40);
+});
+
+it("does not replace newer local notes with an older save response", async () => {
+  restoreTaskSession("IDLE");
+  vi.mocked(getCalendarPomodoroTimerState).mockResolvedValue(null);
+  let release!: (state: Awaited<ReturnType<typeof saveCalendarPomodoroTimerState>>) => void;
+  vi.mocked(saveCalendarPomodoroTimerState)
+    .mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }))
+    .mockRejectedValueOnce(new Error("offline"));
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(result.current.isReady).toBe(true));
+  await act(async () => result.current.setNotes("old"));
+  await act(async () => result.current.setNotes("newest"));
+  await act(async () => release({ version: 1 } as Awaited<ReturnType<typeof saveCalendarPomodoroTimerState>>));
+  expect(loadLocalPomodoroTimerState("user-a")?.notes).toBe("newest");
+});
+
+it("pauses using the actual deadline even if no timer tick has run", async () => {
+  restoreTaskSession();
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(result.current.isReady).toBe(true));
+  const now = Date.now();
+  const clock = vi.spyOn(Date, "now").mockReturnValue(now + 10_000);
+  try {
+    act(() => result.current.pause());
+    expect(result.current.timeLeft).toBe(1470);
+  } finally {
+    clock.mockRestore();
+  }
+});
+
 it("does not restore another account's task or notes when the server has no state", async () => {
   restoreTaskSession("PAUSED");
   const first = renderHook(() => usePomodoroTimer("user-a"));
@@ -69,7 +132,7 @@ it.each(["RUNNING", "PAUSED"] as const)("saves task A before selecting B from %s
   expect(result.current.timeLeft).toBe(1500);
   expect(result.current.status).toBe("IDLE");
   expect(result.current.notes).toBe("");
-  act(() => result.current.reset());
+  await act(async () => { await result.current.reset(); });
   expect(recordPomodoroSession).toHaveBeenCalledTimes(1);
 });
 
@@ -147,7 +210,7 @@ it("records the original planned duration when a restored session expires after 
   await waitFor(() => expect(recordPomodoroSession).toHaveBeenCalledWith(expect.objectContaining({
     status: "COMPLETED", actualSeconds: 1500, durationMinutes: 25,
   })), { timeout: 2500 });
-  expect(result.current.mode).toBe("SHORT_BREAK");
+  await waitFor(() => expect(result.current.mode).toBe("SHORT_BREAK"));
 });
 
 it("locks task selection until the previous task session is saved", async () => {
@@ -328,7 +391,7 @@ it("records a running session before switching timer modes", async () => {
 
   const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(result.current.isReady).toBe(true));
-  await act(async () => { result.current.switchMode("SHORT_BREAK"); });
+  await act(async () => { await result.current.switchMode("SHORT_BREAK"); });
 
   expect(recordPomodoroSession).toHaveBeenCalledWith(expect.objectContaining({
     sessionType: "FOCUS", status: "STOPPED",

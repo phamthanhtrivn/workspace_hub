@@ -44,7 +44,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
   return (
     <div className="flex items-center justify-center">
       {/* Primary Action Dock */}
-      <div className="flex items-center gap-3 p-1.5 rounded-full bg-white/90 border border-slate-200/90 shadow-lg shadow-slate-200/40 backdrop-blur-md">
+      <div className="flex items-center gap-1 sm:gap-3 p-1.5 rounded-full bg-white/90 border border-slate-200/90 shadow-lg shadow-slate-200/40 backdrop-blur-md">
         {/* Reset Button */}
         <Button
           type="button"
@@ -65,7 +65,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             onClick={onStart}
             disabled={disabled}
             className={cn(
-              "h-13 px-8 rounded-full text-sm font-black tracking-wider uppercase shadow-md transition-all duration-200 active:scale-95",
+              "h-13 px-3 sm:px-8 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase shadow-md transition-all duration-200 active:scale-95",
               isFocus
                 ? "bg-gradient-to-r from-[var(--color-primary,#1C4D8D)] to-[var(--color-primary-strong,#0F2854)] text-white shadow-blue-900/25 hover:shadow-blue-900/35 hover:brightness-110"
                 : "bg-gradient-to-r from-teal-600 to-emerald-700 text-white shadow-teal-900/25 hover:brightness-110",
@@ -79,7 +79,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             type="button"
             onClick={onPause}
             disabled={disabled}
-            className="h-13 px-8 rounded-full text-sm font-black tracking-wider uppercase bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-900/20 hover:brightness-110 transition-all duration-200 active:scale-95"
+            className="h-13 px-3 sm:px-8 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-900/20 hover:brightness-110 transition-all duration-200 active:scale-95"
           >
             <Pause className="mr-2 size-4.5 fill-current" />
             TẠM DỪNG
@@ -90,7 +90,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             onClick={onResume}
             disabled={disabled}
             className={cn(
-              "h-13 px-8 rounded-full text-sm font-black tracking-wider uppercase shadow-md transition-all duration-200 active:scale-95",
+              "h-13 px-3 sm:px-8 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase shadow-md transition-all duration-200 active:scale-95",
               isFocus
                 ? "bg-gradient-to-r from-[var(--color-primary,#1C4D8D)] to-[var(--color-primary-strong,#0F2854)] text-white shadow-blue-900/25 hover:brightness-110"
                 : "bg-gradient-to-r from-teal-600 to-emerald-700 text-white shadow-teal-900/25 hover:brightness-110",
