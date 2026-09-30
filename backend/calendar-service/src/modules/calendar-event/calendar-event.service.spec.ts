@@ -161,6 +161,7 @@ describe('CalendarEventService', () => {
     const notificationOutbox = {
       enqueueEventInvitations: jest.fn().mockResolvedValue(undefined),
       enqueueAttendeeResponse: jest.fn().mockResolvedValue(undefined),
+      enqueueAttendeeRemoval: jest.fn().mockResolvedValue(undefined),
       enqueueEventUpdate: jest.fn().mockResolvedValue(undefined),
       enqueueEventCancellation: jest.fn().mockResolvedValue(undefined),
     };
@@ -308,11 +309,14 @@ describe('CalendarEventService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('marks a calendar task as completed', async () => {
+  it.each([
+    { sourceType: EventSourceType.TASK, description: null },
+    { sourceType: EventSourceType.USER, description: '[TASK] Legacy task' },
+  ])('marks a calendar task as completed: %j', async (taskFields) => {
     const { service, prisma } = createService();
     prisma.calendarEvent.findUnique.mockResolvedValue({
       ...event,
-      sourceType: EventSourceType.TASK,
+      ...taskFields,
     });
 
     await service.updateTaskCompletion(ownerId, eventId, true);

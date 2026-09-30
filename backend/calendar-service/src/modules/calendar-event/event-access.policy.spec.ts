@@ -19,10 +19,30 @@ describe('EventAccessPolicy', () => {
     ).not.toThrow();
   });
 
-  it('rejects an outsider from viewing a private event', () => {
+  it.each([EventVisibility.DEFAULT, EventVisibility.PRIVATE])(
+    'rejects an outsider from viewing a %s event',
+    (visibility) => {
+      expect(() =>
+        policy.assertCanViewEvent('outsider', {
+          ...event,
+          visibility,
+        } as EventWithRelations),
+      ).toThrow(ForbiddenException);
+    },
+  );
+
+  it('allows viewing a public event without allowing management', () => {
+    const publicEvent = {
+      ...event,
+      visibility: EventVisibility.PUBLIC,
+    } as EventWithRelations;
+
     expect(() =>
-      policy.assertCanViewEvent('outsider', event as EventWithRelations),
-    ).toThrow(ForbiddenException);
+      policy.assertCanViewEvent('outsider', publicEvent),
+    ).not.toThrow();
+    expect(() => policy.assertCanManageEvent('outsider', publicEvent)).toThrow(
+      ForbiddenException,
+    );
   });
 
   it('rejects management of synchronized task events', () => {
