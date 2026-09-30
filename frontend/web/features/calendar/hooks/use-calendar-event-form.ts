@@ -82,10 +82,12 @@ export function useCalendarEventForm({
       event,
     }),
   );
+
   const form = useForm<CalendarEventEditorValues>({
     resolver: zodResolver(calendarEventFormSchema),
     defaultValues: defaults.values,
   });
+  
   const [attendees, setAttendees] = useState(defaults.attendees);
   const [documentIds, setDocumentIds] = useState<string[]>(
     defaults.documentIds,

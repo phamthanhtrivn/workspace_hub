@@ -111,9 +111,14 @@ export function saveLocalPomodoroConfig(userId: string, config: PomodoroConfig, 
   const unsynced = loadPendingPomodoroConfig(userId);
   if (!pending && unsynced && JSON.stringify(unsynced) !== JSON.stringify(config)) return;
   writeEnvelope(`${CONFIG_KEY}:${userId}`, config);
-  if (pending) writeEnvelope(`${PENDING_CONFIG_KEY}:${userId}`, config);
-  else if (typeof window !== "undefined") {
-    try { window.localStorage.removeItem(`${PENDING_CONFIG_KEY}:${userId}`); } catch { /* Storage may be disabled. */ }
+  if (pending) {
+    writeEnvelope(`${PENDING_CONFIG_KEY}:${userId}`, config);
+  } else if (typeof window !== "undefined") {
+    try {
+      window.localStorage.removeItem(`${PENDING_CONFIG_KEY}:${userId}`);
+    } catch {
+      // Storage may be disabled.
+    }
   }
 }
 

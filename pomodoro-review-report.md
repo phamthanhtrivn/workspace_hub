@@ -38,7 +38,7 @@ Kiểm thử Chromium bao gồm bắt đầu/tạm dừng/reload, đổi task, �
 
 Script: `frontend/web/scripts/pomodoro-smoke.py`.
 
-Bằng chứng trong `frontend/web/artifacts/pomodoro-review/`: `smoke-results.json`, `report-export.json`, `desktop.png`, `mobile.png`, `mobile-320.png`. Các ảnh và JSON chứa dữ liệu kiểm thử giả lập; không dùng làm số liệu năng suất thực tế.
+Script sinh bằng chứng vào `frontend/web/artifacts/pomodoro-review/`: `smoke-results.json`, `report-export.json`, `desktop.png`, `mobile.png`, `mobile-320.png`. Thư mục này được bỏ qua bởi Git; chạy lại script để tạo các file. Các ảnh và JSON chứa dữ liệu kiểm thử giả lập; không dùng làm số liệu năng suất thực tế.
 
 Để chạy lại kiểm thử giao diện: ở `frontend/web`, chạy `npm.cmd run build`, khởi động `npm.cmd run start -- --port 3100` ở một terminal; ở terminal khác chạy `python scripts/pomodoro-smoke.py`. Cần Python Playwright và Chromium đã cài đặt.
 

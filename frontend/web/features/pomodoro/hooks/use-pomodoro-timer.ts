@@ -245,11 +245,13 @@ export function usePomodoroTimer(userId: string) {
         });
         if (!mountedRef.current) return;
         stateVersionRef.current = saved.version;
-        if (!pendingStateRef.current) saveLocalPomodoroTimerState(userId, {
-          ...snapshot,
-          version: saved.version,
-          updatedAt: saved.updatedAt ?? new Date().toISOString(),
-        });
+        if (!pendingStateRef.current) {
+          saveLocalPomodoroTimerState(userId, {
+            ...snapshot,
+            version: saved.version,
+            updatedAt: saved.updatedAt ?? new Date().toISOString(),
+          });
+        }
         failedSnapshot = null;
       }
       stateSyncFailedRef.current = false;
@@ -670,8 +672,14 @@ export function usePomodoroTimer(userId: string) {
     sessionStatus: PomodoroSessionStatus,
     minimumSeconds: number,
   ): Promise<boolean> => {
-    if (!isHydratedRef.current || taskActionInProgressRef.current || completionInProgressRef.current ||
-      (status === "RUNNING" && targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())) return false;
+    if (
+      !isHydratedRef.current ||
+      taskActionInProgressRef.current ||
+      completionInProgressRef.current ||
+      (status === "RUNNING" && targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())
+    ) {
+      return false;
+    }
     pauseAmbient();
     const startedAt = sessionStartTimeRef.current;
     if (startedAt === null || status === "IDLE") return true;
@@ -707,7 +715,9 @@ export function usePomodoroTimer(userId: string) {
       setSessionRevision((revision) => revision + 1);
       return true;
     } catch {
-      if (mountedRef.current) toast.error("Chưa lưu được phiên. Đã tạm dừng và giữ dữ liệu; hãy thử lại.");
+      if (mountedRef.current) {
+        toast.error("Chưa lưu được phiên. Đã tạm dừng và giữ dữ liệu; hãy thử lại.");
+      }
       return false;
     } finally {
       taskActionInProgressRef.current = false;
