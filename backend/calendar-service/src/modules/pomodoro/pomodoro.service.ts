@@ -143,6 +143,7 @@ export class PomodoroService {
       }
     }
     const data: Prisma.PomodoroTimerStateUncheckedUpdateInput = {
+      plannedSeconds: dto.plannedSeconds,
       mode: dto.mode,
       status: dto.status,
       targetEndAt: dto.targetEndAt ? new Date(dto.targetEndAt) : null,
@@ -202,6 +203,7 @@ export class PomodoroService {
           status: 'IDLE',
           targetEndAt: null,
           remainingSeconds: 0,
+          plannedSeconds: null,
           sessionStartAt: null,
           eventId: null,
           taskId: null,

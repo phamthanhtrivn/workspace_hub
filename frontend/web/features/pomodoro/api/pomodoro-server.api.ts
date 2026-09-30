@@ -10,6 +10,7 @@ import type {
   PomodoroDailyStats,
   PomodoroSessionRecord,
 } from "../types/pomodoro";
+import { limitPomodoroNotes } from "../utils/pomodoro-notes";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -65,7 +66,7 @@ export async function recordPomodoroSession(
       ? session.actualSeconds
       : Math.max(1, session.durationMinutes * 60),
     actualSeconds: session.actualSeconds,
-    notes: session.notes,
+    notes: session.notes ? limitPomodoroNotes(session.notes) : undefined,
   });
   return {
     ...result,

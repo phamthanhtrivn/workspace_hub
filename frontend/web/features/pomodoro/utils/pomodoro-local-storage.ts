@@ -73,6 +73,8 @@ function isTimerState(value: unknown): value is CalendarPomodoroTimerState {
     ["IDLE", "RUNNING", "PAUSED"].includes(String(value.status)) &&
     (value.targetEndAt === null || typeof value.targetEndAt === "string") &&
     Number.isFinite(value.remainingSeconds) &&
+    (value.plannedSeconds == null || (Number.isInteger(value.plannedSeconds) &&
+      Number(value.plannedSeconds) >= 1 && Number(value.plannedSeconds) <= 86400)) &&
     Number.isFinite(value.cycleCount) &&
     (value.sessionStartAt === null || typeof value.sessionStartAt === "string") &&
     (value.eventId === null || typeof value.eventId === "string") &&
@@ -84,19 +86,41 @@ function isTimerState(value: unknown): value is CalendarPomodoroTimerState {
   );
 }
 
-export function loadLocalPomodoroConfig(): PomodoroConfig | null {
-  return readEnvelope(CONFIG_KEY, isPomodoroConfig);
+function removeLegacyStorage(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(CONFIG_KEY);
+    window.localStorage.removeItem(TIMER_STATE_KEY);
+  } catch {
+    // Storage may be disabled.
+  }
 }
 
-export function saveLocalPomodoroConfig(config: PomodoroConfig): void {
-  writeEnvelope(CONFIG_KEY, config);
+export function loadLocalPomodoroConfig(userId: string): PomodoroConfig | null {
+  removeLegacyStorage();
+  return userId ? readEnvelope(`${CONFIG_KEY}:${userId}`, isPomodoroConfig) : null;
 }
 
-export function loadLocalPomodoroTimerState(): CalendarPomodoroTimerState | null {
-  return readEnvelope(TIMER_STATE_KEY, isTimerState);
+export function saveLocalPomodoroConfig(userId: string, config: PomodoroConfig): void {
+  if (userId) writeEnvelope(`${CONFIG_KEY}:${userId}`, config);
 }
 
-export function saveLocalPomodoroTimerState(state: CalendarPomodoroTimerState): void {
-  writeEnvelope(TIMER_STATE_KEY, state);
+export function loadLocalPomodoroTimerState(userId: string): CalendarPomodoroTimerState | null {
+  removeLegacyStorage();
+  return userId ? readEnvelope(`${TIMER_STATE_KEY}:${userId}`, isTimerState) : null;
 }
 
+export function saveLocalPomodoroTimerState(userId: string, state: CalendarPomodoroTimerState): void {
+  if (userId) writeEnvelope(`${TIMER_STATE_KEY}:${userId}`, state);
+}
+
+export function clearLocalPomodoroData(userId: string): void {
+  removeLegacyStorage();
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    window.localStorage.removeItem(`${CONFIG_KEY}:${userId}`);
+    window.localStorage.removeItem(`${TIMER_STATE_KEY}:${userId}`);
+  } catch {
+    // Storage may be disabled.
+  }
+}

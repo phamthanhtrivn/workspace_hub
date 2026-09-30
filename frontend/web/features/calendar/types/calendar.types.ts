@@ -84,6 +84,7 @@ export interface CalendarPomodoroDailyStats {
 }
 
 export interface CalendarPomodoroTimerState {
+  plannedSeconds?: number | null;
   mode: "FOCUS" | "SHORT_BREAK" | "LONG_BREAK";
   status: "IDLE" | "RUNNING" | "PAUSED";
   targetEndAt: string | null;

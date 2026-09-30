@@ -5,7 +5,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { usePomodoroTimer } from "./use-pomodoro-timer";
 import { DEFAULT_POMODORO_CONFIG, getPomodoroConfig, recordPomodoroSession, savePomodoroConfig } from "../api/pomodoro-server.api";
 import { getCalendarPomodoroTimerState, saveCalendarPomodoroTimerState } from "@/features/calendar/api/calendar.api";
-import { saveLocalPomodoroTimerState } from "../utils/pomodoro-local-storage";
+import { loadLocalPomodoroTimerState, saveLocalPomodoroTimerState } from "../utils/pomodoro-local-storage";
 
 vi.mock("../api/pomodoro-server.api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api/pomodoro-server.api")>()),
@@ -44,10 +44,145 @@ function restoreTaskSession(status: "RUNNING" | "PAUSED" | "IDLE" = "RUNNING") {
   return task;
 }
 
+it("does not restore another account's task or notes when the server has no state", async () => {
+  restoreTaskSession("PAUSED");
+  const first = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(first.result.current.isReady).toBe(true));
+  first.unmount();
+  vi.mocked(getCalendarPomodoroTimerState).mockResolvedValue(null);
+  const second = renderHook(() => usePomodoroTimer("user-b"));
+  await waitFor(() => expect(second.result.current.isReady).toBe(true));
+  expect(second.result.current.activeTask).toBeNull();
+  expect(second.result.current.notes).toBe("");
+  expect(second.result.current.status).toBe("IDLE");
+});
+
+it.each(["RUNNING", "PAUSED"] as const)("saves task A before selecting B from %s", async (status) => {
+  const task = restoreTaskSession(status);
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(result.current.isReady).toBe(true));
+  const nextTask = { id: "33333333-3333-4333-8333-333333333333", title: "Task B" };
+  await act(async () => result.current.selectTask(nextTask));
+  expect(recordPomodoroSession).toHaveBeenCalledWith(expect.objectContaining({ taskId: task.id, actualSeconds: 20, status: "STOPPED" }));
+  expect(recordPomodoroSession).toHaveBeenCalledTimes(1);
+  expect(result.current.activeTask).toEqual(nextTask);
+  expect(result.current.timeLeft).toBe(1500);
+  expect(result.current.status).toBe("IDLE");
+  expect(result.current.notes).toBe("");
+  act(() => result.current.reset());
+  expect(recordPomodoroSession).toHaveBeenCalledTimes(1);
+});
+
+it("keeps the old task and allows retry when saving during a task switch fails", async () => {
+  const task = restoreTaskSession("PAUSED");
+  vi.mocked(recordPomodoroSession).mockRejectedValueOnce(new Error("offline"));
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(result.current.isReady).toBe(true));
+  const nextTask = { id: "next", title: "Task B" };
+  await act(async () => result.current.selectTask(nextTask));
+  expect(result.current.activeTask?.id).toBe(task.id);
+  expect(result.current.status).toBe("PAUSED");
+  expect(result.current.timeLeft).toBe(1480);
+  await act(async () => result.current.selectTask(nextTask));
+  expect(result.current.activeTask).toEqual(nextTask);
+});
+
+it("saves unassigned time before selecting a task and ignores stale metadata updates", async () => {
+  restoreTaskSession("PAUSED");
+  const state = await getCalendarPomodoroTimerState();
+  vi.mocked(getCalendarPomodoroTimerState).mockResolvedValue({ ...state!, taskId: null, eventId: null, activeTask: null });
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(result.current.isReady).toBe(true));
+  const task = { id: "new", title: "New task" };
+  await act(async () => result.current.selectTask(task));
+  expect(recordPomodoroSession).toHaveBeenCalledWith(expect.objectContaining({ taskId: undefined, actualSeconds: 20 }));
+  act(() => result.current.updateActiveTask({ id: "old", title: "Late response" }));
+  expect(result.current.activeTask).toEqual(task);
+});
+
+it.each(["RUNNING", "PAUSED"] as const)("preserves planned duration through config changes and reload from %s", async (status) => {
+  restoreTaskSession(status);
+  vi.mocked(savePomodoroConfig).mockResolvedValue({ ...DEFAULT_POMODORO_CONFIG, focusDuration: 40 });
+  const first = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(first.result.current.isReady).toBe(true));
+  await act(async () => first.result.current.setNotes("persist original duration"));
+  await act(async () => first.result.current.updateConfig({ ...DEFAULT_POMODORO_CONFIG, focusDuration: 40 }));
+  const snapshot = loadLocalPomodoroTimerState("user-a");
+  expect(snapshot?.plannedSeconds).toBe(1500);
+  first.unmount();
+  vi.mocked(getPomodoroConfig).mockResolvedValue({ ...DEFAULT_POMODORO_CONFIG, focusDuration: 40 });
+  vi.mocked(getCalendarPomodoroTimerState).mockResolvedValue(snapshot);
+  const second = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(second.result.current.isReady).toBe(true));
+  expect(second.result.current.totalDuration).toBe(1500);
+  await act(async () => second.result.current.selectTask(null));
+  expect(recordPomodoroSession).toHaveBeenCalledWith(expect.objectContaining({ actualSeconds: 20, durationMinutes: 25 }));
+  expect(second.result.current.totalDuration).toBe(2400);
+});
+
+it("limits restored and edited notes before state and session writes", async () => {
+  restoreTaskSession("PAUSED");
+  const state = await getCalendarPomodoroTimerState();
+  vi.mocked(getCalendarPomodoroTimerState).mockResolvedValue({ ...state!, notes: "x".repeat(2100) });
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(result.current.isReady).toBe(true));
+  expect(result.current.notes).toHaveLength(2000);
+  await act(async () => result.current.setNotes("y".repeat(2100)));
+  expect(result.current.notes).toHaveLength(2000);
+  expect(saveCalendarPomodoroTimerState).toHaveBeenLastCalledWith(expect.objectContaining({ notes: "y".repeat(2000) }));
+  await act(async () => result.current.selectTask(null));
+  expect(recordPomodoroSession).toHaveBeenCalledWith(expect.objectContaining({ notes: "y".repeat(2000) }));
+});
+
+it("records the original planned duration when a restored session expires after a config change", async () => {
+  restoreTaskSession();
+  const state = await getCalendarPomodoroTimerState();
+  vi.mocked(getPomodoroConfig).mockResolvedValue({ ...DEFAULT_POMODORO_CONFIG, focusDuration: 40, soundEnabled: false, notificationEnabled: false });
+  vi.mocked(getCalendarPomodoroTimerState).mockResolvedValue({
+    ...state!, plannedSeconds: 1500,
+    sessionStartAt: new Date(Date.now() - 1_501_000).toISOString(),
+    targetEndAt: new Date(Date.now() - 1_000).toISOString(),
+  });
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(recordPomodoroSession).toHaveBeenCalledWith(expect.objectContaining({
+    status: "COMPLETED", actualSeconds: 1500, durationMinutes: 25,
+  })), { timeout: 2500 });
+  expect(result.current.mode).toBe("SHORT_BREAK");
+});
+
+it("locks task selection until the previous task session is saved", async () => {
+  const oldTask = restoreTaskSession("PAUSED");
+  let release!: (session: Awaited<ReturnType<typeof recordPomodoroSession>>) => void;
+  vi.mocked(recordPomodoroSession).mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(result.current.isReady).toBe(true));
+  let change!: Promise<void>;
+  await act(async () => { change = result.current.selectTask({ id: "b", title: "B" }); });
+  expect(result.current.activeTask?.id).toBe(oldTask.id);
+  expect(result.current.isTaskActionPending).toBe(true);
+  await act(async () => result.current.selectTask({ id: "c", title: "C" }));
+  await act(async () => { release({ id: "saved" } as Awaited<ReturnType<typeof recordPomodoroSession>>); await change; });
+  expect(result.current.activeTask?.id).toBe("b");
+  expect(recordPomodoroSession).toHaveBeenCalledTimes(1);
+});
+
+it("does not flush queued writes after the account view unmounts", async () => {
+  restoreTaskSession("IDLE");
+  let release!: (state: Awaited<ReturnType<typeof saveCalendarPomodoroTimerState>>) => void;
+  vi.mocked(saveCalendarPomodoroTimerState).mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+  const { result, unmount } = renderHook(() => usePomodoroTimer("user-a"));
+  await waitFor(() => expect(result.current.isReady).toBe(true));
+  await act(async () => result.current.setNotes("first"));
+  await act(async () => result.current.setNotes("queued"));
+  unmount();
+  await act(async () => release({ version: 2 } as Awaited<ReturnType<typeof saveCalendarPomodoroTimerState>>));
+  expect(saveCalendarPomodoroTimerState).toHaveBeenCalledTimes(1);
+});
+
 it.each(["RUNNING", "PAUSED"] as const)("saves actual focus time before completing a task from %s", async (status) => {
   const task = restoreTaskSession(status);
   const updateSource = vi.fn().mockResolvedValue(undefined);
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(result.current.isReady).toBe(true));
   await act(async () => { await result.current.finishActiveTask(updateSource); });
   expect(recordPomodoroSession).toHaveBeenCalledWith(expect.objectContaining({
@@ -63,7 +198,7 @@ it("keeps a task and pauses the timer if its session cannot be saved", async () 
   const task = restoreTaskSession();
   vi.mocked(recordPomodoroSession).mockRejectedValueOnce(new Error("Offline"));
   const updateSource = vi.fn();
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(result.current.isReady).toBe(true));
   await act(async () => {
     await expect(result.current.finishActiveTask(updateSource)).rejects.toThrow("Chưa lưu được phiên tập trung");
@@ -80,7 +215,7 @@ it("keeps a task and pauses the timer if its session cannot be saved", async () 
 it("retries a failed source update without recording the stopped session again", async () => {
   const task = restoreTaskSession();
   const updateSource = vi.fn().mockRejectedValueOnce(new Error("Complete subtasks first")).mockResolvedValue(undefined);
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(result.current.isReady).toBe(true));
   await act(async () => {
     await expect(result.current.finishActiveTask(updateSource)).rejects.toThrow("Complete subtasks first");
@@ -97,7 +232,7 @@ it("locks timer controls and rejects duplicate completion while the source updat
   restoreTaskSession("IDLE");
   let release!: () => void;
   const updateSource = vi.fn(() => new Promise<void>((resolve) => { release = resolve; }));
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(result.current.isReady).toBe(true));
   let action!: Promise<void>;
   await act(async () => { action = result.current.finishActiveTask(updateSource); });
@@ -124,7 +259,7 @@ it("records an expired running session restored from the server", async () => {
   vi.mocked(saveCalendarPomodoroTimerState).mockResolvedValue({ version: 2 } as Awaited<ReturnType<typeof saveCalendarPomodoroTimerState>>);
   vi.mocked(recordPomodoroSession).mockResolvedValue({ id: "saved" } as Awaited<ReturnType<typeof recordPomodoroSession>>);
 
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await act(async () => { await Promise.resolve(); });
   expect(result.current.status).toBe("RUNNING");
   await waitFor(() => expect(recordPomodoroSession).toHaveBeenCalledWith(
@@ -148,7 +283,7 @@ it("restores and records a completed Project task session without a Calendar eve
   vi.mocked(saveCalendarPomodoroTimerState).mockResolvedValue({ version: 2 } as Awaited<ReturnType<typeof saveCalendarPomodoroTimerState>>);
   vi.mocked(recordPomodoroSession).mockResolvedValue({ id: "saved" } as Awaited<ReturnType<typeof recordPomodoroSession>>);
 
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(recordPomodoroSession).toHaveBeenCalledWith(expect.objectContaining({
     taskId, projectId, projectName: "Workspace", eventId: undefined,
     status: "COMPLETED", actualSeconds: 1500,
@@ -164,7 +299,7 @@ it("coalesces rapid note edits while preserving the server state version", async
     .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
     .mockResolvedValue({ version: 2 } as Awaited<ReturnType<typeof saveCalendarPomodoroTimerState>>);
 
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(result.current.isReady).toBe(true));
   await act(async () => { result.current.setNotes("a"); });
   await waitFor(() => expect(saveCalendarPomodoroTimerState).toHaveBeenCalledTimes(1));
@@ -191,7 +326,7 @@ it("records a running session before switching timer modes", async () => {
   vi.mocked(saveCalendarPomodoroTimerState).mockResolvedValue({ version: 2 } as Awaited<ReturnType<typeof saveCalendarPomodoroTimerState>>);
   vi.mocked(recordPomodoroSession).mockResolvedValue({ id: "stopped" } as Awaited<ReturnType<typeof recordPomodoroSession>>);
 
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(result.current.isReady).toBe(true));
   await act(async () => { result.current.switchMode("SHORT_BREAK"); });
 
@@ -206,7 +341,7 @@ it("keeps new settings locally when saving them to the server fails", async () =
   vi.mocked(getPomodoroConfig).mockResolvedValue({ ...DEFAULT_POMODORO_CONFIG });
   vi.mocked(getCalendarPomodoroTimerState).mockResolvedValue(null);
   vi.mocked(savePomodoroConfig).mockRejectedValue(new Error("offline"));
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(result.current.isReady).toBe(true));
 
   await act(async () => {
@@ -231,7 +366,7 @@ it("keeps an expired session available for retry when recording fails", async ()
   vi.mocked(saveCalendarPomodoroTimerState).mockResolvedValue({ version: 2 } as Awaited<ReturnType<typeof saveCalendarPomodoroTimerState>>);
   vi.mocked(recordPomodoroSession).mockRejectedValue(new Error("offline"));
 
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(recordPomodoroSession).toHaveBeenCalled(), { timeout: 2500 });
   await act(async () => { await Promise.resolve(); });
 
@@ -245,7 +380,7 @@ it("remains usable with local defaults when initial server requests fail", async
   vi.mocked(getCalendarPomodoroTimerState).mockRejectedValue(new Error("offline"));
   vi.mocked(saveCalendarPomodoroTimerState).mockRejectedValue(new Error("offline"));
 
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
 
   await waitFor(() => expect(result.current.isReady).toBe(true));
   expect(result.current.loadError).toBe(true);
@@ -256,7 +391,7 @@ it("remains usable with local defaults when initial server requests fail", async
 });
 
 it("restores the local timer snapshot while the server is offline", async () => {
-  saveLocalPomodoroTimerState({
+  saveLocalPomodoroTimerState("user-a", {
     mode: "SHORT_BREAK",
     status: "PAUSED",
     targetEndAt: null,
@@ -274,7 +409,7 @@ it("restores the local timer snapshot while the server is offline", async () => 
   vi.mocked(getCalendarPomodoroTimerState).mockRejectedValue(new Error("offline"));
   vi.mocked(saveCalendarPomodoroTimerState).mockRejectedValue(new Error("offline"));
 
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(result.current.isReady).toBe(true));
 
   expect(result.current.mode).toBe("SHORT_BREAK");
@@ -288,7 +423,7 @@ it("keeps a running timer usable when server state synchronization fails", async
   vi.mocked(getCalendarPomodoroTimerState).mockResolvedValue(null);
   vi.mocked(saveCalendarPomodoroTimerState).mockRejectedValue(new Error("offline"));
 
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(result.current.isReady).toBe(true));
 
   act(() => result.current.start());
@@ -302,7 +437,7 @@ it("clears degraded mode after the server connection returns", async () => {
   vi.mocked(getPomodoroConfig).mockRejectedValue(new Error("offline"));
   vi.mocked(getCalendarPomodoroTimerState).mockRejectedValue(new Error("offline"));
 
-  const { result } = renderHook(() => usePomodoroTimer());
+  const { result } = renderHook(() => usePomodoroTimer("user-a"));
   await waitFor(() => expect(result.current.loadError).toBe(true));
 
   vi.mocked(getPomodoroConfig).mockResolvedValue({ ...DEFAULT_POMODORO_CONFIG });

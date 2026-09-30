@@ -4,6 +4,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { PomodoroView } from "./pomodoro-view";
 
+const auth = vi.hoisted(() => ({ userId: "user-a" as string | null }));
+vi.mock("@/store/store", () => ({ useAppSelector: () => auth.userId }));
+
 vi.mock("../hooks/use-pomodoro-timer", () => ({
   usePomodoroTimer: () => ({
     isReady: true,
@@ -28,7 +31,8 @@ vi.mock("../hooks/use-pomodoro-timer", () => ({
     reset: vi.fn(),
     skip: vi.fn(),
     switchMode: vi.fn(),
-    setActiveTask: vi.fn(),
+    selectTask: vi.fn(),
+    updateActiveTask: vi.fn(),
     setNotes: vi.fn(),
     updateConfig: vi.fn(),
     selectAmbientTrack: vi.fn(),
@@ -53,7 +57,19 @@ vi.mock("./pomodoro-settings-dialog", () => ({
     isOpen ? <div role="dialog" aria-label="Cài đặt Pomodoro" /> : null,
 }));
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); auth.userId = "user-a"; });
+
+it("remounts the account view on user changes and removes it on logout", () => {
+  const { rerender } = render(<PomodoroView />);
+  fireEvent.click(screen.getByRole("button", { name: "Mở cài đặt Pomodoro" }));
+  expect(screen.getByRole("dialog")).toBeTruthy();
+  auth.userId = "user-b";
+  rerender(<PomodoroView />);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  auth.userId = null;
+  rerender(<PomodoroView />);
+  expect(screen.queryByText("Pomodoro Focus Hub")).toBeNull();
+});
 
 it("moves settings to the header and removes sound and fullscreen shortcuts", () => {
   render(<PomodoroView />);

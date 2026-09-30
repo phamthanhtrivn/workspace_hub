@@ -38,6 +38,37 @@ describe('Calendar Pomodoro API (integration)', () => {
   afterAll(async () => app.close());
   beforeEach(() => jest.clearAllMocks());
 
+  it('accepts planned timer duration and rejects invalid values', async () => {
+    const state = {
+      mode: 'FOCUS',
+      status: 'PAUSED',
+      remainingSeconds: 900,
+      plannedSeconds: 1500,
+      cycleCount: 0,
+      notes: '',
+      expectedVersion: 1,
+    };
+    service.saveState.mockResolvedValue({ ...state, version: 2 });
+    await request(app.getHttpServer())
+      .put('/api/calendar/pomodoro/state')
+      .set('x-user-id', userId)
+      .send(state)
+      .expect(200);
+    expect(service.saveState).toHaveBeenCalledWith(
+      userId,
+      expect.objectContaining({ plannedSeconds: 1500 }),
+    );
+    service.saveState.mockClear();
+    for (const plannedSeconds of [0, -1, 1.5, 86401]) {
+      await request(app.getHttpServer())
+        .put('/api/calendar/pomodoro/state')
+        .set('x-user-id', userId)
+        .send({ ...state, plannedSeconds })
+        .expect(400);
+    }
+    expect(service.saveState).not.toHaveBeenCalled();
+  });
+
   it('returns config in the standard Calendar envelope', async () => {
     service.getConfig.mockResolvedValue({ focusDuration: 25 });
     const response = await request(app.getHttpServer())

@@ -60,6 +60,17 @@ function renderWithQueryClient(element: ReactElement) {
   );
 }
 
+it("limits session notes to the backend maximum", () => {
+  vi.mocked(getTodayCalendarTasks).mockResolvedValue([]);
+  renderWithQueryClient(<PomodoroActiveTaskCard
+    activeTask={{ id: "task-1", title: "Task" }} notes=""
+    onNotesChange={vi.fn()}
+  />);
+  fireEvent.click(screen.getByRole("button", { name: "Ghi chú nhanh trong lúc tập trung" }));
+  const notes = screen.getByPlaceholderText("Ghi lại nhanh ý tưởng, bug phát hiện, hoặc điều cần nhớ...");
+  expect(notes.getAttribute("maxlength")).toBe("2000");
+});
+
 it("hides quick estimate and priority controls", () => {
   vi.mocked(getTodayCalendarTasks).mockResolvedValue([]);
 

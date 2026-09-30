@@ -13,8 +13,14 @@ import { PomodoroReport } from "./pomodoro-report";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Settings, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAppSelector } from "@/store/store";
 
 export function PomodoroView() {
+  const userId = useAppSelector((state) => state.auth.userId);
+  return userId ? <UserPomodoroView key={userId} userId={userId} /> : null;
+}
+
+function UserPomodoroView({ userId }: { userId: string }) {
   const {
     isReady,
     loadError,
@@ -39,7 +45,8 @@ export function PomodoroView() {
     reset,
     skip,
     switchMode,
-    setActiveTask,
+    selectTask,
+    updateActiveTask,
     setNotes,
     updateConfig,
     selectAmbientTrack,
@@ -48,7 +55,7 @@ export function PomodoroView() {
     toggleAutoPlayAmbient,
     uploadCustomTrack,
     removeCustomTrack,
-  } = usePomodoroTimer();
+  } = usePomodoroTimer(userId);
   const { runTaskAction, taskRevision } = usePomodoroTaskActions(finishActiveTask);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -56,7 +63,7 @@ export function PomodoroView() {
   const isRunning = status === "RUNNING";
   const handleReset = useCallback(() => reset(), [reset]);
   const handleSkip = useCallback(() => skip(), [skip]);
-  const handleClearTask = useCallback(() => setActiveTask(null), [setActiveTask]);
+  const handleClearTask = useCallback(() => { void selectTask(null); }, [selectTask]);
 
   return (
     <div className="relative min-h-[85vh] w-full max-w-6xl mx-auto py-3 px-1">
@@ -222,8 +229,8 @@ export function PomodoroView() {
                 notes={notes}
                 onClearTask={handleClearTask}
                 onNotesChange={setNotes}
-                onSetCustomTask={setActiveTask}
-                onUpdateActiveTask={setActiveTask}
+                onSetCustomTask={selectTask}
+                onUpdateActiveTask={updateActiveTask}
                 focusDurationMinutes={config.focusDuration}
               />
             </fieldset>

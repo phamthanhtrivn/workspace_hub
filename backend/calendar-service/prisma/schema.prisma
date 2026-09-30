@@ -335,6 +335,7 @@ enum PomodoroTimerStatus {
 }
 
 model PomodoroTimerState {
+  plannedSeconds   Int?                 @map("planned_seconds")
   userId           String               @id @map("user_id") @db.Uuid
   mode             PomodoroSessionType
   status           PomodoroTimerStatus

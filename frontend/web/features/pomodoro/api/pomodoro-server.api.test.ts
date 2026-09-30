@@ -28,6 +28,7 @@ it("saves a custom Pomodoro task without sending its non-UUID id to Calendar", a
   });
 
   const session = {
+    notes: "x".repeat(2001),
     taskId: "custom-123",
     taskTitle: "Write report",
     sessionType: "FOCUS",
@@ -41,7 +42,7 @@ it("saves a custom Pomodoro task without sending its non-UUID id to Calendar", a
   await recordPomodoroSession(session);
 
   expect(createCalendarPomodoroSession).toHaveBeenCalledWith(
-    expect.objectContaining({ taskId: undefined, taskTitle: "Write report", plannedSeconds: 1500 }),
+    expect.objectContaining({ taskId: undefined, taskTitle: "Write report", plannedSeconds: 1500, notes: "x".repeat(2000) }),
   );
   const calls = vi.mocked(createCalendarPomodoroSession).mock.calls;
   expect(calls[0][0].clientSessionId).toBe(calls[1][0].clientSessionId);

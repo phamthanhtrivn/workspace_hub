@@ -13,6 +13,7 @@ import {
 } from 'class-validator';
 
 export class SavePomodoroTimerStateDto {
+  @IsOptional() @IsInt() @Min(1) @Max(86400) plannedSeconds?: number;
   @IsEnum(PomodoroSessionType) mode: PomodoroSessionType;
   @IsEnum(PomodoroTimerStatus) status: PomodoroTimerStatus;
   @IsOptional() @IsDateString() targetEndAt?: string;

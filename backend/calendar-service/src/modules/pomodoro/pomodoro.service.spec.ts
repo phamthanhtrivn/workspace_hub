@@ -356,6 +356,44 @@ describe('PomodoroService', () => {
     });
   });
 
+  it('persists the original duration of a paused timer independently of config', async () => {
+    prisma.pomodoroTimerState.update.mockResolvedValue({ version: 4 });
+    await service.saveState(userId, {
+      mode: PomodoroSessionType.FOCUS,
+      status: 'PAUSED',
+      plannedSeconds: 1500,
+      remainingSeconds: 900,
+      cycleCount: 0,
+      notes: '',
+      expectedVersion: 3,
+    });
+    const input = (
+      prisma.pomodoroTimerState.update.mock.calls as Array<[unknown]>
+    )[0]?.[0];
+    expect(input).toMatchObject({
+      data: { plannedSeconds: 1500, remainingSeconds: 900 },
+    });
+  });
+
+  it('persists planned duration when creating a new running timer', async () => {
+    prisma.pomodoroTimerState.create.mockResolvedValue({ version: 1 });
+    await service.saveState(userId, {
+      mode: PomodoroSessionType.FOCUS,
+      status: 'RUNNING',
+      plannedSeconds: 1500,
+      remainingSeconds: 1500,
+      sessionStartAt: '2026-09-30T08:00:00Z',
+      targetEndAt: '2026-09-30T08:25:00Z',
+      cycleCount: 0,
+      notes: '',
+      expectedVersion: 0,
+    });
+    const input = (
+      prisma.pomodoroTimerState.create.mock.calls as Array<[unknown]>
+    )[0]?.[0];
+    expect(input).toMatchObject({ data: { plannedSeconds: 1500 } });
+  });
+
   it('clears a timer without resetting its version', async () => {
     prisma.pomodoroTimerState.update.mockResolvedValue({
       userId,

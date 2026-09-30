@@ -27,6 +27,7 @@ import { PomodoroCalendarTaskList } from "./pomodoro-calendar-task-list";
 import { usePomodoroCalendarTasks } from "../hooks/use-pomodoro-calendar-tasks";
 import { PomodoroProjectTaskList } from "./pomodoro-project-task-list";
 import { PomodoroTaskActions } from "./pomodoro-task-actions";
+import { MAX_POMODORO_NOTES_LENGTH } from "../utils/pomodoro-notes";
 
 interface PomodoroActiveTaskProps {
   taskRevision?: number;
@@ -829,6 +830,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
         {showNotes && (
           <textarea
             value={notes}
+            maxLength={MAX_POMODORO_NOTES_LENGTH}
             onChange={(e) => onNotesChange(e.target.value)}
             placeholder="Ghi lại nhanh ý tưởng, bug phát hiện, hoặc điều cần nhớ..."
             rows={2}
