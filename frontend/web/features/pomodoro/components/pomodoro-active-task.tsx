@@ -14,6 +14,9 @@ import {
 } from "lucide-react";
 import type { PomodoroActiveTask, PomodoroStatus, PomodoroTaskAction } from "../types/pomodoro";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { defaultFocusStart, scheduleFocusTask } from "../utils/schedule-task";
@@ -42,6 +45,8 @@ interface PomodoroActiveTaskProps {
   onUpdateActiveTask?: (task: PomodoroActiveTask) => void;
   focusDurationMinutes?: number;
 }
+
+const TASK_BUTTON_CLASS = "h-auto gap-0 rounded-none p-0 text-xs font-normal whitespace-normal shadow-none hover:bg-transparent hover:text-inherit disabled:opacity-100";
 
 const DEFAULT_QUICK_POMODOROS = 2;
 const MAX_QUICK_POMODOROS = 20;
@@ -351,7 +356,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
   // -------------------------------------------------------------
   if (!activeTask) {
     return (
-      <div className="w-full max-w-lg rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm shadow-slate-200/40 backdrop-blur-md transition-all hover:border-slate-300">
+      <Card className="block text-inherit w-full max-w-lg rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm shadow-slate-200/40 backdrop-blur-md transition-all hover:border-slate-300">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-3.5">
           <div className="flex items-center gap-2">
@@ -373,22 +378,22 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
         {/* Quick Add Custom Task Form */}
         <form onSubmit={handleCreateCustomTask} className="space-y-3">
           <div>
-            <input
+            <Input
               type="text"
               value={quickTitle}
               onChange={(e) => setQuickTitle(e.target.value)}
               placeholder="What would you like to focus on in this session?..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[var(--color-primary,#1C4D8D)] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
+              className="inline-block h-auto shadow-none w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[var(--color-primary,#1C4D8D)] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
             />
           </div>
 
-          <textarea
+          <Textarea
             value={quickNote}
             onChange={(e) => setQuickNote(e.target.value)}
             placeholder="Task notes (optional)..."
             maxLength={2000}
             rows={2}
-            className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[var(--color-primary,#1C4D8D)] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
+            className="min-h-0 font-normal shadow-none w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[var(--color-primary,#1C4D8D)] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
           />
 
           {quickError && (
@@ -412,7 +417,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
         </form>
         {todayTaskList}
         {todayProjectTaskList}
-      </div>
+      </Card>
     );
   }
 
@@ -422,7 +427,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
   const isCustomTask = !activeTask.projectId;
 
   return (
-    <div className="w-full max-w-lg rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm shadow-slate-200/40 backdrop-blur-md transition-all">
+    <Card className="block text-inherit w-full max-w-lg rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm shadow-slate-200/40 backdrop-blur-md transition-all">
       {/* Top Header Row */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2 overflow-hidden">
@@ -460,7 +465,8 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
         </div>
 
         <div className="ml-auto flex items-center gap-1">
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={() => {
               setQuickError("");
@@ -468,11 +474,14 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
             }}
             aria-expanded={isQuickCreateOpen}
             aria-controls="active-task-quick-create"
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 hover:text-blue-800"
+            className={cn(
+              TASK_BUTTON_CLASS,
+              "[&_svg]:size-3.5 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 hover:text-blue-800",
+            )}
           >
             <Plus className="size-3.5" />
             Create a task
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -489,14 +498,14 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
             >
               New task
             </label>
-            <input
+            <Input
               id="active-task-title"
               type="text"
               value={quickTitle}
               onChange={(e) => setQuickTitle(e.target.value)}
               placeholder="Enter a task name..."
               autoFocus
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="inline-block h-auto shadow-none w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </div>
           <div>
@@ -509,14 +518,14 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
                 (optional)
               </span>
             </label>
-            <textarea
+            <Textarea
               id="active-task-note"
               value={quickNote}
               onChange={(e) => setQuickNote(e.target.value)}
               placeholder="Add task notes..."
               maxLength={2000}
               rows={2}
-              className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              className="min-h-0 font-normal shadow-none w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </div>
 
@@ -534,24 +543,29 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               aria-label="Choose Pomodoro count"
               className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5"
             >
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() =>
                   setQuickPomodoros((count) => Math.max(1, count - 1))
                 }
                 disabled={quickPomodoros === 1}
                 aria-label="Decrease Pomodoro count"
-                className="flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-30"
+                className={cn(
+                  TASK_BUTTON_CLASS,
+                  "[&_svg]:size-3.5 flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-30",
+                )}
               >
                 <Minus className="size-3.5" />
-              </button>
+              </Button>
               <output
                 aria-live="polite"
                 className="min-w-20 px-2 text-center text-xs font-bold tabular-nums text-slate-800"
               >
                 {quickPomodoros} Pomodoro
               </output>
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() =>
                   setQuickPomodoros((count) =>
@@ -560,10 +574,13 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
                 }
                 disabled={quickPomodoros === MAX_QUICK_POMODOROS}
                 aria-label="Increase Pomodoro count"
-                className="flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-30"
+                className={cn(
+                  TASK_BUTTON_CLASS,
+                  "[&_svg]:size-3.5 flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-30",
+                )}
               >
                 <Plus className="size-3.5" />
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -603,11 +620,11 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
       <div className="mt-3.5">
         {isEditingTitle ? (
           <form onSubmit={handleSaveTitle} className="flex items-center gap-2">
-            <input
+            <Input
               type="text"
               value={editedTitle}
               onChange={(e) => setEditedTitle(e.target.value)}
-              className="min-w-0 flex-1 rounded-lg border border-blue-300 bg-blue-50/30 px-2.5 py-1 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="inline-block h-auto shadow-none min-w-0 flex-1 rounded-lg border border-blue-300 bg-blue-50/30 px-2.5 py-1 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-200"
               autoFocus
             />
             <Button
@@ -634,14 +651,18 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               {activeTask.title}
             </h3>
             {onUpdateActiveTask && (
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={handleStartEditingTitle}
                 title="Rename task"
-                className="opacity-0 group-hover/title:opacity-100 p-1 text-slate-400 hover:text-blue-600 rounded-md hover:bg-slate-100 transition-all shrink-0"
+                className={cn(
+                  TASK_BUTTON_CLASS,
+                  "[&_svg]:size-3.5 opacity-0 group-hover/title:opacity-100 p-1 text-slate-400 hover:text-blue-600 rounded-md hover:bg-slate-100 transition-all shrink-0",
+                )}
               >
                 <Pencil className="size-3.5" />
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -664,7 +685,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               <StickyNote className="size-3.5 text-amber-500" />
               Task notes
             </label>
-            <textarea
+            <Textarea
               id="active-task-description-input"
               value={editedTaskNote}
               onChange={(e) => setEditedTaskNote(e.target.value)}
@@ -672,7 +693,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               maxLength={2000}
               rows={3}
               autoFocus
-              className="w-full resize-none rounded-lg border border-amber-200/90 bg-white px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+              className="min-h-0 font-normal shadow-none w-full resize-none rounded-lg border border-amber-200/90 bg-white px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
             />
             <div className="flex items-center justify-end gap-1.5">
               <Button
@@ -701,14 +722,18 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
         ) : activeTaskNote ? (
           <div className="group/note mt-2.5 rounded-xl border border-amber-200/70 bg-gradient-to-br from-amber-50/60 via-amber-50/30 to-white px-3 py-2.5 transition-colors hover:border-amber-300/80">
             <div className="flex items-start justify-between gap-2">
-              <button
+              <Button
+                variant="ghost"
                 type="button"
                 onClick={() => setIsTaskNoteExpanded((prev) => !prev)}
                 aria-expanded={isTaskNoteExpanded}
                 title={
                   isTaskNoteExpanded ? "Click to collapse notes" : activeTaskNote
                 }
-                className="flex min-w-0 flex-1 items-start gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 rounded-md"
+                className={cn(
+                  TASK_BUTTON_CLASS,
+                  "[&_svg]:size-3.5 flex min-w-0 flex-1 items-start gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 rounded-md",
+                )}
               >
                 <StickyNote
                   className="mt-0.5 size-3.5 shrink-0 text-amber-500"
@@ -722,30 +747,38 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
                 >
                   {activeTaskNote}
                 </span>
-              </button>
+              </Button>
               {onUpdateActiveTask && (
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={handleStartEditingTaskNote}
                   title="Edit task notes"
                   aria-label="Edit task notes"
-                  className="shrink-0 rounded-md p-1 text-slate-400 opacity-80 transition-all hover:bg-amber-100/60 hover:text-amber-700 group-hover/note:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+                  className={cn(
+                    TASK_BUTTON_CLASS,
+                    "[&_svg]:size-3.5 shrink-0 rounded-md p-1 text-slate-400 opacity-80 transition-all hover:bg-amber-100/60 hover:text-amber-700 group-hover/note:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300",
+                  )}
                 >
                   <Pencil className="size-3.5" />
-                </button>
+                </Button>
               )}
             </div>
           </div>
         ) : (
           onUpdateActiveTask && (
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={handleStartEditingTaskNote}
-              className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-700"
+              className={cn(
+                TASK_BUTTON_CLASS,
+                "[&_svg]:size-3 mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-700",
+              )}
             >
               <StickyNote className="size-3 text-amber-500" />
               <span>Add task notes...</span>
-            </button>
+            </Button>
           )
         )}
         {taskNoteError && (
@@ -769,23 +802,31 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
             {/* Quick Adjust Stepper */}
             {onUpdateActiveTask && (
               <div className="flex items-center gap-0.5 ml-1 bg-slate-100 rounded-md p-0.5 border border-slate-200/50">
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={() => handleAdjustPomodoroEstimate(-1)}
                   disabled={(activeTask.estimatedPomodoros || 1) <= 1}
                   title="Decrease by one Pomodoro"
-                  className="p-0.5 text-slate-500 hover:text-slate-800 disabled:opacity-30 rounded hover:bg-white transition-all"
+                  className={cn(
+                    TASK_BUTTON_CLASS,
+                    "[&_svg]:size-3 p-0.5 text-slate-500 hover:text-slate-800 disabled:opacity-30 rounded hover:bg-white transition-all",
+                  )}
                 >
                   <Minus className="size-3" />
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={() => handleAdjustPomodoroEstimate(1)}
                   title="Increase by one Pomodoro"
-                  className="p-0.5 text-slate-500 hover:text-slate-800 rounded hover:bg-white transition-all"
+                  className={cn(
+                    TASK_BUTTON_CLASS,
+                    "[&_svg]:size-3 p-0.5 text-slate-500 hover:text-slate-800 rounded hover:bg-white transition-all",
+                  )}
                 >
                   <Plus className="size-3" />
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -808,10 +849,14 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
 
       {/* Quick Notes Scratchpad */}
       <div className="mt-3.5 border-t border-slate-100 pt-3">
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => setShowNotes(!showNotes)}
-          className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+          className={cn(
+            TASK_BUTTON_CLASS,
+            "[&_svg]:size-3.5 flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors",
+          )}
         >
           <StickyNote className="size-3.5 text-amber-500" />
           <span>
@@ -825,19 +870,19 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               showNotes && "rotate-90",
             )}
           />
-        </button>
+        </Button>
 
         {showNotes && (
-          <textarea
+          <Textarea
             value={notes}
             maxLength={MAX_POMODORO_NOTES_LENGTH}
             onChange={(e) => onNotesChange(e.target.value)}
             placeholder="Jot down ideas, bugs or things to remember..."
             rows={2}
-            className="mt-2 w-full rounded-xl border border-slate-200 bg-amber-50/30 p-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-amber-400 focus:outline-none resize-none transition-all"
+            className="min-h-0 font-normal shadow-none mt-2 w-full rounded-xl border border-slate-200 bg-amber-50/30 p-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-amber-400 focus:outline-none resize-none transition-all"
           />
         )}
       </div>
-    </div>
+    </Card>
   );
 });

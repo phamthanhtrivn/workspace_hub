@@ -19,7 +19,7 @@ function AudioTrackButton({ track, selected, onSelectTrack }: {
 }) {
   return (
     <button type="button" onClick={() => onSelectTrack(track.id)} aria-pressed={selected}
-      className={cn("flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-all",
+      className={cn("flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-all disabled:cursor-not-allowed",
         selected ? "bg-gradient-to-r from-blue-50 to-indigo-50/60 text-[var(--color-primary,#1C4D8D)] font-semibold shadow-2xs"
           : "text-slate-700 hover:bg-slate-50")}>
       <div className={cn("flex size-7 shrink-0 items-center justify-center rounded-lg",
@@ -44,7 +44,7 @@ export function PomodoroAudioTrackList({ audios, currentTrackId, isLoading, hasE
       {hasError && (
         <div role="status" className="px-2 py-2 text-xs text-amber-700">
           <p>{POMODORO_AUDIO_MESSAGES.loadError}</p>
-          <button type="button" onClick={onRetry} className="mt-1 font-semibold underline">{POMODORO_AUDIO_MESSAGES.retry}</button>
+          <button type="button" onClick={onRetry} className="mt-1 cursor-pointer font-semibold underline disabled:cursor-not-allowed">{POMODORO_AUDIO_MESSAGES.retry}</button>
         </div>
       )}
       {!isLoading && !hasError && audios.length === 0 && (

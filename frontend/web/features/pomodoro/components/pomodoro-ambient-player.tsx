@@ -7,6 +7,7 @@ import { POMODORO_AUDIO_MESSAGES } from "../constants/pomodoro-audio";
 import { PomodoroAudioIcon } from "./pomodoro-audio-icon";
 import { PomodoroAudioTrackList } from "./pomodoro-audio-track-list";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,19 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
   const activeTrackIcon = activeTrack?.icon ?? "FileAudio";
 
   const isMuted = volume === 0;
+  const volumeSliderProps: React.ComponentProps<typeof Slider> = {
+    className: "cursor-pointer data-[disabled]:cursor-not-allowed [&:not([data-disabled])_*]:cursor-pointer",
+    value: [volume],
+    min: 0,
+    max: 1,
+    step: 0.05,
+    disabled,
+    onValueChange: (values) => onChangeVolume(typeof values === "number" ? values : values[0]),
+    thumbProps: {
+      "aria-label": "Audio volume",
+      getAriaValueText: (_, currentValue) => `${Math.round(currentValue * 100)}%`,
+    },
+  };
 
   return (
     <fieldset disabled={disabled} aria-label="Focus sounds and music" className="w-full min-w-0 max-w-lg rounded-full border border-slate-200/90 bg-white/95 px-3 py-1.5 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-slate-300 hover:shadow-md disabled:opacity-60">
@@ -140,12 +154,10 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                 disabled={disabled}
               />
             </div>
-            <label className="mt-3 block border-t border-slate-100 pt-3 text-xs font-semibold text-slate-700 sm:hidden">
-              Volume: {Math.round(volume * 100)}%
-              <input type="range" min={0} max={1} step={0.05} value={volume}
-                onChange={(event) => onChangeVolume(Number(event.target.value))}
-                className="mt-2 block w-full accent-[var(--color-primary,#1C4D8D)]" />
-            </label>
+            <div className="mt-3 border-t border-slate-100 pt-3 text-xs font-semibold text-slate-700 sm:hidden">
+              <span>Volume: {Math.round(volume * 100)}%</span>
+              <Slider {...volumeSliderProps} className={cn(volumeSliderProps.className, "mt-2")} />
+            </div>
             </fieldset>
           </PopoverContent>
         </Popover>
@@ -166,7 +178,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
               title={isPlaying ? "Pause audio" : "Play audio"}
               aria-label={isPlaying ? "Pause audio" : "Play audio"}
               className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-full text-white shadow-xs transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-40 disabled:hover:scale-100",
+                "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-white shadow-xs transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100",
                 isPlaying
                   ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/25"
                   : "bg-[var(--color-primary,#1C4D8D)] hover:bg-[var(--color-primary-strong,#0F2854)] shadow-blue-900/20",
@@ -184,7 +196,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
               <button
                 type="button"
                 onClick={() => onChangeVolume(isMuted ? 0.5 : 0)}
-                className="p-1 text-slate-400 hover:text-slate-700 transition-colors rounded-full hover:bg-slate-100"
+                className="cursor-pointer p-1 text-slate-400 hover:text-slate-700 transition-colors rounded-full hover:bg-slate-100 disabled:cursor-not-allowed"
                 title={isMuted ? "Unmute" : "Mute"}
                 aria-label={isMuted ? "Unmute" : "Mute"}
               >
@@ -194,16 +206,11 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                   <Volume2 className="size-3.5" />
                 )}
               </button>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={volume}
-                onChange={(e) => onChangeVolume(parseFloat(e.target.value))}
-                className="w-14 sm:w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[var(--color-primary,#1C4D8D)] hover:accent-blue-600 transition-all"
+              <Slider
+                {...volumeSliderProps}
+                className={cn(volumeSliderProps.className, "w-16 [&>div]:min-h-8 [&_[data-slot=slider-track]]:h-1")}
+                thumbProps={{ ...volumeSliderProps.thumbProps, className: "size-3.5" }}
                 title={`Volume: ${Math.round(volume * 100)}%`}
-                aria-label="Audio volume"
               />
             </div>
           </div>

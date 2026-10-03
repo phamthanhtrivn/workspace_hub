@@ -219,27 +219,27 @@ function UserPomodoroView({ userId }: { userId: string }) {
           )}
         </div>
 
-          {/* Active Focus Target Card */}
-          {isReady && (
-            <fieldset disabled={isTaskActionPending} className={cn(
-              "flex w-full min-w-0 justify-center [&>div]:max-w-none",
-              !minimalMode && "xl:col-start-2 xl:row-start-1",
-            )}>
-              <PomodoroActiveTaskCard
-                taskRevision={taskRevision}
-                timerStatus={status}
-                taskActionDisabled={isTaskActionPending || (status === "RUNNING" && timeLeft === 0)}
-                onTaskAction={runTaskAction}
-                activeTask={activeTask}
-                notes={notes}
-                onClearTask={handleClearTask}
-                onNotesChange={setNotes}
-                onSetCustomTask={selectTask}
-                onUpdateActiveTask={updateActiveTask}
-                focusDurationMinutes={config.focusDuration}
-              />
-            </fieldset>
-          )}
+        {/* Active Focus Target Card */}
+        {isReady && (
+          <fieldset disabled={isTaskActionPending} className={cn(
+            "flex w-full min-w-0 justify-center [&>div]:max-w-none",
+            !minimalMode && "xl:col-start-2 xl:row-start-1",
+          )}>
+            <PomodoroActiveTaskCard
+              taskRevision={taskRevision}
+              timerStatus={status}
+              taskActionDisabled={isTaskActionPending || (status === "RUNNING" && timeLeft === 0)}
+              onTaskAction={runTaskAction}
+              activeTask={activeTask}
+              notes={notes}
+              onClearTask={handleClearTask}
+              onNotesChange={setNotes}
+              onSetCustomTask={selectTask}
+              onUpdateActiveTask={updateActiveTask}
+              focusDurationMinutes={config.focusDuration}
+            />
+          </fieldset>
+        )}
 
         {/* Supporting stats sit below the active task. */}
         {!minimalMode && (
