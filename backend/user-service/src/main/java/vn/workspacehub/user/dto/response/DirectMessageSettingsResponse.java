@@ -9,10 +9,6 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class AccountSettingResponse {
-    private String theme;
-    private String language;
-    private String timezone;
+public class DirectMessageSettingsResponse {
     private boolean allowNewDirectMessages;
-    private boolean muteNotification;
 }

@@ -10,6 +10,7 @@ import DirectMessageInput, {
 import ChatHeader from "../header/chat-header";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { getSpaceDetails } from "../../api/chat.api";
+import { getDirectMessageSendPermission } from "../../api/direct-message.api";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,7 +39,11 @@ import {
   ChatSocketUnknownPayload,
   SendSocketMessageMedia,
 } from "../../types/chat-socket.types";
-import { ChatQueryKey, ChatScope, chatKeys } from "../../types/chat.constant";
+import {
+  ChatQueryKey,
+  ChatScope,
+  chatKeys,
+} from "../../types/chat.constant";
 import { ReactionAction } from "../../types/chat.enums";
 import { toast } from "sonner";
 
@@ -51,6 +56,7 @@ import { useChatTypingIndicator } from "../../hooks/message/useChatTypingIndicat
 import { useChatMessageList } from "../../hooks/message/useChatMessageList";
 import { useChatMessageActions } from "../../hooks/message/useChatMessageActions";
 import { upsertMessageById } from "../../utils/message-state-utils";
+import { getDirectMessageInputNotice } from "../../utils/direct-message-permission";
 import {
   cleanupRemovedSpaceCaches,
   patchChannelMemberRolesInCaches,
@@ -148,6 +154,39 @@ export default function ChatArea({
   } = useChatMessageList({
     activeChatType,
     conversationId: activeConversation?.id,
+  });
+
+  const hasDirectMessages =
+    isDirectConversation &&
+    (!!activeConversation?.messages?.length ||
+      allMessages.some(
+        (message) => message.conversationId === activeConversation?.id,
+      ));
+  const {
+    data: sendPermission,
+    isPending: isPermissionPending,
+    isError: isPermissionError,
+  } = useQuery({
+    queryKey: chatKeys.directMessageSendPermission(
+      activeConversation?.id,
+      auth.userId,
+    ),
+    queryFn: () => getDirectMessageSendPermission(activeConversation!.id),
+    enabled:
+      isDirectConversation &&
+      !!activeConversation?.id &&
+      !!auth.userId &&
+      !hasDirectMessages,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    retry: false,
+  });
+  const directInputMessage = getDirectMessageInputNotice({
+    conversationId: activeConversation?.id,
+    hasDirectMessages,
+    isPermissionPending,
+    isPermissionError,
+    sendPermission,
   });
 
   // ─── Member profiles ───────────────────────────────────────────────────────
@@ -850,7 +889,13 @@ export default function ChatArea({
       {typingUsers.length > 0 && <TypingIndicator typingUsers={typingUsers} />}
 
       {/* Input Area */}
-      {isDirectConversation ? (
+      {isDirectConversation && directInputMessage ? (
+        <div className="w-full border-t border-gray-200 bg-white p-3" role="status">
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center text-sm text-gray-600">
+            {directInputMessage}
+          </div>
+        </div>
+      ) : isDirectConversation ? (
         <DirectMessageInput
           ref={chatInputRef}
           onSendMessage={handleSendMessageWithMedia}

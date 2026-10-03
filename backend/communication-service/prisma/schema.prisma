@@ -314,6 +314,7 @@ model DirectConversationParticipant {
   conversationId    String             @map("conversation_id") @db.Uuid
   userId            String             @map("user_id") @db.Uuid
   joinedAt          DateTime           @default(now()) @map("joined_at")
+  draftOpenedAt     DateTime?          @map("draft_opened_at")
   lastReadMessageId String?            @map("last_read_message_id") @db.Uuid
   lastReadAt        DateTime?          @map("last_read_at")
   muted             Boolean            @default(false)

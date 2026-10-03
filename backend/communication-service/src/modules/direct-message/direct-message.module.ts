@@ -6,6 +6,7 @@ import { KafkaProducerModule } from '../../infrastructure/kafka/kafka-producer.m
 import { DirectMessageController } from './direct-message.controller';
 import { DirectMessageService } from './direct-message.service';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
+import { DirectMessagePermissionModule } from './direct-message-permission.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     S3Module,
     KafkaProducerModule,
     UserProfileSnapshotModule,
+    DirectMessagePermissionModule,
     forwardRef(() => SocketModule),
   ],
   controllers: [DirectMessageController],

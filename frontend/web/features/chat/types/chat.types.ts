@@ -132,6 +132,11 @@ export interface DirectConversationResponse extends ChatListEntityBase {
   participants?: ConversationMember[];
 }
 
+export interface DirectMessageSendPermission {
+  canSend: boolean;
+  reason: "RECIPIENT_BLOCKS_NEW_DM" | null;
+}
+
 export interface ChannelResponse extends ChatListEntityBase {
   spaceId: string;
   isDefault?: boolean;

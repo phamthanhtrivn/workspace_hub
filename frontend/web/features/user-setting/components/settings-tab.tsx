@@ -59,7 +59,7 @@ const SettingsTab = React.memo(function SettingsTab() {
         theme: settingsForm.theme,
         language: settingsForm.language,
         timezone: settingsForm.timezone,
-        allowSearchByEmail: settingsForm.allowSearchByEmail,
+        allowNewDirectMessages: settingsForm.allowNewDirectMessages,
         muteNotification: settingsForm.muteNotification,
       },
       {
@@ -106,11 +106,11 @@ const SettingsTab = React.memo(function SettingsTab() {
         <h4 className="text-lg font-bold text-slate-800">Privacy</h4>
 
         <SettingSwitchCard
-          title="Allow Search By Email"
-          description="Allow other members to find you using your email address"
-          checked={settingsForm.allowSearchByEmail ?? true}
+          title="Allow New Direct Messages"
+          description="Allow others to send you a first direct message. Existing chats can continue when this is off."
+          checked={settingsForm.allowNewDirectMessages ?? true}
           onCheckedChange={(checked) =>
-            updateLocalSetting("allowSearchByEmail", checked)
+            updateLocalSetting("allowNewDirectMessages", checked)
           }
           disabled={settingsMutation.isPending}
         />

@@ -62,6 +62,7 @@ export enum ChatQueryRoot {
   SPACES = "spaces",
   CHANNELS = "channels",
   DIRECT_MESSAGES = "direct-messages",
+  DIRECT_MESSAGE_SEND_PERMISSION = "direct-message-send-permission",
   MESSAGES = "messages",
   CHANNEL_MEMBERS = "channel-members",
   SPACE_MEMBERS = "space-members",
@@ -113,6 +114,10 @@ export const chatKeys = {
     search
       ? ([ChatQueryKey.DIRECT_MESSAGES, userId, search] as const)
       : ([ChatQueryKey.DIRECT_MESSAGES, userId] as const),
+  directMessageSendPermission: (
+    conversationId?: string | null,
+    userId?: string | null,
+  ) => [ChatQueryRoot.DIRECT_MESSAGE_SEND_PERMISSION, conversationId, userId] as const,
   messages: (
     chatType?: ChatContextType | null,
     chatId?: string | null,

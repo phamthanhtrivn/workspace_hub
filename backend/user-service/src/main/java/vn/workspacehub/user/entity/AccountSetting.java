@@ -27,9 +27,9 @@ public class AccountSetting {
     private String language;
     private String timezone;
 
-    @Column(name = "allow_search_by_email", nullable = false)
+    @Column(name = "allow_new_direct_messages", nullable = false, columnDefinition = "boolean default true")
     @Builder.Default
-    private boolean allowSearchByEmail = true;
+    private boolean allowNewDirectMessages = true;
 
     @Column(name = "mute_notification", nullable = false, columnDefinition = "boolean default false")
     @Builder.Default

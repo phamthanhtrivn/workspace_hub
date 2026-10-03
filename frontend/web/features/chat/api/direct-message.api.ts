@@ -3,6 +3,7 @@ import {
   ApiResponse,
   ChatMessageResponse,
   DirectConversationResponse,
+  DirectMessageSendPermission,
   FollowedThreadResponse,
   MuteConversationResponse,
   PaginatedMediaResponse,
@@ -42,6 +43,15 @@ export const getDirectConversations = async (
       ? conversations.map(normalizeDirectConversation)
       : [],
   };
+};
+
+export const getDirectMessageSendPermission = async (
+  conversationId: string,
+): Promise<DirectMessageSendPermission> => {
+  const response = await api.get(
+    `/api/direct-conversations/${conversationId}/send-permission`,
+  );
+  return response.data.data;
 };
 
 // ─── Messages ──────────────────────────────────────────────────────────────

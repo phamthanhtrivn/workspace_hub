@@ -19,6 +19,7 @@ import {
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { ChatEvent } from '../socket/chat/chat-socket.events';
 import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
+import { DirectMessagePermissionService } from './direct-message-permission.service';
 
 type DirectMessageWithMedia = Prisma.DirectMessageGetPayload<{
   include: { medias: true };
@@ -40,6 +41,7 @@ export class DirectMessageService {
     private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
     private readonly chatSocketPublisher: ChatSocketPublisher,
+    private readonly directMessagePermissionService: DirectMessagePermissionService,
   ) {}
 
   async createDirectMessage(
@@ -56,6 +58,7 @@ export class DirectMessageService {
     threadParentId?: string,
     mentions?: string[],
   ) {
+    await this.directMessagePermissionService.assertCanSend(conversationId, senderId);
     const createdMessage = await this.prisma.$transaction(async (tx) => {
       const participant = await tx.directConversationParticipant.findUnique({
         where: {
