@@ -4,7 +4,9 @@ import React from "react";
 import type { PomodoroMode, PomodoroStatus } from "../types/pomodoro";
 import { cleanTaskDescription } from "@/features/calendar/utils/calendar-event.utils";
 import { cn } from "@/lib/utils";
-import { Sparkles, Coffee, Palmtree, Target, StickyNote } from "lucide-react";
+import { Target, StickyNote } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { POMODORO_MODES, POMODORO_MODE_THEMES } from "../constants/pomodoro-mode-theme";
 
 interface PomodoroTimerDisplayProps {
   mode: PomodoroMode;
@@ -39,7 +41,7 @@ export function PomodoroTimerDisplay({
 
   // Visual Tokens & Themes by Mode
   const safeMode: PomodoroMode =
-    mode && ["FOCUS", "SHORT_BREAK", "LONG_BREAK"].includes(mode)
+    mode && POMODORO_MODES.includes(mode)
       ? mode
       : "FOCUS";
 
@@ -80,51 +82,24 @@ export function PomodoroTimerDisplay({
       ? "Paused"
       : "Ready to start";
 
-  const defaultTheme = {
-    name: "Focus",
-    icon: Sparkles,
-    color: "#1C4D8D",
-    gradient: "from-blue-600 via-indigo-600 to-sky-500",
-    glowBg:
-      "bg-radial-[at_center] from-blue-500/10 via-indigo-500/5 to-transparent",
-    badgeClass:
-      "bg-blue-50 text-[var(--color-primary,#1C4D8D)] border-blue-200/80 shadow-xs",
-    ringGlow: "drop-shadow(0 0 16px rgba(28, 77, 141, 0.35))",
-    activeTab:
-      "bg-white text-[var(--color-primary,#1C4D8D)] shadow-sm font-bold",
+  const modeThemes = POMODORO_MODE_THEMES[safeMode];
+  const ModeIcon = modeThemes.icon;
+  const modeDurations: Record<PomodoroMode, number> = {
+    FOCUS: focusDuration,
+    SHORT_BREAK: shortBreakDuration,
+    LONG_BREAK: longBreakDuration,
   };
 
-  const modeThemes =
-    {
-      FOCUS: defaultTheme,
-      SHORT_BREAK: {
-        name: "Short break",
-        icon: Coffee,
-        color: "#0D9488",
-        gradient: "from-teal-500 via-emerald-500 to-cyan-500",
-        glowBg:
-          "bg-radial-[at_center] from-teal-500/10 via-emerald-500/5 to-transparent",
-        badgeClass: "bg-teal-50 text-teal-800 border-teal-200/80 shadow-xs",
-        ringGlow: "drop-shadow(0 0 16px rgba(13, 148, 136, 0.35))",
-        activeTab: "bg-white text-teal-700 shadow-sm font-bold",
-      },
-      LONG_BREAK: {
-        name: "Long break",
-        icon: Palmtree,
-        color: "#2563EB",
-        gradient: "from-sky-500 via-blue-600 to-indigo-500",
-        glowBg:
-          "bg-radial-[at_center] from-sky-500/10 via-blue-500/5 to-transparent",
-        badgeClass: "bg-sky-50 text-sky-800 border-sky-200/80 shadow-xs",
-        ringGlow: "drop-shadow(0 0 16px rgba(37, 99, 235, 0.35))",
-        activeTab: "bg-white text-blue-700 shadow-sm font-bold",
-      },
-    }[safeMode] || defaultTheme;
-
-  const ModeIcon = modeThemes?.icon || Sparkles;
-
   return (
-    <div className="flex w-full min-w-0 flex-col items-center justify-center relative select-none">
+    <Tabs
+      value={safeMode}
+      activationMode="manual"
+      onValueChange={(value) => {
+        const nextMode = POMODORO_MODES.find((candidate) => candidate === value);
+        if (nextMode) onSwitchMode(nextMode);
+      }}
+      className="relative flex w-full min-w-0 flex-col items-center justify-center gap-0 select-none"
+    >
       {/* Ambient background aura */}
       <div
         className={cn(
@@ -135,53 +110,25 @@ export function PomodoroTimerDisplay({
       />
 
       {/* Segmented Mode Selector */}
-      <div className="grid w-full max-w-lg grid-cols-3 gap-1 rounded-2xl border border-slate-200/70 bg-slate-100/90 p-1 shadow-inner backdrop-blur-sm" role="group" aria-label="Timer mode">
-        <button
-          type="button"
-          onClick={() => onSwitchMode("FOCUS")}
-          aria-pressed={mode === "FOCUS"}
-          className={cn(
-            "flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium tracking-tight transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-xs",
-            mode === "FOCUS"
-              ? modeThemes.activeTab
-              : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
-          )}
-        >
-          <Sparkles className="size-3.5" />
-          <span>Focus <span className="block text-[10px] opacity-70">{focusDuration}m</span></span>
-        </button>
+      <TabsList aria-label="Timer mode"
+        className="grid h-auto w-full max-w-lg grid-cols-3 gap-1 rounded-2xl border border-slate-200/70 bg-slate-100/90 p-1 shadow-inner backdrop-blur-sm">
+        {POMODORO_MODES.map((tabMode) => {
+          const theme = POMODORO_MODE_THEMES[tabMode];
+          const TabIcon = theme.icon;
+          return (
+            <TabsTrigger key={tabMode} value={tabMode}
+              className={cn(
+                "flex h-auto min-w-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium tracking-tight text-slate-600 transition-colors duration-200 hover:bg-white/60 hover:text-slate-900 focus-visible:ring-2 data-[state=active]:bg-white data-[state=active]:font-bold data-[state=active]:shadow-sm sm:text-xs",
+                theme.tabClass,
+              )}>
+              <TabIcon aria-hidden="true" className="size-3.5" />
+              <span>{theme.name}<span className="block text-[10px] opacity-70">{modeDurations[tabMode]}m</span></span>
+            </TabsTrigger>
+          );
+        })}
+      </TabsList>
 
-        <button
-          type="button"
-          onClick={() => onSwitchMode("SHORT_BREAK")}
-          aria-pressed={mode === "SHORT_BREAK"}
-          className={cn(
-            "flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium tracking-tight transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-xs",
-            mode === "SHORT_BREAK"
-              ? modeThemes.activeTab
-              : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
-          )}
-        >
-          <Coffee className="size-3.5" />
-          <span>Short break <span className="block text-[10px] opacity-70">{shortBreakDuration}m</span></span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onSwitchMode("LONG_BREAK")}
-          aria-pressed={mode === "LONG_BREAK"}
-          className={cn(
-            "flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium tracking-tight transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-xs",
-            mode === "LONG_BREAK"
-              ? modeThemes.activeTab
-              : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
-          )}
-        >
-          <Palmtree className="size-3.5" />
-          <span>Long break <span className="block text-[10px] opacity-70">{longBreakDuration}m</span></span>
-        </button>
-      </div>
-
+      <TabsContent value={safeMode} forceMount className="flex w-full min-w-0 flex-col items-center">
       {/* Center Dial & Precision Timepiece Ring */}
       <div className="relative my-3 flex w-full max-w-[300px] items-center justify-center sm:max-w-[320px]">
         {/* Outer Decorative Track Ring with tick marks */}
@@ -202,7 +149,7 @@ export function PomodoroTimerDisplay({
                 y2="100%"
               >
                 <stop offset="0%" stopColor={modeThemes.color} />
-                <stop offset="100%" stopColor="#38BDF8" />
+                <stop offset="100%" stopColor={modeThemes.gradientEnd} />
               </linearGradient>
             </defs>
 
@@ -404,6 +351,7 @@ export function PomodoroTimerDisplay({
           </div>
         </div>
       </div>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
 }

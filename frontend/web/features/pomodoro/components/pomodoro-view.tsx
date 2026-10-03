@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
+import { POMODORO_MODE_THEMES } from "../constants/pomodoro-mode-theme";
 
 export function PomodoroView() {
   const userId = useAppSelector((state) => state.auth.userId);
@@ -73,11 +74,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
       <div
         className={cn(
           "pointer-events-none fixed -top-40 left-1/2 -z-10 h-[600px] w-[90%] max-w-[900px] -translate-x-1/2 rounded-full blur-[140px] transition-all duration-1000",
-          mode === "FOCUS"
-            ? "bg-blue-600/10"
-            : mode === "SHORT_BREAK"
-              ? "bg-teal-500/10"
-              : "bg-sky-500/10",
+          POMODORO_MODE_THEMES[mode].pageGlowClass,
           isRunning ? "opacity-100 scale-105" : "opacity-60",
         )}
       />

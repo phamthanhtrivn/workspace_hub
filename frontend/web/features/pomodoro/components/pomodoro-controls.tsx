@@ -5,6 +5,7 @@ import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
 import type { PomodoroMode, PomodoroStatus } from "../types/pomodoro";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { POMODORO_MODE_THEMES } from "../constants/pomodoro-mode-theme";
 
 interface PomodoroControlsProps {
   disabled: boolean;
@@ -29,6 +30,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
 }: PomodoroControlsProps) {
   const isRunning = status === "RUNNING";
   const isFocus = mode === "FOCUS";
+  const modeTheme = POMODORO_MODE_THEMES[mode] ?? POMODORO_MODE_THEMES.FOCUS;
   const startLabel =
     mode === "FOCUS"
       ? "START FOCUS"
@@ -58,9 +60,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             disabled={disabled}
             className={cn(
               "h-13 px-3 sm:px-8 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase shadow-md transition-all duration-200 active:scale-95",
-              isFocus
-                ? "bg-gradient-to-r from-[var(--color-primary,#1C4D8D)] to-[var(--color-primary-strong,#0F2854)] text-white shadow-blue-900/25 hover:brightness-110"
-                : "bg-gradient-to-r from-teal-600 to-emerald-700 text-white shadow-teal-900/25 hover:brightness-110",
+              modeTheme.startButtonClass,
               isFocus && status === "IDLE" && "hover:shadow-blue-900/35",
             )}
           >
