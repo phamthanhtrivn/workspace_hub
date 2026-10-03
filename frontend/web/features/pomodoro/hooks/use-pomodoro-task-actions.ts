@@ -33,6 +33,7 @@ export function usePomodoroTaskActions(finishActiveTask: FinishActiveTask) {
 
   const refreshSource = useCallback((task: PomodoroActiveTask) => {
     setTaskRevision((revision) => revision + 1);
+    void queryClient.invalidateQueries({ queryKey: ["pomodoro", "focus-tasks"] });
     if (task.projectId) {
       void queryClient.invalidateQueries({ queryKey: ["projects"] });
       void queryClient.invalidateQueries({ queryKey: ["tasks", task.id] });

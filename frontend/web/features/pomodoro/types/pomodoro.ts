@@ -6,6 +6,8 @@ export type PomodoroSessionStatus = "COMPLETED" | "STOPPED" | "SKIPPED";
 
 export type PomodoroTaskAction = "COMPLETE" | "REVIEW";
 
+export type PomodoroFocusSource = "free" | "calendar" | "project";
+
 export interface PomodoroConfig {
   id?: string;
   focusDuration: number; // in minutes
@@ -29,6 +31,8 @@ export interface PomodoroTaskChecklistItem {
 
 export interface PomodoroActiveTask {
   id: string;
+  source?: "PERSONAL_GOAL" | "CALENDAR_TASK" | "PROJECT_TASK";
+  canEdit?: boolean;
   calendarEventId?: string;
   projectId?: string;
   projectName?: string;
@@ -37,7 +41,6 @@ export interface PomodoroActiveTask {
   title: string;
   description?: string;
   priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  estimatedPomodoros?: number;
   completedPomodoros?: number;
   checklists?: PomodoroTaskChecklistItem[];
 }

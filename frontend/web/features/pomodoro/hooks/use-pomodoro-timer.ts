@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isAxiosError } from "axios";
 import type {
   PomodoroActiveTask,
   PomodoroMode,
@@ -23,12 +24,15 @@ import { usePomodoroAmbient } from "./use-pomodoro-ambient";
 import { limitPomodoroNotes } from "../utils/pomodoro-notes";
 import { usePomodoroConfig } from "../components/pomodoro-config-provider";
 import { getDurationForMode, getUpdatedIdleDuration } from "../utils/pomodoro-config";
+import { focusSessionTaskId, normalizeFocusTask } from "../utils/focus-task";
+import { prepareFocusTask } from "../api/focus-tasks.api";
+import { POMODORO_TASK_MESSAGES } from "../constants/pomodoro-task";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type PendingTimerState = Omit<Parameters<typeof saveCalendarPomodoroTimerState>[0], "expectedVersion">;
 
-function toPendingTimerState(state: Parameters<typeof saveLocalPomodoroTimerState>[1]): PendingTimerState {
+function toPendingTimerState(state: PendingTimerState): PendingTimerState {
   return {
     plannedSeconds: state.plannedSeconds,
     mode: state.mode,
@@ -93,7 +97,6 @@ export function usePomodoroTimer(userId: string) {
   const stateVersionRef = useRef(0);
   const pendingStateRef = useRef<PendingTimerState | null>(null);
   const stateSaveInFlightRef = useRef(false);
-  const refreshVersionBeforeRetryRef = useRef(false);
   const stateSyncErrorShownRef = useRef(false);
   const stateSyncFailedRef = useRef(false);
   const completionInProgressRef = useRef(false);
@@ -144,7 +147,10 @@ export function usePomodoroTimer(userId: string) {
           const duration = saved.plannedSeconds ?? getDurationForMode(restoredMode, cfg);
           setMode(restoredMode);
           setCycleCount(saved.cycleCount);
-          setActiveTask(saved.activeTask as unknown as PomodoroActiveTask | null);
+          setActiveTask(normalizeFocusTask(saved.activeTask as unknown as PomodoroActiveTask | null) ?? (saved.eventId ? {
+            id: saved.taskId ?? saved.eventId, calendarEventId: saved.eventId,
+            source: "CALENDAR_TASK", title: "Restored Calendar session",
+          } : null));
           setNotes(limitPomodoroNotes(saved.notes));
           setTotalDuration(duration);
           sessionStartTimeRef.current = saved.sessionStartAt ? new Date(saved.sessionStartAt).getTime() : null;
@@ -174,18 +180,34 @@ export function usePomodoroTimer(userId: string) {
     };
   }, [userId, setTotalDuration, ensureConfigLoaded]);
 
+  const restoreRemoteState = useCallback((remote: Awaited<ReturnType<typeof getCalendarPomodoroTimerState>>) => {
+    stateVersionRef.current = remote?.version ?? 0;
+    sessionStartTimeRef.current = remote?.sessionStartAt ? Date.parse(remote.sessionStartAt) : null;
+    targetEndTimeRef.current = remote?.status === "RUNNING" && remote.targetEndAt ? Date.parse(remote.targetEndAt) : null;
+    const remaining = targetEndTimeRef.current ? Math.max(0, Math.ceil((targetEndTimeRef.current - Date.now()) / 1000)) : remote?.remainingSeconds ?? totalDurationRef.current;
+    timeLeftRef.current = remaining;
+    setTimeLeft(remaining);
+    setTotalDuration(remote?.plannedSeconds ?? totalDurationRef.current);
+    setMode(remote?.mode ?? "FOCUS");
+    setStatus(remote?.status ?? "IDLE");
+    setCycleCount(remote?.cycleCount ?? 0);
+    setActiveTask(normalizeFocusTask(remote?.activeTask as unknown as PomodoroActiveTask | null));
+    setNotes(limitPomodoroNotes(remote?.notes ?? ""));
+    if (remote) {
+      saveLocalPomodoroTimerState(userId, remote);
+      lastQueuedStateRef.current = JSON.stringify(toPendingTimerState(remote));
+    }
+    stateSyncFailedRef.current = false;
+    setLoadError(false);
+    isHydratedRef.current = true;
+  }, [userId, setTotalDuration]);
+
   // Keep one write in flight and replace queued changes with the latest state.
   const flushPendingState = useCallback(async () => {
     if (!mountedRef.current || stateSaveInFlightRef.current) return;
     stateSaveInFlightRef.current = true;
     let failedSnapshot: PendingTimerState | null = null;
     try {
-      if (refreshVersionBeforeRetryRef.current) {
-        const remoteState = await getCalendarPomodoroTimerState();
-        if (!mountedRef.current) return;
-        stateVersionRef.current = remoteState?.version ?? 0;
-        refreshVersionBeforeRetryRef.current = false;
-      }
       while (pendingStateRef.current && isHydratedRef.current) {
         const snapshot = pendingStateRef.current;
         failedSnapshot = snapshot;
@@ -208,11 +230,28 @@ export function usePomodoroTimer(userId: string) {
       stateSyncFailedRef.current = false;
       setLoadError(false);
       stateSyncErrorShownRef.current = false;
-    } catch {
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.status === 409) {
+        // A rejected version must never be retried against a newer version with our stale snapshot.
+        pendingStateRef.current = null;
+        isHydratedRef.current = false;
+        pauseAmbient();
+        try {
+          const remote = await getCalendarPomodoroTimerState();
+          if (!mountedRef.current) return;
+          restoreRemoteState(remote);
+          toast.error(POMODORO_TASK_MESSAGES.conflict);
+        } catch {
+          stateSyncFailedRef.current = true;
+          setLoadError(true);
+          setStatus("PAUSED");
+          toast.error("Unable to restore the newer timer. Reload Pomodoro before making changes.");
+        }
+        return;
+      }
       if (!pendingStateRef.current && failedSnapshot) {
         pendingStateRef.current = failedSnapshot;
       }
-      refreshVersionBeforeRetryRef.current = true;
       stateSyncFailedRef.current = true;
       setLoadError(true);
       if (!stateSyncErrorShownRef.current) {
@@ -222,7 +261,7 @@ export function usePomodoroTimer(userId: string) {
     } finally {
       stateSaveInFlightRef.current = false;
     }
-  }, [userId]);
+  }, [userId, pauseAmbient, restoreRemoteState]);
 
   const persistState = useCallback(
     (
@@ -244,12 +283,12 @@ export function usePomodoroTimer(userId: string) {
         remainingSeconds: remainingSec,
         cycleCount: cycle,
         sessionStartAt: sessionStart ? new Date(sessionStart).toISOString() : null,
-        taskId: task?.id && UUID.test(task.id) ? task.id : null,
+        taskId: focusSessionTaskId(task) && UUID.test(task!.id) ? task!.id : null,
         activeTask: task as unknown as Record<string, unknown> | null,
         notes: limitPomodoroNotes(noteText),
         eventId: task?.calendarEventId ?? null,
       };
-      const signature = JSON.stringify(snapshot);
+      const signature = JSON.stringify(toPendingTimerState(snapshot));
       if (signature === lastQueuedStateRef.current) return;
       lastQueuedStateRef.current = signature;
       saveLocalPomodoroTimerState(userId, {
@@ -280,8 +319,7 @@ export function usePomodoroTimer(userId: string) {
         try {
           const serverState = await getCalendarPomodoroTimerState();
           if (!active) return;
-          stateVersionRef.current = serverState?.version ?? 0;
-          stateSyncFailedRef.current = false;
+          restoreRemoteState(serverState);
         } catch {
           stateSyncFailedRef.current = true;
         }
@@ -300,7 +338,7 @@ export function usePomodoroTimer(userId: string) {
       clearInterval(interval);
       window.removeEventListener("online", retryWhenOnline);
     };
-  }, [flushPendingState, isReady, loadError]);
+  }, [flushPendingState, isReady, loadError, restoreRemoteState]);
 
   // Notification trigger
   const sendBrowserNotification = useCallback(
@@ -343,7 +381,7 @@ export function usePomodoroTimer(userId: string) {
     try {
       await recordPomodoroSession({
       eventId: activeTask?.calendarEventId,
-      taskId: activeTask?.id,
+       taskId: focusSessionTaskId(activeTask),
       taskTitle: activeTask?.title,
       projectId: activeTask?.projectId,
       projectName: activeTask?.projectName,
@@ -394,9 +432,20 @@ export function usePomodoroTimer(userId: string) {
     setTotalDuration(nextDuration);
     setTimeLeft(nextDuration);
 
-    const shouldAutoStart =
+    let nextTask = activeTask;
+    let shouldAutoStart =
       (nextMode !== "FOCUS" && config.autoStartBreak) ||
       (nextMode === "FOCUS" && config.autoStartFocus);
+
+    if (shouldAutoStart && nextMode === "FOCUS" && activeTask) {
+      try {
+        nextTask = await prepareFocusTask(activeTask, userId);
+        setActiveTask(nextTask);
+      } catch (error) {
+        shouldAutoStart = false;
+        toast.error(error instanceof Error ? error.message : POMODORO_TASK_MESSAGES.unavailable);
+      }
+    }
 
     if (shouldAutoStart) {
       const now = Date.now();
@@ -415,7 +464,7 @@ export function usePomodoroTimer(userId: string) {
         targetEndTimeRef.current,
         nextDuration,
         nextCycle,
-        activeTask,
+        nextTask,
         notes,
       );
     } else {
@@ -447,6 +496,7 @@ export function usePomodoroTimer(userId: string) {
     pauseAmbient,
     playAmbient,
     setTotalDuration,
+    userId,
   ]);
 
   // Main tick loop
@@ -586,7 +636,8 @@ export function usePomodoroTimer(userId: string) {
     if (status !== "PAUSED") return;
 
     const now = Date.now();
-    targetEndTimeRef.current = now + timeLeft * 1000;
+    const remaining = timeLeftRef.current;
+    targetEndTimeRef.current = now + remaining * 1000;
     setStatus("RUNNING");
 
     // Resume ambient music if in Focus
@@ -598,12 +649,12 @@ export function usePomodoroTimer(userId: string) {
       mode,
       "RUNNING",
       targetEndTimeRef.current,
-      timeLeft,
+      remaining,
       cycleCount,
       activeTask,
       notes,
     );
-  }, [status, timeLeft, mode, cycleCount, activeTask, notes, autoPlayAmbient, ambientTrack, persistState, playAmbient]);
+  }, [status, mode, cycleCount, activeTask, notes, autoPlayAmbient, ambientTrack, persistState, playAmbient]);
 
   const saveInterruptedSession = useCallback(async (
     sessionStatus: PomodoroSessionStatus,
@@ -636,7 +687,7 @@ export function usePomodoroTimer(userId: string) {
     try {
       await recordPomodoroSession({
         eventId: activeTask?.calendarEventId,
-        taskId: activeTask?.id,
+        taskId: focusSessionTaskId(activeTask),
         taskTitle: activeTask?.title,
         projectId: activeTask?.projectId,
         projectName: activeTask?.projectName,
@@ -693,6 +744,7 @@ export function usePomodoroTimer(userId: string) {
   const transitionTask = useCallback(async (
     nextTask: PomodoroActiveTask | null,
     updateSource?: (task: PomodoroActiveTask) => Promise<void>,
+    focus?: { prepare?: (task: PomodoroActiveTask) => Promise<PomodoroActiveTask> },
   ) => {
     if (!isHydratedRef.current || (updateSource && !activeTask)) throw new Error("Please select a task first.");
     if (taskActionInProgressRef.current || completionInProgressRef.current ||
@@ -718,7 +770,7 @@ export function usePomodoroTimer(userId: string) {
         try {
           await recordPomodoroSession({
             eventId: activeTask?.calendarEventId,
-            taskId: activeTask?.id,
+            taskId: focusSessionTaskId(activeTask),
             taskTitle: activeTask?.title,
             projectId: activeTask?.projectId,
             projectName: activeTask?.projectName,
@@ -748,15 +800,37 @@ export function usePomodoroTimer(userId: string) {
       persistState(mode, "IDLE", null, duration, cycleCount, activeTask, notes);
 
       if (updateSource && activeTask) await updateSource(activeTask);
+      if (focus?.prepare && nextTask) nextTask = await focus.prepare(nextTask);
       if (!mountedRef.current) return;
       setActiveTask(nextTask);
       setNotes("");
-      persistState(mode, "IDLE", null, duration, cycleCount, nextTask, "");
+      if (focus) {
+        const focusDuration = getDurationForMode("FOCUS", config);
+        const now = Date.now();
+        sessionStartTimeRef.current = now;
+        targetEndTimeRef.current = now + focusDuration * 1000;
+        timeLeftRef.current = focusDuration;
+        setMode("FOCUS");
+        setStatus("RUNNING");
+        setTimeLeft(focusDuration);
+        setTotalDuration(focusDuration);
+        persistState("FOCUS", "RUNNING", targetEndTimeRef.current, focusDuration, cycleCount, nextTask, "");
+        if (autoPlayAmbient && ambientTrack !== "none") playAmbient();
+      } else {
+        persistState(mode, "IDLE", null, duration, cycleCount, nextTask, "");
+      }
     } finally {
       taskActionInProgressRef.current = false;
       setIsTaskActionPending(false);
     }
-  }, [activeTask, status, totalDuration, mode, cycleCount, config, notes, pauseAmbient, persistState, setTotalDuration]);
+  }, [activeTask, status, totalDuration, mode, cycleCount, config, notes, pauseAmbient, persistState, setTotalDuration, autoPlayAmbient, ambientTrack, playAmbient]);
+
+  const beginFocusTask = useCallback((task: PomodoroActiveTask, prepare: (task: PomodoroActiveTask) => Promise<PomodoroActiveTask>) =>
+    transitionTask(task, undefined, { prepare }), [transitionTask]);
+
+  const beginFreeFocus = useCallback(() => transitionTask(null, undefined, {}), [transitionTask]);
+
+  const stopSession = useCallback(() => transitionTask(activeTask), [transitionTask, activeTask]);
 
   const finishActiveTask = useCallback(
     (updateSource: (task: PomodoroActiveTask) => Promise<void>) => transitionTask(null, updateSource),
@@ -798,6 +872,9 @@ export function usePomodoroTimer(userId: string) {
     sessionRevision,
     isTaskActionPending,
     finishActiveTask,
+    beginFocusTask,
+    beginFreeFocus,
+    stopSession,
     mode,
     status,
     timeLeft,

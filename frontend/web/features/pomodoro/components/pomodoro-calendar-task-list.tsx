@@ -38,6 +38,7 @@ import type { CalendarEvent } from "@/features/calendar/types/calendar.types";
 import { cleanTaskDescription } from "@/features/calendar/utils/calendar-event.utils";
 import { cn } from "@/lib/utils";
 import { POMODORO_DISPLAY_LOCALE } from "../constants/pomodoro-display";
+import { CalendarTaskFocusButton } from "./task-focus-button";
 
 interface PomodoroCalendarTaskListProps {
   tasks: CalendarEvent[];
@@ -162,6 +163,7 @@ function CalendarTaskRow({
           )}
         </button>
 
+        <div className="my-auto mr-1"><CalendarTaskFocusButton event={event} /></div>
         {note && (
           <button
             type="button"

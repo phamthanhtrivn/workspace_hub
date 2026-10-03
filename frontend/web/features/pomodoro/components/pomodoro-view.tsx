@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useCallback } from "react";
-import { usePomodoroTimer } from "../hooks/use-pomodoro-timer";
-import { usePomodoroTaskActions } from "../hooks/use-pomodoro-task-actions";
+import { usePomodoroSession } from "./pomodoro-session-provider";
 import { usePomodoroViewMode } from "../hooks/use-pomodoro-view-mode";
 import { PomodoroTimerDisplay } from "./pomodoro-timer-display";
 import { PomodoroControls } from "./pomodoro-controls";
@@ -28,14 +27,12 @@ function UserPomodoroView({ userId }: { userId: string }) {
     loadError,
     sessionRevision,
     isTaskActionPending,
-    finishActiveTask,
     mode,
     status,
     timeLeft,
     totalDuration,
     activeTask,
     config,
-    notes,
     ambientTrack,
     ambientVolume,
     autoPlayAmbient,
@@ -54,22 +51,18 @@ function UserPomodoroView({ userId }: { userId: string }) {
     reset,
     skip,
     switchMode,
-    selectTask,
-    updateActiveTask,
-    setNotes,
     selectAmbientTrack,
     toggleAmbientPlay,
     changeAmbientVolume,
     toggleAutoPlayAmbient,
-  } = usePomodoroTimer(userId);
-  const { runTaskAction, taskRevision } = usePomodoroTaskActions(finishActiveTask);
+    busy,
+  } = usePomodoroSession();
 
   const { viewMode, setViewMode } = usePomodoroViewMode(userId);
   const minimalMode = viewMode === "focus";
   const isRunning = status === "RUNNING";
   const handleReset = useCallback(() => reset(), [reset]);
   const handleSkip = useCallback(() => skip(), [skip]);
-  const handleClearTask = useCallback(() => { void selectTask(null); }, [selectTask]);
 
   return (
     <div className="relative w-full min-w-0 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
@@ -157,7 +150,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
 
           {/* Controls Dock */}
           <PomodoroControls
-            disabled={!isReady || isTaskActionPending || (status === "RUNNING" && timeLeft === 0)}
+            disabled={!isReady || busy}
             status={status}
             mode={mode}
             onStart={start}
@@ -225,19 +218,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
             "flex w-full min-w-0 justify-center [&>div]:max-w-none",
             !minimalMode && "xl:col-start-2 xl:row-start-1",
           )}>
-            <PomodoroActiveTaskCard
-              taskRevision={taskRevision}
-              timerStatus={status}
-              taskActionDisabled={isTaskActionPending || (status === "RUNNING" && timeLeft === 0)}
-              onTaskAction={runTaskAction}
-              activeTask={activeTask}
-              notes={notes}
-              onClearTask={handleClearTask}
-              onNotesChange={setNotes}
-              onSetCustomTask={selectTask}
-              onUpdateActiveTask={updateActiveTask}
-              focusDurationMinutes={config.focusDuration}
-            />
+            <PomodoroActiveTaskCard />
           </fieldset>
         )}
 

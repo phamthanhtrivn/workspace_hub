@@ -1,5 +1,6 @@
 import { createCalendarEvent, getCalendars } from "@/features/calendar/api/calendar.api";
 import { EventSourceType } from "@/features/calendar/types/calendar.types";
+import { POMODORO_TASK_SETTINGS } from "../constants/pomodoro-task";
 
 export function defaultFocusStart(): string {
   const date = new Date();
@@ -9,6 +10,7 @@ export function defaultFocusStart(): string {
 }
 
 interface ScheduleFocusTaskInput {
+  calendarId?: string;
   title: string;
   startsAt: string;
   pomodoros: number;
@@ -17,6 +19,7 @@ interface ScheduleFocusTaskInput {
 }
 
 export async function scheduleFocusTask({
+  calendarId,
   title,
   startsAt,
   pomodoros,
@@ -27,12 +30,14 @@ export async function scheduleFocusTask({
   if (!startsAt || Number.isNaN(start.getTime())) {
     throw new Error("Please choose a valid start date and time.");
   }
+  if (!title.trim() || title.length > POMODORO_TASK_SETTINGS.maxGoalTitleLength || !Number.isInteger(pomodoros) || pomodoros < 1 || pomodoros > POMODORO_TASK_SETTINGS.maxCalendarSessions) {
+    throw new Error("Enter a valid title and between 1 and 20 focus sessions.");
+  }
 
   const calendars = await getCalendars();
-  const calendar =
-    calendars.find((item) => !item.projectId && item.isDefault) ??
-    calendars.find((item) => !item.projectId) ??
-    calendars[0];
+  const calendar = calendarId
+    ? calendars.find((calendar) => calendar.id === calendarId && !calendar.projectId)
+    : calendars.find((calendar) => !calendar.projectId && calendar.isDefault) ?? calendars.find((calendar) => !calendar.projectId);
   if (!calendar) {
     throw new Error("Create a calendar before saving a task.");
   }

@@ -43,7 +43,8 @@ import {
 import { CalendarConfirmDialog } from "../ui/calendar-confirm-dialog";
 import { CalendarRadioGroup } from "../ui/calendar-radio-group";
 import { EventAttendeeList } from "./event-attendee-list";
-import { CalendarPomodoroPanel } from "./calendar-pomodoro-panel";
+import { CalendarTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
+import { TaskFocusHistory } from "@/features/pomodoro/components/task-focus-history";
 
 export function EventDetailModal({
   event: initialEvent,
@@ -344,8 +345,11 @@ export function EventDetailModal({
             </div>
           </div>
 
-          {currentUserId && event.permissions?.canManage && event.status !== "CANCELLED" && (
-            <CalendarPomodoroPanel event={event} userId={currentUserId} />
+          {isTask && currentUserId && event.calendar?.ownerUserId === currentUserId && !event.calendar.projectId && (
+            <div className="space-y-3">
+              <CalendarTaskFocusButton event={event} />
+              <TaskFocusHistory target={{ eventId: event.id }} />
+            </div>
           )}
 
           {/* Row 2: Reminders (Bell icon) */}

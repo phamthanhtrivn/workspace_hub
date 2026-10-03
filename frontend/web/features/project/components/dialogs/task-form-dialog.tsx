@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlignLeft, Clock3, Timer } from "lucide-react";
+import { AlignLeft, Clock3 } from "lucide-react";
 import {
   taskDateKey,
   toDateTimeInput,
@@ -14,7 +14,6 @@ import {
 } from "@/features/project/types/project";
 import { TaskDetailsFields } from "../forms/task-details-fields";
 import { TaskDateRangeFields } from "../forms/task-date-range-fields";
-import { TaskDurationSelect } from "../forms/task-duration-select";
 import {
   Dialog,
   DialogContent,
@@ -37,7 +36,6 @@ export interface TaskFormValues {
   startDate?: string | null;
   dueDate?: string | null;
   allDay: boolean;
-  estimatedMinutes: number;
   parentTaskId?: string;
 }
 
@@ -90,7 +88,6 @@ export default function TaskFormDialog({
   );
   const [dueDate, setDueDate] = useState("");
   const [allDay, setAllDay] = useState(initialAllDay);
-  const [estimatedMinutes, setEstimatedMinutes] = useState("");
   const [parentTaskId, setParentTaskId] = useState(initialParentTaskId || "");
 
   const handleClose = () => {
@@ -110,7 +107,6 @@ export default function TaskFormDialog({
       startDate: toApiDateTime(startDate, allDay),
       dueDate: toApiDateTime(dueDate, allDay),
       allDay,
-      estimatedMinutes: Number(estimatedMinutes) || 0,
       parentTaskId: parentTaskId || undefined,
     });
   };
@@ -193,19 +189,6 @@ export default function TaskFormDialog({
               disabled={isSubmitting}
             />
 
-            <section className="border-t border-slate-100 pt-5">
-              <label className="block max-w-sm">
-                <FieldLabel icon={Timer}>Estimated Duration</FieldLabel>
-                <TaskDurationSelect
-                  value={estimatedMinutes}
-                  onValueChange={setEstimatedMinutes}
-                  disabled={isSubmitting}
-                />
-                <span className="mt-1 block text-[11px] text-slate-400">
-                  Approximate time needed to finish this task.
-                </span>
-              </label>
-            </section>
           </div>
 
           <DialogFooter className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-6 py-4 sm:px-7">

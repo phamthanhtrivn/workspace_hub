@@ -22,6 +22,7 @@ import UserSettingsModal from "@/features/user-setting/components/user-settings-
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { cn } from "@/lib/utils";
 import WorkspaceHeader from "./workspace-header";
+import { PomodoroMiniTimer } from "@/features/pomodoro/components/pomodoro-mini-timer";
 
 const menuItems = [
   {
@@ -306,6 +307,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
           onOpenSettings={handleOpenSettings}
         />
 
+        <PomodoroMiniTimer />
         <main
           className={cn(
             "flex-1",

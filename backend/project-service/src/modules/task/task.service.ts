@@ -115,7 +115,6 @@ export class TaskService {
           allDay: dto.allDay ?? false,
           completedAt: isTerminalTaskStatus(status) ? now : undefined,
           completedBy: isTerminalTaskStatus(status) ? userId : undefined,
-          estimatedMinutes: dto.estimatedMinutes ?? 0,
           rank: normalizeTaskRank(dto.rank),
           archived: false,
           createdAt: now,
@@ -413,8 +412,6 @@ export class TaskService {
     if (dto.startDate !== undefined) data.startDate = startDate;
     if (dto.dueDate !== undefined) data.dueDate = dueDate;
     if (dto.allDay !== undefined) data.allDay = dto.allDay;
-    if (dto.estimatedMinutes !== undefined)
-      data.estimatedMinutes = dto.estimatedMinutes;
     if (dto.rank !== undefined) data.rank = normalizeTaskRank(dto.rank);
     if (dto.archived !== undefined) data.archived = dto.archived;
     if (parentTaskId !== undefined) {
@@ -752,12 +749,6 @@ export class TaskService {
         "dueDate",
         current.dueDate?.toISOString(),
         updated.dueDate?.toISOString(),
-      ]);
-    if (dto.estimatedMinutes !== undefined)
-      changes.push([
-        "estimatedMinutes",
-        current.estimatedMinutes,
-        updated.estimatedMinutes,
       ]);
     if (dto.allDay !== undefined)
       changes.push(["allDay", current.allDay, updated.allDay]);
