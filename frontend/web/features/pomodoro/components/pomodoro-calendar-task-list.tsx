@@ -37,6 +37,7 @@ import {
 import type { CalendarEvent } from "@/features/calendar/types/calendar.types";
 import { cleanTaskDescription } from "@/features/calendar/utils/calendar-event.utils";
 import { cn } from "@/lib/utils";
+import { POMODORO_DISPLAY_LOCALE } from "../constants/pomodoro-display";
 
 interface PomodoroCalendarTaskListProps {
   tasks: CalendarEvent[];
@@ -113,8 +114,8 @@ function CalendarTaskRow({
           ref={setActivatorNodeRef}
           type="button"
           disabled={isSaving}
-          aria-label={`Kéo task ${event.title} để đổi thứ tự`}
-          title="Kéo để đổi thứ tự · dùng phím ↑/↓"
+          aria-label={`Drag task ${event.title} to reorder`}
+          title="Drag to reorder · use ↑/↓ keys"
           className="flex w-8 shrink-0 items-center justify-center rounded-l-xl text-slate-400 transition-colors hover:bg-slate-100/70 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-300 disabled:cursor-wait disabled:opacity-40"
           {...attributes}
           onKeyDown={handleKeyDown}
@@ -143,7 +144,7 @@ function CalendarTaskRow({
                   : "bg-slate-100 text-slate-500 group-hover:bg-slate-200/60",
               )}
             >
-              {new Date(event.startAt).toLocaleTimeString("vi-VN", {
+              {new Date(event.startAt).toLocaleTimeString(POMODORO_DISPLAY_LOCALE, {
                 hour: "2-digit",
                 minute: "2-digit",
               })}
@@ -170,11 +171,11 @@ function CalendarTaskRow({
             aria-expanded={isNoteExpanded}
             aria-label={
               isNoteExpanded
-                ? `Thu gọn ghi chú của ${event.title}`
-                : `Xem đầy đủ ghi chú của ${event.title}`
+                ? `Collapse notes for ${event.title}`
+                : `Show all notes for ${event.title}`
             }
             title={
-              isNoteExpanded ? "Thu gọn ghi chú" : `Xem đầy đủ ghi chú: ${note}`
+              isNoteExpanded ? "Collapse notes" : `Show all notes: ${note}`
             }
             className={cn(
               "mr-1.5 my-auto flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300",
@@ -196,8 +197,8 @@ function CalendarTaskRow({
               type="button"
               onMouseDown={(event) => event.stopPropagation()}
               onTouchStart={(event) => event.stopPropagation()}
-              aria-label={`Thao tác cho task ${event.title}`}
-              title="Thao tác"
+              aria-label={`Actions for task ${event.title}`}
+              title="Actions"
               className="my-auto mr-1 flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
             >
               <EllipsisVertical className="size-4" />
@@ -205,7 +206,7 @@ function CalendarTaskRow({
           </PopoverTrigger>
           <PopoverContent
             role="menu"
-            aria-label={`Thao tác cho task ${event.title}`}
+            aria-label={`Actions for task ${event.title}`}
             align="end"
             sideOffset={6}
             className="w-40 rounded-xl border-slate-200 p-1.5 shadow-lg"
@@ -220,7 +221,7 @@ function CalendarTaskRow({
               className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
             >
               <Trash2 className="size-3.5" />
-              Xóa task
+              Delete task
             </button>
           </PopoverContent>
         </Popover>
@@ -230,7 +231,7 @@ function CalendarTaskRow({
         <div className="mx-2.5 mb-2.5 mt-0.5 rounded-lg border border-amber-200/70 bg-amber-50/50 px-3 py-2 text-[11px] leading-relaxed text-slate-700">
           <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
             <StickyNote className="size-3 text-amber-500" aria-hidden="true" />
-            <span>Ghi chú công việc</span>
+            <span>Task notes</span>
           </div>
           <p className="whitespace-pre-wrap break-words">{note}</p>
         </div>
@@ -279,7 +280,7 @@ export function PomodoroCalendarTaskList({
       await onDelete(deleteCandidate);
       setDeleteCandidate(null);
     } catch {
-      setDeleteError("Không xóa được task. Hãy thử lại.");
+      setDeleteError("Unable to delete the task. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -328,10 +329,10 @@ export function PomodoroCalendarTaskList({
             </span>
             <div className="min-w-0 flex-1">
               <AlertDialogTitle className="text-base font-bold leading-snug text-slate-900">
-                Xóa task?
+                Delete task?
               </AlertDialogTitle>
               <AlertDialogDescription className="mt-1.5 text-xs font-medium leading-relaxed text-slate-500">
-                Bạn có chắc muốn xóa “{deleteCandidate?.title}” khỏi Calendar?
+                Are you sure you want to delete “{deleteCandidate?.title}” from Calendar?
               </AlertDialogDescription>
               {deleteError && (
                 <p role="alert" className="mt-2 text-xs font-medium text-red-600">
@@ -351,7 +352,7 @@ export function PomodoroCalendarTaskList({
               }}
               className="h-9 rounded-full border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Hủy
+              Cancel
             </button>
             <button
               type="button"
@@ -359,7 +360,7 @@ export function PomodoroCalendarTaskList({
               onClick={() => void handleDelete()}
               className="h-9 rounded-full bg-red-600 px-4 text-xs font-semibold text-white transition hover:bg-red-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isDeleting ? "Đang xóa..." : "Xóa task"}
+              {isDeleting ? "Deleting..." : "Delete task"}
             </button>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -25,7 +25,7 @@ export async function scheduleFocusTask({
 }: ScheduleFocusTaskInput): Promise<string> {
   const start = new Date(startsAt);
   if (!startsAt || Number.isNaN(start.getTime())) {
-    throw new Error("Vui lòng chọn ngày và giờ bắt đầu hợp lệ.");
+    throw new Error("Please choose a valid start date and time.");
   }
 
   const calendars = await getCalendars();
@@ -34,7 +34,7 @@ export async function scheduleFocusTask({
     calendars.find((item) => !item.projectId) ??
     calendars[0];
   if (!calendar) {
-    throw new Error("Chưa có lịch để lưu nhiệm vụ. Hãy tạo lịch trước.");
+    throw new Error("Create a calendar before saving a task.");
   }
 
   const event = await createCalendarEvent({

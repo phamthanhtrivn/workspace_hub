@@ -19,17 +19,17 @@ export function PomodoroProjectTaskList({
   const { data: tasks = [], isLoading, isError, refetch } = usePomodoroProjectTasks();
 
   return (
-    <section className="mt-4 border-t border-slate-100 pt-3" aria-label="Task Project của bạn hôm nay">
-      <h5 className="text-xs font-semibold text-slate-700">Task Project của bạn hôm nay</h5>
+    <section className="mt-4 border-t border-slate-100 pt-3" aria-label="Your project tasks for today">
+      <h5 className="text-xs font-semibold text-slate-700">Your project tasks for today</h5>
       {isLoading ? (
-        <p role="status" className="mt-2 text-xs text-slate-400">Đang tải task Project...</p>
+        <p role="status" className="mt-2 text-xs text-slate-400">Loading project tasks...</p>
       ) : isError ? (
         <div role="alert" className="mt-2 text-xs text-rose-600">
-          Không tải được task Project.
-          <button type="button" onClick={() => void refetch()} className="ml-2 underline">Thử lại</button>
+          Unable to load project tasks.
+          <button type="button" onClick={() => void refetch()} className="ml-2 underline">Retry</button>
         </div>
       ) : tasks.length === 0 ? (
-        <p className="mt-2 text-xs text-slate-400">Không có task Project được giao cho bạn trong hôm nay.</p>
+        <p className="mt-2 text-xs text-slate-400">No project tasks assigned to you for today.</p>
       ) : (
         <ul className="mt-2 max-h-64 space-y-2 overflow-y-auto">
           {tasks.map(({ task, project }) => {
@@ -64,7 +64,7 @@ export function PomodoroProjectTaskList({
                   <span className="min-w-0">
                     <span className="block break-words font-semibold text-slate-700">{task.title}</span>
                     <span className="mt-1 block truncate text-[11px] text-slate-500">{project.name}</span>
-                    {task.status === "IN_REVIEW" && <span className="mt-1 block text-[11px] text-amber-700">Đang duyệt</span>}
+                    {task.status === "IN_REVIEW" && <span className="mt-1 block text-[11px] text-amber-700">In review</span>}
                   </span>
                 </button>
               </li>

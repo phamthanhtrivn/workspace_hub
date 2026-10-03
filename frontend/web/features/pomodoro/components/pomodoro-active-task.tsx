@@ -112,7 +112,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
       projectId: event.calendar?.projectId ?? undefined,
       projectName: event.calendar?.projectId
         ? event.calendar.name
-        : "Nhiệm vụ Calendar",
+        : "Calendar task",
       projectColor: event.calendar?.color ?? event.color ?? "#1C4D8D",
       estimatedPomodoros: Math.max(
         1,
@@ -149,7 +149,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
       setQuickError(
         error instanceof Error
           ? error.message
-          : "Không thể tạo nhiệm vụ trên Calendar.",
+          : "Unable to create a task in Calendar.",
       );
       setIsCreating(false);
       return;
@@ -160,7 +160,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
       calendarEventId,
       title: quickTitle.trim(),
       description: cleanTaskDescription(quickNote) || undefined,
-      projectName: "Nhiệm vụ cá nhân",
+      projectName: "Personal task",
       projectColor: "#1C4D8D",
       priority: DEFAULT_QUICK_PRIORITY,
       estimatedPomodoros: scheduledPomodoros,
@@ -217,7 +217,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
       onUpdateActiveTask({ ...activeTask, title });
       setIsEditingTitle(false);
     } catch {
-      setTitleError("Không lưu được tên task. Hãy thử lại.");
+      setTitleError("Unable to save the task name. Please try again.");
     } finally {
       setIsSavingTitle(false);
     }
@@ -270,7 +270,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
       });
       setIsEditingTaskNote(false);
     } catch {
-      setTaskNoteError("Không lưu được ghi chú task. Hãy thử lại.");
+      setTaskNoteError("Unable to save task notes. Please try again.");
     } finally {
       setIsSavingTaskNote(false);
     }
@@ -296,15 +296,15 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
   const todayTaskList = (
     <div className="mt-4 border-t border-slate-100 pt-3">
       <p className="text-xs font-semibold text-slate-700">
-        Task Calendar hôm nay
+        Today&apos;s Calendar tasks
       </p>
       {calendarTaskError ? (
         <p role="alert" className="mt-2 text-xs text-rose-600">
-          Không tải được task Calendar.
+          Unable to load Calendar tasks.
         </p>
       ) : todayTasks.length === 0 ? (
         <p className="mt-2 text-xs text-slate-400">
-          Chưa có task Calendar nào hôm nay.
+          No Calendar tasks for today.
         </p>
       ) : (
         <PomodoroCalendarTaskList
@@ -320,7 +320,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
       )}
       {isSavingTaskOrder && (
         <p role="status" className="mt-1.5 text-[11px] text-slate-400">
-          Đang lưu thứ tự...
+          Saving task order...
         </p>
       )}
       {taskOrderError && (
@@ -360,13 +360,13 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
             </div>
             <div>
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                Mục tiêu phiên tập trung
+                Focus session goal
               </h4>
             </div>
           </div>
 
           <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
-            <Sparkles className="size-2.5 text-amber-500" /> Tự do / Dự án
+            <Sparkles className="size-2.5 text-amber-500" /> Personal / Project
           </span>
         </div>
 
@@ -377,7 +377,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               type="text"
               value={quickTitle}
               onChange={(e) => setQuickTitle(e.target.value)}
-              placeholder="Bạn muốn tập trung làm gì trong phiên này?..."
+              placeholder="What would you like to focus on in this session?..."
               className="w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[var(--color-primary,#1C4D8D)] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
             />
           </div>
@@ -385,7 +385,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
           <textarea
             value={quickNote}
             onChange={(e) => setQuickNote(e.target.value)}
-            placeholder="Ghi chú cho task (không bắt buộc)..."
+            placeholder="Task notes (optional)..."
             maxLength={2000}
             rows={2}
             className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-[var(--color-primary,#1C4D8D)] focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all shadow-2xs"
@@ -406,7 +406,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               className="w-full rounded-xl bg-[var(--color-primary,#1C4D8D)] text-white hover:bg-[var(--color-primary-strong,#0F2854)] text-xs font-semibold shadow-xs h-9"
             >
               <Plus className="mr-1.5 size-4" />
-              {isCreating ? "Đang tạo..." : "Đặt mục tiêu & thêm vào Calendar"}
+              {isCreating ? "Creating..." : "Set goal & add to Calendar"}
             </Button>
           </div>
         </form>
@@ -442,7 +442,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200/60">
               <Sparkles className="size-3 text-blue-600" />
-              <span>Nhiệm vụ cá nhân</span>
+              <span>Personal task</span>
             </span>
           )}
 
@@ -471,7 +471,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
             className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-50 hover:text-blue-800"
           >
             <Plus className="size-3.5" />
-            Tạo task mới
+            Create a task
           </button>
         </div>
       </div>
@@ -487,14 +487,14 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               htmlFor="active-task-title"
               className="mb-1 block text-xs font-semibold text-slate-700"
             >
-              Task mới
+              New task
             </label>
             <input
               id="active-task-title"
               type="text"
               value={quickTitle}
               onChange={(e) => setQuickTitle(e.target.value)}
-              placeholder="Nhập tên task..."
+              placeholder="Enter a task name..."
               autoFocus
               className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
@@ -504,16 +504,16 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               htmlFor="active-task-note"
               className="mb-1 block text-xs font-semibold text-slate-700"
             >
-              Ghi chú{" "}
+              Notes{" "}
               <span className="font-normal text-slate-400">
-                (không bắt buộc)
+                (optional)
               </span>
             </label>
             <textarea
               id="active-task-note"
               value={quickNote}
               onChange={(e) => setQuickNote(e.target.value)}
-              placeholder="Thêm ghi chú cho task..."
+              placeholder="Add task notes..."
               maxLength={2000}
               rows={2}
               className="w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100"
@@ -523,15 +523,15 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
           <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2">
             <div>
               <p className="text-xs font-semibold text-slate-700">
-                Số Pomodoro
+                Pomodoro count
               </p>
               <p className="text-[11px] text-slate-400">
-                {quickPomodoros * focusDurationMinutes} phút dự kiến
+                {quickPomodoros * focusDurationMinutes} estimated minutes
               </p>
             </div>
             <div
               role="group"
-              aria-label="Chọn số Pomodoro"
+              aria-label="Choose Pomodoro count"
               className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5"
             >
               <button
@@ -540,7 +540,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
                   setQuickPomodoros((count) => Math.max(1, count - 1))
                 }
                 disabled={quickPomodoros === 1}
-                aria-label="Giảm số Pomodoro"
+                aria-label="Decrease Pomodoro count"
                 className="flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <Minus className="size-3.5" />
@@ -559,7 +559,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
                   )
                 }
                 disabled={quickPomodoros === MAX_QUICK_POMODOROS}
-                aria-label="Tăng số Pomodoro"
+                aria-label="Increase Pomodoro count"
                 className="flex size-8 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-white hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-30"
               >
                 <Plus className="size-3.5" />
@@ -584,7 +584,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               }}
               className="h-8 px-3 text-xs text-slate-600"
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               type="submit"
@@ -593,7 +593,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               className="h-8 bg-[var(--color-primary,#1C4D8D)] px-3 text-xs font-semibold text-white hover:bg-[var(--color-primary-strong,#0F2854)]"
             >
               <Plus className="mr-1 size-3.5" />
-              {isCreating ? "Đang tạo..." : "Thêm vào Calendar"}
+              {isCreating ? "Creating..." : "Add to Calendar"}
             </Button>
           </div>
         </form>
@@ -616,7 +616,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               disabled={isSavingTitle}
               className="h-8 px-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs"
             >
-              <Check className="size-3.5 mr-1" /> Lưu
+              <Check className="size-3.5 mr-1" /> Save
             </Button>
             <Button
               type="button"
@@ -637,7 +637,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               <button
                 type="button"
                 onClick={handleStartEditingTitle}
-                title="Đổi tên nhiệm vụ"
+                title="Rename task"
                 className="opacity-0 group-hover/title:opacity-100 p-1 text-slate-400 hover:text-blue-600 rounded-md hover:bg-slate-100 transition-all shrink-0"
               >
                 <Pencil className="size-3.5" />
@@ -662,13 +662,13 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-800"
             >
               <StickyNote className="size-3.5 text-amber-500" />
-              Ghi chú của task
+              Task notes
             </label>
             <textarea
               id="active-task-description-input"
               value={editedTaskNote}
               onChange={(e) => setEditedTaskNote(e.target.value)}
-              placeholder="Nhập ghi chú, mục tiêu cụ thể hoặc các bước cần lưu ý cho task này..."
+              placeholder="Enter notes, specific goals or steps to remember for this task..."
               maxLength={2000}
               rows={3}
               autoFocus
@@ -685,7 +685,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
                 }}
                 className="h-7 px-2.5 text-xs text-slate-500 hover:text-slate-700"
               >
-                Hủy
+                Cancel
               </Button>
               <Button
                 type="submit"
@@ -694,7 +694,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
                 className="h-7 bg-[var(--color-primary,#1C4D8D)] px-3 text-xs font-semibold text-white hover:bg-[var(--color-primary-strong,#0F2854)]"
               >
                 <Check className="mr-1 size-3.5" />
-                {isSavingTaskNote ? "Đang lưu..." : "Lưu ghi chú"}
+                {isSavingTaskNote ? "Saving..." : "Save notes"}
               </Button>
             </div>
           </form>
@@ -706,7 +706,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
                 onClick={() => setIsTaskNoteExpanded((prev) => !prev)}
                 aria-expanded={isTaskNoteExpanded}
                 title={
-                  isTaskNoteExpanded ? "Bấm để thu gọn ghi chú" : activeTaskNote
+                  isTaskNoteExpanded ? "Click to collapse notes" : activeTaskNote
                 }
                 className="flex min-w-0 flex-1 items-start gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 rounded-md"
               >
@@ -727,8 +727,8 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
                 <button
                   type="button"
                   onClick={handleStartEditingTaskNote}
-                  title="Sửa ghi chú nhiệm vụ"
-                  aria-label="Sửa ghi chú nhiệm vụ"
+                  title="Edit task notes"
+                  aria-label="Edit task notes"
                   className="shrink-0 rounded-md p-1 text-slate-400 opacity-80 transition-all hover:bg-amber-100/60 hover:text-amber-700 group-hover/note:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
                 >
                   <Pencil className="size-3.5" />
@@ -744,7 +744,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
               className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-200 px-2.5 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-700"
             >
               <StickyNote className="size-3 text-amber-500" />
-              <span>Thêm ghi chú cho task...</span>
+              <span>Add task notes...</span>
             </button>
           )
         )}
@@ -757,13 +757,13 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
         {/* Progress Bar & Pomodoro Stepper */}
         <div className="mt-2.5 flex items-center justify-between text-xs text-slate-500">
           <div className="flex items-center gap-2 font-medium">
-            <span>Tiến độ Focus:</span>
+            <span>Focus progress:</span>
             <strong className="text-slate-800 font-bold">
               {activeTask.completedPomodoros || 0}
             </strong>
             <span>/</span>
             <span className="font-semibold text-slate-700">
-              {activeTask.estimatedPomodoros || 1} quả 🍅
+              {activeTask.estimatedPomodoros || 1} Pomodoros 🍅
             </span>
 
             {/* Quick Adjust Stepper */}
@@ -773,7 +773,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
                   type="button"
                   onClick={() => handleAdjustPomodoroEstimate(-1)}
                   disabled={(activeTask.estimatedPomodoros || 1) <= 1}
-                  title="Giảm 1 quả Pomodoro"
+                  title="Decrease by one Pomodoro"
                   className="p-0.5 text-slate-500 hover:text-slate-800 disabled:opacity-30 rounded hover:bg-white transition-all"
                 >
                   <Minus className="size-3" />
@@ -781,7 +781,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
                 <button
                   type="button"
                   onClick={() => handleAdjustPomodoroEstimate(1)}
-                  title="Tăng 1 quả Pomodoro"
+                  title="Increase by one Pomodoro"
                   className="p-0.5 text-slate-500 hover:text-slate-800 rounded hover:bg-white transition-all"
                 >
                   <Plus className="size-3" />
@@ -816,8 +816,8 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
           <StickyNote className="size-3.5 text-amber-500" />
           <span>
             {showNotes
-              ? "Ẩn ghi chú phiên"
-              : "Ghi chú nhanh trong lúc tập trung"}
+              ? "Hide session notes"
+              : "Quick notes while focusing"}
           </span>
           <ChevronRight
             className={cn(
@@ -832,7 +832,7 @@ export const PomodoroActiveTaskCard = React.memo(function PomodoroActiveTaskCard
             value={notes}
             maxLength={MAX_POMODORO_NOTES_LENGTH}
             onChange={(e) => onNotesChange(e.target.value)}
-            placeholder="Ghi lại nhanh ý tưởng, bug phát hiện, hoặc điều cần nhớ..."
+            placeholder="Jot down ideas, bugs or things to remember..."
             rows={2}
             className="mt-2 w-full rounded-xl border border-slate-200 bg-amber-50/30 p-2.5 text-xs text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-amber-400 focus:outline-none resize-none transition-all"
           />

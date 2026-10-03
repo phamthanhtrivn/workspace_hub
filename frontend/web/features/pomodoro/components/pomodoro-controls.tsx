@@ -31,10 +31,10 @@ export const PomodoroControls = React.memo(function PomodoroControls({
   const isFocus = mode === "FOCUS";
   const startLabel =
     mode === "FOCUS"
-      ? "BẮT ĐẦU FOCUS"
+      ? "START FOCUS"
       : mode === "SHORT_BREAK"
-        ? "BẮT ĐẦU NGHỈ NGẮN"
-        : "BẮT ĐẦU NGHỈ DÀI";
+        ? "START SHORT BREAK"
+        : "START LONG BREAK";
 
   return (
     <div className="flex items-center justify-center">
@@ -45,7 +45,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
           size="icon"
           onClick={onReset}
           disabled={disabled}
-          title="Đặt lại phiên (Reset)"
+          title="Reset session"
           className="size-11 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-transform active:scale-90"
         >
           <RotateCcw className="size-4.5" />
@@ -65,7 +65,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             )}
           >
             <Play className="mr-2 size-4.5 fill-current" />
-            {status === "IDLE" ? startLabel : "TIẾP TỤC"}
+            {status === "IDLE" ? startLabel : "RESUME"}
           </Button>
         ) : (
           <Button
@@ -75,7 +75,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             className="h-13 px-3 sm:px-8 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-900/20 hover:brightness-110 transition-all duration-200 active:scale-95"
           >
             <Pause className="mr-2 size-4.5 fill-current" />
-            TẠM DỪNG
+            PAUSE
           </Button>
         )}
 
@@ -85,7 +85,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
           size="icon"
           onClick={onSkip}
           disabled={disabled}
-          title="Bỏ qua phiên này (Skip)"
+          title="Skip session"
           className="size-11 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-transform active:scale-90"
         >
           <SkipForward className="size-4.5" />

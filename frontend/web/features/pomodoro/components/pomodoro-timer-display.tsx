@@ -74,14 +74,14 @@ export function PomodoroTimerDisplay({
 
   const statusText = isRunning
     ? safeMode === "FOCUS"
-      ? "Đang tập trung"
-      : "Đang nghỉ ngơi"
+      ? "Focusing"
+      : "Taking a break"
     : status === "PAUSED"
-      ? "Đang tạm dừng"
-      : "Sẵn sàng bắt đầu";
+      ? "Paused"
+      : "Ready to start";
 
   const defaultTheme = {
-    name: "Tập trung",
+    name: "Focus",
     icon: Sparkles,
     color: "#1C4D8D",
     gradient: "from-blue-600 via-indigo-600 to-sky-500",
@@ -98,7 +98,7 @@ export function PomodoroTimerDisplay({
     {
       FOCUS: defaultTheme,
       SHORT_BREAK: {
-        name: "Nghỉ ngắn",
+        name: "Short break",
         icon: Coffee,
         color: "#0D9488",
         gradient: "from-teal-500 via-emerald-500 to-cyan-500",
@@ -109,7 +109,7 @@ export function PomodoroTimerDisplay({
         activeTab: "bg-white text-teal-700 shadow-sm font-bold",
       },
       LONG_BREAK: {
-        name: "Nghỉ dài",
+        name: "Long break",
         icon: Palmtree,
         color: "#2563EB",
         gradient: "from-sky-500 via-blue-600 to-indigo-500",
@@ -147,7 +147,7 @@ export function PomodoroTimerDisplay({
           )}
         >
           <Sparkles className="size-3.5" />
-          <span>Tập trung ({focusDuration}m)</span>
+          <span>Focus ({focusDuration}m)</span>
         </button>
 
         <button
@@ -161,7 +161,7 @@ export function PomodoroTimerDisplay({
           )}
         >
           <Coffee className="size-3.5" />
-          <span>Nghỉ ngắn ({shortBreakDuration}m)</span>
+          <span>Short break ({shortBreakDuration}m)</span>
         </button>
 
         <button
@@ -175,7 +175,7 @@ export function PomodoroTimerDisplay({
           )}
         >
           <Palmtree className="size-3.5" />
-          <span>Nghỉ dài ({longBreakDuration}m)</span>
+          <span>Long break ({longBreakDuration}m)</span>
         </button>
       </div>
 
@@ -253,7 +253,7 @@ export function PomodoroTimerDisplay({
               className="transition-[stroke-dashoffset] duration-700 ease-out"
             />
 
-            {/* Glowing Time Knob / Pointer Indicator (Nút mốc thời gian đang chạy) */}
+            {/* Glowing Time Knob / Pointer Indicator (Running timer marker) */}
             <g
               className="transition-all duration-700 ease-out pointer-events-none"
               style={{ filter: "drop-shadow(0 2px 5px rgba(0, 0, 0, 0.28))" }}

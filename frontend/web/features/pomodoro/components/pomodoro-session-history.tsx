@@ -5,6 +5,7 @@ import { History, CheckCircle, AlertCircle, FastForward, Clock, StickyNote, Chev
 import { getRecentSessions } from "../api/pomodoro-server.api";
 import type { PomodoroSessionRecord } from "../types/pomodoro";
 import { Badge } from "@/components/ui/badge";
+import { POMODORO_DISPLAY_LOCALE } from "../constants/pomodoro-display";
 
 interface PomodoroSessionHistoryProps {
   lastUpdated?: number;
@@ -17,7 +18,7 @@ interface PomodoroSessionHistoryProps {
 export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory({
   lastUpdated = 0,
   records,
-  title = "Nhật ký các phiên hôm nay",
+  title = "Today's session history",
   showDates = false,
   totalCount,
 }: PomodoroSessionHistoryProps) {
@@ -46,42 +47,44 @@ export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory
           </h3>
         </div>
         <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-          {totalCount ?? visibleSessions.length} phiên
+          {totalCount ?? visibleSessions.length} sessions
         </span>
       </div>
 
       {visibleSessions.length === 0 ? (
         <div className="py-9 text-center text-xs text-slate-400">
           <Clock className="size-7 mx-auto mb-2 text-slate-300 opacity-60" />
-          {records === undefined ? "Chưa có phiên nào được ghi nhận hôm nay." : "Không có phiên nào phù hợp với khoảng ngày và bộ lọc đã chọn."}
+          {records === undefined ? "No sessions recorded today." : "No sessions match the selected date range and filters."}
         </div>
       ) : (
         <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
           {visibleSessions.map((s) => {
-            const startTime = new Date(s.startedAt).toLocaleTimeString([], {
+            const startTime = new Date(s.startedAt).toLocaleTimeString(POMODORO_DISPLAY_LOCALE, {
               hour: "2-digit",
               minute: "2-digit",
+              hour12: false,
             });
             const endTime = s.endedAt
-              ? new Date(s.endedAt).toLocaleTimeString([], {
+              ? new Date(s.endedAt).toLocaleTimeString(POMODORO_DISPLAY_LOCALE, {
                   hour: "2-digit",
                   minute: "2-digit",
+                  hour12: false,
                 })
               : "--:--";
 
             const statusBadge = {
               COMPLETED: {
-                label: "Hoàn thành",
+                label: "Completed",
                 icon: CheckCircle,
                 className: "bg-emerald-50 text-emerald-700 border-emerald-200",
               },
               STOPPED: {
-                label: "Dừng sớm",
+                label: "Stopped early",
                 icon: AlertCircle,
                 className: "bg-amber-50 text-amber-700 border-amber-200",
               },
               SKIPPED: {
-                label: "Bỏ qua",
+                label: "Skipped",
                 icon: FastForward,
                 className: "bg-slate-50 text-slate-600 border-slate-200",
               },
@@ -89,12 +92,12 @@ export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory
 
             const StatusIcon = statusBadge.icon;
             const isFocus = s.sessionType === "FOCUS";
-            const taskTitle = s.taskTitle || (isFocus ? "Phiên tập trung tự do" : "Nghỉ ngơi giải lao");
+            const taskTitle = s.taskTitle || (isFocus ? "Free focus session" : "Break");
             const hasNotes = Boolean(s.notes?.trim());
             const sessionLabel = {
-              FOCUS: "Tập trung",
-              SHORT_BREAK: "Nghỉ ngắn",
-              LONG_BREAK: "Nghỉ dài",
+              FOCUS: "Focus",
+              SHORT_BREAK: "Short break",
+              LONG_BREAK: "Long break",
             }[s.sessionType];
 
             return (
@@ -103,7 +106,7 @@ export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory
                 className="group rounded-xl border border-slate-100/90 bg-slate-50/50 text-xs transition-all hover:border-slate-200 open:border-slate-200"
               >
                 <summary
-                  aria-label={`Xem chi tiết phiên ${taskTitle} lúc ${startTime}${showDates ? ` ngày ${new Date(s.startedAt).toLocaleDateString("vi-VN")}` : ""}`}
+                  aria-label={`View session details for ${taskTitle} at ${startTime}${showDates ? ` on ${new Date(s.startedAt).toLocaleDateString(POMODORO_DISPLAY_LOCALE)}` : ""}`}
                   className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-xl p-3 hover:bg-slate-100/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 [&::-webkit-details-marker]:hidden"
                 >
                   <div className="flex items-center gap-3 min-w-0 pr-2">
@@ -127,17 +130,17 @@ export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory
                         )}
                       </div>
 
-                      {showDates && <span className="mt-1 block text-[11px] text-slate-500">{new Date(s.startedAt).toLocaleDateString("vi-VN")}</span>}
+                      {showDates && <span className="mt-1 block text-[11px] text-slate-500">{new Date(s.startedAt).toLocaleDateString(POMODORO_DISPLAY_LOCALE)}</span>}
                       <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
                         <span>{startTime} - {endTime}</span>
                         <span>•</span>
                         <span className="font-medium text-slate-600">
-                          {s.durationMinutes} phút
+                          {s.durationMinutes} minutes
                         </span>
                       </div>
                       {hasNotes && (
                         <span className="mt-1 flex items-center gap-1 text-[11px] text-amber-700">
-                          <StickyNote aria-hidden="true" className="size-3" /> Có ghi chú
+                          <StickyNote aria-hidden="true" className="size-3" /> Has notes
                         </span>
                       )}
                     </div>
@@ -157,32 +160,32 @@ export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory
                 <div className="space-y-3 border-t border-slate-200/70 px-3 py-3">
                   <dl className="space-y-1.5 text-slate-600">
                     <div>
-                      <dt className="font-semibold text-slate-800">Nhiệm vụ</dt>
+                      <dt className="font-semibold text-slate-800">Task</dt>
                       <dd className="mt-0.5 whitespace-pre-wrap [overflow-wrap:anywhere]">{taskTitle}</dd>
                     </div>
                     {s.projectName && (
                       <div>
-                        <dt className="font-semibold text-slate-800">Dự án</dt>
+                        <dt className="font-semibold text-slate-800">Project</dt>
                         <dd className="mt-0.5 [overflow-wrap:anywhere]">{s.projectName}</dd>
                       </div>
                     )}
                     <div className="flex flex-wrap gap-x-2">
-                      <dt className="font-semibold text-slate-800">Loại phiên:</dt>
+                      <dt className="font-semibold text-slate-800">Session type:</dt>
                       <dd>{sessionLabel}</dd>
                     </div>
                     <div className="flex flex-wrap gap-x-2">
-                      <dt className="font-semibold text-slate-800">Thời gian thực tế:</dt>
-                      <dd>{Math.floor(s.actualSeconds / 60)} phút {s.actualSeconds % 60} giây</dd>
+                      <dt className="font-semibold text-slate-800">Actual duration:</dt>
+                      <dd>{Math.floor(s.actualSeconds / 60)} minutes {s.actualSeconds % 60} seconds</dd>
                     </div>
                   </dl>
                   <div>
-                    <h4 className="mb-1.5 font-semibold text-slate-800">Ghi chú phiên</h4>
+                    <h4 className="mb-1.5 font-semibold text-slate-800">Session notes</h4>
                     {hasNotes ? (
                       <p className="max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg border border-amber-100 bg-amber-50/50 p-3 leading-relaxed text-slate-700 [overflow-wrap:anywhere]">
                         {s.notes}
                       </p>
                     ) : (
-                      <p className="text-slate-400">Phiên này không có ghi chú.</p>
+                      <p className="text-slate-400">This session has no notes.</p>
                     )}
                   </div>
                 </div>

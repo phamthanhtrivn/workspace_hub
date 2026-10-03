@@ -63,7 +63,7 @@ export function PomodoroSettingsDialog({
       <DialogContent className="max-w-md rounded-2xl p-6">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-slate-900">
-            Cài đặt Pomodoro
+            Pomodoro settings
           </DialogTitle>
         </DialogHeader>
 
@@ -71,7 +71,7 @@ export function PomodoroSettingsDialog({
           {/* Time Durations */}
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-              Thời lượng (Phút)
+              Duration (minutes)
             </h4>
             <div className="grid grid-cols-3 gap-2.5">
               <div>
@@ -95,7 +95,7 @@ export function PomodoroSettingsDialog({
 
               <div>
                 <label className="text-[11px] font-medium text-slate-600 block mb-1">
-                  ☕ Nghỉ ngắn
+                  ☕ Short break
                 </label>
                 <Input
                   type="number"
@@ -114,7 +114,7 @@ export function PomodoroSettingsDialog({
 
               <div>
                 <label className="text-[11px] font-medium text-slate-600 block mb-1">
-                  🌴 Nghỉ dài
+                  🌴 Long break
                 </label>
                 <Input
                   type="number"
@@ -137,7 +137,7 @@ export function PomodoroSettingsDialog({
           <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
             <div>
               <label className="text-xs font-semibold text-slate-700 block mb-1">
-                Chu kỳ nghỉ dài
+                Long break interval
               </label>
               <Input
                 type="number"
@@ -153,13 +153,13 @@ export function PomodoroSettingsDialog({
                 className="h-9 text-xs"
               />
               <span className="text-[10px] text-slate-400">
-                Nghỉ dài sau X phiên tập trung
+                Take a long break after this many focus sessions
               </span>
             </div>
 
             <div>
               <label className="text-xs font-semibold text-slate-700 block mb-1">
-                Mục tiêu hàng ngày
+                Daily goal
               </label>
               <Input
                 type="number"
@@ -175,7 +175,7 @@ export function PomodoroSettingsDialog({
                 className="h-9 text-xs"
               />
               <span className="text-[10px] text-slate-400">
-                Số quả Pomodoro mỗi ngày
+                Pomodoros per day
               </span>
             </div>
           </div>
@@ -183,17 +183,17 @@ export function PomodoroSettingsDialog({
           {/* Audio Settings */}
           <div className="border-t border-slate-100 pt-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-              Âm thanh & Thông báo
+              Sound & notifications
             </h4>
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs font-semibold text-slate-800">
-                    Âm thanh chuông báo
+                    Alarm sound
                   </div>
                   <div className="text-[11px] text-slate-400">
-                    Phát chuông êm dịu khi kết thúc phiên
+                    Play a gentle sound when a session ends
                   </div>
                 </div>
                 <Switch
@@ -216,8 +216,8 @@ export function PomodoroSettingsDialog({
                     }
                     className="flex-1 h-9 rounded-md border border-slate-200 bg-white px-2.5 text-xs text-slate-800 focus:outline-none"
                   >
-                    <option value="chime">Chuông thiền Zen Chime</option>
-                    <option value="bell">Chuông Tây Tạng Tibetan Bell</option>
+                    <option value="chime">Zen Chime</option>
+                    <option value="bell">Tibetan Bell</option>
                     <option value="digital">Digital Beep</option>
                   </select>
                   <Button
@@ -227,7 +227,7 @@ export function PomodoroSettingsDialog({
                     onClick={handleTestSound}
                     className="h-9 px-3 text-xs"
                   >
-                    <Volume2 className="size-3.5 mr-1" /> Thử âm
+                    <Volume2 className="size-3.5 mr-1" /> Preview sound
                   </Button>
                 </div>
               )}
@@ -235,10 +235,10 @@ export function PomodoroSettingsDialog({
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs font-semibold text-slate-800">
-                    Thông báo trình duyệt
+                    Browser notifications
                   </div>
                   <div className="text-[11px] text-slate-400">
-                    Báo khi bạn đang ở tab khác hoặc ứng dụng khác
+                    Notify you while you are in another tab or app
                   </div>
                 </div>
                 <Switch
@@ -254,16 +254,16 @@ export function PomodoroSettingsDialog({
           {/* Automation toggles */}
           <div className="border-t border-slate-100 pt-3 space-y-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-              Tự động hóa
+              Automation
             </h4>
 
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold text-slate-800">
-                  Tự động bắt đầu Giờ nghỉ
+                  Auto-start breaks
                 </div>
                 <div className="text-[11px] text-slate-400">
-                  Tự chuyển sang giờ giải lao khi hết phiên Focus
+                  Automatically start a break when a focus session ends
                 </div>
               </div>
               <Switch
@@ -277,10 +277,10 @@ export function PomodoroSettingsDialog({
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-semibold text-slate-800">
-                  Tự động bắt đầu Tập trung
+                  Auto-start focus
                 </div>
                 <div className="text-[11px] text-slate-400">
-                  Tự bắt đầu phiên Focus mới khi hết giờ nghỉ
+                  Automatically start a focus session when a break ends
                 </div>
               </div>
               <Switch
@@ -300,7 +300,7 @@ export function PomodoroSettingsDialog({
               onClick={onClose}
               className="text-xs"
             >
-              Hủy
+              Cancel
             </Button>
             <Button
               type="submit"
@@ -308,7 +308,7 @@ export function PomodoroSettingsDialog({
               disabled={isSaving}
               className="text-xs font-semibold bg-[var(--color-primary,#1C4D8D)] text-white"
             >
-              Lưu cài đặt
+              Save settings
             </Button>
           </DialogFooter>
         </form>

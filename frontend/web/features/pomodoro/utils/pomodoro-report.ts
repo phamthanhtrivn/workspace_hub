@@ -29,11 +29,11 @@ export function reportRangeBounds(range: PomodoroReportRange) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(range.startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(range.endDate) ||
     !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) ||
     localDateKey(start) !== range.startDate || localDateKey(end) !== range.endDate) {
-    throw new Error("Hãy chọn ngày bắt đầu và ngày kết thúc hợp lệ.");
+    throw new Error("Please choose valid start and end dates.");
   }
-  if (end < start) throw new Error("Ngày kết thúc phải từ ngày bắt đầu trở đi.");
+  if (end < start) throw new Error("The end date must be on or after the start date.");
   end.setDate(end.getDate() + 1);
-  if (end.getTime() - start.getTime() > 93 * DAY_MS) throw new Error("Mỗi báo cáo hỗ trợ tối đa 93 ngày.");
+  if (end.getTime() - start.getTime() > 93 * DAY_MS) throw new Error("Each report supports a maximum of 93 days.");
   return { startAt: start.toISOString(), endAt: end.toISOString() };
 }
 
@@ -52,9 +52,9 @@ export function reportFilterOptions(sessions: PomodoroSessionRecord[], project =
   const tasks = new Map<string, string>();
   for (const session of sessions) {
     const projectKey = sessionProjectKey(session);
-    projects.set(projectKey, session.projectId ? session.projectName || "Dự án không còn tên" : "Cá nhân / tự do");
+    projects.set(projectKey, session.projectId ? session.projectName || "Unnamed project" : "Personal / Free focus");
     if (!project || projectKey === project) {
-      tasks.set(sessionTaskKey(session), session.taskTitle || "Phiên không gắn task");
+      tasks.set(sessionTaskKey(session), session.taskTitle || "Session without a task");
     }
   }
   return { projects: [...projects], tasks: [...tasks] };
@@ -103,7 +103,7 @@ export function formatFocusTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor(seconds % 3600 / 60);
   const remainder = seconds % 60;
-  return hours > 0 ? `${hours} giờ ${minutes} phút ${remainder} giây` : `${minutes} phút ${remainder} giây`;
+  return hours > 0 ? `${hours}h ${minutes}m ${remainder}s` : `${minutes}m ${remainder}s`;
 }
 
 export function createReportExport(

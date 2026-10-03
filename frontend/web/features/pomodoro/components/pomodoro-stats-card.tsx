@@ -24,9 +24,9 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
   }, [lastUpdated, retryRevision]);
 
   if (failed) return <p role="alert" className="text-xs text-rose-600">
-    Không tải được thống kê hôm nay. <button type="button" className="underline" onClick={() => setRetryRevision((value) => value + 1)}>Thử lại</button>
+    Unable to load today&apos;s stats. <button type="button" className="underline" onClick={() => setRetryRevision((value) => value + 1)}>Retry</button>
   </p>;
-  if (!stats) return <p role="status" className="text-xs text-slate-500">Đang tải thống kê...</p>;
+  if (!stats) return <p role="status" className="text-xs text-slate-500">Loading stats...</p>;
 
   const hours = Math.floor(stats.totalFocusMinutes / 60);
   const mins = stats.totalFocusMinutes % 60;
@@ -43,10 +43,10 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-extrabold tracking-tight text-slate-900">
-            Hiệu suất hôm nay
+            Today&apos;s performance
           </h3>
           <p className="text-xs text-slate-500">
-            Dữ liệu nhịp độ làm việc và độ tập trung
+            Your work rhythm and focus stats
           </p>
         </div>
       </div>
@@ -58,12 +58,12 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
             <div className="size-7 rounded-lg bg-blue-100/80 flex items-center justify-center text-blue-700">
               <Clock className="size-3.5" />
             </div>
-            <span>Thời gian Focus</span>
+            <span>Focus time</span>
           </div>
           <div className="mt-3 text-2xl font-black text-slate-900 font-mono tracking-tight">
             {timeDisplay}
           </div>
-          <p className="mt-1 text-[11px] text-slate-400">Thời gian tập trung thực tế</p>
+          <p className="mt-1 text-[11px] text-slate-400">Actual focus time</p>
         </div>
 
         {/* Completed Pomodoros */}
@@ -72,13 +72,13 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
             <div className="size-7 rounded-lg bg-emerald-100/80 flex items-center justify-center text-emerald-700">
               <CheckCircle2 className="size-3.5" />
             </div>
-            <span>Đã hoàn thành</span>
+            <span>Completed</span>
           </div>
           <div className="mt-3 text-2xl font-black text-slate-900 font-mono tracking-tight flex items-baseline gap-1">
             <span>{stats.completedPomodoros}</span>
-            <span className="text-base font-normal text-slate-500">quả 🍅</span>
+            <span className="text-base font-normal text-slate-500">Pomodoros 🍅</span>
           </div>
-          <p className="mt-1 text-[11px] text-slate-400">Phiên hoàn thành trọn vẹn</p>
+          <p className="mt-1 text-[11px] text-slate-400">Fully completed sessions</p>
         </div>
 
         {/* Goal Progress */}
@@ -88,12 +88,12 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
               <div className="size-7 rounded-lg bg-indigo-100/80 flex items-center justify-center text-indigo-700">
                 <TrendingUp className="size-3.5" />
               </div>
-              <span>Mục tiêu ngày</span>
+              <span>Daily goal</span>
             </div>
             <span className="font-bold">{goalPercent}%</span>
           </div>
           <div className="mt-3 text-xl font-extrabold text-slate-900">
-            {stats.completedPomodoros} / {dailyGoalPomodoros ?? stats.dailyGoalPomodoros} phiên
+            {stats.completedPomodoros} / {dailyGoalPomodoros ?? stats.dailyGoalPomodoros} sessions
           </div>
           <div className="mt-2 w-full h-2 rounded-full bg-slate-200/80 overflow-hidden">
             <div
@@ -109,13 +109,13 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
             <div className="size-7 rounded-lg bg-amber-100/80 flex items-center justify-center text-amber-700">
               <Flame className="size-3.5" />
             </div>
-            <span>Chuỗi Streak</span>
+            <span>Streak</span>
           </div>
           <div className="mt-3 text-2xl font-black text-slate-900 tracking-tight flex items-center gap-1.5">
-            <span>{stats.currentStreak} ngày</span>
+            <span>{stats.currentStreak} days</span>
             <span className="text-xl">🔥</span>
           </div>
-          <p className="mt-1 text-[11px] text-slate-400">Duy trì thói quen liên tục</p>
+          <p className="mt-1 text-[11px] text-slate-400">Keep your daily habit going</p>
         </div>
       </div>
     </div>

@@ -9,7 +9,7 @@ export function usePomodoroReport(range: PomodoroReportRange, lastUpdated: numbe
   const userId = useAppSelector((state) => state.auth.userId);
   let validationError = "";
   try { reportRangeBounds(range); } catch (error) {
-    validationError = error instanceof Error ? error.message : "Khoảng ngày không hợp lệ.";
+    validationError = error instanceof Error ? error.message : "Invalid date range.";
   }
   const query = useQuery({
     queryKey: ["pomodoro", "report", userId, range.startDate, range.endDate, lastUpdated],

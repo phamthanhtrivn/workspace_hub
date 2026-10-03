@@ -45,31 +45,31 @@ export function PomodoroTaskActions({ task, timerStatus, disabled, onAction }: P
       <div className="flex flex-wrap gap-2">
         {task.projectId && task.projectStatus !== "IN_REVIEW" && (
           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void submit("REVIEW")}>
-            {hasSession ? "Dừng phiên & gửi duyệt" : "Gửi duyệt"}
+            {hasSession ? "Stop session & submit for review" : "Submit for review"}
           </Button>
         )}
         <Button type="button" size="sm" disabled={busy} onClick={() => {
           if (task.projectId) setConfirmOpen(true);
           else void submit("COMPLETE");
         }}>
-          {hasSession ? "Dừng phiên & hoàn thành task" : "Hoàn thành task"}
+          {hasSession ? "Stop session & complete task" : "Complete task"}
         </Button>
       </div>
-      {pending && <p role="status" className="text-xs text-slate-500">Đang lưu phiên và cập nhật task...</p>}
+      {pending && <p role="status" className="text-xs text-slate-500">Saving the session and updating the task...</p>}
       {error && !confirmOpen && <p role="alert" className="text-xs text-rose-600">{error}</p>}
       <AlertDialog open={confirmOpen} onOpenChange={(open) => { if (!busy) setConfirmOpen(open); }}>
         <AlertDialogContent aria-labelledby={`${dialogId}-title`} aria-describedby={`${dialogId}-description`}>
           <AlertDialogHeader>
-            <AlertDialogTitle id={`${dialogId}-title`}>Hoàn thành task Project?</AlertDialogTitle>
+            <AlertDialogTitle id={`${dialogId}-title`}>Complete project task?</AlertDialogTitle>
             <AlertDialogDescription id={`${dialogId}-description`}>
-              Task “{task.title}” sẽ chuyển sang Done và hiện chưa thể mở lại.
-              {hasSession && " Phiên hiện tại sẽ dừng và lưu thời gian đã tập trung."}
+              Task “{task.title}” will move to Done and currently cannot be reopened.
+              {hasSession && " The current session will stop and save your focus time."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {error && <p role="alert" className="text-sm text-rose-600">{error}</p>}
           <AlertDialogFooter>
-            <Button type="button" variant="outline" disabled={busy} onClick={() => setConfirmOpen(false)}>Hủy</Button>
-            <Button type="button" disabled={busy} onClick={() => void submit("COMPLETE")}>Xác nhận hoàn thành</Button>
+            <Button type="button" variant="outline" disabled={busy} onClick={() => setConfirmOpen(false)}>Cancel</Button>
+            <Button type="button" disabled={busy} onClick={() => void submit("COMPLETE")}>Confirm completion</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -92,8 +92,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
             </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            Không gian tập trung sâu, quản lý nhịp độ làm việc và triệt tiêu xao
-            nhãng.
+            A space for deep focus, a steady work rhythm and fewer distractions.
           </p>
         </div>
 
@@ -104,8 +103,8 @@ function UserPomodoroView({ userId }: { userId: string }) {
             size="icon"
             onClick={() => setIsSettingsOpen(true)}
             disabled={!isReady || isTaskActionPending}
-            title="Cài đặt Pomodoro"
-            aria-label="Mở cài đặt Pomodoro"
+            title="Pomodoro settings"
+            aria-label="Open Pomodoro settings"
             className="size-9 rounded-full border-slate-200 bg-white text-slate-600 shadow-xs transition-colors hover:bg-slate-50 hover:text-slate-900"
           >
             <Settings className="size-4" />
@@ -126,11 +125,11 @@ function UserPomodoroView({ userId }: { userId: string }) {
           >
             {minimalMode ? (
               <>
-                <Eye className="size-3.5 mr-1.5" /> Chế độ đầy đủ
+                <Eye className="size-3.5 mr-1.5" /> Full view
               </>
             ) : (
               <>
-                <EyeOff className="size-3.5 mr-1.5" /> Chế độ Siêu tập trung
+                <EyeOff className="size-3.5 mr-1.5" /> Deep focus mode
                 (Zen)
               </>
             )}
@@ -186,18 +185,17 @@ function UserPomodoroView({ userId }: { userId: string }) {
               role="status"
               className="text-xs text-amber-700"
             >
-              Đang tải Pomodoro...
+              Loading Pomodoro...
             </p>
           )}
           {isReady && loadError && (
             <p role="status" className="text-xs text-amber-700">
-              Đang dùng dữ liệu cục bộ. Hệ thống sẽ tự đồng bộ khi Calendar hoạt động lại.
+              Using local data. Sync will resume automatically when Calendar is available again.
             </p>
           )}
           {isReady && status === "RUNNING" && timeLeft === 0 && (
             <p role="status" className="text-xs text-slate-500">
-              Đang lưu phiên hoàn thành. Nếu mạng gián đoạn, hệ thống sẽ thử
-              lại.
+              Saving your completed session. The system will retry if the connection is interrupted.
             </p>
           )}
 

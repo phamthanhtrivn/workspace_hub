@@ -37,7 +37,7 @@ export function CalendarPomodoroPanel({ event }: { event: CalendarEvent; userId:
         setNow(Date.now());
         setActive(toActiveSession(state));
       })
-      .catch(() => { if (mounted) toast.error("Không tải được trạng thái Pomodoro"); })
+      .catch(() => { if (mounted) toast.error("Unable to load the Pomodoro state"); })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, []);
@@ -46,7 +46,7 @@ export function CalendarPomodoroPanel({ event }: { event: CalendarEvent; userId:
     let mounted = true;
     getCalendarPomodoroSessions(event.id)
       .then((result) => { if (mounted) setSummary(result.summary); })
-      .catch(() => { if (mounted) toast.error("Không tải được lịch sử tập trung"); });
+      .catch(() => { if (mounted) toast.error("Unable to load focus history"); });
     return () => { mounted = false; };
   }, [event.id]);
 
@@ -77,7 +77,7 @@ export function CalendarPomodoroPanel({ event }: { event: CalendarEvent; userId:
       const existing = await getCalendarPomodoroTimerState();
       if (existing && existing.status !== "IDLE") {
         setActive(toActiveSession(existing));
-        toast.error("Đang có phiên tập trung khác");
+        toast.error("Another focus session is active");
         return;
       }
       const saved = await saveCalendarPomodoroTimerState({
@@ -88,7 +88,7 @@ export function CalendarPomodoroPanel({ event }: { event: CalendarEvent; userId:
         activeTask: null, notes: "", expectedVersion: existing?.version ?? 0,
       });
       setActive({ eventId: event.id, startedAt: startedAt.toISOString(), targetEndAt, plannedSeconds: durationSeconds, version: saved.version, status: "RUNNING" });
-    } catch { toast.error("Không bắt đầu được phiên Pomodoro"); }
+    } catch { toast.error("Unable to start the Pomodoro session"); }
     finally { setSaving(false); }
   }
 
@@ -98,8 +98,8 @@ export function CalendarPomodoroPanel({ event }: { event: CalendarEvent; userId:
     try {
       await clearCalendarPomodoroTimerState(active.version);
       setActive(null);
-      toast.success("Đã bỏ phiên tập trung cũ");
-    } catch { toast.error("Không bỏ được phiên tập trung"); }
+      toast.success("Previous focus session discarded");
+    } catch { toast.error("Unable to discard the focus session"); }
     finally { setSaving(false); }
   }
 
@@ -126,9 +126,9 @@ export function CalendarPomodoroPanel({ event }: { event: CalendarEvent; userId:
         const refreshed = await getCalendarPomodoroSessions(event.id);
         setSummary(refreshed.summary);
       } catch { /* The saved session will appear on the next refresh. */ }
-      toast.success("Đã lưu phiên tập trung vào Calendar");
+      toast.success("Focus session saved to Calendar");
     } catch {
-      toast.error("Không lưu được phiên. Bạn có thể thử lại.");
+      toast.error("Unable to save the session. Please try again.");
     } finally { setSaving(false); }
   }
 
@@ -136,21 +136,21 @@ export function CalendarPomodoroPanel({ event }: { event: CalendarEvent; userId:
     <section className="rounded-xl border border-blue-100 bg-blue-50/60 p-3" aria-label="Pomodoro">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-blue-900">Tập trung {Math.round((current?.plannedSeconds ?? durationSeconds) / 60)} phút</p>
-          <p className="text-xs text-slate-600">90 ngày qua: {completed} phiên · {minutes} phút tập trung</p>
+          <p className="text-sm font-semibold text-blue-900">Focus {Math.round((current?.plannedSeconds ?? durationSeconds) / 60)} minutes</p>
+          <p className="text-xs text-slate-600">Last 90 days: {completed} sessions · {minutes} minutes of focus</p>
         </div>
         {current ? (
           <div className="text-right">
             <p className="font-mono text-lg font-semibold text-blue-900" aria-live="off">{String(Math.floor(remaining / 60)).padStart(2, "0")}:{String(remaining % 60).padStart(2, "0")}</p>
-            <Button size="sm" onClick={finish} disabled={saving}>{remaining === 0 ? "Hoàn thành" : "Dừng và lưu"}</Button>
+            <Button size="sm" onClick={finish} disabled={saving}>{remaining === 0 ? "Complete" : "Stop and save"}</Button>
           </div>
         ) : active ? (
           <div className="flex flex-col items-end gap-1">
-            <a className="text-xs font-medium text-blue-700 underline" href={active.eventId ? `/calendar?event=${active.eventId}` : "/pomodoro"}>Mở phiên đang chạy</a>
-            <Button size="sm" variant="outline" onClick={discardOtherSession} disabled={saving}>Bỏ phiên cũ</Button>
+            <a className="text-xs font-medium text-blue-700 underline" href={active.eventId ? `/calendar?event=${active.eventId}` : "/pomodoro"}>Open active session</a>
+            <Button size="sm" variant="outline" onClick={discardOtherSession} disabled={saving}>Discard previous session</Button>
           </div>
         ) : (
-          <Button size="sm" onClick={start} disabled={saving || loading}>Bắt đầu</Button>
+          <Button size="sm" onClick={start} disabled={saving || loading}>Start</Button>
         )}
       </div>
     </section>

@@ -100,7 +100,7 @@ export function usePomodoroCalendarTasks({
       await updateCalendarTaskOrder(orderedTasks.map((event) => event.id));
     } catch {
       setTodayTasks(previousTasks);
-      setTaskOrderError("Không lưu được thứ tự task. Hãy thử lại.");
+      setTaskOrderError("Unable to save task order. Please try again.");
     } finally {
       setIsSavingTaskOrder(false);
     }

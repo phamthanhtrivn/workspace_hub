@@ -183,7 +183,7 @@ export function usePomodoroTimer(userId: string) {
         setLoadError(hasServerError);
         setIsReady(true);
         if (hasServerError) {
-          toast.error("Không kết nối được máy chủ. Pomodoro đang dùng dữ liệu cục bộ.");
+          toast.error("Unable to connect to the server. Pomodoro is using local data.");
         }
       });
     return () => {
@@ -266,7 +266,7 @@ export function usePomodoroTimer(userId: string) {
       setLoadError(true);
       if (!stateSyncErrorShownRef.current) {
         stateSyncErrorShownRef.current = true;
-        toast.error("Chưa đồng bộ được Pomodoro. Timer vẫn chạy và sẽ tự thử lại.");
+        toast.error("Unable to sync Pomodoro. The timer is still running and will retry automatically.");
       }
     } finally {
       stateSaveInFlightRef.current = false;
@@ -427,19 +427,19 @@ export function usePomodoroTimer(userId: string) {
       }
     } catch {
       completionInProgressRef.current = false;
-      toast.error("Không lưu được phiên Pomodoro. Hệ thống sẽ thử lại.");
+      toast.error("Unable to save the Pomodoro session. The system will retry.");
       return;
     }
 
     if (config.soundEnabled) {
       playPomodoroSound(config.soundType, config.soundVolume);
     }
-    const modeLabel = mode === "FOCUS" ? "Phiên tập trung" : "Thời gian nghỉ ngơi";
+    const modeLabel = mode === "FOCUS" ? "Focus session" : "Break time";
     sendBrowserNotification(
-      `${modeLabel} đã kết thúc!`,
+      `${modeLabel} has ended!`,
       mode === "FOCUS"
-        ? "Tuyệt vời! Hãy cho mắt và đầu óc nghỉ ngơi một chút."
-        : "Đã hết giờ giải lao. Sẵn sàng cho phiên tập trung tiếp theo?",
+        ? "Great work! Give your eyes and mind a short break."
+        : "Your break is over. Ready for the next focus session?",
     );
 
     // 4. Determine next mode
@@ -716,7 +716,7 @@ export function usePomodoroTimer(userId: string) {
       return true;
     } catch {
       if (mountedRef.current) {
-        toast.error("Chưa lưu được phiên. Đã tạm dừng và giữ dữ liệu; hãy thử lại.");
+        toast.error("Unable to save the session. It has been paused and your data kept; please try again.");
       }
       return false;
     } finally {
@@ -757,10 +757,10 @@ export function usePomodoroTimer(userId: string) {
     nextTask: PomodoroActiveTask | null,
     updateSource?: (task: PomodoroActiveTask) => Promise<void>,
   ) => {
-    if (!isHydratedRef.current || (updateSource && !activeTask)) throw new Error("Hãy chọn task trước.");
+    if (!isHydratedRef.current || (updateSource && !activeTask)) throw new Error("Please select a task first.");
     if (taskActionInProgressRef.current || completionInProgressRef.current ||
       (status === "RUNNING" && targetEndTimeRef.current !== null && targetEndTimeRef.current <= Date.now())) {
-      throw new Error("Đang lưu phiên Pomodoro. Vui lòng thử lại sau.");
+      throw new Error("Saving the Pomodoro session. Please try again later.");
     }
 
     taskActionInProgressRef.current = true;
@@ -794,7 +794,7 @@ export function usePomodoroTimer(userId: string) {
             notes: notes.trim() || undefined,
           });
         } catch {
-          throw new Error("Chưa lưu được phiên tập trung. Task chưa đổi trạng thái; hãy thử lại.");
+          throw new Error("Unable to save the focus session. The task status has not changed; please try again.");
         }
         if (!mountedRef.current) return;
         setSessionRevision((revision) => revision + 1);
@@ -831,7 +831,7 @@ export function usePomodoroTimer(userId: string) {
     try {
       await transitionTask(task);
     } catch (error) {
-      if (mountedRef.current) toast.error(error instanceof Error ? error.message : "Không đổi được task.");
+      if (mountedRef.current) toast.error(error instanceof Error ? error.message : "Unable to switch tasks.");
     }
   }, [activeTask, transitionTask]);
 

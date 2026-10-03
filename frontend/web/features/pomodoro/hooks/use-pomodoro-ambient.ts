@@ -29,7 +29,7 @@ export function usePomodoroAmbient(status: PomodoroStatus, userId: string) {
         if (mounted) setCustomTracks(tracks);
       })
       .catch(() => {
-        if (mounted) toast.error("Không tải được âm thanh đã thêm.");
+        if (mounted) toast.error("Unable to load your uploaded audio.");
       });
 
     return () => {

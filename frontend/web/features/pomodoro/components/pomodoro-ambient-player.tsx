@@ -65,8 +65,8 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  let activeTrackName = "Tắt âm thanh nền";
-  let activeTrackDescription = "Chọn nhạc không lời / tiếng mưa để tập trung";
+  let activeTrackName = "Background audio off";
+  let activeTrackDescription = "Choose instrumental music or rain sounds to focus";
   let activeTrackIcon = "VolumeX";
 
   const foundPredefined = AMBIENT_TRACKS.find((t) => t.id === currentTrackId);
@@ -78,7 +78,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
     const foundCustom = customTracks.find((t) => t.id === currentTrackId);
     if (foundCustom) {
       activeTrackName = foundCustom.name;
-      activeTrackDescription = `Tệp âm thanh cá nhân (${(foundCustom.size / (1024 * 1024)).toFixed(1)} MB)`;
+      activeTrackDescription = `Custom audio file (${(foundCustom.size / (1024 * 1024)).toFixed(1)} MB)`;
       activeTrackIcon = "FileAudio";
     }
   }
@@ -168,9 +168,9 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                 </div>
                 <p className="truncate text-[11px] text-slate-400 group-hover:text-slate-500 transition-colors">
                   {currentTrackId === "none"
-                    ? "Chọn nhạc không lời / tiếng mưa để tập trung"
+                    ? "Choose instrumental music or rain sounds to focus"
                     : isPlaying
-                      ? "Đang phát • Bấm để đổi bài"
+                      ? "Playing • Click to change track"
                       : activeTrackDescription}
                 </p>
               </div>
@@ -192,7 +192,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                   <Sparkles className="size-3.5" />
                 </div>
                 <span className="text-xs font-extrabold text-slate-900 tracking-tight">
-                  Âm thanh & Giai điệu tập trung
+                  Focus sounds & music
                 </span>
               </div>
               <Sliders className="size-3.5 text-slate-400" />
@@ -216,12 +216,12 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                 {isUploading ? (
                   <>
                     <Loader2 className="size-4 animate-spin text-blue-600" />
-                    <span>Đang nạp file âm thanh vào trình duyệt...</span>
+                    <span>Loading audio into the browser...</span>
                   </>
                 ) : (
                   <>
                     <Upload className="size-3.5" />
-                    <span>Tải nhạc từ máy tính (MP3, WAV, M4A)</span>
+                    <span>Upload audio from your computer (MP3, WAV, M4A)</span>
                   </>
                 )}
               </button>
@@ -231,7 +231,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
             {customTracks.length > 0 && (
               <div className="mb-3 border-b border-slate-100 pb-2.5">
                 <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Nhạc của bạn ({customTracks.length})
+                  Your tracks ({customTracks.length})
                 </div>
                 <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
                   {customTracks.map((custom) => {
@@ -267,7 +267,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
 
                         <button
                           type="button"
-                          title="Xóa tệp này"
+                          title="Delete this file"
                           onClick={(e) => {
                             e.stopPropagation();
                             onRemoveCustomTrack(custom.id);
@@ -286,7 +286,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
             {/* Predefined Ambient Tracks List */}
             <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
               <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Giai điệu tích hợp sẵn
+                Built-in tracks
               </div>
               {AMBIENT_TRACKS.map((track) => {
                 const isSelected = track.id === currentTrackId;
@@ -333,10 +333,10 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
             <div className="mt-3 border-t border-slate-100 pt-3 px-1 flex items-center justify-between">
               <div>
                 <div className="text-[11px] text-slate-800 font-semibold">
-                  Tự động phát khi Focus
+                  Auto-play during focus
                 </div>
                 <div className="text-[10px] text-slate-400">
-                  Dừng nhạc khi hết giờ hoặc vào giờ nghỉ
+                  Stop audio when the timer ends or a break starts
                 </div>
               </div>
               <Switch
@@ -359,7 +359,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
             <button
               type="button"
               onClick={onTogglePlay}
-              title={isPlaying ? "Tạm dừng nhạc" : "Phát nhạc"}
+              title={isPlaying ? "Pause audio" : "Play audio"}
               className={cn(
                 "flex size-8 shrink-0 items-center justify-center rounded-full text-white shadow-xs transition-all duration-200 hover:scale-105 active:scale-95",
                 isPlaying
@@ -380,7 +380,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                 type="button"
                 onClick={() => onChangeVolume(isMuted ? 0.5 : 0)}
                 className="p-1 text-slate-400 hover:text-slate-700 transition-colors rounded-full hover:bg-slate-100"
-                title={isMuted ? "Bật âm lượng" : "Tắt tiếng"}
+                title={isMuted ? "Unmute" : "Mute"}
               >
                 {isMuted ? (
                   <VolumeX className="size-3.5 text-rose-500" />
@@ -396,7 +396,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                 value={volume}
                 onChange={(e) => onChangeVolume(parseFloat(e.target.value))}
                 className="w-14 sm:w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[var(--color-primary,#1C4D8D)] hover:accent-blue-600 transition-all"
-                title={`Âm lượng: ${Math.round(volume * 100)}%`}
+                title={`Volume: ${Math.round(volume * 100)}%`}
               />
             </div>
           </div>
