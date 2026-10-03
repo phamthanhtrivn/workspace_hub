@@ -152,7 +152,7 @@ export default function ProjectsPage() {
   };
 
   return (
-    <div className="flex-1 px-8 py-6 max-w-7xl mx-auto w-full">
+    <div className="w-full min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
       {/* Breadcrumb & Title */}
       <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
         <Link href="/dashboard" className="hover:text-blue-600 transition">
@@ -181,13 +181,13 @@ export default function ProjectsPage() {
       </div>
 
       {/* Filter Tabs & Search */}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-3">
+      <div className="mt-6 flex min-w-0 flex-col gap-3 border-b border-slate-200 pb-3 md:flex-row md:items-center md:justify-between">
         <CustomTabs
           value={activeFilter}
           options={PROJECT_FILTER_OPTIONS}
           onChange={handleFilterChange}
           ariaLabel="Filter projects by status"
-          className="max-w-full overflow-x-auto"
+          className="min-w-0 max-w-full overflow-x-auto"
         />
 
         {/* Search */}
@@ -196,12 +196,12 @@ export default function ProjectsPage() {
           onChange={handleSearchChange}
           placeholder="Search projects..."
           ariaLabel="Search projects"
-          className="w-full flex-none sm:w-64"
+          className="w-full flex-none md:w-64"
         />
       </div>
 
       {/* Main Table */}
-      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
+      <div className="mt-4 min-w-0 rounded-xl border border-slate-200 bg-white shadow-xs">
         {isLoading ? (
           <div className="divide-y divide-slate-100">
             {[1, 2, 3].map((i) => (
@@ -223,13 +223,22 @@ export default function ProjectsPage() {
           </div>
         ) : projects.length > 0 ? (
           <>
-            <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+            <div role="region" aria-label="Projects table" tabIndex={0}
+              className="overflow-x-auto rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0052CC]/30">
+            <table className="w-full min-w-[760px] table-fixed border-collapse text-left text-sm">
+              <colgroup>
+                <col />
+                <col className="w-[26%]" />
+                <col className="w-[16%]" />
+                <col className="w-[18%]" />
+                <col className="w-20" />
+              </colgroup>
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/75 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   <th className="px-6 py-3 font-semibold">Name</th>
                   <th className="px-6 py-3 font-semibold">Owner</th>
                   <th className="px-6 py-3 font-semibold">Status</th>
-                  <th className="px-6 py-3 font-semibold w-40">Progress</th>
+                  <th className="px-6 py-3 font-semibold">Progress</th>
                   <th className="px-6 py-3 text-right"></th>
                 </tr>
               </thead>
@@ -265,7 +274,7 @@ export default function ProjectsPage() {
                       className="group cursor-pointer transition duration-150 hover:bg-slate-50/70 focus-visible:bg-blue-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0052CC]/30"
                     >
                       <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
                           <span
                             className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xl shadow-2xs border border-slate-200 font-semibold"
                             style={{
@@ -275,8 +284,8 @@ export default function ProjectsPage() {
                           >
                             {project.icon || "📁"}
                           </span>
-                          <div className="min-w-0">
-                            <span className="block text-sm font-bold text-[#0052CC] group-hover:underline">
+                          <div className="min-w-0 flex-1">
+                            <span title={project.name} className="block truncate text-sm font-bold text-[#0052CC] group-hover:underline">
                               {project.name}
                             </span>
                             {projectIdSuffix ? (
@@ -293,7 +302,7 @@ export default function ProjectsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
                           {owner ? (
                             <>
                               <Avatar
@@ -304,7 +313,7 @@ export default function ProjectsPage() {
                                 }}
                                 size="xs"
                               />
-                              <span className="text-slate-700 font-medium">
+                              <span title={owner.displayName} className="min-w-0 truncate text-slate-700 font-medium">
                                 {owner.displayName}
                               </span>
                             </>
@@ -358,6 +367,7 @@ export default function ProjectsPage() {
                 })}
               </tbody>
             </table>
+            </div>
             <DocumentsPagination
               currentPage={paginationMeta?.page ?? currentPage}
               totalPages={paginationMeta?.totalPages ?? 1}

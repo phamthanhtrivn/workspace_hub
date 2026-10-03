@@ -68,7 +68,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
   const handleClearTask = useCallback(() => { void selectTask(null); }, [selectTask]);
 
   return (
-    <div className="relative mx-auto w-full min-w-0 max-w-6xl px-4 py-5 sm:px-6 sm:py-6">
+    <div className="relative w-full min-w-0 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
       {/* Dynamic Background Atmosphere Glow */}
       <div
         className={cn(
