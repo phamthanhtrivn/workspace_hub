@@ -22,6 +22,7 @@ import {
   ChatSocketRoleUpdatedPayload,
   ChatSocketSettingUpdatedPayload,
   ChatSocketUpdatedPayload,
+  ChatSocketDirectMessagePermissionPayload,
   ThreadFollowerPayload,
 } from "../../types/chat-socket.types";
 import {
@@ -62,15 +63,14 @@ function isThreadFollowerCurrentUser(
 function hasCachedDirectConversation(
   queryClient: QueryClient,
   conversationId: string,
+  currentUserId: string,
 ) {
-  const directConversationQueries = queryClient.getQueriesData<{
+  const directConversations = queryClient.getQueryData<{
     directMessages?: { id: string }[];
-  }>({ queryKey: chatKeys.allDirectMessages() });
+  }>(chatKeys.directMessages(currentUserId));
 
-  return directConversationQueries.some(([, data]) =>
-    data?.directMessages?.some(
-      (conversation) => conversation.id === conversationId,
-    ),
+  return !!directConversations?.directMessages?.some(
+    (conversation) => conversation.id === conversationId,
   );
 }
 
@@ -179,7 +179,12 @@ export function useChatSocket() {
       const hasConversationInCache = hasCachedDirectConversation(
         queryClient,
         chatId,
+        currentUserId,
       );
+
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.directMessageSendPermission(chatId, currentUserId),
+      });
 
       updateDirectMessagesCache(
         queryClient,
@@ -598,6 +603,29 @@ export function useChatSocket() {
       );
     };
 
+    const handleDirectMessagePermissionUpdated = (
+      payload: ChatSocketDirectMessagePermissionPayload,
+    ) => {
+      if (!payload.conversationId || !payload.recipientId) return;
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.directMessageSendPermission(
+          payload.conversationId,
+          currentUserId,
+        ),
+      });
+    };
+
+    const handleSocketConnect = () => {
+      queryClient.invalidateQueries({
+        queryKey: [ChatQueryRoot.DIRECT_MESSAGE_SEND_PERMISSION],
+      });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.directMessages(currentUserId),
+      });
+    };
+
+    socket.on("connect", handleSocketConnect);
+    socket.on(ChatEvent.DIRECT_MESSAGE_PERMISSION_UPDATED, handleDirectMessagePermissionUpdated);
     socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
     socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
     socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
@@ -615,6 +643,8 @@ export function useChatSocket() {
     );
 
     return () => {
+      socket.off("connect", handleSocketConnect);
+      socket.off(ChatEvent.DIRECT_MESSAGE_PERMISSION_UPDATED, handleDirectMessagePermissionUpdated);
       socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.off(ChatEvent.MESSAGE_MOVED, handleNewMessage);
       socket.off(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);

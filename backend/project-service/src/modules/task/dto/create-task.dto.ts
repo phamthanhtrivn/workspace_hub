@@ -3,6 +3,10 @@ import { TaskPriority, TaskStatus } from '../../project/project.enums';
 import { Trim } from '../../../common/decorators/trim.decorator';
 
 export class CreateTaskDto {
+  @IsOptional()
+  @IsUUID()
+  channelId?: string;
+
   @Trim()
   @IsString()
   @IsNotEmpty()

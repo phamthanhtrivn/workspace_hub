@@ -15,12 +15,33 @@ import {
 } from '../channel/types/channel.enums';
 import { CreateDirectConversationDto } from './dto/create-direct-conversation.dto';
 import { DirectConversationService } from './direct-conversation.service';
+import {
+  DirectMessagePermissionService,
+  type DirectMessageSendPermission,
+} from '../direct-message/direct-message-permission.service';
 
 @Controller('api/direct-conversations')
 export class DirectConversationController {
   constructor(
     private readonly directConversationService: DirectConversationService,
+    private readonly directMessagePermissionService: DirectMessagePermissionService,
   ) {}
+
+  @Get(':id/send-permission')
+  async getSendPermission(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+  ): Promise<DirectMessageSendPermission> {
+    if (!conversationId || !userId) {
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
+    }
+    return this.directMessagePermissionService.getSendPermission(
+      conversationId,
+      userId,
+    );
+  }
 
   @Post()
   async createDirectConversation(

@@ -32,7 +32,7 @@ export type UserSettings = {
   theme: UserTheme;
   language: UserLanguage;
   timezone: UserTimezone;
-  allowSearchByEmail: boolean;
+  allowNewDirectMessages: boolean;
   muteNotification: boolean;
 };
 

@@ -1,5 +1,6 @@
 export const KAFKA_CONFIG = {
   TOPIC: 'user-profile-events',
+  DIRECT_MESSAGE_PRIVACY_TOPIC: 'user-direct-message-settings-events',
   CLIENT_ID: 'communication-profile-snapshot-consumer',
   GROUP_ID: 'communication-profile-snapshot-group',
   BROKER_ENV: 'KAFKA_BROKER',

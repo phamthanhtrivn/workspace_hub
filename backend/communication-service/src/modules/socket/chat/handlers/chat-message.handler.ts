@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { MessageType } from '@prisma/client';
 import { Socket } from 'socket.io';
 import {
@@ -170,7 +170,11 @@ export class ChatMessageHandler {
       console.error(error);
       return {
         status: CHAT_RESPONSE_STATUS.ERROR,
-        message: CHAT_ERROR_MESSAGES.SEND_FAILED,
+        message:
+          error instanceof ForbiddenException ||
+          error instanceof ServiceUnavailableException
+            ? error.message
+            : CHAT_ERROR_MESSAGES.SEND_FAILED,
       };
     }
   }

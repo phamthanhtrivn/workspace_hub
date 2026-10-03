@@ -50,6 +50,7 @@ export interface TaskApiModel {
 }
 
 export interface CreateTaskPayload {
+  channelId?: string;
   title: string;
   description?: string;
   priority?: TaskPriority;
