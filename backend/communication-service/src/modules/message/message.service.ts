@@ -17,6 +17,7 @@ import {
   MESSAGE_ERROR_MESSAGES,
 } from './types/message.enums';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import { isTaskCardContent } from './utils/is-task-card-content';
 
 @Injectable()
 export class MessageService {
@@ -56,7 +57,7 @@ export class MessageService {
       if (type !== MessageType.SYSTEM) {
         const member = (await tx.channelMember.findUnique({
           where: { channelId_userId: { channelId, userId: senderId } },
-          include: { channel: { include: { setting: true } } },
+          include: { channel: { include: { setting: true, space: { select: { createdBy: true } } } } },
         })) as any;
 
         if (!member) {
@@ -80,7 +81,11 @@ export class MessageService {
           );
         }
 
-        if (spaceMember.role === SpaceRole.MEMBER && member.channel.setting) {
+        if (
+          spaceMember.role === SpaceRole.MEMBER &&
+          member.channel.space.createdBy !== senderId &&
+          member.channel.setting
+        ) {
           const setting = member.channel.setting;
           if (
             (type === MessageType.TEXT || type === MessageType.DOCUMENT) &&
@@ -95,6 +100,12 @@ export class MessageService {
           }
           if (type === MessageType.NOTE && !setting.allowCreateNote) {
             throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOTE_DISABLED);
+          }
+          if (
+            !setting.allowCreateTask &&
+            isTaskCardContent(type, content)
+          ) {
+            throw new BadRequestException(MESSAGE_ERROR_MESSAGES.TASK_DISABLED);
           }
         }
       }
@@ -1033,6 +1044,31 @@ export class MessageService {
 
     if (content.trim().length === 0) {
       throw new Error('Message content cannot be empty');
+    }
+
+    if (isTaskCardContent(MessageType.TEXT, content) && message.channelId) {
+      const channelMember = await this.prisma.channelMember.findUnique({
+        where: {
+          channelId_userId: { channelId: message.channelId, userId },
+        },
+        include: { channel: { include: { setting: true, space: { select: { createdBy: true } } } } },
+      });
+      if (channelMember?.channel.setting?.allowCreateTask === false) {
+        const spaceMember = await this.prisma.spaceMember.findUnique({
+          where: {
+            spaceId_userId: {
+              spaceId: channelMember.channel.spaceId,
+              userId,
+            },
+          },
+        });
+        if (
+          spaceMember?.role === SpaceRole.MEMBER &&
+          channelMember.channel.space.createdBy !== userId
+        ) {
+          throw new BadRequestException(MESSAGE_ERROR_MESSAGES.TASK_DISABLED);
+        }
+      }
     }
 
     const now = new Date().getTime();

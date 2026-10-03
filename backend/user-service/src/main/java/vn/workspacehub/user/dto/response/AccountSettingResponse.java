@@ -13,6 +13,6 @@ public class AccountSettingResponse {
     private String theme;
     private String language;
     private String timezone;
-    private boolean allowSearchByEmail;
+    private boolean allowNewDirectMessages;
     private boolean muteNotification;
 }

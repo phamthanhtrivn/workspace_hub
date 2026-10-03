@@ -5,6 +5,7 @@ import { KafkaProducerModule } from '../../infrastructure/kafka/kafka-producer.m
 import { PrismaModule } from '../../prisma/prisma.module';
 import { SocketModule } from '../socket/socket.module';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
+import { DirectMessagePermissionModule } from '../direct-message/direct-message-permission.module';
 import { MeetingController } from './meeting.controller';
 import { MeetingLiveKitWebhookController } from './meeting-livekit-webhook.controller';
 import { MeetingService } from './meeting.service';
@@ -30,6 +31,7 @@ import { MeetingScreenShareService } from './services/meeting-screen-share.servi
     S3Module,
     KafkaProducerModule,
     UserProfileSnapshotModule,
+    DirectMessagePermissionModule,
   ],
   controllers: [MeetingController, MeetingLiveKitWebhookController],
   providers: [

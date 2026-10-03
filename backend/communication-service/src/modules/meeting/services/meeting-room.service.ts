@@ -47,6 +47,7 @@ import { MeetingPolicyService } from './meeting-policy.service';
 import { MeetingPresenterService } from './meeting-presenter.service';
 import { MeetingRealtimeService } from './meeting-realtime.service';
 import { MeetingScreenShareService } from './meeting-screen-share.service';
+import { DirectMessagePermissionService } from '../../direct-message/direct-message-permission.service';
 
 type MeetingWithParticipants = Prisma.MeetingGetPayload<{
   include: { participants: true };
@@ -66,6 +67,7 @@ export class MeetingRoomService {
     private readonly meetingRealtimeService: MeetingRealtimeService,
     private readonly meetingScreenShareService: MeetingScreenShareService,
     private readonly chatSocketPublisher: ChatSocketPublisher,
+    private readonly directMessagePermissionService: DirectMessagePermissionService,
   ) {}
 
   async createInstantMeeting({
@@ -103,6 +105,10 @@ export class MeetingRoomService {
       if (!isParticipant) {
         throw new ForbiddenException('Bạn không phải là thành viên của cuộc trò chuyện này');
       }
+    }
+
+    if (conversationId) {
+      await this.directMessagePermissionService.assertCanSend(conversationId, userId);
     }
 
     const autoAdmit = channelId || conversationId ? true : (instantMeetingDto.autoAdmit ?? true);

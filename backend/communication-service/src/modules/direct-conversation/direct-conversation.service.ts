@@ -41,11 +41,29 @@ export class DirectConversationService {
         },
         include: {
           participants: true,
+          messages: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            include: { medias: true },
+          },
         },
       },
     );
 
     if (existingConversation) {
+      const openedAt = new Date();
+      await this.prisma.directConversationParticipant.updateMany({
+        where: {
+          conversationId: existingConversation.id,
+          userId,
+          draftOpenedAt: null,
+        },
+        data: { draftOpenedAt: openedAt },
+      });
+      const opener = existingConversation.participants.find(
+        (participant) => participant.userId === userId,
+      );
+      if (opener) opener.draftOpenedAt ??= openedAt;
       return this.mapDirectConversation(existingConversation, userId);
     }
 
@@ -55,6 +73,7 @@ export class DirectConversationService {
           create: [
             {
               userId,
+              draftOpenedAt: new Date(),
             },
             {
               userId: participantId,
@@ -87,6 +106,14 @@ export class DirectConversationService {
             userId,
           },
         },
+        OR: [
+          { messages: { some: {} } },
+          {
+            participants: {
+              some: { userId, draftOpenedAt: { not: null } },
+            },
+          },
+        ],
         ...(matchingUserIds
           ? {
               AND: [

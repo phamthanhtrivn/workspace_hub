@@ -12,6 +12,7 @@ import { CreateTaskDto } from "./dto/create-task.dto";
 import { AttachTaskDocumentsDto } from "./dto/attach-task-documents.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { ProjectAccessService } from "../project/project-access.service";
+import { ProjectSpaceClient } from "../project/project-space.client";
 import { toTaskResponse } from "../project/project.mapper";
 import { ActivityChange, ActivityService } from "../activity/activity.service";
 import { NotificationOutboxService } from "../notification-outbox/notification-outbox.service";
@@ -69,10 +70,18 @@ export class TaskService {
     private readonly notifications: NotificationOutboxService,
     private readonly userProfiles: UserProfileSnapshotService,
     private readonly taskDocuments: TaskDocumentClient,
+    private readonly projectSpace: ProjectSpaceClient,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateTaskDto) {
     await this.access.requireCanCreateTask(userId, projectId);
+    if (dto.channelId) {
+      await this.projectSpace.assertCanCreateTaskInChannel(
+        projectId,
+        dto.channelId,
+        userId,
+      );
+    }
     const startDate = this.toDate(dto.startDate);
     const dueDate = this.toDate(dto.dueDate);
     this.validateDateRange(startDate, dueDate);

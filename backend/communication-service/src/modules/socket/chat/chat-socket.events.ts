@@ -5,6 +5,7 @@ export enum ChatEvent {
   SEND_MESSAGE = 'send_message',
   SEND_DIRECT_MESSAGE = 'send_direct_message',
   NEW_MESSAGE = 'new_message',
+  DIRECT_MESSAGE_PERMISSION_UPDATED = 'direct_message_permission_updated',
   SPACE_INVITATION = 'space_invitation',
   INVITATION_ACCEPTED = 'invitation_accepted',
   INVITATION_DECLINED = 'invitation_declined',
