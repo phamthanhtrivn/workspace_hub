@@ -1,6 +1,6 @@
 import type { CalendarPomodoroTimerState } from "@/features/calendar/types/calendar.types";
 import type { PomodoroConfig } from "../types/pomodoro";
-import { isAmbientTrackId, type PomodoroAmbientPreferences } from "../types/ambient";
+import { isAmbientTrackId, isLegacyCustomTrackId, normalizeAmbientPreferences, type PomodoroAmbientPreferences } from "../types/ambient";
 import type { PomodoroViewMode } from "../types/pomodoro-preferences";
 
 const STORAGE_SCHEMA_VERSION = 1;
@@ -158,21 +158,30 @@ export function saveLocalPomodoroViewMode(userId: string, viewMode: PomodoroView
 }
 
 function isAmbientPreferences(value: unknown): value is PomodoroAmbientPreferences {
-  return isRecord(value) && isAmbientTrackId(value.trackId) &&
+  return isRecord(value) && (isAmbientTrackId(value.trackId) || isLegacyCustomTrackId(value.trackId)) &&
     typeof value.volume === "number" && Number.isFinite(value.volume) && value.volume >= 0 && value.volume <= 1 &&
     typeof value.autoPlayOnFocus === "boolean";
 }
 
+function readAmbientPreferences(key: string): PomodoroAmbientPreferences | null {
+  const stored = readEnvelope(key, isAmbientPreferences);
+  if (!stored) return null;
+  const normalized = normalizeAmbientPreferences(stored);
+  if (normalized !== stored) writeEnvelope(key, normalized);
+  return normalized;
+}
+
 export function loadLocalAmbientPreferences(userId: string): PomodoroAmbientPreferences | null {
-  return userId ? readEnvelope(`${AMBIENT_PREFERENCES_KEY}:${userId}`, isAmbientPreferences) : null;
+  return userId ? readAmbientPreferences(`${AMBIENT_PREFERENCES_KEY}:${userId}`) : null;
 }
 
 export function loadPendingAmbientPreferences(userId: string): PomodoroAmbientPreferences | null {
-  return userId ? readEnvelope(`${PENDING_AMBIENT_PREFERENCES_KEY}:${userId}`, isAmbientPreferences) : null;
+  return userId ? readAmbientPreferences(`${PENDING_AMBIENT_PREFERENCES_KEY}:${userId}`) : null;
 }
 
 export function saveLocalAmbientPreferences(userId: string, preferences: PomodoroAmbientPreferences, pending = false): void {
   if (!userId) return;
+  preferences = normalizeAmbientPreferences(preferences);
   const unsynced = loadPendingAmbientPreferences(userId);
   if (!pending && unsynced && JSON.stringify(unsynced) !== JSON.stringify(preferences)) return;
   writeEnvelope(`${AMBIENT_PREFERENCES_KEY}:${userId}`, preferences);

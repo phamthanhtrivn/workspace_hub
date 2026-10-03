@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
+import { POMODORO_AUDIO_MESSAGES } from "../constants/pomodoro-audio";
 import { POMODORO_MODE_THEMES } from "../constants/pomodoro-mode-theme";
 
 export function PomodoroView() {
@@ -39,7 +40,11 @@ function UserPomodoroView({ userId }: { userId: string }) {
     ambientVolume,
     autoPlayAmbient,
     isAmbientPlaying,
-    customTracks,
+    audios,
+    isAudioLibraryLoading,
+    hasAudioLibraryError,
+    retryAudioLibrary,
+    hasPlaybackError,
     isAmbientReady,
     isTrackUnavailable,
     ambientSyncStatus,
@@ -56,8 +61,6 @@ function UserPomodoroView({ userId }: { userId: string }) {
     toggleAmbientPlay,
     changeAmbientVolume,
     toggleAutoPlayAmbient,
-    uploadCustomTrack,
-    removeCustomTrack,
   } = usePomodoroTimer(userId);
   const { runTaskAction, taskRevision } = usePomodoroTaskActions(finishActiveTask);
 
@@ -189,15 +192,16 @@ function UserPomodoroView({ userId }: { userId: string }) {
               isPlaying={isAmbientPlaying}
               volume={ambientVolume}
               autoPlayOnFocus={autoPlayAmbient}
-              customTracks={customTracks}
+              audios={audios}
+              isLibraryLoading={isAudioLibraryLoading}
+              hasLibraryError={hasAudioLibraryError}
+              onRetryLibrary={retryAudioLibrary}
               disabled={!isAmbientReady}
               isTrackUnavailable={isTrackUnavailable}
               onSelectTrack={selectAmbientTrack}
               onTogglePlay={toggleAmbientPlay}
               onChangeVolume={changeAmbientVolume}
               onToggleAutoPlay={toggleAutoPlayAmbient}
-              onUploadTrack={uploadCustomTrack}
-              onRemoveCustomTrack={removeCustomTrack}
             />
           </div>
           {!isAmbientReady ? (
@@ -207,8 +211,11 @@ function UserPomodoroView({ userId }: { userId: string }) {
           ) : ambientSyncStatus === "saving" ? (
             <p role="status" className="text-xs text-slate-500">Saving audio preferences...</p>
           ) : null}
+          {hasPlaybackError && (
+            <p role="status" className="text-center text-xs text-amber-700">{POMODORO_AUDIO_MESSAGES.playError}</p>
+          )}
           {isTrackUnavailable && (
-            <p role="status" className="text-center text-xs text-amber-700">Uploaded track unavailable on this browser</p>
+            <p role="status" className="text-center text-xs text-amber-700">{POMODORO_AUDIO_MESSAGES.unavailable}</p>
           )}
         </div>
 

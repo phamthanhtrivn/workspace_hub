@@ -310,6 +310,28 @@ model PomodoroSession {
   @@map("calendar_pomodoro_sessions")
 }
 
+enum PomodoroAudioCategory {
+  music
+  nature
+  ambient
+}
+
+model PomodoroAudio {
+  id          String                @id @db.VarChar(128)
+  name        String                @db.VarChar(200)
+  description String
+  icon        String                @db.VarChar(64)
+  category    PomodoroAudioCategory
+  s3Key       String                @map("s3_key")
+  sortOrder   Int                   @default(0) @map("sort_order")
+  isActive    Boolean               @default(true) @map("is_active")
+  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([isActive, sortOrder, id])
+  @@map("calendar_pomodoro_audios")
+}
+
 model PomodoroConfig {
   userId              String   @id @map("user_id") @db.Uuid
   focusDuration       Int      @default(25) @map("focus_duration")

@@ -70,7 +70,11 @@ export function usePomodoroTimer(userId: string) {
     ambientVolume,
     autoPlayAmbient,
     isAmbientPlaying,
-    customTracks,
+    audios,
+    isAudioLibraryLoading,
+    hasAudioLibraryError,
+    retryAudioLibrary,
+    hasPlaybackError,
     isAmbientReady,
     isTrackUnavailable,
     ambientSyncStatus,
@@ -80,9 +84,7 @@ export function usePomodoroTimer(userId: string) {
     toggleAmbientPlay,
     changeAmbientVolume,
     toggleAutoPlayAmbient,
-    uploadCustomTrack,
-    removeCustomTrack,
-  } = usePomodoroAmbient(status, userId);
+  } = usePomodoroAmbient(status, mode, userId);
 
   const targetEndTimeRef = useRef<number | null>(null);
   const sessionStartTimeRef = useRef<number | null>(null);
@@ -807,7 +809,11 @@ export function usePomodoroTimer(userId: string) {
     ambientVolume,
     autoPlayAmbient,
     isAmbientPlaying,
-    customTracks,
+    audios,
+    isAudioLibraryLoading,
+    hasAudioLibraryError,
+    retryAudioLibrary,
+    hasPlaybackError,
     isAmbientReady,
     isTrackUnavailable,
     ambientSyncStatus,
@@ -824,7 +830,5 @@ export function usePomodoroTimer(userId: string) {
     toggleAmbientPlay,
     changeAmbientVolume,
     toggleAutoPlayAmbient,
-    uploadCustomTrack,
-    removeCustomTrack,
   };
 }

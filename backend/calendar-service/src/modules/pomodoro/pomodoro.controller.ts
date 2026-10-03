@@ -19,6 +19,7 @@ import { SavePomodoroTimerStateDto } from './dto/save-pomodoro-timer-state.dto';
 import { PomodoroService } from './pomodoro.service';
 import { SavePomodoroAmbientPreferencesDto } from './dto/save-pomodoro-ambient-preferences.dto';
 import { AMBIENT_PREFERENCES_MESSAGES, AMBIENT_PREFERENCES_ROUTE } from './constants/pomodoro-ambient.constants';
+import { POMODORO_AUDIO_MESSAGES, POMODORO_AUDIO_ROUTE } from './constants/pomodoro-audio.constants';
 
 @Controller('api/calendar/pomodoro')
 export class PomodoroController {
@@ -43,6 +44,12 @@ export class PomodoroController {
       message: 'Pomodoro config saved',
       data: await this.service.saveConfig(userId, dto),
     };
+  }
+
+  @Get(POMODORO_AUDIO_ROUTE)
+  async getAudios(@Headers('x-user-id') userId: string) {
+    this.requireUser(userId);
+    return { message: POMODORO_AUDIO_MESSAGES.retrieved, data: await this.service.getAudios() };
   }
 
   @Get(AMBIENT_PREFERENCES_ROUTE)

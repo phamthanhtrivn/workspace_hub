@@ -1,36 +1,12 @@
 "use client";
 
-import React, { useRef, useState } from "react";
-import {
-  Headphones,
-  Music,
-  Radio,
-  CloudRain,
-  Coffee,
-  Waves,
-  Wind,
-  Volume2,
-  VolumeX,
-  Play,
-  Pause,
-  ChevronDown,
-  Upload,
-  FileAudio,
-  Trash2,
-  Loader2,
-  Sliders,
-  Sparkles,
-} from "lucide-react";
-import {
-  AMBIENT_TRACKS,
-  type AmbientTrackId,
-} from "../types/ambient";
-import type { CustomTrackRecord } from "../utils/audio-storage";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import React, { useState } from "react";
+import { Volume2, VolumeX, Play, Pause, ChevronDown, Sliders, Sparkles } from "lucide-react";
+import { AUDIO_OFF_TRACK, type AmbientTrackId, type PomodoroAudio } from "../types/ambient";
+import { POMODORO_AUDIO_MESSAGES } from "../constants/pomodoro-audio";
+import { PomodoroAudioIcon } from "./pomodoro-audio-icon";
+import { PomodoroAudioTrackList } from "./pomodoro-audio-track-list";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
@@ -39,98 +15,29 @@ interface PomodoroAmbientPlayerProps {
   isPlaying: boolean;
   volume: number;
   autoPlayOnFocus: boolean;
-  customTracks: CustomTrackRecord[];
+  audios: PomodoroAudio[];
+  isLibraryLoading: boolean;
+  hasLibraryError: boolean;
+  onRetryLibrary: () => void;
   disabled?: boolean;
   isTrackUnavailable?: boolean;
-  onSelectTrack: (trackId: AmbientTrackId, url?: string) => void;
+  onSelectTrack: (trackId: AmbientTrackId) => void;
   onTogglePlay: () => void;
   onChangeVolume: (volume: number) => void;
   onToggleAutoPlay: (enabled: boolean) => void;
-  onUploadTrack: (file: File) => Promise<CustomTrackRecord>;
-  onRemoveCustomTrack: (id: string) => Promise<void>;
 }
 
 export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
-  currentTrackId,
-  isPlaying,
-  volume,
-  autoPlayOnFocus,
-  customTracks,
-  disabled = false,
-  isTrackUnavailable = false,
-  onSelectTrack,
-  onTogglePlay,
-  onChangeVolume,
-  onToggleAutoPlay,
-  onUploadTrack,
-  onRemoveCustomTrack,
+  currentTrackId, isPlaying, volume, autoPlayOnFocus, audios,
+  isLibraryLoading, hasLibraryError, onRetryLibrary,
+  disabled = false, isTrackUnavailable = false, onSelectTrack,
+  onTogglePlay, onChangeVolume, onToggleAutoPlay,
 }: PomodoroAmbientPlayerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  let activeTrackName = "Background audio off";
-  let activeTrackDescription = "Choose instrumental music or rain sounds to focus";
-  let activeTrackIcon = "VolumeX";
-
-  const foundPredefined = AMBIENT_TRACKS.find((t) => t.id === currentTrackId);
-  if (foundPredefined) {
-    activeTrackName = foundPredefined.name;
-    activeTrackDescription = foundPredefined.description;
-    activeTrackIcon = foundPredefined.icon;
-  } else if (currentTrackId.startsWith("custom_")) {
-    const foundCustom = customTracks.find((t) => t.id === currentTrackId);
-    if (foundCustom) {
-      activeTrackName = foundCustom.name;
-      activeTrackDescription = `Custom audio file (${(foundCustom.size / (1024 * 1024)).toFixed(1)} MB)`;
-      activeTrackIcon = "FileAudio";
-    } else if (isTrackUnavailable) {
-      activeTrackName = "Uploaded track unavailable";
-      activeTrackDescription = "Choose another track on this browser";
-      activeTrackIcon = "FileAudio";
-    }
-  }
-
-  const getTrackIcon = (iconName: string) => {
-    switch (iconName) {
-      case "Headphones":
-        return <Headphones className="size-4" />;
-      case "Music":
-        return <Music className="size-4" />;
-      case "Radio":
-        return <Radio className="size-4" />;
-      case "CloudRain":
-        return <CloudRain className="size-4" />;
-      case "Coffee":
-        return <Coffee className="size-4" />;
-      case "Waves":
-        return <Waves className="size-4" />;
-      case "Wind":
-        return <Wind className="size-4" />;
-      case "FileAudio":
-        return <FileAudio className="size-4" />;
-      default:
-        return <VolumeX className="size-4" />;
-    }
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setIsUploading(true);
-      await onUploadTrack(file);
-      setIsOpen(false);
-    } catch (err) {
-      console.error("Failed to upload audio file:", err);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
+  const activeTrack = currentTrackId === "none" ? AUDIO_OFF_TRACK : audios.find((audio) => audio.id === currentTrackId);
+  const activeTrackName = activeTrack?.name ?? (isLibraryLoading ? "Loading audio..." : "Audio track unavailable");
+  const activeTrackDescription = activeTrack?.description ?? POMODORO_AUDIO_MESSAGES.unavailable;
+  const activeTrackIcon = activeTrack?.icon ?? "FileAudio";
 
   const isMuted = volume === 0;
 
@@ -160,7 +67,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                     <span className="w-0.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:0.3s] [animation-duration:0.6s]" />
                   </div>
                 ) : (
-                  getTrackIcon(activeTrackIcon)
+                  <PomodoroAudioIcon name={activeTrackIcon} />
                 )}
               </div>
 
@@ -207,136 +114,14 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
               <Sliders className="size-3.5 text-slate-400" />
             </div>
 
-            {/* Upload Custom Audio File */}
-            <div className="my-3">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="audio/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <button
-                type="button"
-                disabled={isUploading}
-                onClick={() => fileInputRef.current?.click()}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50/50 py-2.5 px-3 text-xs font-semibold text-[var(--color-primary,#1C4D8D)] hover:bg-blue-100/70 transition-colors"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin text-blue-600" />
-                    <span>Loading audio into the browser...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="size-3.5" />
-                    <span>Upload audio from your computer (MP3, WAV, M4A)</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Custom Tracks (if any) */}
-            {customTracks.length > 0 && (
-              <div className="mb-3 border-b border-slate-100 pb-2.5">
-                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                  Your tracks ({customTracks.length})
-                </div>
-                <div className="space-y-1 max-h-32 overflow-y-auto pr-1">
-                  {customTracks.map((custom) => {
-                    const isSelected = custom.id === currentTrackId;
-                    return (
-                      <div
-                        key={custom.id}
-                        className={cn(
-                          "group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-xs transition-colors",
-                          isSelected
-                            ? "bg-blue-50 text-[var(--color-primary,#1C4D8D)] font-semibold"
-                            : "text-slate-700 hover:bg-slate-50",
-                        )}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onSelectTrack(custom.id, custom.url);
-                            setIsOpen(false);
-                          }}
-                          className="flex min-w-0 flex-1 items-center gap-2 text-left"
-                        >
-                          <FileAudio className="size-4 shrink-0 text-blue-600" />
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate font-medium">
-                              {custom.name}
-                            </div>
-                            <div className="truncate text-[10px] text-slate-400">
-                              {(custom.size / (1024 * 1024)).toFixed(1)} MB
-                            </div>
-                          </div>
-                        </button>
-
-                        <button
-                          type="button"
-                          title="Delete this file"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRemoveCustomTrack(custom.id);
-                          }}
-                          className="p-1 text-slate-300 hover:text-rose-600 rounded-md transition-colors"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Predefined Ambient Tracks List */}
-            <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
-              <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Built-in tracks
-              </div>
-              {AMBIENT_TRACKS.map((track) => {
-                const isSelected = track.id === currentTrackId;
-                return (
-                  <button
-                    key={track.id}
-                    type="button"
-                    onClick={() => {
-                      onSelectTrack(track.id);
-                      setIsOpen(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-all",
-                      isSelected
-                        ? "bg-gradient-to-r from-blue-50 to-indigo-50/60 text-[var(--color-primary,#1C4D8D)] font-semibold shadow-2xs"
-                        : "text-slate-700 hover:bg-slate-50",
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "flex size-7 shrink-0 items-center justify-center rounded-lg",
-                        isSelected
-                          ? "bg-blue-100 text-blue-700 font-bold"
-                          : "bg-slate-100 text-slate-500",
-                      )}
-                    >
-                      {getTrackIcon(track.icon)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium">{track.name}</div>
-                      <div className="truncate text-[10px] text-slate-400">
-                        {track.description}
-                      </div>
-                    </div>
-                    {isSelected && (
-                      <span className="size-2 rounded-full bg-blue-600 shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            <PomodoroAudioTrackList
+              audios={audios}
+              currentTrackId={currentTrackId}
+              isLoading={isLibraryLoading}
+              hasError={hasLibraryError}
+              onRetry={onRetryLibrary}
+              onSelectTrack={(trackId) => { onSelectTrack(trackId); setIsOpen(false); }}
+            />
 
             {/* Auto-play Switch Row */}
             <div className="mt-3 border-t border-slate-100 pt-3 px-1 flex items-center justify-between">
@@ -377,7 +162,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
             <button
               type="button"
               onClick={onTogglePlay}
-              disabled={disabled || isTrackUnavailable}
+              disabled={disabled || isLibraryLoading || isTrackUnavailable}
               title={isPlaying ? "Pause audio" : "Play audio"}
               aria-label={isPlaying ? "Pause audio" : "Play audio"}
               className={cn(

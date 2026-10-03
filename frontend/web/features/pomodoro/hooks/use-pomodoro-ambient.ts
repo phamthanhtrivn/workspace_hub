@@ -1,100 +1,67 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-import type { AmbientTrackId } from "../types/ambient";
-import type { PomodoroStatus } from "../types/pomodoro";
+import { useCallback, useEffect, useState } from "react";
+import { EMPTY_POMODORO_AUDIOS, type AmbientTrackId } from "../types/ambient";
+import type { PomodoroMode, PomodoroStatus } from "../types/pomodoro";
 import { ambientAudio } from "../utils/ambient-audio";
 import { usePomodoroAmbientPreferences } from "./use-pomodoro-ambient-preferences";
+import { usePomodoroAudios } from "./use-pomodoro-audios";
 import { AMBIENT_VOLUME_SAVE_DELAY_MS } from "../types/pomodoro-preferences";
-import {
-  deleteCustomAudioTrack,
-  loadCustomAudioTracks,
-  saveCustomAudioTrack,
-  type CustomTrackRecord,
-} from "../utils/audio-storage";
 
-export function usePomodoroAmbient(status: PomodoroStatus, userId: string) {
-  const { preferences, isReady, syncStatus, updatePreferences } = usePomodoroAmbientPreferences(userId);
+export function usePomodoroAmbient(status: PomodoroStatus, mode: PomodoroMode, userId: string) {
+  const library = usePomodoroAudios(userId);
+  const { refetch } = library;
+  const { preferences, isReady, syncStatus, updatePreferences } = usePomodoroAmbientPreferences(userId, library.data);
+  const audios = library.data ?? EMPTY_POMODORO_AUDIOS;
   const { trackId: ambientTrack, volume: ambientVolume, autoPlayOnFocus: autoPlayAmbient } = preferences;
   const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
-  const [customTracks, setCustomTracks] = useState<CustomTrackRecord[]>([]);
-  const [customTracksReady, setCustomTracksReady] = useState(false);
-  const mountedRef = useRef(false);
-  const customUrlsRef = useRef(new Set<string>());
-  const customTrackUrl = customTracks.find((track) => track.id === ambientTrack)?.url;
-  const isCustomTrack = ambientTrack.startsWith("custom_");
-  const isTrackUnavailable = isCustomTrack && customTracksReady && !customTrackUrl;
-  const isAmbientReady = isReady && (!isCustomTrack || customTracksReady);
+  const [hasPlaybackError, setHasPlaybackError] = useState(false);
+  const selectedAudioUrl = audios.find((audio) => audio.id === ambientTrack)?.url;
+  const isTrackUnavailable = !library.isPending && ambientTrack !== "none" && !selectedAudioUrl;
+  // A failed library must still allow retrying or choosing audio off.
+  const isAmbientReady = isReady;
 
   useEffect(() => {
-    let mounted = true;
-    mountedRef.current = true;
-    ambientAudio.stop();
     ambientAudio.setTrack("none");
     ambientAudio.setPlaybackListener(setIsAmbientPlaying);
-    void loadCustomAudioTracks(userId)
-      .then((tracks) => {
-        if (mounted) {
-          tracks.forEach((track) => customUrlsRef.current.add(track.url));
-          setCustomTracks(tracks);
-          setCustomTracksReady(true);
-        } else {
-          tracks.forEach((track) => URL.revokeObjectURL(track.url));
-        }
-      })
-      .catch(() => {
-        if (mounted) { setCustomTracksReady(true); toast.error("Unable to load your uploaded audio."); }
-      });
-
+    ambientAudio.setErrorListener(() => setHasPlaybackError(true));
     return () => {
-      mounted = false;
-      mountedRef.current = false;
       ambientAudio.setPlaybackListener(null);
-      ambientAudio.pause();
-      customUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-      customUrlsRef.current.clear();
+      ambientAudio.setErrorListener(null);
+      ambientAudio.setTrack("none");
+      ambientAudio.stop();
     };
   }, [userId]);
 
   // Hydration only configures the player. It never starts playback.
   useEffect(() => {
     if (!isAmbientReady) return;
-    ambientAudio.setTrack(isTrackUnavailable ? "none" : ambientTrack, customTrackUrl);
+    ambientAudio.setTrack(selectedAudioUrl ? ambientTrack : "none", selectedAudioUrl);
     ambientAudio.setVolume(ambientVolume);
-  }, [ambientTrack, ambientVolume, customTrackUrl, isAmbientReady, isTrackUnavailable]);
+  }, [ambientTrack, ambientVolume, selectedAudioUrl, isAmbientReady]);
 
   const playAmbient = useCallback(() => {
-    if (isAmbientReady && !isTrackUnavailable) return ambientAudio.play();
-  }, [isAmbientReady, isTrackUnavailable]);
-  const pauseAmbient = useCallback(() => {
-    ambientAudio.pause();
-    setIsAmbientPlaying(false);
-  }, []);
+    if (!isAmbientReady || !selectedAudioUrl) return;
+    setHasPlaybackError(false);
+    return ambientAudio.play();
+  }, [isAmbientReady, selectedAudioUrl]);
 
-  const selectAmbientTrack = useCallback(
-    (trackId: AmbientTrackId, explicitUrl?: string) => {
-      updatePreferences({ trackId });
-      let urlToUse = explicitUrl;
-      if (!urlToUse && trackId.startsWith("custom_")) {
-        urlToUse = customTracks.find((track) => track.id === trackId)?.url;
-      }
-      const unavailable = trackId.startsWith("custom_") && !urlToUse;
-      ambientAudio.setTrack(unavailable ? "none" : trackId, urlToUse);
+  const pauseAmbient = useCallback(() => ambientAudio.pause(), []);
 
-      if (trackId === "none" || unavailable) {
-        ambientAudio.stop();
-        setIsAmbientPlaying(false);
-      } else if (status === "RUNNING" || isAmbientPlaying) {
-        ambientAudio.play();
-      }
-    },
-    [customTracks, isAmbientPlaying, status, updatePreferences],
-  );
+  const selectAmbientTrack = useCallback((trackId: AmbientTrackId) => {
+    const url = audios.find((audio) => audio.id === trackId)?.url;
+    if (trackId !== "none" && !url) return;
+    updatePreferences({ trackId });
+    setHasPlaybackError(false);
+    ambientAudio.setTrack(trackId, url);
+    if (trackId !== "none" && (isAmbientPlaying || (status === "RUNNING" && mode === "FOCUS" && autoPlayAmbient))) {
+      void ambientAudio.play();
+    }
+  }, [audios, isAmbientPlaying, status, mode, autoPlayAmbient, updatePreferences]);
 
   const toggleAmbientPlay = useCallback(() => {
     if (isAmbientPlaying) pauseAmbient();
-    else playAmbient();
+    else void playAmbient();
   }, [isAmbientPlaying, pauseAmbient, playAmbient]);
 
   const changeAmbientVolume = useCallback((volume: number) => {
@@ -107,43 +74,13 @@ export function usePomodoroAmbient(status: PomodoroStatus, userId: string) {
     updatePreferences({ autoPlayOnFocus: enabled });
   }, [updatePreferences]);
 
-  const uploadCustomTrack = useCallback(async (file: File) => {
-    const saved = await saveCustomAudioTrack(userId, file);
-    if (!mountedRef.current) {
-      URL.revokeObjectURL(saved.url);
-      return saved;
-    }
-    customUrlsRef.current.add(saved.url);
-    setCustomTracks((current) => [saved, ...current]);
-    selectAmbientTrack(saved.id, saved.url);
-    return saved;
-  }, [selectAmbientTrack, userId]);
-
-  const removeCustomTrack = useCallback(async (id: string) => {
-    await deleteCustomAudioTrack(userId, id);
-    if (!mountedRef.current) return;
-    setCustomTracks((current) => current.filter((track) => track.id !== id));
-    if (ambientTrack === id) selectAmbientTrack("none");
-    const trackUrl = customTracks.find((track) => track.id === id)?.url;
-    if (trackUrl) { URL.revokeObjectURL(trackUrl); customUrlsRef.current.delete(trackUrl); }
-  }, [ambientTrack, customTracks, selectAmbientTrack, userId]);
+  const retryAudioLibrary = useCallback(() => { void refetch(); }, [refetch]);
 
   return {
-    ambientTrack,
-    ambientVolume,
-    autoPlayAmbient,
-    isAmbientPlaying,
-    customTracks,
-    isAmbientReady,
-    isTrackUnavailable,
-    ambientSyncStatus: syncStatus,
-    playAmbient,
-    pauseAmbient,
-    selectAmbientTrack,
-    toggleAmbientPlay,
-    changeAmbientVolume,
-    toggleAutoPlayAmbient,
-    uploadCustomTrack,
-    removeCustomTrack,
+    ambientTrack, ambientVolume, autoPlayAmbient, isAmbientPlaying,
+    audios, isAudioLibraryLoading: library.isPending, hasAudioLibraryError: library.isError,
+    retryAudioLibrary, hasPlaybackError, isAmbientReady, isTrackUnavailable,
+    ambientSyncStatus: syncStatus, playAmbient, pauseAmbient, selectAmbientTrack,
+    toggleAmbientPlay, changeAmbientVolume, toggleAutoPlayAmbient,
   };
 }

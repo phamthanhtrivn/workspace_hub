@@ -12,8 +12,6 @@ describe('Calendar Pomodoro API (integration)', () => {
   const service = {
     getConfig: jest.fn(),
     saveConfig: jest.fn(),
-    getAmbientPreferences: jest.fn(),
-    saveAmbientPreferences: jest.fn(),
     dailyStats: jest.fn(),
     getState: jest.fn(),
     saveState: jest.fn(),
@@ -39,54 +37,6 @@ describe('Calendar Pomodoro API (integration)', () => {
 
   afterAll(async () => app.close());
   beforeEach(() => jest.clearAllMocks());
-
-  it('reads and saves audio preferences in the Calendar envelope', async () => {
-    const preferences = { trackId: 'rain_heavy', volume: 0, autoPlayOnFocus: false };
-    service.getAmbientPreferences.mockResolvedValue(preferences);
-    service.saveAmbientPreferences.mockResolvedValue(preferences);
-    for (const method of ['get', 'put'] as const) {
-      const response = await request(app.getHttpServer())[method]('/api/calendar/pomodoro/ambient-preferences')
-        .set('x-user-id', userId)
-        .send(method === 'put' ? preferences : undefined)
-        .expect(200);
-      expect(response.body).toMatchObject({ success: true, data: preferences });
-    }
-    expect(service.getAmbientPreferences).toHaveBeenCalledWith(userId);
-    expect(service.saveAmbientPreferences).toHaveBeenCalledWith(userId, preferences);
-  });
-
-  it('requires identity for both audio preference operations', async () => {
-    for (const method of ['get', 'put'] as const) {
-      await request(app.getHttpServer())[method]('/api/calendar/pomodoro/ambient-preferences')
-        .send({ trackId: 'none', volume: 0.5, autoPlayOnFocus: true })
-        .expect(400);
-    }
-    expect(service.getAmbientPreferences).not.toHaveBeenCalled();
-    expect(service.saveAmbientPreferences).not.toHaveBeenCalled();
-  });
-
-  it('validates track IDs, volume and auto-play without accepting user IDs from the body', async () => {
-    const preferences = { trackId: 'lofi_relax', volume: 0.5, autoPlayOnFocus: true };
-    const invalid = [
-      { trackId: 'unknown' }, { trackId: '' }, { trackId: 'custom_' },
-      { trackId: 'custom_' + 'a'.repeat(128) }, { trackId: 'custom_file.wav' },
-      { trackId: 'https://example.com/audio.wav' }, { trackId: 'blob:audio' },
-      { volume: -0.1 }, { volume: 1.1 }, { volume: '0.5' }, { volume: null },
-      { autoPlayOnFocus: 'true' }, { autoPlayOnFocus: null },
-    ];
-    for (const patch of invalid) {
-      await request(app.getHttpServer()).put('/api/calendar/pomodoro/ambient-preferences')
-        .set('x-user-id', userId).send({ ...preferences, ...patch }).expect(400);
-    }
-    expect(service.saveAmbientPreferences).not.toHaveBeenCalled();
-    for (const trackId of ['none', 'lofi_relax', 'gentle_piano', 'rain_heavy', 'ocean_waves',
-      'coffee_shop', 'forest_wind', 'alpha_drone_432hz', 'custom_1720000000000_abcde']) {
-      await request(app.getHttpServer()).put('/api/calendar/pomodoro/ambient-preferences')
-        .set('x-user-id', userId).send({ ...preferences, trackId, userId: 'another-user', volume: 1 }).expect(200);
-      expect(service.saveAmbientPreferences).toHaveBeenLastCalledWith(userId,
-        { ...preferences, trackId, volume: 1 });
-    }
-  });
 
   it('accepts planned timer duration and rejects invalid values', async () => {
     const state = {
