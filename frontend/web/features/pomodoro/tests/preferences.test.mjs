@@ -32,6 +32,9 @@ const directory = path.dirname(fileURLToPath(import.meta.url));
 const storage = loadTypeScript(path.resolve(directory, "../utils/pomodoro-local-storage.ts"));
 const { createAmbientPreferencesSync } = loadTypeScript(path.resolve(directory, "../utils/ambient-preferences-sync.ts"));
 const { AMBIENT_VOLUME_SAVE_DELAY_MS } = loadTypeScript(path.resolve(directory, "../types/pomodoro-preferences.ts"));
+const { pomodoroSettingsSchema, toPomodoroSettingsForm, fromPomodoroSettingsForm } = loadTypeScript(path.resolve(directory, "../utils/pomodoro-settings-validation.ts"));
+const { toPomodoroConfig, getUpdatedIdleDuration } = loadTypeScript(path.resolve(directory, "../utils/pomodoro-config.ts"));
+const { createPomodoroConfigSync } = loadTypeScript(path.resolve(directory, "../utils/pomodoro-config-sync.ts"));
 const first = { trackId: "rain_heavy", volume: 0.25, autoPlayOnFocus: false };
 const second = { trackId: "gentle_piano", volume: 0.75, autoPlayOnFocus: true };
 
@@ -171,4 +174,89 @@ test("unmount stops queued saves and ignores late responses", async () => {
   sync.retry();
   assert.deepEqual(writes, [first]);
   assert.deepEqual(saved, []);
+});
+
+const timerConfig = {
+  focusDuration: 25, shortBreak: 5, longBreak: 15, longBreakInterval: 2,
+  dailyGoalPomodoros: 8, soundVolume: 0.7, soundType: "chime", soundEnabled: true,
+  notificationEnabled: true, autoStartBreak: false, autoStartFocus: false,
+};
+
+test("Pomodoro form accepts backend limits and converts alarm percentages", () => {
+  const form = toPomodoroSettingsForm(timerConfig);
+  assert.equal(form.soundVolumePercent, 70);
+  assert.deepEqual(fromPomodoroSettingsForm(form), timerConfig);
+  assert.ok(pomodoroSettingsSchema.safeParse({ ...form, focusDuration: 240, shortBreak: 120,
+    longBreak: 240, longBreakInterval: 20, dailyGoalPomodoros: 100, soundVolumePercent: 100 }).success);
+  assert.ok(pomodoroSettingsSchema.safeParse({ ...form, focusDuration: 1, shortBreak: 1,
+    longBreak: 1, longBreakInterval: 2, dailyGoalPomodoros: 1, soundVolumePercent: 0 }).success);
+  assert.equal(fromPomodoroSettingsForm({ ...form, soundVolumePercent: 25 }).soundVolume, 0.25);
+});
+
+test("Pomodoro form rejects empty, fractional, invalid and out-of-range values", () => {
+  const form = toPomodoroSettingsForm(timerConfig);
+  for (const patch of [{ focusDuration: NaN }, { focusDuration: 0 }, { focusDuration: 241 },
+    { shortBreak: 121 }, { longBreak: 241 }, { longBreakInterval: 1 }, { longBreakInterval: 21 },
+    { dailyGoalPomodoros: 0 }, { dailyGoalPomodoros: 101 }, { shortBreak: 1.5 },
+    { focusDuration: "25" }, { soundVolumePercent: NaN }, { soundVolumePercent: -1 },
+    { soundVolumePercent: 101 }, { soundType: "unknown" }, { autoStartFocus: "true" }]) {
+    assert.equal(pomodoroSettingsSchema.safeParse({ ...form, ...patch }).success, false);
+  }
+});
+
+test("shared configuration removes server metadata and protects active timer duration", () => {
+  const canonical = toPomodoroConfig(timerConfig);
+  assert.deepEqual(toPomodoroConfig({ ...timerConfig, userId: "private-user", updatedAt: "today", ambientTrackId: "none" }), canonical);
+  const changed = { ...canonical, focusDuration: 30, shortBreak: 10, longBreak: 20 };
+  assert.equal(getUpdatedIdleDuration(canonical, changed, "FOCUS", "IDLE"), 1800);
+  assert.equal(getUpdatedIdleDuration(canonical, changed, "SHORT_BREAK", "IDLE"), 600);
+  assert.equal(getUpdatedIdleDuration(canonical, changed, "LONG_BREAK", "IDLE"), 1200);
+  assert.equal(getUpdatedIdleDuration(canonical, changed, "FOCUS", "RUNNING"), null);
+  assert.equal(getUpdatedIdleDuration(canonical, changed, "FOCUS", "PAUSED"), null);
+  assert.equal(getUpdatedIdleDuration(canonical, { ...canonical }, "FOCUS", "IDLE"), null);
+});
+
+test("configuration save promises wait for server acknowledgment and serialize writes", async () => {
+  const writes = [];
+  const completions = [];
+  const saved = [];
+  const sync = createPomodoroConfigSync((config) => {
+    writes.push(config);
+    return new Promise((resolve) => completions.push(() => resolve(config)));
+  }, (config) => saved.push(config));
+  sync.start();
+  let acknowledged = false;
+  const firstSave = sync.submit(timerConfig).then(() => { acknowledged = true; });
+  const changed = { ...timerConfig, focusDuration: 30 };
+  const secondSave = sync.submit(changed);
+  assert.equal(acknowledged, false);
+  assert.equal(writes.length, 1);
+  completions[0]();
+  await firstSave;
+  assert.equal(acknowledged, true);
+  await waitFor(() => writes.length === 2);
+  completions[1]();
+  await secondSave;
+  assert.deepEqual(saved, [timerConfig, changed]);
+  assert.equal(sync.getStatus(), "idle");
+  sync.stop();
+});
+
+test("failed configuration saves remain pending and retry clears only acknowledged data", async () => {
+  localStorageWindow();
+  let online = false;
+  const sync = createPomodoroConfigSync(async (config) => {
+    if (!online) throw new Error("offline");
+    return config;
+  }, (config) => storage.saveLocalPomodoroConfig("first-user", config));
+  sync.start();
+  storage.saveLocalPomodoroConfig("first-user", timerConfig, true);
+  await assert.rejects(sync.submit(timerConfig), /offline/);
+  assert.equal(sync.getStatus(), "error");
+  assert.deepEqual(storage.loadPendingPomodoroConfig("first-user"), timerConfig);
+  online = true;
+  sync.retry();
+  await waitFor(() => sync.getStatus() === "idle");
+  assert.equal(storage.loadPendingPomodoroConfig("first-user"), null);
+  sync.stop();
 });

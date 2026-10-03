@@ -11,6 +11,7 @@ import type {
   PomodoroSessionRecord,
 } from "../types/pomodoro";
 import { limitPomodoroNotes } from "../utils/pomodoro-notes";
+import { toPomodoroConfig } from "../utils/pomodoro-config";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -28,24 +29,12 @@ export const DEFAULT_POMODORO_CONFIG: PomodoroConfig = {
   dailyGoalPomodoros: 8,
 };
 
-export async function getPomodoroConfig(): Promise<PomodoroConfig> {
-  return getCalendarPomodoroConfig();
+export async function getPomodoroConfig(signal?: AbortSignal): Promise<PomodoroConfig> {
+  return toPomodoroConfig(await getCalendarPomodoroConfig(signal));
 }
 
-export async function savePomodoroConfig(config: PomodoroConfig): Promise<PomodoroConfig> {
-  return saveCalendarPomodoroConfig({
-    focusDuration: config.focusDuration,
-    shortBreak: config.shortBreak,
-    longBreak: config.longBreak,
-    longBreakInterval: config.longBreakInterval,
-    autoStartBreak: config.autoStartBreak,
-    autoStartFocus: config.autoStartFocus,
-    soundEnabled: config.soundEnabled,
-    soundType: config.soundType,
-    soundVolume: config.soundVolume,
-    notificationEnabled: config.notificationEnabled,
-    dailyGoalPomodoros: config.dailyGoalPomodoros,
-  });
+export async function savePomodoroConfig(config: PomodoroConfig, signal?: AbortSignal): Promise<PomodoroConfig> {
+  return toPomodoroConfig(await saveCalendarPomodoroConfig(toPomodoroConfig(config), signal));
 }
 
 export async function recordPomodoroSession(

@@ -3,30 +3,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   PomodoroActiveTask,
-  PomodoroConfig,
   PomodoroMode,
   PomodoroSessionStatus,
   PomodoroStatus,
 } from "../types/pomodoro";
 import {
   DEFAULT_POMODORO_CONFIG,
-  getPomodoroConfig,
   recordPomodoroSession,
-  savePomodoroConfig,
 } from "../api/pomodoro-server.api";
 import { getCalendarPomodoroTimerState, saveCalendarPomodoroTimerState } from "@/features/calendar/api/calendar.api";
 import { toast } from "sonner";
 import { playPomodoroSound } from "../utils/sound";
 import { getNextPomodoroCycleStep } from "../utils/pomodoro-cycle";
 import {
-  loadLocalPomodoroConfig,
-  loadPendingPomodoroConfig,
   loadLocalPomodoroTimerState,
-  saveLocalPomodoroConfig,
   saveLocalPomodoroTimerState,
 } from "../utils/pomodoro-local-storage";
 import { usePomodoroAmbient } from "./use-pomodoro-ambient";
 import { limitPomodoroNotes } from "../utils/pomodoro-notes";
+import { usePomodoroConfig } from "../components/pomodoro-config-provider";
+import { getDurationForMode, getUpdatedIdleDuration } from "../utils/pomodoro-config";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -48,22 +44,9 @@ function toPendingTimerState(state: Parameters<typeof saveLocalPomodoroTimerStat
   };
 }
 
-function getDurationForMode(
-  targetMode: PomodoroMode,
-  cfg: PomodoroConfig,
-): number {
-  switch (targetMode) {
-    case "FOCUS":
-      return (cfg.focusDuration ?? 25) * 60;
-    case "SHORT_BREAK":
-      return (cfg.shortBreak ?? 5) * 60;
-    case "LONG_BREAK":
-      return (cfg.longBreak ?? 15) * 60;
-  }
-}
-
 export function usePomodoroTimer(userId: string) {
-  const [config, setConfig] = useState<PomodoroConfig>(DEFAULT_POMODORO_CONFIG);
+  const { config, ensureConfigLoaded, loadError: configLoadError } = usePomodoroConfig();
+  const appliedConfigRef = useRef(DEFAULT_POMODORO_CONFIG);
   const [mode, setMode] = useState<PomodoroMode>("FOCUS");
   const [status, setStatus] = useState<PomodoroStatus>("IDLE");
   const [isReady, setIsReady] = useState(false);
@@ -111,9 +94,6 @@ export function usePomodoroTimer(userId: string) {
   const refreshVersionBeforeRetryRef = useRef(false);
   const stateSyncErrorShownRef = useRef(false);
   const stateSyncFailedRef = useRef(false);
-  const configSyncFailedRef = useRef(false);
-  const pendingConfigRef = useRef<PomodoroConfig | null>(null);
-  const configSaveInFlightRef = useRef(false);
   const completionInProgressRef = useRef(false);
   const lastCompletionAttemptRef = useRef(0);
   const lastQueuedStateRef = useRef("");
@@ -124,7 +104,7 @@ export function usePomodoroTimer(userId: string) {
     timeLeftRef.current = timeLeft;
   }, [timeLeft]);
 
-  // Load server-backed config and timer state on mount.
+  // Configuration is shared; this hook only restores the timer snapshot.
   useEffect(() => {
     mountedRef.current = true;
     if (typeof document !== "undefined") {
@@ -132,16 +112,14 @@ export function usePomodoroTimer(userId: string) {
     }
 
     let mounted = true;
-    const localConfig = loadLocalPomodoroConfig(userId);
-    const pendingLocalConfig = loadPendingPomodoroConfig(userId);
     const localTimerState = loadLocalPomodoroTimerState(userId);
 
-    void Promise.allSettled([getPomodoroConfig(), getCalendarPomodoroTimerState()])
+    void Promise.allSettled([ensureConfigLoaded(), getCalendarPomodoroTimerState()])
       .then(([configResult, timerStateResult]) => {
         if (!mounted) return;
-        const cfg = pendingLocalConfig ?? (configResult.status === "fulfilled"
+        const cfg = configResult.status === "fulfilled"
           ? configResult.value
-          : localConfig ?? DEFAULT_POMODORO_CONFIG);
+          : DEFAULT_POMODORO_CONFIG;
         const serverState = timerStateResult.status === "fulfilled"
           ? timerStateResult.value
           : null;
@@ -150,18 +128,14 @@ export function usePomodoroTimer(userId: string) {
             ? localTimerState
             : serverState
           : serverState ?? localTimerState;
-        configSyncFailedRef.current = configResult.status === "rejected" || Boolean(pendingLocalConfig);
         stateSyncFailedRef.current = timerStateResult.status === "rejected";
-        const hasServerError = configSyncFailedRef.current || stateSyncFailedRef.current;
+        const hasServerError = stateSyncFailedRef.current;
 
-        if (pendingLocalConfig) pendingConfigRef.current = pendingLocalConfig;
-        else if (configResult.status === "fulfilled") saveLocalPomodoroConfig(userId, cfg);
-        else if (localConfig) pendingConfigRef.current = localConfig;
         if (saved) saveLocalPomodoroTimerState(userId, saved);
         if (saved && saved === localTimerState && saved !== serverState) {
           pendingStateRef.current = toPendingTimerState(saved);
         }
-        setConfig(cfg);
+        appliedConfigRef.current = cfg;
         stateVersionRef.current = saved?.version ?? 0;
         if (saved) {
           const restoredMode = saved.mode as PomodoroMode;
@@ -195,36 +169,8 @@ export function usePomodoroTimer(userId: string) {
       document.title = initialTitleRef.current;
       isHydratedRef.current = false;
       pendingStateRef.current = null;
-      pendingConfigRef.current = null;
     };
-  }, [userId, setTotalDuration]);
-
-  const flushPendingConfig = useCallback(async () => {
-    if (!mountedRef.current || configSaveInFlightRef.current || !pendingConfigRef.current) return;
-    configSaveInFlightRef.current = true;
-    let failedConfig: PomodoroConfig | null = null;
-    try {
-      while (mountedRef.current && pendingConfigRef.current) {
-        const pendingConfig = pendingConfigRef.current;
-        failedConfig = pendingConfig;
-        pendingConfigRef.current = null;
-        await savePomodoroConfig(pendingConfig);
-        if (!mountedRef.current) return;
-        saveLocalPomodoroConfig(userId, pendingConfig);
-        failedConfig = null;
-      }
-      configSyncFailedRef.current = false;
-      setLoadError(stateSyncFailedRef.current);
-    } catch {
-      if (!pendingConfigRef.current && failedConfig) {
-        pendingConfigRef.current = failedConfig;
-      }
-      configSyncFailedRef.current = true;
-      setLoadError(true);
-    } finally {
-      configSaveInFlightRef.current = false;
-    }
-  }, [userId]);
+  }, [userId, setTotalDuration, ensureConfigLoaded]);
 
   // Keep one write in flight and replace queued changes with the latest state.
   const flushPendingState = useCallback(async () => {
@@ -258,7 +204,7 @@ export function usePomodoroTimer(userId: string) {
         failedSnapshot = null;
       }
       stateSyncFailedRef.current = false;
-      setLoadError(configSyncFailedRef.current);
+      setLoadError(false);
       stateSyncErrorShownRef.current = false;
     } catch {
       if (!pendingStateRef.current && failedSnapshot) {
@@ -326,20 +272,6 @@ export function usePomodoroTimer(userId: string) {
     let active = true;
 
     const retrySynchronization = async () => {
-      if (pendingConfigRef.current) {
-        await flushPendingConfig();
-      } else if (configSyncFailedRef.current) {
-        try {
-          const serverConfig = await getPomodoroConfig();
-          if (!active || pendingConfigRef.current) return;
-          setConfig(serverConfig);
-          saveLocalPomodoroConfig(userId, serverConfig);
-          configSyncFailedRef.current = false;
-        } catch {
-          configSyncFailedRef.current = true;
-        }
-      }
-
       if (pendingStateRef.current) {
         await flushPendingState();
       } else if (stateSyncFailedRef.current) {
@@ -354,7 +286,7 @@ export function usePomodoroTimer(userId: string) {
       }
 
       if (active) {
-        setLoadError(configSyncFailedRef.current || stateSyncFailedRef.current);
+        setLoadError(stateSyncFailedRef.current);
       }
     };
 
@@ -366,7 +298,7 @@ export function usePomodoroTimer(userId: string) {
       clearInterval(interval);
       window.removeEventListener("online", retryWhenOnline);
     };
-  }, [flushPendingConfig, flushPendingState, isReady, loadError, userId]);
+  }, [flushPendingState, isReady, loadError]);
 
   // Notification trigger
   const sendBrowserNotification = useCallback(
@@ -847,27 +779,20 @@ export function usePomodoroTimer(userId: string) {
     if (!taskActionInProgressRef.current) setNotes(limitPomodoroNotes(value));
   }, []);
 
-  const updateConfig = useCallback(
-    async (newConfig: PomodoroConfig) => {
-      if (!isHydratedRef.current || taskActionInProgressRef.current) return;
-      setConfig(newConfig);
-      saveLocalPomodoroConfig(userId, newConfig, true);
-      pendingConfigRef.current = newConfig;
-      void flushPendingConfig();
-
-      if (status === "IDLE") {
-        const dur = getDurationForMode(mode, newConfig);
-        setTimeLeft(dur);
-        setTotalDuration(dur);
-        persistState(mode, "IDLE", null, dur, cycleCount, activeTask, notes);
-      }
-    },
-    [status, mode, cycleCount, activeTask, notes, persistState, flushPendingConfig, userId, setTotalDuration],
-  );
+  useEffect(() => {
+    if (!isReady || !isHydratedRef.current || isTaskActionPending) return;
+    const duration = getUpdatedIdleDuration(appliedConfigRef.current, config, mode, status);
+    appliedConfigRef.current = config;
+    if (duration === null) return;
+    // Shared settings are an external update; running/paused snapshots stay intact.
+    setTimeLeft(duration);
+    setTotalDuration(duration);
+    persistState(mode, "IDLE", null, duration, cycleCount, activeTask, notes);
+  }, [activeTask, config, cycleCount, isReady, isTaskActionPending, mode, notes, persistState, setTotalDuration, status]);
 
   return {
     isReady,
-    loadError,
+    loadError: loadError || configLoadError,
     sessionRevision,
     isTaskActionPending,
     finishActiveTask,
@@ -895,7 +820,6 @@ export function usePomodoroTimer(userId: string) {
     selectTask,
     updateActiveTask,
     setNotes: updateNotes,
-    updateConfig,
     selectAmbientTrack,
     toggleAmbientPlay,
     changeAmbientVolume,

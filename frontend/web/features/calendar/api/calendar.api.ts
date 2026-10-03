@@ -43,16 +43,16 @@ export async function clearCalendarPomodoroTimerState(expectedVersion: number) {
   return unwrap(response);
 }
 
-export async function getCalendarPomodoroConfig() {
+export async function getCalendarPomodoroConfig(signal?: AbortSignal) {
   const response = await api.get<ApiResponse<CalendarPomodoroConfig>>(
-    "/api/calendar/pomodoro/config",
+    "/api/calendar/pomodoro/config", { signal },
   );
   return unwrap(response);
 }
 
-export async function saveCalendarPomodoroConfig(config: CalendarPomodoroConfig) {
+export async function saveCalendarPomodoroConfig(config: CalendarPomodoroConfig, signal?: AbortSignal) {
   const response = await api.put<ApiResponse<CalendarPomodoroConfig>>(
-    "/api/calendar/pomodoro/config", config,
+    "/api/calendar/pomodoro/config", config, { signal },
   );
   return unwrap(response);
 }

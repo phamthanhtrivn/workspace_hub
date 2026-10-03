@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { usePomodoroTimer } from "../hooks/use-pomodoro-timer";
 import { usePomodoroTaskActions } from "../hooks/use-pomodoro-task-actions";
 import { usePomodoroViewMode } from "../hooks/use-pomodoro-view-mode";
@@ -8,11 +8,10 @@ import { PomodoroTimerDisplay } from "./pomodoro-timer-display";
 import { PomodoroControls } from "./pomodoro-controls";
 import { PomodoroAmbientPlayer } from "./pomodoro-ambient-player";
 import { PomodoroActiveTaskCard } from "./pomodoro-active-task";
-import { PomodoroSettingsDialog } from "./pomodoro-settings-dialog";
 import { PomodoroStatsOverview } from "./pomodoro-stats-card";
 import { PomodoroReport } from "./pomodoro-report";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Settings, Sparkles } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
 
@@ -52,7 +51,6 @@ function UserPomodoroView({ userId }: { userId: string }) {
     selectTask,
     updateActiveTask,
     setNotes,
-    updateConfig,
     selectAmbientTrack,
     toggleAmbientPlay,
     changeAmbientVolume,
@@ -62,7 +60,6 @@ function UserPomodoroView({ userId }: { userId: string }) {
   } = usePomodoroTimer(userId);
   const { runTaskAction, taskRevision } = usePomodoroTaskActions(finishActiveTask);
 
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { viewMode, setViewMode } = usePomodoroViewMode(userId);
   const minimalMode = viewMode === "focus";
   const isRunning = status === "RUNNING";
@@ -90,11 +87,8 @@ function UserPomodoroView({ userId }: { userId: string }) {
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl font-black tracking-tight text-[var(--color-primary-dark,#0F2854)]">
-              Pomodoro Focus Hub
+              Pomodoro Focus
             </h1>
-            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 px-2.5 py-0.5 text-[11px] font-bold text-[var(--color-primary,#1C4D8D)] shadow-2xs">
-              <Sparkles className="size-3" /> All-in-One Studio
-            </span>
           </div>
           <p className="mt-1 text-xs text-slate-500">
             A space for deep focus, a steady work rhythm and fewer distractions.
@@ -102,19 +96,6 @@ function UserPomodoroView({ userId }: { userId: string }) {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => setIsSettingsOpen(true)}
-            disabled={!isReady || isTaskActionPending}
-            title="Pomodoro settings"
-            aria-label="Open Pomodoro settings"
-            className="size-9 rounded-full border-slate-200 bg-white text-slate-600 shadow-xs transition-colors hover:bg-slate-50 hover:text-slate-900"
-          >
-            <Settings className="size-4" />
-          </Button>
-
           {/* Minimal Focus View Toggle */}
           <Button
             type="button"
@@ -268,15 +249,6 @@ function UserPomodoroView({ userId }: { userId: string }) {
         <PomodoroReport lastUpdated={sessionRevision} />
       </div>
 
-      {/* Dialog Modals */}
-      {isSettingsOpen && (
-        <PomodoroSettingsDialog
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          config={config}
-          onSaveConfig={updateConfig}
-        />
-      )}
     </div>
   );
 }
