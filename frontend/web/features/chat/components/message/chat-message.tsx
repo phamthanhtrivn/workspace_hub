@@ -12,7 +12,6 @@ import NoteMessage from "./note-message";
 import MeetingCardMessage from "./meeting-card-message";
 import DocumentMessage from "./document-message";
 import TaskCardMessage from "./task-card-message";
-import EventCardMessage from "./event-card-message";
 import { CHAT_MESSAGE_TYPES } from "../../types/document.constants";
 import MediaLightbox from "./media-lightbox";
 import { renderMessageContent } from "../../utils/message-formatter";
@@ -199,7 +198,7 @@ const ChatMessage = React.memo(function ChatMessage({
     );
   }
 
-  const isTaskCard = useMemo(() => {
+  const isTaskCard = (() => {
     if (msg.type === "TASK") return true;
     if (!msg.content) return false;
     const trimmed = msg.content.trim();
@@ -213,7 +212,7 @@ const ChatMessage = React.memo(function ChatMessage({
       }
     }
     return false;
-  }, [msg.type, msg.content]);
+  })();
 
   return (
     <div
@@ -283,7 +282,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 {isTaskCard ? (
                   <TaskCardMessage
                     content={msg.content || ""}
-                    projectId={(msg as any).projectId}
+                    projectId={"projectId" in msg && typeof msg.projectId === "string" ? msg.projectId : undefined}
                   />
                 ) : (
                   hasText && (

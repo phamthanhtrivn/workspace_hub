@@ -1,0 +1,1 @@
+export const POMODORO_REPORT_PAGE_SIZE = 15;

@@ -16,6 +16,7 @@ interface SimplePaginationProps {
   isLoading?: boolean;
   onPageChange: (page: number) => void;
   className?: string;
+  ariaLabel?: string;
   labels?: {
     first?: string;
     previous?: string;
@@ -30,6 +31,7 @@ export function SimplePagination({
   isLoading,
   onPageChange,
   className,
+  ariaLabel = "Pagination",
   labels,
 }: SimplePaginationProps) {
   const safeTotalPages = Math.max(1, totalPages);
@@ -39,7 +41,7 @@ export function SimplePagination({
 
   return (
     <nav
-      aria-label="Pagination"
+      aria-label={ariaLabel}
       className={cn("flex items-center justify-end gap-1", className)}
     >
       <PaginationButton

@@ -9,6 +9,8 @@ import { Avatar } from "@/features/project/components/ui/avatar-stack";
 import { TaskPriority, TaskStatus, type Project, type ProjectMember, type Task } from "@/features/project/types/project";
 import { TaskStatusBadge, TaskPriorityBadge } from "@/features/project/components/ui/status-badge";
 import { taskDateKey } from "@/features/project/utils/task-dates";
+import { ProjectTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
+import { TaskFocusHistory } from "@/features/pomodoro/components/task-focus-history";
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.TODO]: "To do",
@@ -85,6 +87,8 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
           </DialogHeader>
 
           <div className="space-y-6 border-t border-slate-100 px-6 py-5 text-sm text-slate-700">
+            <ProjectTaskFocusButton task={task} project={project} />
+            <TaskFocusHistory target={{ taskId: task.id }} />
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="mb-1 text-xs font-medium text-slate-500">Status</p>
@@ -141,7 +145,7 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
               )}
             </section>
 
-            {(task.labels.length > 0 || task.estimatedMinutes > 0) && (
+            {task.labels.length > 0 && (
               <section className="grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
                 {task.labels.length > 0 && (
                   <div className="min-w-0">
@@ -154,12 +158,6 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
                         </span>
                       ))}
                     </div>
-                  </div>
-                )}
-                {task.estimatedMinutes > 0 && (
-                  <div>
-                    <h3 className="mb-2 text-xs font-medium text-slate-500">Estimate</h3>
-                    <p className="font-medium text-slate-800">{task.estimatedMinutes} min</p>
                   </div>
                 )}
               </section>

@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { EventStatus } from '@prisma/client';
+import { EventSourceType, EventStatus, EventVisibility } from '@prisma/client';
 import { CalendarRecurrenceService } from './calendar-recurrence.service';
 
 describe('CalendarRecurrenceService', () => {
@@ -55,15 +55,23 @@ describe('CalendarRecurrenceService', () => {
 
   it('materializes the first occurrence and preserves local time across DST', async () => {
     const createdStarts: Date[] = [];
+    const createdSourceTypes: EventSourceType[] = [];
+    const createdVisibilities: EventVisibility[] = [];
     const tx = {
       calendarEvent: {
         create: jest.fn(
           ({
             data,
           }: {
-            data: { startAt: Date };
+            data: {
+              startAt: Date;
+              sourceType: EventSourceType;
+              visibility: EventVisibility;
+            };
           }) => {
             createdStarts.push(data.startAt);
+            createdSourceTypes.push(data.sourceType);
+            createdVisibilities.push(data.visibility);
             return Promise.resolve({ id: `event-${createdStarts.length}` });
           },
         ),
@@ -85,6 +93,8 @@ describe('CalendarRecurrenceService', () => {
       allDay: false,
       color: '#2563eb',
       status: EventStatus.CONFIRMED,
+      visibility: EventVisibility.PRIVATE,
+      sourceType: EventSourceType.TASK,
       recurrenceRule: 'FREQ=DAILY;COUNT=2',
       timeZone: 'America/New_York',
       recurrenceGeneratedUntil: null,
@@ -116,6 +126,14 @@ describe('CalendarRecurrenceService', () => {
     expect(createdStarts).toEqual([
       new Date('2026-03-07T14:00:00.000Z'),
       new Date('2026-03-08T13:00:00.000Z'),
+    ]);
+    expect(createdSourceTypes).toEqual([
+      EventSourceType.TASK,
+      EventSourceType.TASK,
+    ]);
+    expect(createdVisibilities).toEqual([
+      EventVisibility.PRIVATE,
+      EventVisibility.PRIVATE,
     ]);
   });
 });

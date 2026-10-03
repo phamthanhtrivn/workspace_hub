@@ -2,6 +2,10 @@ import { api } from "@/lib/axios";
 import {
   ApiResponse,
   ApiPagination,
+  CalendarPomodoroSession,
+  CalendarPomodoroConfig,
+  CalendarPomodoroDailyStats,
+  CalendarPomodoroTimerState,
   AttendeeResponseStatus,
   CalendarEvent,
   CalendarEventFilters,
@@ -12,6 +16,106 @@ import {
   WorkspaceCalendar,
   RecurrenceScope,
 } from "../types/calendar.types";
+
+export async function getCalendarPomodoroTimerState() {
+  const response = await api.get<ApiResponse<CalendarPomodoroTimerState | null>>(
+    "/api/calendar/pomodoro/state",
+  );
+  return unwrap(response);
+}
+
+export async function saveCalendarPomodoroTimerState(
+  state: Omit<CalendarPomodoroTimerState, "version" | "updatedAt" | "status"> & {
+    status: "IDLE" | "RUNNING" | "PAUSED";
+    expectedVersion: number;
+  },
+) {
+  const response = await api.put<ApiResponse<CalendarPomodoroTimerState>>(
+    "/api/calendar/pomodoro/state", state,
+  );
+  return unwrap(response);
+}
+
+export async function clearCalendarPomodoroTimerState(expectedVersion: number) {
+  const response = await api.delete<ApiResponse<CalendarPomodoroTimerState>>(
+    "/api/calendar/pomodoro/state", { data: { expectedVersion } },
+  );
+  return unwrap(response);
+}
+
+export async function getCalendarPomodoroConfig(signal?: AbortSignal) {
+  const response = await api.get<ApiResponse<CalendarPomodoroConfig>>(
+    "/api/calendar/pomodoro/config", { signal },
+  );
+  return unwrap(response);
+}
+
+export async function saveCalendarPomodoroConfig(config: CalendarPomodoroConfig, signal?: AbortSignal) {
+  const response = await api.put<ApiResponse<CalendarPomodoroConfig>>(
+    "/api/calendar/pomodoro/config", config, { signal },
+  );
+  return unwrap(response);
+}
+
+export async function getCalendarPomodoroDailyStats(date?: string, timeZone?: string) {
+  const response = await api.get<ApiResponse<CalendarPomodoroDailyStats>>(
+    "/api/calendar/pomodoro/stats/daily", { params: { date, timeZone } },
+  );
+  return unwrap(response);
+}
+
+export async function listCalendarPomodoroSessions(params: {
+  startAt: string;
+  endAt: string;
+  eventId?: string;
+  taskId?: string;
+  page?: number;
+  limit?: number;
+}, signal?: AbortSignal) {
+  const response = await api.get<ApiResponse<{
+    sessions: CalendarPomodoroSession[];
+    summary: { focusSeconds: number; completedFocusSessions: number };
+    pagination: ApiPagination;
+  }>>("/api/calendar/pomodoro/sessions", { params, signal });
+  return unwrap(response);
+}
+
+export async function getTodayCalendarPomodoroSessions(timeZone?: string) {
+  const response = await api.get<ApiResponse<CalendarPomodoroSession[]>>(
+    "/api/calendar/pomodoro/sessions/today", { params: { timeZone } },
+  );
+  return unwrap(response);
+}
+
+export async function getCalendarPomodoroSessions(eventId: string) {
+  const startAt = new Date();
+  startAt.setDate(startAt.getDate() - 90);
+  return listCalendarPomodoroSessions({
+    eventId, startAt: startAt.toISOString(), endAt: new Date().toISOString(),
+  });
+}
+
+export async function createCalendarPomodoroSession(payload: {
+  clientSessionId?: string;
+  eventId?: string;
+  taskId?: string;
+  taskTitle?: string;
+  projectId?: string;
+  projectName?: string;
+  sessionType: CalendarPomodoroSession["sessionType"];
+  status: CalendarPomodoroSession["status"];
+  startedAt: string;
+  endedAt: string;
+  plannedSeconds: number;
+  actualSeconds: number;
+  notes?: string;
+  interruptionReason?: string;
+}) {
+  const response = await api.post<ApiResponse<CalendarPomodoroSession>>(
+    "/api/calendar/pomodoro/sessions", payload,
+  );
+  return unwrap(response);
+}
 
 function unwrap<T>(response: { data: ApiResponse<T> }): T {
   if (!response.data.success) {
@@ -146,6 +250,16 @@ export async function updateCalendarTaskCompletion(
   const response = await api.patch<ApiResponse<CalendarEvent>>(
     `/api/calendar/events/${eventId}/completion`,
     { completed },
+  );
+  return unwrap(response);
+}
+
+export async function updateCalendarTaskOrder(
+  eventIds: string[],
+): Promise<string[]> {
+  const response = await api.patch<ApiResponse<string[]>>(
+    "/api/calendar/events/task-order",
+    { eventIds },
   );
   return unwrap(response);
 }

@@ -89,7 +89,6 @@ model Task {
   completedAt        DateTime?    @map("completed_at")
   completedBy        String?      @map("completed_by") @db.Uuid
   deletedAt          DateTime?    @map("deleted_at")
-  estimatedMinutes   Int          @default(0) @map("estimated_minutes")
   rank               String?      @db.VarChar(100)
   archived           Boolean      @default(false)
   createdAt          DateTime     @map("created_at")

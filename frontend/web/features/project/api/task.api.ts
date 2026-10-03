@@ -36,7 +36,7 @@ export interface TaskApiModel {
   dueDate?: string | null;
   allDay: boolean;
   completedAt?: string | null;
-  estimatedMinutes: number;
+  deletedAt?: string | null;
   rank?: string | null;
   archived: boolean;
   createdAt?: string | null;
@@ -58,7 +58,6 @@ export interface CreateTaskPayload {
   startDate?: string | null;
   dueDate?: string | null;
   allDay?: boolean;
-  estimatedMinutes?: number;
   rank?: string;
   parentTaskId?: string;
   assigneeUserId?: string | null;
@@ -73,7 +72,6 @@ export interface UpdateTaskPayload {
   startDate?: string | null;
   dueDate?: string | null;
   allDay?: boolean;
-  estimatedMinutes?: number;
   rank?: string;
   archived?: boolean;
   parentTaskId?: string;
@@ -114,7 +112,7 @@ export function normalizeTask(task: TaskApiModel): Task {
     dueDate: task.dueDate || undefined,
     allDay: task.allDay,
     completedAt: task.completedAt || undefined,
-    estimatedMinutes: task.estimatedMinutes || 0,
+    deletedAt: task.deletedAt || undefined,
     rank: task.rank || "",
     archived: task.archived,
     createdAt: task.createdAt || now,
@@ -145,6 +143,11 @@ export async function getProjectTasks(
     return { items: unwrap(response) || [], meta: response.data.meta };
   });
   return taskModels.map(normalizeTask);
+}
+
+export async function getTask(taskId: string): Promise<Task> {
+  const response = await api.get<ApiResponse<TaskApiModel>>(`/api/tasks/${taskId}`);
+  return normalizeTask(unwrap(response));
 }
 
 export async function getProjectTaskStatusCounts(

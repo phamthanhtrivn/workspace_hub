@@ -9,7 +9,8 @@ services:
       - "8086"
     environment:
       PORT: 8086
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/calendar_db?schema=public
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/calendar_db?schema=public
       KAFKA_BROKER: kafka:29092
       DOCUMENT_SERVICE_URL: http://document-service:8085
       USER_SERVICE_URL: http://user-service:8081

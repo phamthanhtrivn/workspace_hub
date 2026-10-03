@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CalendarDays, ChevronDown, Layers } from "lucide-react";
-import { toast } from "sonner";
 import {
   type ProjectMember,
   type Task,
@@ -20,8 +19,6 @@ import {
 } from "@/features/project/utils/task-dates";
 import { Avatar } from "../ui/avatar-stack";
 import { getPriorityIcon } from "../ui/task-card";
-import { TaskDurationSelect } from "../forms/task-duration-select";
-import { TASK_DURATION_PRESETS } from "@/features/project/utils/task-duration.utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CustomCheckbox } from "@/components/ui/custom/custom-checkbox";
@@ -40,7 +37,6 @@ interface TaskPropertiesPanelProps {
   onAllDayChange: (allDay: boolean) => Promise<void> | void;
   onStartDateChange: (val: string) => Promise<void> | void;
   onDueDateChange: (val: string) => Promise<void> | void;
-  onEstimateSave: (estimateMinutes: number) => Promise<void> | void;
 }
 
 export default function TaskPropertiesPanel({
@@ -56,13 +52,9 @@ export default function TaskPropertiesPanel({
   onAllDayChange,
   onStartDateChange,
   onDueDateChange,
-  onEstimateSave,
 }: TaskPropertiesPanelProps) {
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
-  const [estimateDraft, setEstimateDraft] = useState(
-    task.estimatedMinutes > 0 ? String(task.estimatedMinutes) : "",
-  );
 
   const assigneeDropdownRef = useRef<HTMLDivElement>(null);
   const priorityDropdownRef = useRef<HTMLDivElement>(null);
@@ -136,26 +128,6 @@ export default function TaskPropertiesPanel({
     userId: task.reporterId,
     displayName: reporterName,
     avatarUrl: reporterMember?.avatarUrl,
-  };
-
-  const handleEstimateBlur = async () => {
-    if (isReadOnly) return;
-    const nextValue = estimateDraft.trim() === "" ? 0 : Number(estimateDraft);
-    if (!Number.isInteger(nextValue) || nextValue < 0) {
-      setEstimateDraft(
-        task.estimatedMinutes > 0 ? String(task.estimatedMinutes) : "",
-      );
-      toast.error("Please enter a valid positive duration in minutes");
-      return;
-    }
-    if (nextValue === task.estimatedMinutes) return;
-    try {
-      await onEstimateSave(nextValue);
-    } catch {
-      setEstimateDraft(
-        task.estimatedMinutes > 0 ? String(task.estimatedMinutes) : "",
-      );
-    }
   };
 
   return (
@@ -374,36 +346,6 @@ export default function TaskPropertiesPanel({
             disabled={isReadOnly}
             className="h-8 w-full rounded-lg border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700"
           />
-        </div>
-
-        {/* Estimate */}
-        <div className="flex flex-col gap-1 px-3.5 py-2.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Estimated Duration
-          </span>
-          <TaskDurationSelect
-            key={task.id}
-            value={estimateDraft}
-            onValueChange={setEstimateDraft}
-            onPresetSelect={(minutes) => void onEstimateSave(minutes)}
-            onCustomCommit={() => void handleEstimateBlur()}
-            disabled={isReadOnly}
-            compact
-          />
-          {!isReadOnly && estimateDraft !== "" &&
-            !TASK_DURATION_PRESETS.some(
-              (preset) => preset === Number(estimateDraft),
-            ) && (
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                onClick={() => void handleEstimateBlur()}
-                className="h-auto self-start p-0 text-[10px] font-bold text-[#0052CC] hover:underline cursor-pointer"
-              >
-                Save estimate
-              </Button>
-            )}
         </div>
 
         {/* Reporter */}
