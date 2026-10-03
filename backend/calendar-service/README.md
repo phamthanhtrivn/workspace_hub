@@ -19,6 +19,7 @@ All routes use the `/api/calendar/pomodoro` prefix and the authenticated `x-user
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET / PUT | `/config` | Read defaults or save the full Pomodoro preferences object. |
+| GET / PUT | `/ambient-preferences` | Read or save `{ trackId, volume, autoPlayOnFocus }` independently of timer settings. Volume is 0–1; track IDs are built-in IDs or `custom_` IDs (maximum 128 characters). Uploaded files remain browser-local. |
 | GET / PUT / DELETE | `/state` | Read, save, or clear the current timer snapshot. PUT requires `expectedVersion` (`0` creates); DELETE requires it in the JSON body. Clearing returns an `IDLE` snapshot with an incremented version, so old devices cannot overwrite a new timer. A stale version returns 409. |
 | POST | `/sessions` | Save a completed, stopped, or skipped session. Send a stable `clientSessionId` on retries to prevent duplicates. |
 | GET | `/sessions` | Query a UTC time range with `startAt`, `endAt`, optional `eventId`/`taskId`, `page`, and `limit`. Maximum range: 93 days. `summary` covers all matches, independent of pagination. |

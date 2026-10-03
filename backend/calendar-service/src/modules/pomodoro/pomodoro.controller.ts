@@ -17,6 +17,8 @@ import { GetTodaySessionsQueryDto } from './dto/get-today-sessions-query.dto';
 import { SavePomodoroConfigDto } from './dto/save-pomodoro-config.dto';
 import { SavePomodoroTimerStateDto } from './dto/save-pomodoro-timer-state.dto';
 import { PomodoroService } from './pomodoro.service';
+import { SavePomodoroAmbientPreferencesDto } from './dto/save-pomodoro-ambient-preferences.dto';
+import { AMBIENT_PREFERENCES_MESSAGES, AMBIENT_PREFERENCES_ROUTE } from './constants/pomodoro-ambient.constants';
 
 @Controller('api/calendar/pomodoro')
 export class PomodoroController {
@@ -40,6 +42,27 @@ export class PomodoroController {
     return {
       message: 'Pomodoro config saved',
       data: await this.service.saveConfig(userId, dto),
+    };
+  }
+
+  @Get(AMBIENT_PREFERENCES_ROUTE)
+  async getAmbientPreferences(@Headers('x-user-id') userId: string) {
+    this.requireUser(userId);
+    return {
+      message: AMBIENT_PREFERENCES_MESSAGES.retrieved,
+      data: await this.service.getAmbientPreferences(userId),
+    };
+  }
+
+  @Put(AMBIENT_PREFERENCES_ROUTE)
+  async saveAmbientPreferences(
+    @Headers('x-user-id') userId: string,
+    @Body() dto: SavePomodoroAmbientPreferencesDto,
+  ) {
+    this.requireUser(userId);
+    return {
+      message: AMBIENT_PREFERENCES_MESSAGES.saved,
+      data: await this.service.saveAmbientPreferences(userId, dto),
     };
   }
 

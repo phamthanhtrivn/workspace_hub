@@ -3,6 +3,7 @@
 import React, { useCallback, useState } from "react";
 import { usePomodoroTimer } from "../hooks/use-pomodoro-timer";
 import { usePomodoroTaskActions } from "../hooks/use-pomodoro-task-actions";
+import { usePomodoroViewMode } from "../hooks/use-pomodoro-view-mode";
 import { PomodoroTimerDisplay } from "./pomodoro-timer-display";
 import { PomodoroControls } from "./pomodoro-controls";
 import { PomodoroAmbientPlayer } from "./pomodoro-ambient-player";
@@ -39,6 +40,9 @@ function UserPomodoroView({ userId }: { userId: string }) {
     autoPlayAmbient,
     isAmbientPlaying,
     customTracks,
+    isAmbientReady,
+    isTrackUnavailable,
+    ambientSyncStatus,
     start,
     pause,
     resume,
@@ -59,14 +63,15 @@ function UserPomodoroView({ userId }: { userId: string }) {
   const { runTaskAction, taskRevision } = usePomodoroTaskActions(finishActiveTask);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [minimalMode, setMinimalMode] = useState(false);
+  const { viewMode, setViewMode } = usePomodoroViewMode(userId);
+  const minimalMode = viewMode === "focus";
   const isRunning = status === "RUNNING";
   const handleReset = useCallback(() => reset(), [reset]);
   const handleSkip = useCallback(() => skip(), [skip]);
   const handleClearTask = useCallback(() => { void selectTask(null); }, [selectTask]);
 
   return (
-    <div className="relative min-h-[85vh] w-full max-w-6xl mx-auto py-3 px-1">
+    <div className="relative mx-auto w-full min-w-0 max-w-6xl px-4 py-5 sm:px-6 sm:py-6">
       {/* Dynamic Background Atmosphere Glow */}
       <div
         className={cn(
@@ -83,7 +88,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
       {/* Top Header & Context Bar */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
         <div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl font-black tracking-tight text-[var(--color-primary-dark,#0F2854)]">
               Pomodoro Focus Hub
             </h1>
@@ -115,7 +120,8 @@ function UserPomodoroView({ userId }: { userId: string }) {
             type="button"
             variant="outline"
             size="sm"
-            onClick={() => setMinimalMode(!minimalMode)}
+            onClick={() => setViewMode(minimalMode ? "full" : "focus")}
+            aria-pressed={minimalMode}
             className={cn(
               "rounded-full border-slate-200 text-xs font-bold transition-all shadow-xs h-9 px-4",
               minimalMode
@@ -129,8 +135,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
               </>
             ) : (
               <>
-                <EyeOff className="size-3.5 mr-1.5" /> Deep focus mode
-                (Zen)
+                <EyeOff className="size-3.5 mr-1.5" /> Deep focus
               </>
             )}
           </Button>
@@ -141,20 +146,20 @@ function UserPomodoroView({ userId }: { userId: string }) {
       <div
         className={
           minimalMode
-            ? "flex flex-col items-center justify-center py-6 animate-in fade-in zoom-in-95 duration-300"
-            : "grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-in fade-in duration-300"
+            ? "mx-auto grid max-w-xl grid-cols-1 items-start gap-5"
+            : "grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:gap-x-8"
         }
       >
         {/* Left Column: Focus Studio Core */}
         <div
           className={
             minimalMode
-              ? "w-full max-w-xl flex flex-col items-center gap-6"
-              : "lg:col-span-7 flex flex-col items-center gap-6"
+              ? "flex min-w-0 flex-col items-center gap-4"
+              : "flex min-w-0 flex-col items-center gap-4 xl:col-start-1 xl:row-span-2 xl:row-start-1"
           }
         >
           {/* Precision Timer Display */}
-          <div className="w-full flex justify-center py-1">
+          <div className="flex w-full min-w-0 justify-center">
             <PomodoroTimerDisplay
               mode={mode}
               status={status}
@@ -207,6 +212,8 @@ function UserPomodoroView({ userId }: { userId: string }) {
               volume={ambientVolume}
               autoPlayOnFocus={autoPlayAmbient}
               customTracks={customTracks}
+              disabled={!isAmbientReady}
+              isTrackUnavailable={isTrackUnavailable}
               onSelectTrack={selectAmbientTrack}
               onTogglePlay={toggleAmbientPlay}
               onChangeVolume={changeAmbientVolume}
@@ -215,10 +222,24 @@ function UserPomodoroView({ userId }: { userId: string }) {
               onRemoveCustomTrack={removeCustomTrack}
             />
           </div>
+          {!isAmbientReady ? (
+            <p role="status" className="text-xs text-slate-500">Loading audio preferences...</p>
+          ) : ambientSyncStatus === "error" ? (
+            <p role="status" className="text-center text-xs text-amber-700">Audio preferences are saved locally. Account sync will retry automatically.</p>
+          ) : ambientSyncStatus === "saving" ? (
+            <p role="status" className="text-xs text-slate-500">Saving audio preferences...</p>
+          ) : null}
+          {isTrackUnavailable && (
+            <p role="status" className="text-center text-xs text-amber-700">Uploaded track unavailable on this browser</p>
+          )}
+        </div>
 
           {/* Active Focus Target Card */}
           {isReady && (
-            <fieldset disabled={isTaskActionPending} className="w-full min-w-0 flex justify-center">
+            <fieldset disabled={isTaskActionPending} className={cn(
+              "flex w-full min-w-0 justify-center [&>div]:max-w-none",
+              !minimalMode && "xl:col-start-2 xl:row-start-1",
+            )}>
               <PomodoroActiveTaskCard
                 taskRevision={taskRevision}
                 timerStatus={status}
@@ -234,15 +255,17 @@ function UserPomodoroView({ userId }: { userId: string }) {
               />
             </fieldset>
           )}
-        </div>
 
-        {/* Right Column: Live Metrics & Session Log (Hidden in Minimal Mode) */}
+        {/* Supporting stats sit below the active task. */}
         {!minimalMode && (
-          <div className="lg:col-span-5 flex flex-col gap-6">
+          <div className="min-w-0 xl:col-start-2 xl:row-start-2">
             <PomodoroStatsOverview lastUpdated={sessionRevision} dailyGoalPomodoros={config.dailyGoalPomodoros} />
-            <PomodoroReport lastUpdated={sessionRevision} />
           </div>
         )}
+      </div>
+
+      <div hidden={minimalMode} className="mt-8 min-w-0 border-t border-slate-200/80 pt-6">
+        <PomodoroReport lastUpdated={sessionRevision} />
       </div>
 
       {/* Dialog Modals */}

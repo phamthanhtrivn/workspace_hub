@@ -135,52 +135,55 @@ export function PomodoroTimerDisplay({
       />
 
       {/* Segmented Mode Selector */}
-      <div className="flex max-w-full items-center gap-1 rounded-2xl bg-slate-100/90 p-1.5 border border-slate-200/70 shadow-inner backdrop-blur-sm">
+      <div className="grid w-full max-w-lg grid-cols-3 gap-1 rounded-2xl border border-slate-200/70 bg-slate-100/90 p-1 shadow-inner backdrop-blur-sm" role="group" aria-label="Timer mode">
         <button
           type="button"
           onClick={() => onSwitchMode("FOCUS")}
+          aria-pressed={mode === "FOCUS"}
           className={cn(
-            "flex items-center gap-1.5 rounded-xl px-2 sm:px-4 py-2 text-xs font-medium tracking-tight transition-all duration-200",
+            "flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium tracking-tight transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-xs",
             mode === "FOCUS"
               ? modeThemes.activeTab
               : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
           )}
         >
           <Sparkles className="size-3.5" />
-          <span>Focus ({focusDuration}m)</span>
+          <span>Focus <span className="block text-[10px] opacity-70">{focusDuration}m</span></span>
         </button>
 
         <button
           type="button"
           onClick={() => onSwitchMode("SHORT_BREAK")}
+          aria-pressed={mode === "SHORT_BREAK"}
           className={cn(
-            "flex items-center gap-1.5 rounded-xl px-2 sm:px-4 py-2 text-xs font-medium tracking-tight transition-all duration-200",
+            "flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium tracking-tight transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-xs",
             mode === "SHORT_BREAK"
               ? modeThemes.activeTab
               : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
           )}
         >
           <Coffee className="size-3.5" />
-          <span>Short break ({shortBreakDuration}m)</span>
+          <span>Short break <span className="block text-[10px] opacity-70">{shortBreakDuration}m</span></span>
         </button>
 
         <button
           type="button"
           onClick={() => onSwitchMode("LONG_BREAK")}
+          aria-pressed={mode === "LONG_BREAK"}
           className={cn(
-            "flex items-center gap-1.5 rounded-xl px-2 sm:px-4 py-2 text-xs font-medium tracking-tight transition-all duration-200",
+            "flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] font-medium tracking-tight transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:text-xs",
             mode === "LONG_BREAK"
               ? modeThemes.activeTab
               : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
           )}
         >
           <Palmtree className="size-3.5" />
-          <span>Long break ({longBreakDuration}m)</span>
+          <span>Long break <span className="block text-[10px] opacity-70">{longBreakDuration}m</span></span>
         </button>
       </div>
 
       {/* Center Dial & Precision Timepiece Ring */}
-      <div className="relative my-6 flex w-full max-w-[360px] items-center justify-center">
+      <div className="relative my-3 flex w-full max-w-[300px] items-center justify-center sm:max-w-[320px]">
         {/* Outer Decorative Track Ring with tick marks */}
         <div className="relative flex w-full aspect-square items-center justify-center rounded-full bg-white shadow-[0_12px_40px_-12px_rgba(15,40,84,0.12)] border border-slate-200/80">
           {/* SVG Progress Circle */}

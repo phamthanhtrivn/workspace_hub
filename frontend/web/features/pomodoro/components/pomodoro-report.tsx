@@ -70,7 +70,7 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
             return <Button key={preset} type="button" size="sm" variant={selected ? "default" : "outline"} aria-pressed={selected} onClick={() => changeRange(value)}>{label}</Button>;
           })}
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <label htmlFor={`${id}-start`} className="min-w-0 text-xs font-semibold text-slate-600">
             From date
             <input id={`${id}-start`} type="date" value={range.startDate} onChange={(event) => changeRange({ ...range, startDate: event.target.value })} className={INPUT_CLASS} />
@@ -100,7 +100,7 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
           : query.isPending ? <p role="status" className="mt-3 text-xs text-slate-500">Loading history...</p> : null}
         {ready && report && (
           <>
-            <dl className="mt-4 grid grid-cols-2 gap-3">
+            <dl className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
               {[
                 ["Focus time", formatFocusTime(report.summary.focusSeconds)],
                 ["Completed focus sessions", report.summary.completedFocusSessions],

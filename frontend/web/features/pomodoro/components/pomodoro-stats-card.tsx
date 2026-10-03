@@ -39,8 +39,8 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
   );
 
   return (
-    <div className="w-full rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm shadow-slate-200/40 backdrop-blur-md">
-      <div className="flex items-center justify-between mb-4">
+    <div className="w-full min-w-0 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm shadow-slate-200/40 backdrop-blur-md">
+      <div className="mb-3 flex items-center justify-between">
         <div>
           <h3 className="text-sm font-extrabold tracking-tight text-slate-900">
             Today&apos;s performance
@@ -51,30 +51,30 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2.5">
         {/* Total Focus Time */}
-        <div className="rounded-2xl bg-gradient-to-br from-blue-50/70 to-indigo-50/30 border border-blue-100/70 p-4 transition-all hover:shadow-xs">
+        <div className="min-w-0 rounded-xl border border-blue-100/70 bg-gradient-to-br from-blue-50/70 to-indigo-50/30 p-3 transition-all hover:shadow-xs">
           <div className="flex items-center gap-2 text-xs text-blue-700 font-semibold">
             <div className="size-7 rounded-lg bg-blue-100/80 flex items-center justify-center text-blue-700">
               <Clock className="size-3.5" />
             </div>
             <span>Focus time</span>
           </div>
-          <div className="mt-3 text-2xl font-black text-slate-900 font-mono tracking-tight">
+          <div className="mt-2 text-xl font-black text-slate-900 font-mono tracking-tight tabular-nums">
             {timeDisplay}
           </div>
           <p className="mt-1 text-[11px] text-slate-400">Actual focus time</p>
         </div>
 
         {/* Completed Pomodoros */}
-        <div className="rounded-2xl bg-gradient-to-br from-emerald-50/70 to-teal-50/30 border border-emerald-100/70 p-4 transition-all hover:shadow-xs">
+        <div className="min-w-0 rounded-xl border border-emerald-100/70 bg-gradient-to-br from-emerald-50/70 to-teal-50/30 p-3 transition-all hover:shadow-xs">
           <div className="flex items-center gap-2 text-xs text-emerald-700 font-semibold">
             <div className="size-7 rounded-lg bg-emerald-100/80 flex items-center justify-center text-emerald-700">
               <CheckCircle2 className="size-3.5" />
             </div>
             <span>Completed</span>
           </div>
-          <div className="mt-3 text-2xl font-black text-slate-900 font-mono tracking-tight flex items-baseline gap-1">
+          <div className="mt-2 text-xl font-black text-slate-900 font-mono tracking-tight tabular-nums flex flex-wrap items-baseline gap-1">
             <span>{stats.completedPomodoros}</span>
             <span className="text-base font-normal text-slate-500">Pomodoros 🍅</span>
           </div>
@@ -82,7 +82,7 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
         </div>
 
         {/* Goal Progress */}
-        <div className="rounded-2xl bg-gradient-to-br from-indigo-50/70 to-sky-50/30 border border-indigo-100/70 p-4 transition-all hover:shadow-xs">
+        <div className="min-w-0 rounded-xl border border-indigo-100/70 bg-gradient-to-br from-indigo-50/70 to-sky-50/30 p-3 transition-all hover:shadow-xs">
           <div className="flex items-center justify-between text-xs text-indigo-700 font-semibold">
             <div className="flex items-center gap-2">
               <div className="size-7 rounded-lg bg-indigo-100/80 flex items-center justify-center text-indigo-700">
@@ -92,7 +92,7 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
             </div>
             <span className="font-bold">{goalPercent}%</span>
           </div>
-          <div className="mt-3 text-xl font-extrabold text-slate-900">
+          <div className="mt-2 text-base font-extrabold text-slate-900 tabular-nums">
             {stats.completedPomodoros} / {dailyGoalPomodoros ?? stats.dailyGoalPomodoros} sessions
           </div>
           <div className="mt-2 w-full h-2 rounded-full bg-slate-200/80 overflow-hidden">
@@ -104,14 +104,14 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
         </div>
 
         {/* Streak */}
-        <div className="rounded-2xl bg-gradient-to-br from-amber-50/70 to-orange-50/30 border border-amber-100/70 p-4 transition-all hover:shadow-xs">
+        <div className="min-w-0 rounded-xl border border-amber-100/70 bg-gradient-to-br from-amber-50/70 to-orange-50/30 p-3 transition-all hover:shadow-xs">
           <div className="flex items-center gap-2 text-xs text-amber-700 font-semibold">
             <div className="size-7 rounded-lg bg-amber-100/80 flex items-center justify-center text-amber-700">
               <Flame className="size-3.5" />
             </div>
             <span>Streak</span>
           </div>
-          <div className="mt-3 text-2xl font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+          <div className="mt-2 text-xl font-black text-slate-900 tracking-tight flex flex-wrap items-center gap-1.5 tabular-nums">
             <span>{stats.currentStreak} days</span>
             <span className="text-xl">🔥</span>
           </div>

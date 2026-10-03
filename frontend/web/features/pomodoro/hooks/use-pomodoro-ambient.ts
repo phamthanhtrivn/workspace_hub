@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { AmbientTrackId } from "../types/ambient";
 import type { PomodoroStatus } from "../types/pomodoro";
 import { ambientAudio } from "../utils/ambient-audio";
+import { usePomodoroAmbientPreferences } from "./use-pomodoro-ambient-preferences";
+import { AMBIENT_VOLUME_SAVE_DELAY_MS } from "../types/pomodoro-preferences";
 import {
   deleteCustomAudioTrack,
   loadCustomAudioTracks,
@@ -13,33 +15,58 @@ import {
 } from "../utils/audio-storage";
 
 export function usePomodoroAmbient(status: PomodoroStatus, userId: string) {
-  const [ambientTrack, setAmbientTrack] = useState<AmbientTrackId>("lofi_relax");
-  const [ambientVolume, setAmbientVolume] = useState(0.5);
-  const [autoPlayAmbient, setAutoPlayAmbient] = useState(true);
+  const { preferences, isReady, syncStatus, updatePreferences } = usePomodoroAmbientPreferences(userId);
+  const { trackId: ambientTrack, volume: ambientVolume, autoPlayOnFocus: autoPlayAmbient } = preferences;
   const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
   const [customTracks, setCustomTracks] = useState<CustomTrackRecord[]>([]);
+  const [customTracksReady, setCustomTracksReady] = useState(false);
+  const mountedRef = useRef(false);
+  const customUrlsRef = useRef(new Set<string>());
+  const customTrackUrl = customTracks.find((track) => track.id === ambientTrack)?.url;
+  const isCustomTrack = ambientTrack.startsWith("custom_");
+  const isTrackUnavailable = isCustomTrack && customTracksReady && !customTrackUrl;
+  const isAmbientReady = isReady && (!isCustomTrack || customTracksReady);
 
   useEffect(() => {
     let mounted = true;
-    ambientAudio.setTrack("lofi_relax");
-    ambientAudio.setVolume(0.5);
+    mountedRef.current = true;
+    ambientAudio.stop();
+    ambientAudio.setTrack("none");
     ambientAudio.setPlaybackListener(setIsAmbientPlaying);
     void loadCustomAudioTracks(userId)
       .then((tracks) => {
-        if (mounted) setCustomTracks(tracks);
+        if (mounted) {
+          tracks.forEach((track) => customUrlsRef.current.add(track.url));
+          setCustomTracks(tracks);
+          setCustomTracksReady(true);
+        } else {
+          tracks.forEach((track) => URL.revokeObjectURL(track.url));
+        }
       })
       .catch(() => {
-        if (mounted) toast.error("Unable to load your uploaded audio.");
+        if (mounted) { setCustomTracksReady(true); toast.error("Unable to load your uploaded audio."); }
       });
 
     return () => {
       mounted = false;
+      mountedRef.current = false;
       ambientAudio.setPlaybackListener(null);
       ambientAudio.pause();
+      customUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      customUrlsRef.current.clear();
     };
   }, [userId]);
 
-  const playAmbient = useCallback(() => ambientAudio.play(), []);
+  // Hydration only configures the player. It never starts playback.
+  useEffect(() => {
+    if (!isAmbientReady) return;
+    ambientAudio.setTrack(isTrackUnavailable ? "none" : ambientTrack, customTrackUrl);
+    ambientAudio.setVolume(ambientVolume);
+  }, [ambientTrack, ambientVolume, customTrackUrl, isAmbientReady, isTrackUnavailable]);
+
+  const playAmbient = useCallback(() => {
+    if (isAmbientReady && !isTrackUnavailable) return ambientAudio.play();
+  }, [isAmbientReady, isTrackUnavailable]);
   const pauseAmbient = useCallback(() => {
     ambientAudio.pause();
     setIsAmbientPlaying(false);
@@ -47,21 +74,22 @@ export function usePomodoroAmbient(status: PomodoroStatus, userId: string) {
 
   const selectAmbientTrack = useCallback(
     (trackId: AmbientTrackId, explicitUrl?: string) => {
-      setAmbientTrack(trackId);
+      updatePreferences({ trackId });
       let urlToUse = explicitUrl;
       if (!urlToUse && trackId.startsWith("custom_")) {
         urlToUse = customTracks.find((track) => track.id === trackId)?.url;
       }
-      ambientAudio.setTrack(trackId, urlToUse);
+      const unavailable = trackId.startsWith("custom_") && !urlToUse;
+      ambientAudio.setTrack(unavailable ? "none" : trackId, urlToUse);
 
-      if (trackId === "none") {
+      if (trackId === "none" || unavailable) {
         ambientAudio.stop();
         setIsAmbientPlaying(false);
       } else if (status === "RUNNING" || isAmbientPlaying) {
         ambientAudio.play();
       }
     },
-    [customTracks, isAmbientPlaying, status],
+    [customTracks, isAmbientPlaying, status, updatePreferences],
   );
 
   const toggleAmbientPlay = useCallback(() => {
@@ -70,16 +98,22 @@ export function usePomodoroAmbient(status: PomodoroStatus, userId: string) {
   }, [isAmbientPlaying, pauseAmbient, playAmbient]);
 
   const changeAmbientVolume = useCallback((volume: number) => {
-    setAmbientVolume(volume);
-    ambientAudio.setVolume(volume);
-  }, []);
+    const boundedVolume = Math.max(0, Math.min(1, volume));
+    updatePreferences({ volume: boundedVolume }, AMBIENT_VOLUME_SAVE_DELAY_MS);
+    ambientAudio.setVolume(boundedVolume);
+  }, [updatePreferences]);
 
   const toggleAutoPlayAmbient = useCallback((enabled: boolean) => {
-    setAutoPlayAmbient(enabled);
-  }, []);
+    updatePreferences({ autoPlayOnFocus: enabled });
+  }, [updatePreferences]);
 
   const uploadCustomTrack = useCallback(async (file: File) => {
     const saved = await saveCustomAudioTrack(userId, file);
+    if (!mountedRef.current) {
+      URL.revokeObjectURL(saved.url);
+      return saved;
+    }
+    customUrlsRef.current.add(saved.url);
     setCustomTracks((current) => [saved, ...current]);
     selectAmbientTrack(saved.id, saved.url);
     return saved;
@@ -87,9 +121,12 @@ export function usePomodoroAmbient(status: PomodoroStatus, userId: string) {
 
   const removeCustomTrack = useCallback(async (id: string) => {
     await deleteCustomAudioTrack(userId, id);
+    if (!mountedRef.current) return;
     setCustomTracks((current) => current.filter((track) => track.id !== id));
     if (ambientTrack === id) selectAmbientTrack("none");
-  }, [ambientTrack, selectAmbientTrack, userId]);
+    const trackUrl = customTracks.find((track) => track.id === id)?.url;
+    if (trackUrl) { URL.revokeObjectURL(trackUrl); customUrlsRef.current.delete(trackUrl); }
+  }, [ambientTrack, customTracks, selectAmbientTrack, userId]);
 
   return {
     ambientTrack,
@@ -97,6 +134,9 @@ export function usePomodoroAmbient(status: PomodoroStatus, userId: string) {
     autoPlayAmbient,
     isAmbientPlaying,
     customTracks,
+    isAmbientReady,
+    isTrackUnavailable,
+    ambientSyncStatus: syncStatus,
     playAmbient,
     pauseAmbient,
     selectAmbientTrack,

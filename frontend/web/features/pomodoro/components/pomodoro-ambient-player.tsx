@@ -40,6 +40,8 @@ interface PomodoroAmbientPlayerProps {
   volume: number;
   autoPlayOnFocus: boolean;
   customTracks: CustomTrackRecord[];
+  disabled?: boolean;
+  isTrackUnavailable?: boolean;
   onSelectTrack: (trackId: AmbientTrackId, url?: string) => void;
   onTogglePlay: () => void;
   onChangeVolume: (volume: number) => void;
@@ -54,6 +56,8 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
   volume,
   autoPlayOnFocus,
   customTracks,
+  disabled = false,
+  isTrackUnavailable = false,
   onSelectTrack,
   onTogglePlay,
   onChangeVolume,
@@ -79,6 +83,10 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
     if (foundCustom) {
       activeTrackName = foundCustom.name;
       activeTrackDescription = `Custom audio file (${(foundCustom.size / (1024 * 1024)).toFixed(1)} MB)`;
+      activeTrackIcon = "FileAudio";
+    } else if (isTrackUnavailable) {
+      activeTrackName = "Uploaded track unavailable";
+      activeTrackDescription = "Choose another track on this browser";
       activeTrackIcon = "FileAudio";
     }
   }
@@ -127,14 +135,14 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
   const isMuted = volume === 0;
 
   return (
-    <div className="w-full max-w-lg rounded-full border border-slate-200/90 bg-white/95 py-1.5 px-3 shadow-xs hover:shadow-md hover:border-slate-300 transition-all duration-300 backdrop-blur-md">
+    <fieldset disabled={disabled} aria-label="Focus sounds and music" className="w-full min-w-0 max-w-lg rounded-full border border-slate-200/90 bg-white/95 px-3 py-1.5 shadow-xs backdrop-blur-md transition-all duration-300 hover:border-slate-300 hover:shadow-md disabled:opacity-60">
       <div className="flex items-center justify-between gap-3">
         {/* Track Selector Popover Trigger */}
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="flex min-w-0 flex-1 items-center gap-2.5 text-left rounded-full py-0.5 px-1 hover:bg-slate-50/80 transition-colors group cursor-pointer focus:outline-none"
+              className="group flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-full px-1 py-0.5 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-wait"
             >
               {/* Animated Sound Artwork / Equalizer */}
               <div
@@ -181,10 +189,11 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
           </PopoverTrigger>
 
           <PopoverContent
-            className="w-96 p-4 rounded-3xl shadow-2xl border border-slate-200/90 bg-white/95 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200"
+            className="w-96 max-w-[calc(100vw-2rem)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto rounded-3xl border border-slate-200/90 bg-white/95 p-4 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200"
             align="start"
             sideOffset={8}
           >
+            <fieldset disabled={disabled} className="min-w-0">
             {/* Popover Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -342,8 +351,17 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
               <Switch
                 checked={autoPlayOnFocus}
                 onCheckedChange={onToggleAutoPlay}
+                aria-label="Auto-play during focus"
+                disabled={disabled}
               />
             </div>
+            <label className="mt-3 block border-t border-slate-100 pt-3 text-xs font-semibold text-slate-700 sm:hidden">
+              Volume: {Math.round(volume * 100)}%
+              <input type="range" min={0} max={1} step={0.05} value={volume}
+                onChange={(event) => onChangeVolume(Number(event.target.value))}
+                className="mt-2 block w-full accent-[var(--color-primary,#1C4D8D)]" />
+            </label>
+            </fieldset>
           </PopoverContent>
         </Popover>
 
@@ -359,9 +377,11 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
             <button
               type="button"
               onClick={onTogglePlay}
+              disabled={disabled || isTrackUnavailable}
               title={isPlaying ? "Pause audio" : "Play audio"}
+              aria-label={isPlaying ? "Pause audio" : "Play audio"}
               className={cn(
-                "flex size-8 shrink-0 items-center justify-center rounded-full text-white shadow-xs transition-all duration-200 hover:scale-105 active:scale-95",
+                "flex size-8 shrink-0 items-center justify-center rounded-full text-white shadow-xs transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-40 disabled:hover:scale-100",
                 isPlaying
                   ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/25"
                   : "bg-[var(--color-primary,#1C4D8D)] hover:bg-[var(--color-primary-strong,#0F2854)] shadow-blue-900/20",
@@ -381,6 +401,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                 onClick={() => onChangeVolume(isMuted ? 0.5 : 0)}
                 className="p-1 text-slate-400 hover:text-slate-700 transition-colors rounded-full hover:bg-slate-100"
                 title={isMuted ? "Unmute" : "Mute"}
+                aria-label={isMuted ? "Unmute" : "Mute"}
               >
                 {isMuted ? (
                   <VolumeX className="size-3.5 text-rose-500" />
@@ -397,11 +418,12 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                 onChange={(e) => onChangeVolume(parseFloat(e.target.value))}
                 className="w-14 sm:w-16 h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[var(--color-primary,#1C4D8D)] hover:accent-blue-600 transition-all"
                 title={`Volume: ${Math.round(volume * 100)}%`}
+                aria-label="Audio volume"
               />
             </div>
           </div>
         )}
       </div>
-    </div>
+    </fieldset>
   );
 });

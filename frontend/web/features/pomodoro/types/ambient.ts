@@ -10,6 +10,26 @@ export type PredefinedAmbientTrackId =
 
 export type AmbientTrackId = PredefinedAmbientTrackId | (string & {});
 
+export interface PomodoroAmbientPreferences {
+  trackId: AmbientTrackId;
+  volume: number;
+  autoPlayOnFocus: boolean;
+}
+
+export const DEFAULT_AMBIENT_PREFERENCES: PomodoroAmbientPreferences = {
+  trackId: "lofi_relax",
+  volume: 0.5,
+  autoPlayOnFocus: true,
+};
+
+export const MAX_AMBIENT_TRACK_ID_LENGTH = 128;
+export const CUSTOM_AMBIENT_TRACK_ID_PATTERN = /^custom_[A-Za-z0-9_-]+$/;
+
+export function isAmbientTrackId(value: unknown): value is AmbientTrackId {
+  return typeof value === "string" && value.length <= MAX_AMBIENT_TRACK_ID_LENGTH &&
+    (AMBIENT_TRACKS.some((track) => track.id === value) || CUSTOM_AMBIENT_TRACK_ID_PATTERN.test(value));
+}
+
 export interface AmbientTrack {
   id: AmbientTrackId;
   name: string;

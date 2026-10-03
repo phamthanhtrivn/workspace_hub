@@ -323,6 +323,9 @@ model PomodoroConfig {
   soundVolume         Float    @default(0.7) @map("sound_volume")
   notificationEnabled Boolean  @default(true) @map("notification_enabled")
   dailyGoalPomodoros  Int      @default(8) @map("daily_goal_pomodoros")
+  ambientTrackId      String   @default("lofi_relax") @map("ambient_track_id") @db.VarChar(128)
+  ambientVolume       Float    @default(0.5) @map("ambient_volume")
+  ambientAutoPlayOnFocus Boolean @default(true) @map("ambient_auto_play_on_focus")
   updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("calendar_pomodoro_configs")

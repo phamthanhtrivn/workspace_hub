@@ -16,6 +16,8 @@ import { CreatePomodoroSessionDto } from './dto/create-pomodoro-session.dto';
 import { GetPomodoroSessionsQueryDto } from './dto/get-pomodoro-sessions-query.dto';
 import { SavePomodoroConfigDto } from './dto/save-pomodoro-config.dto';
 import { SavePomodoroTimerStateDto } from './dto/save-pomodoro-timer-state.dto';
+import { SavePomodoroAmbientPreferencesDto } from './dto/save-pomodoro-ambient-preferences.dto';
+import { AMBIENT_PREFERENCES_SELECT, DEFAULT_AMBIENT_PREFERENCES } from './constants/pomodoro-ambient.constants';
 
 const MAX_RANGE_MS = 93 * 24 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -99,6 +101,37 @@ export class PomodoroService {
       create: { userId, ...dto },
       update: { ...dto },
     });
+  }
+
+  async getAmbientPreferences(userId: string) {
+    const config = await this.prisma.pomodoroConfig.findUnique({
+      where: { userId },
+      select: AMBIENT_PREFERENCES_SELECT,
+    });
+    return config ? {
+      trackId: config.ambientTrackId,
+      volume: config.ambientVolume,
+      autoPlayOnFocus: config.ambientAutoPlayOnFocus,
+    } : { ...DEFAULT_AMBIENT_PREFERENCES };
+  }
+
+  async saveAmbientPreferences(userId: string, dto: SavePomodoroAmbientPreferencesDto) {
+    const preferences = {
+      ambientTrackId: dto.trackId,
+      ambientVolume: dto.volume,
+      ambientAutoPlayOnFocus: dto.autoPlayOnFocus,
+    };
+    const saved = await this.prisma.pomodoroConfig.upsert({
+      where: { userId },
+      create: { userId, ...preferences },
+      update: preferences,
+      select: AMBIENT_PREFERENCES_SELECT,
+    });
+    return {
+      trackId: saved.ambientTrackId,
+      volume: saved.ambientVolume,
+      autoPlayOnFocus: saved.ambientAutoPlayOnFocus,
+    };
   }
 
   async getState(userId: string) {
