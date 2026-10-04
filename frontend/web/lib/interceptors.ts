@@ -22,6 +22,8 @@ function isPublicPath(pathname: string): boolean {
 }
 
 export function logApiError(error: unknown, context = "API request failed") {
+  if (axios.isCancel(error)) return;
+
   if (!axios.isAxiosError(error)) {
     console.error(context, error);
     return;

@@ -34,7 +34,7 @@ const FULL_CALENDAR_PLUGINS = [
   luxonPlugin,
 ];
 
-const renderMoreLinkText = (count: number) => `+${count}`;
+const renderMoreLinkText = (count: number) => `+${count} nữa`;
 
 export const CalendarGrid = memo(function CalendarGrid({
   calendarRef,
@@ -237,6 +237,9 @@ export const CalendarGrid = memo(function CalendarGrid({
         eventResizableFromStart
         dayMaxEvents={3}
         moreLinkText={renderMoreLinkText}
+        moreLinkClick="popover"
+        slotEventOverlap={false}
+        views={{ timeGridWeek: { eventMaxStack: 2 } }}
         expandRows
         navLinks
         navLinkDayClick="timeGridDay"

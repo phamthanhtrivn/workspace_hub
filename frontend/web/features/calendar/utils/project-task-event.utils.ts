@@ -139,6 +139,7 @@ export function mapProjectTasksToDomainCalendarEvents(
         sourceType: EventSourceType.TASK,
         sourceId: task.id,
         completedAt: task.completedAt || null,
+        taskOrder: null,
         exceptionDates: [],
         documentIds: [],
         cancelledAt: null,

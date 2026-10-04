@@ -22,7 +22,6 @@ const BACKEND_TASK_FIELDS = new Set([
   "startDate",
   "dueDate",
   "allDay",
-  "estimatedMinutes",
   "assigneeUserId",
   "parentTaskId",
   "clearParent",

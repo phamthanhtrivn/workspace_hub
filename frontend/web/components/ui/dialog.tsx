@@ -90,9 +90,11 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  ref,
   ...props
 }: React.ComponentProps<"div"> & { showCloseButton?: boolean }) {
   const { open, onOpenChange } = useDialogContext();
+  const contentRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (!open) return;
@@ -100,6 +102,9 @@ function DialogContent({
     document.body.style.overflow = "hidden";
 
     function handleKeyDown(event: KeyboardEvent) {
+      const dialogs = document.querySelectorAll('[data-slot="dialog-content"]');
+      if (dialogs[dialogs.length - 1] !== contentRef.current || event.defaultPrevented) return;
+      if (event.target instanceof Element && event.target.closest('[data-slot="select-content"], [data-slot="popover-content"]')) return;
       if (event.key === "Escape") onOpenChange?.(false);
     }
 
@@ -116,6 +121,11 @@ function DialogContent({
     <DialogPortal>
       <DialogOverlay />
       <div
+        ref={(node) => {
+          contentRef.current = node;
+          if (typeof ref === "function") ref(node);
+          else if (ref) ref.current = node;
+        }}
         role="dialog"
         aria-modal="true"
         data-slot="dialog-content"

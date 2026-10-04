@@ -22,6 +22,8 @@ import { FileText, History, LockKeyhole, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ProjectTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
+import { TaskFocusHistory } from "@/features/pomodoro/components/task-focus-history";
 
 export default function TaskDetailDrawer({
   task,
@@ -74,7 +76,6 @@ export default function TaskDetailDrawer({
     handleDeleteDependency,
     handleDueDateChange,
     handleStartDateChange,
-    handleEstimateSave,
   } = useTaskDetailDrawerState({
     task,
     tasks,
@@ -114,6 +115,7 @@ export default function TaskDetailDrawer({
             </span>
           </div>
           <div className="flex items-center gap-1.5">
+            <ProjectTaskFocusButton task={task} />
             <TaskChatButton task={task} onOpenChat={onOpenChat} />
             <Button
               type="button"
@@ -378,7 +380,7 @@ export default function TaskDetailDrawer({
 
           {/* Details Accordion / Properties Panel */}
           <TaskPropertiesPanel
-            key={`${task.id}:${task.estimatedMinutes}`}
+            key={task.id}
             task={task}
             tasks={tasks}
             members={members}
@@ -391,10 +393,10 @@ export default function TaskDetailDrawer({
             onAllDayChange={handleAllDayChange}
             onStartDateChange={handleStartDateChange}
             onDueDateChange={handleDueDateChange}
-            onEstimateSave={handleEstimateSave}
           />
 
           {/* Comments Section */}
+          <TaskFocusHistory target={{ taskId: task.id }} />
           <TaskCommentsSection
             task={task}
             members={members}

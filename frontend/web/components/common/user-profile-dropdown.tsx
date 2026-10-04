@@ -7,6 +7,7 @@ import { LogOut, Settings, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { clearCredentials } from "@/store/auth/auth-slice";
+import { clearLocalPomodoroData } from "@/features/pomodoro/utils/pomodoro-local-storage";
 import { useLogoutMutation } from "@/features/auth/hooks/useAuthMutations";
 import { useQueryClient } from "@tanstack/react-query";
 import { AuthRouteTarget } from "@/features/auth/types/auth.constants";
@@ -28,6 +29,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   const logoutMutation = useLogoutMutation();
   const queryClient = useQueryClient();
   const {
+    userId,
     email,
     fullName: authFullName,
     avatarUrl: authAvatarUrl,
@@ -42,6 +44,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   const fullName = userProfile?.fullName || authFullName;
 
   const finishLogout = () => {
+    if (userId) clearLocalPomodoroData(userId);
     notificationSocketService.disconnect();
     socketService.disconnect();
     dispatch(clearCredentials());

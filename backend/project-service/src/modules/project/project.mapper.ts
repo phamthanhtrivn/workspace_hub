@@ -131,7 +131,6 @@ export function toTaskResponse(
     completedAt: task.completedAt,
     completedBy: task.completedBy,
     deletedAt: task.deletedAt,
-    estimatedMinutes: task.estimatedMinutes,
     rank: task.rank,
     archived: task.archived,
     createdAt: task.createdAt,

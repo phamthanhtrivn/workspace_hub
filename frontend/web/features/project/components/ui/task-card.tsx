@@ -8,11 +8,11 @@ import {
 import TaskLabelBadges from "./task-label-badges";
 import { AvatarStack } from "./avatar-stack";
 import TaskChatButton from "./task-chat-button";
+import { ProjectTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
 import {
   Calendar,
   CheckSquare,
   MessageSquare,
-  Clock,
   ChevronDown,
   ChevronUp,
   ChevronsUp,
@@ -135,8 +135,7 @@ export default function TaskCard({
       {/* Meta indicators */}
       {(task.dueDate ||
         checklistTotal > 0 ||
-        task.comments.length > 0 ||
-        task.estimatedMinutes > 0) && (
+        task.comments.length > 0) && (
         <div
           className={`flex flex-wrap items-center gap-y-1 text-[11px] font-semibold text-slate-500 ${
             isCompact ? "mt-2 gap-x-2" : "mt-2.5 gap-x-2.5"
@@ -176,15 +175,6 @@ export default function TaskCard({
             </span>
           )}
 
-          {/* Estimate */}
-          {task.estimatedMinutes > 0 && (
-            <span className="inline-flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded-md">
-              <Clock className="h-3 w-3" />
-              {task.estimatedMinutes >= 60
-                ? `${Math.floor(task.estimatedMinutes / 60)}h`
-                : `${task.estimatedMinutes}m`}
-            </span>
-          )}
         </div>
       )}
 
@@ -202,6 +192,7 @@ export default function TaskCard({
         </div>
 
         <div className="flex items-center gap-2">
+          <ProjectTaskFocusButton task={task} compact />
           <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
           {onPriorityChange && !isTerminalTaskStatus(task.status) ? (
             <TaskPrioritySelect

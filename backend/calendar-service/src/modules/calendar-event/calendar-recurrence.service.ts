@@ -111,25 +111,48 @@ export class CalendarRecurrenceService {
   async materializeSeriesThrough(
     seriesId: string,
     through: Date,
+    tx?: Prisma.TransactionClient,
   ): Promise<void> {
-    const series = await this.prisma.recurrenceSeries.findUnique({
+    if (!tx) {
+      return this.prisma.$transaction(
+        async (client) =>
+          this.materializeSeriesThrough(seriesId, through, client),
+        { timeout: CALENDAR_DEFAULTS.RECURRENCE_TRANSACTION_TIMEOUT_MS },
+      );
+    }
+    await this.lockSeries(tx, seriesId);
+    const client = tx;
+    const series = await client.recurrenceSeries.findUnique({
       where: { id: seriesId },
       include: recurrenceTemplateInclude,
     });
     if (!series || series.status === EventStatus.CANCELLED) return;
+    if (
+      series.recurrenceGeneratedUntil &&
+      series.recurrenceGeneratedUntil >= through
+    )
+      return;
 
     const { occurrenceStarts, generatedThrough } = this.getOccurrenceStarts(
       series,
       through,
     );
     for (const occurrenceStart of occurrenceStarts) {
-      await this.createOccurrence(series, occurrenceStart);
+      await this.createOccurrence(series, occurrenceStart, tx);
     }
 
-    await this.prisma.recurrenceSeries.update({
+    await client.recurrenceSeries.update({
       where: { id: series.id },
       data: { recurrenceGeneratedUntil: generatedThrough },
     });
+  }
+
+  async lockSeries(
+    tx: Prisma.TransactionClient,
+    seriesId: string,
+  ): Promise<void> {
+    // All writers lock before reading the template, including the rolling worker.
+    await tx.$queryRaw`SELECT id FROM recurrence_series WHERE id = ${seriesId}::uuid FOR UPDATE`;
   }
 
   getDefaultGenerationEnd(startAt: Date): Date {
@@ -137,6 +160,17 @@ export class CalendarRecurrenceService {
       startAt.getTime() +
         CALENDAR_DEFAULTS.RECURRENCE_GENERATION_DAYS * 24 * 60 * 60_000,
     );
+  }
+
+  assertHasOccurrence(rule: string, startAt: Date, timeZone: string): void {
+    const cursor = new Date(
+      this.toFloatingDate(startAt, timeZone).getTime() - 1,
+    );
+    if (!this.createRuleSet(rule, startAt, timeZone).after(cursor, false)) {
+      throw new BadRequestException(
+        CALENDAR_ERROR_MESSAGES.INVALID_RECURRENCE_RULE,
+      );
+    }
   }
 
   truncateBefore(
@@ -228,14 +262,20 @@ export class CalendarRecurrenceService {
       if (!exceptions.has(next.toISOString())) occurrenceStarts.push(next);
     }
 
-    return { occurrenceStarts, generatedThrough: cursor };
+    return {
+      occurrenceStarts,
+      generatedThrough: this.fromFloatingDate(cursor, root.timeZone),
+    };
   }
 
   private async createOccurrence(
     root: RecurrenceTemplate,
     occurrenceStart: Date,
+    transaction?: Prisma.TransactionClient,
   ): Promise<void> {
-    const existing = await this.prisma.calendarEvent.findUnique({
+    const existing = await (
+      transaction ?? this.prisma
+    ).calendarEvent.findUnique({
       where: {
         recurrenceSeriesId_originalStartAt: {
           recurrenceSeriesId: root.id,
@@ -250,7 +290,7 @@ export class CalendarRecurrenceService {
     const occurrenceEnd = new Date(occurrenceStart.getTime() + duration);
 
     try {
-      await this.prisma.$transaction(async (tx) => {
+      const create = async (tx: Prisma.TransactionClient) => {
         const occurrence = await tx.calendarEvent.create({
           data: {
             calendarId: root.calendarId,
@@ -265,8 +305,10 @@ export class CalendarRecurrenceService {
             allDay: root.allDay,
             color: root.color,
             status: root.status,
+            visibility: root.visibility,
             originalStartAt: occurrenceStart,
             isRecurrenceOverride: false,
+            sourceType: root.sourceType,
           },
         });
 
@@ -306,11 +348,14 @@ export class CalendarRecurrenceService {
             })),
           });
         }
-      });
+      };
+      if (transaction) await create(transaction);
+      else await this.prisma.$transaction(create);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
+        error.code === 'P2002' &&
+        !transaction
       ) {
         return;
       }

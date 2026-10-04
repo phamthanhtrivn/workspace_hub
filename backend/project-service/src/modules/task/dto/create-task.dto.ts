@@ -1,4 +1,4 @@
-import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { TaskPriority, TaskStatus } from '../../project/project.enums';
 import { Trim } from '../../../common/decorators/trim.decorator';
 
@@ -36,11 +36,6 @@ export class CreateTaskDto {
   @IsOptional()
   @IsBoolean()
   allDay?: boolean;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  estimatedMinutes?: number;
 
   @IsOptional()
   @IsString()

@@ -43,22 +43,6 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
           </div>
         </div>
 
-        {/* Middle: Search Bar (Desktop) & Search Button (Tablet) */}
-        <div className="hidden lg:flex flex-1 max-w-md items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-400 shadow-sm transition hover:border-slate-300 cursor-text">
-          <Search className="h-4 w-4" strokeWidth={2} />
-          <span className="flex-1 text-left">
-            Search workspace...
-          </span>
-          <div className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-400">
-            <span>Ctrl</span>
-            <span>K</span>
-          </div>
-        </div>
-
-        <button className="hidden sm:flex lg:hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:text-slate-700 hover:border-slate-300 cursor-pointer">
-          <Search className="h-5 w-5" strokeWidth={2} />
-        </button>
-
         {/* Right: Actions & User Profile */}
         <div className="flex items-center gap-2 sm:gap-3">
           <NotificationDropdown />

@@ -10,10 +10,13 @@ import { CalendarEventService } from '../src/modules/calendar-event/calendar-eve
 describe('Calendar event API (integration)', () => {
   const userId = '11111111-1111-1111-1111-111111111111';
   const eventId = '22222222-2222-2222-2222-222222222222';
+  const reorderEventId = '55555555-5555-4555-8555-555555555555';
+  const secondEventId = '33333333-3333-4333-8333-333333333333';
   let app: INestApplication;
   const eventService = {
     getEvents: jest.fn(),
     cancelEvent: jest.fn(),
+    updateTaskOrder: jest.fn(),
   };
 
   beforeAll(async () => {
@@ -94,6 +97,35 @@ describe('Calendar event API (integration)', () => {
       eventId,
       RecurrenceScope.THIS_AND_FOLLOWING,
     );
+  });
+
+  it('validates and forwards a task order batch', async () => {
+    eventService.updateTaskOrder.mockResolvedValue([
+      secondEventId,
+      reorderEventId,
+    ]);
+
+    const response = await request(app.getHttpServer())
+      .patch('/api/calendar/events/task-order')
+      .set('x-user-id', userId)
+      .send({ eventIds: [secondEventId, reorderEventId] })
+      .expect(200);
+
+    expect(eventService.updateTaskOrder).toHaveBeenCalledWith(userId, [
+      secondEventId,
+      reorderEventId,
+    ]);
+    expect(response.body.data).toEqual([secondEventId, reorderEventId]);
+  });
+
+  it('rejects duplicate task IDs in an order batch', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/calendar/events/task-order')
+      .set('x-user-id', userId)
+      .send({ eventIds: [reorderEventId, reorderEventId] })
+      .expect(400);
+
+    expect(eventService.updateTaskOrder).not.toHaveBeenCalled();
   });
 
   it('rejects malformed UUID path parameters', async () => {

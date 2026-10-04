@@ -12,6 +12,8 @@ import {
 import { isTaskCalendarEvent } from "../../utils/calendar-event.utils";
 import { CustomRecurrenceModal } from "./custom-recurrence-modal";
 import { QuickCreateKind, QuickCreateModal } from "./quick-create-modal";
+import { RecurrenceScopeModal } from "./recurrence-scope-modal";
+import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
 
 interface EventFormModalProps {
   open: boolean;
@@ -54,6 +56,7 @@ export function EventFormModal({
       key={`${controller.customRecurrence.frequency}-${controller.customRecurrence.interval}`}
       open
       value={controller.customRecurrence}
+      startDate={controller.startAt.slice(0, 10)}
       onClose={controller.closeCustomRecurrence}
       onSave={controller.handleCustomRecurrenceSave}
     />
@@ -67,11 +70,27 @@ export function EventFormModal({
         event={event}
         kind={quickCreateKind}
         tasksColor={tasksColor}
-        submitting={submitting}
+        submitting={submitting || controller.isSaving}
         onKindChange={setQuickCreateKind}
         onClose={onClose}
       />
       {customRecurrenceModal}
+      {controller.pendingRecurrenceValues && (
+        <RecurrenceScopeModal
+          open
+          title={copy.editRecurringEvent}
+          allowSingleOccurrence={
+            !controller.getRecurrenceRule(
+              controller.pendingRecurrenceValues.startAt,
+            ) ||
+            controller.getRecurrenceRule(
+              controller.pendingRecurrenceValues.startAt,
+            ) === event?.recurrenceRule
+          }
+          onClose={controller.cancelRecurrenceScope}
+          onSelect={(scope) => void controller.confirmRecurrenceScope(scope)}
+        />
+      )}
     </>
   );
 }
