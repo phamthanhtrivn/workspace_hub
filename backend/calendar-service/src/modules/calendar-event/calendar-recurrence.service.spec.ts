@@ -58,7 +58,13 @@ describe('CalendarRecurrenceService', () => {
     const createdSourceTypes: EventSourceType[] = [];
     const createdVisibilities: EventVisibility[] = [];
     const tx = {
+      $queryRaw: jest.fn(),
+      recurrenceSeries: {
+        findUnique: jest.fn(() => Promise.resolve(series)),
+        update: jest.fn(),
+      },
       calendarEvent: {
+        findUnique: jest.fn().mockResolvedValue(null),
         create: jest.fn(
           ({
             data,
@@ -135,5 +141,43 @@ describe('CalendarRecurrenceService', () => {
       EventVisibility.PRIVATE,
       EventVisibility.PRIVATE,
     ]);
+    const transaction = {
+      ...tx,
+      recurrenceSeries: prisma.recurrenceSeries,
+      calendarEvent: {
+        ...tx.calendarEvent,
+        findUnique: prisma.calendarEvent.findUnique,
+      },
+    };
+    await recurrenceService.materializeSeriesThrough(
+      series.id,
+      new Date('2026-03-09T00:00:00.000Z'),
+      transaction as never,
+    );
+    // Generation during a series edit must stay in the caller's transaction.
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(createdStarts.slice(2)).toEqual(createdStarts.slice(0, 2));
+
+    // A capped batch must save an instant, not the floating Bangkok wall time.
+    series.timeZone = 'Asia/Bangkok';
+    series.recurrenceRule = 'FREQ=DAILY;COUNT=401';
+    createdStarts.length = 0;
+    transaction.recurrenceSeries.update.mockImplementation(({ data }) => {
+      series.recurrenceGeneratedUntil = data.recurrenceGeneratedUntil;
+      return Promise.resolve(series);
+    });
+    for (let batch = 0; batch < 3; batch += 1) {
+      await recurrenceService.materializeSeriesThrough(
+        series.id,
+        new Date('2028-01-01T00:00:00Z'),
+        transaction as never,
+      );
+    }
+    expect(createdStarts).toHaveLength(401);
+    for (let index = 1; index < createdStarts.length; index += 1) {
+      expect(
+        createdStarts[index].getTime() - createdStarts[index - 1].getTime(),
+      ).toBe(86_400_000);
+    }
   });
 });

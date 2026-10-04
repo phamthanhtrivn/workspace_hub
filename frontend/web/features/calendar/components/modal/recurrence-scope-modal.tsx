@@ -16,10 +16,14 @@ export function RecurrenceScopeModal({
   open,
   onClose,
   onSelect,
+  title = "Move recurring event",
+  allowSingleOccurrence = true,
 }: {
   open: boolean;
   onClose: () => void;
   onSelect: (scope: RecurrenceScope) => void;
+  title?: string;
+  allowSingleOccurrence?: boolean;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   useModalDialog({ dialogRef, onClose });
@@ -42,7 +46,7 @@ export function RecurrenceScopeModal({
             id="calendar-recurrence-scope-title"
             className="min-w-0 flex-1 text-base font-semibold text-slate-800"
           >
-            Move recurring event
+            {title}
           </h2>
           <Button
             type="button"
@@ -57,18 +61,23 @@ export function RecurrenceScopeModal({
         </div>
 
         <div className="space-y-1 p-3">
-          {Object.values(RecurrenceScope).map((scope) => (
-            <Button
-              key={scope}
-              data-modal-initial-focus={scope === RecurrenceScope.THIS || undefined}
-              type="button"
-              variant="ghost"
-              onClick={() => onSelect(scope)}
-              className="h-auto w-full cursor-pointer justify-start rounded-lg px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-blue-50 hover:text-blue-800"
-            >
-              {SCOPE_LABELS[scope]}
-            </Button>
-          ))}
+          {Object.values(RecurrenceScope)
+            .filter(
+              (scope) =>
+                allowSingleOccurrence || scope !== RecurrenceScope.THIS,
+            )
+            .map((scope, index) => (
+              <Button
+                key={scope}
+                data-modal-initial-focus={index === 0 || undefined}
+                type="button"
+                variant="ghost"
+                onClick={() => onSelect(scope)}
+                className="h-auto w-full cursor-pointer justify-start rounded-lg px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-blue-50 hover:text-blue-800"
+              >
+                {SCOPE_LABELS[scope]}
+              </Button>
+            ))}
         </div>
 
         <div className="flex justify-end border-t border-slate-200 px-4 py-3">

@@ -90,6 +90,7 @@ describe('CalendarEventService', () => {
     const tx = {
       calendarEvent: {
         create: jest.fn().mockResolvedValue({ id: eventId, title: 'Planning' }),
+        findUnique: jest.fn((): Promise<typeof event> => prisma.calendarEvent.findUnique()),
         findMany: jest.fn().mockResolvedValue([]),
         update: jest.fn(),
         updateMany: jest.fn(),
@@ -167,6 +168,7 @@ describe('CalendarEventService', () => {
     };
 
     const recurrence = {
+      lockSeries: jest.fn(),
       assertValidRule: jest.fn(),
       materializeSeriesThrough: jest.fn(),
       materializeAllSeriesThrough: jest.fn(),

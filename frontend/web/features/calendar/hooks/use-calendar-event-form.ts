@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ import {
   CalendarEventAttendeePayload,
   CalendarEventDraft,
   CalendarEventFormValues,
+  RecurrenceScope,
   WorkspaceCalendar,
 } from "../types/calendar.types";
 import { fromDateTimeLocal } from "../utils/calendar-date.utils";
@@ -98,6 +99,10 @@ export function useCalendarEventForm({
   const [hasConference, setHasConference] = useState<boolean>(() =>
     isWorkspaceMeetingUrl(defaults.values.location),
   );
+  const [pendingRecurrenceValues, setPendingRecurrenceValues] =
+    useState<CalendarEventEditorValues | null>(null);
+  const savingRef = useRef(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const time = useCalendarEventTime(form);
   const recurrence = useCalendarRecurrence(
@@ -125,7 +130,7 @@ export function useCalendarEventForm({
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
 
-  const submitValidForm = async (values: CalendarEventEditorValues) => {
+  const persistValidForm = async (values: CalendarEventEditorValues) => {
     let finalLocation = values.location.trim() || null;
     const hostId = event?.createdBy || currentUserId;
     const acceptedAttendeeUserIds = attendees
@@ -243,6 +248,18 @@ export function useCalendarEventForm({
     });
   };
 
+  const submitValidForm = async (values: CalendarEventEditorValues) => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setIsSaving(true);
+    try {
+      await persistValidForm(values);
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
+    }
+  };
+
   const submitInvalidForm = (
     errors: FieldErrors<CalendarEventEditorValues>,
   ) => {
@@ -251,6 +268,22 @@ export function useCalendarEventForm({
       errors.title?.message ||
       errors.calendarId?.message;
     toast.error(typeof message === "string" ? message : copy.requiredFields);
+  };
+
+  const submitWithRecurrenceScope = async (values: CalendarEventEditorValues) => {
+    if (savingRef.current) return;
+    if (event?.recurrenceParentId || event?.recurrenceRule) {
+      setPendingRecurrenceValues(values);
+      return;
+    }
+    await submitValidForm(values);
+  };
+
+  const confirmRecurrenceScope = async (scope: RecurrenceScope) => {
+    if (!pendingRecurrenceValues) return;
+    const values = pendingRecurrenceValues;
+    setPendingRecurrenceValues(null);
+    await submitValidForm({ ...values, recurrenceScope: scope });
   };
 
   const enableEventColor = (checked: boolean) => {
@@ -268,13 +301,17 @@ export function useCalendarEventForm({
     enableEventColor,
     form,
     hasConference,
+    isSaving,
+    pendingRecurrenceValues,
+    confirmRecurrenceScope,
+    cancelRecurrenceScope: () => setPendingRecurrenceValues(null),
     isPastEvent,
     setAttendees: (next: CalendarEventAttendeePayload[]) => setAttendees(next),
     setDocumentIds: (next: string[]) => setDocumentIds(next),
     setHasConference: handleToggleConference,
     setShowCustomEventColor,
     showCustomEventColor,
-    submit: form.handleSubmit(submitValidForm, submitInvalidForm),
+    submit: form.handleSubmit(submitWithRecurrenceScope, submitInvalidForm),
   };
 }
 

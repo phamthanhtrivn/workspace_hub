@@ -14,6 +14,7 @@ export const CALENDAR_DEFAULTS = {
   RECURRENCE_GENERATION_DAYS: 180,
   RECURRENCE_WORKER_BATCH_SIZE: 50,
   MAX_RECURRENCE_OCCURRENCES_PER_BATCH: 200,
+  RECURRENCE_TRANSACTION_TIMEOUT_MS: 30_000,
   REMINDER_RETENTION_DAYS: 90,
   MAX_REMINDER_ATTEMPTS: 10,
 } as const;
@@ -35,6 +36,8 @@ export const CALENDAR_ERROR_MESSAGES = {
   INVALID_QUERY_RANGE:
     'Both startAt and endAt are required and the range must not exceed 366 days',
   INVALID_RECURRENCE_RULE: 'Invalid recurrence rule',
+  RECURRENCE_SCOPE_REQUIRED:
+    'Changing the recurrence rule requires this and following events or all events',
   UNSUPPORTED_RECURRENCE_FREQUENCY:
     'Recurrence supports daily, weekly, monthly, and yearly frequencies only',
   EXTERNAL_EVENT_READ_ONLY:

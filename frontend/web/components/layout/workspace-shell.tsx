@@ -38,16 +38,22 @@ const menuItems = [
     icon: FolderKanban,
   },
   {
-    href: "/chat",
-    label: "Messages",
-    description: "Team Channels & DMs",
-    icon: MessageSquareText,
-  },
-  {
     href: "/calendar",
     label: "Calendar",
     description: "Events & Schedules",
     icon: CalendarDays,
+  },
+  {
+    href: "/pomodoro",
+    label: "Pomodoro",
+    description: "Focus & Time Tracker",
+    icon: Clock3,
+  },
+  {
+    href: "/chat",
+    label: "Messages",
+    description: "Team Channels & DMs",
+    icon: MessageSquareText,
   },
   {
     href: "/meetings",
@@ -60,12 +66,6 @@ const menuItems = [
     label: "Documents",
     description: "Notes & File Storage",
     icon: Files,
-  },
-  {
-    href: "/pomodoro",
-    label: "Pomodoro",
-    description: "Focus & Time Tracker",
-    icon: Clock3,
   },
   {
     href: "/ai",
