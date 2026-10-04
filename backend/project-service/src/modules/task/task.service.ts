@@ -12,6 +12,7 @@ import { CreateTaskDto } from "./dto/create-task.dto";
 import { AttachTaskDocumentsDto } from "./dto/attach-task-documents.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { ProjectAccessService } from "../project/project-access.service";
+import { ProjectSpaceClient } from "../project/project-space.client";
 import { toTaskResponse } from "../project/project.mapper";
 import { ActivityChange, ActivityService } from "../activity/activity.service";
 import { NotificationOutboxService } from "../notification-outbox/notification-outbox.service";
@@ -69,10 +70,18 @@ export class TaskService {
     private readonly notifications: NotificationOutboxService,
     private readonly userProfiles: UserProfileSnapshotService,
     private readonly taskDocuments: TaskDocumentClient,
+    private readonly projectSpace: ProjectSpaceClient,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateTaskDto) {
     await this.access.requireCanCreateTask(userId, projectId);
+    if (dto.channelId) {
+      await this.projectSpace.assertCanCreateTaskInChannel(
+        projectId,
+        dto.channelId,
+        userId,
+      );
+    }
     const startDate = this.toDate(dto.startDate);
     const dueDate = this.toDate(dto.dueDate);
     this.validateDateRange(startDate, dueDate);
@@ -106,7 +115,6 @@ export class TaskService {
           allDay: dto.allDay ?? false,
           completedAt: isTerminalTaskStatus(status) ? now : undefined,
           completedBy: isTerminalTaskStatus(status) ? userId : undefined,
-          estimatedMinutes: dto.estimatedMinutes ?? 0,
           rank: normalizeTaskRank(dto.rank),
           archived: false,
           createdAt: now,
@@ -404,8 +412,6 @@ export class TaskService {
     if (dto.startDate !== undefined) data.startDate = startDate;
     if (dto.dueDate !== undefined) data.dueDate = dueDate;
     if (dto.allDay !== undefined) data.allDay = dto.allDay;
-    if (dto.estimatedMinutes !== undefined)
-      data.estimatedMinutes = dto.estimatedMinutes;
     if (dto.rank !== undefined) data.rank = normalizeTaskRank(dto.rank);
     if (dto.archived !== undefined) data.archived = dto.archived;
     if (parentTaskId !== undefined) {
@@ -743,12 +749,6 @@ export class TaskService {
         "dueDate",
         current.dueDate?.toISOString(),
         updated.dueDate?.toISOString(),
-      ]);
-    if (dto.estimatedMinutes !== undefined)
-      changes.push([
-        "estimatedMinutes",
-        current.estimatedMinutes,
-        updated.estimatedMinutes,
       ]);
     if (dto.allDay !== undefined)
       changes.push(["allDay", current.allDay, updated.allDay]);

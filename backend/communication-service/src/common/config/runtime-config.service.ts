@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class RuntimeConfigService {
+  readonly userServiceUrl = this.baseUrl(
+    process.env.USER_SERVICE_URL ?? 'http://localhost:8081',
+  );
   readonly projectServiceUrl = this.baseUrl(
     process.env.PROJECT_SERVICE_URL ?? 'http://localhost:8082',
   );

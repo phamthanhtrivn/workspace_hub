@@ -11,11 +11,14 @@ import {
   Post,
   Put,
   Query,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UpdateChannelSettingDto } from './dto/update-channel-setting.dto';
+import { CheckChannelTaskPermissionDto } from './dto/check-channel-task-permission.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { ChannelService } from './channel.service';
 import { decodeHeaderUtf8 } from '../../common/utils/string.util';
+import { RuntimeConfigService } from '../../common/config/runtime-config.service';
 import {
   CHANNEL_ERROR_MESSAGES,
   CHANNEL_SUCCESS_MESSAGES,
@@ -26,7 +29,25 @@ export class ChannelController {
   constructor(
     @Inject(ChannelService)
     private readonly channelService: ChannelService,
+    private readonly config: RuntimeConfigService,
   ) {}
+
+  @Post('internal/:id/task-create-permission')
+  async checkTaskCreatePermission(
+    @Param('id') channelId: string,
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Body() request: CheckChannelTaskPermissionDto,
+  ) {
+    if (!serviceKey || serviceKey !== this.config.internalServiceKey) {
+      throw new UnauthorizedException('Invalid internal service key');
+    }
+    await this.channelService.assertCanCreateTaskInChannel(
+      channelId,
+      request.projectId,
+      request.userId,
+    );
+    return { data: { allowed: true } };
+  }
 
   @Get()
   async getUserChannels(@Headers('x-user-id') userId: string) {

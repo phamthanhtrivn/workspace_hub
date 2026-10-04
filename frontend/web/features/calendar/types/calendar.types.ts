@@ -41,6 +41,64 @@ export interface ApiPagination {
   totalPages: number;
 }
 
+export interface CalendarPomodoroSession {
+  id: string;
+  eventId: string | null;
+  taskId: string | null;
+  taskTitle: string | null;
+  projectId: string | null;
+  projectName: string | null;
+  sessionType: "FOCUS" | "SHORT_BREAK" | "LONG_BREAK";
+  status: "COMPLETED" | "STOPPED" | "SKIPPED";
+  startedAt: string;
+  endedAt: string;
+  plannedSeconds: number;
+  actualSeconds: number;
+  durationMinutes: number;
+  notes: string | null;
+  interruptionReason: string | null;
+}
+
+export interface CalendarPomodoroConfig {
+  focusDuration: number;
+  shortBreak: number;
+  longBreak: number;
+  longBreakInterval: number;
+  autoStartBreak: boolean;
+  autoStartFocus: boolean;
+  soundEnabled: boolean;
+  soundType: "chime" | "bell" | "digital";
+  soundVolume: number;
+  notificationEnabled: boolean;
+  dailyGoalPomodoros: number;
+}
+
+export interface CalendarPomodoroDailyStats {
+  date: string;
+  totalFocusMinutes: number;
+  completedPomodoros: number;
+  completedTasks: number;
+  dailyGoalPomodoros: number;
+  currentStreak: number;
+  interruptionCounts: Record<string, number>;
+}
+
+export interface CalendarPomodoroTimerState {
+  plannedSeconds?: number | null;
+  mode: "FOCUS" | "SHORT_BREAK" | "LONG_BREAK";
+  status: "IDLE" | "RUNNING" | "PAUSED";
+  targetEndAt: string | null;
+  remainingSeconds: number;
+  cycleCount: number;
+  sessionStartAt: string | null;
+  eventId: string | null;
+  taskId: string | null;
+  activeTask: Record<string, unknown> | null;
+  notes: string;
+  version: number;
+  updatedAt: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message?: string;
@@ -109,6 +167,7 @@ export interface CalendarEvent {
   originalStartAt: string | null;
   sourceType: EventSourceType;
   sourceId: string | null;
+  taskOrder: number | null;
   completedAt: string | null;
   exceptionDates: string[];
   documentIds: string[];
@@ -202,6 +261,12 @@ export interface CalendarEventDraft {
   calendarId?: string;
   sourceType?: EventSourceType;
   attendees?: CalendarEventAttendeePayload[];
+}
+
+export interface CalendarTaskDeadline {
+  enabled: boolean;
+  date: string;
+  time: string;
 }
 
 export type CalendarTaskGroup = "overdue" | "today" | "upcoming" | "completed";

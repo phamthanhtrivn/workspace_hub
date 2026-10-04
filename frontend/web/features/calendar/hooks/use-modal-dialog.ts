@@ -1,4 +1,4 @@
-import { RefObject, useEffect } from "react";
+import { RefObject, useEffect, useRef } from "react";
 
 const FOCUSABLE_SELECTOR = [
   "button:not([disabled])",
@@ -23,7 +23,7 @@ let originalDocumentOverflow = "";
 function getFocusableElements(container: HTMLElement) {
   return Array.from(
     container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
-  ).filter((element) => !element.hidden);
+  ).filter((element) => !element.closest("[hidden], [inert]") && !element.matches(":disabled"));
 }
 
 function focusWithoutScroll(element: HTMLElement | null | undefined) {
@@ -63,6 +63,8 @@ export function useModalDialog({
   onClose,
   lockDocumentScroll = true,
 }: UseModalDialogOptions) {
+  const closeRef = useRef(onClose);
+  useEffect(() => { closeRef.current = onClose; }, [onClose]);
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -73,19 +75,20 @@ export function useModalDialog({
 
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const initialFocus =
-      dialog.querySelector<HTMLElement>("[data-modal-initial-focus]") ??
+      getFocusableElements(dialog).find((element) => element.hasAttribute("data-modal-initial-focus")) ??
       getFocusableElements(dialog)[0];
     focusWithoutScroll(initialFocus);
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const openDialogs = document.querySelectorAll<HTMLElement>(
-        '[role="dialog"][aria-modal="true"]',
+        '[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]',
       );
       if (openDialogs[openDialogs.length - 1] !== dialog) return;
+      if (event.defaultPrevented || (event.target instanceof Element && event.target.closest('[data-slot="select-content"], [data-slot="popover-content"]'))) return;
 
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        closeRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -95,10 +98,10 @@ export function useModalDialog({
 
       const first = focusableElements[0];
       const last = focusableElements[focusableElements.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
+      if (event.shiftKey && (document.activeElement === first || !focusableElements.includes(document.activeElement as HTMLElement))) {
         event.preventDefault();
         focusWithoutScroll(last);
-      } else if (!event.shiftKey && document.activeElement === last) {
+      } else if (!event.shiftKey && (document.activeElement === last || !focusableElements.includes(document.activeElement as HTMLElement))) {
         event.preventDefault();
         focusWithoutScroll(first);
       }
@@ -114,5 +117,5 @@ export function useModalDialog({
         focusWithoutScroll(previouslyFocused);
       }
     };
-  }, [dialogRef, lockDocumentScroll, onClose]);
+  }, [dialogRef, lockDocumentScroll]);
 }

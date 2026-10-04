@@ -11,6 +11,7 @@ import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 import vn.workspacehub.user.events.UserProfileKafkaProperties;
 import vn.workspacehub.user.events.UserProfileSnapshotPayload;
+import vn.workspacehub.user.events.DirectMessagePrivacyEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,5 +36,24 @@ public class KafkaProducerConfig {
             ProducerFactory<String, UserProfileSnapshotPayload> userProfileProducerFactory
     ) {
         return new KafkaTemplate<>(userProfileProducerFactory);
+    }
+
+    @Bean
+    public ProducerFactory<String, DirectMessagePrivacyEvent> directMessagePrivacyProducerFactory(
+            @Value(UserProfileKafkaProperties.BOOTSTRAP_SERVERS_PROPERTY) String bootstrapServers
+    ) {
+        Map<String, Object> config = new HashMap<>();
+        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonJsonSerializer.class);
+        config.put(JacksonJsonSerializer.ADD_TYPE_INFO_HEADERS, false);
+        return new DefaultKafkaProducerFactory<>(config);
+    }
+
+    @Bean
+    public KafkaTemplate<String, DirectMessagePrivacyEvent> directMessagePrivacyKafkaTemplate(
+            ProducerFactory<String, DirectMessagePrivacyEvent> directMessagePrivacyProducerFactory
+    ) {
+        return new KafkaTemplate<>(directMessagePrivacyProducerFactory);
     }
 }

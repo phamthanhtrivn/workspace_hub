@@ -9,6 +9,7 @@ import {
   FiPaperclip,
   FiBarChart2,
   FiEdit3,
+  FiCheckSquare,
 } from "react-icons/fi";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,6 +36,7 @@ export default function ChannelSettingsModal({
     allowPinMessage: channel.setting?.allowPinMessage ?? true,
     allowCreatePoll: channel.setting?.allowCreatePoll ?? true,
     allowCreateNote: channel.setting?.allowCreateNote ?? true,
+    allowCreateTask: channel.setting?.allowCreateTask ?? true,
   });
   const [channelName, setChannelName] = useState(channel.name || "");
 
@@ -46,9 +48,9 @@ export default function ChannelSettingsModal({
   const activeSpaceId = useAppSelector((state) => state.chat.activeSpaceId);
 
   const { data: spaceDetail } = useQuery({
-    queryKey: chatKeys.spaceDetails(activeSpaceId || ""),
-    queryFn: async () => (await getSpaceDetails(activeSpaceId!)).data,
-    enabled: !!activeSpaceId,
+    queryKey: chatKeys.spaceDetails(channel.spaceId),
+    queryFn: async () => (await getSpaceDetails(channel.spaceId)).data,
+    enabled: !!channel.spaceId,
   });
 
   const spaceCreatorId = spaceDetail?.createdBy;
@@ -74,7 +76,13 @@ export default function ChannelSettingsModal({
     setIsSaving(true);
     try {
       if (canEditSettings) {
-        await updateChannelSettings(channel.id, settings);
+        const { allowCreateTask, ...otherSettings } = settings;
+        await updateChannelSettings(
+          channel.id,
+          spaceDetail?.projectId
+            ? { ...otherSettings, allowCreateTask }
+            : otherSettings,
+        );
       }
 
       if (canEditName) {
@@ -186,6 +194,16 @@ export default function ChannelSettingsModal({
                   onChange={() => handleToggle("allowCreateNote")}
                   icon={<FiEdit3 size={18} />}
                 />
+                {spaceDetail?.projectId && (
+                  <SettingItem
+                    title="Allow Creating Tasks"
+                    description="Members can create tasks in this channel."
+                    checked={settings.allowCreateTask}
+                    disabled={!canEditSettings}
+                    onChange={() => handleToggle("allowCreateTask")}
+                    icon={<FiCheckSquare size={18} />}
+                  />
+                )}
               </div>
             </div>
           )}

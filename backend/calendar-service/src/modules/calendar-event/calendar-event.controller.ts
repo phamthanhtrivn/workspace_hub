@@ -23,6 +23,7 @@ import { GetCalendarEventsQueryDto } from './dto/get-calendar-events-query.dto';
 import { GetCalendarTasksQueryDto } from './dto/get-calendar-tasks-query.dto';
 import { CancelCalendarEventDto } from './dto/cancel-calendar-event.dto';
 import { UpdateTaskCompletionDto } from './dto/update-task-completion.dto';
+import { UpdateTaskOrderDto } from './dto/update-task-order.dto';
 
 @Controller('api/calendar/events')
 export class CalendarEventController {
@@ -98,6 +99,23 @@ export class CalendarEventController {
     return {
       message: CALENDAR_SUCCESS_MESSAGES.EVENT_RETRIEVED,
       data: event,
+    };
+  }
+
+  @Patch('task-order')
+  async updateTaskOrder(
+    @Headers('x-user-id') userId: string,
+    @Body() dto: UpdateTaskOrderDto,
+  ) {
+    this.validateUserId(userId);
+    const eventIds = await this.calendarEventService.updateTaskOrder(
+      userId,
+      dto.eventIds,
+    );
+
+    return {
+      message: CALENDAR_SUCCESS_MESSAGES.TASK_ORDER_UPDATED,
+      data: eventIds,
     };
   }
 

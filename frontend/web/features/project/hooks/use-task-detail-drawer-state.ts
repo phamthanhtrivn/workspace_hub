@@ -274,14 +274,6 @@ export function useTaskDetailDrawerState({
     } catch {}
   };
 
-  const handleEstimateSave = async (minutes: number) => {
-    if (!task || isReadOnly) return;
-    if (onUpdateTask) {
-      await onUpdateTask(task.id, { estimatedMinutes: minutes });
-      toast.success("Estimated duration updated");
-    }
-  };
-
   const handleTabChange = (tab: TaskDetailTab) => {
     setActiveTab(tab);
     if (tab === "activity") void refetchActivities();
@@ -318,6 +310,5 @@ export function useTaskDetailDrawerState({
     handleDeleteDependency,
     handleDueDateChange,
     handleStartDateChange,
-    handleEstimateSave,
   };
 }

@@ -28,6 +28,7 @@ enum MessageType {
   TASK
   POLL
   NOTE
+  EVENT
   AI
   DOCUMENT
   MEETING
@@ -241,6 +242,7 @@ model ChannelSetting {
   allowSendMessage  Boolean @default(true) @map("allow_send_message")
   allowCreatePoll   Boolean @default(true) @map("allow_create_poll")
   allowCreateNote   Boolean @default(true) @map("allow_create_note")
+  allowCreateTask   Boolean @default(true) @map("allow_create_task")
   allowPinMessage   Boolean @default(true) @map("allow_pin_message")
 
   channel           Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
@@ -313,6 +315,7 @@ model DirectConversationParticipant {
   conversationId    String             @map("conversation_id") @db.Uuid
   userId            String             @map("user_id") @db.Uuid
   joinedAt          DateTime           @default(now()) @map("joined_at")
+  draftOpenedAt     DateTime?          @map("draft_opened_at")
   lastReadMessageId String?            @map("last_read_message_id") @db.Uuid
   lastReadAt        DateTime?          @map("last_read_at")
   muted             Boolean            @default(false)

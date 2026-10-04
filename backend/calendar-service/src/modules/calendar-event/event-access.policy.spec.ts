@@ -1,5 +1,5 @@
 import { ForbiddenException } from '@nestjs/common';
-import { Calendar } from '@prisma/client';
+import { Calendar, EventSourceType, EventVisibility } from '@prisma/client';
 import { EventWithRelations } from './calendar-event.types';
 import { EventAccessPolicy } from './event-access.policy';
 
@@ -7,13 +7,61 @@ describe('EventAccessPolicy', () => {
   const policy = new EventAccessPolicy({} as never);
   const event = {
     createdBy: 'owner',
+    sourceType: EventSourceType.USER,
+    visibility: EventVisibility.DEFAULT,
     calendar: { ownerUserId: 'owner' },
     attendees: [{ userId: 'guest' }],
   };
 
   it('allows an invited attendee to view an event', () => {
     expect(() =>
-      policy.assertCanViewEvent('guest', event as unknown as EventWithRelations),
+      policy.assertCanViewEvent('guest', event as EventWithRelations),
+    ).not.toThrow();
+  });
+
+  it.each([EventVisibility.DEFAULT, EventVisibility.PRIVATE])(
+    'rejects an outsider from viewing a %s event',
+    (visibility) => {
+      expect(() =>
+        policy.assertCanViewEvent('outsider', {
+          ...event,
+          visibility,
+        } as EventWithRelations),
+      ).toThrow(ForbiddenException);
+    },
+  );
+
+  it('allows viewing a public event without allowing management', () => {
+    const publicEvent = {
+      ...event,
+      visibility: EventVisibility.PUBLIC,
+    } as EventWithRelations;
+
+    expect(() =>
+      policy.assertCanViewEvent('outsider', publicEvent),
+    ).not.toThrow();
+    expect(() => policy.assertCanManageEvent('outsider', publicEvent)).toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('rejects management of synchronized task events', () => {
+    expect(() =>
+      policy.assertUserManagedEvent({
+        ...event,
+        sourceType: EventSourceType.TASK,
+        sourceId: '11111111-1111-1111-1111-111111111111',
+      } as EventWithRelations),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('allows management of personal task events', () => {
+    expect(() =>
+      policy.assertUserManagedEvent({
+        ...event,
+        sourceType: EventSourceType.TASK,
+        sourceId: null,
+      } as EventWithRelations),
     ).not.toThrow();
   });
 

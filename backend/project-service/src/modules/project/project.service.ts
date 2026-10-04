@@ -123,6 +123,17 @@ export class ProjectService {
     const where: Prisma.ProjectWhereInput = {
       archived: false,
       ...(query.status ? { status: query.status } : {}),
+      ...(query.hasAssignedTasks
+        ? {
+            tasks: {
+              some: {
+                archived: false,
+                deletedAt: null,
+                assignees: { some: { userId } },
+              },
+            },
+          }
+        : {}),
       AND: [
         {
           OR: [

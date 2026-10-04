@@ -15,5 +15,9 @@ export class UpdateChannelSettingDto {
 
   @IsOptional()
   @IsBoolean()
+  allowCreateTask?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
   allowPinMessage?: boolean;
 }

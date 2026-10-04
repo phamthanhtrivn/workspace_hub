@@ -31,13 +31,18 @@ export function useCalendarRecurrence(
     parseCustomRecurrenceRule(event?.recurrenceRule, defaultStart),
   );
   const [showCustomRecurrence, setShowCustomRecurrence] = useState(false);
+  const [recurrenceDirty, setRecurrenceDirty] = useState(false);
 
   const handleRecurrenceChange = (preset: CalendarRecurrencePreset) => {
     if (preset === CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM) {
+      setCustomRecurrence(
+        parseCustomRecurrenceRule(recurrenceRule, new Date(startAt)),
+      );
       setShowCustomRecurrence(true);
       return;
     }
     setRecurrencePreset(preset);
+    setRecurrenceDirty(true);
     setRecurrenceRule(getPresetRecurrenceRule(preset, new Date(startAt)));
   };
 
@@ -45,6 +50,7 @@ export function useCalendarRecurrence(
     recurrence: typeof customRecurrence,
   ) => {
     setCustomRecurrence(recurrence);
+    setRecurrenceDirty(true);
     setRecurrencePreset(CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM);
     setRecurrenceRule(buildCustomRecurrenceRule(recurrence));
     setShowCustomRecurrence(false);
@@ -92,6 +98,7 @@ export function useCalendarRecurrence(
     closeCustomRecurrence: () => setShowCustomRecurrence(false),
     customRecurrence,
     getRecurrenceRule: (valuesStartAt: string) =>
+      !recurrenceDirty ||
       recurrencePreset === CALENDAR_RECURRENCE_PRESET_VALUES.NONE ||
       recurrencePreset === CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM
         ? recurrenceRule

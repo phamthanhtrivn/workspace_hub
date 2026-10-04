@@ -19,6 +19,7 @@ import {
   TaskStatusFilter,
 } from "../../utils/calendar-tasks.utils";
 import { cleanTaskDescription } from "../../utils/calendar-event.utils";
+import { CalendarTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
 
 interface CalendarTaskListProps {
   tasks: CalendarEvent[];
@@ -294,6 +295,7 @@ function TaskRowItem({
           </span>
         )}
       </Button>
+      {!readOnly && <CalendarTaskFocusButton event={task} compact />}
     </div>
   );
 }

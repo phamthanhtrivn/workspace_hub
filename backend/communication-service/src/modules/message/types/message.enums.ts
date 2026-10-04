@@ -38,6 +38,7 @@ export enum MESSAGE_ERROR_MESSAGES {
   MESSAGE_DISABLED = 'Messaging is disabled in this channel',
   POLL_DISABLED = 'Poll creation is disabled in this channel',
   NOTE_DISABLED = 'Note creation is disabled in this channel',
+  TASK_DISABLED = 'Task creation is disabled in this channel',
   PARENT_NOT_FOUND = 'Thread parent message does not exist',
   MESSAGE_NOT_FOUND = 'Message not found',
   ROOT_THREAD_NOT_FOUND = 'Thread root message not found',

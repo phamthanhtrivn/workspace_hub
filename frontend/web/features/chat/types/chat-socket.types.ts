@@ -100,6 +100,12 @@ export interface ChatSocketMuteUpdatedPayload extends Partial<ChatContextPayload
   muted: boolean;
 }
 
+export interface ChatSocketDirectMessagePermissionPayload {
+  conversationId: string;
+  recipientId: string;
+  allowNewDirectMessages: boolean;
+}
+
 export interface ChatSocketMediaUpdatedPayload extends Partial<ChatContextPayload> {
   messageId: string;
   media: ChatMessageResponse["medias"];
@@ -127,6 +133,9 @@ export interface SendSocketMessageMedia {
 export interface ServerToClientChatEvents {
   [event: string]: (...args: never[]) => void;
   [ChatEvent.NEW_MESSAGE]: (payload: ChatSocketMessagePayload) => void;
+  [ChatEvent.DIRECT_MESSAGE_PERMISSION_UPDATED]: (
+    payload: ChatSocketDirectMessagePermissionPayload,
+  ) => void;
   [ChatEvent.MESSAGE_MOVED]: (payload: ChatSocketMessagePayload) => void;
   [ChatEvent.MESSAGE_UPDATED]: (payload: ChatSocketMessagePayload) => void;
   [ChatEvent.REACTION_UPDATED]: (payload: ChatSocketMessagePayload) => void;

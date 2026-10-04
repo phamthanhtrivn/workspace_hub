@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Calendar } from '@prisma/client';
+import { Calendar, EventSourceType, EventVisibility } from '@prisma/client';
 import { CALENDAR_ERROR_MESSAGES } from '../../common/constants/calendar.constants';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
@@ -54,7 +54,8 @@ export class EventAccessPolicy {
     const canView =
       event.calendar.ownerUserId === userId ||
       event.createdBy === userId ||
-      event.attendees.some((attendee) => attendee.userId === userId);
+      event.attendees.some((attendee) => attendee.userId === userId) ||
+      event.visibility === EventVisibility.PUBLIC;
     if (!canView) {
       throw new ForbiddenException(CALENDAR_ERROR_MESSAGES.FORBIDDEN_EVENT);
     }
@@ -70,5 +71,11 @@ export class EventAccessPolicy {
     }
   }
 
-  assertUserManagedEvent(_event: EventWithRelations): void {}
+  assertUserManagedEvent(event: EventWithRelations): void {
+    if (event.sourceType !== EventSourceType.USER && event.sourceId) {
+      throw new ForbiddenException(
+        CALENDAR_ERROR_MESSAGES.EXTERNAL_EVENT_READ_ONLY,
+      );
+    }
+  }
 }

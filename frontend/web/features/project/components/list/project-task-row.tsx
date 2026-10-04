@@ -13,6 +13,7 @@ import TaskLabelBadges from "../ui/task-label-badges";
 import { Avatar } from "../ui/avatar-stack";
 import { getIssueKey, getIssueIcon, getPriorityIcon } from "../ui/task-card";
 import TaskChatButton from "../ui/task-chat-button";
+import { ProjectTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
 
 function isOverdue(dueDate?: string, status?: string): boolean {
   if (!dueDate || status === "DONE" || status === "CANCELLED") return false;
@@ -187,6 +188,7 @@ export default function ProjectTaskRow({
       </div>
 
       <div className="flex items-center justify-end gap-1">
+        <ProjectTaskFocusButton task={task} compact />
         {showSubtaskAction && (
           <Button
             type="button"

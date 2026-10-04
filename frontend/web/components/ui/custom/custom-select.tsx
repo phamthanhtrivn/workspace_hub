@@ -20,6 +20,7 @@ export interface CustomSelectOption<TValue extends string = string> {
 }
 
 interface CustomSelectProps<TValue extends string = string> {
+  id?: string;
   value: TValue;
   options: CustomSelectOption<TValue>[];
   onChange: (value: TValue) => void;
@@ -35,6 +36,7 @@ interface CustomSelectProps<TValue extends string = string> {
 const INTERNAL_EMPTY_VALUE = "__CUSTOM_SELECT_EMPTY__";
 
 export function CustomSelect<TValue extends string = string>({
+  id,
   value,
   options,
   onChange,
@@ -59,6 +61,7 @@ export function CustomSelect<TValue extends string = string>({
         }
       >
         <SelectTrigger
+          id={id}
           aria-label={ariaLabel}
           aria-invalid={invalid || undefined}
           className={cn(

@@ -1,6 +1,8 @@
 import {
   AttendeeResponseStatus,
+  EventSourceType,
   EventStatus,
+  EventVisibility,
 } from '@prisma/client';
 import { EventMapper } from './event.mapper';
 
@@ -10,7 +12,9 @@ describe('EventMapper', () => {
     const event = {
       id: 'event-id',
       createdBy: 'owner',
+      sourceType: EventSourceType.USER,
       status: EventStatus.CONFIRMED,
+      visibility: EventVisibility.DEFAULT,
       calendar: { ownerUserId: 'owner', timeZone: 'Asia/Ho_Chi_Minh' },
       attendees: [
         {
@@ -39,7 +43,10 @@ describe('EventMapper', () => {
     const event = {
       id: 'event-id',
       createdBy: 'owner',
+      sourceType: EventSourceType.TASK,
+      sourceId: null,
       status: EventStatus.CONFIRMED,
+      visibility: EventVisibility.DEFAULT,
       calendar: {
         ownerUserId: 'owner',
         projectId: 'project-id',

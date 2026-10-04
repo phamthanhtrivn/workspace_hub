@@ -192,7 +192,7 @@ export interface Task {
   dueDate?: string;
   allDay: boolean;
   completedAt?: string;
-  estimatedMinutes: number;
+  deletedAt?: string;
   rank: string;
   archived: boolean;
   createdAt: string;

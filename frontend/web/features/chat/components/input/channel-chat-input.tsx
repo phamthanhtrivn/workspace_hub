@@ -122,6 +122,15 @@ const ChannelChatInput = React.memo(
       const { activeChat: activeChannel, activeChatType } = useActiveChat();
       const memberProfiles = useChatMemberProfiles();
       const authUserId = useAppSelector((state: any) => state.auth.userId);
+      const currentMember = activeChannel?.members?.find(
+        (member) => member.userId === authUserId,
+      );
+      const isMember = currentMember?.role === "MEMBER";
+      const allowCreateTask =
+        Boolean(currentMember) &&
+        (!isMember ||
+          spaceDetail?.createdBy === authUserId ||
+          activeChannel?.setting?.allowCreateTask !== false);
 
       const [mentionQuery, setMentionQuery] = useState<string | null>(null);
       const [mentionStartIndex, setMentionStartIndex] = useState<number>(-1);
@@ -148,15 +157,21 @@ const ChannelChatInput = React.memo(
       });
 
       const handleTaskSubmit = async (values: TaskFormValues) => {
-        const projectId =
-          spaceDetail?.projectId || (activeChannel as any)?.projectId;
-        if (!projectId) {
-          toast.error("Project ID not found for this space");
+        const projectId = spaceDetail?.projectId;
+        if (!projectId || !activeChannelId) {
+          toast.error("Project channel is not available");
+          return;
+        }
+        if (!allowCreateTask) {
+          toast.error("Task creation is disabled in this channel");
           return;
         }
         setIsSubmittingTask(true);
         try {
-          const createdTask = await createTask(projectId, values);
+          const createdTask = await createTask(projectId, {
+            ...values,
+            channelId: activeChannelId,
+          });
           toast.success("Task created successfully");
           setIsTaskModalOpen(false);
 
@@ -671,13 +686,9 @@ const ChannelChatInput = React.memo(
         clearInterim,
       ]);
 
-      const currentMember = activeChannel?.members?.find(
-        (m: any) => m.userId === authUserId,
-      );
       const otherDirectMemberId =
         activeChannel?.members?.find((m) => m.userId !== authUserId)?.userId ??
         null;
-      const isMember = currentMember?.role === "MEMBER";
       const allowSendMessage =
         isMember && activeChannel?.setting
           ? activeChannel.setting.allowSendMessage
@@ -855,26 +866,19 @@ const ChannelChatInput = React.memo(
 
                     <div className="h-px bg-gray-100 my-1"></div>
 
-                    <button
-                      onClick={() => {
-                        setShowOptions(false);
-                        if (
-                          !spaceDetail?.projectId &&
-                          !(activeChannel as any)?.projectId
-                        ) {
-                          toast.info(
-                            "This space is not linked to any project. Please link a project in Space Settings first.",
-                          );
-                          return;
-                        }
-                        setIsTaskModalOpen(true);
-                      }}
-                      disabled={isUploading}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50"
-                    >
-                      <CheckSquare size={16} className="text-green-500" />
-                      Task
-                    </button>
+                    {spaceDetail?.projectId && allowCreateTask && (
+                      <button
+                        onClick={() => {
+                          setShowOptions(false);
+                          setIsTaskModalOpen(true);
+                        }}
+                        disabled={isUploading}
+                        className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50"
+                      >
+                        <CheckSquare size={16} className="text-green-500" />
+                        Task
+                      </button>
+                    )}
 
                     {allowCreatePoll && (
                       <button

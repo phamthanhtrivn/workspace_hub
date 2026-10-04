@@ -360,6 +360,7 @@ export class ChannelService {
   ) {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
+      include: { space: { select: { projectId: true, createdBy: true } } },
     });
     if (!channel) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
@@ -374,9 +375,18 @@ export class ChannelService {
       },
     });
 
-    if (!spaceMember || spaceMember.role !== SpaceRole.ADMIN) {
+    if (
+      !spaceMember ||
+      (spaceMember.role !== SpaceRole.ADMIN && channel.space.createdBy !== userId)
+    ) {
       throw new BadRequestException(
         CHANNEL_ERROR_MESSAGES.SETTINGS_ACCESS_DENIED,
+      );
+    }
+
+    if (updateSettingDto.allowCreateTask !== undefined && !channel.space.projectId) {
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.TASK_SETTING_REQUIRES_PROJECT,
       );
     }
 
@@ -394,6 +404,46 @@ export class ChannelService {
     });
 
     return updatedSettings;
+  }
+
+  async assertCanCreateTaskInChannel(
+    channelId: string,
+    projectId: string,
+    userId: string,
+  ): Promise<void> {
+    const channel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+      select: {
+        space: {
+          select: {
+            projectId: true,
+            createdBy: true,
+            members: { where: { userId }, select: { role: true } },
+          },
+        },
+        members: { where: { userId }, select: { id: true } },
+        setting: { select: { allowCreateTask: true } },
+      },
+    });
+    if (!channel) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
+    }
+    if (channel.space.projectId !== projectId) {
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.TASK_CHANNEL_PROJECT_MISMATCH,
+      );
+    }
+    const spaceMember = channel.space.members[0];
+    if (!spaceMember || channel.members.length === 0) {
+      throw new ForbiddenException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+    }
+    if (
+      spaceMember.role === SpaceRole.MEMBER &&
+      channel.space.createdBy !== userId &&
+      channel.setting?.allowCreateTask === false
+    ) {
+      throw new ForbiddenException(CHANNEL_ERROR_MESSAGES.TASK_CREATION_DISABLED);
+    }
   }
 
   async updateMemberRole(

@@ -5,7 +5,6 @@ DO $$
 DECLARE
   owner_id UUID := '9d0deeb4-a868-45d9-923e-62feecde6a6e';
   project_id UUID;
-  sprint_id UUID;
   parent_id UUID;
   child_id UUID;
   label_id UUID;
@@ -48,14 +47,14 @@ BEGIN
     END IF;
 
     project_id := gen_random_uuid();
-    INSERT INTO projects (id, name, description, color, icon, owner_id, status, project_type, visibility, archived, created_at, updated_at, version)
+    INSERT INTO projects (id, name, description, color, icon, owner_id, status, archived, next_task_number, created_at, updated_at, version)
     VALUES (
       project_id,
       project_names[item_index],
       'Project demo đầy đủ task, subtask, checklist để preview luồng quản lý công việc.',
       project_colors[item_index],
       CASE WHEN project_types[item_index] = 'SOFTWARE_DEVELOPMENT' THEN '🚀' ELSE '📌' END,
-      owner_id, 'ACTIVE', project_types[item_index], 'MEMBERS_ONLY', FALSE, created_at, created_at, 0
+      owner_id, 'ACTIVE', FALSE, 10, created_at, created_at, 0
     );
 
     INSERT INTO project_settings (id, project_id, allow_member_create_task, allow_member_edit_others_task, allow_member_edit_own_task, allow_member_invite)
@@ -69,25 +68,17 @@ BEGIN
            (gen_random_uuid(), project_id, 'Đang làm', '#2563EB'),
            (gen_random_uuid(), project_id, 'Cần review', '#D97706');
 
-    sprint_id := NULL;
-    IF project_types[item_index] = 'SOFTWARE_DEVELOPMENT' THEN
-      sprint_id := gen_random_uuid();
-      INSERT INTO project_sprints (id, project_id, name, goal, status, start_date, end_date, created_by, created_at, updated_at, version)
-      VALUES (sprint_id, project_id, 'Sprint 01 - Nền tảng', 'Hoàn thiện luồng nền tảng đầu tiên để review nội bộ.', 'PLANNED', CURRENT_DATE, CURRENT_DATE + 13, owner_id, created_at, created_at, 0);
-    END IF;
-
     FOR parent_index IN 1..3 LOOP
       task_index := (item_index - 1) * 3 + parent_index;
       parent_id := gen_random_uuid();
-      INSERT INTO tasks (id, project_id, parent_task_id, title, description, priority, status, created_by, reporter_id, start_date, due_date, all_day, completed_at, estimated_minutes, rank, archived, auto_complete_sprint, sprint_id, created_at, updated_at, version)
+      INSERT INTO tasks (id, project_id, task_number, parent_task_id, title, description, priority, status, created_by, reporter_id, start_date, due_date, all_day, completed_at, rank, archived, created_at, updated_at, version)
       VALUES (
-        parent_id, project_id, NULL, parent_titles[task_index],
+        parent_id, project_id, (parent_index - 1) * 3 + 1, NULL, parent_titles[task_index],
         'Task lớn cần được theo dõi bằng các subtask và checklist.',
         CASE WHEN parent_index = 1 THEN 'HIGH' WHEN parent_index = 2 THEN 'MEDIUM' ELSE 'LOW' END,
         CASE WHEN parent_index = 1 THEN 'IN_PROGRESS' WHEN parent_index = 2 THEN 'TODO' ELSE 'IN_REVIEW' END,
         owner_id, owner_id, CURRENT_DATE + parent_index - 1, CURRENT_DATE + parent_index + 6, FALSE, NULL,
-        240, LPAD(parent_index::TEXT, 3, '0'), FALSE, FALSE,
-        CASE WHEN parent_index = 1 THEN sprint_id ELSE NULL END, created_at, created_at, 0
+        LPAD(parent_index::TEXT, 3, '0'), FALSE, created_at, created_at, 0
       );
 
       SELECT tl.id INTO label_id FROM task_labels AS tl WHERE tl.project_id = demo_data.project_id ORDER BY tl.name LIMIT 1;
@@ -102,16 +93,15 @@ BEGIN
 
       FOR subtask_index IN 1..2 LOOP
         child_id := gen_random_uuid();
-        INSERT INTO tasks (id, project_id, parent_task_id, title, description, priority, status, created_by, reporter_id, start_date, due_date, all_day, completed_at, estimated_minutes, rank, archived, auto_complete_sprint, sprint_id, created_at, updated_at, version)
+        INSERT INTO tasks (id, project_id, task_number, parent_task_id, title, description, priority, status, created_by, reporter_id, start_date, due_date, all_day, completed_at, rank, archived, created_at, updated_at, version)
         VALUES (
-          child_id, project_id, parent_id,
+          child_id, project_id, (parent_index - 1) * 3 + 1 + subtask_index, parent_id,
           CASE WHEN subtask_index = 1 THEN subtask_a[task_index] ELSE subtask_b[task_index] END,
           'Subtask thuộc task lớn, có checklist riêng để theo dõi tiến độ.',
           CASE WHEN subtask_index = 1 THEN 'MEDIUM' ELSE 'LOW' END,
           CASE WHEN subtask_index = 1 THEN 'TODO' ELSE 'IN_PROGRESS' END,
           owner_id, owner_id, CURRENT_DATE + parent_index - 1, CURRENT_DATE + parent_index + 4, FALSE, NULL,
-          90, LPAD((parent_index * 10 + subtask_index)::TEXT, 3, '0'), FALSE, FALSE,
-          CASE WHEN parent_index = 1 THEN sprint_id ELSE NULL END, created_at, created_at, 0
+          LPAD((parent_index * 10 + subtask_index)::TEXT, 3, '0'), FALSE, created_at, created_at, 0
         );
 
         INSERT INTO task_assignees (id, task_id, project_id, user_id, assigned_at)

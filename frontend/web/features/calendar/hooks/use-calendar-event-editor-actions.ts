@@ -15,6 +15,7 @@ import {
   useCreateCalendarEvent,
   useUpdateCalendarEvent,
 } from "./use-calendar-queries";
+import { buildCalendarEventUpdate } from "../utils/calendar-event-update.utils";
 
 interface UseCalendarEventEditorActionsInput {
   defaultCalendarId?: string;
@@ -92,7 +93,7 @@ export function useCalendarEventEditorActions({
         if (editingEvent) {
           const updated = await updateEvent.mutateAsync({
             eventId: editingEvent.id,
-            payload: values,
+            payload: buildCalendarEventUpdate(editingEvent, values),
           });
           onEventUpdated(updated);
           setEditingEvent(null);

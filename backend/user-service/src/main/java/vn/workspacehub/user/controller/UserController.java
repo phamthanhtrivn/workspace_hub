@@ -3,13 +3,16 @@ package vn.workspacehub.user.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import vn.workspacehub.user.common.ApiResponse;
 import vn.workspacehub.user.dto.request.UpdateAccountSettingsRequest;
-import vn.workspacehub.user.dto.request.UpdatePrivacyRequest;
 import vn.workspacehub.user.dto.request.RevokeSessionRequest;
 import vn.workspacehub.user.dto.response.AccountSettingResponse;
+import vn.workspacehub.user.dto.response.DirectMessageSettingsResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
 import vn.workspacehub.user.dto.response.UserSearchResponse;
 import vn.workspacehub.user.dto.response.UserSessionResponse;
@@ -26,6 +29,9 @@ public class UserController {
 
     private final AuthService authService;
     private final UserService userService;
+
+    @Value("${INTERNAL_SERVICE_KEY:local-internal-key}")
+    private String internalServiceKey;
 
     @GetMapping("/me/sessions")
     public ResponseEntity<ApiResponse<List<UserSessionResponse>>> getActiveSessions(
@@ -78,16 +84,19 @@ public class UserController {
                 .build());
     }
 
-    @PutMapping("/me/settings/privacy")
-    public ResponseEntity<ApiResponse<AccountSettingResponse>> updatePrivacySettings(
-            @RequestHeader(value = "X-User-Id") UUID userId,
-            @RequestBody UpdatePrivacyRequest request) {
-
-        AccountSettingResponse settings = userService.updatePrivacySettings(userId, request);
-        return ResponseEntity.ok(ApiResponse.<AccountSettingResponse>builder()
+    @GetMapping("/internal/{id}/direct-message-settings")
+    public ResponseEntity<ApiResponse<DirectMessageSettingsResponse>> getDirectMessageSettings(
+            @PathVariable UUID id,
+            @RequestHeader(value = "X-Internal-Service-Key", required = false) String serviceKey) {
+        if (serviceKey == null || !serviceKey.equals(internalServiceKey)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid internal service key");
+        }
+        boolean allowed = userService.getAccountSettings(id).isAllowNewDirectMessages();
+        return ResponseEntity.ok(ApiResponse.<DirectMessageSettingsResponse>builder()
                 .success(true)
-                .message("Privacy settings updated successfully")
-                .data(settings)
+                .data(DirectMessageSettingsResponse.builder()
+                        .allowNewDirectMessages(allowed)
+                        .build())
                 .build());
     }
 

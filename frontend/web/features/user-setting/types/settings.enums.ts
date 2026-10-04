@@ -1,6 +1,7 @@
 export enum UserSettingTab {
   PROFILE = "profile",
   GENERAL = "general",
+  POMODORO = "pomodoro",
   SESSION = "session",
   PASSWORD = "password",
 }

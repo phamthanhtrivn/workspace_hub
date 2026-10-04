@@ -7,6 +7,6 @@ public class UpdateAccountSettingsRequest {
     private String theme;
     private String language;
     private String timezone;
-    private Boolean allowSearchByEmail;
+    private Boolean allowNewDirectMessages;
     private Boolean muteNotification;
 }

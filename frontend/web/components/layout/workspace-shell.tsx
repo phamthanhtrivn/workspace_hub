@@ -22,6 +22,7 @@ import UserSettingsModal from "@/features/user-setting/components/user-settings-
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { cn } from "@/lib/utils";
 import WorkspaceHeader from "./workspace-header";
+import { PomodoroMiniTimer } from "@/features/pomodoro/components/pomodoro-mini-timer";
 
 const menuItems = [
   {
@@ -37,16 +38,22 @@ const menuItems = [
     icon: FolderKanban,
   },
   {
-    href: "/chat",
-    label: "Messages",
-    description: "Team Channels & DMs",
-    icon: MessageSquareText,
-  },
-  {
     href: "/calendar",
     label: "Calendar",
     description: "Events & Schedules",
     icon: CalendarDays,
+  },
+  {
+    href: "/pomodoro",
+    label: "Pomodoro",
+    description: "Focus & Time Tracker",
+    icon: Clock3,
+  },
+  {
+    href: "/chat",
+    label: "Messages",
+    description: "Team Channels & DMs",
+    icon: MessageSquareText,
   },
   {
     href: "/meetings",
@@ -59,12 +66,6 @@ const menuItems = [
     label: "Documents",
     description: "Notes & File Storage",
     icon: Files,
-  },
-  {
-    href: "/pomodoro",
-    label: "Pomodoro",
-    description: "Focus & Time Tracker",
-    icon: Clock3,
   },
   {
     href: "/ai",
@@ -259,10 +260,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
 
         <div className="mt-auto mb-2 pt-4">
           <div
-            onClick={() => {
-              setActiveSettingsTab(UserSettingTab.GENERAL);
-              setIsSettingsModalOpen(true);
-            }}
+            onClick={() => handleOpenSettings(UserSettingTab.PROFILE)}
             className={cn(
               "rounded-2xl border border-slate-200 bg-slate-50 p-4 transition-all duration-300 cursor-pointer hover:bg-slate-100",
               isSidebarCollapsed ? "lg:px-2 lg:flex lg:justify-center" : "",
@@ -306,6 +304,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
           onOpenSettings={handleOpenSettings}
         />
 
+        <PomodoroMiniTimer />
         <main
           className={cn(
             "flex-1",
