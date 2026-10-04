@@ -82,7 +82,4 @@ start/due dates clear the field. Project task discussions use the persisted
 comment API, refreshed every five seconds while open. Sprint metrics display
 current recorded progress; historical burndown is not generated without history.
 
-To run database and HTTP integration checks, use a disposable database with
-all migrations applied and set `TEST_DATABASE_URL`, then run
-`npm run test:integration`. The suite deletes test data; never point it at a
-shared or production database. Unit tests use `npm test`.
+To run unit tests, use `npm test`.
