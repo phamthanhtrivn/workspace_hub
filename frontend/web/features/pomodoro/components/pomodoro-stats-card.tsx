@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import React, { useEffect, useState } from "react";
 import { Clock, CheckCircle2, Flame, TrendingUp } from "lucide-react";
 import { getDailyStats } from "../api/pomodoro-server.api";
@@ -24,7 +25,7 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
   }, [lastUpdated, retryRevision]);
 
   if (failed) return <p role="alert" className="text-xs text-rose-600">
-    Unable to load today&apos;s stats. <button type="button" className="underline" onClick={() => setRetryRevision((value) => value + 1)}>Retry</button>
+    Unable to load today&apos;s stats. <Button variant="ghost" type="button" className="underline" onClick={() => setRetryRevision((value) => value + 1)}>Retry</Button>
   </p>;
   if (!stats) return <p role="status" className="text-xs text-slate-500">Loading stats...</p>;
 

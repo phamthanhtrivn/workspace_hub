@@ -85,6 +85,7 @@ export interface ProjectListQuery {
   limit: number;
   search?: string;
   status?: ProjectStatus;
+  hasAssignedTasks?: boolean;
 }
 
 export interface ProjectListResponse {
@@ -228,6 +229,7 @@ export async function getProjects(
         limit: query.limit,
         search: query.search || undefined,
         status: query.status,
+        hasAssignedTasks: query.hasAssignedTasks,
       },
     },
   );

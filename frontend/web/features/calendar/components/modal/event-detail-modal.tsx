@@ -8,18 +8,15 @@ import {
   Copy,
   ExternalLink,
   ListTodo,
-  Mail,
   MapPin,
-  MoreVertical,
   Paperclip,
   Pencil,
-  Printer,
   Trash2,
   Users,
   Video,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/store/store";
@@ -77,26 +74,8 @@ export function EventDetailModal({
   useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
 
   const [copiedMeeting, setCopiedMeeting] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showDeleteScopeModal, setShowDeleteScopeModal] = useState(false);
   const [cancelScope, setCancelScope] = useState(RecurrenceScope.THIS);
-  const moreMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (
-        moreMenuRef.current &&
-        !moreMenuRef.current.contains(e.target as Node)
-      ) {
-        setShowMoreMenu(false);
-      }
-    }
-    if (showMoreMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
-    }
-  }, [showMoreMenu]);
 
   if (!open || !event) return null;
 
@@ -125,34 +104,6 @@ export function EventDetailModal({
   const handleConfirmDeleteScope = () => {
     setShowDeleteScopeModal(false);
     onCancelEvent(cancelScope);
-  };
-
-  const handleEmailGuests = () => {
-    const emails = guestAttendees
-      .map((a) => a.profile?.email || resolvedProfiles[a.userId]?.email || null)
-      .filter(Boolean) as string[];
-    if (emails.length > 0) {
-      window.location.href = `mailto:${emails.join(",")}?subject=${encodeURIComponent(event.title)}`;
-    } else {
-      const info = `${event.title} (${formatCalendarEventRange(event, "en")})`;
-      navigator.clipboard.writeText(info).then(() => {
-        toast.success("Event details copied to clipboard");
-      });
-    }
-  };
-
-  const handleCopyLink = () => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const eventUrl = `${origin}/calendar?event=${event.id}`;
-    navigator.clipboard.writeText(eventUrl).then(() => {
-      setShowMoreMenu(false);
-      toast.success("Event link copied to clipboard");
-    });
-  };
-
-  const handlePrint = () => {
-    setShowMoreMenu(false);
-    window.print();
   };
 
   const handleCopyMeeting = async (url: string) => {
@@ -256,57 +207,6 @@ export function EventDetailModal({
             </>
           )}
 
-          {!isTask && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handleEmailGuests}
-              aria-label="Email guests"
-              title="Email guests"
-              className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-            >
-              <Mail className="h-4 w-4" />
-            </Button>
-          )}
-
-          <div className="relative" ref={moreMenuRef}>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowMoreMenu((prev) => !prev)}
-              aria-label="More options"
-              title="More options"
-              className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-            >
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-
-            {showMoreMenu && (
-              <div className="absolute right-0 top-10 z-20 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleCopyLink}
-                  className="flex h-auto w-full cursor-pointer items-center justify-start gap-2.5 rounded-none px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  <Copy className="h-3.5 w-3.5 text-slate-400" />
-                  <span>Copy event link</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handlePrint}
-                  className="flex h-auto w-full cursor-pointer items-center justify-start gap-2.5 rounded-none px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  <Printer className="h-3.5 w-3.5 text-slate-400" />
-                  <span>Print event</span>
-                </Button>
-              </div>
-            )}
-          </div>
-
           <Button
             type="button"
             variant="ghost"
@@ -346,8 +246,8 @@ export function EventDetailModal({
           </div>
 
           {isTask && currentUserId && event.calendar?.ownerUserId === currentUserId && !event.calendar.projectId && (
-            <div className="space-y-3">
-              <CalendarTaskFocusButton event={event} />
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center"><CalendarTaskFocusButton event={event} /></div>
               <TaskFocusHistory target={{ eventId: event.id }} />
             </div>
           )}

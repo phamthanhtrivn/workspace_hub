@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import React, { useState } from "react";
 import { Volume2, VolumeX, Play, Pause, ChevronDown, Sliders, Sparkles } from "lucide-react";
 import { AUDIO_OFF_TRACK, type AmbientTrackId, type PomodoroAudio } from "../types/ambient";
@@ -61,9 +62,9 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
         {/* Track Selector Popover Trigger */}
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
-            <button
+            <Button variant="ghost"
               type="button"
-              className="group flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-full px-1 py-0.5 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-wait"
+              className="h-auto justify-start whitespace-normal group flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-full px-1 py-0.5 text-left transition-colors hover:bg-slate-50/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-wait"
             >
               {/* Animated Sound Artwork / Equalizer */}
               <div
@@ -106,7 +107,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
 
               {/* Chevron Down */}
               <ChevronDown className="size-3.5 text-slate-400 shrink-0 transition-transform duration-200 group-hover:text-slate-700 group-hover:translate-y-0.5 ml-0.5" />
-            </button>
+            </Button>
           </PopoverTrigger>
 
           <PopoverContent
@@ -171,8 +172,9 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
         {currentTrackId !== "none" && (
           <div className="flex items-center gap-2 shrink-0 pr-1">
             {/* Play/Pause Button */}
-            <button
+            <Button variant="ghost"
               type="button"
+              size="icon-sm"
               onClick={onTogglePlay}
               disabled={disabled || isLibraryLoading || isTrackUnavailable}
               title={isPlaying ? "Pause audio" : "Play audio"}
@@ -189,13 +191,14 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
               ) : (
                 <Play className="size-3.5 fill-current ml-0.5" />
               )}
-            </button>
+            </Button>
 
             {/* Seamless Volume Control */}
             <div className="hidden sm:flex items-center gap-1 group/vol">
-              <button
+              <Button variant="ghost"
                 type="button"
                 onClick={() => onChangeVolume(isMuted ? 0.5 : 0)}
+                size="icon-sm"
                 className="cursor-pointer p-1 text-slate-400 hover:text-slate-700 transition-colors rounded-full hover:bg-slate-100 disabled:cursor-not-allowed"
                 title={isMuted ? "Unmute" : "Mute"}
                 aria-label={isMuted ? "Unmute" : "Mute"}
@@ -205,7 +208,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                 ) : (
                   <Volume2 className="size-3.5" />
                 )}
-              </button>
+              </Button>
               <Slider
                 {...volumeSliderProps}
                 className={cn(volumeSliderProps.className, "w-16 [&>div]:min-h-8 [&_[data-slot=slider-track]]:h-1")}

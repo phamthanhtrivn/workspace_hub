@@ -5,6 +5,7 @@ import { History, Clock } from "lucide-react";
 import { getRecentSessions } from "../api/pomodoro-server.api";
 import type { PomodoroSessionRecord } from "../types/pomodoro";
 import { Card } from "@/components/ui/card";
+import { SimplePagination } from "@/components/ui/custom/simple-pagination";
 import { PomodoroSessionHistoryItem } from "./pomodoro-session-history-item";
 
 interface PomodoroSessionHistoryProps {
@@ -14,6 +15,8 @@ interface PomodoroSessionHistoryProps {
   showDates?: boolean;
   totalCount?: number;
   page?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
 }
 
 export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory({
@@ -23,6 +26,8 @@ export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory
   showDates = false,
   totalCount,
   page = 1,
+  totalPages = 1,
+  onPageChange,
 }: PomodoroSessionHistoryProps) {
   const [sessions, setSessions] = useState<PomodoroSessionRecord[]>([]);
 
@@ -69,6 +74,12 @@ export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory
             <PomodoroSessionHistoryItem key={session.id} session={session} showDates={showDates} />
           ))}
         </div>
+      )}
+      {totalPages > 1 && onPageChange && (
+        <SimplePagination
+          page={page} totalPages={totalPages} onPageChange={onPageChange}
+          ariaLabel="Session history pagination" className="mt-2"
+        />
       )}
     </Card>
   );

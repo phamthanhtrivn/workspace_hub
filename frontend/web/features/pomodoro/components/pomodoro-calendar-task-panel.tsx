@@ -2,31 +2,29 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cancelCalendarEvent, updateCalendarTaskOrder } from "@/features/calendar/api/calendar.api";
 import { calendarKeys } from "@/features/calendar/hooks/use-calendar-queries";
 import type { CalendarEvent } from "@/features/calendar/types/calendar.types";
 import { usePomodoroSessionActions } from "./pomodoro-session-provider";
 import { PomodoroCalendarTaskList } from "./pomodoro-calendar-task-list";
-import { PomodoroCalendarTaskForm } from "./pomodoro-calendar-task-form";
 import { PomodoroTaskEmptyState, PomodoroTaskFilterControls, type PomodoroTaskFilters } from "./pomodoro-task-filters";
 import { isCalendarFocusEligible, toCalendarFocusTask } from "../utils/focus-task";
 
 interface PomodoroCalendarTaskPanelProps {
   tasks: CalendarEvent[];
   userId: string;
-  focusDurationMinutes: number;
   filters: PomodoroTaskFilters;
   onFiltersChange: (filters: PomodoroTaskFilters) => void;
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
+  onCreateTask: () => void;
 }
 
-export function PomodoroCalendarTaskPanel({ tasks, userId, focusDurationMinutes, filters, onFiltersChange,
-  isLoading, isError, onRetry }: PomodoroCalendarTaskPanelProps) {
-  const [showForm, setShowForm] = useState(false);
+export function PomodoroCalendarTaskPanel({ tasks, userId, filters, onFiltersChange,
+  isLoading, isError, onRetry, onCreateTask }: PomodoroCalendarTaskPanelProps) {
   const [savingOrder, setSavingOrder] = useState(false);
   const [orderError, setOrderError] = useState("");
   const { activeTask, startFocus, stopSession, selectTask, busy, isReady } = usePomodoroSessionActions();
@@ -63,14 +61,13 @@ export function PomodoroCalendarTaskPanel({ tasks, userId, focusDurationMinutes,
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h4 className="text-sm font-semibold text-slate-800">Personal Calendar tasks</h4>
           <p className="mt-1 text-xs text-slate-500">Choose a scheduled task from your personal Calendar.</p></div>
-        <Button size="sm" variant="outline" disabled={busy} aria-expanded={showForm} onClick={() => setShowForm((current) => !current)}>
-          {showForm ? <X className="size-3.5" /> : <Plus className="size-3.5" />}{showForm ? "Close form" : "New calendar task"}
+        <Button size="sm" variant="outline" disabled={busy || !isReady} onClick={onCreateTask}>
+          <Plus className="size-3.5" />New task
         </Button>
       </div>
-      {showForm && <PomodoroCalendarTaskForm focusDurationMinutes={focusDurationMinutes} onCreated={() => setShowForm(false)} />}
       <PomodoroTaskFilterControls sourceLabel="Calendar" filters={filters} onChange={onFiltersChange} />
       {isLoading && <p role="status" className="text-xs text-slate-500">Loading Calendar tasks…</p>}
-      {isError && <p role="alert" className="text-xs text-rose-600">Unable to load Calendar tasks. <button onClick={onRetry} className="underline">Retry</button></p>}
+      {isError && <p role="alert" className="text-xs text-rose-600">Unable to load Calendar tasks. <Button variant="ghost" onClick={onRetry} className="underline">Retry</Button></p>}
       {!isLoading && !isError && matching.length === 0 && <PomodoroTaskEmptyState sourceLabel="Calendar" filters={filters} onChange={onFiltersChange} />}
       {matching.length > 0 && <PomodoroCalendarTaskList tasks={matching} activeEventId={activeTask?.calendarEventId} isSaving={savingOrder || busy || !isReady}
         onSelect={(event) => { if (!busy && isReady) void startFocus(toCalendarFocusTask(event)); }} onDelete={deleteTask} onReorder={(active, over) => void reorder(active, over)} />}

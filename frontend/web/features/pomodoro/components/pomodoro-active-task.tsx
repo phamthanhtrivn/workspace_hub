@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Pencil, Target, Timer } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { usePomodoroSession } from "./pomodoro-session-provider";
 import { PomodoroTaskPicker } from "./pomodoro-task-picker";
+import { PomodoroFocusDialog, type PomodoroFocusDialogView } from "./pomodoro-focus-dialog";
 import { PomodoroTaskActions } from "./pomodoro-task-actions";
 import { PomodoroTaskEditor } from "./pomodoro-task-editor";
 import { TaskFocusHistory } from "./task-focus-history";
@@ -17,20 +18,21 @@ import { MAX_POMODORO_NOTES_LENGTH } from "../utils/pomodoro-notes";
 export function PomodoroActiveTaskCard() {
   const { activeTask, config, status, busy, notes, setNotes, updateActiveTask, runTaskAction, focusRevision } = usePomodoroSession();
   const focusContext = `${focusRevision}:${activeTask?.id ?? "free"}`;
-  const [pickerContext, setPickerContext] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<{ context: string; view: PomodoroFocusDialogView } | null>(null);
   const [editingContext, setEditingContext] = useState<string | null>(null);
   const hasFocus = Boolean(activeTask) || status !== "IDLE";
-  const showPicker = !hasFocus || pickerContext === focusContext;
+  const dialogOpen = dialog?.context === focusContext;
+  const closeDialog = useCallback(() => setDialog(null), []);
   const editing = editingContext === focusContext;
   const link = activeTask ? focusTaskLink(activeTask) : null;
   return (
     <Card className="block w-full min-w-0 rounded-2xl border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800"><Target className="size-4 text-blue-700" />{hasFocus ? "Current focus" : "Choose your focus"}</h3>
-        {hasFocus && <Button size="sm" variant="outline" disabled={busy} aria-expanded={showPicker} onClick={() => {
-          setPickerContext(showPicker ? null : focusContext);
+        {hasFocus && <Button size="sm" variant="outline" disabled={busy} aria-haspopup="dialog" aria-expanded={dialogOpen} onClick={() => {
+          setDialog({ context: focusContext, view: "choose" });
           setEditingContext(null);
-        }}>{showPicker ? "Back to current focus" : "Change focus"}</Button>}
+        }}>Change focus</Button>}
       </div>
       {activeTask && <div className="space-y-3">
         <p className="text-xs font-medium text-blue-700">{activeTask.projectId ? `Project task · ${activeTask.projectName ?? "Project"}` : activeTask.calendarEventId ? "Calendar task" : "Personal goal"}</p>
@@ -55,7 +57,8 @@ export function PomodoroActiveTaskCard() {
       {hasFocus && <label className="mt-4 mb-4 block space-y-1.5 text-xs font-medium text-slate-600">Session notes
         <Textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Notes for this focus session…" maxLength={MAX_POMODORO_NOTES_LENGTH} rows={2} disabled={busy} />
       </label>}
-      <PomodoroTaskPicker open={showPicker} focusDurationMinutes={config.focusDuration} />
+      {!hasFocus && <PomodoroTaskPicker open={!dialogOpen} onCreateCalendarTask={() => setDialog({ context: focusContext, view: "create" })} />}
+      {dialogOpen && <PomodoroFocusDialog key={focusContext} initialView={dialog.view} focusDurationMinutes={config.focusDuration} onClose={closeDialog} />}
     </Card>
   );
 }

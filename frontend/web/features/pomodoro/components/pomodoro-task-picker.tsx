@@ -15,18 +15,22 @@ import type { PomodoroTaskFilters } from "./pomodoro-task-filters";
 
 const SOURCE_ICONS = { free: Timer, calendar: CalendarDays, project: FolderKanban };
 
-export function PomodoroTaskPicker({ open, focusDurationMinutes }: { open: boolean; focusDurationMinutes: number }) {
+export function PomodoroTaskPicker({ open, onCreateCalendarTask, initialSource }: {
+  open: boolean;
+  onCreateCalendarTask: () => void;
+  initialSource?: PomodoroFocusSource;
+}) {
   const { activeTask, focusRevision, startFreeFocus, status, busy, isReady } = usePomodoroSessionActions();
   const focusContext = `${focusRevision}:${activeTask?.id ?? "free"}`;
   const [selection, setSelection] = useState<{ context: string; source: PomodoroFocusSource } | null>(null);
-  const source = selection?.context === focusContext ? selection.source : focusTaskSource(activeTask);
+  const source = selection?.context === focusContext ? selection.source : initialSource ?? focusTaskSource(activeTask);
   const [calendarFilters, setCalendarFilters] = useState<PomodoroTaskFilters>({ scope: "today", search: "" });
   const [projectFilters, setProjectFilters] = useState<PomodoroTaskFilters>({ scope: "today", search: "" });
   const [projectId, setProjectId] = useState("");
   const { userId, calendar, project } = useFocusTaskOptions(source, open);
 
   return (
-    <section hidden={!open} aria-label="Choose your focus" className="border-t border-slate-100 pt-4">
+    <section hidden={!open} aria-label="Choose your focus">
       <Tabs value={source} onValueChange={(value) => {
         const next = POMODORO_FOCUS_SOURCES.find((candidate) => candidate.value === value);
         if (next) setSelection({ context: focusContext, source: next.value });
@@ -49,7 +53,7 @@ export function PomodoroTaskPicker({ open, focusDurationMinutes }: { open: boole
           </Button>
         </TabsContent>
         <TabsContent value="calendar" forceMount hidden={source !== "calendar"}>
-          <PomodoroCalendarTaskPanel tasks={calendar.data ?? []} userId={userId ?? ""} focusDurationMinutes={focusDurationMinutes}
+          <PomodoroCalendarTaskPanel tasks={calendar.data ?? []} userId={userId ?? ""} onCreateTask={onCreateCalendarTask}
             filters={calendarFilters} onFiltersChange={setCalendarFilters} isLoading={calendar.isLoading} isError={calendar.isError} onRetry={() => void calendar.refetch()} />
         </TabsContent>
         <TabsContent value="project">

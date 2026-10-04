@@ -1,6 +1,7 @@
 import type { Task, Project } from "../../project/types/project";
 import type { CalendarEvent } from "../../calendar/types/calendar.types";
 import type { PomodoroActiveTask, PomodoroFocusSource } from "../types/pomodoro";
+import { formatLocalDateKey, getExclusiveAllDayEndDateKey } from "../../calendar/utils/calendar-date.utils";
 
 export type FocusTaskScope = "today" | "all";
 
@@ -40,14 +41,20 @@ export function isProjectFocusActive(project: Pick<Project, "status" | "archived
 export function isCalendarFocusEligible(event: CalendarEvent, userId: string, scope: FocusTaskScope = "all", now = new Date()): boolean {
   const isTask = event.sourceType === "TASK" || Boolean(event.description?.includes("[TASK]"));
   const isPersonal = Boolean(event.calendar && !event.calendar.projectId && event.calendar.ownerUserId === userId);
-  // A calendar all-day end is exclusive; project due dates are inclusive.
-  const exclusiveEnd = event.allDay && event.endAt ? new Date(event.endAt) : null;
-  if (exclusiveEnd && !Number.isFinite(exclusiveEnd.getTime())) return false;
-  if (exclusiveEnd) exclusiveEnd.setUTCDate(exclusiveEnd.getUTCDate() - 1);
-  const end = exclusiveEnd?.toISOString() ?? event.endAt;
+  // Calendar stores inclusive 23:59 ends as well as exclusive midnight ends.
+  let start = event.startAt;
+  let end = event.endAt;
+  if (event.allDay) {
+    start = formatLocalDateKey(event.startAt);
+    const exclusiveEnd = getExclusiveAllDayEndDateKey(event.endAt, event.startAt);
+    if (!start || !exclusiveEnd) return false;
+    const lastDay = new Date(`${exclusiveEnd}T00:00:00`);
+    lastDay.setDate(lastDay.getDate() - 1);
+    end = formatLocalDateKey(lastDay);
+  }
   return isTask && isPersonal && event.permissions?.canManage !== false &&
     event.status !== "CANCELLED" && !event.cancelledAt && !event.completedAt &&
-    matchesDates(event.startAt, end, event.allDay, scope, now);
+    matchesDates(start, end, event.allDay, scope, now);
 }
 
 export function toProjectFocusTask(task: Task, project?: Pick<Project, "id" | "name" | "color">): PomodoroActiveTask {

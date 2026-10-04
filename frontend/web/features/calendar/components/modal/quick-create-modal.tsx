@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ListTodo,
   Paperclip,
-  Target,
   X,
 } from "lucide-react";
 import { FormEventHandler, useRef, useState } from "react";
@@ -22,6 +21,7 @@ import { CalendarEventFormController } from "../../hooks/use-calendar-event-form
 import { useModalDialog } from "../../hooks/use-modal-dialog";
 import {
   CalendarEvent,
+  CalendarTaskDeadline,
   EventSourceType,
   WorkspaceCalendar,
 } from "../../types/calendar.types";
@@ -36,6 +36,7 @@ import {
   QuickCreateTimeSection,
   QuickRow,
 } from "./quick-create-time-section";
+import { CalendarTaskDeadlineFields } from "./calendar-task-deadline-fields";
 import { ReminderEditor } from "./reminder-editor";
 import { formatReminderSummary } from "../../utils/calendar-reminder.utils";
 
@@ -99,11 +100,9 @@ export function QuickCreateModal({
 
   // Task deadline state
   const initialDeadline = readTaskDeadline(event?.description);
-  const [showDeadline, setShowDeadline] = useState(
-    Boolean(initialDeadline.date),
-  );
-  const [deadlineDate, setDeadlineDate] = useState(initialDeadline.date);
-  const [deadlineTime, setDeadlineTime] = useState(initialDeadline.time);
+  const [deadline, setDeadline] = useState<CalendarTaskDeadline>({
+    enabled: Boolean(initialDeadline.date), date: initialDeadline.date, time: initialDeadline.time,
+  });
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (submitEvent) => {
     if (kind === "task") {
@@ -121,9 +120,9 @@ export function QuickCreateModal({
         "description",
         writeTaskDeadline(
           getValues("description") || "",
-          deadlineDate,
-          deadlineTime,
-          showDeadline,
+          deadline.date,
+          deadline.time,
+          deadline.enabled,
         ),
       );
     } else {
@@ -271,57 +270,7 @@ export function QuickCreateModal({
               />
             )}
 
-            {/* Task Specific: Deadline */}
-            {kind === "task" && (
-              <QuickRow icon={<Target className="h-5 w-5" />}>
-                {!showDeadline ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setShowDeadline(true)}
-                    className="h-auto w-full cursor-pointer justify-start rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
-                  >
-                    {copy.addDeadline}
-                  </Button>
-                ) : (
-                  <div
-                    className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-slate-50/90 px-3 py-2"
-                    style={{
-                      boxShadow: `inset 3px 0 0 ${modalAccent}`,
-                    }}
-                  >
-                    <Input
-                      type="date"
-                      value={deadlineDate}
-                      aria-label={copy.deadline}
-                      onChange={(e) => setDeadlineDate(e.target.value)}
-                      className="h-8 w-auto cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
-                    />
-                    <Input
-                      type="time"
-                      value={deadlineTime}
-                      aria-label={copy.deadline}
-                      onChange={(e) => setDeadlineTime(e.target.value)}
-                      className="h-8 w-auto cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setShowDeadline(false);
-                        setDeadlineDate("");
-                        setDeadlineTime("");
-                      }}
-                      className="ml-auto h-7 w-7 cursor-pointer rounded-full p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-800"
-                      aria-label={copy.close}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </QuickRow>
-            )}
+            {kind === "task" && <CalendarTaskDeadlineFields value={deadline} onChange={setDeadline} />}
 
             {/* Description */}
             <QuickRow icon={<AlignLeft className="h-5 w-5" />}>

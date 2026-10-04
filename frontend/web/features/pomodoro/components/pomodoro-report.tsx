@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
-import { SimplePagination } from "@/components/ui/custom/simple-pagination";
 import { usePomodoroReport } from "../hooks/use-pomodoro-report";
 import { POMODORO_REPORT_PAGE_SIZE } from "../constants/pomodoro-report";
 import { getPomodoroPagination } from "../utils/pomodoro-pagination";
@@ -116,7 +115,7 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
         </div>
         <p className="mt-2 text-[11px] text-slate-500">Up to 93 days. Sessions are counted by their start date in local time.</p>
         {query.validationError ? <p role="alert" className="mt-3 text-xs text-rose-600">{query.validationError}</p>
-          : query.isError ? <div role="alert" className="mt-3 text-xs text-rose-600">Unable to load the report. <button type="button" className="underline" onClick={() => void query.refetch()}>Retry</button></div>
+          : query.isError ? <div role="alert" className="mt-3 text-xs text-rose-600">Unable to load the report. <Button variant="ghost" type="button" className="underline" onClick={() => void query.refetch()}>Retry</Button></div>
           : query.isPending ? <p role="status" className="mt-3 text-xs text-slate-500">Loading history...</p> : null}
         {ready && report && (
           <>
@@ -136,19 +135,12 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
         )}
       </Card>
       {ready && report && (
-        <>
-          <PomodoroSessionHistory
-            records={report.sessions.slice(sessionPagination.startIndex, sessionPagination.endIndex)}
-            title="Session history" totalCount={report.sessions.length} showDates
-            page={sessionPagination.currentPage}
-          />
-          {sessionPagination.totalPages > 1 && (
-            <SimplePagination
-              page={sessionPagination.currentPage} totalPages={sessionPagination.totalPages}
-              onPageChange={setSessionPage} ariaLabel="Session history pagination"
-            />
-          )}
-        </>
+        <PomodoroSessionHistory
+          records={report.sessions.slice(sessionPagination.startIndex, sessionPagination.endIndex)}
+          title="Session history" totalCount={report.sessions.length} showDates
+          page={sessionPagination.currentPage} totalPages={sessionPagination.totalPages}
+          onPageChange={setSessionPage}
+        />
       )}
     </section>
   );
