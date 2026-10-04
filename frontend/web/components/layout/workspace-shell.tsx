@@ -260,10 +260,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
 
         <div className="mt-auto mb-2 pt-4">
           <div
-            onClick={() => {
-              setActiveSettingsTab(UserSettingTab.GENERAL);
-              setIsSettingsModalOpen(true);
-            }}
+            onClick={() => handleOpenSettings(UserSettingTab.PROFILE)}
             className={cn(
               "rounded-2xl border border-slate-200 bg-slate-50 p-4 transition-all duration-300 cursor-pointer hover:bg-slate-100",
               isSidebarCollapsed ? "lg:px-2 lg:flex lg:justify-center" : "",
