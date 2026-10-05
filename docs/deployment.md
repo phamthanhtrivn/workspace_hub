@@ -1,379 +1,313 @@
-# WorkSpaceHub Docker and AWS deployment
+# WorkspaceHub Docker and EC2 deployment
 
-## Architecture and repository commands
-
-All commands below run from the repository root unless another directory is shown.
-The app, realtime and infrastructure hosts are three Linux **x86_64** EC2 instances
-in the same VPC. Use stable private IPs or private DNS between hosts. GitHub builds
-images; EC2 downloads deployment artifacts and pulls images without a Git checkout.
+Commands run from the repository root unless stated otherwise. Three Ubuntu 24.04
+x86_64 EC2 instances share a VPC in Sydney. GitHub builds images and sends only the
+configuration and scripts from the release commit through SCP. EC2 pulls images;
+it needs neither a Git checkout nor application build tools.
 
 | Host | Runtime directory | Services |
 | --- | --- | --- |
-| EC2-1 APP | `/opt/workspacehub/app` | web, Kong, user, project, communication, document, calendar, notification |
-| EC2-2 REALTIME | `/opt/workspacehub/realtime` | LiveKit, Egress |
-| EC2-3 INFRA | `/opt/workspacehub/infra` | PostgreSQL, Redis, Kafka, topic initializer |
+| APP | `/opt/workspacehub/app` | web, Kong, user, project, communication, document, calendar, notification |
+| REALTIME | `/opt/workspacehub/realtime` | LiveKit, Egress |
+| INFRA | `/opt/workspacehub/infra` | PostgreSQL, Redis, Kafka, topic initializer |
 
-Development uses one default Compose bridge network and persistent named volumes:
+## Development
+
+Create your local, ignored `deploy/dev/.env`; the deleted example files are not
+required. Use the APP env names below, plus `DEV_IMAGE_TAG=sha-<full commit SHA>`,
+`POSTGRES_PASSWORD_URLENCODED` (percent-encoded password), and `NEXT_PUBLIC_API_URL`,
+`NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_NOMINATIM_URL`, `NEXT_PUBLIC_ASSET_HOST`.
+Development does not need `DOCKERHUB_USERNAME`, `INFRA_PRIVATE_HOST` or `LIVEKIT_URL`.
+Use `FRONTEND_URL=http://localhost:3000` and browser API URL `http://localhost:8000`.
 
 ```bash
-cp deploy/dev/.env.example deploy/dev/.env
-# Edit deploy/dev/.env. Set real provider configuration where you use integrations.
 docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml up -d --build
 docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml --profile realtime up -d --build
 docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml down
 ```
 
-Frontend: `http://localhost:3000`; Kong: `http://localhost:8000`.
-Development service and database ports bind to loopback. Kong Admin is disabled.
-Nest and frontend source bind mounts retain hot reload. Maven retains the existing
-development command; restart the user container after Java edits when necessary.
-Stopping the stack preserves volumes. Old Compose paths have been retired.
-Set `DEV_IMAGE_TAG` in the local env file to `sha-<git rev-parse HEAD>` for explicitly
-tagged local build images. The example SHA is a placeholder; source bind mounts
-still reflect working-tree edits without rebuilding. These images stay local.
-The new Compose project uses separate volume names, so existing legacy data is
-not automatically adopted. Back up and restore it explicitly before switching.
+Source bind mounts retain hot reload. Local SHA images are not published. The
+default bridge network uses persistent named volumes; stopping preserves data.
+Legacy volumes are not automatically adopted: back up and restore explicitly.
+Kong Admin is disabled. Development service/database ports bind to loopback.
 
-Prisma migration creation is explicit, for example:
+Create Prisma migrations explicitly, for example:
 
 ```bash
 docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml exec communication-service npx prisma migrate dev --name change_name
 ```
 
-Startup applies committed migrations without accepting destructive schema changes.
-Project and user schemas use SQL, not Prisma Migrate. Their one-shot development
-migration containers finish before the applications start. After adding SQL files,
-rerun those migration containers explicitly before restarting the affected service.
-Use percent-encoded passwords in `POSTGRES_PASSWORD_URLENCODED`; username should be
-a simple PostgreSQL identifier. Production derives the encoded password automatically.
+Startup applies committed migrations. User/project one-shot SQL jobs complete
+before applications start; rerun those jobs when adding SQL files.
 
-## Pinned image versions and release names
+## Images and GitHub configuration
 
-| Component | Image/version | Purpose |
+Production publishes eight application repositories: `workspacehub-web`,
+`workspacehub-kong`, and `workspacehub-{user,project,communication,document,calendar,notification}-service`.
+Six more `workspacehub-<service>-migration` repositories contain migration tools.
+All 14 use `sha-<full Git commit SHA>`. Enable immutable SHA tags in Docker Hub;
+existing images are reused on retries. Browser `NEXT_PUBLIC_*` values are fixed at
+build time, so changing them requires a new commit and build.
+
+Infrastructure and base images retain explicit version/digest pins in source:
+PostgreSQL 15.18, Redis 7.4.8, Kafka 4.3.1, Kong 3.9.1, LiveKit 1.13.5, Egress 1.14.1,
+Node 22.22.0, Maven 3.9.9 production builder, and Java 21 runtime.
+
+Create the GitHub **production** environment and restrict deployment branches to
+`main`. Configure these secrets and variables there:
+
+| Type | Name | Value |
 | --- | --- | --- |
-| PostgreSQL | `postgres:15.18-alpine` + digest in source | infra and SQL migration runner |
-| Redis | `redis:7.4.8-alpine` + digest in source | persistent cache and LiveKit coordination |
-| Kafka | `apache/kafka:4.3.1` + digest in source | KRaft single broker and topic initialization |
-| Kong | `kong:3.9.1` + digest in source | gateway with `jwt-user-context` |
-| LiveKit | `livekit/livekit-server:v1.13.5` + digest in source | preserve existing server pin |
-| Egress | `livekit/egress:v1.14.1` + digest in source | recording worker |
-| Node | `node:22.22.0-alpine3.23` + digest in source | Node development, builds and runtime |
-| Maven development | `maven:3.9.6-eclipse-temurin-21` + digest in source | existing Java development version |
-| Maven production builder | `maven:3.9.9-eclipse-temurin-21` + digest in source | existing Java production builder |
-| Java runtime | `eclipse-temurin:21.0.7_6-jre-alpine` + digest in source | existing JRE runtime |
+| Secret | `DOCKERHUB_TOKEN` | token with image push permission |
+| Secret | `SSH_PRIVATE_KEY` | deploy private key accepted by all three EC2 hosts |
+| Variable | `DOCKERHUB_USERNAME` | image namespace; must match APP env |
+| Variable | `APP_SSH_HOST` | APP public IPv4 or DNS |
+| Variable | `INFRA_SSH_HOST` | INFRA public IPv4 or DNS |
+| Variable | `REALTIME_SSH_HOST` | REALTIME public IPv4 or DNS |
+| Variable | `SSH_USER` | default `ubuntu` |
+| Variable | `SSH_PORT` | default `22` |
+| Variable | `SSH_KNOWN_HOSTS` | verified OpenSSH known_hosts entries for all three hosts |
+| Variable | `NEXT_PUBLIC_API_URL` | browser API base URL, without `/api` |
+| Variable | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | public Google browser client ID |
+| Variable | `NEXT_PUBLIC_NOMINATIM_URL` | geocoding URL |
+| Variable | `NEXT_PUBLIC_ASSET_HOST` | optional asset hostname, without scheme |
 
-PostgreSQL, Redis and Kafka versions were read from the locally used floating
-images and then pinned by version and digest. Egress uses the installed explicit
-version. Other existing production pins are preserved.
-Development Node images now match the repository's already pinned production
-Node 22.22.0 toolchain, keeping framework and Prisma builds consistent.
-Maven's combined tags
-pin Maven and the JDK major; the repository's existing published combination is
-retained because a more specific combined JDK patch tag has not been established;
-the digest fixes the full combined image, including its JDK build.
-Patch tags with digests remain fixed even if their Alpine alias is republished.
+Expose public build values at repository level too if PR builds should use them.
+Remove obsolete workflow settings `AWS_ROLE_ARN`, `DEPLOY_ARTIFACT_BUCKET`,
+`APP_EC2_INSTANCE_ID`, `INFRA_EC2_INSTANCE_ID`, `REALTIME_EC2_INSTANCE_ID`,
+`DOCKERHUB_PRIVATE_REPOSITORIES`, and GitHub variable `AWS_REGION`.
+The application's `AWS_REGION` remains required. No GitHub OIDC role, SSM command,
+artifact bucket, or Parameter Store lookup participates in deployment.
 
-Eight runtime repositories are `workspacehub-web`, `workspacehub-kong`, and
-`workspacehub-{user,project,communication,document,calendar,notification}-service`.
-Six additional `workspacehub-<service>-migration` repositories hold migration tools.
-Every image in a release uses `<namespace>/<repository>:sha-<full Git commit SHA>`.
-EC2 never deploys branch aliases or floating tags.
+PRs targeting main run lint, unit tests, configuration checks, and trial builds;
+they never publish or deploy. Push/merge to main invokes the same reusable CI once,
+then publishes and deploys APP. Manual **Release production** is restricted to main
+and runs the same checks. **Deploy infra** and **Deploy realtime** are manual main
+workflows; APP releases do not restart their services.
 
-Create a Docker Hub namespace and these 14 repositories. Enable immutable SHA tags
-in Docker Hub (all tags, or a `sha-` tag rule). Create an access token with push access
-and add it as the GitHub production environment secret `DOCKERHUB_TOKEN`.
-Add `DOCKERHUB_USERNAME` as a variable. Existing SHA images are reused on redeployment;
-changing public browser configuration requires a new commit and frontend build.
+## Host preparation and SSH
 
-Private repositories: set GitHub variable `DOCKERHUB_PRIVATE_REPOSITORIES=true`,
-and create `/workspacehub/prod/dockerhub/username` (String) and
-`/workspacehub/prod/dockerhub/token` (SecureString, pull-only token). EC2-1 logs in
-through stdin. Public repositories need neither host parameter.
-
-## GitHub, IAM and EC2 bootstrap
-
-Create a GitHub Environment named **production**, restrict deployment branches to
-`main`, and configure reviewers if desired. PR CI does not publish images or assume
-AWS credentials. Keep these variables in the production environment; expose public
-build values at repository level too if PR images should use the same public values.
-
-| Name | Type | Use |
-| --- | --- | --- |
-| `DOCKERHUB_TOKEN` | secret | GitHub image publication only |
-| `DOCKERHUB_USERNAME` | variable | image namespace, also an APP runtime parameter |
-| `DOCKERHUB_PRIVATE_REPOSITORIES` | variable, optional, default false | host pull authentication |
-| `AWS_REGION` | variable | AWS workflow region |
-| `AWS_ROLE_ARN` | variable | GitHub OIDC role |
-| `APP_EC2_INSTANCE_ID` | variable | app SSM target |
-| `REALTIME_EC2_INSTANCE_ID` | variable | realtime SSM target |
-| `INFRA_EC2_INSTANCE_ID` | variable | infra SSM target |
-| `DEPLOY_ARTIFACT_BUCKET` | variable | private S3 configuration bundle bucket |
-| `NEXT_PUBLIC_API_URL` | public build variable | browser API base URL, without `/api` |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | public build variable | Google browser client |
-| `NEXT_PUBLIC_NOMINATIM_URL` | public build variable | geocoding URL |
-| `NEXT_PUBLIC_ASSET_HOST` | public build variable, optional | asset hostname, without scheme |
-
-Set API URL consistently with the frontend's existing API client; the example is
-`http://<APP_PUBLIC_IP>:8000`. Google client IDs are public; provider passwords and
-JWT secrets are runtime values. No permanent AWS keys or SSH keys are needed in GitHub.
-
-Create an IAM OIDC provider with URL `https://token.actions.githubusercontent.com`
-and audience `sts.amazonaws.com`. Create `GitHubActionsWorkspaceHubRole` with:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Effect": "Allow",
-    "Principal": {"Federated": "arn:aws:iam::<ACCOUNT_ID>:oidc-provider/token.actions.githubusercontent.com"},
-    "Action": "sts:AssumeRoleWithWebIdentity",
-    "Condition": {"StringEquals": {
-      "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-      "token.actions.githubusercontent.com:sub": "repo:phamthanhtrivn/workspace_hub:environment:production"
-    }}
-  }]
-}
-```
-
-The environment restriction and workflow main-branch guards are both required.
-Give this role `ssm:SendCommand` on the three instance ARNs and
-`arn:aws:ssm:<REGION>::document/AWS-RunShellScript`, `ssm:GetCommandInvocation` on `*`
-(that operation has no instance resource scope), and `s3:PutObject` on
-`arn:aws:s3:::<ARTIFACT_BUCKET>/workspacehub/*`. It does not need runtime secret access.
-Create a private encrypted artifact bucket with public access blocked and retention
-long enough to retain the previous releases. SSE-S3 works without an extra KMS grant;
-for SSE-KMS grant only the required encryption/decryption rights to the respective roles.
-
-Each EC2 role needs `AmazonSSMManagedInstanceCore`, `s3:GetObject` on its own
-`workspacehub/<role>/*` artifact prefix, and `ssm:GetParametersByPath` on
-`arn:aws:ssm:<REGION>:<ACCOUNT_ID>:parameter/workspacehub/prod/<role>/*`.
-Add `kms:Decrypt` for the customer managed key if SecureStrings use one.
-EC2-1 alone needs optional Docker Hub `ssm:GetParameter` on the two Docker Hub
-parameters and application S3 access scoped to the bucket/object prefixes used.
-EC2-2 needs recording bucket access if Egress outputs to S3.
-Use the default SDK credential chain, not static AWS keys. For bridge-network
-containers to reach IMDSv2, set the EC2 metadata response hop limit to **2**, keep
-IMDSv2 tokens required, and validate role access from the application containers.
-
-Bootstrap each **Ubuntu 24.04 x86_64** host through an administrative SSM session or
-emergency SSH. Install Docker from its official Ubuntu repository, Compose v2,
-AWS CLI v2, Python 3, curl, tar, sha256sum and flock. Example:
+Install Docker from its official Ubuntu repository, Compose v2, Python and tools
+on each host using an administrative SSH session:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y ca-certificates curl unzip python3 util-linux
+sudo apt-get install -y ca-certificates curl python3 python3-venv util-linux openssh-server
 sudo install -m 0755 -d /etc/apt/keyrings
 sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
 sudo chmod a+r /etc/apt/keyrings/docker.asc
 echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable' | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
 sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscliv2.zip
-unzip -q /tmp/awscliv2.zip -d /tmp
-sudo /tmp/aws/install --update
-sudo systemctl enable --now docker
-sudo mkdir -p /opt/workspacehub/{app,infra,realtime}
-sudo aws configure set region <AWS_REGION>
+sudo systemctl enable --now docker ssh
+sudo install -d -m 700 /opt/workspacehub/app /opt/workspacehub/infra /opt/workspacehub/realtime
+sudo python3 -m venv /opt/workspacehub/venv
+sudo /opt/workspacehub/venv/bin/python -m pip install python-dotenv==1.2.1
 docker compose version
-aws --version
 ```
 
-Attach each IAM instance profile, install/enable the SSM agent if the AMI does not
-include it, and verify the instance is Online in Systems Manager. SSM requires
-outbound HTTPS to its service endpoints (or VPC endpoints); image pulls require
-registry internet access, and S3 needs internet or its VPC endpoint. No inbound SSH
-is required for normal releases. Give INFRA sufficient EBS capacity and establish
-database/EBS backup and restore procedures before keeping production data.
+Install the common deploy public key in `ubuntu`'s `~/.ssh/authorized_keys` on all
+hosts. Use directory mode 700 and file mode 600. The private key stays on your
+machine and in the GitHub secret. The deploy account must have noninteractive sudo
+for the installer and its Docker/file operations. On the standard Ubuntu AMI,
+verify `sudo -n true`; provision a dedicated, reviewed sudoers rule if necessary.
+The installer runs as root and creates root-owned mode-600 env files and private
+logs. This deploy key therefore grants administrative deployment access.
 
-EC2 instance-role trust uses `ec2.amazonaws.com` with `sts:AssumeRole`.
-On Ubuntu AMIs using the snap SSM agent, verify/install it with:
+Private Docker Hub images: authenticate **once on APP under the root account that
+runs the installer**, with a pull-only token entered at the prompt:
 
 ```bash
-sudo snap list amazon-ssm-agent || sudo snap install amazon-ssm-agent --classic
-sudo systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service
+sudo docker login --username YOUR_DOCKERHUB_USERNAME
 ```
 
-Official references: [AWS OIDC providers](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html),
-[SSM Run Command](https://docs.aws.amazon.com/systems-manager/latest/userguide/run-command.html),
-[LiveKit Egress deployment](https://docs.livekit.io/transport/self-hosting/egress/).
+Public images do not require host login. Tokens are not read from Parameter Store.
 
-## Runtime parameters, networking and first deployment
+Verify each host key fingerprint against an independent trusted source such as
+the EC2 console/administrative session (`ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`).
+`ssh-keyscan` only collects keys; compare fingerprints before trusting its output.
+Put verified entries in local known_hosts and GitHub `SSH_KNOWN_HOSTS`. Nondefault
+ports use `[hostname]:port` entries. The helper sets `StrictHostKeyChecking=yes`,
+key-only batch authentication, connection timeouts and keepalives, and fails on
+unknown/changed keys. See [OpenSSH](https://man.openbsd.org/ssh).
 
-Parameter Store names are `/workspacehub/prod/<role>/<ENV_NAME>`. Use the exact
-uppercase names below. Sensitive values use SecureString; others use String.
-These host-specific prefixes intentionally differ from the suggested domain
-prefixes in the original brief so IAM access is limited by host role.
+Security Groups must allow the configured SSH port (TCP 22 by default) from the
+GitHub-hosted runner. Runner IPs change; allowing only your personal IP is
+insufficient. Maintain a suitable runner IP allowlist, or use a runner with fixed
+egress if your network policy requires stable addresses. Permit your administrative
+IP separately. All hosts also need outbound registry and package access.
 
-| Role | Required parameter names |
+APP needs its application S3 instance-role permissions independently of GitHub.
+Keep bucket `workspacehub-s3` and APP `AWS_REGION=ap-southeast-2`. EC2's default SDK
+credential chain can use the instance profile; IMDSv2 tokens should be required
+with response hop limit 2 for bridge containers. Verify bucket access inside an
+application container. REALTIME needs S3 access if future Egress jobs write there.
+Deployment does not modify bucket data or require an artifact bucket.
+
+## Operator-managed env files
+
+Create and edit these ignored local files. Do not commit them, upload them to GitHub,
+or include them in a deployment bundle.
+
+| Local file | EC2 file |
+| --- | --- |
+| `deploy/prod/app/.env` | `/opt/workspacehub/app/.env.production` |
+| `deploy/prod/infra/.env` | `/opt/workspacehub/infra/.env.production` |
+| `deploy/prod/realtime/.env` | `/opt/workspacehub/realtime/.env.production` |
+
+| Role | Required env names |
 | --- | --- |
 | APP | `DOCKERHUB_USERNAME`, `INFRA_PRIVATE_HOST`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `FRONTEND_URL`, `JWT_SECRET_KEY`, `INTERNAL_SERVICE_KEY`, `AWS_REGION`, `AWS_S3_BUCKET_NAME`, `GOOGLE_CLIENT_ID`, `LIVEKIT_URL`, `LIVEKIT_PUBLIC_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` |
 | INFRA | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `INFRA_BIND_HOST`, `KAFKA_ADVERTISED_HOST` |
 | REALTIME | `INFRA_PRIVATE_HOST`, `LIVEKIT_URL`, `LIVEKIT_PUBLIC_IP`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_WEBHOOK_URL` |
 
-Optional APP parameters: `AWS_CLOUDFRONT_URL`, `MAIL_FROM`, `MAIL_PORT` (587),
-`FRONTEND_PORT` (3000), `KONG_PORT` (8000). APP and INFRA PostgreSQL credentials must
-match. APP and REALTIME LiveKit credentials must match. JWT secret must be at least
-32 random characters and shared by user-service, the Nest services and Kong.
-Generate valid VAPID keys, for example with the installed notification dependency:
-`node -e "console.log(require('./backend/notification-service/node_modules/web-push').generateVAPIDKeys())"`.
-Keep the private result in Parameter Store. Google secret is not used by current
-application configuration and is therefore not requested.
+Optional APP names: `AWS_CLOUDFRONT_URL`, `MAIL_FROM`, `MAIL_PORT` (587),
+`FRONTEND_PORT` (3000), `KONG_PORT` (8000). Match PostgreSQL credentials on APP/INFRA
+and LiveKit credentials on APP/REALTIME. Use a shared JWT secret of at least 32
+random characters. Internal credentials are shared by the services on APP.
+Generate valid VAPID keys with your notification service's web-push dependency.
+Match backend Google client ID to the frontend build variable.
 
-Use SecureString for `POSTGRES_PASSWORD`, `JWT_SECRET_KEY`, `INTERNAL_SERVICE_KEY`,
-`LIVEKIT_API_SECRET`, `MAIL_PASSWORD`, `VAPID_PRIVATE_KEY` and the optional Docker Hub
-pull token. Service HTTP URLs are derived from local Compose DNS on EC2-1;
-`INTERNAL_SERVICE_KEY` is shared by the services that protect internal operations.
+Use dotenv `NAME=value` syntax, quoting special characters. The pinned
+[python-dotenv parser](https://github.com/theskumar/python-dotenv) reads the file
+without shell execution or `${...}` expansion. Malformed, missing, empty required,
+multiline and NUL-containing values fail validation. Do not put `IMAGE_TAG` or
+`PREVIOUS_IMAGE_TAG` in this file. The renderer derives the percent-encoded DB
+password and writes `.env.runtime` plus LiveKit/Egress runtime configs at mode 600.
+It never writes `.env.production`.
 
-Create values in the AWS console, or with protected local files rather than
-placing secrets into shell history:
+From PowerShell, use your verified known_hosts file and deploy key. Replace all
+placeholder hosts before running. Upload into the SSH account's home, then install
+the destination privately and remove the temporary file:
 
-```bash
-aws ssm put-parameter --name /workspacehub/prod/app/JWT_SECRET_KEY --type SecureString --value file:///path/to/private-secret.txt
+```powershell
+$DeployKey = "$env:USERPROFILE\.ssh\workspacehub_deploy"
+$KnownHosts = "$env:USERPROFILE\.ssh\known_hosts"
+$DeployUser = "ubuntu"
+$DeployPort = "22"
+$AppHost = "APP_PUBLIC_IP_OR_DNS"
+$InfraHost = "INFRA_PUBLIC_IP_OR_DNS"
+$RealtimeHost = "REALTIME_PUBLIC_IP_OR_DNS"
+
+ssh -i $DeployKey -p $DeployPort -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$KnownHosts" "${DeployUser}@${AppHost}" 'umask 077; mkdir -p ~/.workspacehub-env; chmod 700 ~/.workspacehub-env'
+scp -i $DeployKey -P $DeployPort -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$KnownHosts" deploy/prod/app/.env "${DeployUser}@${AppHost}:.workspacehub-env/app.env"
+ssh -i $DeployKey -p $DeployPort -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$KnownHosts" "${DeployUser}@${AppHost}" 'sudo -n install -o root -g root -m 600 ~/.workspacehub-env/app.env /opt/workspacehub/app/.env.production && rm ~/.workspacehub-env/app.env'
+
+ssh -i $DeployKey -p $DeployPort -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$KnownHosts" "${DeployUser}@${InfraHost}" 'umask 077; mkdir -p ~/.workspacehub-env; chmod 700 ~/.workspacehub-env'
+scp -i $DeployKey -P $DeployPort -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$KnownHosts" deploy/prod/infra/.env "${DeployUser}@${InfraHost}:.workspacehub-env/infra.env"
+ssh -i $DeployKey -p $DeployPort -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$KnownHosts" "${DeployUser}@${InfraHost}" 'sudo -n install -o root -g root -m 600 ~/.workspacehub-env/infra.env /opt/workspacehub/infra/.env.production && rm ~/.workspacehub-env/infra.env'
+
+ssh -i $DeployKey -p $DeployPort -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$KnownHosts" "${DeployUser}@${RealtimeHost}" 'umask 077; mkdir -p ~/.workspacehub-env; chmod 700 ~/.workspacehub-env'
+scp -i $DeployKey -P $DeployPort -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$KnownHosts" deploy/prod/realtime/.env "${DeployUser}@${RealtimeHost}:.workspacehub-env/realtime.env"
+ssh -i $DeployKey -p $DeployPort -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$KnownHosts" "${DeployUser}@${RealtimeHost}" 'sudo -n install -o root -g root -m 600 ~/.workspacehub-env/realtime.env /opt/workspacehub/realtime/.env.production && rm ~/.workspacehub-env/realtime.env'
 ```
 
-Value files must contain one line without a trailing newline. The dotenv renderer
-rejects multiline values; this application does not require PEM-style env values.
+Check `$LASTEXITCODE` after every command; stop if it is nonzero. Later env changes
+use this same procedure followed by the affected deployment workflow. Ordinary
+releases retain the files already on EC2.
 
-Do not store `IMAGE_TAG` in Parameter Store; the release script controls it.
-Deployment fetches parameters on EC2 without logging values, writes mode-0600
-dotenv files, URL-encodes the DB password, and generates LiveKit/Egress runtime
-config. Committed realtime YAML contains configuration templates, not keys.
-Use stable host addresses: APP `INFRA_PRIVATE_HOST` and INFRA `KAFKA_ADVERTISED_HOST`
-both address EC2-3; `INFRA_BIND_HOST` is EC2-3's actual private interface IP.
-Kafka metadata advertises that reachable private endpoint on 9092.
+## Networking and first deployment
 
-REALTIME `LIVEKIT_URL` is its local/private websocket URL; APP `LIVEKIT_URL` addresses
-EC2-2 privately. APP `LIVEKIT_PUBLIC_URL` addresses EC2-2 from browsers.
-`LIVEKIT_PUBLIC_IP` is EC2-2's public IP used by ICE. Set webhook URL to
+Use private IP/DNS for cross-host traffic. APP `INFRA_PRIVATE_HOST` and INFRA
+`KAFKA_ADVERTISED_HOST` point to INFRA; `INFRA_BIND_HOST` is its private interface IP.
+APP's `LIVEKIT_URL` points to REALTIME privately; `LIVEKIT_PUBLIC_URL` is reachable
+by browsers. REALTIME's `LIVEKIT_URL` is its local/private WebSocket URL and
+`LIVEKIT_PUBLIC_IP` is its public ICE address. Use webhook URL
 `http://<APP_PRIVATE_HOST>:8000/api/meetings/livekit/webhook` (adjust Kong port).
-Egress shares EC2-3 Redis with LiveKit. Both realtime services use host networking
-to make advertised WebRTC ports match the host. Egress's health port 9090 and metrics
-9091 need no public access. The repository currently has LiveKit meetings and S3
-media storage but no recording-start operation; Egress provides the worker without
-inventing recording business logic. Future S3 egress outputs should use EC2-2's
-role and the configured recording bucket.
+LiveKit/Egress share INFRA Redis and use host networking.
 
 | Security group | Inbound rule |
 | --- | --- |
-| APP | TCP 3000 and 8000 from intended clients during initial IP-based testing; later 80/443 at your proxy |
-| APP | TCP 8000 from REALTIME group for the signed LiveKit webhook |
-| REALTIME | TCP 7880 signaling, TCP 7881 fallback, UDP 7882 media from intended clients |
-| REALTIME | TCP 7880 from APP group for server API calls |
-| INFRA | TCP 5432 from APP group only |
-| INFRA | TCP 6379 from APP and REALTIME groups only |
-| INFRA | TCP 9092 from APP group only |
+| All three | SSH port from authorized administrators and runner egress |
+| APP | TCP 3000/8000 from intended clients during IP testing; later proxy 80/443 |
+| APP | TCP 8000 from REALTIME for signed webhooks |
+| REALTIME | TCP 7880 signaling, TCP 7881 fallback, UDP 7882 media from clients |
+| REALTIME | TCP 7880 from APP for server API calls |
+| INFRA | TCP 5432 from APP only |
+| INFRA | TCP 6379 from APP and REALTIME only |
+| INFRA | TCP 9092 from APP only |
 
-Do not publish 8081–8086, Kong 8001/8444, or Egress management ports publicly.
-Do not allow 5432/6379/9092 from `0.0.0.0/0`. Redis and Kafka use private plaintext
-listeners in this initial VPC design; network isolation is required.
+Do not expose backend ports 8081–8086, Kong Admin 8001/8444, Egress health/metrics
+9090/9091, or database/cache/broker ports publicly. Redis/Kafka private plaintext
+listeners require VPC isolation. Browser camera/microphone and web push require a
+secure context; configure domains/TLS and Google origins/S3 CORS for full testing.
 
-First deployment order:
+1. Prepare hosts, Docker Hub, SSH keys/verified host keys, security groups and the
+   GitHub environment; install the parser and operator env on all hosts.
+2. Merge into main. An early automatic APP release fails if INFRA is not ready.
+3. Dispatch **Deploy infra** on main; verify databases, Redis, Kafka and topics.
+4. Dispatch **Deploy realtime** on main; verify signaling, ICE and webhook access.
+5. Dispatch **Release production** on main, or push a new main commit. CI must pass
+   before all 14 images publish and the APP configuration is sent by SCP.
+6. The host verifies SHA-256 before extraction, acquires its deployment lock, renders
+   runtime env, pulls images, runs all six migrations, rolls out APP, checks container
+   health and six readiness routes through Kong, then records `.release.env`.
 
-1. Prepare VPC, instances, security groups, IAM, SSM, Docker Hub, GitHub environment,
-   artifact bucket and host parameters. These must exist before workflows can run.
-2. Merge the reviewed deployment changes into `main`. Do not commit `.env` files.
-   If automatic APP release runs before INFRA is ready, it fails without marking success.
-3. Dispatch **Deploy infra** on main. PostgreSQL creates the six service databases;
-   Redis and Kafka persist data; the initializer creates existing application topics.
-4. Dispatch **Deploy realtime** on main and verify signaling, ICE and webhook reachability.
-5. Dispatch **Release production** on main (or use the next main push). It builds the
-   eight runtime and six migration images, uploads the app bundle to S3, authenticates
-   with OIDC, and executes SSM. All build jobs must succeed before deployment.
-6. EC2-1 locks the release, retains previous config/environment, pulls candidate
-   images, runs all six migrations, starts applications, verifies container health
-   and six readiness routes through Kong, then atomically records `.release.env`.
+SCP/SSH/host-key/checksum failures fail the workflow. Installer output stays in a
+root-owned `deployment.log.*` on the affected host, avoiding secret-bearing provider
+errors in GitHub logs. A SHA bundle contains only allowlisted Compose/templates,
+runtime scripts and INFRA init files from that commit, including no env files.
 
-SSM completion is polled; failures fail the workflow. Artifact SHA-256 is checked
-before extraction. INFRA/REALTIME deployments are manual and do not run on every
-application push. The deployed artifact contains only host configuration, scripts
-and (for INFRA) database init files. No full checkout or application build is needed.
+## Migrations, rollback and verification
 
-Before domains exist, use public IP URLs for basic HTTP testing. Browser microphone,
-camera and web push need a secure browser context; full meeting capture requires
-HTTPS (or a local trusted testing setup). Configure Google's permitted origins and
-S3 CORS to match the actual frontend URL. Later configure `app.<domain>`,
-`api.<domain>`, `live.<domain>`, TLS certificates and a reverse proxy, update frontend
-build variables and runtime URLs, and release a new commit. No Compose host split
-changes are needed. IP-only HTTP is not claimed to support all browser features.
+Four Prisma runners use `migrate deploy`. User/project SQL runners order filenames,
+record checksums, lock migration sessions and transact each file. The two existing
+project V20 files retain separate filename identities. Changed applied files fail.
+Migration failure prevents rollout; partial database progress is retained. Spring
+production validates its schema instead of generating it.
 
-## Migrations, verification, rollback and upgrades
+For existing databases created by `db push`, Hibernate update or manual SQL, review
+and reconcile the migration baseline after backing up and comparing actual schemas.
+Never automatically reset/baseline populated databases or accept data loss. Postgres
+init runs only on empty volumes; new databases require an administrative operation.
 
-Four Prisma migration images run the installed Prisma 6 `migrate deploy` command.
-User/project SQL migration images execute files in numeric filename order, record
-filenames and SHA-256 checksums, lock the database migration session, and transact
-each file. The two existing project V20 files are distinct filename identities.
-Changed applied SQL files fail instead of silently reapplying. Partial migration
-progress is recorded; a failed migration blocks container rollout. Spring production
-continues to validate its schema rather than generate it.
-
-Existing databases previously created with `db push`, Hibernate update, manual SQL
-or another history format require a reviewed baseline before this first deployment.
-Compare actual schema to migration histories, back up, and reconcile/mark history
-only after verifying equivalence. Never automatically baseline populated databases,
-reset databases, or accept data loss. Applying historical migrations blindly to an
-existing database will intentionally fail. PostgreSQL init files run only for empty
-volumes; adding a database later requires an explicit administrative operation.
-
-On each host:
-
-```bash
-cd /opt/workspacehub/<app-or-infra-or-realtime>
-sudo docker compose --env-file .env.production -f compose.yml ps
-# APP additionally needs the release tag exported:
-cd /opt/workspacehub/app
-sudo bash -c 'export IMAGE_TAG=$(sed -n "s/^IMAGE_TAG=//p" .release.env); docker compose --env-file .env.production -f compose.yml ps; bash scripts/health-check.sh'
-curl -fsS http://<APP_PUBLIC_HOST>:3000/ >/dev/null
-curl -fsS http://<APP_PUBLIC_HOST>:8000/health/user
-curl -fsS http://<REALTIME_HOST>:7880/
-```
-
-For logs, use the same Compose invocation with `logs --tail 100 <service>` and
-handle logs as private operational data. Inspect SSM command status in AWS if the
-workflow fails; the workflow intentionally does not copy secret-bearing provider
-error output into GitHub logs. Check `docker compose exec postgres pg_isready`,
-`docker compose exec redis redis-cli ping`, and Kafka topic list using the host's
-Compose invocation. Verify a browser login, websocket connection, meeting join,
-S3 upload and calendar notification after the first release.
-
-Automatic APP rollback uses `.previous-release.env`, `.previous-compose.yml` and
-`.previous-env.production`; it restores the old immutable images and checks health.
-The workflow remains failed when the candidate failed, even if rollback succeeded.
-First release failures have no previous version to restore. Manual rollback:
+APP rollback restores `.previous-release.env`, `.previous-compose.yml` and
+`.previous-env.runtime`, then pulls the old SHA images and checks health. It leaves
+the current operator `.env.production` intact. A failed candidate keeps the workflow
+failed even after successful rollback. The first release has no previous version.
 
 ```bash
 sudo bash /opt/workspacehub/app/scripts/rollback.sh
 ```
 
-Rollback does **not** reverse database migrations. Require backward-compatible
-expand/contract migrations when automatic application rollback must remain safe;
-breaking schema changes need a separately coordinated maintenance deployment.
-Images are not automatically pruned, preserving current/previous rollback images.
-Remove old images only after confirming their tags are not referenced by either
-release state. Protect mode-0600 previous environment snapshots as runtime secrets.
-INFRA/REALTIME updates do not implement application-style automatic data rollback.
+Rollback does **not** reverse database migrations. Use backward-compatible
+expand/contract migrations for safe application rollback; breaking schema changes
+need coordinated maintenance. Retain current/previous images and private env
+snapshots. INFRA/REALTIME do not implement automatic data rollback.
+Never run `docker compose down -v` in production unless intentionally deleting data.
 
-**Never run `docker compose down -v` in production unless intentionally deleting data.**
-
-### Updating infrastructure image versions
-
-Pinned images do not follow upstream releases. Read release notes, confirm protocol,
-schema and platform compatibility, update the exact version/digest in source, run
-CI and local configuration/build checks, back up stateful data, dispatch the affected
-workflow, and verify health. App base image changes use a new SHA release. PostgreSQL
-major upgrades need a planned dump/restore or `pg_upgrade` procedure; reverting an
-image tag is not a data migration or a reliable stateful rollback.
-
-Local configuration checks:
+Check the affected host using `.env.runtime`; APP also needs its saved release tag:
 
 ```bash
+cd /opt/workspacehub/app
+sudo bash -c 'export IMAGE_TAG=$(sed -n "s/^IMAGE_TAG=//p" .release.env); docker compose --env-file .env.runtime -f compose.yml ps; bash scripts/health-check.sh'
+cd /opt/workspacehub/infra
+sudo docker compose --env-file .env.runtime -f compose.yml ps
+cd /opt/workspacehub/realtime
+sudo docker compose --env-file .env.runtime -f compose.yml ps
+```
+
+Use the same Compose flags for private logs and infra readiness checks. Verify login,
+WebSockets, meeting join, S3 upload and calendar notifications on the actual hosts.
+The recording worker adds no recording-start business API.
+
+Local/CI configuration verification on Linux:
+
+```bash
+python3 -m venv .tmp/deploy-checks
+source .tmp/deploy-checks/bin/activate
+python3 -m pip install -r deploy/scripts/requirements.txt PyYAML==6.0.3
 bash deploy/scripts/validate-config.sh
 ```
 
-CI validates Compose, shell and deployment regression tests, read-only lint,
-available unit tests, Node builds, Maven verify and every production/migration
-Docker target. Lint is currently advisory because all six existing Node projects
-have pre-existing lint errors (no application code was reformatted to hide them).
-Builds, tests and deployment checks remain required. Remove lint's
-`continue-on-error` once that separate cleanup is complete. Cloud resources,
-provider accounts, public DNS/TLS, network reachability,
-and end-to-end S3/WebRTC behavior still require verification in your AWS environment.
+Checks create a disposable fake env shared by all Compose validations, remove it
+on exit, and cover image pins, safe migrations, YAML, shell, actionlint, renderer,
+release rollback and transport regression tests. Only designated Dockerfiles and
+deployment configurations are scanned for unsafe image/command patterns.
+Node lint remains advisory because of existing lint debt; tests/builds and deployment
+checks are required. Production/migration Docker targets are built during CI.
+
+Pinned image upgrades require release-note review, exact version/digest edits,
+configuration/build checks, data backups and manual infra/realtime deployment.
+PostgreSQL major upgrades need dump/restore or a planned `pg_upgrade`; reverting an
+image does not reverse stateful changes.

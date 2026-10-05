@@ -164,7 +164,7 @@ workspace_hub/
 From the repository root, configure and start the centralized development stack:
 
 ```bash
-cp deploy/dev/.env.example deploy/dev/.env
+# Create deploy/dev/.env with the values listed in docs/deployment.md.
 docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml up -d --build
 ```
 

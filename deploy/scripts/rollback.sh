@@ -8,9 +8,9 @@ fi
 previous=$(sed -n 's/^IMAGE_TAG=//p' "$APP_DIR/.previous-release.env" 2>/dev/null || true)
 validate_tag "$previous"
 test -f "$APP_DIR/.previous-compose.yml"
-test -f "$APP_DIR/.previous-env.production"
+test -f "$APP_DIR/.previous-env.runtime"
 cp "$APP_DIR/.previous-compose.yml" "$APP_DIR/compose.yml"
-cp "$APP_DIR/.previous-env.production" "$APP_DIR/.env.production"
+cp "$APP_DIR/.previous-env.runtime" "$APP_DIR/.env.runtime"
 export IMAGE_TAG="$previous"
 compose pull
 compose up -d --remove-orphans

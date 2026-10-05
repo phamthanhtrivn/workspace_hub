@@ -1,8 +1,10 @@
-"""Validate the resolved deployment contracts, using example values only."""
+"""Validate deployment contracts with the shared disposable CI Compose env."""
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_SERVICES = {'frontend-web', 'kong', 'user-service', 'project-service',
@@ -10,7 +12,7 @@ RUNTIME_SERVICES = {'frontend-web', 'kong', 'user-service', 'project-service',
 
 
 def configuration(area, profile=None):
-    command = ['docker', 'compose', '--env-file', f'deploy/{area}/.env.example', '-f', f'deploy/{area}/compose.yml']
+    command = ['docker', 'compose', '--env-file', os.environ['CI_COMPOSE_ENV'], '-f', f'deploy/{area}/compose.yml']
     if profile:
         command.extend(['--profile', profile])
     return json.loads(subprocess.check_output(command + ['config', '--format', 'json'], cwd=ROOT, text=True))
@@ -77,4 +79,7 @@ for directory in [ROOT / 'frontend/web', *(ROOT / 'backend' / name for name in R
                 require(re.search(r':v?\d+\.\d+\.\d+', base) or re.match(r'^postgres:\d+\.\d+-alpine', base), f'Unpinned base image: {dockerfile}')
 for template in ('livekit', 'egress'):
     json.loads((ROOT / f'deploy/prod/realtime/{template}.yaml').read_text())
+for directory in (ROOT / '.github/workflows', ROOT / 'deploy'):
+    for path in (*directory.rglob('*.yml'), *directory.rglob('*.yaml')):
+        yaml.safe_load(path.read_text())
 print('Deployment contract checks passed')

@@ -3,9 +3,7 @@ name: CI
   pull_request:
     branches:
       - main
-  push:
-    branches:
-      - feat/deploy
+  workflow_call: {}
 permissions:
   contents: read
 jobs:
@@ -63,6 +61,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install -r deploy/scripts/requirements.txt PyYAML==6.0.3
       - run: bash deploy/scripts/validate-config.sh
   docker:
     uses: ./.github/workflows/build-images.yml

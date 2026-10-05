@@ -6,7 +6,6 @@ name: Release production
   workflow_dispatch: {}
 permissions:
   contents: read
-  id-token: write
 concurrency:
   group: workspacehub-production-app
   cancel-in-progress: false
@@ -15,8 +14,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - run: test "$GITHUB_REF" = refs/heads/main
-  build:
+  ci:
     needs: guard
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+  build:
+    needs: ci
     uses: ./.github/workflows/build-images.yml
     with:
       publish: true
@@ -26,17 +29,14 @@ jobs:
     environment: production
     permissions:
       contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-      - name: Deploy through SSM and wait for health
+      - name: Deploy through SSH/SCP and wait for health
         env:
-          INSTANCE_ID: ${{ vars.APP_EC2_INSTANCE_ID }}
-          ARTIFACT_BUCKET: ${{ vars.DEPLOY_ARTIFACT_BUCKET }}
-          DOCKERHUB_PRIVATE_REPOSITORIES: ${{ vars.DOCKERHUB_PRIVATE_REPOSITORIES }}
-        run: python3 deploy/scripts/send-deployment.py app "$GITHUB_SHA" "$INSTANCE_ID" "$ARTIFACT_BUCKET"
+          SSH_HOST: ${{ vars.APP_SSH_HOST }}
+          SSH_USER: ${{ vars.SSH_USER || 'ubuntu' }}
+          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: python3 deploy/scripts/send-deployment.py app "$GITHUB_SHA"
     needs: build

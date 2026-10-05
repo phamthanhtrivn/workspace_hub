@@ -3,7 +3,6 @@ name: Deploy realtime
   workflow_dispatch: {}
 permissions:
   contents: read
-  id-token: write
 concurrency:
   group: workspacehub-production-realtime
   cancel-in-progress: false
@@ -13,16 +12,14 @@ jobs:
     environment: production
     permissions:
       contents: read
-      id-token: write
     steps:
       - run: test "$GITHUB_REF" = refs/heads/main
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
-      - name: Deploy through SSM and wait for health
+      - name: Deploy through SSH/SCP and wait for health
         env:
-          INSTANCE_ID: ${{ vars.REALTIME_EC2_INSTANCE_ID }}
-          ARTIFACT_BUCKET: ${{ vars.DEPLOY_ARTIFACT_BUCKET }}
-        run: python3 deploy/scripts/send-deployment.py realtime "$GITHUB_SHA" "$INSTANCE_ID" "$ARTIFACT_BUCKET"
+          SSH_HOST: ${{ vars.REALTIME_SSH_HOST }}
+          SSH_USER: ${{ vars.SSH_USER || 'ubuntu' }}
+          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: python3 deploy/scripts/send-deployment.py realtime "$GITHUB_SHA"
