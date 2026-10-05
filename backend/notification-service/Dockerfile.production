@@ -1,0 +1,25 @@
+FROM node:22.22.0-alpine3.23 AS build
+RUN apk add --no-cache openssl
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+RUN npm ci
+COPY . .
+RUN npx prisma generate && npm run build
+
+# Keep the CLI and dev dependencies only in the one-shot migration image.
+FROM build AS migration
+ENTRYPOINT ["./node_modules/.bin/prisma"]
+CMD ["migrate", "deploy"]
+
+FROM node:22.22.0-alpine3.23 AS production
+RUN apk add --no-cache openssl
+WORKDIR /app
+ENV NODE_ENV=production PORT=8084
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+COPY --from=build --chown=node:node /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=build --chown=node:node /app/dist ./dist
+USER node
+EXPOSE 8084
+CMD ["node", "dist/main.js"]

@@ -629,7 +629,7 @@ model MeetingParticipantViewPreference {
 
   meeting      Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
-  @@unique([meetingId, viewerUserId, targetUserId])
+  @@unique([meetingId, viewerUserId, targetUserId], map: "meeting_view_preference_identity_key")
   @@index([meetingId, viewerUserId])
   @@index([meetingId, targetUserId])
   @@map("meeting_participant_view_preferences")

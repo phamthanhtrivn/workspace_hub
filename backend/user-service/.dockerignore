@@ -3,8 +3,8 @@ target/
 .git
 .gitignore
 *.iml
-.env
 .project
 .classpath
 .settings/
 HELP.md
+.env*

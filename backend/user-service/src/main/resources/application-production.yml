@@ -1,0 +1,8 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    # Deploy runs migrations as a separate, locked job before updating the app.
+    enabled: false
