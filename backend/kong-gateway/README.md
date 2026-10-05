@@ -20,22 +20,30 @@ To use host-mode routing, change that mount to `kong.host.yml`.
 
 ## Local Docker
 
-From `backend/docker`:
+From the repository root:
 
 ```bash
-docker compose up -d --build
+docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml up -d --build
 ```
 
 Kong listens on:
 
 - Proxy: `http://localhost:8000`
-- Admin API: `http://localhost:8001`
+- Admin API: disabled
 
 Verify logs:
 
 ```bash
-docker logs wh_kong
+docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml logs kong
 ```
+
+## Production image
+
+`Dockerfile.production` defaults to DB-less mode, enables the custom plugin and
+disables the Admin API. Its startup renderer substitutes `FRONTEND_URL` and
+`JWT_SECRET_KEY` into the bundled template using quoted YAML scalars and writes
+the private runtime config to `/tmp/kong.yml`. Secrets are supplied at runtime.
+See [deployment documentation](../../docs/deployment.md) for validation and releases.
 
 ## Security Notes
 

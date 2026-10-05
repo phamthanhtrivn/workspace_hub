@@ -1,4 +1,4 @@
-FROM node:22.22.0-alpine3.23 AS build
+FROM node:22.22.0-alpine3.23@sha256:e4bf2a82ad0a4037d28035ae71529873c069b13eb0455466ae0bc13363826e34 AS build
 RUN apk add --no-cache openssl
 WORKDIR /app
 COPY package.json package-lock.json ./
@@ -7,12 +7,10 @@ RUN npm ci
 COPY . .
 RUN npx prisma generate && npm run build
 
-# Keep the CLI and dev dependencies only in the one-shot migration image.
-FROM build AS migration
-ENTRYPOINT ["./node_modules/.bin/prisma"]
-CMD ["migrate", "deploy"]
+# Schema changes use database/migrations SQL, applied separately before deployment.
+# Prisma is only the query client; this service has no Prisma migration target.
 
-FROM node:22.22.0-alpine3.23 AS production
+FROM node:22.22.0-alpine3.23@sha256:e4bf2a82ad0a4037d28035ae71529873c069b13eb0455466ae0bc13363826e34 AS production
 RUN apk add --no-cache openssl
 WORKDIR /app
 ENV NODE_ENV=production PORT=8082

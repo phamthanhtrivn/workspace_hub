@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+*.runtime.yaml
+.release.env*
+.previous-*
+__pycache__/
+*.pyc

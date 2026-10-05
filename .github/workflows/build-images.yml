@@ -1,0 +1,227 @@
+name: Build Docker images
+'on':
+  workflow_call:
+    inputs:
+      publish:
+        required: true
+        type: boolean
+permissions:
+  contents: read
+jobs:
+  images:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: web
+            context: frontend/web
+            dockerfile: frontend/web/Dockerfile.production
+            target: production
+          - name: kong
+            context: backend/kong-gateway
+            dockerfile: backend/kong-gateway/Dockerfile.production
+            target: production
+          - name: user-service
+            context: backend/user-service
+            dockerfile: backend/user-service/Dockerfile.production
+            target: production
+          - name: project-service
+            context: backend/project-service
+            dockerfile: backend/project-service/Dockerfile.production
+            target: production
+          - name: communication-service
+            context: backend/communication-service
+            dockerfile: backend/communication-service/Dockerfile.production
+            target: production
+          - name: document-service
+            context: backend/document-service
+            dockerfile: backend/document-service/Dockerfile.production
+            target: production
+          - name: calendar-service
+            context: backend/calendar-service
+            dockerfile: backend/calendar-service/Dockerfile.production
+            target: production
+          - name: notification-service
+            context: backend/notification-service
+            dockerfile: backend/notification-service/Dockerfile.production
+            target: production
+          - name: user-service-migration
+            context: .
+            dockerfile: deploy/shared/sql-migrations/Dockerfile
+            target: user
+          - name: project-service-migration
+            context: .
+            dockerfile: deploy/shared/sql-migrations/Dockerfile
+            target: project
+          - name: communication-service-migration
+            context: backend/communication-service
+            dockerfile: backend/communication-service/Dockerfile.production
+            target: migration
+          - name: document-service-migration
+            context: backend/document-service
+            dockerfile: backend/document-service/Dockerfile.production
+            target: migration
+          - name: calendar-service-migration
+            context: backend/calendar-service
+            dockerfile: backend/calendar-service/Dockerfile.production
+            target: migration
+          - name: notification-service-migration
+            context: backend/notification-service
+            dockerfile: backend/notification-service/Dockerfile.production
+            target: migration
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Validate public release configuration
+        if: ${{ inputs.publish }}
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+          NEXT_PUBLIC_NOMINATIM_URL: ${{ vars.NEXT_PUBLIC_NOMINATIM_URL }}
+        run: |
+          test -n "$DOCKERHUB_USERNAME"
+          test -n "$NEXT_PUBLIC_API_URL"
+          test -n "$NEXT_PUBLIC_GOOGLE_CLIENT_ID"
+          test -n "$NEXT_PUBLIC_NOMINATIM_URL"
+      - name: Login to Docker Hub
+        if: ${{ inputs.publish }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Reuse an existing immutable release image
+        id: existing
+        if: ${{ inputs.publish }}
+        env:
+          IMAGE: ${{ format('{0}/workspacehub-{1}:sha-{2}', vars.DOCKERHUB_USERNAME, matrix.name, github.sha) }}
+        run: |
+          if docker buildx imagetools inspect "$IMAGE" >/dev/null 2>&1; then
+            echo 'found=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/build-push-action@v6
+        if: ${{ steps.existing.outputs.found != 'true' }}
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          push: ${{ inputs.publish }}
+          tags: ${{ format('{0}/workspacehub-{1}:sha-{2}', vars.DOCKERHUB_USERNAME || 'workspacehub-ci', matrix.name, github.sha) }}
+          cache-from: ${{ format('type=gha,scope={0}', matrix.name) }}
+          cache-to: ${{ format('type=gha,mode=max,scope={0}', matrix.name) }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'http://localhost:8000' }}
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'ci-placeholder' }}
+            NEXT_PUBLIC_NOMINATIM_URL=${{ vars.NEXT_PUBLIC_NOMINATIM_URL || 'https://nominatim.openstreetmap.org' }}
+            NEXT_PUBLIC_ASSET_HOST=${{ vars.NEXT_PUBLIC_ASSET_HOST }}
+    if: ${{ !inputs.publish }}
+  publish:
+    runs-on: ubuntu-24.04
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: web
+            context: frontend/web
+            dockerfile: frontend/web/Dockerfile.production
+            target: production
+          - name: kong
+            context: backend/kong-gateway
+            dockerfile: backend/kong-gateway/Dockerfile.production
+            target: production
+          - name: user-service
+            context: backend/user-service
+            dockerfile: backend/user-service/Dockerfile.production
+            target: production
+          - name: project-service
+            context: backend/project-service
+            dockerfile: backend/project-service/Dockerfile.production
+            target: production
+          - name: communication-service
+            context: backend/communication-service
+            dockerfile: backend/communication-service/Dockerfile.production
+            target: production
+          - name: document-service
+            context: backend/document-service
+            dockerfile: backend/document-service/Dockerfile.production
+            target: production
+          - name: calendar-service
+            context: backend/calendar-service
+            dockerfile: backend/calendar-service/Dockerfile.production
+            target: production
+          - name: notification-service
+            context: backend/notification-service
+            dockerfile: backend/notification-service/Dockerfile.production
+            target: production
+          - name: user-service-migration
+            context: .
+            dockerfile: deploy/shared/sql-migrations/Dockerfile
+            target: user
+          - name: project-service-migration
+            context: .
+            dockerfile: deploy/shared/sql-migrations/Dockerfile
+            target: project
+          - name: communication-service-migration
+            context: backend/communication-service
+            dockerfile: backend/communication-service/Dockerfile.production
+            target: migration
+          - name: document-service-migration
+            context: backend/document-service
+            dockerfile: backend/document-service/Dockerfile.production
+            target: migration
+          - name: calendar-service-migration
+            context: backend/calendar-service
+            dockerfile: backend/calendar-service/Dockerfile.production
+            target: migration
+          - name: notification-service-migration
+            context: backend/notification-service
+            dockerfile: backend/notification-service/Dockerfile.production
+            target: migration
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Validate public release configuration
+        if: ${{ inputs.publish }}
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+          NEXT_PUBLIC_NOMINATIM_URL: ${{ vars.NEXT_PUBLIC_NOMINATIM_URL }}
+        run: |
+          test -n "$DOCKERHUB_USERNAME"
+          test -n "$NEXT_PUBLIC_API_URL"
+          test -n "$NEXT_PUBLIC_GOOGLE_CLIENT_ID"
+          test -n "$NEXT_PUBLIC_NOMINATIM_URL"
+      - name: Login to Docker Hub
+        if: ${{ inputs.publish }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Reuse an existing immutable release image
+        id: existing
+        if: ${{ inputs.publish }}
+        env:
+          IMAGE: ${{ format('{0}/workspacehub-{1}:sha-{2}', vars.DOCKERHUB_USERNAME, matrix.name, github.sha) }}
+        run: |
+          if docker buildx imagetools inspect "$IMAGE" >/dev/null 2>&1; then
+            echo 'found=true' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: docker/build-push-action@v6
+        if: ${{ steps.existing.outputs.found != 'true' }}
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          push: ${{ inputs.publish }}
+          tags: ${{ format('{0}/workspacehub-{1}:sha-{2}', vars.DOCKERHUB_USERNAME || 'workspacehub-ci', matrix.name, github.sha) }}
+          cache-from: ${{ format('type=gha,scope={0}', matrix.name) }}
+          cache-to: ${{ format('type=gha,mode=max,scope={0}', matrix.name) }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'http://localhost:8000' }}
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'ci-placeholder' }}
+            NEXT_PUBLIC_NOMINATIM_URL=${{ vars.NEXT_PUBLIC_NOMINATIM_URL || 'https://nominatim.openstreetmap.org' }}
+            NEXT_PUBLIC_ASSET_HOST=${{ vars.NEXT_PUBLIC_ASSET_HOST }}
+    if: ${{ inputs.publish }}

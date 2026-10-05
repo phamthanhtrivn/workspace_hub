@@ -136,7 +136,7 @@ graph TD
 workspace_hub/
 ├── backend/                       # Backend Microservices
 │   ├── kong-gateway/              # Kong API Gateway Config
-│   ├── docker/                    # Shared Infrastructure Docker Compose (PostgreSQL, Redis, Kafka)
+│   ├── docker/                    # Legacy production reference documentation
 │   ├── user-service/              # Spring Boot User Management Service
 │   ├── project-service/           # NestJS Project & Productivity Service
 │   ├── communication-service/     # NestJS Real-time Chat Service
@@ -161,11 +161,11 @@ workspace_hub/
 
 ### Step 1: Start Shared Infrastructure
 
-Navigate to the backend Docker directory and spin up the database, cache, gateway, and message broker:
+From the repository root, configure and start the centralized development stack:
 
 ```bash
-cd backend/docker
-docker-compose up -d
+cp deploy/dev/.env.example deploy/dev/.env
+docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml up -d --build
 ```
 
 This starts:
@@ -175,9 +175,16 @@ This starts:
 - **Redis Cache** (Port `6379`)
 - **Apache Kafka** (Port `9092`)
 
+The command also starts the frontend and all six backend services. For LiveKit and
+Egress, add `--profile realtime` before `up`. Stop with the same Compose flags and
+`down`; volumes are preserved. See [deployment.md](docs/deployment.md) for the
+three-host AWS deployment, CI/CD, migrations, secrets and rollback procedures.
+
 ### Step 2: Configure Environment Variables
 
-Copy the `.env.example` file to `.env` in the services (`user-service`, `project-service`, `communication-service`, `notification-service`, `kong-gateway`) and fill in the necessary secrets (such as JWT keys and Database connections).
+Docker development reads `deploy/dev/.env`. Configure shared JWT/database values
+and provider credentials there. The steps below describe optional host-run service
+development, which uses each service's local environment configuration.
 
 ### Step 3: Run Microservices
 

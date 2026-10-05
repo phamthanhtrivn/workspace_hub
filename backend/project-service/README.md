@@ -14,14 +14,15 @@ npm run start:dev
 ```
 
 `JWT_SECRET_KEY` must be the same HS256 secret used by User Service and Kong.
-For the standalone container stack, set this variable and run:
+For Docker development, use the centralized stack from the repository root:
 
 ```bash
-docker compose up --build
+docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml up -d --build
 ```
 
-The full Workspace Hub stack includes `docker-compose.stack.yml`, which does
-not publish port `8082`; Project Service is reachable through Kong only.
+Production keeps port `8082` behind Kong. Development publishes it on loopback.
+See [deployment documentation](../../docs/deployment.md) for the SQL migration
+images, centralized configuration and release procedures.
 
 The database schema is managed by the SQL migrations under
 `database/migrations`. Prisma is used as the typed query client only; do not
@@ -31,6 +32,11 @@ Container startup also does not mutate the database schema. Apply the SQL
 migrations through the deployment/database workflow before starting a new
 service version. In particular, never add `prisma db push --accept-data-loss`
 to the startup command.
+
+`Dockerfile.production` has no Prisma migration target. See the
+[production image guide](../docker/PRODUCTION.md) for deployment steps and the
+two existing `V20` SQL files that must be reconciled with the applied history
+before using a runner that requires unique numeric versions.
 
 Project and invitation notifications use the `notification_outbox` table.
 Application writes and outbox inserts commit together; the in-process worker

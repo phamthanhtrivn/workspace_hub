@@ -1,0 +1,28 @@
+name: Deploy infra
+'on':
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: workspacehub-production-infra
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - run: test "$GITHUB_REF" = refs/heads/main
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Deploy through SSM and wait for health
+        env:
+          INSTANCE_ID: ${{ vars.INFRA_EC2_INSTANCE_ID }}
+          ARTIFACT_BUCKET: ${{ vars.DEPLOY_ARTIFACT_BUCKET }}
+        run: python3 deploy/scripts/send-deployment.py infra "$GITHUB_SHA" "$INSTANCE_ID" "$ARTIFACT_BUCKET"

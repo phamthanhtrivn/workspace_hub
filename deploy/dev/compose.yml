@@ -1,0 +1,500 @@
+name: workspacehub-dev
+services:
+  postgres:
+    image: postgres:15.18-alpine@sha256:cd17e2ac98240fce1541ad2a803b34009b4eea5aec8a832363cdc7eca62e722e
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: workspace_hub
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../shared/postgres-init:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d workspace_hub
+      interval: 5s
+      timeout: 5s
+      retries: 12
+  redis:
+    image: redis:7.4.8-alpine@sha256:8b81dd37ff027bec4e516d41acfbe9fe2460070dc6d4a4570a2ac5b9d59df065
+    command:
+      - redis-server
+      - '--appendonly'
+      - 'yes'
+    ports:
+      - 127.0.0.1:6379:6379
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 5s
+      timeout: 5s
+      retries: 12
+  kafka:
+    image: apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837
+    ports:
+      - 127.0.0.1:9092:9092
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    restart: unless-stopped
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: '1'
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:29092,CONTROLLER://:29093,EXTERNAL://:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: '1'
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: '0'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --list >/dev/null
+      interval: 10s
+      timeout: 10s
+      retries: 18
+      start_period: 30s
+  kafka-init:
+    image: apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command:
+      - /bin/sh
+      - /init-topics.sh
+    restart: 'no'
+    volumes:
+      - ../shared/kafka/init-topics.sh:/init-topics.sh:ro
+  user-service:
+    build:
+      context: ../../backend/user-service
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:?AWS_S3_BUCKET_NAME is required}
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
+      MAIL_HOST: ${MAIL_HOST:?MAIL_HOST is required}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:?MAIL_USERNAME is required}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?MAIL_PASSWORD is required}
+      PORT: '8081'
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: '5432'
+      POSTGRES_DB: user_db
+      POSTGRES_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+    ports:
+      - 127.0.0.1:8081:8081
+    volumes:
+      - ../../backend/user-service:/app
+      - /app/target
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      user-service-migration:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://127.0.0.1:8081/ready >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    restart: unless-stopped
+    image: workspacehub-dev-user-service:${DEV_IMAGE_TAG:?DEV_IMAGE_TAG is required}
+  project-service:
+    build:
+      context: ../../backend/project-service
+      dockerfile: Dockerfile
+      target: development
+    environment:
+      NODE_ENV: development
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: kafka:29092
+      DOCUMENT_SERVICE_URL: http://document-service:8085
+      PORT: '8082'
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@postgres:5432/project_db?schema=public
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      USER_SERVICE_URL: http://user-service:8081
+      COMMUNICATION_SERVICE_URL: http://communication-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
+    ports:
+      - 127.0.0.1:8082:8082
+    volumes:
+      - ../../backend/project-service:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      project-service-migration:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:8082/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    restart: unless-stopped
+    command: sh -c "npx prisma generate && npm run start:dev"
+    image: workspacehub-dev-project-service:${DEV_IMAGE_TAG:?DEV_IMAGE_TAG is required}
+  communication-service:
+    build:
+      context: ../../backend/communication-service
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: kafka:29092
+      REDIS_URL: redis://redis:6379
+      AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:?AWS_S3_BUCKET_NAME is required}
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      LIVEKIT_URL: ws://livekit:7880
+      LIVEKIT_PUBLIC_URL: ${LIVEKIT_PUBLIC_URL:?LIVEKIT_PUBLIC_URL is required}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
+      PORT: '8083'
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@postgres:5432/communication_db?schema=public
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      USER_SERVICE_URL: http://user-service:8081
+      PROJECT_SERVICE_URL: http://project-service:8082
+    ports:
+      - 127.0.0.1:8083:8083
+    volumes:
+      - ../../backend/communication-service:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:8083/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    restart: unless-stopped
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start:dev"
+    image: workspacehub-dev-communication-service:${DEV_IMAGE_TAG:?DEV_IMAGE_TAG is required}
+  notification-service:
+    build:
+      context: ../../backend/notification-service
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: kafka:29092
+      MAIL_HOST: ${MAIL_HOST:?MAIL_HOST is required}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:?MAIL_USERNAME is required}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?MAIL_PASSWORD is required}
+      MAIL_FROM: ${MAIL_FROM}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:?VAPID_SUBJECT is required}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:?VAPID_PUBLIC_KEY is required}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:?VAPID_PRIVATE_KEY is required}
+      PORT: '8084'
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@postgres:5432/notification_db?schema=public
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+    ports:
+      - 127.0.0.1:8084:8084
+    volumes:
+      - ../../backend/notification-service:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:8084/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    restart: unless-stopped
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start:dev"
+    image: workspacehub-dev-notification-service:${DEV_IMAGE_TAG:?DEV_IMAGE_TAG is required}
+  document-service:
+    build:
+      context: ../../backend/document-service
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: kafka:29092
+      AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:?AWS_S3_BUCKET_NAME is required}
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      PROJECT_SERVICE_URL: http://project-service:8082
+      PORT: '8085'
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@postgres:5432/document_db?schema=public
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+    ports:
+      - 127.0.0.1:8085:8085
+    volumes:
+      - ../../backend/document-service:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:8085/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    restart: unless-stopped
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start:dev"
+    image: workspacehub-dev-document-service:${DEV_IMAGE_TAG:?DEV_IMAGE_TAG is required}
+  calendar-service:
+    build:
+      context: ../../backend/calendar-service
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: development
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: kafka:29092
+      PORT: '8086'
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@postgres:5432/calendar_db?schema=public
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      USER_SERVICE_URL: http://user-service:8081
+      PROJECT_SERVICE_URL: http://project-service:8082
+      DOCUMENT_SERVICE_URL: http://document-service:8085
+    ports:
+      - 127.0.0.1:8086:8086
+    volumes:
+      - ../../backend/calendar-service:/app
+      - /app/node_modules
+      - /app/dist
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:8086/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    restart: unless-stopped
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start:dev"
+    image: workspacehub-dev-calendar-service:${DEV_IMAGE_TAG:?DEV_IMAGE_TAG is required}
+  kong:
+    environment:
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+    ports:
+      - '8000:8000'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - kong
+        - health
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    depends_on:
+      user-service:
+        condition: service_healthy
+      project-service:
+        condition: service_healthy
+      communication-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      document-service:
+        condition: service_healthy
+      calendar-service:
+        condition: service_healthy
+    build:
+      context: ../../backend/kong-gateway
+      dockerfile: Dockerfile
+    image: workspacehub-dev-kong:${DEV_IMAGE_TAG:?DEV_IMAGE_TAG is required}
+  frontend-web:
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+      NEXT_PUBLIC_NOMINATIM_URL: ${NEXT_PUBLIC_NOMINATIM_URL}
+      NEXT_PUBLIC_ASSET_HOST: ${NEXT_PUBLIC_ASSET_HOST}
+    ports:
+      - ${FRONTEND_PORT:-3000}:3000
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+    build:
+      context: ../../frontend/web
+      dockerfile: Dockerfile
+    volumes:
+      - ../../frontend/web:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      kong:
+        condition: service_healthy
+    image: workspacehub-dev-web:${DEV_IMAGE_TAG:?DEV_IMAGE_TAG is required}
+  user-service-migration:
+    build:
+      context: ../..
+      dockerfile: deploy/shared/sql-migrations/Dockerfile
+      target: user
+    environment:
+      PGHOST: postgres
+      PGPORT: '5432'
+      PGUSER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      PGDATABASE: user_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    image: workspacehub-dev-user-service-migration:${DEV_IMAGE_TAG:?DEV_IMAGE_TAG is required}
+  project-service-migration:
+    build:
+      context: ../..
+      dockerfile: deploy/shared/sql-migrations/Dockerfile
+      target: project
+    environment:
+      PGHOST: postgres
+      PGPORT: '5432'
+      PGUSER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      PGDATABASE: project_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    image: workspacehub-dev-project-service-migration:${DEV_IMAGE_TAG:?DEV_IMAGE_TAG is required}
+  livekit:
+    image: livekit/livekit-server:v1.13.5@sha256:3497163e15c48fef6e7830c78716f9e9d5edc28abf7aa90b61c86e93bbc306b1
+    profiles:
+      - realtime
+    command:
+      - '--config'
+      - /etc/livekit/livekit.yaml
+    environment:
+      LIVEKIT_KEYS: '${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}'
+      LIVEKIT_WEBHOOK_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
+      LIVEKIT_WEBHOOK_URLS: http://communication-service:8083/api/meetings/livekit/webhook
+    ports:
+      - '7880:7880'
+      - '7881:7881'
+      - 7882:7882/udp
+    volumes:
+      - ../../backend/livekit/config/livekit.yaml:/etc/livekit/livekit.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+  egress:
+    image: livekit/egress:v1.14.1@sha256:bf2b648b947349c3e9ff7aa8c718f00378d5c06af7624652a3653318e00333ce
+    profiles:
+      - realtime
+    environment:
+      EGRESS_CONFIG_BODY: |
+        api_key: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
+        api_secret: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
+        ws_url: ws://livekit:7880
+        redis:
+          address: redis:6379
+    depends_on:
+      livekit:
+        condition: service_started
+    cap_add:
+      - SYS_ADMIN
+    shm_size: 1gb
+    restart: unless-stopped
+volumes:
+  postgres_data: {}
+  redis_data: {}
+  kafka_data: {}

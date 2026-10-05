@@ -1,0 +1,22 @@
+name: workspacehub-realtime
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.5@sha256:3497163e15c48fef6e7830c78716f9e9d5edc28abf7aa90b61c86e93bbc306b1
+    network_mode: host
+    command:
+      - '--config'
+      - /etc/livekit/livekit.yaml
+    volumes:
+      - ./livekit.runtime.yaml:/etc/livekit/livekit.yaml:ro
+    restart: unless-stopped
+  egress:
+    image: livekit/egress:v1.14.1@sha256:bf2b648b947349c3e9ff7aa8c718f00378d5c06af7624652a3653318e00333ce
+    network_mode: host
+    environment:
+      EGRESS_CONFIG_FILE: /etc/livekit/egress.yaml
+    volumes:
+      - ./egress.runtime.yaml:/etc/livekit/egress.yaml:ro
+    cap_add:
+      - SYS_ADMIN
+    shm_size: 1gb
+    restart: unless-stopped

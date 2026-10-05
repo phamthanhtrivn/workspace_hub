@@ -1,0 +1,42 @@
+name: Release production
+'on':
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: workspacehub-production-app
+  cancel-in-progress: false
+jobs:
+  guard:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: test "$GITHUB_REF" = refs/heads/main
+  build:
+    needs: guard
+    uses: ./.github/workflows/build-images.yml
+    with:
+      publish: true
+    secrets: inherit
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Deploy through SSM and wait for health
+        env:
+          INSTANCE_ID: ${{ vars.APP_EC2_INSTANCE_ID }}
+          ARTIFACT_BUCKET: ${{ vars.DEPLOY_ARTIFACT_BUCKET }}
+          DOCKERHUB_PRIVATE_REPOSITORIES: ${{ vars.DOCKERHUB_PRIVATE_REPOSITORIES }}
+        run: python3 deploy/scripts/send-deployment.py app "$GITHUB_SHA" "$INSTANCE_ID" "$ARTIFACT_BUCKET"
+    needs: build

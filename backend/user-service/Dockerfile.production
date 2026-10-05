@@ -1,12 +1,14 @@
-FROM maven:3.9.9-eclipse-temurin-21 AS build
+FROM maven:3.9.9-eclipse-temurin-21@sha256:3a4ab3276a087bf276f79cae96b1af04f53731bec53fb2e651aca79e4b10211e AS build
 WORKDIR /app
 COPY pom.xml ./
 RUN mvn -B dependency:go-offline
 COPY src ./src
 RUN mvn -B -DskipTests package
 
-FROM eclipse-temurin:21.0.7_6-jre-alpine AS production
+FROM eclipse-temurin:21.0.7_6-jre-alpine@sha256:7b5c88eb4182a92aab3a4b10550061a6e18639bf176e7ebca21f866b19f853c1 AS production
+RUN apk add --no-cache curl
 WORKDIR /app
+ENV SPRING_PROFILES_ACTIVE=production
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=build --chown=app:app /app/target/user-service-*.jar ./app.jar
 USER app

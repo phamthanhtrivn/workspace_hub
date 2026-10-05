@@ -1,6 +1,8 @@
 # LiveKit Self-Hosted Foundation
 
-Local LiveKit setup for WorkSpaceHub. The main backend Docker Compose files include this compose file so LiveKit can stay owned by `backend/livekit`.
+LiveKit development config stays here; orchestration uses the centralized
+`deploy/dev/compose.yml` realtime profile. Production runs LiveKit and Egress on
+their own EC2 host. See [deployment documentation](../../docs/deployment.md).
 
 ## Local URLs
 
@@ -9,7 +11,7 @@ Local LiveKit setup for WorkSpaceHub. The main backend Docker Compose files incl
 
 ## Environment
 
-Values are loaded from `backend/docker/.env`:
+Values are loaded from `deploy/dev/.env`:
 
 ```env
 LIVEKIT_PORT=7880
@@ -25,7 +27,8 @@ LIVEKIT_EGRESS_WEBHOOK_URL=http://host.docker.internal:8083/api/meetings/livekit
 From the repository root:
 
 ```bash
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.yml up -d livekit
+docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml --profile realtime up -d livekit egress
 ```
 
-LiveKit uses the shared `redis` service on `wh_network`.
+Development LiveKit uses the stack's Redis on its default network. Production
+uses EC2-3's private Redis address, rendered from Parameter Store values.

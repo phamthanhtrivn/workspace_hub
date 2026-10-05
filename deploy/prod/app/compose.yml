@@ -1,0 +1,289 @@
+name: workspacehub-app
+services:
+  user-service:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-user-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    environment:
+      NODE_ENV: production
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:9092
+      REDIS_HOST: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}
+      REDIS_PORT: '6379'
+      AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:?AWS_S3_BUCKET_NAME is required}
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is required}
+      MAIL_HOST: ${MAIL_HOST:?MAIL_HOST is required}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:?MAIL_USERNAME is required}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?MAIL_PASSWORD is required}
+      PORT: '8081'
+      POSTGRES_HOST: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}
+      POSTGRES_PORT: '5432'
+      POSTGRES_DB: user_db
+      POSTGRES_USERNAME: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+    expose:
+      - '8081'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://127.0.0.1:8081/ready >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+  project-service:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-project-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    environment:
+      NODE_ENV: production
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:9092
+      DOCUMENT_SERVICE_URL: http://document-service:8085
+      PORT: '8082'
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/project_db?schema=public
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      USER_SERVICE_URL: http://user-service:8081
+      COMMUNICATION_SERVICE_URL: http://communication-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
+    expose:
+      - '8082'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:8082/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+  communication-service:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-communication-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    environment:
+      NODE_ENV: production
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:9092
+      REDIS_URL: redis://${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:6379
+      AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:?AWS_S3_BUCKET_NAME is required}
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      LIVEKIT_URL: ${LIVEKIT_URL:?LIVEKIT_URL is required}
+      LIVEKIT_PUBLIC_URL: ${LIVEKIT_PUBLIC_URL:?LIVEKIT_PUBLIC_URL is required}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
+      PORT: '8083'
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/communication_db?schema=public
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      USER_SERVICE_URL: http://user-service:8081
+      PROJECT_SERVICE_URL: http://project-service:8082
+    expose:
+      - '8083'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:8083/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+  notification-service:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-notification-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    environment:
+      NODE_ENV: production
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:9092
+      MAIL_HOST: ${MAIL_HOST:?MAIL_HOST is required}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:?MAIL_USERNAME is required}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:?MAIL_PASSWORD is required}
+      MAIL_FROM: ${MAIL_FROM}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:?VAPID_SUBJECT is required}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:?VAPID_PUBLIC_KEY is required}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:?VAPID_PRIVATE_KEY is required}
+      PORT: '8084'
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/notification_db?schema=public
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+    expose:
+      - '8084'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:8084/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+  document-service:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-document-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    environment:
+      NODE_ENV: production
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:9092
+      AWS_REGION: ${AWS_REGION:?AWS_REGION is required}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME:?AWS_S3_BUCKET_NAME is required}
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      PROJECT_SERVICE_URL: http://project-service:8082
+      PORT: '8085'
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/document_db?schema=public
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+    expose:
+      - '8085'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:8085/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+  calendar-service:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-calendar-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    environment:
+      NODE_ENV: production
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: workspace-hub
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
+      KAFKA_BROKER: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:9092
+      PORT: '8086'
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/calendar_db?schema=public
+      AWS_CLOUDFRONT_URL: ${AWS_CLOUDFRONT_URL}
+      USER_SERVICE_URL: http://user-service:8081
+      PROJECT_SERVICE_URL: http://project-service:8082
+      DOCUMENT_SERVICE_URL: http://document-service:8085
+    expose:
+      - '8086'
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:8086/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+  kong:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-kong:${IMAGE_TAG:?IMAGE_TAG is required}
+    environment:
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+    ports:
+      - ${KONG_PORT:-8000}:8000
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - kong
+        - health
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    depends_on:
+      user-service:
+        condition: service_healthy
+      project-service:
+        condition: service_healthy
+      communication-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      document-service:
+        condition: service_healthy
+      calendar-service:
+        condition: service_healthy
+  frontend-web:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-web:${IMAGE_TAG:?IMAGE_TAG is required}
+    environment:
+      NODE_ENV: production
+    ports:
+      - ${FRONTEND_PORT:-3000}:3000
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - '-e'
+        - fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 45s
+  communication-service-migration:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-communication-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    profiles:
+      - migration
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/communication_db?schema=public
+    restart: 'no'
+  notification-service-migration:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-notification-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    profiles:
+      - migration
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/notification_db?schema=public
+    restart: 'no'
+  document-service-migration:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-document-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    profiles:
+      - migration
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/document_db?schema=public
+    restart: 'no'
+  calendar-service-migration:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-calendar-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    profiles:
+      - migration
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/calendar_db?schema=public
+    restart: 'no'
+  user-service-migration:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-user-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    profiles:
+      - migration
+    environment:
+      PGHOST: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}
+      PGPORT: '5432'
+      PGUSER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      PGDATABASE: user_db
+    restart: 'no'
+  project-service-migration:
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-project-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    profiles:
+      - migration
+    environment:
+      PGHOST: ${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}
+      PGPORT: '5432'
+      PGUSER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      PGDATABASE: project_db
+    restart: 'no'

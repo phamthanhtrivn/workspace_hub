@@ -1,0 +1,12 @@
+.git
+.aws
+.codex
+.agents
+.tmp
+**/node_modules
+**/.next
+**/dist
+**/target
+**/.env*
+**/*.pem
+**/*.log

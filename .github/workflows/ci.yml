@@ -1,0 +1,71 @@
+name: CI
+'on':
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - feat/deploy
+permissions:
+  contents: read
+jobs:
+  node:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        directory:
+          - frontend/web
+          - backend/project-service
+          - backend/communication-service
+          - backend/document-service
+          - backend/calendar-service
+          - backend/notification-service
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+    env:
+      DATABASE_URL: postgresql://postgres:ci@localhost:5432/ci
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ci-placeholder
+      NEXT_PUBLIC_NOMINATIM_URL: https://nominatim.openstreetmap.org
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: ${{ format('{0}/package-lock.json', matrix.directory) }}
+      - run: npm ci
+      - name: Read-only lint
+        # Existing application lint debt is advisory; build/tests remain required.
+        continue-on-error: true
+        run: npm run lint -- --no-fix
+      - name: Generate client
+        if: ${{ matrix.directory != 'frontend/web' }}
+        run: npx --no-install prisma generate
+      - name: Available unit tests
+        run: >-
+          node -e "const p=require('./package.json'); if(p.scripts.test)require('child_process').execSync('npm test --
+          --passWithNoTests --runInBand',{stdio:'inherit'})"
+      - run: npm run build
+  java:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: mvn -B -f backend/user-service/pom.xml verify
+  configuration:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash deploy/scripts/validate-config.sh
+  docker:
+    uses: ./.github/workflows/build-images.yml
+    with:
+      publish: false
+    secrets: inherit
