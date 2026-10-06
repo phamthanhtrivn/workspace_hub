@@ -17,6 +17,60 @@ import type { DashboardTask } from "../types/dashboard.types";
 import { getUpcomingMeetings } from "@/features/meeting/api/meeting.api";
 import type { UpcomingMeetingItem } from "@/features/meeting/types/meeting.types";
 
+export async function getDashboardCompletedTasks(userId: string) {
+  const [events, calendars, projects] = await Promise.all([
+    getAllCalendarTasks(),
+    getCalendars(),
+    fetchAllPages(async (page, limit) => {
+      const result = await getProjects({ page, limit, hasAssignedTasks: true });
+      return { items: result.data, meta: result.meta };
+    }),
+  ]);
+  const personalCalendars = new Set(
+    calendars
+      .filter(
+        (calendar) => calendar.ownerUserId === userId && !calendar.projectId,
+      )
+      .map((calendar) => calendar.id),
+  );
+  const completed = new Map<string, { key: string; completedAt: string }>();
+  for (const event of events) {
+    if (
+      personalCalendars.has(event.calendarId) &&
+      event.completedAt &&
+      !event.cancelledAt &&
+      event.status !== "CANCELLED"
+    ) {
+      completed.set(`calendar:${event.id}`, {
+        key: `calendar:${event.id}`,
+        completedAt: event.completedAt,
+      });
+    }
+  }
+  for (let index = 0; index < projects.length; index += 4) {
+    const groups = await Promise.all(
+      projects
+        .slice(index, index + 4)
+        .map((project) => getProjectTasks(project.id, { onlyMine: true })),
+    );
+    for (const tasks of groups)
+      for (const task of tasks) {
+        if (
+          task.status === "DONE" &&
+          task.completedAt &&
+          !task.deletedAt &&
+          task.assignees.some((assignee) => assignee.userId === userId)
+        ) {
+          completed.set(`project:${task.id}`, {
+            key: `project:${task.id}`,
+            completedAt: task.completedAt,
+          });
+        }
+      }
+  }
+  return [...completed.values()];
+}
+
 export async function getPersonalDashboardTasks(
   userId: string,
 ): Promise<DashboardTask[]> {

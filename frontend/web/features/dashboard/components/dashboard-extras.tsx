@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FileText, Folder, Bell, FolderKanban, Rocket } from "lucide-react";
+import { Bell, FolderKanban, Rocket } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { FilePreviewModal } from "@/features/documents/components/preview/file-preview-modal";
-import type { DocumentItem } from "@/features/documents/types/documents.types";
 import type { Notification } from "@/features/notification/types/notification.types";
 import { markAsRead } from "@/features/notification/api/notification.api";
 import { useAppDispatch } from "@/store/store";
@@ -15,6 +13,7 @@ import { useDashboardExtras } from "../hooks/use-dashboard-extras";
 import { DashboardPanel, EmptyState, QueryFeedback } from "./dashboard-panel";
 import type { useDashboard } from "../hooks/use-dashboard";
 import { DashboardNotificationDialog } from "./dashboard-notification-dialog";
+import { DashboardProjectActivity } from "./dashboard-project-activity";
 
 export function DashboardExtras({
   dashboard,
@@ -22,7 +21,6 @@ export function DashboardExtras({
   dashboard: ReturnType<typeof useDashboard>;
 }) {
   const extras = useDashboardExtras(dashboard.auth.userId);
-  const [preview, setPreview] = useState<DocumentItem | null>(null);
   const [notification, setNotification] = useState<Notification | null>(null);
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
@@ -127,90 +125,53 @@ export function DashboardExtras({
           })}
         </div>
       </DashboardPanel>
-      <div className="grid gap-6">
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         <DashboardPanel
-          title="Recent documents"
-          href="/documents"
-          description="Recently added to your files"
+          title="Recent activity"
+          description="Your latest notifications"
         >
-          <QueryFeedback query={extras.documents} label="documents" />
-          {extras.documents.isSuccess && !extras.documents.data.data.length && (
-            <EmptyState>No recent documents.</EmptyState>
-          )}
+          <QueryFeedback query={extras.notifications} label="notifications" />
+          {extras.notifications.isSuccess &&
+            !extras.notifications.data.data.length && (
+              <EmptyState>No recent notifications.</EmptyState>
+            )}
           <ul className="space-y-1">
-            {extras.documents.data?.data
-              .filter((item) => !item.isArchived)
-              .map((item) => (
-                <li key={item.id}>
-                  {item.type === "FOLDER" ? (
-                    <Link
-                      href={`/documents?folderId=${encodeURIComponent(item.id)}`}
-                      className="flex items-center gap-3 rounded-lg p-3 text-sm text-slate-700 hover:bg-slate-50"
-                    >
-                      <Folder size={18} className="shrink-0 text-slate-400" />
-                      <span className="truncate">{item.name}</span>
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setPreview(item)}
-                      className="flex w-full items-center gap-3 rounded-lg p-3 text-left text-sm text-slate-700 hover:bg-slate-50"
-                    >
-                      <FileText size={18} className="shrink-0 text-slate-400" />
-                      <span className="truncate">{item.name}</span>
-                    </button>
-                  )}
-                </li>
-              ))}
+            {extras.notifications.data?.data.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  onClick={() => openNotification(item)}
+                  className={`flex w-full items-start gap-3 rounded-lg p-3 text-left hover:bg-slate-50 ${item.isRead ? "" : "bg-blue-50/50"}`}
+                >
+                  <Bell size={16} className="mt-0.5 shrink-0 text-slate-400" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-slate-700">
+                      {item.title}
+                    </span>
+                    <span className="mt-1 block truncate text-xs text-slate-500">
+                      {item.content}
+                    </span>
+                  </span>
+                  <time
+                    dateTime={item.createdAt}
+                    className="shrink-0 text-xs text-slate-500"
+                  >
+                    {new Intl.DateTimeFormat("en", {
+                      timeZone: dashboard.zone,
+                      month: "short",
+                      day: "numeric",
+                    }).format(new Date(item.createdAt))}
+                  </time>
+                </button>
+              </li>
+            ))}
           </ul>
         </DashboardPanel>
+        <DashboardProjectActivity
+          today={dashboard.today}
+          zone={dashboard.zone}
+        />
       </div>
-      <DashboardPanel
-        title="Recent activity"
-        description="Your latest notifications"
-      >
-        <QueryFeedback query={extras.notifications} label="notifications" />
-        {extras.notifications.isSuccess &&
-          !extras.notifications.data.data.length && (
-            <EmptyState>No recent notifications.</EmptyState>
-          )}
-        <ul className="space-y-1">
-          {extras.notifications.data?.data.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                onClick={() => openNotification(item)}
-                className={`flex w-full items-start gap-3 rounded-lg p-3 text-left hover:bg-slate-50 ${item.isRead ? "" : "bg-blue-50/50"}`}
-              >
-                <Bell size={16} className="mt-0.5 shrink-0 text-slate-400" />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-slate-700">
-                    {item.title}
-                  </span>
-                  <span className="mt-1 block truncate text-xs text-slate-500">
-                    {item.content}
-                  </span>
-                </span>
-                <time
-                  dateTime={item.createdAt}
-                  className="shrink-0 text-xs text-slate-500"
-                >
-                  {new Intl.DateTimeFormat("en", {
-                    timeZone: dashboard.zone,
-                    month: "short",
-                    day: "numeric",
-                  }).format(new Date(item.createdAt))}
-                </time>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </DashboardPanel>
-      <FilePreviewModal
-        open={Boolean(preview)}
-        item={preview}
-        onClose={() => setPreview(null)}
-      />
       {notification && (
         <DashboardNotificationDialog
           notification={notification}

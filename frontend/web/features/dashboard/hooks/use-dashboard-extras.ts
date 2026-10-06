@@ -5,8 +5,6 @@ import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { getProjects } from "@/features/project/api/project.api";
 import { getProjectTaskStatusCounts } from "@/features/project/api/task.api";
 import { ProjectStatus } from "@/features/project/types/project";
-import { documentsApi } from "@/features/documents/api/documents.api";
-import { DocumentSortBy } from "@/features/documents/types/documents.enums";
 import { getNotifications } from "@/features/notification/api/notification.api";
 import { notificationKeys } from "@/features/notification/hooks/use-notification-actions";
 import { NOTIFICATION_CHANGED_EVENT } from "@/features/notification/utils/notification-category.utils";
@@ -40,22 +38,11 @@ export function useDashboardExtras(userId: string | null) {
         staleTime: 30_000,
       })),
   });
-  const documents = useQuery({
-    queryKey: ["documents", "dashboard-recent", userId],
-    queryFn: () =>
-      documentsApi.getDocuments({
-        limit: 5,
-        page: 1,
-        sortBy: DocumentSortBy.LATEST,
-      }),
-    enabled,
-    staleTime: 30_000,
-  });
   const notifications = useQuery({
     queryKey: [...notificationKeys.lists(), "dashboard", userId],
     queryFn: () => getNotifications(1, 5),
     enabled,
     staleTime: 30_000,
   });
-  return { projects, counts, documents, notifications };
+  return { projects, counts, notifications };
 }
