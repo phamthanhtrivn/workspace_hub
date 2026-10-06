@@ -1,17 +1,5 @@
-"use client";
+import { DashboardView } from "@/features/dashboard/components/dashboard-view";
 
 export default function DashboardPage() {
-  return (
-    <section>
-      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--color-primary)]">
-        Workspace
-      </p>
-      <h1 className="mt-2 text-3xl font-black text-[var(--color-primary-dark)]">
-        Dashboard
-      </h1>
-      <p className="mt-3 max-w-2xl text-sm text-slate-600">
-        Overview of your active projects, upcoming deadlines, and recent activities.
-      </p>
-    </section>
-  );
+  return <DashboardView />;
 }

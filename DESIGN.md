@@ -80,6 +80,10 @@ components:
 
 # Workspace Hub Calendar
 
+## Dashboard direction
+
+The personal dashboard uses the shared application tokens in frontend/web/app/globals.css: background/card for surfaces, border for separators, primary navy for actions and today, primary-dark for headings, muted-foreground for metadata and destructive for overdue work. Inherit the application sans font. Use shared radius utilities and the existing Button component so controls match the rest of the product. Keep the compact metric row, timeline and task list with 16px panel padding and 24px page spacing. The Focus panel uses primary at 5% opacity. Chart colors reference primary/secondary; user-selected project colors remain dynamic. Do not add dashboard-only palettes or fonts.
+
 ## Overview
 
 The Calendar is a dense daily-work surface for Workspace Hub members. It follows familiar Google Calendar interaction patterns: persistent navigation, compact controls, direct manipulation, quick event creation and progressive disclosure for advanced fields. It remains visually part of Workspace Hub through the existing navy-blue identity.
