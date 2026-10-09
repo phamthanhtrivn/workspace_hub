@@ -217,6 +217,8 @@ function createDefaultScheduleValues(): ScheduleMeetingValues {
     hasExistingPassword: false,
     autoAdmit: false,
     chatEnabled: true,
+    autoRecord: false,
+    recordingLayout: "speaker",
     screenShareEnabled: true,
   };
 }
@@ -246,6 +248,8 @@ function createScheduleValuesFromMeeting(
     hasExistingPassword: meeting.requiresPassword,
     autoAdmit: meeting.autoAdmit,
     chatEnabled: meeting.chatEnabled,
+    autoRecord: meeting.autoRecord ?? false,
+    recordingLayout: meeting.recordingLayout ?? "speaker",
     screenShareEnabled: meeting.screenShareEnabled,
   };
 }
@@ -380,6 +384,8 @@ export function ScheduleMeetingModal({
         password,
         autoAdmit: formValues.autoAdmit,
         chatEnabled: formValues.chatEnabled,
+        autoRecord: formValues.autoRecord,
+        recordingLayout: formValues.recordingLayout,
         screenShareEnabled: formValues.screenShareEnabled,
       };
 
@@ -640,6 +646,18 @@ export function ScheduleMeetingModal({
                     })
                   }
                 />
+                <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
+                  <input type="checkbox" checked={values.autoRecord}
+                    onChange={(event) => form.setValue("autoRecord", event.target.checked, { shouldDirty: true })} />
+                  Automatically record when the host joins
+                </label>
+                <label className="block text-sm">Recording layout
+                  <select value={values.recordingLayout} className="mt-2 h-10 w-full rounded-md border bg-white px-3"
+                    onChange={(event) => form.setValue("recordingLayout", event.target.value as ScheduleMeetingValues["recordingLayout"], { shouldDirty: true })}>
+                    <option value="speaker">Active speaker + shared screen</option>
+                    <option value="grid">Gallery + shared screen</option>
+                  </select>
+                </label>
               </div>
             ) : null}
           </section>

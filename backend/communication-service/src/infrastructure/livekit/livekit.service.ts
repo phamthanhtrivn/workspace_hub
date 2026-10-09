@@ -64,6 +64,12 @@ export class LiveKitService {
     return receiver.receive(body, authorization);
   }
 
+  async isParticipantConnected(roomName: string, userId: string) {
+    const participants =
+      await this.createRoomServiceClient().listParticipants(roomName);
+    return participants.some((participant) => participant.identity === userId);
+  }
+
   isRecordingConfigured(): boolean {
     return (
       process.env.MEETING_RECORDING_ENABLED === 'true' &&
@@ -95,7 +101,9 @@ export class LiveKitService {
         source: {
           case: 'template',
           value: {
-            layout: layout === 'grid' ? 'grid' : 'speaker',
+            layout: ['speaker', 'grid', 'screen'].includes(layout)
+              ? layout
+              : 'speaker',
             customBaseUrl: process.env.LIVEKIT_RECORDING_TEMPLATE_URL || '',
           },
         },

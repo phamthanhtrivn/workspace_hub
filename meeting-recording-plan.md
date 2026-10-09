@@ -10,7 +10,8 @@ Ngày: 09/10/2026. Trạng thái: đã hiện thực backend/frontend trên bran
 | Dữ liệu | Schema, migration backfill/BigInt/ACL/job, partial unique index; SQL đã chạy trên PGlite | Áp dụng vào database của dự án |
 | Quyền/API | JWT, quyền theo vai trò/grant, thư viện private/ACL, start/stop và idempotency | Thử nhiều tài khoản với backend thật |
 | Vòng đời | Webhook, ba nhóm tác vụ độc lập, đối soát Egress theo lô 30 giây, lease/abort/retry, stop khi end meeting, backup recovery, socket/Kafka | Media thật, restart và lỗi mạng |
-| UI trong phòng | Record/Stop, REC/timer, thông báo và menu cấp quyền | Hai trình duyệt trong phòng thật |
+| UI trong phòng | Record/Stop/Pause/Resume, REC/timer bỏ thời gian Pause, thông báo, settings host và menu cấp quyền | Hai trình duyệt trong phòng thật |
+| Ghi cốt lõi như Zoom | Phiên nhiều đoạn, ghép MP4 bằng FFmpeg không encode lại, auto-record khi host kết nối, template camera/trình chiếu riêng | Ghi thật qua template và đo độ trễ Pause/Resume |
 | Thư viện | Danh sách, player tự gia hạn URL giữ vị trí/trạng thái phát; polling theo kết nối socket; tải, đổi tên, chia sẻ/thu hồi/xóa | Phát/seek MP4 ghi từ Egress thật |
 | Kiểm tra | Jest đầy đủ, typecheck/build, lint phần thay đổi, Chromium desktop/mobile với API giả lập | E2E Egress/S3 |
 
@@ -22,14 +23,29 @@ Checklist nghiệm thu bên dưới giữ mở cho các tiêu chí cần môi tr
 - [x] Multipart song song có giới hạn buffer; lưu checkpoint và tiếp tục sau lỗi/restart, xác nhận CRC32, không ghi đè file, hủy khi mất lease.
 - [x] Giảm ListEgress và polling; socket gom sự kiện, tăng polling khi mất kết nối, banner không tạo thêm vòng polling.
 - [x] Player prefetch/gia hạn URL và giữ vị trí/trạng thái phát; kiểm thử bằng MP4 và HTTP Range trên Chromium.
-- [x] Build backend/frontend, lint phần thay đổi, 111 kiểm thử backend và migration PGlite.
+- [x] Build backend/frontend, kiểm thử backend/frontend, ghép media bằng FFmpeg thật và migration PGlite; bằng chứng chi tiết trong hướng dẫn chạy.
 - [ ] Chạy Egress/S3 thật, đo thời gian xử lý và CPU/RAM/đĩa/băng thông để chọn part size/concurrency/số Egress worker. Cấu hình mặc định là điểm khởi đầu, chưa phải kết quả tối ưu từ benchmark production.
+
+## Đợt bổ sung trải nghiệm ghi cốt lõi như Zoom
+
+Người dùng chọn ngày 09/10/2026: Pause/Resume, tự động ghi khi host vào phòng, bố cục camera/trình chiếu, thông báo và quyền truy cập; chưa thêm transcript/AI. Giữ lưu S3 và owner/ACL đã chọn.
+
+- [x] Thêm trạng thái PAUSING/PAUSED, đoạn ghi và settings auto-record; migration giữ dữ liệu cũ, unique phiên hoạt động bao gồm paused.
+- [x] API Pause/Resume/settings có khóa DB, kiểm tra quyền và chống request lặp; ghi lại sau Stop tạo phiên mới.
+- [x] Worker dừng đoạn khi Pause, bắt đầu đoạn mới khi Resume, ghép MP4 không chứa khoảng tạm dừng; một đoạn dùng S3 copy, nhiều đoạn dùng FFmpeg stream copy; giữ dữ liệu khi lỗi.
+- [x] Auto-record khi host JOINED và kết nối vào LiveKit, đối soát khi restart; kiểm tra lại lịch sử trong khóa DB để không tự ghi lại sau Stop thủ công.
+- [x] Template recording riêng: active speaker/gallery/screen-only, screen share lớn và camera nhỏ, âm thanh phòng; độc lập với pin cá nhân và provider/thông báo ứng dụng.
+- [x] UI Pause/Resume, thời gian chỉ tính phần ghi, thông báo trạng thái và settings tự động ghi; chọn auto-record khi tạo hoặc lên lịch họp.
+- [x] Kiểm thử API/quyền/vòng đời/migration, FFmpeg với media thật và ghi đè đồng thời, Chromium controls/template route, build/lint.
+- [ ] Nghiệm thu template/media qua LiveKit Egress/S3 thật, đo độ trễ và tài nguyên trước khi kết luận tối ưu production.
+
+Pause thật dừng Egress của đoạn hiện tại; UI hiển thị Pausing tới khi đoạn được xác nhận. Resume chỉ bắt đầu sau xác nhận Pause. Khi ghép dùng cùng preset H264/AAC 720p/30 để tránh encode lại. Cần FFmpeg trên process upload và volume làm việc có đủ đĩa; bộ nhớ upload vẫn có giới hạn. Chưa khẳng định tối ưu production trước khi đo tải.
 
 ## Mục tiêu và phạm vi
 
 Triển khai trải nghiệm ghi trên đám mây tương tự Zoom: bấm Record trong phòng → REC và thời gian → Stop → Đang xử lý → xem lại trong Recordings. Ghi âm thanh, camera và màn hình được chia sẻ thành MP4 trên máy chủ; lưu S3. Người dùng đã chọn: host/co-host điều khiển ghi; thành viên thường cần được host cấp quyền; bản ghi mặc định riêng tư và được chia sẻ theo tài khoản.
 
-Đề xuất cho bản đầu: MP4 720p, một phiên ghi/xử lý trong mỗi phòng; dừng rồi ghi lại tạo file mới; màn hình chia sẻ hiển thị lớn và camera nhỏ, hết chia sẻ quay về camera. Record không mở hộp chọn màn hình; Share screen vẫn là thao tác và quyền riêng. Chủ sở hữu bản ghi là người tạo cuộc họp (`Meeting.createdBy`), độc lập với chuyển host. Tạm dừng/tiếp tục trong cùng một file, HLS, tự động ghi, transcript và AI tóm tắt làm sau.
+Phạm vi hiện tại: MP4 720p, một phiên ghi/xử lý/tạm dừng trong mỗi phòng; dừng rồi ghi lại tạo file mới, Pause/Resume giữ cùng file cuối; màn hình chia sẻ hiển thị lớn và camera nhỏ, hết chia sẻ quay về camera. Record không mở hộp chọn màn hình; Share screen vẫn là thao tác và quyền riêng. Chủ sở hữu bản ghi là người tạo cuộc họp (`Meeting.createdBy`), độc lập với chuyển host. Có tự động ghi khi host kết nối; HLS, transcript và AI tóm tắt nằm ngoài phạm vi.
 
 Thiết kế API, bảng quyền và các tình huống lỗi: [meeting-recording-spec.md](meeting-recording-spec.md).
 

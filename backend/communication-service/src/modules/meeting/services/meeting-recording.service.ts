@@ -10,12 +10,16 @@ import { MeetingEvent } from '../../socket/meeting/meeting-socket.events';
 import {
   ListRecordingsDto,
   StartMeetingRecordingDto,
+  RecordingSettingsDto,
 } from '../dto/meeting-recording.dto';
 import {
   ACTIVE_RECORDING_STATUSES,
+  RECORDING_CAPACITY_STATUSES,
+  recordingSegmentKey,
   recordingCapabilities,
   recordingError,
 } from '../utils/meeting-recording.utils';
+import { MeetingRecordingMediaService } from './meeting-recording-media.service';
 
 const recordingInclude = {
   meeting: { select: { title: true, joinToken: true } },
@@ -33,6 +37,7 @@ export class MeetingRecordingService {
     private readonly s3: S3Service,
     private readonly policy: MeetingPolicyService,
     private readonly realtime: MeetingRealtimeService,
+    private readonly media?: MeetingRecordingMediaService,
   ) {}
 
   async status(joinToken: string, userId: string) {
@@ -49,6 +54,14 @@ export class MeetingRecordingService {
     return {
       meetingId: meeting.id,
       ownerId: meeting.createdBy,
+      settings: {
+        autoRecord: meeting.autoRecord,
+        layout: meeting.recordingLayout,
+      },
+      pauseAvailable: Boolean(this.media?.isAvailable()),
+      customLayoutsAvailable: Boolean(
+        process.env.LIVEKIT_RECORDING_TEMPLATE_URL,
+      ),
       recordingAvailable: available,
       unavailableReason: available
         ? null
@@ -61,11 +74,25 @@ export class MeetingRecordingService {
             stoppedAt: recording.stoppedAt,
             stopRequestedAt: recording.stopRequestedAt,
             version: recording.version,
+            layout: recording.layout,
+            recordedSeconds: recording.durationSeconds ?? 0,
+            segmentStartedAt: recording.segmentStartedAt,
           }
         : null,
       capabilities: {
         ...capabilities,
         canStart: available && capabilities.canStart,
+        canPause: Boolean(
+          capabilities.canStop &&
+          recording?.status === 'RECORDING' &&
+          recording.segmentKey &&
+          this.media?.isAvailable(),
+        ),
+        canResume: Boolean(
+          capabilities.canStop &&
+          recording?.status === 'PAUSED' &&
+          this.media?.isAvailable(),
+        ),
       },
     };
   }
@@ -75,6 +102,7 @@ export class MeetingRecordingService {
     userId: string,
     dto: StartMeetingRecordingDto,
     key?: string,
+    automatic = false,
   ) {
     const { meeting } = await this.policy.assertJoinedMeetingParticipant({
       joinToken,
@@ -82,6 +110,12 @@ export class MeetingRecordingService {
     });
     const requestKey = this.requestKey(userId, meeting.id, 'START', key);
     const layout = dto.layout ?? 'speaker';
+    if (layout === 'screen' && !process.env.LIVEKIT_RECORDING_TEMPLATE_URL)
+      recordingError(
+        503,
+        'RECORDING_LAYOUT_UNAVAILABLE',
+        'Screen-only recording is not configured',
+      );
     const requestHash = createHash('sha256').update(layout).digest('hex');
     const existing = await this.prisma.meetingRecordingJob.findUnique({
       where: { requestKey },
@@ -112,6 +146,18 @@ export class MeetingRecordingService {
             'RECORDING_FORBIDDEN',
             'You cannot record this meeting',
           );
+        if (
+          automatic &&
+          (!current.autoRecord ||
+            (await tx.meetingRecording.count({
+              where: { meetingId: meeting.id },
+            })) > 0)
+        )
+          recordingError(
+            409,
+            'AUTO_RECORDING_SKIPPED',
+            'Automatic recording is disabled or has already run',
+          );
         const active = await tx.meetingRecording.findFirst({
           where: {
             meetingId: meeting.id,
@@ -126,7 +172,7 @@ export class MeetingRecordingService {
           );
         await tx.$queryRaw`SELECT pg_advisory_xact_lock(61009001)`;
         const activeCount = await tx.meetingRecording.count({
-          where: { status: { in: ACTIVE_RECORDING_STATUSES } },
+          where: { status: { in: RECORDING_CAPACITY_STATUSES } },
         });
         if (
           activeCount >=
@@ -147,6 +193,11 @@ export class MeetingRecordingService {
             status: MeetingRecordingStatus.STARTING,
             title,
             layout,
+            segmentKey: this.media?.isAvailable()
+              ? recordingSegmentKey(meeting.id, id, 0)
+              : null,
+            controlRequestedBy: userId,
+            durationSeconds: 0,
             s3Key: `recordings/${meeting.id}/${id}.mp4`,
             fileName: `${id}.mp4`,
             mimeType: 'video/mp4',
@@ -238,10 +289,239 @@ export class MeetingRecordingService {
       await tx.meetingRecordingJob.upsert({
         where: { recordingId_kind: { recordingId, kind: 'STOP' } },
         create: { recordingId, kind: 'STOP', requestKey },
-        update: {},
+        update: {
+          state: 'PENDING',
+          attempts: 0,
+          leaseToken: null,
+          leaseUntil: null,
+          nextAttemptAt: new Date(),
+        },
       });
+      if (recording.segmentKey && recording.status === 'PAUSED') {
+        await tx.meetingRecording.update({
+          where: { id: recordingId },
+          data: { failureCode: 'MERGE_PENDING' },
+        });
+        await tx.meetingRecordingJob.upsert({
+          where: { recordingId_kind: { recordingId, kind: 'MERGE' } },
+          create: { recordingId, kind: 'MERGE' },
+          update: {},
+        });
+      }
       return { id: recordingId, status: MeetingRecordingStatus.PROCESSING };
     });
+  }
+
+  async configure(
+    joinToken: string,
+    userId: string,
+    dto: RecordingSettingsDto,
+  ) {
+    const { meeting } = await this.policy.assertMeetingHost({
+      joinToken,
+      userId,
+    });
+    if (dto.layout === 'screen' && !process.env.LIVEKIT_RECORDING_TEMPLATE_URL)
+      recordingError(
+        503,
+        'RECORDING_LAYOUT_UNAVAILABLE',
+        'Screen-only recording is not configured',
+      );
+    const settings = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM meetings WHERE id = ${meeting.id}::uuid FOR UPDATE`;
+      const current = await tx.meeting.findUniqueOrThrow({
+        where: { id: meeting.id },
+      });
+      const actor = await tx.meetingParticipant.findUnique({
+        where: { meetingId_userId: { meetingId: meeting.id, userId } },
+      });
+      if (
+        actor?.status !== 'JOINED' ||
+        actor.role !== 'HOST' ||
+        current.hostId !== userId
+      )
+        recordingError(
+          403,
+          'RECORDING_FORBIDDEN',
+          'Only the joined host can change recording settings',
+        );
+      if (current.status !== 'LIVE')
+        recordingError(409, 'MEETING_NOT_LIVE', 'Meeting is not live');
+      return tx.meeting.update({
+        where: { id: meeting.id },
+        data: {
+          autoRecord: dto.autoRecord,
+          recordingLayout: dto.layout,
+        },
+      });
+    });
+    this.realtime.emitMeetingEvent(meeting.id, MeetingEvent.RECORDING_UPDATED, {
+      meetingId: meeting.id,
+    });
+    return {
+      autoRecord: settings.autoRecord,
+      layout: settings.recordingLayout,
+    };
+  }
+
+  async pause(joinToken: string, userId: string, id: string, key?: string) {
+    return this.transition(joinToken, userId, id, 'PAUSE', key);
+  }
+
+  async resume(joinToken: string, userId: string, id: string, key?: string) {
+    return this.transition(joinToken, userId, id, 'RESUME', key);
+  }
+
+  private async transition(
+    joinToken: string,
+    userId: string,
+    id: string,
+    operation: 'PAUSE' | 'RESUME',
+    key?: string,
+  ) {
+    const { meeting } = await this.policy.assertJoinedMeetingParticipant({
+      joinToken,
+      userId,
+    });
+    const requestKey = this.requestKey(userId, meeting.id, operation, key);
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM meetings WHERE id = ${meeting.id}::uuid FOR UPDATE`;
+      const current = await tx.meeting.findUniqueOrThrow({
+        where: { id: meeting.id },
+      });
+      const recording = await tx.meetingRecording.findUnique({ where: { id } });
+      if (!recording || recording.meetingId !== meeting.id)
+        recordingError(404, 'RECORDING_NOT_FOUND', 'Recording not found');
+      const actor = await tx.meetingParticipant.findUnique({
+        where: { meetingId_userId: { meetingId: meeting.id, userId } },
+      });
+      if (!recordingCapabilities(actor ?? undefined, recording, userId).canStop)
+        recordingError(
+          403,
+          'RECORDING_FORBIDDEN',
+          'You cannot control this recording',
+        );
+      if (current.status !== 'LIVE')
+        recordingError(409, 'MEETING_NOT_LIVE', 'Meeting is not live');
+      const previous = await tx.meetingRecordingJob.findUnique({
+        where: { requestKey },
+      });
+      if (previous) {
+        if (previous.recordingId !== id)
+          recordingError(
+            409,
+            'IDEMPOTENCY_CONFLICT',
+            'This key was used for another recording',
+          );
+        return { id, status: recording.status };
+      }
+      if (!this.media?.isAvailable() || !recording.segmentKey)
+        recordingError(
+          503,
+          'RECORDING_PAUSE_UNAVAILABLE',
+          'Pause/Resume is unavailable for this recording',
+        );
+      const expected = operation === 'PAUSE' ? 'RECORDING' : 'PAUSED';
+      if (recording.status !== expected)
+        recordingError(
+          409,
+          'RECORDING_STATE_CONFLICT',
+          `Recording must be ${expected.toLowerCase()}`,
+        );
+      if (operation === 'RESUME') {
+        if (!this.liveKit.isRecordingConfigured())
+          recordingError(
+            503,
+            'RECORDING_UNAVAILABLE',
+            'Recording service is unavailable',
+          );
+        if (recording.segmentIndex >= 99)
+          recordingError(
+            429,
+            'RECORDING_SEGMENT_LIMIT',
+            'Recording pause limit reached',
+          );
+        if (
+          (recording.durationSeconds ?? 0) >=
+          Number(process.env.MEETING_RECORDING_MAX_MINUTES || 120) * 60
+        )
+          recordingError(
+            409,
+            'RECORDING_DURATION_LIMIT',
+            'Recording duration limit reached',
+          );
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(61009001)`;
+        const count = await tx.meetingRecording.count({
+          where: { status: { in: RECORDING_CAPACITY_STATUSES } },
+        });
+        if (count >= Number(process.env.MEETING_RECORDING_MAX_CONCURRENT || 1))
+          recordingError(
+            429,
+            'RECORDING_CAPACITY',
+            'Recording capacity reached; try again later',
+          );
+      }
+      const status =
+        operation === 'PAUSE'
+          ? MeetingRecordingStatus.PAUSING
+          : MeetingRecordingStatus.STARTING;
+      await tx.meetingRecording.update({
+        where: { id },
+        data:
+          operation === 'PAUSE'
+            ? {
+                status,
+                pauseRequestedAt: new Date(),
+                version: { increment: 1 },
+              }
+            : {
+                status,
+                pauseRequestedAt: null,
+                livekitEgressId: null,
+                egressUpdatedAt: 0n,
+                segmentIndex: { increment: 1 },
+                segmentStartedAt: null,
+                segmentDurationSeconds: null,
+                stoppedAt: null,
+                controlRequestedBy: userId,
+                segmentKey: recordingSegmentKey(
+                  meeting.id,
+                  id,
+                  recording.segmentIndex + 1,
+                ),
+                failureCode: null,
+                version: { increment: 1 },
+              },
+      });
+      const kind = operation === 'PAUSE' ? 'STOP' : 'START';
+      await tx.meetingRecordingJob.upsert({
+        where: { recordingId_kind: { recordingId: id, kind } },
+        create: { recordingId: id, kind },
+        update: {
+          state: 'PENDING',
+          attempts: 0,
+          nextAttemptAt: new Date(),
+          leaseToken: null,
+          leaseUntil: null,
+          dispatchedAt: null,
+        },
+      });
+      await tx.meetingRecordingJob.create({
+        data: {
+          recordingId: id,
+          kind: `${operation}:${createHash('sha256').update(requestKey).digest('hex')}`,
+          requestKey,
+          state: 'DONE',
+        },
+      });
+      return { id, status };
+    });
+    this.realtime.emitMeetingEvent(meeting.id, MeetingEvent.RECORDING_UPDATED, {
+      meetingId: meeting.id,
+      recordingId: id,
+      status: result.status,
+    });
+    return result;
   }
 
   async grantRecording(

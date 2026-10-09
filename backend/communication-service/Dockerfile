@@ -1,5 +1,7 @@
 FROM node:20-alpine
 
+RUN apk add --no-cache ffmpeg
+
 WORKDIR /app
 
 # Sao chép package.json

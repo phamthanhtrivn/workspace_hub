@@ -1,6 +1,7 @@
 import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { MeetingRecordingOptionsDto } from './meeting-recording-options.dto';
 
-export class MeetingOptionsDto {
+export class MeetingOptionsDto extends MeetingRecordingOptionsDto {
   @IsOptional()
   @IsString()
   @MaxLength(128)

@@ -9,7 +9,6 @@ import {
   VideoOff,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { MeetingPreJoinMode } from "../../types/meeting.types";
 import type {
   MeetingDeviceOption,
@@ -232,6 +231,12 @@ export function MeetingPreJoin({
                     updateSettings({ chatEnabled: checked })
                   }
                 />
+                <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
+                  <input type="checkbox" checked={settings.autoRecord ?? false}
+                    onChange={(event) => updateSettings({ autoRecord: event.target.checked })} />
+                  Automatically record this meeting
+                </label>
+                <p className="text-xs text-slate-500">Cloud recording starts when you connect. Everyone will be notified.</p>
               </div>
             ) : null}
 

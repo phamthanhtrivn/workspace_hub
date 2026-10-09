@@ -16,8 +16,14 @@ import { MeetingRecordingStatus } from '@prisma/client';
 
 export class StartMeetingRecordingDto {
   @IsOptional()
-  @IsIn(['speaker', 'grid'])
-  layout?: 'speaker' | 'grid';
+  @IsIn(['speaker', 'grid', 'screen'])
+  layout?: 'speaker' | 'grid' | 'screen';
+}
+
+export class RecordingSettingsDto extends StartMeetingRecordingDto {
+  @IsOptional()
+  @IsBoolean()
+  autoRecord?: boolean;
 }
 
 export class RecordingPermissionDto {

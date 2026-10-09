@@ -5,7 +5,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 import { toast } from "sonner";
 import { recordingApi } from "../api/meeting-recording.api";
-import type { RecordingLayout } from "../types/meeting-recording.types";
+import type {
+  RecordingLayout,
+  RecordingSettings,
+} from "../types/meeting-recording.types";
 import { useRecordingEvents } from "./useRecordingEvents";
 import { useAppSelector } from "@/store/store";
 
@@ -44,7 +47,12 @@ export function useMeetingRecording(
         return false;
       if (query.state.error) return 30_000;
       const status = query.state.data?.recording?.status;
-      if (status === "STARTING" || status === "PROCESSING") return 3000;
+      if (
+        status === "STARTING" ||
+        status === "PAUSING" ||
+        status === "PROCESSING"
+      )
+        return 3000;
       return connected ? 30_000 : 5000;
     },
     staleTime: 2000,
@@ -69,5 +77,32 @@ export function useMeetingRecording(
       refresh();
     },
   });
-  return { query, start, stop };
+  const pause = useMutation({
+    mutationFn: ({ id, key }: { id: string; key: string }) =>
+      recordingApi.pause(joinToken, id, key),
+    onSuccess: refresh,
+    onError: (error) => {
+      toast.error(recordingErrorMessage(error));
+      refresh();
+    },
+  });
+  const resume = useMutation({
+    mutationFn: ({ id, key }: { id: string; key: string }) =>
+      recordingApi.resume(joinToken, id, key),
+    onSuccess: refresh,
+    onError: (error) => {
+      toast.error(recordingErrorMessage(error));
+      refresh();
+    },
+  });
+  const configure = useMutation({
+    mutationFn: (settings: RecordingSettings) =>
+      recordingApi.configure(joinToken, settings),
+    onSuccess: refresh,
+    onError: (error) => {
+      toast.error(recordingErrorMessage(error));
+      refresh();
+    },
+  });
+  return { query, start, stop, pause, resume, configure };
 }

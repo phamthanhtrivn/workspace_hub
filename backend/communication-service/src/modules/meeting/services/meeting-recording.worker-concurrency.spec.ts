@@ -241,7 +241,11 @@ describe('independent recording worker lanes', () => {
     expect(fail).not.toHaveBeenCalled();
     expect(enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: { recordingId: base.id, kind: 'RECOVER' },
+        create: {
+          recordingId: base.id,
+          kind: 'RECOVER',
+          requestHash: base.s3Key,
+        },
         update: {},
       }),
     );

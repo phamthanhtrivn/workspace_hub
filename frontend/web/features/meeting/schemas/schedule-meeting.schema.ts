@@ -14,6 +14,8 @@ export const scheduleMeetingSchema = z
     hasExistingPassword: z.boolean(),
     autoAdmit: z.boolean(),
     chatEnabled: z.boolean(),
+    autoRecord: z.boolean(),
+    recordingLayout: z.enum(["speaker", "grid", "screen"]),
     screenShareEnabled: z.boolean(),
   })
   .superRefine((values, context) => {

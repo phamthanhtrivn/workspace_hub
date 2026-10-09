@@ -29,7 +29,7 @@ export function useMeetingRecordings(params: RecordingQuery) {
       if (query.state.error) return 30_000;
       if (
         query.state.data?.items.some((item) =>
-          ["STARTING", "PROCESSING"].includes(item.status),
+          ["STARTING", "PAUSING", "PROCESSING"].includes(item.status),
         )
       )
         return 5000;

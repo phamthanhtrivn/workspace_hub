@@ -36,6 +36,11 @@ describe('recording API contract', () => {
     start: jest.fn().mockResolvedValue({ id, status: 'STARTING' }),
     grantRecording: jest.fn(),
     list: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+    pause: jest.fn().mockResolvedValue({ id, status: 'PAUSING' }),
+    resume: jest.fn().mockResolvedValue({ id, status: 'STARTING' }),
+    configure: jest
+      .fn()
+      .mockResolvedValue({ autoRecord: true, layout: 'grid' }),
   };
 
   beforeAll(async () => {
@@ -83,6 +88,40 @@ describe('recording API contract', () => {
       .send({ layout: 'arbitrary-url' })
       .expect(400);
     expect(calls.start).not.toHaveBeenCalled();
+  });
+  it.each(['pause', 'resume'] as const)(
+    'accepts authenticated %s with an idempotency key',
+    async (action) => {
+      await request(app.getHttpServer())
+        .post(`/api/meetings/join-token/recordings/${id}/${action}`)
+        .set('Authorization', authorization)
+        .set('Idempotency-Key', `${action}-key`)
+        .send({})
+        .expect(202);
+      expect(calls[action]).toHaveBeenCalledWith(
+        'join-token',
+        id,
+        id,
+        `${action}-key`,
+      );
+    },
+  );
+  it('validates and forwards host recording settings', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/meetings/join-token/recordings/settings')
+      .set('Authorization', authorization)
+      .send({ autoRecord: 'true' })
+      .expect(400);
+    expect(calls.configure).not.toHaveBeenCalled();
+    await request(app.getHttpServer())
+      .patch('/api/meetings/join-token/recordings/settings')
+      .set('Authorization', authorization)
+      .send({ autoRecord: true, layout: 'grid' })
+      .expect(200);
+    expect(calls.configure).toHaveBeenCalledWith('join-token', id, {
+      autoRecord: true,
+      layout: 'grid',
+    });
   });
   it('validates booleans instead of accepting truthy strings as grants', async () => {
     await request(app.getHttpServer())

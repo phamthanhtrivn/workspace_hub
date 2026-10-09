@@ -132,6 +132,8 @@ export function MeetingRecordingsView() {
                     ? "Recording"
                     : recording.status === "STARTING"
                       ? "Starting"
+                      : recording.status === "PAUSING" ? "Pausing"
+                      : recording.status === "PAUSED" ? "Paused"
                       : recording.status === "PROCESSING"
                         ? "Processing"
                         : recording.status === "FAILED"

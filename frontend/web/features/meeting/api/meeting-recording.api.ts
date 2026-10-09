@@ -7,6 +7,7 @@ import type {
   RecordingPermission,
   RecordingQuery,
   RecordingRoomStatus,
+  RecordingSettings,
 } from "../types/meeting-recording.types";
 
 const root = "/api/meetings";
@@ -30,6 +31,20 @@ export const recordingApi = {
       {},
       { headers: { "Idempotency-Key": key } },
     ),
+  pause: async (token: string, id: string, key: string) =>
+    api.post(
+      `${room(token)}/recordings/${encodeURIComponent(id)}/pause`,
+      {},
+      { headers: { "Idempotency-Key": key } },
+    ),
+  resume: async (token: string, id: string, key: string) =>
+    api.post(
+      `${room(token)}/recordings/${encodeURIComponent(id)}/resume`,
+      {},
+      { headers: { "Idempotency-Key": key } },
+    ),
+  configure: async (token: string, settings: RecordingSettings) =>
+    api.patch(`${room(token)}/recordings/settings`, settings),
   grant: async (token: string, userId: string, canRecord: boolean) =>
     api.patch(
       `${room(token)}/participants/${encodeURIComponent(userId)}/recording-permission`,

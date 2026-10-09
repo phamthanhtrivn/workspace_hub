@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "sonner";
-import StoreProvider from "@/store/store-provider";
-import { GoogleOAuthProvider } from "@react-oauth/google";
-import QueryProvider from "@/store/query-provider";
-import NotificationManagers from "@/features/notification/components/notification-managers";
+import { AppProviders } from "@/components/app-providers";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -25,19 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.className}>
       <body className="min-h-screen">
-        <GoogleOAuthProvider
-          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
+        <AppProviders
+          googleClientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}
         >
-          <QueryProvider>
-            <StoreProvider>
-              {children}
-              <NotificationManagers />
-            </StoreProvider>
-          </QueryProvider>
-        </GoogleOAuthProvider>
-        <Toaster richColors position="top-right" />
+          {children}
+        </AppProviders>
       </body>
     </html>
   );
 }
-

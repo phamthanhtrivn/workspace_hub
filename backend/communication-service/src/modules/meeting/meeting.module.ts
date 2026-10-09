@@ -25,6 +25,8 @@ import { MeetingScreenShareService } from './services/meeting-screen-share.servi
 import { MeetingRecordingController } from './meeting-recording.controller';
 import { MeetingRecordingService } from './services/meeting-recording.service';
 import { MeetingRecordingWorker } from './services/meeting-recording.worker';
+import { MeetingRecordingMediaService } from './services/meeting-recording-media.service';
+import { MeetingRecordingSegmentsService } from './services/meeting-recording-segments.service';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { MeetingRecordingWorker } from './services/meeting-recording.worker';
   ],
   providers: [
     MeetingRecordingService,
+    MeetingRecordingMediaService,
+    MeetingRecordingSegmentsService,
     MeetingRecordingWorker,
     MeetingService,
     MeetingRoomService,

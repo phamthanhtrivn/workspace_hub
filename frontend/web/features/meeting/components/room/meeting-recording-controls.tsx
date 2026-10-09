@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Circle, Square } from "lucide-react";
+import { Circle, Square, Pause, Play, Settings } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +13,7 @@ import { useMeetingRecording } from "../../hooks/useMeetingRecording";
 import type { RecordingLayout } from "../../types/meeting-recording.types";
 import { MeetingRoomControlButton } from "../common/meeting-room-control-button";
 import { MeetingButton } from "../ui/meeting-form-controls";
+import { MeetingRecordingSettings } from "./meeting-recording-settings";
 
 export function MeetingRecordingControls({
   joinToken,
@@ -21,10 +22,14 @@ export function MeetingRecordingControls({
   joinToken: string;
   meetingId: string;
 }) {
-  const { query, start, stop } = useMeetingRecording(joinToken, meetingId);
+  const { query, start, stop, pause, resume, configure } = useMeetingRecording(
+    joinToken,
+    meetingId,
+  );
   const userId = useAppSelector((state) => state.auth.userId);
   const [dialog, setDialog] = useState<"start" | "stop" | null>(null);
   const [layout, setLayout] = useState<RecordingLayout>("speaker");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const state = query.data;
   const active = Boolean(state?.recording);
   const canStop = state?.capabilities.canStop;
@@ -33,11 +38,13 @@ export function MeetingRecordingControls({
     query.isError ||
     start.isPending ||
     stop.isPending ||
+    pause.isPending ||
+    resume.isPending ||
     !(active ? canStop : state?.capabilities.canStart);
   const label = state?.recording?.stopRequestedAt
     ? "Processing"
     : active
-      ? "Stop recording"
+      ? "Stop"
       : "Record";
 
   const submit = () => {
@@ -57,12 +64,67 @@ export function MeetingRecordingControls({
       >
         <MeetingRoomControlButton
           label={label}
+          ariaLabel={
+            active && !state?.recording?.stopRequestedAt
+              ? "Stop recording"
+              : label
+          }
           icon={active ? Square : Circle}
           active={active}
           disabled={disabled}
-          onClick={() => setDialog(active ? "stop" : "start")}
+          onClick={() => {
+            setLayout(state?.settings?.layout ?? "speaker");
+            setDialog(active ? "stop" : "start");
+          }}
         />
       </span>
+      {active && state?.pauseAvailable && (
+        <MeetingRoomControlButton
+          label={
+            state.recording?.status === "PAUSED"
+              ? "Resume"
+              : state.recording?.status === "PAUSING"
+                ? "Pausing…"
+                : "Pause"
+          }
+          icon={state.recording?.status === "PAUSED" ? Play : Pause}
+          disabled={
+            pause.isPending ||
+            resume.isPending ||
+            !(state.capabilities.canPause || state.capabilities.canResume)
+          }
+          onClick={() => {
+            if (!state.recording) return;
+            const command = {
+              id: state.recording.id,
+              key: crypto.randomUUID(),
+            };
+            if (state.capabilities.canResume) resume.mutate(command);
+            else pause.mutate(command);
+          }}
+        />
+      )}
+      {state?.capabilities.canGrantRecord && (
+        <MeetingRoomControlButton
+          label="Rec. setup"
+          ariaLabel="Recording settings"
+          icon={Settings}
+          disabled={configure.isPending}
+          onClick={() => setSettingsOpen(true)}
+        />
+      )}
+      {settingsOpen && state && (
+        <MeetingRecordingSettings
+          settings={state.settings ?? { autoRecord: false, layout: "speaker" }}
+          customLayoutsAvailable={state.customLayoutsAvailable}
+          saving={configure.isPending}
+          onClose={() => setSettingsOpen(false)}
+          onSave={async (settings) => {
+            await configure.mutateAsync(settings);
+            setSettingsOpen(false);
+          }}
+        />
+      )}
       <Dialog
         open={dialog !== null}
         onOpenChange={(open) => {
@@ -93,6 +155,9 @@ export function MeetingRecordingControls({
               >
                 <option value="speaker">Active speaker + shared screen</option>
                 <option value="grid">Gallery + shared screen</option>
+                {state?.customLayoutsAvailable && (
+                  <option value="screen">Shared screen only</option>
+                )}
               </select>
             </label>
           )}

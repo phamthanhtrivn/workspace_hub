@@ -16,6 +16,7 @@ services:
       - /app/node_modules
       - /app/dist
       - recording_backup:/recording-backup
+      - recording_work:/recording-work
     command: sh -c "npx prisma generate && node prisma/prepare-recording-db.cjs && npm run start:dev"
     depends_on:
       postgres:
@@ -31,3 +32,6 @@ services:
     networks:
       - wh_network
     restart: on-failure
+
+volumes:
+  recording_work:

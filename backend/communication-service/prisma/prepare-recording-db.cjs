@@ -42,9 +42,10 @@ async function prepare() {
       throw new Error(
         'Schema update failed; review Prisma output before continuing',
       );
-    await prisma.$executeRawUnsafe(
-      readFileSync(join(__dirname, 'recording-constraints.sql'), 'utf8'),
-    );
+    await prisma.$transaction(async (tx) => {
+      for (const statement of readFileSync(join(__dirname, 'recording-constraints.sql'), 'utf8').split(';').map((part) => part.trim()).filter(Boolean))
+        await tx.$executeRawUnsafe(statement);
+    });
     console.log(
       'Recording schema and exclusive recording constraint are ready',
     );

@@ -10,9 +10,9 @@ Các quy tắc chi tiết dưới đây là đề xuất triển khai:
 
 - Bản đầu ghi một video MP4 720p chứa âm thanh chung, camera và screen share. Dùng nguồn template để ghép phòng; ưu tiên screen share, chuyển về camera khi hết chia sẻ. Kiểm tra hành vi template mặc định; nếu cần chỉnh layout thì dùng `UpdateLayout` hoặc template riêng.
 - Record → Starting → REC + thời gian → Stop → Processing → Ready/Failed. Người trong phòng và người vào muộn đều thấy thông báo đang ghi. Timer dựa trên thời điểm Egress thực sự bắt đầu, không dựa trên thời điểm bấm nút.
-- Mỗi meeting chỉ có một bản ghi ở trạng thái STARTING/RECORDING/PROCESSING. Sau COMPLETED/FAILED có thể bắt đầu bản mới nếu meeting vẫn LIVE. Stop rồi start tạo file mới, hiển thị thành các bản ghi riêng.
+- Mỗi meeting chỉ có một phiên ở trạng thái STARTING/RECORDING/PAUSING/PAUSED/PROCESSING. Sau COMPLETED/FAILED có thể bắt đầu bản mới nếu meeting vẫn LIVE. Stop rồi start tạo file mới; Pause/Resume giữ cùng recording ID và MP4 cuối.
 - Người tạo meeting (`createdBy`) là chủ sở hữu lưu trong `ownerId`; `startedBy` chỉ ghi nhận người thao tác. Chuyển host không tự chuyển quyền sở hữu/chia sẻ file; UI phải ghi rõ ai sở hữu bản ghi.
-- Bản đầu có ghi thủ công, xem, tải, chia sẻ, thu hồi và xóa. Tạm dừng/tiếp tục cùng một file, ghép nhiều đoạn, auto-record, transcript và AI tóm tắt thuộc đợt sau.
+- Đã bổ sung Pause/Resume, ghép nhiều đoạn, auto-record và template riêng trong đợt ghi cốt lõi ngày 09/10/2026. Transcript/AI nằm ngoài phạm vi.
 
 Trải nghiệm trong phòng cần triển khai rõ:
 
@@ -25,6 +25,9 @@ Trải nghiệm trong phòng cần triển khai rõ:
 | Dừng/đổi người chia sẻ | Đổi bố cục/track trong cùng phiên ghi, không stop/start Egress; giữ âm thanh liên tục |
 | Tất cả tắt camera | Hiện avatar/nền phù hợp, vẫn ghi âm thanh; không coi đây là lỗi |
 | Bấm Stop | Xác nhận dừng, hiện Processing; sau thành công có bản ghi trong Recordings theo quyền |
+| Bấm Pause | RECORDING → PAUSING; dừng Egress hiện tại; chỉ PAUSED sau khi S3 xác nhận và metadata đoạn được lưu |
+| Bấm Resume | PAUSED → STARTING → RECORDING; Egress mới và key đoạn mới, giữ owner/ACL, bỏ thời gian Pause khỏi tổng |
+| Tự động ghi | Host thực sự kết nối LiveKit và đã bật autoRecord; bắt đầu một lần, kiểm tra lịch sử trong transaction |
 
 Record và Share screen có hai policy độc lập. Quyền ghi không cho phép tự lấy màn hình máy khác, và không cho phép screen share nếu host đang tắt quyền đó. Âm thanh tab/hệ thống chỉ được ghi nếu browser hỗ trợ, người dùng bật chia sẻ âm thanh và ứng dụng publish track âm thanh đó; micro vẫn theo track hiện tại. Bố cục ghép của máy chủ độc lập với pin/layout cá nhân. Ưu tiên template có sẵn; nếu thiếu bố cục yêu cầu thì bổ sung template riêng, không đưa UI chat/settings vào video.
 
@@ -48,9 +51,11 @@ sequenceDiagram
     U->>API: Stop
     API->>DB: Lưu yêu cầu dừng và tác vụ
     API->>E: Worker gọi StopEgress
-    E->>S: Hoàn tất và upload MP4
+    E->>S: Hoàn tất và upload đoạn MP4
     E->>API: Webhook egress_ended
-    API->>DB: COMPLETED / FAILED
+    API->>DB: Lưu đoạn, tạo tác vụ MERGE
+    API->>S: Copy một đoạn hoặc upload MP4 ghép bằng FFmpeg
+    API->>DB: HEAD xác nhận rồi COMPLETED / FAILED
     API-->>U: Thông báo sẵn sàng nếu có quyền xem
 ```
 
@@ -86,8 +91,11 @@ Prefix chung `/api/meetings`. `:joinToken` dùng cho điều khiển phòng hi�
 | Method và path sau prefix | Nội dung | Quyền |
 |---|---|---|
 | `GET /:joinToken/recordings/status` | Bản ghi đang hoạt động/null, thời gian, khả năng ghi, quyền hiện tại | Participant JOINED |
-| `POST /:joinToken/recordings` | Bắt đầu ghi; body `{ layout: "speaker" \| "grid" }`; layout mặc định speaker với screen share ưu tiên | Host/co-host hoặc participant được cấp |
+| `POST /:joinToken/recordings` | Bắt đầu ghi; `layout=speaker/grid/screen`; screen-only cần custom template | Host/co-host hoặc participant được cấp |
 | `POST /:joinToken/recordings/:recordingId/stop` | Yêu cầu dừng bản ghi thuộc đúng meeting | Theo ma trận dừng |
+| `POST /:joinToken/recordings/:recordingId/pause` | Dừng đoạn hiện tại, giữ phiên; 202 và Idempotency-Key | Theo ma trận dừng; RECORDING và FFmpeg khả dụng |
+| `POST /:joinToken/recordings/:recordingId/resume` | Bắt đầu đoạn kế tiếp; 202 và Idempotency-Key | Theo ma trận dừng; PAUSED và còn capacity/thời lượng |
+| `PATCH /:joinToken/recordings/settings` | `{ autoRecord, layout }` cho lần ghi tiếp theo | Host JOINED |
 | `PATCH /:joinToken/participants/:userId/recording-permission` | `{ canRecord: true/false }` | Host JOINED |
 | `GET /recordings` | Thư viện bản ghi được phép truy cập; `page`, `limit` tối đa 50, `search`, `status`, `meetingId`, `scope=owned/shared/all` | Chủ sở hữu hoặc ACL |
 | `GET /:joinToken/recordings` | Bản ghi trong một meeting, vẫn lọc quyền file | Chủ sở hữu hoặc ACL |
@@ -102,19 +110,21 @@ Prefix chung `/api/meetings`. `:joinToken` dùng cho điều khiển phòng hi�
 | `DELETE /recordings/:recordingId` | Chặn truy cập ngay, lên lịch xóa object/ACL | Chủ sở hữu; bản ghi đã COMPLETED/FAILED |
 | `POST /livekit/webhook` (đã có) | Bổ sung `egress_started`, `egress_updated`, `egress_ended` | Chữ ký LiveKit |
 
-Contract thành công dùng `{ message, data }` như controller hiện tại. Metadata gồm `id`, `meetingId`, `title`, `ownerId`, `startedBy`, `stoppedBy`, `status`, `layout`, `startedAt`, `stoppedAt`, `completedAt`, `durationSeconds`, `sizeBytes` và `capabilities`. Không trả secrets, S3 key hoặc URL ký trong danh sách/socket. `sizeBytes` truyền JSON dạng chuỗi để hỗ trợ BigInt. Status response có `recordingAvailable`, `unavailableReason` và các quyền `canStart`, `canStop`, `canGrantRecord`.
+Contract thành công dùng `{ message, data }` như controller hiện tại. Metadata gồm `id`, `meetingId`, `title`, `ownerId`, `startedBy`, `stoppedBy`, `status`, `layout`, `startedAt`, `stoppedAt`, `completedAt`, `durationSeconds`, `sizeBytes` và `capabilities`. Không trả secrets, S3 key hoặc URL ký trong danh sách/socket. `sizeBytes` truyền JSON dạng chuỗi để hỗ trợ BigInt. Status response có `recordingAvailable`, `unavailableReason`, cấu hình tự ghi/bố cục, thời lượng đã ghi và các quyền `canStart`, `canStop`, `canPause`, `canResume`, `canGrantRecord`.
 
-Start/stop dùng `Idempotency-Key`: lưu theo userId, meetingId, loại thao tác; start lưu thêm layout hash. Cùng key/body trả lại kết quả cũ; cùng key khác layout hoặc recordingId trả 409. Start/stop đều trả 202, kể cả stop lặp, với trạng thái hiện tại. Start khác key trong lúc có bản ghi hoạt động trả 409. Delete trả 202 khi xóa file nền; gọi lại vẫn thành công.
+Start/Stop/Pause/Resume dùng `Idempotency-Key`: lưu theo userId, meetingId, loại thao tác; Start lưu thêm layout hash. Cùng key/body trả lại kết quả cũ; cùng key khác layout hoặc recordingId trả 409. Các lệnh điều khiển trả 202, kể cả Stop lặp, với trạng thái hiện tại. Start khác key trong lúc có bản ghi hoạt động trả 409. Delete trả 202 khi xóa file nền; gọi lại vẫn thành công.
 
 Lỗi: 400 DTO sai; 401 chưa xác thực; 403 không có quyền thao tác đối với tài nguyên đã được phép thấy; 404 không tồn tại/không được thấy hoặc recording không thuộc meeting; 409 trạng thái xung đột/file chưa sẵn sàng; 429 quá giới hạn; 503 Egress/lưu trữ chưa sẵn sàng. Bổ sung mã lỗi máy đọc được `RECORDING_FORBIDDEN`, `RECORDING_ALREADY_ACTIVE`, `RECORDING_NOT_READY`, `RECORDING_UNAVAILABLE` bằng thay đổi tương thích trong exception filter hiện có.
 
 ## 5. Dữ liệu và vòng đời
 
+Bổ sung cho phiên ghi: `Meeting.autoRecord/recordingLayout`, `MeetingRecording.segmentKey/segmentIndex/segmentStartedAt/segmentDurationSeconds/pauseRequestedAt/controlRequestedBy` và `MeetingRecordingSegment` lưu các đoạn đã xác nhận S3. Key cuối giữ nguyên, key từng đoạn riêng. Partial unique bao gồm PAUSING/PAUSED; phiên paused nhường encoder capacity nhưng vẫn giữ phòng. Trạng thái bổ sung: RECORDING → PAUSING → PAUSED → STARTING → RECORDING; Stop trong PAUSED ghép các đoạn đã lưu. Job MERGE/CLEANUP và receipt Pause/Resume dùng bảng job hiện có. Thời lượng đoạn lưu số lẻ, tổng làm tròn một lần. Bố cục, SDK template, FFmpeg/cache/lease và các bước thử được mô tả trong [hướng dẫn triển khai](meeting-recording-setup.md).
+
 - Mở rộng `MeetingRecording`: `ownerId`, `title`, `layout`, `requestedAt`, `stopRequestedAt`, `failureCode`, `updatedAt`, `deletedAt`, `version`, `egressUpdatedAt`; `startedAt` nullable tới khi Egress xác nhận, `livekitEgressId` unique và `sizeBytes` BigInt. Giữ các trường S3/file/thời lượng hiện có.
 - Thêm `MeetingParticipant.canRecord` mặc định false và `recordGrantedBy`; thêm `MeetingRecordingPermission` unique `(recordingId, userId)` với canDownload/grantedBy và timestamps. Có ACL đồng nghĩa canView; thu hồi xóa ACL.
-- Thêm bảng tác vụ START/STOP/DELETE/RECOVER/NOTIFY và idempotency: request key/body hash, state, attempts, nextAttemptAt, lease expiry/token, dispatchedAt, `uploadState` JSONB cho uploadId/fingerprint/manifest part. Index `(kind, state, nextAttemptAt)` và `(state, leaseUntil)` hỗ trợ nhận tác vụ theo nhóm. Webhook dùng timestamp Egress và optimistic version để chống lặp/sai thứ tự; không thêm receipt riêng. Lệnh đã trả 202 được giữ khi backend restart.
-- Migration PostgreSQL tạo partial unique index trên meetingId cho STARTING/RECORDING/PROCESSING. Dữ liệu cũ backfill ownerId từ createdBy và sizeBytes sang BigInt. Không giữ transaction DB mở trong lúc gọi LiveKit/S3.
-- State machine: STARTING → RECORDING → PROCESSING → COMPLETED; lỗi start/encode/upload → FAILED; COMPLETED/FAILED → DELETED. Dừng trong STARTING lưu stopRequestedAt và PROCESSING để worker dừng ngay khi biết egressId, kể cả webhook ACTIVE đến muộn.
+- Thêm bảng tác vụ START/STOP/DELETE/RECOVER/MERGE/NOTIFY/CLEANUP và receipt idempotency cho lệnh điều khiển: request key/body hash, state, attempts, nextAttemptAt, lease expiry/token, dispatchedAt, `uploadState` JSONB cho uploadId/fingerprint/manifest part. Index `(kind, state, nextAttemptAt)` và `(state, leaseUntil)` hỗ trợ nhận tác vụ theo nhóm. Webhook dùng timestamp Egress và optimistic version để chống lặp/sai thứ tự; không thêm bảng receipt riêng. Lệnh đã trả 202 được giữ khi backend restart.
+- Migration PostgreSQL tạo partial unique index trên meetingId cho STARTING/RECORDING/PAUSING/PAUSED/PROCESSING. Migration thêm enum và migration mở rộng index tách riêng để PostgreSQL commit giá trị enum trước khi sử dụng. Dữ liệu cũ backfill ownerId từ createdBy và sizeBytes sang BigInt. Không giữ transaction DB mở trong lúc gọi LiveKit/S3.
+- State machine: STARTING → RECORDING → PROCESSING → COMPLETED; Pause đi qua RECORDING → PAUSING → PAUSED, Resume quay lại STARTING, Stop từ PAUSED đi vào PROCESSING. Lỗi start/encode/upload/merge → FAILED; COMPLETED/FAILED → DELETED. Dừng trong STARTING lưu stopRequestedAt và PROCESSING để worker dừng ngay khi biết egressId, kể cả webhook ACTIVE đến muộn.
 - Tạo recordingId và S3 key duy nhất trước khi gọi Egress; lưu cấu hình request trong tác vụ. Nếu start timeout sau khi LiveKit đã nhận lệnh, đối soát `listEgress` bằng room và output key, lấy lại egressId trước khi retry; không gọi start mù tạo hai worker ghi.
 - `egress_started/updated/ended` xác thực chữ ký, khớp room/output/egressId với dữ liệu server, nhận và xử lý idempotent; webhook không khớp được lưu để đối soát nếu đến trước response start. Không để sự kiện cũ kéo COMPLETED/FAILED/DELETED về RECORDING.
 - COMPLETED chỉ khi Egress xác nhận thành công và object đúng bucket/key tồn tại, size hợp lệ. Quy đổi timestamp/duration từ đơn vị SDK sang UTC/giây, không ép BigInt thành số sai độ chính xác. Không tin đường dẫn arbitrary từ client/webhook để đọc hoặc xóa file khác.
@@ -123,7 +133,7 @@ Lỗi: 400 DTO sai; 401 chưa xác thực; 403 không có quyền thao tác đ�
 
 ## 6. Upload MP4 lớn lên S3
 
-- Luồng dữ liệu: LiveKit → Egress encode/file tạm → uploader S3 của worker. Communication Service chỉ gửi lệnh/lưu metadata; không nhận body MP4 qua HTTP và không tải file về RAM để upload lại.
+- Luồng dữ liệu: LiveKit → Egress encode/file tạm → uploader S3 của Egress. Communication Service gửi lệnh/lưu metadata; khi ghép nhiều đoạn, worker tải dạng stream xuống volume, dùng FFmpeg không encode lại rồi multipart upload có checkpoint. Một đoạn không quá 5 GiB dùng S3 CopyObject. Không nhận body MP4 qua API frontend và không giữ toàn bộ video trong RAM.
 - Sử dụng multipart trong uploader Egress cho file lớn; xác nhận trong image đã pin thay vì suy từ nhánh main. Thư viện storage hiện tại dùng AWS upload manager; không xây API init/part/complete ở frontend cho luồng record này. Multipart là các phần của một object, không phải các video riêng; object hoàn chỉnh chỉ sẵn sàng sau complete. MP4 có thể cần hoàn tất cục bộ trước khi upload, không hứa upload ngay khi đang ghi.
 - Worker upload dự phòng mặc định dùng ba buffer 16 MiB song song, tối đa 10.000 phần; part size 5–64 MiB và concurrency 1–4 có thể cấu hình. Lưu uploadId, size/mtime, ETag và CRC32 trong PostgreSQL sau mỗi nhóm part. Lỗi tạm thời/restart đối chiếu ListParts với manifest đã lưu, chỉ upload phần còn thiếu hoặc không khớp. Complete không ghi đè object hiện có; mất phản hồi Complete được xác nhận qua HEAD size và token metadata riêng. Dữ liệu thay đổi/part không hợp lệ abort và xóa checkpoint; mất lease hủy request. Đây là uploader phục hồi backup, không thay uploader Egress. Endpoint S3 tương thích phải hỗ trợ CRC32 và conditional multipart completion.
 - Điều khiển START/STOP, dọn file/thông báo và upload phục hồi chạy thành các nhóm độc lập, có lease và giới hạn concurrency mỗi process. Worker nhận tác vụ mỗi 5 giây; đối soát Egress mỗi 30 giây bằng một ListEgress cho tối đa 50 bản ghi. Có cấu hình phân vai `all/control/upload/off` để tách process khi cần; không coi tăng uploader là tăng năng lực encode.

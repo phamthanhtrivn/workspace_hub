@@ -11,6 +11,7 @@ import {
 
 interface MeetingRoomControlButtonProps {
   label: string;
+  ariaLabel?: string;
   icon: LucideIcon;
   active?: boolean;
   badgeCount?: number;
@@ -21,6 +22,7 @@ interface MeetingRoomControlButtonProps {
 
 export function MeetingRoomControlButton({
   label,
+  ariaLabel,
   icon: Icon,
   active = false,
   badgeCount = 0,
@@ -35,6 +37,7 @@ export function MeetingRoomControlButton({
   return (
     <button
       type="button"
+      aria-label={ariaLabel}
       onClick={onClick}
       disabled={disabled}
       className={cn(

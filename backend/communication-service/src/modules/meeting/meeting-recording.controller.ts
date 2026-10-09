@@ -20,6 +20,7 @@ import {
   ShareRecordingDto,
   ShareRecordingParticipantsDto,
   StartMeetingRecordingDto,
+  RecordingSettingsDto,
 } from './dto/meeting-recording.dto';
 import { MeetingRecordingService } from './services/meeting-recording.service';
 import { recordingError } from './utils/meeting-recording.utils';
@@ -212,6 +213,43 @@ export class MeetingRecordingController {
         targetId,
         dto.canRecord,
       ),
+    );
+  }
+
+  @Patch(':joinToken/recordings/settings')
+  async settings(
+    @Headers('x-user-id') userId: string,
+    @Param('joinToken') token: string,
+    @Body() dto: RecordingSettingsDto,
+  ) {
+    return this.result(
+      await this.recordings.configure(token, this.user(userId), dto),
+    );
+  }
+
+  @Post(':joinToken/recordings/:recordingId/pause')
+  @HttpCode(202)
+  async pause(
+    @Headers('x-user-id') userId: string,
+    @Headers('idempotency-key') key: string,
+    @Param('joinToken') token: string,
+    @Param('recordingId', ParseUUIDPipe) id: string,
+  ) {
+    return this.result(
+      await this.recordings.pause(token, this.user(userId), id, key),
+    );
+  }
+
+  @Post(':joinToken/recordings/:recordingId/resume')
+  @HttpCode(202)
+  async resume(
+    @Headers('x-user-id') userId: string,
+    @Headers('idempotency-key') key: string,
+    @Param('joinToken') token: string,
+    @Param('recordingId', ParseUUIDPipe) id: string,
+  ) {
+    return this.result(
+      await this.recordings.resume(token, this.user(userId), id, key),
     );
   }
 }

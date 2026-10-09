@@ -98,31 +98,49 @@ export class MeetingRoomService {
         where: { channelId_userId: { channelId, userId } },
       });
       if (!isMember) {
-        throw new ForbiddenException('Bạn không phải là thành viên của kênh này');
+        throw new ForbiddenException(
+          'Bạn không phải là thành viên của kênh này',
+        );
       }
     } else if (conversationId) {
-      const isParticipant = await this.prisma.directConversationParticipant.findUnique({
-        where: { conversationId_userId: { conversationId, userId } },
-      });
+      const isParticipant =
+        await this.prisma.directConversationParticipant.findUnique({
+          where: { conversationId_userId: { conversationId, userId } },
+        });
       if (!isParticipant) {
-        throw new ForbiddenException('Bạn không phải là thành viên của cuộc trò chuyện này');
+        throw new ForbiddenException(
+          'Bạn không phải là thành viên của cuộc trò chuyện này',
+        );
       }
     }
 
     if (conversationId) {
-      await this.directMessagePermissionService.assertCanSend(conversationId, userId);
+      await this.directMessagePermissionService.assertCanSend(
+        conversationId,
+        userId,
+      );
     }
 
-    const autoAdmit = channelId || conversationId ? true : (instantMeetingDto.autoAdmit ?? true);
+    const autoAdmit =
+      channelId || conversationId
+        ? true
+        : (instantMeetingDto.autoAdmit ?? true);
     const chatEnabled = instantMeetingDto.chatEnabled ?? true;
     const screenShareEnabled = true;
-    const passwordHash = channelId || conversationId ? null : hashMeetingPassword(instantMeetingDto.password);
+    const passwordHash =
+      channelId || conversationId
+        ? null
+        : hashMeetingPassword(instantMeetingDto.password);
     const roomName = createRoomName();
     const joinToken = createJoinToken();
 
     const title =
       instantMeetingDto.title?.trim() ||
-      (channelId ? 'Cuộc họp Kênh' : conversationId ? 'Cuộc họp Trực tiếp' : 'Instant meeting');
+      (channelId
+        ? 'Cuộc họp Kênh'
+        : conversationId
+          ? 'Cuộc họp Trực tiếp'
+          : 'Instant meeting');
 
     await this.liveKitService.createRoom(roomName, {
       meetingType: MeetingType.INSTANT,
@@ -151,6 +169,8 @@ export class MeetingRoomService {
           chatEnabled,
           screenShareEnabled,
           passwordHash,
+          autoRecord: instantMeetingDto.autoRecord ?? false,
+          recordingLayout: instantMeetingDto.recordingLayout ?? 'speaker',
           startedAt: now,
         },
       });
@@ -231,10 +251,10 @@ export class MeetingRoomService {
     };
 
     if (channelId && createdMessage) {
-      await this.chatSocketPublisher.publishChannelMessageCreated(
-        channelId,
-        { ...createdMessage, senderProfile } as any,
-      );
+      await this.chatSocketPublisher.publishChannelMessageCreated(channelId, {
+        ...createdMessage,
+        senderProfile,
+      } as any);
     } else if (conversationId && createdDirectMessage) {
       await this.chatSocketPublisher.publishDirectMessageCreated(
         conversationId,
@@ -285,14 +305,24 @@ export class MeetingRoomService {
         where: { channelId_userId: { channelId: meeting.channelId, userId } },
       });
       if (!isMember) {
-        throw new ForbiddenException('Bạn không có quyền truy cập cuộc họp của kênh này');
+        throw new ForbiddenException(
+          'Bạn không có quyền truy cập cuộc họp của kênh này',
+        );
       }
     } else if (meeting.conversationId) {
-      const isParticipant = await this.prisma.directConversationParticipant.findUnique({
-        where: { conversationId_userId: { conversationId: meeting.conversationId, userId } },
-      });
+      const isParticipant =
+        await this.prisma.directConversationParticipant.findUnique({
+          where: {
+            conversationId_userId: {
+              conversationId: meeting.conversationId,
+              userId,
+            },
+          },
+        });
       if (!isParticipant) {
-        throw new ForbiddenException('Bạn không có quyền truy cập cuộc họp trực tiếp này');
+        throw new ForbiddenException(
+          'Bạn không có quyền truy cập cuộc họp trực tiếp này',
+        );
       }
     }
 
@@ -378,18 +408,30 @@ export class MeetingRoomService {
         where: { channelId_userId: { channelId: meeting.channelId, userId } },
       });
       if (!isMember) {
-        throw new ForbiddenException('Bạn không có quyền tham gia cuộc họp của kênh này');
+        throw new ForbiddenException(
+          'Bạn không có quyền tham gia cuộc họp của kênh này',
+        );
       }
     } else if (meeting.conversationId) {
-      const isParticipant = await this.prisma.directConversationParticipant.findUnique({
-        where: { conversationId_userId: { conversationId: meeting.conversationId, userId } },
-      });
+      const isParticipant =
+        await this.prisma.directConversationParticipant.findUnique({
+          where: {
+            conversationId_userId: {
+              conversationId: meeting.conversationId,
+              userId,
+            },
+          },
+        });
       if (!isParticipant) {
-        throw new ForbiddenException('Bạn không có quyền tham gia cuộc họp trực tiếp này');
+        throw new ForbiddenException(
+          'Bạn không có quyền tham gia cuộc họp trực tiếp này',
+        );
       }
     }
 
-    const isChannelOrDmMeeting = !!(meeting.channelId || meeting.conversationId);
+    const isChannelOrDmMeeting = !!(
+      meeting.channelId || meeting.conversationId
+    );
     const canBypassPassword =
       isChannelOrDmMeeting ||
       canBypassMeetingPassword({
