@@ -12,7 +12,7 @@ export function MeetingRecordingBanner({
   joinToken: string;
   meetingId: string;
 }) {
-  const { query } = useMeetingRecording(joinToken, meetingId);
+  const { query } = useMeetingRecording(joinToken, meetingId, true);
   const recording = query.data?.recording;
   const announced = useRef<string | null>(null);
   const [now, setNow] = useState(() => Date.now());

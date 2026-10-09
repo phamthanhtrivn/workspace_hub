@@ -19,29 +19,66 @@ export function MeetingRecordingPlayer({
   const video = useRef<HTMLVideoElement>(null);
   const position = useRef(0);
   const shouldResume = useRef(false);
-  const [expired, setExpired] = useState(false);
+  const switching = useRef(false);
+  const renewing = useRef(false);
+  const autoRetries = useRef(0);
+  const [playback, setPlayback] = useState<{
+    url: string;
+    expiresAt: string;
+  } | null>(null);
+  const [playbackIssue, setPlaybackIssue] = useState(false);
   const query = useQuery({
     queryKey: ["meeting-recordings", userId, "playback", recording.id],
     queryFn: () => recordingApi.url(recording.id),
     staleTime: 0,
     retry: false,
   });
-  const refresh = useCallback(() => {
-    position.current = video.current?.currentTime ?? position.current;
-    shouldResume.current = video.current ? !video.current.paused : false;
-    void query.refetch();
-  }, [query]);
+  const current = playback ?? query.data;
+  const { refetch } = query;
+  const refresh = useCallback(async () => {
+    if (renewing.current) return;
+    renewing.current = true;
+    position.current = video.current?.currentTime || position.current;
+    shouldResume.current =
+      shouldResume.current || Boolean(video.current && !video.current.paused);
+    try {
+      let access = query.data;
+      if (
+        !access ||
+        access.url === current?.url ||
+        Date.parse(access.expiresAt) <= Date.now()
+      ) {
+        const result = await refetch();
+        if (result.isError || !result.data) {
+          setPlaybackIssue(true);
+          return;
+        }
+        access = result.data;
+      }
+      switching.current = true;
+      setPlayback(access);
+      setPlaybackIssue(false);
+      if (access.url === current?.url) video.current?.load();
+    } finally {
+      renewing.current = false;
+    }
+  }, [query.data, current?.url, refetch]);
   useEffect(() => {
     if (!query.data) return;
+    const remaining = Date.parse(query.data.expiresAt) - Date.now();
+    if (remaining <= 0) return;
     const timer = window.setTimeout(
-      () => setExpired(true),
-      Math.max(
-        0,
-        new Date(query.data.expiresAt).getTime() - Date.now() - 15_000,
-      ),
+      () => {
+        void refetch();
+      },
+      remaining > 30_000 ? remaining - 15_000 : Math.max(1000, remaining / 2),
     );
     return () => window.clearTimeout(timer);
-  }, [query.data]);
+  }, [query.data, refetch]);
+
+  const renewExpiredPlayback = () => {
+    if (current && Date.parse(current.expiresAt) <= Date.now()) void refresh();
+  };
 
   return (
     <Dialog
@@ -62,7 +99,7 @@ export function MeetingRecordingPlayer({
         ) : query.isError ? (
           <div role="alert" className="py-8">
             <p>Recording unavailable or access has been revoked.</p>
-            <MeetingButton className="mt-3" onClick={refresh}>
+            <MeetingButton className="mt-3" onClick={() => void refresh()}>
               Try again
             </MeetingButton>
           </div>
@@ -71,33 +108,53 @@ export function MeetingRecordingPlayer({
             <>
               <video
                 ref={video}
-                src={query.data.url}
+                src={current?.url}
                 controls
                 playsInline
                 preload="metadata"
                 className="mt-4 aspect-video w-full rounded-md bg-black"
                 onLoadedMetadata={() => {
                   if (video.current) {
+                    if (!playback && query.data) setPlayback(query.data);
                     video.current.currentTime = position.current;
+                    switching.current = false;
                     if (shouldResume.current)
                       void video.current.play().catch(() => {});
                   }
                 }}
                 onTimeUpdate={() => {
-                  position.current = video.current?.currentTime ?? 0;
+                  if (!switching.current)
+                    position.current = video.current?.currentTime ?? 0;
                 }}
-                onError={() => setExpired(true)}
+                onPlay={() => {
+                  shouldResume.current = true;
+                  renewExpiredPlayback();
+                }}
+                onPlaying={() => {
+                  autoRetries.current = 0;
+                }}
+                onPause={() => {
+                  if (!switching.current && !video.current?.error)
+                    shouldResume.current = false;
+                }}
+                onSeeking={renewExpiredPlayback}
+                onError={() => {
+                  if (autoRetries.current < 1) {
+                    autoRetries.current += 1;
+                    void refresh();
+                  } else setPlaybackIssue(true);
+                }}
               />
-              {expired && (
+              {playbackIssue && (
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm text-muted-foreground">
-                    Refresh video access if playback stops.
+                    Playback could not continue. Retry to refresh access.
                   </p>
                   <MeetingButton
                     disabled={query.isFetching}
                     onClick={() => {
-                      setExpired(false);
-                      refresh();
+                      autoRetries.current = 0;
+                      void refresh();
                     }}
                   >
                     Refresh access

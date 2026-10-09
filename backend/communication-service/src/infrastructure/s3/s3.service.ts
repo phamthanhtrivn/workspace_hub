@@ -5,12 +5,11 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
-  CreateMultipartUploadCommand,
-  UploadPartCommand,
-  CompleteMultipartUploadCommand,
-  AbortMultipartUploadCommand,
 } from '@aws-sdk/client-s3';
-import { open } from 'fs/promises';
+import {
+  RecordingMultipartUploader,
+  RecordingUploadOptions,
+} from './recording-multipart-upload';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { generateS3Key } from '../../common/utils/s3-key.util';
 import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
@@ -24,6 +23,8 @@ export class S3Service {
     this.bucketName = process.env.AWS_S3_BUCKET_NAME!;
 
     this.s3Client = new S3Client({
+      maxAttempts: 4,
+      requestHandler: { connectionTimeout: 5000, requestTimeout: 60_000 },
       region: process.env.AWS_REGION!,
       endpoint: process.env.AWS_S3_ENDPOINT || undefined,
       forcePathStyle: process.env.AWS_S3_FORCE_PATH_STYLE === 'true',
@@ -57,75 +58,22 @@ export class S3Service {
     };
   }
 
-  async uploadRecordingBackup(path: string, s3Key: string): Promise<bigint> {
-    const file = await open(path, 'r');
-    let uploadId: string | undefined;
-    try {
-      const stat = await file.stat();
-      const partSize = 16 * 1024 * 1024;
-      if (!stat.size || Math.ceil(stat.size / partSize) > 10000)
-        throw new Error('Invalid backup size');
-      const created = await this.s3Client.send(
-        new CreateMultipartUploadCommand({
-          Bucket: this.bucketName,
-          Key: s3Key,
-          ContentType: 'video/mp4',
-        }),
-      );
-      uploadId = created.UploadId;
-      if (!uploadId) throw new Error('Upload ID missing');
-      const parts: { PartNumber: number; ETag: string }[] = [];
-      const buffer = Buffer.alloc(partSize);
-      for (let position = 0; position < stat.size;) {
-        const length = Math.min(partSize, stat.size - position);
-        let offset = 0;
-        while (offset < length) {
-          const { bytesRead } = await file.read(
-            buffer,
-            offset,
-            length - offset,
-            position + offset,
-          );
-          if (!bytesRead) throw new Error('Backup was truncated');
-          offset += bytesRead;
-        }
-        const part = await this.s3Client.send(
-          new UploadPartCommand({
-            Bucket: this.bucketName,
-            Key: s3Key,
-            UploadId: uploadId,
-            PartNumber: parts.length + 1,
-            Body: buffer.subarray(0, length),
-          }),
-        );
-        if (!part.ETag) throw new Error('ETag missing');
-        parts.push({ PartNumber: parts.length + 1, ETag: part.ETag });
-        position += length;
-      }
-      await this.s3Client.send(
-        new CompleteMultipartUploadCommand({
-          Bucket: this.bucketName,
-          Key: s3Key,
-          UploadId: uploadId,
-          MultipartUpload: { Parts: parts },
-        }),
-      );
-      return BigInt(stat.size);
-    } catch (error) {
-      if (uploadId)
-        await this.s3Client
-          .send(
-            new AbortMultipartUploadCommand({
-              Bucket: this.bucketName,
-              Key: s3Key,
-              UploadId: uploadId,
-            }),
-          )
-          .catch(() => undefined);
-      throw error;
-    } finally {
-      await file.close();
-    }
+  uploadRecordingBackup(
+    path: string,
+    s3Key: string,
+    options?: RecordingUploadOptions,
+  ) {
+    return new RecordingMultipartUploader(
+      this.s3Client,
+      this.bucketName,
+    ).upload(path, s3Key, options);
+  }
+
+  abortRecordingUpload(s3Key: string, uploadId: string) {
+    return new RecordingMultipartUploader(this.s3Client, this.bucketName).abort(
+      s3Key,
+      uploadId,
+    );
   }
 
   async generatePresignedUploadUrl(

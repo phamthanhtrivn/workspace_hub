@@ -25,6 +25,7 @@ describe('recording backup multipart upload', () => {
     process.env.AWS_S3_BUCKET_NAME = 'private-test-bucket';
     process.env.AWS_ACCESS_KEY = 'test-key';
     process.env.AWS_SECRET_KEY = 'test-secret';
+    process.env.MEETING_RECORDING_UPLOAD_CONCURRENCY = '1';
     close = jest.fn();
     jest.mocked(open).mockResolvedValue({
       stat: jest.fn().mockResolvedValue({ size: partSize + 1024 }),
@@ -39,13 +40,16 @@ describe('recording backup multipart upload', () => {
     send = jest.spyOn(S3Client.prototype, 'send');
     service = new S3Service();
   });
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+    delete process.env.MEETING_RECORDING_UPLOAD_CONCURRENCY;
+  });
 
   it('uploads bounded parts and completes only after all ETags are returned', async () => {
     send
       .mockResolvedValueOnce({ UploadId: 'upload' })
-      .mockResolvedValueOnce({ ETag: 'part-1' })
-      .mockResolvedValueOnce({ ETag: 'part-2' })
+      .mockResolvedValueOnce({ ETag: 'part-1', ChecksumCRC32: 'crc-1' })
+      .mockResolvedValueOnce({ ETag: 'part-2', ChecksumCRC32: 'crc-2' })
       .mockResolvedValueOnce({});
     await expect(
       service.uploadRecordingBackup('backup.mp4', 'recordings/file.mp4'),
@@ -62,8 +66,8 @@ describe('recording backup multipart upload', () => {
       (commands[3] as CompleteMultipartUploadCommand).input.MultipartUpload
         ?.Parts,
     ).toEqual([
-      { PartNumber: 1, ETag: 'part-1' },
-      { PartNumber: 2, ETag: 'part-2' },
+      { PartNumber: 1, ETag: 'part-1', ChecksumCRC32: 'crc-1' },
+      { PartNumber: 2, ETag: 'part-2', ChecksumCRC32: 'crc-2' },
     ]);
     expect(close).toHaveBeenCalled();
   });

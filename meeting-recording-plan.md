@@ -6,15 +6,24 @@ Ngày: 09/10/2026. Trạng thái: đã hiện thực backend/frontend trên bran
 
 | Phần | Đã làm | Kiểm chứng còn lại |
 |---|---|---|
-| Hạ tầng/file lớn | Profile Egress, volume backup, sandbox, uploader dự phòng multipart 16 MiB, CORS/lifecycle mẫu | Ghi/upload MP4 thật trên 100 MB và đo tải |
+| Hạ tầng/file lớn | Profile Egress, volume backup, sandbox, uploader dự phòng ba part 16 MiB song song và resume bằng checkpoint DB; kiểm thử HTTP với file 110 MiB; CORS/lifecycle mẫu | Ghi/upload MP4 lên S3 thật và đo tải |
 | Dữ liệu | Schema, migration backfill/BigInt/ACL/job, partial unique index; SQL đã chạy trên PGlite | Áp dụng vào database của dự án |
 | Quyền/API | JWT, quyền theo vai trò/grant, thư viện private/ACL, start/stop và idempotency | Thử nhiều tài khoản với backend thật |
-| Vòng đời | Webhook, đối soát, lease/retry, stop khi end meeting, backup recovery, socket/Kafka | Media thật, restart và lỗi mạng |
+| Vòng đời | Webhook, ba nhóm tác vụ độc lập, đối soát Egress theo lô 30 giây, lease/abort/retry, stop khi end meeting, backup recovery, socket/Kafka | Media thật, restart và lỗi mạng |
 | UI trong phòng | Record/Stop, REC/timer, thông báo và menu cấp quyền | Hai trình duyệt trong phòng thật |
-| Thư viện | Danh sách, player/URL mới, tải, đổi tên, chia sẻ/thu hồi/xóa | Phát/seek MP4 thật |
+| Thư viện | Danh sách, player tự gia hạn URL giữ vị trí/trạng thái phát; polling theo kết nối socket; tải, đổi tên, chia sẻ/thu hồi/xóa | Phát/seek MP4 ghi từ Egress thật |
 | Kiểm tra | Jest đầy đủ, typecheck/build, lint phần thay đổi, Chromium desktop/mobile với API giả lập | E2E Egress/S3 |
 
 Checklist nghiệm thu bên dưới giữ mở cho các tiêu chí cần môi trường thực tế; không dùng API giả lập để xác nhận ghi video thành công.
+
+## Tối ưu đã thực hiện
+
+- [x] Tách upload phục hồi khỏi Start/Stop; kiểm thử Stop được xử lý khi upload vẫn đang chờ.
+- [x] Multipart song song có giới hạn buffer; lưu checkpoint và tiếp tục sau lỗi/restart, xác nhận CRC32, không ghi đè file, hủy khi mất lease.
+- [x] Giảm ListEgress và polling; socket gom sự kiện, tăng polling khi mất kết nối, banner không tạo thêm vòng polling.
+- [x] Player prefetch/gia hạn URL và giữ vị trí/trạng thái phát; kiểm thử bằng MP4 và HTTP Range trên Chromium.
+- [x] Build backend/frontend, lint phần thay đổi, 111 kiểm thử backend và migration PGlite.
+- [ ] Chạy Egress/S3 thật, đo thời gian xử lý và CPU/RAM/đĩa/băng thông để chọn part size/concurrency/số Egress worker. Cấu hình mặc định là điểm khởi đầu, chưa phải kết quả tối ưu từ benchmark production.
 
 ## Mục tiêu và phạm vi
 

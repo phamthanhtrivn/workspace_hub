@@ -60,7 +60,12 @@ describe('durable recording commands', () => {
           findUnique: find,
         },
         meetingRecordingJob: {
-          findMany: jest.fn().mockResolvedValue([job]),
+          findMany: jest
+            .fn()
+            .mockImplementation(
+              ({ where }: { where: { kind: { in: string[] } } }) =>
+                Promise.resolve(where.kind.in.includes(job.kind) ? [job] : []),
+            ),
           updateMany: update,
         },
       } as unknown as PrismaService,

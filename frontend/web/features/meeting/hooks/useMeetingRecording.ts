@@ -6,7 +6,6 @@ import { isAxiosError } from "axios";
 import { toast } from "sonner";
 import { recordingApi } from "../api/meeting-recording.api";
 import type { RecordingLayout } from "../types/meeting-recording.types";
-import { meetingKeys } from "../types/meeting.query-keys";
 import { useRecordingEvents } from "./useRecordingEvents";
 import { useAppSelector } from "@/store/store";
 
@@ -16,27 +15,42 @@ export function recordingErrorMessage(error: unknown) {
     : "Could not update recording";
 }
 
-export function useMeetingRecording(joinToken: string, meetingId: string) {
+export function recordingErrorIsPermanent(error: unknown) {
+  return (
+    isAxiosError(error) &&
+    [400, 401, 403, 404].includes(error.response?.status ?? 0)
+  );
+}
+
+export function useMeetingRecording(
+  joinToken: string,
+  meetingId: string,
+  observeOnly = false,
+) {
   const userId = useAppSelector((state) => state.auth.userId);
   const client = useQueryClient();
-  const queryKey = ["meeting-recording-status", userId, joinToken];
-  const query = useQuery({
-    queryKey,
-    queryFn: () => recordingApi.status(joinToken),
-    refetchInterval: 5000,
-    retry: false,
-    enabled: Boolean(userId),
-  });
   const refresh = useCallback(() => {
     void client.invalidateQueries({
       queryKey: ["meeting-recording-status", userId, joinToken],
     });
     void client.invalidateQueries({ queryKey: ["meeting-recordings", userId] });
-    void client.invalidateQueries({
-      queryKey: meetingKeys.participantsRoot(joinToken),
-    });
   }, [client, joinToken, userId]);
-  useRecordingEvents(refresh, meetingId);
+  const connected = useRecordingEvents(refresh, meetingId, !observeOnly);
+  const query = useQuery({
+    queryKey: ["meeting-recording-status", userId, joinToken],
+    queryFn: () => recordingApi.status(joinToken),
+    refetchInterval: (query) => {
+      if (observeOnly || recordingErrorIsPermanent(query.state.error))
+        return false;
+      if (query.state.error) return 30_000;
+      const status = query.state.data?.recording?.status;
+      if (status === "STARTING" || status === "PROCESSING") return 3000;
+      return connected ? 30_000 : 5000;
+    },
+    staleTime: 2000,
+    retry: false,
+    enabled: Boolean(userId),
+  });
   const start = useMutation({
     mutationFn: ({ layout, key }: { layout: RecordingLayout; key: string }) =>
       recordingApi.start(joinToken, layout, key),

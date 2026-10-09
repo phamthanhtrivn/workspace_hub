@@ -35,7 +35,7 @@ node prisma/prepare-recording-db.cjs
 npm.cmd run start:dev
 ```
 
-Với môi trường đã quản lý migration và baseline đầy đủ, áp dụng `20261009000100_meeting_recording/migration.sql` qua quy trình migration của môi trường đó. Không dùng script development để thay thế baseline production; không reset database để thêm recording.
+Với môi trường đã quản lý migration và baseline đầy đủ, áp dụng lần lượt `20261009000100_meeting_recording/migration.sql` và `20261009000200_recording_upload_resume/migration.sql` qua quy trình migration của môi trường đó. Migration thứ hai thêm checkpoint JSONB và index cho hàng đợi phục hồi. Không dùng script development để thay thế baseline production; không reset database để thêm recording.
 
 ## Thử chức năng
 
@@ -47,17 +47,23 @@ Với môi trường đã quản lý migration và baseline đầy đủ, áp d�
 
 ## Phục hồi và giới hạn
 
-Worker lưu START/STOP/DELETE/RECOVER/NOTIFY trong PostgreSQL, có lease/heartbeat, retry và đối soát Egress mỗi 5 giây. Start đã dispatch nhưng mất phản hồi được tìm lại theo room/output key; không gửi một start thứ hai mù. Một start không xác nhận được sau ngân sách retry chuyển FAILED và lên lịch dừng Egress còn sót.
+Worker lưu START/STOP/DELETE/RECOVER/NOTIFY trong PostgreSQL, có lease/heartbeat và retry. Mỗi 5 giây nhận tác vụ theo ba nhóm độc lập: START/STOP, DELETE/NOTIFY và RECOVER; một upload chậm không chặn lần nhận Start/Stop kế tiếp. Nhóm điều khiển xử lý tối đa hai tác vụ đồng thời; nhóm upload xử lý một file mỗi process. Đối soát Egress mỗi 30 giây, lấy danh sách một lần cho tối đa 50 bản ghi; webhook vẫn cập nhật ngay. Start đã dispatch nhưng mất phản hồi được tìm lại theo room/output key; không gửi một start thứ hai mù. Một start không xác nhận được sau ngân sách retry chuyển FAILED và lên lịch dừng Egress còn sót.
 
-Khi Egress báo dùng backup, volume `recording_backup` giữ file dưới `recordings/<meetingId>/<recordingId>.mp4`. Backend Docker mount cùng volume tại `/recording-backup` và upload lại bằng multipart 16 MiB, một part mỗi lần, có abort khi lỗi và kiểm tra HEAD trước Ready. Mỗi lần thử thất bại bắt đầu upload multipart mới; chưa tiếp tục uploadId cũ sau restart. Hết ngân sách retry giữ file backup để quản trị viên phục hồi thủ công; chỉ xóa bản sao sau upload xác nhận thành công. Crash Egress giữa lúc encode không bảo đảm phục hồi MP4. Cần theo dõi/dọn file backup thất bại theo chính sách vận hành; không chạy `down -v` nếu còn file cần cứu.
+Khi Egress báo dùng backup, volume `recording_backup` giữ file dưới `recordings/<meetingId>/<recordingId>.mp4`. Backend Docker mount cùng volume tại `/recording-backup`. Uploader dự phòng mặc định dùng part 16 MiB và ba part song song, tương ứng khoảng 48 MiB buffer dữ liệu mỗi process, cộng chi phí SDK/runtime; không nạp toàn bộ file. Có thể chỉnh `MEETING_RECORDING_UPLOAD_PART_MIB` trong khoảng 5–64 và `MEETING_RECORDING_UPLOAD_CONCURRENCY` trong khoảng 1–4. File không vượt 10.000 part theo cấu hình đã chọn.
+
+UploadId, fingerprint size/mtime, ETag và CRC32 của từng part được lưu trong `MeetingRecordingJob.uploadState` sau mỗi nhóm upload. Lỗi tạm thời hoặc restart giữ checkpoint, đối chiếu các part S3 và chỉ gửi phần chưa xác nhận. Nếu Complete đã thành công nhưng mất phản hồi, HEAD kiểm tra dung lượng và token metadata riêng trước khi công nhận file. Complete có điều kiện không ghi đè object đã tồn tại; endpoint S3 tương thích phải hỗ trợ CRC32 và conditional multipart completion. File thay đổi hoặc part không hợp lệ khiến uploader abort và xóa checkpoint; mất lease/shutdown hủy request đang chạy. Xóa bản ghi abort multipart đang lưu trước khi dọn object/backup. Upload bỏ dở sau hết retry được lifecycle S3 dọn sau 7 ngày; file backup vẫn giữ để phục hồi thủ công. Chỉ xóa bản sao sau upload xác nhận thành công. Crash Egress giữa lúc encode không bảo đảm phục hồi MP4. Cần theo dõi/dọn file backup thất bại theo chính sách vận hành; không chạy `down -v` nếu còn file cần cứu.
+
+`MEETING_RECORDING_WORKER_ROLE` mặc định `all`; có thể dùng `control`, `upload` hoặc `off`. Khi tách process, giữ ít nhất một process `control` và một `upload`, cùng database/bucket và volume backup; lease ngăn hai process nhận cùng tác vụ. Đây là phân vai worker trong communication-service, chưa có service upload riêng trong Compose. Tăng process upload cũng tăng tổng buffer và băng thông; đo tải trước khi tăng. Số process upload không làm tăng năng lực encode của Egress.
+
+Frontend dùng socket và gom sự kiện trong 100 ms. Khi socket hoạt động, status đối soát mỗi 30 giây và thư viện ổn định mỗi 60 giây; mất socket lần lượt dùng 5/15 giây. STARTING/PROCESSING kiểm tra nhanh hơn (status 3 giây, thư viện 5 giây); lỗi quyền/tài nguyên dừng polling. Player lấy URL mới trước hạn, giữ URL hiện tại khi stream còn hoạt động và tự đổi khi cần tua/phát lại hoặc gặp lỗi, giữ vị trí và trạng thái phát. Lỗi media lặp trước khi phát được dừng ở một lần retry tự động; người dùng có thể thử lại.
 
 Thông báo hoàn tất/thất bại dùng Kafka hiện có và cơ chế retry ít nhất một lần; khi lỗi một phần có thể gửi lặp thông báo. Chưa có pause/resume cùng file, transcript, auto-record hoặc HLS.
 
 ## Kiểm chứng đã thực hiện
 
-- Backend: typecheck, production build và 95/95 kiểm thử Jest đạt; có kiểm thử quyền, JWT/header giả, DTO/API, thứ tự sự kiện Egress, lệnh bền vững và multipart.
-- Frontend: typecheck, production build, lint phần thay đổi; kiểm thử Chromium desktop/mobile cho thư viện, trạng thái rỗng, xin URL player, chia sẻ xem/tải và thu hồi bằng API giả lập.
-- SQL migration chạy trên PostgreSQL WASM (PGlite) từ schema trước thay đổi: backfill, BigInt trên 5 GB, unique phiên hoạt động/ACL/job. Đây không phải migration trên database đang chạy của dự án.
+- Backend: production build và 111/111 kiểm thử Jest đạt; có kiểm thử quyền, JWT/header giả, DTO/API, thứ tự sự kiện Egress, lệnh bền vững, các nhóm worker độc lập, mất lease, multipart resume và phục hồi hàng đợi sau crash. Kiểm thử tích hợp dùng file thật 110 MiB qua AWS SDK và HTTP S3 giả lập: CRC32, tối đa ba request part đồng thời, lỗi part rồi resume chỉ phần còn thiếu, Complete/HEAD và mất phản hồi. Đây không phải upload tới AWS S3 thật hoặc benchmark RAM/thông lượng production.
+- Frontend: production build/typecheck, lint phần thay đổi; kiểm thử Chromium desktop/mobile cho thư viện, trạng thái rỗng, chia sẻ xem/tải và thu hồi bằng API giả lập. Bài thử tối ưu dùng MP4 do Chromium tạo và HTTP Range giả lập: prefetch không ngắt stream, gia hạn khi seek/lỗi giữ vị trí và trạng thái phát, thu hồi quyền ẩn video; socket kết nối giảm polling, gom sự kiện và mất kết nối khôi phục polling.
+- SQL migration chạy trên PostgreSQL WASM (PGlite) từ schema trước thay đổi: backfill, BigInt trên 5 GB, unique phiên hoạt động/ACL/job và checkpoint JSONB. Đây không phải migration trên database đang chạy của dự án.
 - Docker Compose được kiểm tra cấu trúc. Chưa chạy Egress/S3 thực tế: Docker daemon và database hiện chưa hoạt động, môi trường còn thiếu biến bật recording/webhook. Chưa xác nhận MP4 thật, âm thanh, screen share, seek hoặc hành vi upload lớn của image đã pin. Các bước thử ở trên là phần cần nghiệm thu trên môi trường đầy đủ.
 
 Nguồn cấu hình: [LiveKit Egress](https://docs.livekit.io/transport/self-hosting/egress/), [Egress backup storage](https://github.com/livekit/egress/blob/main/README.md), [Chrome seccomp profile](https://github.com/livekit/egress/blob/main/chrome-sandboxing-seccomp-profile.json).
