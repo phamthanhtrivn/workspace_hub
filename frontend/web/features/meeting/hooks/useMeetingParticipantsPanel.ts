@@ -7,6 +7,11 @@ import {
   useMeetingParticipants,
 } from "./useMeetingParticipants";
 import { useMeetingConfirmDialog } from "./useMeetingConfirmDialog";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { recordingApi } from "../api/meeting-recording.api";
+import { recordingErrorMessage } from "./useMeetingRecording";
+import { meetingKeys } from "../types/meeting.query-keys";
 import {
   MEETING_ROLE,
   type MeetingParticipantResponse,
@@ -39,6 +44,7 @@ export interface MeetingParticipantListItemState {
   canDemoteToParticipant: boolean;
   canStopScreenShare: boolean;
   canLowerHand: boolean;
+  canGrantRecording: boolean;
 }
 
 function getParticipantDisplayName(participant: MeetingParticipantResponse) {
@@ -55,6 +61,12 @@ export function useMeetingParticipantsPanel({
   activeScreenShareUserId,
 }: UseMeetingParticipantsPanelParams) {
   const authUser = useAppSelector((state) => state.auth);
+  const client = useQueryClient();
+  const grant = useMutation({
+    mutationFn: (participant: MeetingParticipantResponse) => recordingApi.grant(joinToken, participant.userId, !participant.canRecord),
+    onSuccess: () => { void client.invalidateQueries({ queryKey: meetingKeys.participantsRoot(joinToken) }); toast.success("Recording permission updated"); },
+    onError: (error) => toast.error(recordingErrorMessage(error)),
+  });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const participantsQuery = useMeetingParticipants({
@@ -74,7 +86,7 @@ export function useMeetingParticipantsPanel({
     actions.removeParticipant.isPending ||
     actions.updateRole.isPending ||
     actions.stopParticipantScreenShare.isPending ||
-    actions.lowerParticipantHand.isPending;
+    actions.lowerParticipantHand.isPending || grant.isPending;
 
   const participants = useMemo<MeetingParticipantListItemState[]>(
     () =>
@@ -121,6 +133,7 @@ export function useMeetingParticipantsPanel({
               isSelf,
             }),
             canManageRole,
+            canGrantRecording: participantRole === MEETING_ROLE.HOST && participant.role === MEETING_ROLE.PARTICIPANT && !isSelf,
             canPromoteToCohost:
               canManageRole && participant.role === MEETING_ROLE.PARTICIPANT,
             canDemoteToParticipant:
@@ -219,6 +232,7 @@ export function useMeetingParticipantsPanel({
     handleRoleChange,
     handleStopScreenShare,
     handleLowerHand,
+    handleRecordingPermission: grant.mutate,
     alertDialogProps,
   };
 }

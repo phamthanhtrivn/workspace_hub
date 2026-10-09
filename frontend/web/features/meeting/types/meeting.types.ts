@@ -303,6 +303,7 @@ export interface MeetingParticipantProfile {
 }
 
 export interface MeetingParticipantResponse {
+  canRecord?: boolean;
   id: string;
   meetingId: string;
   userId: string;

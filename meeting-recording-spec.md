@@ -1,6 +1,6 @@
 # Đặc tả đề xuất: ghi cuộc họp và phân quyền
 
-Ngày: 09/10/2026. Đây là contract để triển khai, chưa phải API đang tồn tại.
+Ngày: 09/10/2026. Contract đã được hiện thực trên branch `feature/meeting-recording`. Xem [hướng dẫn chạy](meeting-recording-setup.md) để cấu hình và nghiệm thu Egress/S3.
 
 ## 1. Quyết định và trải nghiệm
 
@@ -104,15 +104,15 @@ Prefix chung `/api/meetings`. `:joinToken` dùng cho điều khiển phòng hi�
 
 Contract thành công dùng `{ message, data }` như controller hiện tại. Metadata gồm `id`, `meetingId`, `title`, `ownerId`, `startedBy`, `stoppedBy`, `status`, `layout`, `startedAt`, `stoppedAt`, `completedAt`, `durationSeconds`, `sizeBytes` và `capabilities`. Không trả secrets, S3 key hoặc URL ký trong danh sách/socket. `sizeBytes` truyền JSON dạng chuỗi để hỗ trợ BigInt. Status response có `recordingAvailable`, `unavailableReason` và các quyền `canStart`, `canStop`, `canGrantRecord`.
 
-Start/stop dùng `Idempotency-Key`: lưu theo userId, meetingId, loại thao tác và body hash. Cùng key/body trả lại kết quả cũ; cùng key khác body trả 409. Start trả 202 với STARTING; stop trả 202 khi mới yêu cầu dừng và 200 khi bản ghi đã kết thúc. Start khác key trong lúc có bản ghi hoạt động trả 409 kèm metadata an toàn. Delete trả 202 khi xóa file nền; gọi lại vẫn thành công.
+Start/stop dùng `Idempotency-Key`: lưu theo userId, meetingId, loại thao tác; start lưu thêm layout hash. Cùng key/body trả lại kết quả cũ; cùng key khác layout hoặc recordingId trả 409. Start/stop đều trả 202, kể cả stop lặp, với trạng thái hiện tại. Start khác key trong lúc có bản ghi hoạt động trả 409. Delete trả 202 khi xóa file nền; gọi lại vẫn thành công.
 
 Lỗi: 400 DTO sai; 401 chưa xác thực; 403 không có quyền thao tác đối với tài nguyên đã được phép thấy; 404 không tồn tại/không được thấy hoặc recording không thuộc meeting; 409 trạng thái xung đột/file chưa sẵn sàng; 429 quá giới hạn; 503 Egress/lưu trữ chưa sẵn sàng. Bổ sung mã lỗi máy đọc được `RECORDING_FORBIDDEN`, `RECORDING_ALREADY_ACTIVE`, `RECORDING_NOT_READY`, `RECORDING_UNAVAILABLE` bằng thay đổi tương thích trong exception filter hiện có.
 
 ## 5. Dữ liệu và vòng đời
 
-- Mở rộng `MeetingRecording`: `ownerId`, `title`, `layout`, `requestedAt`, `stopRequestedAt`, `failureCode`, `failureMessage` đã làm sạch, `updatedAt`, `deletedAt`, `version`; `startedAt` nullable tới khi Egress xác nhận, `livekitEgressId` unique và `sizeBytes` BigInt. Giữ các trường S3/file/thời lượng hiện có.
-- Thêm `MeetingParticipant.canRecord` mặc định false và thông tin người/thời điểm cấp; thêm `MeetingRecordingPermission` unique `(recordingId, userId)` với canView/canDownload/grantedBy và timestamps.
-- Thêm bảng tác vụ recording phục vụ START/STOP/DELETE và idempotency: request key/body hash, trạng thái, attempt, retryAt, lease expiry. Thêm receipt webhook unique eventId. Bảng nhỏ này bảo đảm lệnh đã trả 202 không mất khi backend restart.
+- Mở rộng `MeetingRecording`: `ownerId`, `title`, `layout`, `requestedAt`, `stopRequestedAt`, `failureCode`, `updatedAt`, `deletedAt`, `version`, `egressUpdatedAt`; `startedAt` nullable tới khi Egress xác nhận, `livekitEgressId` unique và `sizeBytes` BigInt. Giữ các trường S3/file/thời lượng hiện có.
+- Thêm `MeetingParticipant.canRecord` mặc định false và `recordGrantedBy`; thêm `MeetingRecordingPermission` unique `(recordingId, userId)` với canDownload/grantedBy và timestamps. Có ACL đồng nghĩa canView; thu hồi xóa ACL.
+- Thêm bảng tác vụ START/STOP/DELETE/RECOVER/NOTIFY và idempotency: request key/body hash, state, attempts, nextAttemptAt, lease expiry/token, dispatchedAt. Webhook dùng timestamp Egress và optimistic version để chống lặp/sai thứ tự; không thêm receipt riêng. Lệnh đã trả 202 được giữ khi backend restart.
 - Migration PostgreSQL tạo partial unique index trên meetingId cho STARTING/RECORDING/PROCESSING. Dữ liệu cũ backfill ownerId từ createdBy và sizeBytes sang BigInt. Không giữ transaction DB mở trong lúc gọi LiveKit/S3.
 - State machine: STARTING → RECORDING → PROCESSING → COMPLETED; lỗi start/encode/upload → FAILED; COMPLETED/FAILED → DELETED. Dừng trong STARTING lưu stopRequestedAt và PROCESSING để worker dừng ngay khi biết egressId, kể cả webhook ACTIVE đến muộn.
 - Tạo recordingId và S3 key duy nhất trước khi gọi Egress; lưu cấu hình request trong tác vụ. Nếu start timeout sau khi LiveKit đã nhận lệnh, đối soát `listEgress` bằng room và output key, lấy lại egressId trước khi retry; không gọi start mù tạo hai worker ghi.
@@ -125,7 +125,7 @@ Lỗi: 400 DTO sai; 401 chưa xác thực; 403 không có quyền thao tác đ�
 
 - Luồng dữ liệu: LiveKit → Egress encode/file tạm → uploader S3 của worker. Communication Service chỉ gửi lệnh/lưu metadata; không nhận body MP4 qua HTTP và không tải file về RAM để upload lại.
 - Sử dụng multipart trong uploader Egress cho file lớn; xác nhận trong image đã pin thay vì suy từ nhánh main. Thư viện storage hiện tại dùng AWS upload manager; không xây API init/part/complete ở frontend cho luồng record này. Multipart là các phần của một object, không phải các video riêng; object hoàn chỉnh chỉ sẵn sàng sau complete. MP4 có thể cần hoàn tất cục bộ trước khi upload, không hứa upload ngay khi đang ghi.
-- Nếu phải bổ sung worker upload dự phòng, đọc bằng file stream, chọn ban đầu part 16 MiB và tối đa 3 phần đồng thời; các giá trị này là cấu hình của worker bổ sung, không mặc nhiên là tùy chọn Egress. Kiểm tra giới hạn part và điều chỉnh với dung lượng tối đa; retry từng phần với backoff, lưu uploadId/part ETag nếu cần tiếp tục sau restart. Không tự ghi đè uploader tích hợp khi chưa có bằng chứng cần thay.
+- Worker upload dự phòng đọc file theo buffer 16 MiB, một phần mỗi lần, tối đa 10.000 phần. AWS SDK retry request; khi một lần upload thất bại sẽ abort multipart và tác vụ retry từ đầu. Chưa lưu uploadId/ETag để tiếp tục upload dở sau restart. Đây là uploader phục hồi backup, không thay uploader Egress.
 - Mount volume ghi tạm bền vững, thư mục theo recordingId; xác nhận file hoàn tất hợp lệ trước khi đưa vào hàng đợi upload lại. Dung lượng dự toán: `(videoBitrate + audioBitrate) × thời lượng / 8`, cộng dự phòng cho nhiều phiên và file chờ upload. Từ chối start khi worker thiếu tài nguyên/đĩa, đặt thời lượng tối đa qua config, cảnh báo trước giới hạn.
 - Kiểm thử tính năng lưu bản sao khi upload lỗi của image Egress được chọn. Nếu có bản sao hoàn chỉnh thì lưu tham chiếu nội bộ và tác vụ upload retry bền vững; nếu không có, báo FAILED rõ ràng. Restart backend có thể phục hồi điều khiển, nhưng crash Egress giữa lúc encode không bảo đảm cứu được MP4. Không xóa file phục hồi trước khi xác nhận S3 hoặc trước hạn lưu tạm đã công bố.
 - Upload lỗi tạm thời còn tác vụ retry thì giữ PROCESSING và thông tin tiến trình phù hợp; hết ngân sách retry hoặc file không phục hồi được mới FAILED. COMPLETE yêu cầu Egress/worker báo thành công và kiểm tra HEAD đúng object, size/checksum khi khả dụng. Không dùng ETag như checksum MD5 toàn file cho multipart.

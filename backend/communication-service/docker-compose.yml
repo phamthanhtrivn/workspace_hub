@@ -15,7 +15,8 @@ services:
       - .:/app
       - /app/node_modules
       - /app/dist
-    command: sh -c "npx prisma generate && npx prisma db push --accept-data-loss && npm run start:dev"
+      - recording_backup:/recording-backup
+    command: sh -c "npx prisma generate && node prisma/prepare-recording-db.cjs && npm run start:dev"
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,6 +1,20 @@
 # Kế hoạch triển khai ghi cuộc họp
 
-Ngày: 09/10/2026. Trạng thái: đã lập kế hoạch; chưa triển khai tính năng.
+Ngày: 09/10/2026. Trạng thái: đã hiện thực backend/frontend trên branch `feature/meeting-recording`; chờ nghiệm thu LiveKit Egress/S3 thật. Hướng dẫn chạy và bằng chứng kiểm tra: [meeting-recording-setup.md](meeting-recording-setup.md).
+
+## Tiến độ hiện thực
+
+| Phần | Đã làm | Kiểm chứng còn lại |
+|---|---|---|
+| Hạ tầng/file lớn | Profile Egress, volume backup, sandbox, uploader dự phòng multipart 16 MiB, CORS/lifecycle mẫu | Ghi/upload MP4 thật trên 100 MB và đo tải |
+| Dữ liệu | Schema, migration backfill/BigInt/ACL/job, partial unique index; SQL đã chạy trên PGlite | Áp dụng vào database của dự án |
+| Quyền/API | JWT, quyền theo vai trò/grant, thư viện private/ACL, start/stop và idempotency | Thử nhiều tài khoản với backend thật |
+| Vòng đời | Webhook, đối soát, lease/retry, stop khi end meeting, backup recovery, socket/Kafka | Media thật, restart và lỗi mạng |
+| UI trong phòng | Record/Stop, REC/timer, thông báo và menu cấp quyền | Hai trình duyệt trong phòng thật |
+| Thư viện | Danh sách, player/URL mới, tải, đổi tên, chia sẻ/thu hồi/xóa | Phát/seek MP4 thật |
+| Kiểm tra | Jest đầy đủ, typecheck/build, lint phần thay đổi, Chromium desktop/mobile với API giả lập | E2E Egress/S3 |
+
+Checklist nghiệm thu bên dưới giữ mở cho các tiêu chí cần môi trường thực tế; không dùng API giả lập để xác nhận ghi video thành công.
 
 ## Mục tiêu và phạm vi
 
@@ -27,6 +41,6 @@ Thiết kế API, bảng quyền và các tình huống lỗi: [meeting-recordin
 - Mỗi bước hoàn tất cập nhật checklist; không coi mock Egress là bằng chứng ghi thật thành công.
 - Multipart chia dữ liệu upload nhưng sau hoàn tất vẫn tạo một MP4; không đồng nghĩa upload ngay trong lúc ghi hoặc tự tiếp tục được sau restart Egress. Tái sử dụng uploader Egress, kiểm thử theo image đã pin; đặt lifecycle dọn multipart bỏ dở sau 7 ngày. HLS và API upload file từ trình duyệt không thuộc bản đầu.
 - Egress self-host cần worker riêng. API mới `StartEgress` yêu cầu server từ v1.13.5; compose hiện dùng v1.13.5 và SDK đang cài có `startEgress`. Xác nhận thêm phiên bản worker và giao tiếp thực tế trước khi xây API/UI.
-- Tạo branch riêng khi bắt đầu thay đổi mã nguồn lớn theo quy ước dự án. Kế hoạch hiện chưa thay đổi code hoặc triển khai dịch vụ.
+- Mã nguồn đã được thay đổi trên branch `feature/meeting-recording`; dịch vụ Egress/S3 thực tế chưa được triển khai trong phiên làm việc này.
 
 Nguồn: [LiveKit Egress](https://docs.livekit.io/transport/media/ingress-egress/egress/), [Egress API](https://docs.livekit.io/reference/other/egress/api/), [self-host Egress](https://docs.livekit.io/transport/self-hosting/egress/), [S3 multipart](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html).

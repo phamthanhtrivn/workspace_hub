@@ -1,0 +1,17 @@
+redis:
+  address: redis:6379
+health_port: 7981
+prometheus_port: 7982
+enable_chrome_sandbox: true
+logging:
+  level: info
+  json: true
+session_limits:
+  file_output_max_duration: 2h
+storage:
+  s3:
+    max_retries: 5
+    min_retry_delay: 500ms
+    max_retry_delay: 10s
+backup:
+  prefix: /backup

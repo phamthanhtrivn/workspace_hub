@@ -17,6 +17,7 @@ const enabledMeetingNavItems = new Set<MeetingDashboardNavItemId>([
   MeetingDashboardNavItemId.OVERVIEW,
   MeetingDashboardNavItemId.UPCOMING,
   MeetingDashboardNavItemId.PREVIOUS,
+  MeetingDashboardNavItemId.RECORDINGS,
 ]);
 
 export function MeetingSidebar({

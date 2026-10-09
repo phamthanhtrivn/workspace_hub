@@ -8,6 +8,7 @@ import { MeetingHero } from "./common/meeting-hero";
 import { MeetingActionTile } from "./common/meeting-action-tile";
 import { MeetingJoinLinkModal } from "./common/meeting-join-link-modal";
 import { MeetingPreviousView } from "./history/meeting-previous-view";
+import { MeetingRecordingsView } from "./recordings/meeting-recordings-view";
 import { ScheduleMeetingModal } from "./schedule/schedule-meeting-modal";
 import { UpcomingMeetingsView } from "./schedule/upcoming-meetings-view";
 import {
@@ -81,6 +82,10 @@ export function MeetingLayout() {
   });
 
   const handleActionClick = (actionId: MeetingDashboardActionId) => {
+    if (actionId === MeetingDashboardActionId.VIEW_RECORDINGS) {
+      setActiveNavItemId(MeetingDashboardNavItemId.RECORDINGS);
+      return;
+    }
     if (actionId === MeetingDashboardActionId.JOIN_MEETING) {
       setIsJoinLinkModalOpen(true);
       return;
@@ -127,9 +132,10 @@ export function MeetingLayout() {
   }, [queryClient]);
 
   useEffect(() => {
-    if (searchParams.get("tab") === MeetingDashboardNavItemId.UPCOMING) {
+    const tab = searchParams.get("tab");
+    if (tab === MeetingDashboardNavItemId.UPCOMING || tab === MeetingDashboardNavItemId.RECORDINGS) {
       const selectUpcomingTimer = window.setTimeout(() => {
-        setActiveNavItemId(MeetingDashboardNavItemId.UPCOMING);
+        setActiveNavItemId(tab);
       }, 0);
 
       return () => window.clearTimeout(selectUpcomingTimer);
@@ -184,6 +190,8 @@ export function MeetingLayout() {
               onSchedule={handleScheduleMeeting}
               onEdit={handleEditScheduledMeeting}
             />
+          ) : activeNavItemId === MeetingDashboardNavItemId.RECORDINGS ? (
+            <MeetingRecordingsView />
           ) : (
             <MeetingPreviousView />
           )}

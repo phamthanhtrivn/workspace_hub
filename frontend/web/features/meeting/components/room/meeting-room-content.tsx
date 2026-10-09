@@ -27,6 +27,7 @@ import {
 } from "../../utils/meeting-room.utils";
 import { MeetingRoomAudioRenderer } from "./meeting-room-audio-renderer";
 import { MeetingRoomFooter } from "./meeting-room-footer";
+import { MeetingRecordingBanner } from "./meeting-recording-banner";
 import { MeetingRoomReactionOverlay } from "./meeting-room-reaction-overlay";
 import { MeetingRoomStage } from "./meeting-room-stage";
 import { MeetingRoomDesktopSidePanel } from "./side-panel/meeting-room-desktop-side-panel";
@@ -219,6 +220,7 @@ export function MeetingRoomContent({
           <span className="hidden rounded-md bg-emerald-500/12 px-3 py-1.5 text-xs font-black text-emerald-200 ring-1 ring-emerald-300/15 sm:inline-flex">
             {getRoomStatusLabel(connectionState)}
           </span>
+          <MeetingRecordingBanner joinToken={joinToken} meetingId={meetingId} />
           <span className="rounded-md bg-white/8 px-3 py-1.5 text-xs font-black text-slate-100 ring-1 ring-white/10">
             {formatElapsedTime(elapsedSeconds)}
           </span>

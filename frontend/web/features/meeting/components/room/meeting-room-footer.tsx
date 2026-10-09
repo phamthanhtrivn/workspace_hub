@@ -41,6 +41,7 @@ import {
 } from "../../utils/meeting-device-storage";
 import { MeetingRoomControlButton } from "../common/meeting-room-control-button";
 import { MeetingRoomReactionPicker } from "./meeting-room-reaction-picker";
+import { MeetingRecordingControls } from "./meeting-recording-controls";
 import type { MeetingRoomReactionEmoji } from "../../types/meeting.constants";
 
 interface MeetingRoomFooterProps {
@@ -352,6 +353,7 @@ export function MeetingRoomFooter({
           );
         })}
 
+        <MeetingRecordingControls joinToken={joinToken} meetingId={meetingId} />
         {participantRole === MEETING_ROLE.HOST && (
           <MeetingRoomControlButton
             label="End"

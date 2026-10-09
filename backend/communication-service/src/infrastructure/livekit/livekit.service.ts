@@ -2,8 +2,11 @@ import { Injectable } from '@nestjs/common';
 import {
   AccessToken,
   RoomServiceClient,
-  TrackSource,
   WebhookReceiver,
+  EgressClient,
+  StartEgressRequest,
+  EncodingOptionsPreset,
+  EncodedFileType,
 } from 'livekit-server-sdk';
 import { getLiveKitConfig, LiveKitConfig } from './livekit.config';
 import {
@@ -59,6 +62,85 @@ export class LiveKitService {
     );
 
     return receiver.receive(body, authorization);
+  }
+
+  isRecordingConfigured(): boolean {
+    return (
+      process.env.MEETING_RECORDING_ENABLED === 'true' &&
+      this.isConfigured() &&
+      Boolean(
+        process.env.AWS_S3_BUCKET_NAME &&
+        process.env.JWT_SECRET_KEY &&
+        process.env.AWS_REGION &&
+        process.env.AWS_ACCESS_KEY &&
+        process.env.AWS_SECRET_KEY &&
+        process.env.LIVEKIT_EGRESS_WEBHOOK_URL,
+      )
+    );
+  }
+
+  createEgressClient(): EgressClient {
+    return new EgressClient(
+      this.config.url,
+      this.config.apiKey,
+      this.config.apiSecret,
+      { requestTimeout: 20 },
+    );
+  }
+
+  startRecording(roomName: string, s3Key: string, layout: string) {
+    return this.createEgressClient().startEgress(
+      new StartEgressRequest({
+        roomName,
+        source: {
+          case: 'template',
+          value: {
+            layout: layout === 'grid' ? 'grid' : 'speaker',
+            customBaseUrl: process.env.LIVEKIT_RECORDING_TEMPLATE_URL || '',
+          },
+        },
+        encoding: { case: 'preset', value: EncodingOptionsPreset.H264_720P_30 },
+        outputs: [
+          {
+            config: {
+              case: 'file',
+              value: {
+                filepath: s3Key,
+                fileType: EncodedFileType.MP4,
+                disableManifest: true,
+              },
+            },
+          },
+        ],
+        storage: {
+          provider: {
+            case: 's3',
+            value: {
+              bucket: process.env.AWS_S3_BUCKET_NAME!,
+              region: process.env.AWS_REGION!,
+              accessKey: process.env.AWS_ACCESS_KEY!,
+              secret: process.env.AWS_SECRET_KEY!,
+              endpoint: process.env.AWS_S3_ENDPOINT || '',
+              forcePathStyle: process.env.AWS_S3_FORCE_PATH_STYLE === 'true',
+            },
+          },
+        },
+        webhooks: [
+          {
+            url: process.env.LIVEKIT_EGRESS_WEBHOOK_URL!,
+            signingKey: this.config.apiKey,
+          },
+        ],
+      }),
+    );
+  }
+
+  listRecordings(roomName?: string, egressId?: string) {
+    return this.createEgressClient().listEgress({ roomName, egressId });
+  }
+
+  stopRecording(egressId: string) {
+    return this.createEgressClient().stopEgress(egressId);
   }
 
   async deleteRoom(roomName: string): Promise<void> {

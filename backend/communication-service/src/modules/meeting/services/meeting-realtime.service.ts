@@ -45,6 +45,10 @@ export class MeetingRealtimeService {
     }
   }
 
+  removeUserFromMeetingSocket(meetingId: string, userId: string): void {
+    this.meetingSocketHandler.removeUserFromMeeting(meetingId, userId);
+  }
+
   async removeLiveKitParticipant(roomName: string, userId: string) {
     if (!this.liveKitService.isConfigured()) return;
 

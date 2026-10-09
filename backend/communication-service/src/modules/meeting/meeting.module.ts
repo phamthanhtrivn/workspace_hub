@@ -22,6 +22,9 @@ import { MeetingRealtimeService } from './services/meeting-realtime.service';
 import { MeetingRoomReactionService } from './services/meeting-room-reaction.service';
 import { MeetingRoomService } from './services/meeting-room.service';
 import { MeetingScreenShareService } from './services/meeting-screen-share.service';
+import { MeetingRecordingController } from './meeting-recording.controller';
+import { MeetingRecordingService } from './services/meeting-recording.service';
+import { MeetingRecordingWorker } from './services/meeting-recording.worker';
 
 @Module({
   imports: [
@@ -33,8 +36,14 @@ import { MeetingScreenShareService } from './services/meeting-screen-share.servi
     UserProfileSnapshotModule,
     DirectMessagePermissionModule,
   ],
-  controllers: [MeetingController, MeetingLiveKitWebhookController],
+  controllers: [
+    MeetingRecordingController,
+    MeetingController,
+    MeetingLiveKitWebhookController,
+  ],
   providers: [
+    MeetingRecordingService,
+    MeetingRecordingWorker,
     MeetingService,
     MeetingRoomService,
     MeetingLiveKitWebhookService,

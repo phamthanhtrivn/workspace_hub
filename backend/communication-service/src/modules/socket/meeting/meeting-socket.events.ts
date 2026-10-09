@@ -1,4 +1,10 @@
 export enum MeetingEvent {
+  RECORDING_UPDATED = 'meeting:recording_updated',
+  RECORDING_PERMISSION_UPDATED = 'meeting:recording_permission_updated',
+  RECORDING_READY = 'meeting:recording_ready',
+  RECORDING_FAILED = 'meeting:recording_failed',
+  RECORDING_DELETED = 'meeting:recording_deleted',
+  RECORDING_ACCESS_UPDATED = 'meeting:recording_access_updated',
   JOIN = 'meeting:join',
   LEAVE = 'meeting:leave',
   PARTICIPANT_JOINED = 'meeting:participant_joined',

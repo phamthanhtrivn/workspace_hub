@@ -18,11 +18,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
-    let errors: any = null;
+    let errors: unknown = null;
+    let code: string | undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
-      const exceptionResponse: any = exception.getResponse();
+      const exceptionResponse = exception.getResponse() as
+        string | Record<string, unknown>;
+      if (
+        typeof exceptionResponse === 'object' &&
+        typeof exceptionResponse.code === 'string'
+      )
+        code = exceptionResponse.code;
 
       // If it comes from our custom ValidationPipe exceptionFactory
       if (
@@ -41,15 +48,21 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       ) {
         message = 'Validation failed';
         errors = {};
-        exceptionResponse.message.forEach((msg: string) => {
-          const field = msg.split(' ')[0]; // simple heuristic
-          errors[field] = msg;
-        });
+        const fieldErrors: Record<string, string> = {};
+        exceptionResponse.message
+          .filter((msg): msg is string => typeof msg === 'string')
+          .forEach((msg) => {
+            const field = msg.split(' ')[0]; // simple heuristic
+            fieldErrors[field] = msg;
+          });
+        errors = fieldErrors;
       } else {
         message =
           typeof exceptionResponse === 'string'
             ? exceptionResponse
-            : exceptionResponse.message || exception.message;
+            : typeof exceptionResponse.message === 'string'
+              ? exceptionResponse.message
+              : exception.message;
       }
     } else if (exception instanceof Error) {
       message = exception.message;
@@ -67,6 +80,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message: message,
       data: null,
       errors: errors,
+      ...(code ? { code } : {}),
       timestamp: new Date().toISOString(),
     });
   }
