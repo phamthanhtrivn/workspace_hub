@@ -27,6 +27,7 @@ import { MeetingRecordingService } from './services/meeting-recording.service';
 import { MeetingRecordingWorker } from './services/meeting-recording.worker';
 import { MeetingRecordingMediaService } from './services/meeting-recording-media.service';
 import { MeetingRecordingSegmentsService } from './services/meeting-recording-segments.service';
+import { MeetingRecordingRequestsService } from './services/meeting-recording-requests.service';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { MeetingRecordingSegmentsService } from './services/meeting-recording-se
     MeetingLiveKitWebhookController,
   ],
   providers: [
+    MeetingRecordingRequestsService,
     MeetingRecordingService,
     MeetingRecordingMediaService,
     MeetingRecordingSegmentsService,

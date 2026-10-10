@@ -4,6 +4,10 @@ Ngày: 09/10/2026. Trạng thái: đã hiện thực backend/frontend trên bran
 
 ## Tiến độ hiện thực
 
+Bổ sung trên branch `feature/recording-permission-requests`: thành viên bấm **Ask to record**, host nhận popup **Allow recording/Decline**, thành viên nhận kết quả. Duyệt chỉ cấp quyền, không tự bắt đầu ghi. Yêu cầu lưu trên participant, hết hạn sau 2 phút, gửi lại cách nhau tối thiểu 60 giây; request đang chờ được trả lại thay vì gửi thông báo trùng. Host mới tiếp nhận yêu cầu đang chờ sau chuyển host; host cũ không được duyệt. Rời phòng/bị loại/đổi vai trò/kết thúc phòng hủy request cũ.
+
+Đợt xin quyền đã kiểm chứng: 170 backend tests, 9 frontend tests, build backend/frontend, migration PGlite và hai phiên Chromium host/member với API/signalling giả lập. Database dự án và phòng họp thật vẫn cần cập nhật/nghiệm thu theo hướng dẫn chạy.
+
 | Phần | Đã làm | Kiểm chứng còn lại |
 |---|---|---|
 | Hạ tầng/file lớn | Profile Egress, volume backup, sandbox, uploader dự phòng ba part 16 MiB song song và resume bằng checkpoint DB; kiểm thử HTTP với file 110 MiB; CORS/lifecycle mẫu | Ghi/upload MP4 lên S3 thật và đo tải |

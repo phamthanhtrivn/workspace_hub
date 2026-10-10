@@ -954,6 +954,8 @@ export class MeetingRoomService {
           lastSeenAt: endedAt,
           canRecord: false,
           recordGrantedBy: null,
+          recordingRequestId: null,
+          recordingRequestState: null,
         },
       });
 
@@ -1023,7 +1025,7 @@ export class MeetingRoomService {
         if (channelMessage) {
           await this.chatSocketPublisher.publishChannelMessageUpdated(
             targetChannelId,
-            channelMessage as any,
+            channelMessage,
           );
         }
       } else if (targetConversationId) {
@@ -1035,7 +1037,7 @@ export class MeetingRoomService {
           await this.chatSocketPublisher.publishDirectMessageUpdated(
             targetConversationId,
             ChatEvent.MESSAGE_UPDATED,
-            directMessage as any,
+            directMessage,
           );
         }
       }

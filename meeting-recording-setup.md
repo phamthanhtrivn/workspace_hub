@@ -25,6 +25,8 @@ Các dependency Redis/PostgreSQL và bước khởi tạo volume được Compos
 
 ## Database
 
+Luồng xin quyền ghi bổ sung migration `20261009000500_recording_permission_requests`: ba trường nullable `recordingRequestId/recordingRequestedAt/recordingRequestState` trên participant, UUID unique và index cho hàng chờ. Cần cập nhật schema và sinh Prisma client trước khi chạy backend mới; chưa áp migration vào database thực tế trong phiên phát triển này.
+
 Lịch sử migration cũ của dự án chưa tạo được toàn bộ schema trên database trống; development stack trước đây dùng `db push --accept-data-loss`. Luồng khởi động mới dùng `prisma/prepare-recording-db.cjs`: backfill owner/title các bản ghi cũ trong transaction, chạy `db push` không chấp nhận mất dữ liệu, rồi tạo partial unique index ngăn hai phiên ghi hoạt động trong cùng meeting. Nếu có schema drift hoặc bản ghi hoạt động trùng, script dừng để xử lý dữ liệu.
 
 Nếu chạy service trên máy, từ `backend/communication-service`:
@@ -83,7 +85,20 @@ Template dùng `@livekit/egress-sdk` gửi tín hiệu ghi, `livekit-client` và
 
 Nghiệm thu thêm: ghi → Pause → đợi PAUSED → Resume → đổi người nói/trình chiếu → Stop; xác nhận chỉ một MP4 và không có khoảng Pause. Thử Stop/end meeting khi PAUSING hoặc PAUSED, thu hồi grant trước Resume, cạnh tranh capacity, bật auto-record trước khi host vào và kiểm tra không tự ghi lại sau Stop. Thử restart giữa ghép/upload và kiểm tra dọn storage khi Egress trả output muộn sau khi bản ghi đã xóa.
 
-## Kiểm chứng đã thực hiện
+## Xin quyền ghi từ thành viên
+
+- Thành viên chưa có quyền bấm **Ask to record**; nút đổi thành **Request pending** và không cho gửi lặp. Host nhận popup tên người xin quyền, chọn **Allow recording** hoặc **Decline**. **Later** đóng tạm popup, mở lại qua nút **Requests**.
+- Chấp nhận chỉ cấp `canRecord`; thành viên nhận thông báo và phải bấm Record để bắt đầu. Chủ sở hữu bản ghi và ACL xem/tải vẫn theo quy tắc hiện có. Host cũng có thể duyệt thủ công từ menu participant; hàng chờ được cập nhật tương ứng.
+- `POST /api/meetings/:joinToken/recordings/permission-requests`: yêu cầu của participant JOINED, chưa có quyền. Request đang chờ được trả lại, không emit lại. Request mới cách nhau ít nhất 60 giây; hạn xử lý 2 phút.
+- `PATCH /api/meetings/:joinToken/recordings/permission-requests/:requestId`: body `{ "approve": true }` hoặc false. Chỉ host hiện tại JOINED được duyệt; co-host không có quyền duyệt. Quyết định cùng giá trị có thể gọi lại; quyết định ngược hoặc request cũ/hết hạn trả 409; request khác phòng/không tồn tại trả 404.
+- Status trả request của chính người gọi; danh sách chờ kèm tên chỉ trả cho host, tối đa 50 request mỗi lần theo thứ tự đến. Sau duyệt, hàng chờ tải tiếp. Socket chỉ thông báo có thay đổi; reconnect tải lại status, mất socket dùng polling, request đang chờ polling 3 giây.
+- Duyệt dùng khóa meeting và participant trong transaction, kiểm tra lại host/status/role/request ID. Rời phòng, bị loại, đổi role, kết thúc phòng xóa request ID; timestamp được giữ để hạn chế spam sau reconnect. Request của lần tham gia trước không được duyệt.
+
+Kiểm chứng đợt bổ sung xin quyền: 170/170 kiểm thử backend đạt (28 suites, gồm FFmpeg thật); build backend/frontend và 9/9 kiểm thử frontend đạt. Lint các file thay đổi không còn lỗi; file phòng họp còn hai cảnh báo ép kiểu `any` cũ ở luồng publish chat. Chromium với hai phiên host/member xác nhận gửi/chờ/từ chối/gửi lại/chấp nhận, popup Later/mở lại, thông báo thành viên, mobile không tràn viewport và không tự khởi động ghi. API/signalling là fixture; fixture giữ riêng timeout chờ JoinResponse của SDK để kiểm tra UI, không xác nhận kết nối media thật. Năm migration chạy trên PGlite, kiểm tra thêm nullable defaults, UUID request unique và index hàng chờ; chưa áp vào database dự án.
+
+Để tự thử: cập nhật schema qua quy trình Database ở trên, khởi động lại backend/frontend, đăng nhập host và participant ở hai trình duyệt, vào cùng phòng rồi bấm Ask to record phía participant. Thử cả Decline/Allow recording, rời phòng trước khi duyệt, chờ hết hạn, chuyển host và reconnect. Dependency audit hiện vẫn còn 19 cảnh báo frontend/18 backend (mỗi bên 2 critical), không có thay đổi dependency trong đợt xin quyền này.
+
+## Bằng chứng kiểm tra trước khi bổ sung xin quyền
 
 - Backend: production build và 146/146 kiểm thử Jest đạt (27 suites); có quyền/JWT/DTO, Pause/Resume/idempotency, auto-record/capacity và race sau Stop, duration cộng số lẻ, lease khi commit, xóa output muộn, multipart resume và phục hồi hàng đợi. Kiểm thử tích hợp dùng file thật 110 MiB qua AWS SDK và HTTP S3 giả lập; FFmpeg thật ghép hai clip H264/AAC 1 giây cách nhau 59 giây, kiểm tra đủ hình/âm thanh, duration khoảng 2 giây, faststart, cache retry và hai lần ghép chồng nhau. Đây không phải upload AWS S3 thật hoặc benchmark production. Chạy Jest media với `RECORDING_FFMPEG_PATH` trỏ đến FFmpeg; khi không cấp binary, suite media được skip rõ ràng.
 - Frontend: production build/typecheck, lint phần thay đổi; kiểm thử Chromium desktop/mobile cho thư viện, trạng thái rỗng, chia sẻ xem/tải và thu hồi bằng API giả lập. Bài thử tối ưu dùng MP4 do Chromium tạo và HTTP Range giả lập: prefetch không ngắt stream, gia hạn khi seek/lỗi giữ vị trí và trạng thái phát, thu hồi quyền ẩn video; socket kết nối giảm polling, gom sự kiện và mất kết nối khôi phục polling.

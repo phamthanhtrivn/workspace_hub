@@ -15,6 +15,7 @@ import { createHmac } from 'crypto';
 import { Server } from 'http';
 import { MeetingRecordingController } from './meeting-recording.controller';
 import { MeetingRecordingService } from './services/meeting-recording.service';
+import { MeetingRecordingRequestsService } from './services/meeting-recording-requests.service';
 
 describe('recording API contract', () => {
   let app: INestApplication<Server>;
@@ -33,6 +34,8 @@ describe('recording API contract', () => {
     .join('.');
   const authorization = `Bearer ${encoded}.${createHmac('sha256', secret).update(encoded).digest('base64url')}`;
   const calls = {
+    request: jest.fn().mockResolvedValue({ id, status: 'PENDING' }),
+    decide: jest.fn().mockResolvedValue({ id, status: 'APPROVED' }),
     start: jest.fn().mockResolvedValue({ id, status: 'STARTING' }),
     grantRecording: jest.fn(),
     list: jest.fn().mockResolvedValue({ items: [], total: 0 }),
@@ -47,7 +50,10 @@ describe('recording API contract', () => {
     process.env.JWT_SECRET_KEY = secret;
     const module = await Test.createTestingModule({
       controllers: [MeetingRecordingController],
-      providers: [{ provide: MeetingRecordingService, useValue: calls }],
+      providers: [
+        { provide: MeetingRecordingService, useValue: calls },
+        { provide: MeetingRecordingRequestsService, useValue: calls },
+      ],
     }).compile();
     app = module.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
@@ -65,6 +71,34 @@ describe('recording API contract', () => {
       .get('/api/meetings/recordings')
       .expect(401);
     expect(calls.list).not.toHaveBeenCalled();
+  });
+  it('accepts an authenticated permission request and uses signed identity', async () => {
+    await request(app.getHttpServer())
+      .post('/api/meetings/join-token/recordings/permission-requests')
+      .set('Authorization', authorization)
+      .set('x-user-id', 'forged')
+      .expect(200);
+    expect(calls.request).toHaveBeenCalledWith('join-token', id);
+  });
+  it('validates permission decisions and request IDs', async () => {
+    const path = `/api/meetings/join-token/recordings/permission-requests/${id}`;
+    await request(app.getHttpServer())
+      .patch(path)
+      .set('Authorization', authorization)
+      .send({ approve: 'true' })
+      .expect(400);
+    await request(app.getHttpServer())
+      .patch(path.replace(id, 'invalid'))
+      .set('Authorization', authorization)
+      .send({ approve: true })
+      .expect(400);
+    expect(calls.decide).not.toHaveBeenCalled();
+    await request(app.getHttpServer())
+      .patch(path)
+      .set('Authorization', authorization)
+      .send({ approve: false })
+      .expect(200);
+    expect(calls.decide).toHaveBeenCalledWith('join-token', id, id, false);
   });
   it('returns 202 for an accepted recording command', async () => {
     const result = await request(app.getHttpServer())

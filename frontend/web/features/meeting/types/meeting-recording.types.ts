@@ -33,6 +33,10 @@ export interface MeetingRecording {
 }
 
 export interface RecordingRoomStatus {
+  needsRecordingPermission?: boolean;
+  canRequestRecording?: boolean;
+  recordingRequest?: RecordingPermissionRequest | null;
+  recordingRequests?: RecordingPermissionRequest[];
   meetingId: string;
   ownerId: string;
   recordingAvailable: boolean;
@@ -58,6 +62,15 @@ export interface RecordingRoomStatus {
     canPause: boolean;
     canResume: boolean;
   };
+}
+
+export interface RecordingPermissionRequest {
+  id: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
+  requestedAt: string;
+  expiresAt: string;
+  userId?: string;
+  displayName?: string;
 }
 
 export interface RecordingPage {

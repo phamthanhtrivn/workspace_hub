@@ -8,7 +8,9 @@ import { recordingApi } from "../api/meeting-recording.api";
 import type {
   RecordingLayout,
   RecordingSettings,
+  RecordingRoomStatus,
 } from "../types/meeting-recording.types";
+import { meetingKeys } from "../types/meeting.query-keys";
 import { useRecordingEvents } from "./useRecordingEvents";
 import { useAppSelector } from "@/store/store";
 
@@ -47,6 +49,11 @@ export function useMeetingRecording(
         return false;
       if (query.state.error) return 30_000;
       const status = query.state.data?.recording?.status;
+      if (
+        query.state.data?.recordingRequest?.status === "PENDING" ||
+        query.state.data?.recordingRequests?.length
+      )
+        return 3000;
       if (
         status === "STARTING" ||
         status === "PAUSING" ||
@@ -104,5 +111,50 @@ export function useMeetingRecording(
       refresh();
     },
   });
-  return { query, start, stop, pause, resume, configure };
+  const requestPermission = useMutation({
+    mutationFn: () => recordingApi.requestPermission(joinToken),
+    onSuccess: (request) => {
+      client.setQueryData<RecordingRoomStatus>(
+        ["meeting-recording-status", userId, joinToken],
+        (current) =>
+          current
+            ? {
+                ...current,
+                recordingRequest: request,
+                canRequestRecording: false,
+              }
+            : current,
+      );
+      toast.success("Recording permission request sent to the host");
+      refresh();
+    },
+    onError: (error) => {
+      toast.error(recordingErrorMessage(error));
+      refresh();
+    },
+  });
+  const answerPermissionRequest = useMutation({
+    mutationFn: ({ id, approve }: { id: string; approve: boolean }) =>
+      recordingApi.answerPermissionRequest(joinToken, id, approve),
+    onSuccess: () => {
+      void client.invalidateQueries({
+        queryKey: meetingKeys.participantsRoot(joinToken),
+      });
+      refresh();
+    },
+    onError: (error) => {
+      toast.error(recordingErrorMessage(error));
+      refresh();
+    },
+  });
+  return {
+    query,
+    start,
+    stop,
+    pause,
+    resume,
+    configure,
+    requestPermission,
+    answerPermissionRequest,
+  };
 }

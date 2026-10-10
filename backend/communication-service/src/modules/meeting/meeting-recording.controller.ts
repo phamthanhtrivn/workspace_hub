@@ -21,15 +21,20 @@ import {
   ShareRecordingParticipantsDto,
   StartMeetingRecordingDto,
   RecordingSettingsDto,
+  RecordingRequestDecisionDto,
 } from './dto/meeting-recording.dto';
 import { MeetingRecordingService } from './services/meeting-recording.service';
+import { MeetingRecordingRequestsService } from './services/meeting-recording-requests.service';
 import { recordingError } from './utils/meeting-recording.utils';
 import { RecordingAuthGuard } from '../../common/auth/recording-auth.guard';
 
 @Controller('api/meetings')
 @UseGuards(RecordingAuthGuard)
 export class MeetingRecordingController {
-  constructor(private readonly recordings: MeetingRecordingService) {}
+  constructor(
+    private readonly recordings: MeetingRecordingService,
+    private readonly requests: MeetingRecordingRequestsService,
+  ) {}
 
   private user(id: string) {
     if (!id)
@@ -224,6 +229,32 @@ export class MeetingRecordingController {
   ) {
     return this.result(
       await this.recordings.configure(token, this.user(userId), dto),
+    );
+  }
+
+  @Post(':joinToken/recordings/permission-requests')
+  @HttpCode(200)
+  async requestPermission(
+    @Headers('x-user-id') userId: string,
+    @Param('joinToken') token: string,
+  ) {
+    return this.result(await this.requests.request(token, this.user(userId)));
+  }
+
+  @Patch(':joinToken/recordings/permission-requests/:requestId')
+  async answerPermissionRequest(
+    @Headers('x-user-id') userId: string,
+    @Param('joinToken') token: string,
+    @Param('requestId', ParseUUIDPipe) requestId: string,
+    @Body() dto: RecordingRequestDecisionDto,
+  ) {
+    return this.result(
+      await this.requests.decide(
+        token,
+        this.user(userId),
+        requestId,
+        dto.approve,
+      ),
     );
   }
 

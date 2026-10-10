@@ -8,6 +8,7 @@ import type {
   RecordingQuery,
   RecordingRoomStatus,
   RecordingSettings,
+  RecordingPermissionRequest,
 } from "../types/meeting-recording.types";
 
 const root = "/api/meetings";
@@ -15,6 +16,19 @@ const file = (id: string) => `${root}/recordings/${encodeURIComponent(id)}`;
 const room = (token: string) => `${root}/${encodeURIComponent(token)}`;
 
 export const recordingApi = {
+  requestPermission: async (token: string) =>
+    normalizeApiResponse<RecordingPermissionRequest>(
+      (await api.post(`${room(token)}/recordings/permission-requests`)).data,
+    ).data,
+  answerPermissionRequest: async (
+    token: string,
+    requestId: string,
+    approve: boolean,
+  ) =>
+    api.patch(
+      `${room(token)}/recordings/permission-requests/${encodeURIComponent(requestId)}`,
+      { approve },
+    ),
   status: async (token: string) =>
     normalizeApiResponse<RecordingRoomStatus>(
       (await api.get(`${room(token)}/recordings/status`)).data,

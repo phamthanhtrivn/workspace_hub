@@ -78,6 +78,7 @@ Kong giữ JWT cho API người dùng. Nếu webhook đi qua Kong, thêm route c
 - Backend kiểm tra meeting LIVE, participant JOINED và vai trò/quyền hiện tại cho mỗi thao tác điều khiển, kể cả host. Không chỉ dựa vào `hostId` hoặc nút ẩn ở frontend.
 - Host cấp `canRecord` cho participant đang JOINED; quyền này hết khi rời/bị loại khỏi phòng, không tự khôi phục khi vào lại. Co-host có quyền theo vai trò và mất quyền đó ngay khi bị hạ vai trò.
 - Thu hồi quyền ghi không dừng Egress đột ngột: phiên ghi thuộc phòng tiếp tục, host/co-host điều khiển. Người bị thu hồi mất quyền start/stop ngay. Rời phòng của người bấm Record cũng không tự kết thúc bản ghi.
+- Thành viên JOINED chưa có quyền có thể xin quyền ghi. Host hiện tại nhận popup chấp nhận/từ chối; co-host không duyệt yêu cầu. Yêu cầu lưu trên participant, hạn 2 phút và cooldown 60 giây; request lặp đang chờ không phát thêm thông báo. Duyệt cấp quyền, không tự bắt đầu ghi; tên và hàng chờ chỉ trả cho host. Rời phòng/đổi role/kết thúc phòng hủy yêu cầu cũ; host mới tiếp nhận hàng chờ còn hiệu lực.
 - Chỉ `ownerId` sửa tên, chia sẻ, thu hồi quyền xem/tải hoặc xóa file. Host/co-host không mặc nhiên được xem file sau meeting; màn hình xác nhận ghi phải nêu bản ghi thuộc người tạo meeting.
 - Quyền xem file được kiểm tra riêng và hoạt động khi meeting ENDED. Không dùng policy yêu cầu JOINED cho thư viện bản ghi.
 - Chia sẻ cho danh sách tài khoản tạo ACL `canView`, `canDownload`. Chia sẻ cho người tham gia lấy danh sách những người thực sự đã tham dự tới thời điểm dừng từ lịch sử tham gia; loại người bị kick, không lấy người chỉ được mời hoặc chờ duyệt. Chụp danh sách thành ACL, không tự cấp cho người tham gia một cuộc gọi sau này.
@@ -96,6 +97,8 @@ Prefix chung `/api/meetings`. `:joinToken` dùng cho điều khiển phòng hi�
 | `POST /:joinToken/recordings/:recordingId/pause` | Dừng đoạn hiện tại, giữ phiên; 202 và Idempotency-Key | Theo ma trận dừng; RECORDING và FFmpeg khả dụng |
 | `POST /:joinToken/recordings/:recordingId/resume` | Bắt đầu đoạn kế tiếp; 202 và Idempotency-Key | Theo ma trận dừng; PAUSED và còn capacity/thời lượng |
 | `PATCH /:joinToken/recordings/settings` | `{ autoRecord, layout }` cho lần ghi tiếp theo | Host JOINED |
+| `POST /:joinToken/recordings/permission-requests` | Xin quyền, trả request đang chờ hoặc tạo UUID mới; 200 | Participant JOINED chưa có quyền; cooldown 60 giây |
+| `PATCH /:joinToken/recordings/permission-requests/:requestId` | `{ approve: boolean }`; 200, duyệt lặp cùng giá trị idempotent | Host hiện tại JOINED; request còn hiệu lực và participant vẫn JOINED |
 | `PATCH /:joinToken/participants/:userId/recording-permission` | `{ canRecord: true/false }` | Host JOINED |
 | `GET /recordings` | Thư viện bản ghi được phép truy cập; `page`, `limit` tối đa 50, `search`, `status`, `meetingId`, `scope=owned/shared/all` | Chủ sở hữu hoặc ACL |
 | `GET /:joinToken/recordings` | Bản ghi trong một meeting, vẫn lọc quyền file | Chủ sở hữu hoặc ACL |

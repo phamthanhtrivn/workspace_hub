@@ -20,6 +20,7 @@ import {
   recordingError,
 } from '../utils/meeting-recording.utils';
 import { MeetingRecordingMediaService } from './meeting-recording-media.service';
+import { MeetingRecordingRequestsService } from './meeting-recording-requests.service';
 
 const recordingInclude = {
   meeting: { select: { title: true, joinToken: true } },
@@ -38,6 +39,7 @@ export class MeetingRecordingService {
     private readonly policy: MeetingPolicyService,
     private readonly realtime: MeetingRealtimeService,
     private readonly media?: MeetingRecordingMediaService,
+    private readonly requests?: MeetingRecordingRequestsService,
   ) {}
 
   async status(joinToken: string, userId: string) {
@@ -52,6 +54,7 @@ export class MeetingRecordingService {
     const available = this.liveKit.isRecordingConfigured();
     const capabilities = recordingCapabilities(participant, recording, userId);
     return {
+      ...(await this.requests?.snapshot(meeting, participant)),
       meetingId: meeting.id,
       ownerId: meeting.createdBy,
       settings: {
@@ -572,6 +575,10 @@ export class MeetingRecordingService {
           'PARTICIPANT_CHANGED',
           'Participant has left or changed role',
         );
+      await tx.meetingParticipant.updateMany({
+        where: { id: target.id, recordingRequestState: 'PENDING' },
+        data: { recordingRequestState: canRecord ? 'APPROVED' : 'REJECTED' },
+      });
       return tx.meetingParticipant.findUniqueOrThrow({
         where: { id: target.id },
       });
@@ -585,6 +592,11 @@ export class MeetingRecordingService {
       meeting.id,
       MeetingEvent.RECORDING_PERMISSION_UPDATED,
       payload,
+    );
+    this.realtime.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.RECORDING_REQUEST_UPDATED,
+      { meetingId: meeting.id },
     );
     return payload;
   }

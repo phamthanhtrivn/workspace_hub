@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Circle, Square, Pause, Play, Settings } from "lucide-react";
+import { Circle, Square, Pause, Play, Settings, Hand } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import type { RecordingLayout } from "../../types/meeting-recording.types";
 import { MeetingRoomControlButton } from "../common/meeting-room-control-button";
 import { MeetingButton } from "../ui/meeting-form-controls";
 import { MeetingRecordingSettings } from "./meeting-recording-settings";
+import { MeetingRecordingRequests } from "./meeting-recording-requests";
 
 export function MeetingRecordingControls({
   joinToken,
@@ -22,10 +23,16 @@ export function MeetingRecordingControls({
   joinToken: string;
   meetingId: string;
 }) {
-  const { query, start, stop, pause, resume, configure } = useMeetingRecording(
-    joinToken,
-    meetingId,
-  );
+  const {
+    query,
+    start,
+    stop,
+    pause,
+    resume,
+    configure,
+    requestPermission,
+    answerPermissionRequest,
+  } = useMeetingRecording(joinToken, meetingId);
   const userId = useAppSelector((state) => state.auth.userId);
   const [dialog, setDialog] = useState<"start" | "stop" | null>(null);
   const [layout, setLayout] = useState<RecordingLayout>("speaker");
@@ -33,6 +40,8 @@ export function MeetingRecordingControls({
   const state = query.data;
   const active = Boolean(state?.recording);
   const canStop = state?.capabilities.canStop;
+  const needsPermission = state?.needsRecordingPermission;
+  const requesting = state?.recordingRequest?.status === "PENDING";
   const disabled =
     query.isLoading ||
     query.isError ||
@@ -40,12 +49,20 @@ export function MeetingRecordingControls({
     stop.isPending ||
     pause.isPending ||
     resume.isPending ||
-    !(active ? canStop : state?.capabilities.canStart);
-  const label = state?.recording?.stopRequestedAt
-    ? "Processing"
-    : active
-      ? "Stop"
-      : "Record";
+    (needsPermission
+      ? requestPermission.isPending ||
+        !state?.canRequestRecording ||
+        !state?.recordingAvailable
+      : !(active ? canStop : state?.capabilities.canStart));
+  const label = needsPermission
+    ? requesting
+      ? "Request pending"
+      : "Ask to record"
+    : state?.recording?.stopRequestedAt
+      ? "Processing"
+      : active
+        ? "Stop"
+        : "Record";
 
   const submit = () => {
     if (dialog === "start") start.mutate({ layout, key: crypto.randomUUID() });
@@ -65,19 +82,32 @@ export function MeetingRecordingControls({
         <MeetingRoomControlButton
           label={label}
           ariaLabel={
-            active && !state?.recording?.stopRequestedAt
+            active && !state?.recording?.stopRequestedAt && !needsPermission
               ? "Stop recording"
               : label
           }
-          icon={active ? Square : Circle}
-          active={active}
+          icon={needsPermission ? Hand : active ? Square : Circle}
+          active={active && !needsPermission}
           disabled={disabled}
           onClick={() => {
+            if (needsPermission) {
+              requestPermission.mutate();
+              return;
+            }
             setLayout(state?.settings?.layout ?? "speaker");
             setDialog(active ? "stop" : "start");
           }}
         />
       </span>
+      {state && (
+        <MeetingRecordingRequests
+          state={state}
+          saving={answerPermissionRequest.isPending}
+          onAnswer={(id, approve) =>
+            answerPermissionRequest.mutate({ id, approve })
+          }
+        />
+      )}
       {active && state?.pauseAvailable && (
         <MeetingRoomControlButton
           label={

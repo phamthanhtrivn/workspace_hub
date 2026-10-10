@@ -31,6 +31,11 @@ export class RecordingPermissionDto {
   canRecord: boolean;
 }
 
+export class RecordingRequestDecisionDto {
+  @IsBoolean()
+  approve: boolean;
+}
+
 export class ShareRecordingDto {
   @IsBoolean()
   canView: boolean;

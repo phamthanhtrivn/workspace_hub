@@ -612,6 +612,9 @@ model MeetingParticipant {
   handRaisedAt      DateTime?                @map("hand_raised_at")
   canRecord         Boolean                  @default(false) @map("can_record")
   recordGrantedBy   String?                   @map("record_granted_by") @db.Uuid
+  recordingRequestId String?                  @unique @map("recording_request_id") @db.Uuid
+  recordingRequestedAt DateTime?              @map("recording_requested_at")
+  recordingRequestState String?               @map("recording_request_state")
   createdAt         DateTime                 @default(now()) @map("created_at")
   updatedAt         DateTime                 @updatedAt @map("updated_at")
 
@@ -620,6 +623,7 @@ model MeetingParticipant {
   @@unique([meetingId, userId])
   @@index([userId])
   @@index([meetingId, status])
+  @@index([meetingId, recordingRequestState, recordingRequestedAt], map: "meeting_participants_recording_requests_idx")
   @@map("meeting_participants")
 }
 
