@@ -1,7 +1,7 @@
 name: workspacehub-app
 services:
   user-service:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-user-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-user-service:${USER_SERVICE_IMAGE_TAG:?USER_SERVICE_IMAGE_TAG is required}
     environment:
       NODE_ENV: production
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
@@ -38,7 +38,7 @@ services:
       retries: 18
       start_period: 45s
   project-service:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-project-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-project-service:${PROJECT_SERVICE_IMAGE_TAG:?PROJECT_SERVICE_IMAGE_TAG is required}
     environment:
       NODE_ENV: production
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
@@ -67,7 +67,7 @@ services:
       retries: 18
       start_period: 45s
   communication-service:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-communication-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-communication-service:${COMMUNICATION_SERVICE_IMAGE_TAG:?COMMUNICATION_SERVICE_IMAGE_TAG is required}
     environment:
       NODE_ENV: production
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
@@ -102,7 +102,7 @@ services:
       retries: 18
       start_period: 45s
   notification-service:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-notification-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-notification-service:${NOTIFICATION_SERVICE_IMAGE_TAG:?NOTIFICATION_SERVICE_IMAGE_TAG is required}
     environment:
       NODE_ENV: production
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
@@ -135,7 +135,7 @@ services:
       retries: 18
       start_period: 45s
   document-service:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-document-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-document-service:${DOCUMENT_SERVICE_IMAGE_TAG:?DOCUMENT_SERVICE_IMAGE_TAG is required}
     environment:
       NODE_ENV: production
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
@@ -164,7 +164,7 @@ services:
       retries: 18
       start_period: 45s
   calendar-service:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-calendar-service:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-calendar-service:${CALENDAR_SERVICE_IMAGE_TAG:?CALENDAR_SERVICE_IMAGE_TAG is required}
     environment:
       NODE_ENV: production
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
@@ -192,7 +192,7 @@ services:
       retries: 18
       start_period: 45s
   kong:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-kong:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-kong:${KONG_IMAGE_TAG:?KONG_IMAGE_TAG is required}
     environment:
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
@@ -221,7 +221,7 @@ services:
       calendar-service:
         condition: service_healthy
   frontend-web:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-web:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-web:${FRONTEND_WEB_IMAGE_TAG:?FRONTEND_WEB_IMAGE_TAG is required}
     environment:
       NODE_ENV: production
     ports:
@@ -238,35 +238,35 @@ services:
       retries: 18
       start_period: 45s
   communication-service-migration:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-communication-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-communication-service-migration:${COMMUNICATION_SERVICE_MIGRATION_IMAGE_TAG:?COMMUNICATION_SERVICE_MIGRATION_IMAGE_TAG is required}
     profiles:
       - migration
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/communication_db?schema=public
     restart: 'no'
   notification-service-migration:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-notification-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-notification-service-migration:${NOTIFICATION_SERVICE_MIGRATION_IMAGE_TAG:?NOTIFICATION_SERVICE_MIGRATION_IMAGE_TAG is required}
     profiles:
       - migration
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/notification_db?schema=public
     restart: 'no'
   document-service-migration:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-document-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-document-service-migration:${DOCUMENT_SERVICE_MIGRATION_IMAGE_TAG:?DOCUMENT_SERVICE_MIGRATION_IMAGE_TAG is required}
     profiles:
       - migration
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/document_db?schema=public
     restart: 'no'
   calendar-service-migration:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-calendar-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-calendar-service-migration:${CALENDAR_SERVICE_MIGRATION_IMAGE_TAG:?CALENDAR_SERVICE_MIGRATION_IMAGE_TAG is required}
     profiles:
       - migration
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/calendar_db?schema=public
     restart: 'no'
   user-service-migration:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-user-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-user-service-migration:${USER_SERVICE_MIGRATION_IMAGE_TAG:?USER_SERVICE_MIGRATION_IMAGE_TAG is required}
     profiles:
       - migration
     environment:
@@ -277,7 +277,7 @@ services:
       PGDATABASE: user_db
     restart: 'no'
   project-service-migration:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-project-service-migration:${IMAGE_TAG:?IMAGE_TAG is required}
+    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-project-service-migration:${PROJECT_SERVICE_MIGRATION_IMAGE_TAG:?PROJECT_SERVICE_MIGRATION_IMAGE_TAG is required}
     profiles:
       - migration
     environment:

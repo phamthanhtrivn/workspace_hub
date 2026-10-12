@@ -39,7 +39,7 @@ for name, service in app.items():
         require(not service.get('ports'), f'Public backend port found: {name}')
         env = service['environment']
         require('kafka:' not in env.get('KAFKA_BROKER', ''), f'Cross-host Docker Kafka DNS: {name}')
-require(len(tags) == 1, 'Release images use different tags')
+require(all(re.fullmatch(r'sha-[0-9a-f]{40}', tag) for tag in tags), 'Invalid per-image release tags')
 require(len(app) == 14, 'Expected eight application and six migration services')
 require(app['project-service']['environment']['NOTIFICATION_SERVICE_URL'] == 'http://notification-service:8084', 'Project notification URL is not configured')
 require(app['communication-service']['environment']['USER_SERVICE_URL'] == 'http://user-service:8081', 'Communication user URL is not configured')

@@ -3,22 +3,44 @@ name: CI
   pull_request:
     branches:
       - main
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      plan:
+        type: string
+        default: ''
 permissions:
   contents: read
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      node: ${{ steps.plan.outputs.node }}
+      java: ${{ steps.plan.outputs.java }}
+      has_images: ${{ steps.plan.outputs.has_images }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: plan
+        env:
+          REQUEST_PLAN: ${{ inputs.plan }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ -n "$REQUEST_PLAN" ]; then
+            printf '%s' "$REQUEST_PLAN" > requested-plan.json
+            python3 deploy/scripts/plan-release.py --sha "$GITHUB_SHA" --existing requested-plan.json --output ci-plan.json
+          else
+            python3 deploy/scripts/plan-release.py --sha "$GITHUB_SHA" --base "$BASE_SHA" --output ci-plan.json
+          fi
   node:
+    needs: changes
+    if: ${{ needs.changes.outputs.node != '[]' }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        directory:
-          - frontend/web
-          - backend/project-service
-          - backend/communication-service
-          - backend/document-service
-          - backend/calendar-service
-          - backend/notification-service
+        directory: ${{ fromJSON(needs.changes.outputs.node) }}
     defaults:
       run:
         working-directory: ${{ matrix.directory }}
@@ -48,6 +70,8 @@ jobs:
           --passWithNoTests --runInBand',{stdio:'inherit'})"
       - run: npm run build
   java:
+    needs: changes
+    if: ${{ needs.changes.outputs.java == 'true' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -67,7 +91,10 @@ jobs:
       - run: python3 -m pip install -r deploy/scripts/requirements.txt PyYAML==6.0.3
       - run: bash deploy/scripts/validate-config.sh
   docker:
+    needs: changes
+    if: ${{ needs.changes.outputs.has_images == 'true' }}
     uses: ./.github/workflows/build-images.yml
     with:
       publish: false
+      matrix: ${{ needs.changes.outputs.matrix }}
     secrets: inherit

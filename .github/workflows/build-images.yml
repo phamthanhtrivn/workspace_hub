@@ -5,71 +5,18 @@ name: Build Docker images
       publish:
         required: true
         type: boolean
+      matrix:
+        required: true
+        type: string
 permissions:
   contents: read
 jobs:
   images:
+    if: ${{ !inputs.publish }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - name: web
-            context: frontend/web
-            dockerfile: frontend/web/Dockerfile.production
-            target: production
-          - name: kong
-            context: backend/kong-gateway
-            dockerfile: backend/kong-gateway/Dockerfile.production
-            target: production
-          - name: user-service
-            context: backend/user-service
-            dockerfile: backend/user-service/Dockerfile.production
-            target: production
-          - name: project-service
-            context: backend/project-service
-            dockerfile: backend/project-service/Dockerfile.production
-            target: production
-          - name: communication-service
-            context: backend/communication-service
-            dockerfile: backend/communication-service/Dockerfile.production
-            target: production
-          - name: document-service
-            context: backend/document-service
-            dockerfile: backend/document-service/Dockerfile.production
-            target: production
-          - name: calendar-service
-            context: backend/calendar-service
-            dockerfile: backend/calendar-service/Dockerfile.production
-            target: production
-          - name: notification-service
-            context: backend/notification-service
-            dockerfile: backend/notification-service/Dockerfile.production
-            target: production
-          - name: user-service-migration
-            context: .
-            dockerfile: deploy/shared/sql-migrations/Dockerfile
-            target: user
-          - name: project-service-migration
-            context: .
-            dockerfile: deploy/shared/sql-migrations/Dockerfile
-            target: project
-          - name: communication-service-migration
-            context: backend/communication-service
-            dockerfile: backend/communication-service/Dockerfile.production
-            target: migration
-          - name: document-service-migration
-            context: backend/document-service
-            dockerfile: backend/document-service/Dockerfile.production
-            target: migration
-          - name: calendar-service-migration
-            context: backend/calendar-service
-            dockerfile: backend/calendar-service/Dockerfile.production
-            target: migration
-          - name: notification-service-migration
-            context: backend/notification-service
-            dockerfile: backend/notification-service/Dockerfile.production
-            target: migration
+      matrix: ${{ fromJSON(inputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -115,70 +62,13 @@ jobs:
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'ci-placeholder' }}
             NEXT_PUBLIC_NOMINATIM_URL=${{ vars.NEXT_PUBLIC_NOMINATIM_URL || 'https://nominatim.openstreetmap.org' }}
             NEXT_PUBLIC_ASSET_HOST=${{ vars.NEXT_PUBLIC_ASSET_HOST }}
-    if: ${{ !inputs.publish }}
   publish:
+    if: ${{ inputs.publish }}
     runs-on: ubuntu-24.04
     environment: production
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - name: web
-            context: frontend/web
-            dockerfile: frontend/web/Dockerfile.production
-            target: production
-          - name: kong
-            context: backend/kong-gateway
-            dockerfile: backend/kong-gateway/Dockerfile.production
-            target: production
-          - name: user-service
-            context: backend/user-service
-            dockerfile: backend/user-service/Dockerfile.production
-            target: production
-          - name: project-service
-            context: backend/project-service
-            dockerfile: backend/project-service/Dockerfile.production
-            target: production
-          - name: communication-service
-            context: backend/communication-service
-            dockerfile: backend/communication-service/Dockerfile.production
-            target: production
-          - name: document-service
-            context: backend/document-service
-            dockerfile: backend/document-service/Dockerfile.production
-            target: production
-          - name: calendar-service
-            context: backend/calendar-service
-            dockerfile: backend/calendar-service/Dockerfile.production
-            target: production
-          - name: notification-service
-            context: backend/notification-service
-            dockerfile: backend/notification-service/Dockerfile.production
-            target: production
-          - name: user-service-migration
-            context: .
-            dockerfile: deploy/shared/sql-migrations/Dockerfile
-            target: user
-          - name: project-service-migration
-            context: .
-            dockerfile: deploy/shared/sql-migrations/Dockerfile
-            target: project
-          - name: communication-service-migration
-            context: backend/communication-service
-            dockerfile: backend/communication-service/Dockerfile.production
-            target: migration
-          - name: document-service-migration
-            context: backend/document-service
-            dockerfile: backend/document-service/Dockerfile.production
-            target: migration
-          - name: calendar-service-migration
-            context: backend/calendar-service
-            dockerfile: backend/calendar-service/Dockerfile.production
-            target: migration
-          - name: notification-service-migration
-            context: backend/notification-service
-            dockerfile: backend/notification-service/Dockerfile.production
-            target: migration
+      matrix: ${{ fromJSON(inputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -224,4 +114,3 @@ jobs:
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'ci-placeholder' }}
             NEXT_PUBLIC_NOMINATIM_URL=${{ vars.NEXT_PUBLIC_NOMINATIM_URL || 'https://nominatim.openstreetmap.org' }}
             NEXT_PUBLIC_ASSET_HOST=${{ vars.NEXT_PUBLIC_ASSET_HOST }}
-    if: ${{ inputs.publish }}

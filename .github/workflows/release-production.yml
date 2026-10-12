@@ -1,42 +1,19 @@
 name: Release production
 'on':
   push:
-    branches:
-      - main
-  workflow_dispatch: {}
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'auto, all, or comma-separated Compose services (for example calendar-service,frontend-web)'
+        type: string
+        default: auto
 permissions:
   contents: read
-concurrency:
-  group: workspacehub-production-app
-  cancel-in-progress: false
 jobs:
-  guard:
-    runs-on: ubuntu-24.04
-    steps:
-      - run: test "$GITHUB_REF" = refs/heads/main
-  ci:
-    needs: guard
-    uses: ./.github/workflows/ci.yml
-    secrets: inherit
-  build:
-    needs: ci
-    uses: ./.github/workflows/build-images.yml
+  release:
+    uses: ./.github/workflows/production-coordinator.yml
     with:
-      publish: true
+      scope: ${{ github.event_name == 'push' && 'auto' || 'app' }}
+      services: ${{ inputs.services || 'auto' }}
     secrets: inherit
-  deploy:
-    runs-on: ubuntu-24.04
-    environment: production
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy through SSH/SCP and wait for health
-        env:
-          SSH_HOST: ${{ vars.APP_SSH_HOST }}
-          SSH_USER: ${{ vars.SSH_USER || 'ubuntu' }}
-          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
-          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: python3 deploy/scripts/send-deployment.py app "$GITHUB_SHA"
-    needs: build

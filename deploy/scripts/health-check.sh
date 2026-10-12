@@ -2,9 +2,13 @@
 set -Eeuo pipefail
 source "$(dirname "$0")/common.sh"
 deadline=$((SECONDS + ${HEALTH_TIMEOUT_SECONDS:-240}))
+services=("$@")
+if (( ${#services[@]} == 0 )); then
+  services=(user-service project-service communication-service notification-service document-service calendar-service kong frontend-web)
+fi
 while (( SECONDS < deadline )); do
   healthy=true
-  for service in user-service project-service communication-service notification-service document-service calendar-service kong frontend-web; do
+  for service in "${services[@]}"; do
     container=$(compose ps -q "$service")
     if [[ -z "$container" ]] || [[ "$(docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null)" != healthy ]]; then
       healthy=false
@@ -12,9 +16,16 @@ while (( SECONDS < deadline )); do
     fi
   done
   if $healthy; then
-    kong_port=$(compose port kong 8000 | head -n 1 | awk -F: '{print $NF}')
     proxies=true
-    for service in user project communication notification document calendar; do
+    routes=()
+    for service in "${services[@]}"; do
+      if [[ "$service" == kong ]]; then routes=(user project communication notification document calendar); break; fi
+      if [[ "$service" == *-service ]]; then routes+=("${service%-service}"); fi
+    done
+    if (( ${#routes[@]} > 0 )); then
+      kong_port=$(compose port kong 8000 | head -n 1 | awk -F: '{print $NF}')
+    fi
+    for service in "${routes[@]}"; do
       curl -fsS --max-time 5 "http://127.0.0.1:${kong_port}/health/${service}" >/dev/null || proxies=false
     done
     $proxies && exit 0

@@ -45,7 +45,9 @@ before applications start; rerun those jobs when adding SQL files.
 Production publishes eight application repositories: `workspacehub-web`,
 `workspacehub-kong`, and `workspacehub-{user,project,communication,document,calendar,notification}-service`.
 Six more `workspacehub-<service>-migration` repositories contain migration tools.
-All 14 use `sha-<full Git commit SHA>`. Enable immutable SHA tags in Docker Hub;
+Each image uses `sha-<full Git commit SHA>` for its own last build. Unchanged images
+retain their previous tags, so one APP release can contain different SHA tags.
+Enable immutable SHA tags in Docker Hub;
 existing images are reused on retries. Browser `NEXT_PUBLIC_*` values are fixed at
 build time, so changing them requires a new commit and build.
 
@@ -79,11 +81,33 @@ Remove obsolete workflow settings `AWS_ROLE_ARN`, `DEPLOY_ARTIFACT_BUCKET`,
 The application's `AWS_REGION` remains required. No GitHub OIDC role, SSM command,
 artifact bucket, or Parameter Store lookup participates in deployment.
 
-PRs targeting main run lint, unit tests, configuration checks, and trial builds;
-they never publish or deploy. Push/merge to main invokes the same reusable CI once,
-then publishes and deploys APP. Manual **Release production** is restricted to main
-and runs the same checks. **Deploy infra** and **Deploy realtime** are manual main
-workflows; APP releases do not restart their services.
+PRs targeting main run lint, unit tests and trial builds for affected components;
+configuration and deployment regression checks always run. PRs never publish or
+deploy. Push/merge to main invokes one production coordinator: it reads non-secret
+release metadata over SSH, runs selective CI, builds changed images and deploys
+only affected hosts in INFRA → REALTIME → APP order. A failed required host blocks
+later hosts. Image builds can run alongside INFRA deployment after CI succeeds.
+
+**Release production** on main accepts `services=auto`, `all`, or comma-separated
+Compose names, such as `calendar-service,frontend-web`. `auto` reconciles pending
+APP changes, `all` builds all 14 APP images, and an explicit list rebuilds those
+runtime images plus affected migration images. **Deploy infra** and **Deploy realtime**
+remain available for manual redeployment of operator env changes. All entrypoints
+share one production concurrency group. Normal APP code changes do not deploy
+INFRA or REALTIME; their tracked configuration/init-file changes do.
+Within those hosts, resolved configuration selects changed containers. LiveKit/Egress
+runtime file hashes also trigger recreation of the matching container. Kafka topic
+initializer changes rerun the initializer without restarting unchanged databases.
+
+Selection compares each image's last successful source commit, and each host's
+configuration commit, against the requested commit. Failed or manually omitted
+changes remain pending for the next automatic release. Missing Git history expands
+the affected scope rather than silently skipping changes. SSH failures or corrupt
+metadata fail planning. Production preflight requires SSH access to all three hosts.
+Rerunning an older workflow cannot downgrade a newer deployed commit; use the
+latest main workflow, or the explicit APP rollback command when rollback is intended.
+The first release on a host bootstraps that host; a legacy single-tag APP release
+is converted automatically and its existing image references are checked first.
 
 ## Host preparation and SSH
 
@@ -172,7 +196,7 @@ Use dotenv `NAME=value` syntax, quoting special characters. The pinned
 [python-dotenv parser](https://github.com/theskumar/python-dotenv) reads the file
 without shell execution or `${...}` expansion. Malformed, missing, empty required,
 multiline and NUL-containing values fail validation. Do not put `IMAGE_TAG` or
-`PREVIOUS_IMAGE_TAG` in this file. The renderer derives the percent-encoded DB
+`PREVIOUS_IMAGE_TAG` or any `*_IMAGE_TAG` in this file. The renderer derives the percent-encoded DB
 password and writes `.env.runtime` plus LiveKit/Egress runtime configs at mode 600.
 It never writes `.env.production`.
 
@@ -238,10 +262,13 @@ secure context; configure domains/TLS and Google origins/S3 CORS for full testin
 3. Dispatch **Deploy infra** on main; verify databases, Redis, Kafka and topics.
 4. Dispatch **Deploy realtime** on main; verify signaling, ICE and webhook access.
 5. Dispatch **Release production** on main, or push a new main commit. CI must pass
-   before all 14 images publish and the APP configuration is sent by SCP.
+   before selected images publish and the APP configuration is sent by SCP. A new
+   APP host builds all 14 images; later releases build only affected images.
 6. The host verifies SHA-256 before extraction, acquires its deployment lock, renders
-   runtime env, pulls images, runs all six migrations, rolls out APP, checks container
-   health and six readiness routes through Kong, then records `.release.env`.
+   runtime env, pulls selected images, runs selected migrations, rolls out selected
+   APP containers and checks their health/readiness. Bootstrap runs all six
+   migrations. Success records `.release-state.json`, `.image-tags.env` and a private
+   resolved configuration snapshot. These runtime files must not be committed.
 
 SCP/SSH/host-key/checksum failures fail the workflow. Installer output stays in a
 root-owned `deployment.log.*` on the affected host, avoiding secret-bearing provider
@@ -261,8 +288,10 @@ and reconcile the migration baseline after backing up and comparing actual schem
 Never automatically reset/baseline populated databases or accept data loss. Postgres
 init runs only on empty volumes; new databases require an administrative operation.
 
-APP rollback restores `.previous-release.env`, `.previous-compose.yml` and
-`.previous-env.runtime`, then pulls the old SHA images and checks health. It leaves
+APP rollback restores `.previous-state.json`, `.previous-compose.yml`,
+`.previous-env.runtime` and the previous tag/effective-configuration snapshots.
+It pulls the previous selected images and recreates only the containers touched
+by that release, then checks health. It leaves
 the current operator `.env.production` intact. A failed candidate keeps the workflow
 failed even after successful rollback. The first release has no previous version.
 
@@ -276,11 +305,11 @@ need coordinated maintenance. Retain current/previous images and private env
 snapshots. INFRA/REALTIME do not implement automatic data rollback.
 Never run `docker compose down -v` in production unless intentionally deleting data.
 
-Check the affected host using `.env.runtime`; APP also needs its saved release tag:
+Check the affected host using `.env.runtime`; APP also reads its per-image tags:
 
 ```bash
 cd /opt/workspacehub/app
-sudo bash -c 'export IMAGE_TAG=$(sed -n "s/^IMAGE_TAG=//p" .release.env); docker compose --env-file .env.runtime -f compose.yml ps; bash scripts/health-check.sh'
+sudo bash -c 'docker compose --env-file .env.runtime --env-file .image-tags.env -f compose.yml ps; bash scripts/health-check.sh'
 cd /opt/workspacehub/infra
 sudo docker compose --env-file .env.runtime -f compose.yml ps
 cd /opt/workspacehub/realtime
@@ -308,6 +337,7 @@ Node lint remains advisory because of existing lint debt; tests/builds and deplo
 checks are required. Production/migration Docker targets are built during CI.
 
 Pinned image upgrades require release-note review, exact version/digest edits,
-configuration/build checks, data backups and manual infra/realtime deployment.
+configuration/build checks and data backups before merging. Relevant INFRA/REALTIME
+changes now deploy automatically on main; the manual workflows remain available.
 PostgreSQL major upgrades need dump/restore or a planned `pg_upgrade`; reverting an
 image does not reverse stateful changes.

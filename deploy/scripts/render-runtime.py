@@ -23,7 +23,7 @@ values = dotenv_values(source, encoding='utf-8-sig', interpolate=False)
 for key, value in values.items():
     if not re.fullmatch(r'[A-Z][A-Z0-9_]*', key) or value is None or any(c in value for c in '\n\r\0'):
         raise ValueError('Invalid runtime parameter name or multiline value')
-    if key in {'IMAGE_TAG', 'PREVIOUS_IMAGE_TAG'}:
+    if key in {'IMAGE_TAG', 'PREVIOUS_IMAGE_TAG'} or key.endswith('_IMAGE_TAG'):
         raise ValueError('Release tags must not be stored in operator env')
 required = {
     'app': 'DOCKERHUB_USERNAME INFRA_PRIVATE_HOST POSTGRES_USER POSTGRES_PASSWORD FRONTEND_URL JWT_SECRET_KEY INTERNAL_SERVICE_KEY AWS_REGION AWS_S3_BUCKET_NAME GOOGLE_CLIENT_ID LIVEKIT_URL LIVEKIT_PUBLIC_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET MAIL_HOST MAIL_USERNAME MAIL_PASSWORD VAPID_SUBJECT VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY',

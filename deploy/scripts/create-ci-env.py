@@ -20,5 +20,5 @@ names = set()
 for area in ('dev', 'prod/app', 'prod/infra', 'prod/realtime'):
     names.update(re.findall(r'(?<!\$)\$\{([A-Z][A-Z0-9_]*)',
                             (ROOT / f'deploy/{area}/compose.yml').read_text()))
-Path(sys.argv[1]).write_text(''.join(f"{name}='{values.get(name, 'ci-placeholder')}'\n"
-                                   for name in sorted(names)), encoding='utf-8')
+Path(sys.argv[1]).write_text(''.join(f"{name}='{values.get(name, 'sha-' + format(index, '040x') if name.endswith('_IMAGE_TAG') else 'ci-placeholder')}'\n"
+                                   for index, name in enumerate(sorted(names), start=1)), encoding='utf-8')

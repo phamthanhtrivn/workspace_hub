@@ -3,23 +3,9 @@ name: Deploy realtime
   workflow_dispatch: {}
 permissions:
   contents: read
-concurrency:
-  group: workspacehub-production-realtime
-  cancel-in-progress: false
 jobs:
-  deploy:
-    runs-on: ubuntu-24.04
-    environment: production
-    permissions:
-      contents: read
-    steps:
-      - run: test "$GITHUB_REF" = refs/heads/main
-      - uses: actions/checkout@v4
-      - name: Deploy through SSH/SCP and wait for health
-        env:
-          SSH_HOST: ${{ vars.REALTIME_SSH_HOST }}
-          SSH_USER: ${{ vars.SSH_USER || 'ubuntu' }}
-          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
-          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: python3 deploy/scripts/send-deployment.py realtime "$GITHUB_SHA"
+  release:
+    uses: ./.github/workflows/production-coordinator.yml
+    with:
+      scope: realtime
+    secrets: inherit
