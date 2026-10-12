@@ -47,7 +47,14 @@ describe('recording sessions and permissions', () => {
   const realtime = { emitMeetingEvent: jest.fn() };
   function transaction() {
     return {
-      $queryRaw: jest.fn(),
+      $queryRaw: jest.fn((sql: TemplateStringsArray) => {
+        if (sql.join('').includes('pg_advisory_xact_lock'))
+          return Promise.reject(
+            new Error("Failed to deserialize column of type 'void'"),
+          );
+        return Promise.resolve([]);
+      }),
+      $executeRaw: jest.fn().mockResolvedValue(1),
       meeting: {
         findUniqueOrThrow: jest.fn().mockResolvedValue(meeting),
         update: jest.fn().mockResolvedValue({
@@ -62,6 +69,7 @@ describe('recording sessions and permissions', () => {
           .mockResolvedValue({ status: 'JOINED', role: 'COHOST' }),
       },
       meetingRecording: {
+        create: jest.fn(),
         findUnique: jest.fn().mockResolvedValue(base),
         update: jest.fn(),
         count: jest.fn().mockResolvedValue(0),
@@ -93,6 +101,22 @@ describe('recording sessions and permissions', () => {
       realtime as unknown as MeetingRealtimeService,
       media,
     );
+  });
+  it('starts and queues encoding when PostgreSQL cannot deserialize void results', async () => {
+    tx.meetingRecording.findFirst.mockResolvedValue(null);
+    await expect(
+      service.start('join', 'cohost', { layout: 'speaker' }, 'start-1'),
+    ).resolves.toMatchObject({ status: 'STARTING' });
+    expect(tx.meetingRecording.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        meetingId: meeting.id,
+        ownerId: meeting.createdBy,
+        status: 'STARTING',
+        jobs: {
+          create: expect.objectContaining({ kind: 'START' }) as unknown,
+        },
+      }) as unknown,
+    });
   });
   it('pauses without ending or creating a new logical recording', async () => {
     await expect(

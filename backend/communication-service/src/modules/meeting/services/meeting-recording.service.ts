@@ -181,7 +181,7 @@ export class MeetingRecordingService {
             'RECORDING_ALREADY_ACTIVE',
             'A recording is already active or processing',
           );
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(61009001)`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(61009001)`;
         const activeCount = await tx.meetingRecording.count({
           where: { status: { in: RECORDING_CAPACITY_STATUSES } },
         });
@@ -461,7 +461,7 @@ export class MeetingRecordingService {
             'RECORDING_DURATION_LIMIT',
             'Recording duration limit reached',
           );
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(61009001)`;
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(61009001)`;
         const count = await tx.meetingRecording.count({
           where: { status: { in: RECORDING_CAPACITY_STATUSES } },
         });

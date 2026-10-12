@@ -5,6 +5,9 @@
   color: #fff;
   overflow: hidden;
 }
+:global(body):has(.room) :global(nextjs-portal) {
+  display: none;
+}
 .stage {
   display: flex;
   gap: 12px;
