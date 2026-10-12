@@ -12,7 +12,7 @@ import {
 import { useAttendeeSearch } from "@/features/calendar/hooks/use-calendar-users";
 import { useAppSelector } from "@/store/store";
 import { recordingApi } from "../../api/meeting-recording.api";
-import { recordingErrorMessage } from "../../hooks/useMeetingRecording";
+import { recordingErrorMessage } from "../../utils/recording-errors";
 import type { MeetingRecording } from "../../types/meeting-recording.types";
 import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
 

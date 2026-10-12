@@ -24,11 +24,19 @@ import { MeetingRecordingRequestsService } from './meeting-recording-requests.se
 
 const recordingInclude = {
   meeting: { select: { title: true, joinToken: true } },
-  permissions: true,
+  permissions: { select: { userId: true, canDownload: true } },
 } satisfies Prisma.MeetingRecordingInclude;
 type RecordingWithAccess = Prisma.MeetingRecordingGetPayload<{
   include: typeof recordingInclude;
 }>;
+type RecordingAccessGrant = {
+  recordingId: string;
+  grantedBy: string;
+  canDownload: boolean;
+};
+
+const RECORDING_PERMISSION_BATCH_SIZE = 500;
+const RECORDING_SHARE_TRANSACTION_TIMEOUT_MS = 15_000;
 
 @Injectable()
 export class MeetingRecordingService {
@@ -634,7 +642,10 @@ export class MeetingRecordingService {
       this.prisma.meetingRecording.count({ where }),
       this.prisma.meetingRecording.findMany({
         where,
-        include: recordingInclude,
+        include: {
+          ...recordingInclude,
+          permissions: { ...recordingInclude.permissions, where: { userId } },
+        },
         orderBy: [{ requestedAt: 'desc' }, { id: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
@@ -674,17 +685,19 @@ export class MeetingRecordingService {
   }
 
   async permissions(id: string, userId: string) {
-    const permissions = (await this.assertOwner(id, userId)).permissions;
+    const permissions = (await this.assertOwner(id, userId, true)).permissions;
+    if (!permissions.length) return [];
     const profiles = await this.prisma.userProfileSnapshot.findMany({
       where: { userId: { in: permissions.map((p) => p.userId) } },
       select: { userId: true, fullName: true, email: true },
     });
+    const profileById = new Map(
+      profiles.map((profile) => [profile.userId, profile]),
+    );
     return permissions.map((permission) => ({
       userId: permission.userId,
       canDownload: permission.canDownload,
-      profile:
-        profiles.find((profile) => profile.userId === permission.userId) ??
-        null,
+      profile: profileById.get(permission.userId) ?? null,
     }));
   }
 
@@ -706,12 +719,7 @@ export class MeetingRecordingService {
     });
     if (!account) recordingError(404, 'USER_NOT_FOUND', 'User not found');
     const permission = await this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM meeting_recordings WHERE id = ${id}::uuid FOR UPDATE`;
-      const current = await tx.meetingRecording.findUniqueOrThrow({
-        where: { id },
-      });
-      if (current.status === 'DELETED')
-        recordingError(404, 'RECORDING_NOT_FOUND', 'Recording not found');
+      await this.lockOwnedRecording(tx, id, userId);
       return tx.meetingRecordingPermission.upsert({
         where: {
           recordingId_userId: { recordingId: id, userId: targetUserId },
@@ -735,49 +743,64 @@ export class MeetingRecordingService {
 
   async shareParticipants(id: string, userId: string, canDownload: boolean) {
     const recording = await this.assertOwner(id, userId);
-    if (!recording.stopRequestedAt && !recording.stoppedAt)
-      recordingError(
-        409,
-        'RECORDING_NOT_READY',
-        'Stop recording before sharing with attendees',
-      );
-    const attended = await this.prisma.meetingEvent.findMany({
-      where: {
-        meetingId: recording.meetingId,
-        type: 'PARTICIPANT_JOINED',
-        createdAt: { lte: recording.stopRequestedAt ?? recording.stoppedAt! },
-        actorId: { not: null },
+    const recipientIds = await this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM meetings WHERE id = ${recording.meetingId}::uuid FOR UPDATE`;
+        const current = await this.lockOwnedRecording(tx, id, userId);
+        const cutoff = current.stopRequestedAt ?? current.stoppedAt;
+        if (!cutoff)
+          recordingError(
+            409,
+            'RECORDING_NOT_READY',
+            'Stop recording before sharing with attendees',
+          );
+        // Lock recipients so removal either precedes this grant or revokes it afterwards.
+        const recipients = await tx.$queryRaw<{ userId: string }[]>`
+        SELECT p.user_id AS "userId" FROM meeting_participants p
+        WHERE p.meeting_id = ${recording.meetingId}::uuid
+          AND p.user_id <> ${userId}::uuid AND p.status <> 'REMOVED'
+          AND (p.joined_at <= ${cutoff} OR EXISTS (
+            SELECT 1 FROM meeting_events e WHERE e.meeting_id = p.meeting_id
+              AND e.actor_id = p.user_id AND e.type = 'PARTICIPANT_JOINED'
+              AND e.created_at <= ${cutoff}
+          ))
+        ORDER BY p.id FOR UPDATE OF p`;
+        const ids = recipients.map((recipient) => recipient.userId);
+        if (!ids.length) return ids;
+        const accountCount = await tx.userProfileSnapshot.count({
+          where: { userId: { in: ids } },
+        });
+        if (accountCount !== ids.length)
+          recordingError(
+            404,
+            'USER_NOT_FOUND',
+            'An attendee account is unavailable',
+          );
+        await this.upsertAttendeePermissions(tx, ids, {
+          recordingId: id,
+          grantedBy: userId,
+          canDownload,
+        });
+        return ids;
       },
-      distinct: ['actorId'],
-      select: { actorId: true },
-    });
-    const participants = await this.prisma.meetingParticipant.findMany({
-      where: {
-        meetingId: recording.meetingId,
-        status: { not: 'REMOVED' },
-        OR: [
-          { userId: { in: attended.map((event) => event.actorId!) } },
-          {
-            joinedAt: {
-              lte: recording.stopRequestedAt ?? recording.stoppedAt!,
-            },
-          },
-        ],
-      },
-      select: { userId: true },
-    });
-    const recipientIds = participants
-      .map((p) => p.userId)
-      .filter((id) => id !== recording.ownerId);
+      { timeout: RECORDING_SHARE_TRANSACTION_TIMEOUT_MS },
+    );
     for (const recipientId of recipientIds)
-      await this.share(id, userId, recipientId, canDownload);
+      this.realtime.emitUserEvent(
+        recipientId,
+        MeetingEvent.RECORDING_ACCESS_UPDATED,
+        { recordingId: id },
+      );
     return { sharedCount: recipientIds.length };
   }
 
   async revoke(id: string, userId: string, targetUserId: string) {
     await this.assertOwner(id, userId);
-    await this.prisma.meetingRecordingPermission.deleteMany({
-      where: { recordingId: id, userId: targetUserId },
+    await this.prisma.$transaction(async (tx) => {
+      await this.lockOwnedRecording(tx, id, userId);
+      await tx.meetingRecordingPermission.deleteMany({
+        where: { recordingId: id, userId: targetUserId },
+      });
     });
     this.realtime.emitUserEvent(
       targetUserId,
@@ -795,7 +818,7 @@ export class MeetingRecordingService {
         'RECORDING_FORBIDDEN',
         'Only the owner can delete recordings',
       );
-    await this.prisma.$transaction(async (tx) => {
+    const recipientIds = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM meeting_recordings WHERE id = ${id}::uuid FOR UPDATE`;
       const current = await tx.meetingRecording.findUniqueOrThrow({
         where: { id },
@@ -806,6 +829,10 @@ export class MeetingRecordingService {
           'RECORDING_ALREADY_ACTIVE',
           'Stop and finish processing before deleting',
         );
+      const permissions = await tx.meetingRecordingPermission.findMany({
+        where: { recordingId: id },
+        select: { userId: true },
+      });
       await tx.meetingRecording.update({
         where: { id },
         data: {
@@ -822,11 +849,9 @@ export class MeetingRecordingService {
         create: { recordingId: id, kind: 'DELETE' },
         update: {},
       });
+      return permissions.map((permission) => permission.userId);
     });
-    for (const recipient of new Set([
-      userId,
-      ...recording.permissions.map((p) => p.userId),
-    ]))
+    for (const recipient of new Set([userId, ...recipientIds]))
       this.realtime.emitUserEvent(recipient, MeetingEvent.RECORDING_DELETED, {
         recordingId: id,
       });
@@ -837,10 +862,17 @@ export class MeetingRecordingService {
     id: string,
     userId: string,
     allowDeleted = false,
+    allPermissions = false,
   ): Promise<RecordingWithAccess> {
     const recording = await this.prisma.meetingRecording.findUnique({
       where: { id },
-      include: recordingInclude,
+      include: {
+        ...recordingInclude,
+        permissions: {
+          ...recordingInclude.permissions,
+          ...(allPermissions ? {} : { where: { userId } }),
+        },
+      },
     });
     if (
       !recording ||
@@ -852,8 +884,17 @@ export class MeetingRecordingService {
     return recording;
   }
 
-  private async assertOwner(id: string, userId: string) {
-    const recording = await this.assertAccess(id, userId);
+  private async assertOwner(
+    id: string,
+    userId: string,
+    allPermissions = false,
+  ) {
+    const recording = await this.assertAccess(
+      id,
+      userId,
+      false,
+      allPermissions,
+    );
     if (recording.ownerId !== userId)
       recordingError(
         403,
@@ -861,6 +902,54 @@ export class MeetingRecordingService {
         'Only the owner can manage recordings',
       );
     return recording;
+  }
+
+  private async lockOwnedRecording(
+    tx: Prisma.TransactionClient,
+    id: string,
+    userId: string,
+  ) {
+    await tx.$queryRaw`SELECT id FROM meeting_recordings WHERE id = ${id}::uuid FOR UPDATE`;
+    const recording = await tx.meetingRecording.findUniqueOrThrow({
+      where: { id },
+    });
+    if (recording.status === 'DELETED')
+      recordingError(404, 'RECORDING_NOT_FOUND', 'Recording not found');
+    if (recording.ownerId !== userId)
+      recordingError(
+        403,
+        'RECORDING_FORBIDDEN',
+        'Only the owner can manage recordings',
+      );
+    return recording;
+  }
+
+  private async upsertAttendeePermissions(
+    tx: Prisma.TransactionClient,
+    recipientIds: string[],
+    grant: RecordingAccessGrant,
+  ) {
+    const now = new Date();
+    for (
+      let offset = 0;
+      offset < recipientIds.length;
+      offset += RECORDING_PERMISSION_BATCH_SIZE
+    ) {
+      const values = recipientIds
+        .slice(offset, offset + RECORDING_PERMISSION_BATCH_SIZE)
+        .map(
+          (recipientId) => Prisma.sql`
+          (${randomUUID()}::uuid, ${grant.recordingId}::uuid, ${recipientId}::uuid,
+            ${grant.grantedBy}::uuid, ${grant.canDownload}, ${now}, ${now})`,
+        );
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO meeting_recording_permissions
+          (id, recording_id, user_id, granted_by, can_download, created_at, updated_at)
+        VALUES ${Prisma.join(values)}
+        ON CONFLICT (recording_id, user_id) DO UPDATE SET
+          can_download = EXCLUDED.can_download,
+          granted_by = EXCLUDED.granted_by, updated_at = EXCLUDED.updated_at`);
+    }
   }
 
   private present(recording: RecordingWithAccess, userId: string) {

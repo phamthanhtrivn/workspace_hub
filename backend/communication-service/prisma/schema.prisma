@@ -823,5 +823,6 @@ model MeetingEvent {
   meeting   Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
   @@index([meetingId, createdAt])
+  @@index([meetingId, actorId, type, createdAt], map: "meeting_events_recording_attendees_idx")
   @@map("meeting_events")
 }

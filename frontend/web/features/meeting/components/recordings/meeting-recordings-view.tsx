@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { recordingApi } from "../../api/meeting-recording.api";
 import { useMeetingRecordings } from "../../hooks/useMeetingRecordings";
 import { useMeetingConfirmDialog } from "../../hooks/useMeetingConfirmDialog";
-import { recordingErrorMessage } from "../../hooks/useMeetingRecording";
+import { recordingErrorMessage } from "../../utils/recording-errors";
 import type {
   MeetingRecording,
   RecordingQuery,

@@ -2,6 +2,8 @@
 
 Ngày: 09/10/2026. Contract đã được hiện thực trên branch `feature/meeting-recording`. Xem [hướng dẫn chạy](meeting-recording-setup.md) để cấu hình và nghiệm thu Egress/S3.
 
+Bổ sung hiệu năng 10/10/2026 (`feature/recording-performance`): API giữ nguyên. Truy vấn list/detail/playback chỉ tải ACL người gọi; quản lý ACL vẫn thấy toàn bộ danh sách. Chia sẻ người tham dự trở thành thao tác atomic theo lô 500, kiểm tra tài khoản trước ghi và thông báo sau commit; thiếu tài khoản không cấp quyền dở dang. Chia sẻ/thu hồi/xóa dùng khóa bản ghi. Trạng thái ghi cập nhật bằng socket, polling dự phòng 30 giây khi kết nối, timer riêng cho deadline/cooldown; mất socket dùng 3 giây khi chờ/chuyển trạng thái. Template đăng ký toàn bộ audio và chỉ video thuộc bố cục, chất lượng thích ứng kích thước tile. Cần thêm migration index `20261010000100_recording_access_performance`.
+
 ## 1. Quyết định và trải nghiệm
 
 Người dùng đã chọn lưu máy chủ/S3; host/co-host được bắt đầu/dừng; thành viên thường phải được host cấp quyền; bản ghi mặc định chỉ chủ sở hữu truy cập, có chia sẻ theo quyền.

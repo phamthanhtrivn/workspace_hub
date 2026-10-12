@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import ts from "typescript";
+import { RemoteTrackPublication, Track, TrackEvent } from "livekit-client";
 
 function loadUtility(name) {
   const source = readFileSync(
@@ -30,6 +31,9 @@ function loadUtility(name) {
 }
 const { selectRecordingStage } = loadUtility("recording-stage");
 const { recordingElapsedSeconds } = loadUtility("recording-duration");
+const { recordingPollInterval, recordingRequestRefreshAt } =
+  loadUtility("recording-polling");
+const { syncRecordingSubscriptions } = loadUtility("recording-subscriptions");
 const camera = (id) => ({ participant: { identity: id } });
 const cameras = [camera("host"), camera("speaker"), camera("third")];
 const share = camera("presenter");
@@ -137,4 +141,154 @@ test("legacy and camera-free recordings still show elapsed time safely", () => {
     ),
     0,
   );
+});
+
+test("healthy sockets use slow recovery polling, disconnected requests use fast polling", () => {
+  for (const status of [
+    "STARTING",
+    "RECORDING",
+    "PAUSING",
+    "PROCESSING",
+    "PAUSED",
+  ])
+    assert.equal(
+      recordingPollInterval({ recording: { status } }, true),
+      30_000,
+    );
+  assert.equal(
+    recordingPollInterval({ recordingRequest: { status: "PENDING" } }, true),
+    30_000,
+  );
+  assert.equal(
+    recordingPollInterval({ recordingRequest: { status: "PENDING" } }, false),
+    3000,
+  );
+  assert.equal(recordingPollInterval({ recordingRequests: [{}] }, false), 3000);
+  assert.equal(
+    recordingPollInterval({ recording: { status: "PROCESSING" } }, false),
+    3000,
+  );
+  assert.equal(recordingPollInterval(undefined, false), 5000);
+});
+test("request refresh schedules the closest pending expiry and cooldown without extra polling", () => {
+  const time = Date.parse(first);
+  const request = {
+    status: "PENDING",
+    expiresAt: new Date(time + 120_000).toISOString(),
+    requestedAt: first,
+  };
+  assert.equal(
+    recordingRequestRefreshAt({ recordingRequest: request }, time),
+    time + 120_000,
+  );
+  assert.equal(
+    recordingRequestRefreshAt(
+      {
+        recordingRequests: [
+          request,
+          { ...request, expiresAt: new Date(time + 30_000).toISOString() },
+        ],
+      },
+      time,
+    ),
+    time + 30_000,
+  );
+  assert.equal(
+    recordingRequestRefreshAt(
+      {
+        needsRecordingPermission: true,
+        canRequestRecording: false,
+        recordingRequest: { ...request, status: "REJECTED" },
+      },
+      time,
+    ),
+    time + 60_000,
+  );
+  assert.equal(
+    recordingRequestRefreshAt(
+      {
+        needsRecordingPermission: false,
+        recordingRequest: { ...request, status: "REJECTED" },
+      },
+      time,
+    ),
+    undefined,
+  );
+  assert.equal(
+    recordingRequestRefreshAt({ recordingRequest: request }, time + 120_000),
+    undefined,
+  );
+  assert.equal(
+    recordingRequestRefreshAt(
+      { recordingRequest: { ...request, expiresAt: "invalid" } },
+      time,
+    ),
+    undefined,
+  );
+});
+test("real LiveKit publications receive only visible video subscriptions and all audio", () => {
+  const publications = Array.from(
+    { length: 60 },
+    (_, i) =>
+      new RemoteTrackPublication(
+        Track.Kind.Video,
+        {
+          sid: `camera-${i}`,
+          name: `Camera ${i}`,
+          type: 1,
+          source: 1,
+          muted: false,
+        },
+        false,
+      ),
+  );
+  const screen = new RemoteTrackPublication(
+    Track.Kind.Video,
+    { sid: "screen", name: "Screen", type: 1, source: 3, muted: false },
+    false,
+  );
+  const audio = Array.from(
+    { length: 60 },
+    (_, i) =>
+      new RemoteTrackPublication(
+        Track.Kind.Audio,
+        {
+          sid: `audio-${i}`,
+          name: `Mic ${i}`,
+          type: 0,
+          source: 2,
+          muted: false,
+        },
+        false,
+      ),
+  );
+  const all = [...publications, screen, ...audio];
+  let updates = 0;
+  all.forEach((publication) =>
+    publication.on(TrackEvent.UpdateSubscription, () => updates++),
+  );
+  const gallery = new Set(publications.slice(0, 25).map((p) => p.trackSid));
+  syncRecordingSubscriptions(all, gallery);
+  assert.equal(updates, 85);
+  syncRecordingSubscriptions(all, gallery);
+  assert.equal(
+    updates,
+    85,
+    "unchanged stage sends no extra subscription messages",
+  );
+  syncRecordingSubscriptions(all, new Set(["screen"]));
+  assert.equal(publications.filter((p) => p.isDesired).length, 0);
+  assert.equal(screen.isDesired, true);
+  assert.ok(audio.every((p) => p.isDesired));
+  syncRecordingSubscriptions(all, new Set(["screen", "camera-59"]));
+  assert.equal(publications.filter((p) => p.isDesired).length, 1);
+  syncRecordingSubscriptions(all, new Set(["screen", "camera-58"]));
+  assert.equal(publications[59].isDesired, false);
+  assert.equal(publications[58].isDesired, true);
+  syncRecordingSubscriptions(all, gallery);
+  assert.equal(screen.isDesired, false);
+  assert.equal(publications.filter((p) => p.isDesired).length, 25);
+  syncRecordingSubscriptions(all, new Set());
+  assert.ok(publications.every((p) => !p.isDesired));
+  assert.ok(audio.every((p) => p.isDesired));
 });

@@ -1,8 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { isAxiosError } from "axios";
 import { toast } from "sonner";
 import { recordingApi } from "../api/meeting-recording.api";
 import type {
@@ -13,19 +12,14 @@ import type {
 import { meetingKeys } from "../types/meeting.query-keys";
 import { useRecordingEvents } from "./useRecordingEvents";
 import { useAppSelector } from "@/store/store";
-
-export function recordingErrorMessage(error: unknown) {
-  return isAxiosError<{ message?: string }>(error)
-    ? (error.response?.data.message ?? "Could not update recording")
-    : "Could not update recording";
-}
-
-export function recordingErrorIsPermanent(error: unknown) {
-  return (
-    isAxiosError(error) &&
-    [400, 401, 403, 404].includes(error.response?.status ?? 0)
-  );
-}
+import {
+  recordingPollInterval,
+  recordingRequestRefreshAt,
+} from "../utils/recording-polling";
+import {
+  recordingErrorMessage,
+  recordingErrorIsPermanent,
+} from "../utils/recording-errors";
 
 export function useMeetingRecording(
   joinToken: string,
@@ -40,6 +34,10 @@ export function useMeetingRecording(
     });
     void client.invalidateQueries({ queryKey: ["meeting-recordings", userId] });
   }, [client, joinToken, userId]);
+  const handleMutationError = (error: unknown) => {
+    toast.error(recordingErrorMessage(error));
+    refresh();
+  };
   const connected = useRecordingEvents(refresh, meetingId, !observeOnly);
   const query = useQuery({
     queryKey: ["meeting-recording-status", userId, joinToken],
@@ -48,68 +46,54 @@ export function useMeetingRecording(
       if (observeOnly || recordingErrorIsPermanent(query.state.error))
         return false;
       if (query.state.error) return 30_000;
-      const status = query.state.data?.recording?.status;
-      if (
-        query.state.data?.recordingRequest?.status === "PENDING" ||
-        query.state.data?.recordingRequests?.length
-      )
-        return 3000;
-      if (
-        status === "STARTING" ||
-        status === "PAUSING" ||
-        status === "PROCESSING"
-      )
-        return 3000;
-      return connected ? 30_000 : 5000;
+      return recordingPollInterval(query.state.data, connected);
     },
     staleTime: 2000,
     retry: false,
     enabled: Boolean(userId),
   });
+  useEffect(() => {
+    const requestRefreshAt = recordingRequestRefreshAt(query.data, Date.now());
+    if (observeOnly || requestRefreshAt === undefined) return;
+    const timer = window.setTimeout(
+      () => {
+        void client.invalidateQueries({
+          queryKey: ["meeting-recording-status", userId, joinToken],
+        });
+      },
+      Math.max(1, requestRefreshAt - Date.now() + 100),
+    );
+    return () => window.clearTimeout(timer);
+  }, [query.data, observeOnly, client, userId, joinToken]);
   const start = useMutation({
     mutationFn: ({ layout, key }: { layout: RecordingLayout; key: string }) =>
       recordingApi.start(joinToken, layout, key),
     onSuccess: refresh,
-    onError: (error) => {
-      toast.error(recordingErrorMessage(error));
-      refresh();
-    },
+    onError: handleMutationError,
   });
   const stop = useMutation({
     mutationFn: ({ id, key }: { id: string; key: string }) =>
       recordingApi.stop(joinToken, id, key),
     onSuccess: refresh,
-    onError: (error) => {
-      toast.error(recordingErrorMessage(error));
-      refresh();
-    },
+    onError: handleMutationError,
   });
   const pause = useMutation({
     mutationFn: ({ id, key }: { id: string; key: string }) =>
       recordingApi.pause(joinToken, id, key),
     onSuccess: refresh,
-    onError: (error) => {
-      toast.error(recordingErrorMessage(error));
-      refresh();
-    },
+    onError: handleMutationError,
   });
   const resume = useMutation({
     mutationFn: ({ id, key }: { id: string; key: string }) =>
       recordingApi.resume(joinToken, id, key),
     onSuccess: refresh,
-    onError: (error) => {
-      toast.error(recordingErrorMessage(error));
-      refresh();
-    },
+    onError: handleMutationError,
   });
   const configure = useMutation({
     mutationFn: (settings: RecordingSettings) =>
       recordingApi.configure(joinToken, settings),
     onSuccess: refresh,
-    onError: (error) => {
-      toast.error(recordingErrorMessage(error));
-      refresh();
-    },
+    onError: handleMutationError,
   });
   const requestPermission = useMutation({
     mutationFn: () => recordingApi.requestPermission(joinToken),
@@ -128,10 +112,7 @@ export function useMeetingRecording(
       toast.success("Recording permission request sent to the host");
       refresh();
     },
-    onError: (error) => {
-      toast.error(recordingErrorMessage(error));
-      refresh();
-    },
+    onError: handleMutationError,
   });
   const answerPermissionRequest = useMutation({
     mutationFn: ({ id, approve }: { id: string; approve: boolean }) =>
@@ -142,10 +123,7 @@ export function useMeetingRecording(
       });
       refresh();
     },
-    onError: (error) => {
-      toast.error(recordingErrorMessage(error));
-      refresh();
-    },
+    onError: handleMutationError,
   });
   return {
     query,

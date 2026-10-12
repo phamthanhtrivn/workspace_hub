@@ -10,7 +10,7 @@ import { useMeetingConfirmDialog } from "./useMeetingConfirmDialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { recordingApi } from "../api/meeting-recording.api";
-import { recordingErrorMessage } from "./useMeetingRecording";
+import { recordingErrorMessage } from "../utils/recording-errors";
 import { meetingKeys } from "../types/meeting.query-keys";
 import {
   MEETING_ROLE,

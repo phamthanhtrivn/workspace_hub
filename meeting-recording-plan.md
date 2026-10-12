@@ -4,7 +4,11 @@ Ngày: 09/10/2026. Trạng thái: đã hiện thực backend/frontend trên bran
 
 ## Tiến độ hiện thực
 
+Đợt tối ưu ngày 10/10/2026 trên branch `feature/recording-performance`: status dùng socket với polling dự phòng 30 giây, timer riêng cho hết hạn/cooldown xin quyền; template chỉ nhận video nằm trong bố cục và tự điều chỉnh chất lượng theo kích thước hiển thị, giữ toàn bộ âm thanh. ACL thư viện chỉ đọc quyền của người gọi; chia sẻ cho người tham dự ghi theo lô 500 người trong một transaction, có khóa chống cạnh tranh với thu hồi/xóa và index lịch sử tham gia. Đã đạt 184 backend tests, 12 frontend tests, build/lint phần thay đổi, sáu migration, SQL PostgreSQL thử với 1.001 người nhận và Chromium kiểm tra polling/deadline/socket. Migration index mới chưa áp vào database dự án. Chưa đo CPU/RAM/băng thông Egress/S3 thật nên chưa khẳng định tối ưu production; audit dependency vẫn còn critical.
+
 Bổ sung trên branch `feature/recording-permission-requests`: thành viên bấm **Ask to record**, host nhận popup **Allow recording/Decline**, thành viên nhận kết quả. Duyệt chỉ cấp quyền, không tự bắt đầu ghi. Yêu cầu lưu trên participant, hết hạn sau 2 phút, gửi lại cách nhau tối thiểu 60 giây; request đang chờ được trả lại thay vì gửi thông báo trùng. Host mới tiếp nhận yêu cầu đang chờ sau chuyển host; host cũ không được duyệt. Rời phòng/bị loại/đổi vai trò/kết thúc phòng hủy request cũ.
+
+Rà clean code ngày 10/10/2026: gom handler lỗi mutation, tách tiện ích lỗi dùng chung khỏi hook, tái sử dụng khóa/kiểm tra chủ sở hữu và tách phần UPSERT theo lô; đặt tên giới hạn batch/timeout/cooldown, bỏ non-null assertion ở lịch refresh request. Hồi quy đạt 187 backend tests, 12 frontend tests, build/lint file thay đổi, SQL service thật trên PGlite và Chromium với API/socket fixture. Phạm vi rà soát là phần recording; service điều phối chính vẫn lớn và chưa có đánh giá clean code toàn dự án.
 
 Đợt xin quyền đã kiểm chứng: 170 backend tests, 9 frontend tests, build backend/frontend, migration PGlite và hai phiên Chromium host/member với API/signalling giả lập. Database dự án và phòng họp thật vẫn cần cập nhật/nghiệm thu theo hướng dẫn chạy.
 

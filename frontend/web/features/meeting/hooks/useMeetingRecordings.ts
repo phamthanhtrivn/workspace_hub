@@ -9,7 +9,7 @@ import type { RecordingQuery } from "../types/meeting-recording.types";
 import {
   recordingErrorMessage,
   recordingErrorIsPermanent,
-} from "./useMeetingRecording";
+} from "../utils/recording-errors";
 import { useRecordingEvents } from "./useRecordingEvents";
 
 export function useMeetingRecordings(params: RecordingQuery) {

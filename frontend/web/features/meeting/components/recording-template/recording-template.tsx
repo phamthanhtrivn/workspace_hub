@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -15,9 +15,11 @@ import EgressHelper from "@livekit/egress-sdk";
 import type { TrackReferenceOrPlaceholder } from "@livekit/components-react";
 import type { RecordingLayout } from "../../types/meeting-recording.types";
 import { selectRecordingStage } from "../../utils/recording-stage";
+import { useRecordingSubscriptions } from "../../hooks/useRecordingSubscriptions";
 import styles from "./recording-template.module.css";
 
-const options = { adaptiveStream: false, dynacast: false };
+const options = { adaptiveStream: { pixelDensity: 1 }, dynacast: false };
+const connectOptions = { autoSubscribe: false };
 
 export function RecordingTemplate({
   url,
@@ -47,6 +49,7 @@ export function RecordingTemplate({
       audio={false}
       video={false}
       options={options}
+      connectOptions={connectOptions}
       onConnected={() => setConnected(true)}
       className={styles.room}
     >
@@ -68,31 +71,45 @@ function RecordingStage({
     [
       { source: Track.Source.Camera, withPlaceholder: true },
       { source: Track.Source.ScreenShare, withPlaceholder: false },
+      { source: Track.Source.Microphone, withPlaceholder: false },
+      { source: Track.Source.ScreenShareAudio, withPlaceholder: false },
+      { source: Track.Source.Unknown, withPlaceholder: false },
     ],
-    { onlySubscribed: true },
+    { onlySubscribed: false },
   );
   const speakers = useSpeakingParticipants();
-  const cameras = tracks
-    .filter(
-      (track) =>
-        track.source === Track.Source.Camera &&
-        track.participant.kind !== ParticipantKind.EGRESS &&
-        !track.participant.permissions?.hidden &&
-        track.participant !== room.localParticipant,
-    )
-    .sort((a, b) =>
-      a.participant.identity.localeCompare(b.participant.identity),
-    );
-  const screens = tracks
-    .filter(
-      (track) =>
-        track.source === Track.Source.ScreenShare &&
-        isTrackReference(track) &&
-        !track.publication.isMuted,
-    )
-    .sort((a, b) =>
-      a.participant.identity.localeCompare(b.participant.identity),
-    );
+  const cameras = useMemo(
+    () =>
+      tracks
+        .filter(
+          (track) =>
+            track.source === Track.Source.Camera &&
+            track.participant.kind !== ParticipantKind.EGRESS &&
+            !track.participant.permissions?.hidden &&
+            track.participant !== room.localParticipant,
+        )
+        .sort((a, b) =>
+          a.participant.identity.localeCompare(b.participant.identity),
+        ),
+    [tracks, room],
+  );
+  const screens = useMemo(
+    () =>
+      tracks
+        .filter(
+          (track) =>
+            track.source === Track.Source.ScreenShare &&
+            track.participant.kind !== ParticipantKind.EGRESS &&
+            !track.participant.permissions?.hidden &&
+            !track.participant.isLocal &&
+            isTrackReference(track) &&
+            !track.publication.isMuted,
+        )
+        .sort((a, b) =>
+          a.participant.identity.localeCompare(b.participant.identity),
+        ),
+    [tracks],
+  );
   const [speakerId, setSpeakerId] = useState<string>();
   const candidate = speakers.find(
     (participant) => participant !== room.localParticipant,
@@ -116,7 +133,11 @@ function RecordingStage({
       room.off(RoomEvent.Disconnected, EgressHelper.endRecording);
     };
   }, [connected, room]);
-  const stage = selectRecordingStage(layout, cameras, screens, speakerId);
+  const stage = useMemo(
+    () => selectRecordingStage(layout, cameras, screens, speakerId),
+    [layout, cameras, screens, speakerId],
+  );
+  useRecordingSubscriptions(tracks, stage.main, stage.tiles);
   const gallery = !stage.main && stage.tiles.length > 0;
   const overflow =
     cameras.length -
@@ -179,10 +200,17 @@ function RecordingTile({
   const name = track.participant.name || track.participant.identity;
   return (
     <div className={`${styles.tile} ${screen ? styles.screen : ""}`}>
-      {visible ? (
-        <VideoTrack trackRef={track} className={styles.video} />
-      ) : (
-        <span className={styles.avatar}>{name.slice(0, 2).toUpperCase()}</span>
+      {isTrackReference(track) && !track.publication.isMuted && (
+        <VideoTrack
+          trackRef={track}
+          manageSubscription={false}
+          className={styles.video}
+        />
+      )}
+      {!visible && (
+        <span className={styles.avatar} style={{ position: "absolute" }}>
+          {name.slice(0, 2).toUpperCase()}
+        </span>
       )}
       <span className={styles.name}>
         {name}
