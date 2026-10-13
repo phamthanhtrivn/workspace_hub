@@ -1,0 +1,19 @@
+name: Release production
+'on':
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'auto, all, or comma-separated Compose services (for example calendar-service,frontend-web)'
+        type: string
+        default: auto
+permissions:
+  contents: read
+jobs:
+  release:
+    uses: ./.github/workflows/production-coordinator.yml
+    with:
+      scope: ${{ github.event_name == 'push' && 'auto' || 'app' }}
+      services: ${{ inputs.services || 'auto' }}
+    secrets: inherit

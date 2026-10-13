@@ -1,0 +1,11 @@
+name: Deploy infra
+'on':
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  release:
+    uses: ./.github/workflows/production-coordinator.yml
+    with:
+      scope: infra
+    secrets: inherit

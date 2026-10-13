@@ -2,10 +2,8 @@ node_modules
 dist
 coverage
 .git
-.env
-.env.*
-!.env.example
 *.log
 test
 **/*.spec.ts
 project-service-hardening.md
+.env*

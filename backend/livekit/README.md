@@ -1,6 +1,8 @@
 # LiveKit Self-Hosted Foundation
 
-Local LiveKit setup for WorkSpaceHub. The main backend Docker Compose files include this compose file so LiveKit can stay owned by `backend/livekit`.
+LiveKit development config stays here; orchestration uses the centralized
+`deploy/dev/compose.yml` realtime profile. Production runs LiveKit and Egress on
+their own EC2 host. See [deployment documentation](../../docs/deployment.md).
 
 ## Local URLs
 
@@ -9,7 +11,7 @@ Local LiveKit setup for WorkSpaceHub. The main backend Docker Compose files incl
 
 ## Environment
 
-Values are loaded from `backend/docker/.env`:
+Values are loaded from `deploy/dev/.env`:
 
 ```env
 LIVEKIT_PORT=7880
@@ -25,13 +27,26 @@ LIVEKIT_EGRESS_WEBHOOK_URL=http://host.docker.internal:8083/api/meetings/livekit
 From the repository root:
 
 ```bash
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.yml up -d livekit
+docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml --profile realtime up -d livekit egress
 ```
 
-LiveKit uses the shared `redis` service on `wh_network`.
+Development LiveKit uses the stack's Redis on its default network. Production
+uses INFRA's private Redis address, rendered from the operator-managed
+`/opt/workspacehub/realtime/.env.production` file.
 
 ## Meeting cloud recording
 
-The `recording` Compose profile starts `livekit-egress:v1.15.0` with durable temporary/backup volumes, CPU/memory limits, Chrome sandboxing and the upstream seccomp profile. The communication service submits MP4 720p composition requests with per-request private S3 storage and signed webhooks.
+The communication service submits MP4 720p composition requests with per-request
+private S3 storage and signed webhooks. Recording settings are documented in
+`recording.env.example` and `../communication-service/recording.env.example`.
 
-Configure the values in `recording.env.example` and `../communication-service/recording.env.example`, then follow [meeting-recording-setup.md](../../meeting-recording-setup.md) for database preparation, launch commands, S3 CORS/lifecycle and acceptance checks.
+The centralized stacks currently provide the Egress foundation. The recording
+configuration from the legacy Compose stack still needs to be integrated:
+recording environment variables, durable temporary/backup storage, resource
+limits and Chrome sandboxing. APP and REALTIME run on separate production hosts,
+so a local Docker volume cannot share backup files between them.
+
+See [meeting-recording-setup.md](../../meeting-recording-setup.md) for recording
+behavior, S3 CORS/lifecycle and acceptance checks. Its legacy Compose commands and
+development database preparation do not replace the centralized deployment and
+committed production migrations described in [deployment documentation](../../docs/deployment.md).
