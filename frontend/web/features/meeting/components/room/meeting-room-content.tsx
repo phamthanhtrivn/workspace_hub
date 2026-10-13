@@ -11,6 +11,8 @@ import { useMeetingHandStates } from "@/features/meeting/hooks/useMeetingHandSta
 import { useMeetingRoomInteractions } from "@/features/meeting/hooks/useMeetingRoomInteractions";
 import { useMeetingRoomLifecycle } from "@/features/meeting/hooks/useMeetingRoomLifecycle";
 import { useMeetingScreenShare } from "@/features/meeting/hooks/useMeetingScreenShare";
+import { useMeetingCaptions } from "@/features/meeting/hooks/useMeetingCaptions";
+import { MeetingCaptions } from "./meeting-captions";
 import { useMeetingSocket } from "@/features/meeting/hooks/useMeetingSocket";
 import { useAppSelector } from "@/store/store";
 import type {
@@ -62,6 +64,7 @@ export function MeetingRoomContent({
 }: MeetingRoomContentProps) {
   const connectionState = useConnectionState();
   const currentUserId = useAppSelector((state) => state.auth.userId);
+  const liveCaptions = useMeetingCaptions(joinToken, meetingId);
   const stageContainerRef = useRef<HTMLElement | null>(null);
   const reactionTimeoutIdsRef = useRef<number[]>([]);
   const [activePanel, setActivePanel] = useState(MeetingRoomPanel.NONE);
@@ -221,6 +224,14 @@ export function MeetingRoomContent({
             {getRoomStatusLabel(connectionState)}
           </span>
           <MeetingRecordingBanner joinToken={joinToken} meetingId={meetingId} />
+          {liveCaptions.active && (
+            <span
+              className="rounded-md bg-sky-500/15 px-2 py-1.5 text-xs font-bold text-sky-200"
+              role="status"
+            >
+              Live captions active
+            </span>
+          )}
           <span className="rounded-md bg-white/8 px-3 py-1.5 text-xs font-black text-slate-100 ring-1 ring-white/10">
             {formatElapsedTime(elapsedSeconds)}
           </span>
@@ -236,6 +247,12 @@ export function MeetingRoomContent({
             containerRef={stageContainerRef}
             reactions={roomReactions}
           />
+          {liveCaptions.enabled && (
+            <MeetingCaptions
+              captions={liveCaptions.captions}
+              error={liveCaptions.error}
+            />
+          )}
           <div className="flex min-h-full flex-col justify-start lg:justify-center">
             <MeetingRoomStage
               activeScreenShareTrack={activeScreenShareTrack}
@@ -262,9 +279,7 @@ export function MeetingRoomContent({
                     aria-label="Previous"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    <span className="hidden sm:inline">
-                      Previous
-                    </span>
+                    <span className="hidden sm:inline">Previous</span>
                   </button>
 
                   <span className="min-w-14 rounded-md bg-white/6 px-2.5 py-1.5 text-center text-slate-300 ring-1 ring-white/6">
@@ -278,9 +293,7 @@ export function MeetingRoomContent({
                     className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-200 sm:w-auto sm:gap-1.5 sm:px-2.5"
                     aria-label="Next"
                   >
-                    <span className="hidden sm:inline">
-                      Next
-                    </span>
+                    <span className="hidden sm:inline">Next</span>
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -319,6 +332,10 @@ export function MeetingRoomContent({
       </main>
 
       <MeetingRoomFooter
+        captionsEnabled={liveCaptions.enabled}
+        captionsAvailable={liveCaptions.available}
+        captionsPending={liveCaptions.pending}
+        onToggleCaptions={liveCaptions.toggle}
         activePanel={activePanel}
         joinToken={joinToken}
         meetingId={meetingId}

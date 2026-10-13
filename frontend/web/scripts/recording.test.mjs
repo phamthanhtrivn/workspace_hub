@@ -43,16 +43,18 @@ test("speaker layout focuses the current speaker and retains other cameras", () 
   assert.equal(stage.main, cameras[1]);
   assert.deepEqual(Array.from(stage.tiles), [cameras[0], cameras[2]]);
 });
-test("a screen share takes the main stage while the active speaker stays visible", () => {
+test("speaker recording stays on cameras when somebody shares their desktop", () => {
   const stage = selectRecordingStage("speaker", cameras, [share], "speaker");
-  assert.equal(stage.main, share);
-  assert.equal(stage.tiles[0], cameras[1]);
-  assert.equal(stage.screen, true);
+  assert.equal(stage.main, cameras[1]);
+  assert.deepEqual(Array.from(stage.tiles), [cameras[0], cameras[2]]);
+  assert.equal(stage.screen, false);
+  assert.equal(selectRecordingStage("speaker", [], [share]).main, undefined);
 });
-test("gallery switches to shared screen plus cameras and returns after sharing ends", () => {
+test("gallery recording keeps the same cameras before, during and after sharing", () => {
   const sharing = selectRecordingStage("grid", cameras, [share]);
-  assert.equal(sharing.main, share);
-  assert.equal(sharing.tiles.length, 3);
+  assert.equal(sharing.main, undefined);
+  assert.deepEqual(Array.from(sharing.tiles), cameras);
+  assert.equal(sharing.screen, false);
   const gallery = selectRecordingStage("grid", cameras, []);
   assert.equal(gallery.main, undefined);
   assert.equal(gallery.tiles.length, 3);
@@ -66,11 +68,11 @@ test("screen-only keeps cameras out of the output and waits when nobody shares",
   assert.equal(idle.main, undefined);
   assert.equal(idle.tiles.length, 0);
 });
-test("shared-screen gallery keeps the active speaker in its bounded camera column", () => {
+test("sharing does not shrink the gallery or introduce a screen tile", () => {
   const many = Array.from({ length: 12 }, (_, index) => camera(String(index)));
   const stage = selectRecordingStage("grid", many, [share], "11");
-  assert.equal(stage.tiles.length, 5);
-  assert.equal(stage.tiles[0], many[11]);
+  assert.equal(stage.main, undefined);
+  assert.deepEqual(Array.from(stage.tiles), many);
 });
 test("gallery has a bounded 25-tile output and an empty room remains valid", () => {
   assert.equal(
@@ -226,7 +228,7 @@ test("request refresh schedules the closest pending expiry and cooldown without 
     undefined,
   );
 });
-test("real LiveKit publications receive only visible video subscriptions and all audio", () => {
+test("real LiveKit publications receive only visible video subscriptions and all microphones", () => {
   const publications = Array.from(
     { length: 60 },
     (_, i) =>
@@ -291,4 +293,36 @@ test("real LiveKit publications receive only visible video subscriptions and all
   syncRecordingSubscriptions(all, new Set());
   assert.ok(publications.every((p) => !p.isDesired));
   assert.ok(audio.every((p) => p.isDesired));
+});
+
+test("camera layouts never subscribe to shared video or desktop audio", () => {
+  const microphone = new RemoteTrackPublication(
+    Track.Kind.Audio,
+    { sid: "mic", name: "Mic", type: 0, source: 2, muted: false },
+    false,
+  );
+  const desktopAudio = new RemoteTrackPublication(
+    Track.Kind.Audio,
+    { sid: "desktop-audio", name: "Desktop audio", type: 0, source: 4, muted: false },
+    false,
+  );
+  const desktop = new RemoteTrackPublication(
+    Track.Kind.Video,
+    { sid: "desktop", name: "Desktop", type: 1, source: 3, muted: false },
+    false,
+  );
+  const all = [microphone, desktopAudio, desktop];
+  // Start with an explicitly selected screen recording, then switch back.
+  syncRecordingSubscriptions(all, new Set(["desktop"]), true);
+  assert.ok(all.every((publication) => publication.isDesired));
+  for (const layout of ["speaker", "grid"]) {
+    const stage = selectRecordingStage(layout, cameras, [share], "speaker");
+    const visible = new Set(
+      [stage.main, ...stage.tiles].filter(Boolean).map((track) => track.participant.identity),
+    );
+    syncRecordingSubscriptions(all, visible);
+    assert.equal(microphone.isDesired, true);
+    assert.equal(desktop.isDesired, false);
+    assert.equal(desktopAudio.isDesired, false);
+  }
 });

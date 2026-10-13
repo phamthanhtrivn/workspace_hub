@@ -5,7 +5,13 @@ import {
   useRoomContext,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
-import { RoomEvent, Track, type LocalTrackPublication } from "livekit-client";
+import {
+  RoomEvent,
+  Track,
+  type LocalTrack,
+  type LocalTrackPublication,
+} from "livekit-client";
+import { isAxiosError } from "axios";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 import {
@@ -17,7 +23,10 @@ import type {
   MeetingScreenShareStoppedPayload,
   MeetingStatusUpdatedPayload,
 } from "../types/meeting-socket.types";
-import { MEETING_ROLE, type MeetingParticipantRole } from "../types/meeting.types";
+import {
+  MEETING_ROLE,
+  type MeetingParticipantRole,
+} from "../types/meeting.types";
 import { parseParticipantMetadata } from "../utils/meeting-room.utils";
 import { useMeetingConfirmDialog } from "./useMeetingConfirmDialog";
 import { useMeetingSocket } from "./useMeetingSocket";
@@ -39,7 +48,9 @@ function isScreenSharePublication(publication: LocalTrackPublication) {
   );
 }
 
-function getKnownMeetingRole(role?: string | null): MeetingParticipantRole | null {
+function getKnownMeetingRole(
+  role?: string | null,
+): MeetingParticipantRole | null {
   if (role === MEETING_ROLE.HOST) return MEETING_ROLE.HOST;
   if (role === MEETING_ROLE.COHOST) return MEETING_ROLE.COHOST;
   if (role === MEETING_ROLE.PARTICIPANT) return MEETING_ROLE.PARTICIPANT;
@@ -59,8 +70,7 @@ function canInterruptScreenShare({
   }
 
   return (
-    actorRole === MEETING_ROLE.COHOST &&
-    activeRole === MEETING_ROLE.PARTICIPANT
+    actorRole === MEETING_ROLE.COHOST && activeRole === MEETING_ROLE.PARTICIPANT
   );
 }
 
@@ -106,10 +116,7 @@ export function useMeetingScreenShare({
 
     return {
       userId: participant.identity,
-      displayName:
-        participant.name ||
-        participant.identity ||
-        "User",
+      displayName: participant.name || participant.identity || "User",
       role: getKnownMeetingRole(metadata.role),
     };
   }, [activeScreenShareTrack, activeScreenShareUserId]);
@@ -164,9 +171,7 @@ export function useMeetingScreenShare({
         void stopLocalScreenShare();
 
         if (payload.stoppedBy && payload.stoppedBy !== currentUserId) {
-          toast.info(
-            "The host stopped your screen share",
-          );
+          toast.info("The host stopped your screen share");
         }
       }
     },
@@ -213,38 +218,108 @@ export function useMeetingScreenShare({
     };
   }, [currentUserId, joinToken, room]);
 
-  const startScreenShare = useCallback(async (interrupt = false) => {
-    if (!currentUserId) return;
+  const startScreenShare = useCallback(
+    async (interrupt = false) => {
+      if (!currentUserId) return;
 
-    if (!isModerator && !screenShareEnabled) {
-      toast.error("Screen sharing is disabled");
-      return;
-    }
-
-    setIsScreenSharePending(true);
-    let shouldReleaseBackendState = false;
-    try {
-      const response = await startMeetingScreenShare(joinToken, { interrupt });
-      shouldReleaseBackendState = true;
-      setScreenShareEnabled(response.data.screenShareEnabled);
-      setActiveScreenShareUserId(response.data.activeScreenShareUserId);
-      setScreenShareStartedAt(response.data.screenShareStartedAt);
-
-      await room.localParticipant.setScreenShareEnabled(true, {
-        audio: true,
-        selfBrowserSurface: "include",
-        surfaceSwitching: "include",
-        systemAudio: "include",
-      });
-    } catch {
-      if (shouldReleaseBackendState) {
-        await stopMeetingScreenShare(joinToken).catch(() => undefined);
+      if (!isModerator && !screenShareEnabled) {
+        toast.error("Screen sharing is disabled");
+        return;
       }
-      toast.error("Could not start screen sharing");
-    } finally {
-      setIsScreenSharePending(false);
-    }
-  }, [currentUserId, isModerator, joinToken, room, screenShareEnabled]);
+
+      setIsScreenSharePending(true);
+      let shouldReleaseBackendState = false;
+      let captureCompleted = false;
+      let tracks: LocalTrack[] = [];
+      try {
+        // Open the picker while the browser still has the click's user activation.
+        tracks = await room.localParticipant.createScreenTracks({
+          audio: true,
+          selfBrowserSurface: "include",
+          surfaceSwitching: "include",
+          systemAudio: "include",
+        });
+        captureCompleted = true;
+        if (
+          tracks.some((track) => track.mediaStreamTrack.readyState === "ended")
+        ) {
+          throw new DOMException("Screen capture ended", "AbortError");
+        }
+        const response = await startMeetingScreenShare(joinToken, {
+          interrupt,
+        });
+        shouldReleaseBackendState = true;
+        setScreenShareEnabled(response.data.screenShareEnabled);
+        setActiveScreenShareUserId(response.data.activeScreenShareUserId);
+        setScreenShareStartedAt(response.data.screenShareStartedAt);
+
+        if (
+          tracks.some((track) => track.mediaStreamTrack.readyState === "ended")
+        ) {
+          throw new DOMException("Screen capture ended", "AbortError");
+        }
+        for (const track of tracks) {
+          await room.localParticipant.publishTrack(track);
+        }
+      } catch (error) {
+        isStoppingRef.current = true;
+        try {
+          for (const track of tracks) {
+            await room.localParticipant
+              .unpublishTrack(track)
+              .catch(() => undefined);
+            track.stop();
+          }
+        } finally {
+          isStoppingRef.current = false;
+        }
+        if (shouldReleaseBackendState) {
+          await stopMeetingScreenShare(joinToken).catch(() => undefined);
+          activeScreenShareUserIdRef.current = null;
+          setActiveScreenShareUserId(null);
+          setScreenShareStartedAt(null);
+        }
+        if (!captureCompleted && error instanceof Error) {
+          if (error.name === "NotAllowedError" || error.name === "AbortError") {
+            toast.info(
+              "Screen sharing was cancelled or permission was denied. Choose a screen, window or tab to share.",
+            );
+            return;
+          }
+          if (error.name === "InvalidStateError") {
+            toast.error("Focus this meeting tab and click Share screen again.");
+            return;
+          }
+          if (error.name === "NotReadableError") {
+            toast.error(
+              "The browser could not capture that screen. Try another window or check your system's screen recording permissions.",
+            );
+            return;
+          }
+          if (
+            error.name === "DeviceUnsupportedError" ||
+            error.name === "NotSupportedError" ||
+            error.name === "NotFoundError"
+          ) {
+            toast.error(
+              "Screen sharing is unavailable in this browser. Use a supported desktop browser on HTTPS or localhost.",
+            );
+            return;
+          }
+        }
+        console.error("Screen sharing failed", error);
+        toast.error(
+          isAxiosError(error) &&
+            typeof error.response?.data?.message === "string"
+            ? error.response.data.message
+            : "Could not start screen sharing. Please try again.",
+        );
+      } finally {
+        setIsScreenSharePending(false);
+      }
+    },
+    [currentUserId, isModerator, joinToken, room, screenShareEnabled],
+  );
 
   const stopScreenShare = useCallback(async () => {
     setIsScreenSharePending(true);
@@ -267,10 +342,7 @@ export function useMeetingScreenShare({
       return;
     }
 
-    if (
-      activeScreenShareUserId &&
-      activeScreenShareUserId !== currentUserId
-    ) {
+    if (activeScreenShareUserId && activeScreenShareUserId !== currentUserId) {
       if (!canInterruptActiveScreenShare) {
         const activeRole = activeScreenShareParticipant?.role;
         const message =

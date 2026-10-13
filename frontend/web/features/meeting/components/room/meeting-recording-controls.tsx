@@ -171,7 +171,7 @@ export function MeetingRecordingControls({
           <DialogDescription className="mt-3">
             {dialog === "stop"
               ? "The recording will be processed and saved. The meeting will continue."
-              : `Camera, shared screens and meeting audio will be recorded. Everyone will be notified. ${state?.ownerId === userId ? "You own the recording and can share it afterwards." : "The meeting creator owns the recording and can give you access afterwards."}`}
+              : `${layout === "screen" ? "The shared screen and meeting audio will be recorded." : "Only participant cameras and microphones will be recorded. Shared screens and desktop audio are excluded."} Everyone will be notified. ${state?.ownerId === userId ? "You own the recording and can share it afterwards." : "The meeting creator owns the recording and can give you access afterwards."}`}
           </DialogDescription>
           {dialog === "start" && (
             <label className="mt-4 block text-sm">
@@ -183,8 +183,8 @@ export function MeetingRecordingControls({
                 }
                 className="mt-2 block h-10 w-full rounded-md border bg-background px-3"
               >
-                <option value="speaker">Active speaker + shared screen</option>
-                <option value="grid">Gallery + shared screen</option>
+                <option value="speaker">Active speaker (cameras only)</option>
+                <option value="grid">Gallery (cameras only)</option>
                 {state?.customLayoutsAvailable && (
                   <option value="screen">Shared screen only</option>
                 )}

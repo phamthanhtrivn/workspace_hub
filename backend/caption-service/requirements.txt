@@ -1,0 +1,3 @@
+whisperlivekit==0.2.26
+livekit==1.1.20
+livekit-api==1.2.1

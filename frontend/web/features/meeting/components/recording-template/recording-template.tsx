@@ -15,6 +15,7 @@ import EgressHelper from "@livekit/egress-sdk";
 import type { TrackReferenceOrPlaceholder } from "@livekit/components-react";
 import type { RecordingLayout } from "../../types/meeting-recording.types";
 import { selectRecordingStage } from "../../utils/recording-stage";
+import { isCaptionWorker } from "../../utils/meeting-captions";
 import { useRecordingSubscriptions } from "../../hooks/useRecordingSubscriptions";
 import styles from "./recording-template.module.css";
 
@@ -84,6 +85,7 @@ function RecordingStage({
         .filter(
           (track) =>
             track.source === Track.Source.Camera &&
+            !isCaptionWorker(track.participant.identity) &&
             track.participant.kind !== ParticipantKind.EGRESS &&
             !track.participant.permissions?.hidden &&
             track.participant !== room.localParticipant,
@@ -137,7 +139,7 @@ function RecordingStage({
     () => selectRecordingStage(layout, cameras, screens, speakerId),
     [layout, cameras, screens, speakerId],
   );
-  useRecordingSubscriptions(tracks, stage.main, stage.tiles);
+  useRecordingSubscriptions(tracks, stage.main, stage.tiles, layout === "screen");
   const gallery = !stage.main && stage.tiles.length > 0;
   const overflow =
     cameras.length -
@@ -148,7 +150,7 @@ function RecordingStage({
     <main
       className={styles.stage}
       data-layout={layout}
-      data-sharing={Boolean(screens.length)}
+      data-sharing={Boolean(stage.main && stage.screen)}
     >
       {stage.main ? (
         <section className={styles.main}>

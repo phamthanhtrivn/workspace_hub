@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   type LucideIcon,
   Hand,
+  Captions,
   LogOut,
   Mic,
   MicOff,
@@ -45,6 +46,10 @@ import { MeetingRecordingControls } from "./meeting-recording-controls";
 import type { MeetingRoomReactionEmoji } from "../../types/meeting.constants";
 
 interface MeetingRoomFooterProps {
+  captionsEnabled: boolean;
+  captionsAvailable: boolean;
+  captionsPending: boolean;
+  onToggleCaptions: () => void;
   activePanel: MeetingRoomPanel;
   joinToken: string;
   meetingId: string;
@@ -141,6 +146,10 @@ function MeetingMediaToggleButton({
 }
 
 export function MeetingRoomFooter({
+  captionsEnabled,
+  captionsAvailable,
+  captionsPending,
+  onToggleCaptions,
   activePanel,
   joinToken,
   meetingId,
@@ -353,6 +362,14 @@ export function MeetingRoomFooter({
           );
         })}
 
+        <MeetingRoomControlButton
+          label="CC"
+          ariaLabel={captionsEnabled ? "Turn off captions" : "Turn on captions"}
+          icon={Captions}
+          active={captionsEnabled}
+          disabled={!captionsAvailable || captionsPending}
+          onClick={onToggleCaptions}
+        />
         <MeetingRecordingControls joinToken={joinToken} meetingId={meetingId} />
         {participantRole === MEETING_ROLE.HOST && (
           <MeetingRoomControlButton

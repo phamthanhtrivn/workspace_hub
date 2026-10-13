@@ -12,6 +12,7 @@ export function useRecordingSubscriptions(
   tracks: TrackReferenceOrPlaceholder[],
   main: TrackReferenceOrPlaceholder | undefined,
   tiles: TrackReferenceOrPlaceholder[],
+  includeSharedAudio = false,
 ) {
   useEffect(() => {
     const visible = new Set<string>();
@@ -26,6 +27,6 @@ export function useRecordingSubscriptions(
         (publication): publication is RemoteTrackPublication =>
           publication instanceof RemoteTrackPublication,
       );
-    syncRecordingSubscriptions(publications, visible);
-  }, [tracks, main, tiles]);
+    syncRecordingSubscriptions(publications, visible, includeSharedAudio);
+  }, [tracks, main, tiles, includeSharedAudio]);
 }

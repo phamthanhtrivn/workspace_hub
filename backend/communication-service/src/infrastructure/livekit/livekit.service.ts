@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import {
   AccessToken,
   RoomServiceClient,
@@ -80,6 +80,7 @@ export class LiveKitService {
         process.env.AWS_REGION &&
         process.env.AWS_ACCESS_KEY &&
         process.env.AWS_SECRET_KEY &&
+        process.env.LIVEKIT_RECORDING_TEMPLATE_URL &&
         process.env.LIVEKIT_EGRESS_WEBHOOK_URL,
       )
     );
@@ -95,6 +96,11 @@ export class LiveKitService {
   }
 
   startRecording(roomName: string, s3Key: string, layout: string) {
+    const templateUrl = process.env.LIVEKIT_RECORDING_TEMPLATE_URL;
+    if (!templateUrl)
+      throw new ServiceUnavailableException(
+        'The meeting recording template is not configured',
+      );
     return this.createEgressClient().startEgress(
       new StartEgressRequest({
         roomName,
@@ -104,7 +110,7 @@ export class LiveKitService {
             layout: ['speaker', 'grid', 'screen'].includes(layout)
               ? layout
               : 'speaker',
-            customBaseUrl: process.env.LIVEKIT_RECORDING_TEMPLATE_URL || '',
+            customBaseUrl: templateUrl,
           },
         },
         encoding: { case: 'preset', value: EncodingOptionsPreset.H264_720P_30 },

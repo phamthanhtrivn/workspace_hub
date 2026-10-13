@@ -11,6 +11,9 @@ services:
       - "8083:8083"
     env_file:
       - .env.docker
+    environment:
+      CAPTION_SERVICE_URL: ${CAPTION_SERVICE_URL:-}
+      CAPTION_SERVICE_TOKEN: ${CAPTION_SERVICE_TOKEN:-}
     volumes:
       - .:/app
       - /app/node_modules

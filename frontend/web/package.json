@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:recording": "node --test scripts/recording.test.mjs"
+    "test:recording": "node --test scripts/recording.test.mjs",
+    "test:screen-share": "node --test scripts/screen-share.test.mjs",
+    "test:captions": "node --test scripts/captions.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

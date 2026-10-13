@@ -1,0 +1,9 @@
+services:
+  caption-service:
+    build:
+      args:
+        ENABLE_CUDA: "1"
+    gpus: all
+    environment:
+      CAPTION_DEVICE: cuda
+      CAPTION_COMPUTE_TYPE: int8_float16

@@ -70,8 +70,8 @@ export function MeetingRecordingSettings({
               }))
             }
           >
-            <option value="speaker">Active speaker + shared screen</option>
-            <option value="grid">Gallery + shared screen</option>
+            <option value="speaker">Active speaker (cameras only)</option>
+            <option value="grid">Gallery (cameras only)</option>
             {customLayoutsAvailable && (
               <option value="screen">Shared screen only</option>
             )}
