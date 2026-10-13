@@ -7,3 +7,4 @@ services:
     environment:
       CAPTION_DEVICE: cuda
       CAPTION_COMPUTE_TYPE: int8_float16
+      CAPTION_COALESCE_SECONDS: ${CAPTION_COALESCE_SECONDS:-0.5}

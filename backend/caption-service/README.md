@@ -35,6 +35,28 @@ The GPU image installs cuBLAS 12.3 and cuDNN 9.1; Docker must have NVIDIA GPU ac
 
 ## API and limits
 
+### Caption latency
+
+Audio chunks default to 0.25 seconds. Recognition coalesces at least 0.5 seconds
+on CUDA or 1 second on CPU, replacing the previous 2-second coalescing interval.
+Override these values with `CAPTION_CHUNK_SECONDS` and
+`CAPTION_COALESCE_SECONDS` in the service environment. These intervals govern
+audio buffering, not end-to-end latency: VAD, inference, hypothesis agreement
+and transport also contribute. The UI displays tentative text as it arrives;
+that text can change while recognition stabilizes.
+
+Recognition does not use previous captions as a text prompt and disables
+Whisper's previous-text conditioning. This reduces the risk that an earlier
+mistake or counting sequence biases later speech. It does not guarantee that
+short utterances will be recognized correctly.
+
+On 13/10/2026, three real browser/LiveKit tests with a known Vietnamese microphone
+sample produced initial text after 4.4, 2.1 and 2.4 seconds.
+The original configuration produced initial text after 2.8 seconds but
+that hypothesis was unrelated to the sample. These results do not establish
+a reliable latency improvement or a 0.5-second caption guarantee. Keep accuracy
+and stable-text latency in the acceptance criteria when tuning further.
+
 - `GET /api/meetings/:joinToken/captions`: authenticated joined participant; returns availability and language.
 - `POST /api/meetings/:joinToken/captions`: checks joined status and a live room connection; starts/renews that viewer's lease and returns the worker identity.
 - `DELETE /api/meetings/:joinToken/captions`: releases only the authenticated viewer.

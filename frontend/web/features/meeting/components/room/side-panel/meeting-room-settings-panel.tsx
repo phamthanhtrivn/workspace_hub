@@ -8,7 +8,6 @@ import {
 } from "../../common/meeting-auto-admit-toggle";
 import { MeetingParticipantChatToggle } from "../../common/meeting-participant-chat-toggle";
 import { MeetingScreenShareToggle } from "../../common/meeting-screen-share-toggle";
-import { MeetingRoomShareLink } from "./meeting-room-share-link";
 import { canManageMeetingAdmission } from "@/features/meeting/utils/meeting-room.utils";
 
 export function MeetingRoomSettingsPanel({
@@ -52,7 +51,7 @@ export function MeetingRoomSettingsPanel({
   };
 
   return (
-    <div className="mt-4 flex h-screen flex-col justify-between">
+    <div className="mt-4 flex min-h-0 flex-1 flex-col">
       {canManageSettings && (
         <div className="flex flex-col gap-3">
           <MeetingAutoAdmitToggle
@@ -75,7 +74,6 @@ export function MeetingRoomSettingsPanel({
           />
         </div>
       )}
-      <MeetingRoomShareLink joinToken={joinToken} />
     </div>
   );
 }

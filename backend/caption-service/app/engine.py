@@ -31,13 +31,13 @@ class ConfiguredASR(FasterWhisperASR):
         segments, _ = self.model.transcribe(
             audio,
             language=self.original_language,
-            initial_prompt=init_prompt,
+            initial_prompt=None,
             beam_size=1,
             temperature=0.0,
             max_new_tokens=128,
             no_repeat_ngram_size=3,
             word_timestamps=True,
-            condition_on_previous_text=True,
+            condition_on_previous_text=False,
             **self.transcribe_kargs,
         )
         return [
@@ -60,8 +60,11 @@ def create_engine(language: str) -> TranscriptionEngine:
         backend_policy="localagreement",
         pcm_input=True,
         diarization=False,
-        min_chunk_size=1.0,
-        asr_coalesce_min_s=2.0,
+        min_chunk_size=float(os.getenv("CAPTION_CHUNK_SECONDS", "0.25")),
+        asr_coalesce_min_s=float(os.getenv(
+            "CAPTION_COALESCE_SECONDS",
+            "0.5" if os.getenv("CAPTION_DEVICE", "cpu") == "cuda" else "1.0",
+        )),
         retention_seconds=30.0,
         log_level="WARNING",
     )
