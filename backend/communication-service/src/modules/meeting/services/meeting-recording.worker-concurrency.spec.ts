@@ -9,6 +9,7 @@ jest.mock('fs/promises', () => ({
 }));
 import { EgressInfo, EgressStatus } from '@livekit/protocol';
 import { MeetingRecordingWorker } from './meeting-recording.worker';
+import { recordingWorkerEvents } from '../utils/recording-worker-events';
 import type { PrismaService } from '../../../prisma/prisma.service';
 import type { S3Service } from '../../../infrastructure/s3/s3.service';
 import type { LiveKitService } from '../../../infrastructure/livekit/livekit.service';
@@ -16,6 +17,22 @@ import type { MeetingRealtimeService } from './meeting-realtime.service';
 import type { ClientKafka } from '@nestjs/microservices';
 
 describe('independent recording worker lanes', () => {
+  it('wakes immediately and removes its listener on shutdown', () => {
+    const initialized = new MeetingRecordingWorker(
+      {} as PrismaService,
+      {} as LiveKitService,
+      {} as S3Service,
+      {} as MeetingRealtimeService,
+      {} as ClientKafka,
+    );
+    const tick = jest.spyOn(initialized, 'tick').mockResolvedValue(undefined);
+    initialized.onModuleInit();
+    recordingWorkerEvents.emit('wake');
+    expect(tick).toHaveBeenCalledTimes(1);
+    initialized.onModuleDestroy();
+    recordingWorkerEvents.emit('wake');
+    expect(tick).toHaveBeenCalledTimes(1);
+  });
   const egress = new EgressInfo({
     egressId: 'EG_stop',
     roomName: 'room',

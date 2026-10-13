@@ -21,6 +21,7 @@ import {
 } from '../utils/meeting-recording.utils';
 import { MeetingRecordingMediaService } from './meeting-recording-media.service';
 import { MeetingRecordingRequestsService } from './meeting-recording-requests.service';
+import { recordingWorkerEvents } from '../utils/recording-worker-events';
 
 const recordingInclude = {
   meeting: { select: { title: true, joinToken: true } },
@@ -288,6 +289,7 @@ export class MeetingRecordingService {
       status: 'STARTING',
       version: 0,
     });
+    recordingWorkerEvents.emit('wake');
     return { id, status: MeetingRecordingStatus.STARTING };
   }
 

@@ -29,6 +29,7 @@ import { MeetingRecordingMediaService } from './meeting-recording-media.service'
 import { MeetingRecordingService } from './meeting-recording.service';
 import { MeetingRealtimeService } from './meeting-realtime.service';
 import { MeetingEvent } from '../../socket/meeting/meeting-socket.events';
+import { recordingWorkerEvents } from '../utils/recording-worker-events';
 import {
   ACTIVE_RECORDING_STATUSES,
   egressDate,
@@ -45,6 +46,9 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
   private nextAutoAt = 0;
   private autoCursor: string | undefined;
   private stopping = false;
+  private readonly wake = () => {
+    void this.tick();
+  };
 
   constructor(
     private readonly prisma: PrismaService,
@@ -58,6 +62,7 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
+    recordingWorkerEvents.on('wake', this.wake);
     this.timer = setInterval(() => {
       void this.tick();
     }, 5000);
@@ -65,6 +70,7 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy() {
+    recordingWorkerEvents.off('wake', this.wake);
     this.stopping = true;
     if (this.timer) clearInterval(this.timer);
     for (const controller of this.abortControllers) controller.abort();

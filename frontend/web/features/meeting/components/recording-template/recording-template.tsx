@@ -129,17 +129,26 @@ function RecordingStage({
   const started = useRef(false);
   useEffect(() => {
     if (!connected || started.current) return;
-    // Let subscribed media render before Egress begins capturing the stage.
-    const timer = window.setTimeout(() => {
-      EgressHelper.setRoom(room);
-      EgressHelper.startRecording();
-      started.current = true;
-    }, 1500);
+    EgressHelper.setRoom(room);
+    room.on(RoomEvent.Disconnected, EgressHelper.endRecording);
+    let frame = 0;
+    const timer = window.setInterval(() => {
+      const videos = Array.from(document.querySelectorAll("video"));
+      if ((appCapture || videos.length > 0) && !videos.some((video) => video.readyState >= 2)) return;
+      window.clearInterval(timer);
+      frame = window.requestAnimationFrame(() => {
+        frame = window.requestAnimationFrame(() => {
+          EgressHelper.startRecording();
+          started.current = true;
+        });
+      });
+    }, 50);
     return () => {
-      window.clearTimeout(timer);
+      window.clearInterval(timer);
+      window.cancelAnimationFrame(frame);
       room.off(RoomEvent.Disconnected, EgressHelper.endRecording);
     };
-  }, [connected, room]);
+  }, [connected, room, appCapture]);
   const stage = useMemo(
     () => appCapture ? {
       main: tracks.find((track) => isTrackReference(track) && track.publication.trackSid === layout.slice(4) && isRecordingParticipant(track.participant)),

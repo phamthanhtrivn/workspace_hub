@@ -166,11 +166,11 @@ test("healthy sockets use slow recovery polling, disconnected requests use fast 
   ])
     assert.equal(
       recordingPollInterval({ recording: { status } }, true),
-      30_000,
+      ["STARTING", "PAUSING", "PROCESSING"].includes(status) ? 3000 : 30_000,
     );
   assert.equal(
     recordingPollInterval({ recordingRequest: { status: "PENDING" } }, true),
-    30_000,
+    3000,
   );
   assert.equal(
     recordingPollInterval({ recordingRequest: { status: "PENDING" } }, false),

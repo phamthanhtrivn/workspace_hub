@@ -6,7 +6,6 @@ export function recordingPollInterval(
   state: RecordingRoomStatus | undefined,
   connected: boolean,
 ): number {
-  if (connected) return 30_000;
   const hasPendingRequest =
     state?.recordingRequest?.status === "PENDING" ||
     Boolean(state?.recordingRequests?.length);
@@ -14,7 +13,7 @@ export function recordingPollInterval(
     state?.recording?.status ?? "",
   );
   // Socket events drive connected clients; polling remains a recovery path.
-  return hasPendingRequest || isTransitioning ? 3000 : 5000;
+  return hasPendingRequest || isTransitioning ? 3000 : connected ? 30_000 : 5000;
 }
 
 export function recordingRequestRefreshAt(
