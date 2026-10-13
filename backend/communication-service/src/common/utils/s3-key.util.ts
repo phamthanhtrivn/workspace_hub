@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { S3_UPLOAD_TYPE } from '../types/file.enums';
 
 const cleanFileName = (fileName: string): string => {
@@ -19,5 +19,5 @@ export const generateS3Key = (
   fileName: string,
 ): string => {
   const safeFileName = cleanFileName(fileName);
-  return `${type}/${referenceId}/${uuidv4()}_${safeFileName}`;
+  return `${type}/${referenceId}/${randomUUID()}_${safeFileName}`;
 };

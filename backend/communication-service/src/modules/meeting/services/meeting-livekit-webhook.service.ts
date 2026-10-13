@@ -5,9 +5,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { LiveKitService } from '../../../infrastructure/livekit/livekit.service';
-import { LiveKitWebhookEvent } from '../../../infrastructure/livekit/types/livekit.constants';
 import { MEETING_ERROR_MESSAGES } from '../types/meeting.enums';
 import { MeetingRoomService } from './meeting-room.service';
+import { MeetingRecordingWorker } from './meeting-recording.worker';
 
 @Injectable()
 export class MeetingLiveKitWebhookService {
@@ -16,6 +16,7 @@ export class MeetingLiveKitWebhookService {
   constructor(
     private readonly liveKitService: LiveKitService,
     private readonly meetingRoomService: MeetingRoomService,
+    private readonly recordingWorker: MeetingRecordingWorker,
   ) {}
 
   async handleWebhook(rawBody: string, authorization?: string) {
@@ -25,7 +26,7 @@ export class MeetingLiveKitWebhookService {
       );
     }
 
-    let event;
+    let event: Awaited<ReturnType<LiveKitService['receiveWebhook']>>;
 
     try {
       event = await this.liveKitService.receiveWebhook(rawBody, authorization);
@@ -40,7 +41,18 @@ export class MeetingLiveKitWebhookService {
       );
     }
 
-    if (event.event !== LiveKitWebhookEvent.ROOM_FINISHED) {
+    if (
+      ['egress_started', 'egress_updated', 'egress_ended'].includes(event.event)
+    ) {
+      return {
+        event: event.event,
+        handled: event.egressInfo
+          ? await this.recordingWorker.applyEgress(event.egressInfo)
+          : false,
+      };
+    }
+
+    if (event.event !== 'room_finished') {
       return {
         event: event.event,
         handled: false,

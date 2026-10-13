@@ -606,6 +606,8 @@ model MeetingParticipant {
   lastReadAt        DateTime?                @map("last_read_at")
   chatMuted         Boolean                  @default(false) @map("chat_muted")
   handRaisedAt      DateTime?                @map("hand_raised_at")
+  canRecord         Boolean                  @default(false) @map("can_record")
+  recordGrantedBy   String?                   @map("record_granted_by") @db.Uuid
   createdAt         DateTime                 @default(now()) @map("created_at")
   updatedAt         DateTime                 @updatedAt @map("updated_at")
 
@@ -705,22 +707,74 @@ model MeetingRecording {
   meetingId       String                 @map("meeting_id") @db.Uuid
   startedBy       String                 @map("started_by") @db.Uuid
   stoppedBy       String?                @map("stopped_by") @db.Uuid
+  ownerId         String                 @map("owner_id") @db.Uuid
+  title           String                 @default("Meeting recording")
+  layout          String                 @default("speaker")
   status          MeetingRecordingStatus
-  livekitEgressId String?                @map("livekit_egress_id")
+  livekitEgressId String?                @unique @map("livekit_egress_id")
   s3Key           String?                @map("s3_key")
   fileName        String?                @map("file_name")
   mimeType        String?                @map("mime_type")
-  sizeBytes       Int?                   @map("size_bytes")
+  sizeBytes       BigInt?                @map("size_bytes")
   durationSeconds Int?                   @map("duration_seconds")
-  startedAt       DateTime               @default(now()) @map("started_at")
+  requestedAt     DateTime               @default(now()) @map("requested_at")
+  startedAt       DateTime?              @map("started_at")
+  stopRequestedAt DateTime?              @map("stop_requested_at")
   stoppedAt       DateTime?              @map("stopped_at")
   completedAt     DateTime?              @map("completed_at")
+  deletedAt       DateTime?              @map("deleted_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+  failureCode     String?                @map("failure_code")
+  version         Int                    @default(0)
+  egressUpdatedAt BigInt                 @default(0) @map("egress_updated_at")
 
   meeting         Meeting                @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  permissions     MeetingRecordingPermission[]
+  jobs            MeetingRecordingJob[]
 
   @@index([meetingId, startedAt])
   @@index([status])
+  @@index([ownerId, requestedAt])
   @@map("meeting_recordings")
+}
+
+model MeetingRecordingPermission {
+  id          String @id @default(uuid()) @db.Uuid
+  recordingId String @map("recording_id") @db.Uuid
+  userId      String @map("user_id") @db.Uuid
+  grantedBy   String @map("granted_by") @db.Uuid
+  canDownload Boolean @default(false) @map("can_download")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  recording   MeetingRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@unique([recordingId, userId])
+  @@index([userId])
+  @@map("meeting_recording_permissions")
+}
+
+model MeetingRecordingJob {
+  id             String @id @default(uuid()) @db.Uuid
+  recordingId    String @map("recording_id") @db.Uuid
+  kind           String
+  state          String @default("PENDING")
+  attempts       Int @default(0)
+  nextAttemptAt  DateTime @default(now()) @map("next_attempt_at")
+  leaseUntil     DateTime? @map("lease_until")
+  leaseToken     String? @map("lease_token")
+  dispatchedAt   DateTime? @map("dispatched_at")
+  uploadState    Json? @map("upload_state")
+  requestKey     String? @unique @map("request_key")
+  requestHash    String? @map("request_hash")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  recording      MeetingRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@unique([recordingId, kind])
+  @@index([state, nextAttemptAt])
+  @@index([kind, state, nextAttemptAt])
+  @@index([state, leaseUntil])
+  @@map("meeting_recording_jobs")
 }
 
 /* =========================================================

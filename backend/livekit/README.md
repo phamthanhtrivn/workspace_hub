@@ -29,3 +29,9 @@ docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.y
 ```
 
 LiveKit uses the shared `redis` service on `wh_network`.
+
+## Meeting cloud recording
+
+The `recording` Compose profile starts `livekit-egress:v1.15.0` with durable temporary/backup volumes, CPU/memory limits, Chrome sandboxing and the upstream seccomp profile. The communication service submits MP4 720p composition requests with per-request private S3 storage and signed webhooks.
+
+Configure the values in `recording.env.example` and `../communication-service/recording.env.example`, then follow [meeting-recording-setup.md](../../meeting-recording-setup.md) for database preparation, launch commands, S3 CORS/lifecycle and acceptance checks.

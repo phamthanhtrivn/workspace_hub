@@ -161,7 +161,7 @@ export const meetingDashboardActions = [
     title: "View recordings",
     description: "Browse saved sessions",
     tone: MeetingDashboardTone.AMBER,
-    enabled: false,
+    enabled: true,
   },
 ] as const;
 

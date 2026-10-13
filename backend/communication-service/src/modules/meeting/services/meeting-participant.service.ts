@@ -120,6 +120,8 @@ export class MeetingParticipantService {
         leftAt: now,
         lastSeenAt: now,
         handRaisedAt: null,
+        canRecord: false,
+        recordGrantedBy: null,
       },
     });
 
@@ -146,6 +148,7 @@ export class MeetingParticipantService {
       MeetingEvent.PARTICIPANT_LEFT,
       payload,
     );
+    this.meetingRealtimeService.removeUserFromMeetingSocket(meeting.id, userId);
     if (meeting.activeScreenShareUserId === userId) {
       await this.meetingScreenShareService.clearActiveScreenShare({
         meetingId: meeting.id,
@@ -205,9 +208,24 @@ export class MeetingParticipantService {
         leftAt: now,
         lastSeenAt: now,
         handRaisedAt: null,
+        canRecord: false,
+        recordGrantedBy: null,
       },
     });
 
+    const revoked = await this.prisma.meetingRecordingPermission.findMany({
+      where: { userId: targetUserId, recording: { meetingId: meeting.id } },
+      select: { recordingId: true },
+    });
+    await this.prisma.meetingRecordingPermission.deleteMany({
+      where: { userId: targetUserId, recording: { meetingId: meeting.id } },
+    });
+    for (const permission of revoked)
+      this.meetingRealtimeService.emitUserEvent(
+        targetUserId,
+        MeetingEvent.RECORDING_ACCESS_UPDATED,
+        { recordingId: permission.recordingId },
+      );
     await this.prisma.meetingEvent.create({
       data: {
         meetingId: meeting.id,
@@ -231,6 +249,10 @@ export class MeetingParticipantService {
       meeting.id,
       MeetingEvent.PARTICIPANT_REMOVED,
       payload,
+    );
+    this.meetingRealtimeService.removeUserFromMeetingSocket(
+      meeting.id,
+      targetUserId,
     );
     if (meeting.activeScreenShareUserId === targetUserId) {
       await this.meetingScreenShareService.clearActiveScreenShare({
@@ -283,7 +305,7 @@ export class MeetingParticipantService {
 
     const updatedParticipant = await this.prisma.meetingParticipant.update({
       where: { id: targetParticipant.id },
-      data: { role: dto.role },
+      data: { role: dto.role, canRecord: false, recordGrantedBy: null },
     });
 
     await this.prisma.meetingEvent.create({
