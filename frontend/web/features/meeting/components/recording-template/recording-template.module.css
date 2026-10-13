@@ -21,6 +21,8 @@
   min-width: 0;
   min-height: 0;
 }
+.appStage { padding: 0; }
+.appStage .tile { border-radius: 0; }
 .tile {
   position: relative;
   width: 100%;

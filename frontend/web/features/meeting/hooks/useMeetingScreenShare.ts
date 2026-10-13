@@ -231,6 +231,7 @@ export function useMeetingScreenShare({
       let shouldReleaseBackendState = false;
       let captureCompleted = false;
       let tracks: LocalTrack[] = [];
+      let stage: "capture" | "authorize" | "publish" = "capture";
       try {
         // Open the picker while the browser still has the click's user activation.
         tracks = await room.localParticipant.createScreenTracks({
@@ -245,6 +246,7 @@ export function useMeetingScreenShare({
         ) {
           throw new DOMException("Screen capture ended", "AbortError");
         }
+        stage = "authorize";
         const response = await startMeetingScreenShare(joinToken, {
           interrupt,
         });
@@ -258,6 +260,7 @@ export function useMeetingScreenShare({
         ) {
           throw new DOMException("Screen capture ended", "AbortError");
         }
+        stage = "publish";
         for (const track of tracks) {
           await room.localParticipant.publishTrack(track);
         }
@@ -307,7 +310,12 @@ export function useMeetingScreenShare({
             return;
           }
         }
-        console.error("Screen sharing failed", error);
+        console.error("Screen sharing failed", {
+          stage,
+          name: error instanceof Error ? error.name : undefined,
+          message: error instanceof Error ? error.message : undefined,
+          error,
+        });
         toast.error(
           isAxiosError(error) &&
             typeof error.response?.data?.message === "string"

@@ -27,6 +27,7 @@ describe('recording sessions and permissions', () => {
     status: 'LIVE',
     autoRecord: false,
     recordingLayout: 'speaker',
+    roomName: 'room',
   };
   const base = {
     id: 'recording',
@@ -89,7 +90,16 @@ describe('recording sessions and permissions', () => {
         ...tx,
         $transaction: (fn: (tx: unknown) => unknown) => fn(tx),
       } as unknown as PrismaService,
-      { isRecordingConfigured: () => true } as LiveKitService,
+      {
+        isRecordingConfigured: () => true,
+        listRecordings: jest.fn().mockResolvedValue([]),
+        setRecordingCapturePermission: jest.fn().mockResolvedValue(undefined),
+        createRoomServiceClient: jest.fn().mockReturnValue({
+          getParticipant: jest.fn().mockResolvedValue({
+            tracks: [{ sid: 'TR_capture', name: 'meeting-tab-recording' }],
+          }),
+        }),
+      } as unknown as LiveKitService,
       {} as S3Service,
       {
         assertJoinedMeetingParticipant: jest.fn().mockResolvedValue({
@@ -117,6 +127,60 @@ describe('recording sessions and permissions', () => {
         },
       }) as unknown,
     });
+  });
+  it('rejects an unavailable Egress before reserving recording capacity', async () => {
+    const liveKit = (service as unknown as { liveKit: LiveKitService }).liveKit;
+    jest
+      .spyOn(liveKit, 'listRecordings')
+      .mockRejectedValue(new Error('egress not connected'));
+    await expect(
+      service.start('join', 'cohost', { layout: 'grid' }, 'unavailable-start'),
+    ).rejects.toMatchObject({ status: 503 });
+    expect(tx.meetingRecording.count).not.toHaveBeenCalled();
+    expect(tx.meetingRecording.create).not.toHaveBeenCalled();
+  });
+  it('records the caller capture track instead of a camera layout', async () => {
+    tx.meetingRecording.findFirst.mockResolvedValue(null);
+    await service.start(
+      'join',
+      'cohost',
+      { layout: 'grid', captureTrackSid: 'TR_capture' },
+      'tab-start',
+    );
+    expect(tx.meetingRecording.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ layout: 'app:TR_capture' }) as unknown,
+    });
+  });
+  it('rejects a capture track that is not owned by the recording caller', async () => {
+    await expect(
+      service.start(
+        'join',
+        'cohost',
+        { captureTrackSid: 'TR_other' },
+        'invalid-capture',
+      ),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(tx.meetingRecording.create).not.toHaveBeenCalled();
+  });
+  it('grants capture publishing only to a joined participant allowed to record', async () => {
+    const liveKit = (service as unknown as { liveKit: LiveKitService }).liveKit;
+    const permission = jest.spyOn(liveKit, 'setRecordingCapturePermission');
+    await service.setCapturePermission('join', 'cohost', true);
+    expect(permission).toHaveBeenCalledWith('room', 'cohost', true);
+    const policy = (service as unknown as { policy: MeetingPolicyService })
+      .policy;
+    jest.spyOn(policy, 'assertJoinedMeetingParticipant').mockResolvedValue({
+      meeting,
+      participant: {
+        status: 'JOINED',
+        role: 'PARTICIPANT',
+        canRecord: false,
+      },
+    } as never);
+    await expect(
+      service.setCapturePermission('join', 'guest', true),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(permission).toHaveBeenCalledTimes(1);
   });
   it('pauses without ending or creating a new logical recording', async () => {
     await expect(

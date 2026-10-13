@@ -1,5 +1,6 @@
 import { LiveKitService } from './livekit.service';
 import type { StartEgressRequest } from 'livekit-server-sdk';
+import { TrackSource } from 'livekit-server-sdk';
 import {
   LIVEKIT_ROOM_DEPARTURE_TIMEOUT_SECONDS,
   LIVEKIT_ROOM_EMPTY_TIMEOUT_SECONDS,
@@ -15,6 +16,107 @@ describe('LiveKitService', () => {
   });
 
   afterEach(() => jest.restoreAllMocks());
+
+  it('temporarily grants capture only to the requested participant and restores existing sources', async () => {
+    const service = new LiveKitService();
+    const updateParticipant = jest.fn().mockResolvedValue({});
+    const getParticipant = jest.fn().mockResolvedValue({
+      permission: {
+        canPublish: true,
+        canPublishSources: [TrackSource.CAMERA, TrackSource.MICROPHONE],
+      },
+      tracks: [],
+    });
+    jest
+      .spyOn(service, 'createRoomServiceClient')
+      .mockReturnValue({ getParticipant, updateParticipant } as never);
+    await service.setRecordingCapturePermission('room', 'recorder', true);
+    expect(updateParticipant).toHaveBeenCalledWith('room', 'recorder', {
+      permission: {
+        canPublish: true,
+        canPublishSources: [
+          TrackSource.CAMERA,
+          TrackSource.MICROPHONE,
+          TrackSource.UNKNOWN,
+        ],
+      },
+    });
+    getParticipant.mockResolvedValue({
+      permission: {
+        canPublish: true,
+        canPublishSources: [
+          TrackSource.CAMERA,
+          TrackSource.MICROPHONE,
+          TrackSource.UNKNOWN,
+        ],
+      },
+      tracks: [],
+    });
+    await service.setRecordingCapturePermission('room', 'recorder', false);
+    expect(updateParticipant).toHaveBeenLastCalledWith('room', 'recorder', {
+      permission: {
+        canPublish: true,
+        canPublishSources: [TrackSource.CAMERA, TrackSource.MICROPHONE],
+      },
+    });
+  });
+
+  it('preserves an active authorized tab capture when screen sharing permissions change', async () => {
+    const service = new LiveKitService();
+    const updateParticipant = jest.fn().mockResolvedValue({});
+    jest.spyOn(service, 'createRoomServiceClient').mockReturnValue({
+      getParticipant: jest.fn().mockResolvedValue({
+        permission: {
+          canPublishSources: [
+            TrackSource.CAMERA,
+            TrackSource.MICROPHONE,
+            TrackSource.UNKNOWN,
+          ],
+        },
+        tracks: [{ name: 'meeting-tab-recording' }],
+      }),
+      updateParticipant,
+    } as never);
+    await service.updateParticipantPublishPermissions({
+      roomName: 'room',
+      userId: 'recorder',
+      canShareScreen: true,
+    });
+    expect(updateParticipant).toHaveBeenCalledWith('room', 'recorder', {
+      permission: expect.objectContaining({
+        canPublishSources: [
+          TrackSource.CAMERA,
+          TrackSource.MICROPHONE,
+          TrackSource.SCREEN_SHARE,
+          TrackSource.SCREEN_SHARE_AUDIO,
+          TrackSource.UNKNOWN,
+        ],
+      }) as unknown,
+    });
+  });
+
+  it('returns an actionable 503 when the media server cannot be reached', async () => {
+    const service = new LiveKitService();
+    jest.spyOn(service, 'createRoomServiceClient').mockReturnValue({
+      createRoom: jest.fn().mockRejectedValue(new TypeError('fetch failed')),
+    } as never);
+
+    await expect(service.createRoom('room-1')).rejects.toMatchObject({
+      status: 503,
+      message:
+        'Meeting media server is unavailable. Check the LiveKit connection and try again.',
+    });
+  });
+
+  it('preserves other media API errors instead of treating them as connection failures', async () => {
+    const service = new LiveKitService();
+    const failure = new Error('Invalid room settings');
+    jest.spyOn(service, 'createRoomServiceClient').mockReturnValue({
+      createRoom: jest.fn().mockRejectedValue(failure),
+    } as never);
+
+    await expect(service.createRoom('room-1')).rejects.toBe(failure);
+  });
 
   it.each(['speaker', 'grid', 'screen'])(
     'uses the application template for the %s recording layout',

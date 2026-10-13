@@ -8,6 +8,7 @@ export type RecordingStatus =
   | "FAILED"
   | "DELETED";
 export type RecordingLayout = "speaker" | "grid" | "screen";
+export type RecordingTemplateLayout = RecordingLayout | `app:TR_${string}`;
 export interface RecordingSettings {
   autoRecord: boolean;
   layout: RecordingLayout;

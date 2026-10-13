@@ -4,7 +4,12 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import vm from "node:vm";
 import ts from "typescript";
-import { RemoteTrackPublication, Track, TrackEvent } from "livekit-client";
+import {
+  ParticipantKind,
+  RemoteTrackPublication,
+  Track,
+  TrackEvent,
+} from "livekit-client";
 
 function loadUtility(name) {
   const source = readFileSync(
@@ -26,6 +31,11 @@ function loadUtility(name) {
     Date,
     Number,
     Math,
+    require(name) {
+      if (name === "livekit-client") return { ParticipantKind };
+      if (name === "./meeting-captions") return loadUtility("meeting-captions");
+      throw new Error("Unexpected utility dependency: " + name);
+    },
   });
   return compiled.exports;
 }
@@ -34,6 +44,7 @@ const { recordingElapsedSeconds } = loadUtility("recording-duration");
 const { recordingPollInterval, recordingRequestRefreshAt } =
   loadUtility("recording-polling");
 const { syncRecordingSubscriptions } = loadUtility("recording-subscriptions");
+const { isRecordingParticipant } = loadUtility("recording-participants");
 const camera = (id) => ({ participant: { identity: id } });
 const cameras = [camera("host"), camera("speaker"), camera("third")];
 const share = camera("presenter");
@@ -303,7 +314,13 @@ test("camera layouts never subscribe to shared video or desktop audio", () => {
   );
   const desktopAudio = new RemoteTrackPublication(
     Track.Kind.Audio,
-    { sid: "desktop-audio", name: "Desktop audio", type: 0, source: 4, muted: false },
+    {
+      sid: "desktop-audio",
+      name: "Desktop audio",
+      type: 0,
+      source: 4,
+      muted: false,
+    },
     false,
   );
   const desktop = new RemoteTrackPublication(
@@ -318,11 +335,46 @@ test("camera layouts never subscribe to shared video or desktop audio", () => {
   for (const layout of ["speaker", "grid"]) {
     const stage = selectRecordingStage(layout, cameras, [share], "speaker");
     const visible = new Set(
-      [stage.main, ...stage.tiles].filter(Boolean).map((track) => track.participant.identity),
+      [stage.main, ...stage.tiles]
+        .filter(Boolean)
+        .map((track) => track.participant.identity),
     );
     syncRecordingSubscriptions(all, visible);
     assert.equal(microphone.isDesired, true);
     assert.equal(desktop.isDesired, false);
     assert.equal(desktopAudio.isDesired, false);
   }
+});
+
+test("excluded participants lose microphone subscriptions even in screen-only mode", () => {
+  const microphone = new RemoteTrackPublication(
+    Track.Kind.Audio,
+    {
+      sid: "excluded-mic",
+      name: "Hidden microphone",
+      type: 0,
+      source: 2,
+      muted: false,
+    },
+    true,
+  );
+  syncRecordingSubscriptions(
+    [microphone],
+    new Set(),
+    true,
+    new Set([microphone.trackSid]),
+  );
+  assert.equal(microphone.isDesired, false);
+});
+
+test("only visible attendees are eligible for recording", () => {
+  const participant = { identity: "attendee", kind: ParticipantKind.STANDARD };
+  assert.equal(isRecordingParticipant(participant), true);
+  for (const excluded of [
+    { ...participant, isLocal: true },
+    { ...participant, permissions: { hidden: true } },
+    { ...participant, kind: ParticipantKind.EGRESS },
+    { ...participant, identity: "captions:worker" },
+  ])
+    assert.equal(isRecordingParticipant(excluded), false);
 });

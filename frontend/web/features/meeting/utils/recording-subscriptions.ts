@@ -11,12 +11,14 @@ export function syncRecordingSubscriptions(
   publications: RecordingPublication[],
   visibleVideoIds: ReadonlySet<string>,
   includeSharedAudio = false,
+  excludedTrackIds?: ReadonlySet<string>,
 ) {
   for (const publication of publications) {
     const desired =
-      publication.kind === "audio"
+      !excludedTrackIds?.has(publication.trackSid) &&
+      (publication.kind === "audio"
         ? includeSharedAudio || publication.source === "microphone"
-        : visibleVideoIds.has(publication.trackSid);
+        : visibleVideoIds.has(publication.trackSid));
     if (publication.isDesired !== desired) publication.setSubscribed(desired);
   }
 }

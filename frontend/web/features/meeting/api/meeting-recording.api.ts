@@ -33,10 +33,13 @@ export const recordingApi = {
     normalizeApiResponse<RecordingRoomStatus>(
       (await api.get(`${room(token)}/recordings/status`)).data,
     ).data,
-  start: async (token: string, layout: RecordingLayout, key: string) =>
+  capturePermission: (token: string, enabled: boolean) => enabled
+    ? api.post(`${room(token)}/recordings/capture-permission`)
+    : api.delete(`${room(token)}/recordings/capture-permission`),
+  start: async (token: string, layout: RecordingLayout, key: string, captureTrackSid?: string) =>
     api.post(
       `${room(token)}/recordings`,
-      { layout },
+      { layout, ...(captureTrackSid ? { captureTrackSid } : {}) },
       { headers: { "Idempotency-Key": key } },
     ),
   stop: async (token: string, id: string, key: string) =>

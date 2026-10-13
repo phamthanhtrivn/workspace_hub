@@ -47,3 +47,11 @@ Chromium headless sử dụng hai mẫu giọng tiếng Việt công khai, phát
 Chưa thử thiết bị mobile thật, nhiều room tải cao, mất mạng kéo dài hoặc chạy liên tục nhiều giờ. Reload/rejoin được kiểm chứng; chưa mô phỏng đầy đủ mọi dạng reconnect mạng. Chưa tạo/lưu transcript, VTT/SRT cho recording, dịch phụ đề hoặc ghi chữ trực tiếp vào MP4. Caption live là trạng thái trong bộ nhớ.
 
 [Hướng dẫn cấu hình CPU/GPU](backend/caption-service/README.md) · [Screenshot phụ đề](/E:/KLTN/hoho/.runtime/recording-tests/captions/live-captions.png) · [Kết quả E2E](/E:/KLTN/hoho/.runtime/recording-tests/captions/results.json)
+
+## Cài thư viện Python cục bộ — 13/10/2026
+
+Đã tạo môi trường riêng `.runtime/caption-venv` trong workspace, dùng Python 3.13.2. Đã cài `whisperlivekit==0.2.26`, `livekit==1.1.20`, `livekit-api==1.2.1` theo requirements của dự án, cùng PyTorch/torchaudio bản CPU và phụ thuộc runtime.
+
+`pip check` không có yêu cầu bị xung đột. Import Torch, torchaudio, LiveKit API/RTC, WhisperLiveKit và faster-whisper thành công. Chạy lại toàn bộ 11 kiểm thử Python caption đã qua, bao gồm session, auth, capacity, lease và mute/unmute; lỗi thiếu module `livekit` đã được giải quyết trong môi trường này.
+
+Lượt này không chạy Docker và không khởi động lại nhận dạng live/model warmup. Dùng executable của môi trường riêng để chạy kiểm thử, như hướng dẫn trong README; Python hệ thống không tự chuyển sang môi trường này.

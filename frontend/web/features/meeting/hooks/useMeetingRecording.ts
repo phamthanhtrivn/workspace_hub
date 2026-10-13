@@ -66,8 +66,8 @@ export function useMeetingRecording(
     return () => window.clearTimeout(timer);
   }, [query.data, observeOnly, client, userId, joinToken]);
   const start = useMutation({
-    mutationFn: ({ layout, key }: { layout: RecordingLayout; key: string }) =>
-      recordingApi.start(joinToken, layout, key),
+    mutationFn: ({ layout, key, captureTrackSid }: { layout: RecordingLayout; key: string; captureTrackSid?: string }) =>
+      recordingApi.start(joinToken, layout, key, captureTrackSid),
     onSuccess: refresh,
     onError: handleMutationError,
   });

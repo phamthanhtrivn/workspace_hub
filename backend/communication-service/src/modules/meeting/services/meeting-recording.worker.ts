@@ -71,16 +71,20 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
   }
 
   async tick() {
-    if (this.stopping || !this.liveKit.isRecordingConfigured()) return;
+    if (this.stopping) return;
+    const configured = this.liveKit.isRecordingConfigured();
     const role = process.env.MEETING_RECORDING_WORKER_ROLE || 'all';
     const tasks: Promise<void>[] = [];
     if (role === 'all' || role === 'control') {
-      tasks.push(this.runLane('control', ['STOP', 'START'], 2));
+      tasks.push(
+        this.runLane('control', configured ? ['STOP', 'START'] : ['STOP'], 2),
+      );
       tasks.push(
         this.runLane('maintenance', ['DELETE', 'NOTIFY', 'CLEANUP'], 2),
       );
       tasks.push(this.reconcileTick());
       if (
+        configured &&
         this.recordings &&
         Date.now() >= this.nextAutoAt &&
         !this.lanes.has('auto')
@@ -453,7 +457,15 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
       take: 50,
     });
     if (!recordings.length) return;
-    const infos = await this.liveKit.listRecordings();
+    let infoById: Map<string, EgressInfo> | undefined;
+    try {
+      const infos = await this.liveKit.listRecordings();
+      infoById = new Map(infos.map((info) => [info.egressId, info]));
+    } catch {
+      this.logger.warn(
+        'Egress unavailable; checking recording recovery and timeouts',
+      );
+    }
     for (const recording of recordings) {
       try {
         if (recording.meeting.status !== 'LIVE' && !recording.stopRequestedAt) {
@@ -503,13 +515,12 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
               Date.now() - recording.startedAt.getTime() >= maxDuration)
         )
           await this.queueStop(recording);
-        if (!recording.livekitEgressId) continue;
-        const info = infos.find(
-          (candidate) => candidate.egressId === recording.livekitEgressId,
-        );
-        if (info) await this.applyEgress(info);
-        else if (Date.now() - recording.updatedAt.getTime() > 30 * 60_000)
-          await this.fail(recording.id, 'EGRESS_NOT_FOUND');
+        if (recording.livekitEgressId && infoById) {
+          const info = infoById.get(recording.livekitEgressId);
+          if (info) await this.applyEgress(info);
+          else if (Date.now() - recording.updatedAt.getTime() > 30 * 60_000)
+            await this.fail(recording.id, 'EGRESS_NOT_FOUND');
+        }
         if (
           (recording.status === 'PROCESSING' ||
             recording.status === 'PAUSING') &&
@@ -739,6 +750,8 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
       await this.fail(recording.id, 'START_CANCELLED');
       return;
     }
+    if (!this.liveKit.isRecordingConfigured())
+      throw new RecordingJobPending('Waiting for recording configuration');
     const dispatched = await this.prisma.meetingRecordingJob.updateMany({
       where: { id: job.id, leaseToken, state: 'RUNNING' },
       data: { dispatchedAt: new Date() },

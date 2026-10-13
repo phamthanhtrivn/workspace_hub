@@ -94,9 +94,9 @@ export function MeetingRecordingPlayer({
         <DialogTitle id="recording-player-title" className="pr-10">
           {recording.title}
         </DialogTitle>
-        {query.isLoading ? (
+        {query.isLoading && !current ? (
           <p className="py-12 text-center">Loading recording…</p>
-        ) : query.isError ? (
+        ) : query.isError && !current ? (
           <div role="alert" className="py-8">
             <p>Recording unavailable or access has been revoked.</p>
             <MeetingButton className="mt-3" onClick={() => void refresh()}>
@@ -104,7 +104,7 @@ export function MeetingRecordingPlayer({
             </MeetingButton>
           </div>
         ) : (
-          query.data && (
+          current && (
             <>
               <video
                 ref={video}

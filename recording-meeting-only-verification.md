@@ -1,4 +1,6 @@
-# Ghi camera và micro cuộc họp
+# Lịch sử xác minh ghi camera và micro cuộc họp
+
+Chế độ giao diện hiện tại đã chuyển sang quay toàn bộ tab Meeting theo yêu cầu được làm rõ. Xem [xác minh ghi toàn bộ ứng dụng](meeting-application-recording-verification.md). Nội dung bên dưới ghi nhận các bài thử camera/grid trước thay đổi này.
 
 Ngày: 13/10/2026.
 
@@ -28,8 +30,12 @@ Theo yêu cầu của người dùng, đã dừng Docker Desktop sau khi khởi 
 
 Khi chạy môi trường đầy đủ:
 
-1. Vào cuộc họp bằng hai trình duyệt, bật camera/micro và Record với `Active speaker (cameras only)` hoặc `Gallery (cameras only)`.
+1. Vào cuộc họp bằng hai trình duyệt, bật camera/micro và bấm Record. Giao diện dùng một bố cục lưới cố định, không còn chọn layout.
 2. Một người chia sẻ toàn bộ desktop, chuyển sang ứng dụng khác và phát âm thanh từ màn hình chia sẻ. Video ghi phải giữ camera, chỉ có tiếng micro.
 3. Tắt camera, dừng/chuyển người chia sẻ và Pause/Resume. Dừng bản ghi, mở MP4 và kiểm tra avatar, tiếng nói và thời lượng.
 
 Thay đổi áp dụng khi phiên Egress tải template mới. Bản ghi đã lưu giữ nội dung cũ; nên dừng phiên đang ghi và bắt đầu phiên mới sau khi frontend/backend nhận mã mới.
+
+## Rà soát và tối ưu bổ sung
+
+Đã loại microphone của participant ẩn, local, Egress và caption worker; tối ưu chọn bố cục và subscription; giữ worker xử lý bản ghi cũ khi mất cấu hình Start; giữ video đang phát khi lấy URL mới thất bại. Recording frontend hiện đạt 17/17, backend đạt 150/150 với FFmpeg thật, Chromium đạt 12/12. Xem [báo cáo rà soát và benchmark](recording-audit-optimization.md) để biết phạm vi và giới hạn xác minh.

@@ -108,6 +108,27 @@ export class MeetingRecordingService {
     };
   }
 
+  async setCapturePermission(
+    joinToken: string,
+    userId: string,
+    enabled: boolean,
+  ) {
+    const { meeting, participant } =
+      await this.policy.assertJoinedMeetingParticipant({ joinToken, userId });
+    if (enabled && !recordingCapabilities(participant).canStart)
+      recordingError(
+        403,
+        'RECORDING_FORBIDDEN',
+        'You cannot record this meeting',
+      );
+    await this.liveKit.setRecordingCapturePermission(
+      meeting.roomName,
+      userId,
+      enabled,
+    );
+    return { enabled };
+  }
+
   async start(
     joinToken: string,
     userId: string,
@@ -120,7 +141,9 @@ export class MeetingRecordingService {
       userId,
     });
     const requestKey = this.requestKey(userId, meeting.id, 'START', key);
-    const layout = dto.layout ?? 'speaker';
+    const layout = dto.captureTrackSid
+      ? `app:${dto.captureTrackSid}`
+      : (dto.layout ?? 'speaker');
     if (layout === 'screen' && !process.env.LIVEKIT_RECORDING_TEMPLATE_URL)
       recordingError(
         503,
@@ -132,6 +155,23 @@ export class MeetingRecordingService {
       where: { requestKey },
     });
     if (existing) return this.replay(existing, userId, requestHash);
+    if (dto.captureTrackSid) {
+      const participant = await this.liveKit
+        .createRoomServiceClient()
+        .getParticipant(meeting.roomName, userId);
+      if (
+        !participant.tracks.some(
+          (track) =>
+            track.sid === dto.captureTrackSid &&
+            track.name === 'meeting-tab-recording',
+        )
+      )
+        recordingError(
+          400,
+          'RECORDING_CAPTURE_INVALID',
+          'The meeting tab capture is no longer available. Start recording again.',
+        );
+    }
     if (!this.liveKit.isRecordingConfigured())
       recordingError(
         503,
@@ -139,6 +179,15 @@ export class MeetingRecordingService {
         'Recording service is not configured',
       );
 
+    try {
+      await this.liveKit.listRecordings();
+    } catch {
+      recordingError(
+        503,
+        'RECORDING_UNAVAILABLE',
+        'Recording service is unavailable. Please try again when it is connected.',
+      );
+    }
     const id = randomUUID();
     try {
       await this.prisma.$transaction(async (tx) => {

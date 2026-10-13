@@ -218,7 +218,7 @@ function createDefaultScheduleValues(): ScheduleMeetingValues {
     autoAdmit: false,
     chatEnabled: true,
     autoRecord: false,
-    recordingLayout: "speaker",
+    recordingLayout: "grid",
     screenShareEnabled: true,
   };
 }
@@ -249,7 +249,7 @@ function createScheduleValuesFromMeeting(
     autoAdmit: meeting.autoAdmit,
     chatEnabled: meeting.chatEnabled,
     autoRecord: meeting.autoRecord ?? false,
-    recordingLayout: meeting.recordingLayout ?? "speaker",
+    recordingLayout: "grid",
     screenShareEnabled: meeting.screenShareEnabled,
   };
 }
@@ -385,7 +385,7 @@ export function ScheduleMeetingModal({
         autoAdmit: formValues.autoAdmit,
         chatEnabled: formValues.chatEnabled,
         autoRecord: formValues.autoRecord,
-        recordingLayout: formValues.recordingLayout,
+        recordingLayout: "grid" as const,
         screenShareEnabled: formValues.screenShareEnabled,
       };
 
@@ -650,13 +650,6 @@ export function ScheduleMeetingModal({
                   <input type="checkbox" checked={values.autoRecord}
                     onChange={(event) => form.setValue("autoRecord", event.target.checked, { shouldDirty: true })} />
                   Automatically record when the host joins
-                </label>
-                <label className="block text-sm">Recording layout
-                  <select value={values.recordingLayout} className="mt-2 h-10 w-full rounded-md border bg-white px-3"
-                    onChange={(event) => form.setValue("recordingLayout", event.target.value as ScheduleMeetingValues["recordingLayout"], { shouldDirty: true })}>
-                    <option value="speaker">Active speaker (cameras only)</option>
-                    <option value="grid">Gallery (cameras only)</option>
-                  </select>
                 </label>
               </div>
             ) : null}

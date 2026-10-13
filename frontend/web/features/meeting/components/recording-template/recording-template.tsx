@@ -10,17 +10,34 @@ import {
   VideoTrack,
   isTrackReference,
 } from "@livekit/components-react";
-import { Track, RoomEvent, ParticipantKind } from "livekit-client";
+import { Track, RoomEvent } from "livekit-client";
 import EgressHelper from "@livekit/egress-sdk";
 import type { TrackReferenceOrPlaceholder } from "@livekit/components-react";
-import type { RecordingLayout } from "../../types/meeting-recording.types";
+import type { RecordingTemplateLayout } from "../../types/meeting-recording.types";
 import { selectRecordingStage } from "../../utils/recording-stage";
-import { isCaptionWorker } from "../../utils/meeting-captions";
+import { isRecordingParticipant } from "../../utils/recording-participants";
 import { useRecordingSubscriptions } from "../../hooks/useRecordingSubscriptions";
 import styles from "./recording-template.module.css";
 
 const options = { adaptiveStream: { pixelDensity: 1 }, dynacast: false };
 const connectOptions = { autoSubscribe: false };
+const trackSources = [
+  { source: Track.Source.Camera, withPlaceholder: true },
+  { source: Track.Source.ScreenShare, withPlaceholder: false },
+  { source: Track.Source.Microphone, withPlaceholder: false },
+  { source: Track.Source.ScreenShareAudio, withPlaceholder: false },
+  { source: Track.Source.Unknown, withPlaceholder: false },
+];
+const trackOptions = {
+  onlySubscribed: false,
+  updateOnlyOn: [
+    RoomEvent.TrackMuted,
+    RoomEvent.TrackUnmuted,
+    RoomEvent.ParticipantPermissionsChanged,
+    RoomEvent.ParticipantMetadataChanged,
+    RoomEvent.ParticipantNameChanged,
+  ],
+};
 
 export function RecordingTemplate({
   url,
@@ -29,14 +46,14 @@ export function RecordingTemplate({
 }: {
   url: string;
   token: string;
-  initialLayout: RecordingLayout;
+  initialLayout: RecordingTemplateLayout;
 }) {
   const [layout, setLayout] = useState(initialLayout);
   const [connected, setConnected] = useState(false);
   useEffect(() => {
     EgressHelper.onLayoutChanged((value) => {
-      if (value === "speaker" || value === "grid" || value === "screen")
-        setLayout(value);
+      if (value === "speaker" || value === "grid" || value === "screen" || /^app:TR_[A-Za-z0-9]+$/.test(value))
+        setLayout(value as RecordingTemplateLayout);
     });
     return () => {
       EgressHelper.onLayoutChanged(() => {});
@@ -64,20 +81,12 @@ function RecordingStage({
   layout,
   connected,
 }: {
-  layout: RecordingLayout;
+  layout: RecordingTemplateLayout;
   connected: boolean;
 }) {
   const room = useRoomContext();
-  const tracks = useTracks(
-    [
-      { source: Track.Source.Camera, withPlaceholder: true },
-      { source: Track.Source.ScreenShare, withPlaceholder: false },
-      { source: Track.Source.Microphone, withPlaceholder: false },
-      { source: Track.Source.ScreenShareAudio, withPlaceholder: false },
-      { source: Track.Source.Unknown, withPlaceholder: false },
-    ],
-    { onlySubscribed: false },
-  );
+  const appCapture = layout.startsWith("app:");
+  const tracks = useTracks(trackSources, trackOptions);
   const speakers = useSpeakingParticipants();
   const cameras = useMemo(
     () =>
@@ -85,37 +94,33 @@ function RecordingStage({
         .filter(
           (track) =>
             track.source === Track.Source.Camera &&
-            !isCaptionWorker(track.participant.identity) &&
-            track.participant.kind !== ParticipantKind.EGRESS &&
-            !track.participant.permissions?.hidden &&
-            track.participant !== room.localParticipant,
-        )
-        .sort((a, b) =>
-          a.participant.identity.localeCompare(b.participant.identity),
-        ),
-    [tracks, room],
-  );
-  const screens = useMemo(
-    () =>
-      tracks
-        .filter(
-          (track) =>
-            track.source === Track.Source.ScreenShare &&
-            track.participant.kind !== ParticipantKind.EGRESS &&
-            !track.participant.permissions?.hidden &&
-            !track.participant.isLocal &&
-            isTrackReference(track) &&
-            !track.publication.isMuted,
+            isRecordingParticipant(track.participant),
         )
         .sort((a, b) =>
           a.participant.identity.localeCompare(b.participant.identity),
         ),
     [tracks],
   );
+  const screens = useMemo(
+    () =>
+      (layout === "screen" ? tracks : [])
+        .filter(
+          (track) =>
+            track.source === Track.Source.ScreenShare &&
+            isRecordingParticipant(track.participant) &&
+            isTrackReference(track) &&
+            !track.publication.isMuted,
+        )
+        .sort((a, b) =>
+          a.participant.identity.localeCompare(b.participant.identity),
+        ),
+    [tracks, layout],
+  );
   const [speakerId, setSpeakerId] = useState<string>();
-  const candidate = speakers.find(
-    (participant) => participant !== room.localParticipant,
-  )?.identity;
+  const candidate =
+    layout === "speaker"
+      ? speakers.find(isRecordingParticipant)?.identity
+      : undefined;
   useEffect(() => {
     if (!candidate || candidate === speakerId) return;
     const timer = window.setTimeout(() => setSpeakerId(candidate), 1000);
@@ -136,10 +141,18 @@ function RecordingStage({
     };
   }, [connected, room]);
   const stage = useMemo(
-    () => selectRecordingStage(layout, cameras, screens, speakerId),
-    [layout, cameras, screens, speakerId],
+    () => appCapture ? {
+      main: tracks.find((track) => isTrackReference(track) && track.publication.trackSid === layout.slice(4) && isRecordingParticipant(track.participant)),
+      tiles: [], screen: true,
+    } : selectRecordingStage(layout as "speaker" | "grid" | "screen", cameras, screens, speakerId),
+    [appCapture, tracks, layout, cameras, screens, speakerId],
   );
-  useRecordingSubscriptions(tracks, stage.main, stage.tiles, layout === "screen");
+  useRecordingSubscriptions(
+    tracks,
+    stage.main,
+    stage.tiles,
+    layout === "screen" || appCapture,
+  );
   const gallery = !stage.main && stage.tiles.length > 0;
   const overflow =
     cameras.length -
@@ -148,18 +161,18 @@ function RecordingStage({
       : stage.tiles.length + (stage.main && !stage.screen ? 1 : 0));
   return (
     <main
-      className={styles.stage}
+      className={`${styles.stage} ${appCapture ? styles.appStage : ""}`}
       data-layout={layout}
       data-sharing={Boolean(stage.main && stage.screen)}
     >
       {stage.main ? (
         <section className={styles.main}>
-          <RecordingTile track={stage.main} screen={stage.screen} />
+          <RecordingTile track={stage.main} screen={stage.screen} appCapture={appCapture} />
         </section>
       ) : gallery ? null : (
         <section className={styles.main}>
           <div className={styles.empty}>
-            {layout === "screen"
+            {appCapture ? "Waiting for the meeting tab" : layout === "screen"
               ? "Waiting for a shared screen"
               : "Waiting for participants"}
           </div>
@@ -191,9 +204,11 @@ function RecordingStage({
 function RecordingTile({
   track,
   screen = false,
+  appCapture = false,
 }: {
   track: TrackReferenceOrPlaceholder;
   screen?: boolean;
+  appCapture?: boolean;
 }) {
   const visible =
     isTrackReference(track) &&
@@ -214,10 +229,10 @@ function RecordingTile({
           {name.slice(0, 2).toUpperCase()}
         </span>
       )}
-      <span className={styles.name}>
+      {!appCapture && <span className={styles.name}>
         {name}
         {screen ? " · Screen share" : ""}
-      </span>
+      </span>}
     </div>
   );
 }

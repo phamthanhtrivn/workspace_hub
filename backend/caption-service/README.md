@@ -44,6 +44,17 @@ The development defaults allow two rooms and four microphone tracks per room. Th
 
 ## Verification
 
+### Local Windows environment
+
+This workspace has an isolated Python 3.13 environment at `.runtime/caption-venv` beside the `workspace_hub` checkout. It includes the pinned packages in `requirements.txt` and CPU builds of PyTorch/torchaudio. From `backend/caption-service`, use its interpreter directly:
+
+```powershell
+../../../.runtime/caption-venv/Scripts/python.exe -m pip check
+../../../.runtime/caption-venv/Scripts/python.exe -m unittest discover -s tests -v
+```
+
+On 13/10/2026, runtime imports and dependency checks passed, and all 11 Python tests passed. Recognition model weights and the LiveKit connection are initialized when the caption service starts; this dependency verification does not start the live service.
+
 ```powershell
 # From caption-service (dependencies installed)
 python -m unittest discover -s tests -v

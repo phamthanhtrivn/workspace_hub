@@ -126,7 +126,10 @@ describe('MeetingRecordingService', () => {
     };
     service = new MeetingRecordingService(
       prisma as unknown as PrismaService,
-      { isRecordingConfigured: () => true } as unknown as LiveKitService,
+      {
+        isRecordingConfigured: () => true,
+        listRecordings: jest.fn().mockResolvedValue([]),
+      } as unknown as LiveKitService,
       s3 as unknown as S3Service,
       policy as unknown as MeetingPolicyService,
       {} as MeetingRealtimeService,

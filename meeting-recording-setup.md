@@ -1,6 +1,16 @@
 # Chạy và kiểm tra meeting recording
 
-Tính năng đã được hiện thực trên branch `feature/meeting-recording`. Host/co-host bấm Record, chọn speaker/grid, mọi người thấy REC và thời gian; Stop chuyển sang Processing. Từ 13/10/2026, speaker/grid chỉ ghi camera và micro cuộc họp thành MP4 720p rồi upload S3; hình ảnh và âm thanh desktop/chia sẻ màn hình không được đưa vào hai bố cục này. Người tạo meeting sở hữu file; người bấm Record không tự có quyền xem nếu là tài khoản khác.
+Host/co-host hoặc người được cấp quyền bấm Record, chọn đúng tab Meeting trong hộp chọn của trình duyệt để ghi toàn bộ giao diện đang nhìn thấy: nội dung chia sẻ, camera, thanh điều khiển và các panel mở. Âm thanh lấy từ cuộc họp. Giao diện không còn menu chọn bố cục hay nút Rec. setup. Video được lưu thành MP4 720p rồi upload S3. Người tạo meeting sở hữu file; người bấm Record không tự có quyền xem nếu là tài khoản khác.
+
+Ứng dụng dùng [Capture Handle](https://developer.chrome.com/docs/web-platform/capture-handle) để xác minh tab hiện tại; chọn desktop, cửa sổ hoặc tab khác sẽ bị từ chối. Dùng Chrome/Edge desktop hỗ trợ API này. Capture được phát bằng một track riêng không hiển thị lại trong phòng, tránh tạo hiệu ứng lặp hình. Backend chỉ cấp quyền track này cho người ghi đã được xác thực và kiểm tra track thuộc người gọi; không mở quyền bổ sung cho toàn bộ người tham gia.
+
+Xem [xác minh ghi toàn bộ ứng dụng](meeting-application-recording-verification.md) cho kết quả kiểm tra mới. Các kiểm tra camera/grid dưới đây là lịch sử trước khi người dùng làm rõ yêu cầu quay toàn bộ tab.
+
+## Xác minh runtime ngày 13/10/2026
+
+Đã khởi động lại riêng các container LiveKit/Egress hiện có theo xác nhận của người dùng và tải lại communication-service, dùng Redis đang chạy. Backend kiểm tra kết nối Egress trước khi nhận lệnh Start; khi Egress không kết nối, API trả `503 RECORDING_UNAVAILABLE` thay vì tạo phiên chờ hoặc báo nhầm hết năng lực ghi hình. Worker vẫn kiểm tra thời hạn Processing khi Egress lỗi, kể cả bản ghi chưa có Egress ID.
+
+Kiểm tra thực tế bằng tài khoản tạm: tạo/vào phòng, Record, Stop, hoàn tất upload S3, tải và phát MP4 1280×720 trong Chromium (10,66 giây, 1.644.060 byte). Bản ghi S3, tài khoản và phòng thử đã được xóa. Test recording backend đạt 119, bỏ qua 4 test cần FFmpeg local; lint và TypeScript sạch. Các bài thử này dùng camera/micro tổng hợp.
 
 ## Cấu hình
 

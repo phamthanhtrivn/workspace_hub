@@ -47,11 +47,13 @@ describe('independent recording worker lanes', () => {
   let find: jest.Mock;
   let enqueue: jest.Mock;
   let worker: MeetingRecordingWorker;
+  let configured: jest.Mock;
   beforeEach(() => {
     jobs = [];
     process.env.MEETING_RECORDING_WORKER_ROLE = 'all';
     process.env.RECORDING_BACKUP_ROOT = process.cwd();
     update = jest.fn().mockResolvedValue({ count: 1 });
+    configured = jest.fn().mockReturnValue(true);
     upload = jest.fn().mockResolvedValue(100n);
     stop = jest
       .fn()
@@ -98,7 +100,7 @@ describe('independent recording worker lanes', () => {
         },
       } as unknown as PrismaService,
       {
-        isRecordingConfigured: () => true,
+        isRecordingConfigured: configured,
         listRecordings: list,
         stopRecording: stop,
       } as unknown as LiveKitService,
@@ -109,6 +111,28 @@ describe('independent recording worker lanes', () => {
       {} as MeetingRealtimeService,
       {} as ClientKafka,
     );
+  });
+
+  it('finishes Stop and recovery jobs when new recording is no longer configured', async () => {
+    configured.mockReturnValue(false);
+    jobs.push(
+      { id: 'stop-job', recordingId: 'stop', kind: 'STOP', attempts: 0 },
+      {
+        id: 'upload-job',
+        recordingId: 'recover',
+        kind: 'RECOVER',
+        attempts: 0,
+      },
+      { id: 'new-start', recordingId: 'start', kind: 'START', attempts: 0 },
+    );
+    await worker.tick();
+    expect(stop).toHaveBeenCalledWith('EG_stop');
+    expect(upload).toHaveBeenCalledTimes(1);
+    const claims = update.mock.calls.map(
+      (call: unknown[]) =>
+        call[0] as { where: { id: string }; data: { state?: string } },
+    );
+    expect(claims.some((claim) => claim.where.id === 'new-start')).toBe(false);
   });
   afterEach(() => {
     worker.onModuleDestroy();
@@ -206,6 +230,31 @@ describe('independent recording worker lanes', () => {
     expect(list).toHaveBeenCalledTimes(1);
     expect(list).toHaveBeenCalledWith();
   });
+  it.each([false, true])(
+    'expires processing without an egress ID even when Egress is unavailable: %s',
+    async (unavailable) => {
+      active.mockResolvedValue([
+        {
+          ...base,
+          status: 'PROCESSING',
+          livekitEgressId: null,
+          stopRequestedAt: new Date(Date.now() - 31 * 60_000),
+        },
+      ]);
+      if (unavailable)
+        list.mockRejectedValue(new Error('egress not connected'));
+      const fail = jest
+        .spyOn(
+          worker as unknown as {
+            fail(id: string, code: string): Promise<void>;
+          },
+          'fail',
+        )
+        .mockResolvedValue(undefined);
+      await worker.tick();
+      expect(fail).toHaveBeenCalledWith('rec', 'PROCESSING_TIMEOUT');
+    },
+  );
 
   it('runs only the configured upload lane in a dedicated upload process', async () => {
     process.env.MEETING_RECORDING_WORKER_ROLE = 'upload';

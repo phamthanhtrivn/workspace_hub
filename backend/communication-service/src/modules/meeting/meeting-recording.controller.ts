@@ -178,6 +178,34 @@ export class MeetingRecordingController {
     );
   }
 
+  @Post(':joinToken/recordings/capture-permission')
+  async enableCapture(
+    @Headers('x-user-id') userId: string,
+    @Param('joinToken') joinToken: string,
+  ) {
+    return this.result(
+      await this.recordings.setCapturePermission(
+        joinToken,
+        this.user(userId),
+        true,
+      ),
+    );
+  }
+
+  @Delete(':joinToken/recordings/capture-permission')
+  async disableCapture(
+    @Headers('x-user-id') userId: string,
+    @Param('joinToken') joinToken: string,
+  ) {
+    return this.result(
+      await this.recordings.setCapturePermission(
+        joinToken,
+        this.user(userId),
+        false,
+      ),
+    );
+  }
+
   @Post(':joinToken/recordings')
   @HttpCode(202)
   async start(

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { RecordingTemplate } from "@/features/meeting/components/recording-template/recording-template";
+import type { RecordingTemplateLayout } from "@/features/meeting/types/meeting-recording.types";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
@@ -16,10 +17,9 @@ export default async function RecordingTemplatePage({
   const params = await searchParams;
   const url = typeof params.url === "string" ? params.url : "";
   const token = typeof params.token === "string" ? params.token : "";
-  const layout =
-    params.layout === "grid" || params.layout === "screen"
-      ? params.layout
-      : "speaker";
+  const layout: RecordingTemplateLayout = typeof params.layout === "string" && /^app:TR_[A-Za-z0-9]+$/.test(params.layout)
+    ? params.layout as RecordingTemplateLayout
+    : params.layout === "grid" || params.layout === "screen" ? params.layout : "speaker";
   let valid = false;
   try {
     valid = ["ws:", "wss:"].includes(new URL(url).protocol);
