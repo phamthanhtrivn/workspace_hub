@@ -31,4 +31,22 @@ docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml --profile re
 ```
 
 Development LiveKit uses the stack's Redis on its default network. Production
-uses EC2-3's private Redis address, rendered from Parameter Store values.
+uses INFRA's private Redis address, rendered from the operator-managed
+`/opt/workspacehub/realtime/.env.production` file.
+
+## Meeting cloud recording
+
+The communication service submits MP4 720p composition requests with per-request
+private S3 storage and signed webhooks. Recording settings are documented in
+`recording.env.example` and `../communication-service/recording.env.example`.
+
+The centralized stacks currently provide the Egress foundation. The recording
+configuration from the legacy Compose stack still needs to be integrated:
+recording environment variables, durable temporary/backup storage, resource
+limits and Chrome sandboxing. APP and REALTIME run on separate production hosts,
+so a local Docker volume cannot share backup files between them.
+
+See [meeting-recording-setup.md](../../meeting-recording-setup.md) for recording
+behavior, S3 CORS/lifecycle and acceptance checks. Its legacy Compose commands and
+development database preparation do not replace the centralized deployment and
+committed production migrations described in [deployment documentation](../../docs/deployment.md).

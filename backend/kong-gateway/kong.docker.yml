@@ -93,6 +93,12 @@ services:
   - name: communication-service
     url: http://communication-service:8083
     routes:
+      - name: livekit-webhook
+        paths:
+          - ~/api/meetings/livekit/webhook$
+        methods: [POST]
+        regex_priority: 100
+        strip_path: false
       - name: communication-routes
         paths:
           - /api/conversations
@@ -168,6 +174,7 @@ plugins:
         - Origin
         - X-Requested-With
         - Cookie
+        - Idempotency-Key
       exposed_headers:
         - Set-Cookie
       credentials: true

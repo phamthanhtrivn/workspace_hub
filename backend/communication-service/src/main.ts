@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
+import type { ValidationError } from 'class-validator';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { logger } from './infrastructure/logger/bootstrap-logger';
@@ -15,6 +16,7 @@ async function bootstrap() {
     rawBody: true,
   });
   const port = process.env.PORT ?? '8083';
+  app.enableShutdownHooks();
 
   app.useBodyParser('json', {
     type: ['application/json', 'application/*+json'],
@@ -32,8 +34,8 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       exceptionFactory: (errors) => {
-        const formatErrors = (errors: any[]) => {
-          const result: any = {};
+        const formatErrors = (errors: ValidationError[]) => {
+          const result: Record<string, unknown> = {};
           errors.forEach((error) => {
             if (error.constraints) {
               result[error.property] = Object.values(error.constraints)[0];
@@ -60,4 +62,4 @@ async function bootstrap() {
   await app.listen(port);
   logger.log(`Communication service HTTP server started on ${port}`);
 }
-bootstrap();
+void bootstrap();

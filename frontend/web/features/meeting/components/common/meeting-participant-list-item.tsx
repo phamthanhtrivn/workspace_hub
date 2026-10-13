@@ -2,6 +2,7 @@
 
 import {
   Crown,
+  Circle,
   Hand,
   Pin,
   PinOff,
@@ -37,6 +38,7 @@ interface MeetingParticipantListItemProps {
   ) => void;
   onStopScreenShare: (participant: MeetingParticipantResponse) => void;
   onLowerHand: (participant: MeetingParticipantResponse) => void;
+  onRecordingPermission: (participant: MeetingParticipantResponse) => void;
   onToggleAudioMute: (participantId: string) => void;
   onTogglePin: (participantId: string) => void;
 }
@@ -51,10 +53,12 @@ export function MeetingParticipantListItem({
   onRoleChange,
   onStopScreenShare,
   onLowerHand,
+  onRecordingPermission,
   onToggleAudioMute,
   onTogglePin,
 }: MeetingParticipantListItemProps) {
   const actionItems: MeetingIconDropdownItem[] = [];
+  if (item.canGrantRecording) actionItems.push({ id: "recording-permission", label: item.participant.canRecord ? "Revoke recording permission" : "Allow recording", icon: Circle, disabled: isBusy, onSelect: () => onRecordingPermission(item.participant) });
 
   if (!item.isSelf) {
     actionItems.push({

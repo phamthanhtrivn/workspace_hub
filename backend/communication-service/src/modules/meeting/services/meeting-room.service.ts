@@ -48,6 +48,7 @@ import { MeetingPresenterService } from './meeting-presenter.service';
 import { MeetingRealtimeService } from './meeting-realtime.service';
 import { MeetingScreenShareService } from './meeting-screen-share.service';
 import { DirectMessagePermissionService } from '../../direct-message/direct-message-permission.service';
+import { MeetingRecordingWorker } from './meeting-recording.worker';
 
 type MeetingWithParticipants = Prisma.MeetingGetPayload<{
   include: { participants: true };
@@ -68,6 +69,7 @@ export class MeetingRoomService {
     private readonly meetingScreenShareService: MeetingScreenShareService,
     private readonly chatSocketPublisher: ChatSocketPublisher,
     private readonly directMessagePermissionService: DirectMessagePermissionService,
+    private readonly recordingWorker: MeetingRecordingWorker,
   ) {}
 
   async createInstantMeeting({
@@ -908,6 +910,8 @@ export class MeetingRoomService {
           status: MeetingParticipantStatus.LEFT,
           leftAt: endedAt,
           lastSeenAt: endedAt,
+          canRecord: false,
+          recordGrantedBy: null,
         },
       });
 
@@ -940,6 +944,7 @@ export class MeetingRoomService {
       };
     });
 
+    await this.recordingWorker.requestMeetingStop(meeting.id);
     const payload = {
       meetingId: result.meeting.id,
       joinToken: result.meeting.joinToken,
