@@ -13,7 +13,9 @@ CREATE TABLE "meeting_participant_view_preferences" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "meeting_participant_view_preferences_meeting_id_viewer_user_id_target_user_id_key" ON "meeting_participant_view_preferences"("meeting_id", "viewer_user_id", "target_user_id");
+-- PostgreSQL truncates identifiers to 63 bytes. The old name collided with
+-- the viewer lookup index below, preventing this migration on a fresh DB.
+CREATE UNIQUE INDEX "meeting_view_preference_identity_key" ON "meeting_participant_view_preferences"("meeting_id", "viewer_user_id", "target_user_id");
 
 -- CreateIndex
 CREATE INDEX "meeting_participant_view_preferences_meeting_id_viewer_user_id_idx" ON "meeting_participant_view_preferences"("meeting_id", "viewer_user_id");

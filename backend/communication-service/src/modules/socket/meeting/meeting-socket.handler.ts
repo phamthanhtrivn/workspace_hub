@@ -17,6 +17,13 @@ export class MeetingSocketHandler {
     return this.socketRoomService.meetingLobby(meetingId);
   }
 
+  removeUserFromMeeting(meetingId: string, userId: string): void {
+    this.socketEventEmitter.removeUserFromRoom(
+      userId,
+      this.getMeetingRoom(meetingId),
+    );
+  }
+
   emitToMeeting<TPayload>(
     meetingId: string,
     event: string,

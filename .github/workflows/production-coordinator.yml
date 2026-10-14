@@ -1,0 +1,114 @@
+name: Coordinate production deployment
+'on':
+  workflow_call:
+    inputs:
+      scope:
+        type: string
+        default: auto
+      services:
+        type: string
+        default: auto
+permissions:
+  contents: read
+concurrency:
+  group: workspacehub-production
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    environment: production
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      has_images: ${{ steps.plan.outputs.has_images }}
+      infra: ${{ steps.plan.outputs.infra }}
+      realtime: ${{ steps.plan.outputs.realtime }}
+      app: ${{ steps.plan.outputs.app }}
+    steps:
+      - run: test "$GITHUB_REF" = refs/heads/main
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Read deployed release metadata
+        env:
+          APP_SSH_HOST: ${{ vars.APP_SSH_HOST }}
+          INFRA_SSH_HOST: ${{ vars.INFRA_SSH_HOST }}
+          REALTIME_SSH_HOST: ${{ vars.REALTIME_SSH_HOST }}
+          SSH_USER: ${{ vars.SSH_USER || 'ubuntu' }}
+          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: python3 deploy/scripts/read-host-state.py host-states.json
+      - id: plan
+        env:
+          DEPLOY_SCOPE: ${{ inputs.scope }}
+          DEPLOY_SERVICES: ${{ inputs.services }}
+        run: python3 deploy/scripts/plan-release.py --sha "$GITHUB_SHA" --states host-states.json --scope "$DEPLOY_SCOPE" --services "$DEPLOY_SERVICES" --output release-plan.json
+  ci:
+    needs: plan
+    uses: ./.github/workflows/ci.yml
+    with:
+      plan: ${{ needs.plan.outputs.plan }}
+    secrets: inherit
+  build:
+    needs: [plan, ci]
+    if: ${{ needs.plan.outputs.has_images == 'true' }}
+    uses: ./.github/workflows/build-images.yml
+    with:
+      publish: true
+      matrix: ${{ needs.plan.outputs.matrix }}
+    secrets: inherit
+  infra:
+    needs: [plan, ci]
+    if: ${{ needs.plan.outputs.infra == 'true' }}
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy infra
+        env:
+          RELEASE_PLAN: ${{ needs.plan.outputs.plan }}
+          SSH_HOST: ${{ vars.INFRA_SSH_HOST }}
+          SSH_USER: ${{ vars.SSH_USER || 'ubuntu' }}
+          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          printf '%s' "$RELEASE_PLAN" > release-plan.json
+          python3 deploy/scripts/send-deployment.py infra "$GITHUB_SHA" release-plan.json
+  realtime:
+    needs: [plan, ci, infra]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.ci.result == 'success' && (needs.infra.result == 'success' || needs.infra.result == 'skipped') && needs.plan.outputs.realtime == 'true' }}
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy realtime
+        env:
+          RELEASE_PLAN: ${{ needs.plan.outputs.plan }}
+          SSH_HOST: ${{ vars.REALTIME_SSH_HOST }}
+          SSH_USER: ${{ vars.SSH_USER || 'ubuntu' }}
+          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          printf '%s' "$RELEASE_PLAN" > release-plan.json
+          python3 deploy/scripts/send-deployment.py realtime "$GITHUB_SHA" release-plan.json
+  app:
+    needs: [plan, ci, build, infra, realtime]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.ci.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && (needs.infra.result == 'success' || needs.infra.result == 'skipped') && (needs.realtime.result == 'success' || needs.realtime.result == 'skipped') && needs.plan.outputs.app == 'true' }}
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy selected application services
+        env:
+          RELEASE_PLAN: ${{ needs.plan.outputs.plan }}
+          SSH_HOST: ${{ vars.APP_SSH_HOST }}
+          SSH_USER: ${{ vars.SSH_USER || 'ubuntu' }}
+          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+          SSH_KNOWN_HOSTS: ${{ vars.SSH_KNOWN_HOSTS }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          printf '%s' "$RELEASE_PLAN" > release-plan.json
+          python3 deploy/scripts/send-deployment.py app "$GITHUB_SHA" release-plan.json

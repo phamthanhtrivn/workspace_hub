@@ -30,6 +30,7 @@ export class MeetingPresenterService {
       lastReadAt?: Date | null;
       handRaisedAt?: Date | null;
       updatedAt: Date;
+      canRecord?: boolean;
     },
   ) {
     const [enrichedParticipant] =
@@ -55,6 +56,7 @@ export class MeetingPresenterService {
     lastReadAt?: Date | null;
     handRaisedAt?: Date | null;
     updatedAt: Date;
+    canRecord?: boolean;
     profile?: unknown;
   }) {
     return {
@@ -68,6 +70,7 @@ export class MeetingPresenterService {
       lastReadMessageId: participant.lastReadMessageId ?? null,
       lastReadAt: participant.lastReadAt?.toISOString() ?? null,
       handRaisedAt: participant.handRaisedAt?.toISOString() ?? null,
+      canRecord: participant.canRecord ?? false,
       updatedAt: participant.updatedAt.toISOString(),
       profile: participant.profile ?? null,
     };

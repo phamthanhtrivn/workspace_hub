@@ -48,6 +48,7 @@ describe('direct message creation paths', () => {
       {} as any,
       {} as any,
       permission as any,
+      {} as any,
     );
 
     await expect(
