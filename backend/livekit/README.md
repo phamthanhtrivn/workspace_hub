@@ -1,52 +1,23 @@
-# LiveKit Self-Hosted Foundation
+# LiveKit infrastructure
 
-LiveKit development config stays here; orchestration uses the centralized
-`deploy/dev/compose.yml` realtime profile. Production runs LiveKit and Egress on
-their own EC2 host. See [deployment documentation](../../docs/deployment.md).
+Local LiveKit is included by `backend/docker/docker-compose.host.yml`.
+Applications run on the host. See [local setup](../../docs/local-development.md)
+and [recording setup](../../meeting-recording-setup.md).
 
-## Local URLs
+Keep existing `backend/docker/.env` and `backend/livekit/.env` values. Share
+LIVEKIT_API_KEY/SECRET with Communication Service. Host/browser use
+`ws://localhost:7880`; Egress uses `ws://livekit:7880`. Local webhook:
+`http://host.docker.internal:8083/api/meetings/livekit/webhook`.
 
-- Browser URL: `ws://localhost:7880`
-- Docker service URL: `ws://livekit:7880`
-
-## Environment
-
-Values are loaded from `deploy/dev/.env`:
-
-```env
-LIVEKIT_PORT=7880
-LIVEKIT_RTC_TCP_PORT=7881
-LIVEKIT_RTC_UDP_PORT=7882
-LIVEKIT_API_KEY=replace_me
-LIVEKIT_API_SECRET=replace_me
-LIVEKIT_EGRESS_WEBHOOK_URL=http://host.docker.internal:8083/api/meetings/livekit/webhook
+```powershell
+docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml --profile recording config --quiet
+docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml --profile recording up -d livekit livekit-egress
 ```
 
-## Start
+Egress retains recording_backup/recording_tmp volumes, Chrome seccomp and resource
+limits. The one-shot storage initializer should exit 0. Keep current image
+versions. Host Communication cannot directly read a Docker named backup volume;
+leave RECORDING_BACKUP_ROOT unset unless an accessible backup path is arranged.
 
-From the repository root:
-
-```bash
-docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml --profile realtime up -d livekit egress
-```
-
-Development LiveKit uses the stack's Redis on its default network. Production
-uses INFRA's private Redis address, rendered from the operator-managed
-`/opt/workspacehub/realtime/.env.production` file.
-
-## Meeting cloud recording
-
-The communication service submits MP4 720p composition requests with per-request
-private S3 storage and signed webhooks. Recording settings are documented in
-`recording.env.example` and `../communication-service/recording.env.example`.
-
-The centralized stacks currently provide the Egress foundation. The recording
-configuration from the legacy Compose stack still needs to be integrated:
-recording environment variables, durable temporary/backup storage, resource
-limits and Chrome sandboxing. APP and REALTIME run on separate production hosts,
-so a local Docker volume cannot share backup files between them.
-
-See [meeting-recording-setup.md](../../meeting-recording-setup.md) for recording
-behavior, S3 CORS/lifecycle and acceptance checks. Its legacy Compose commands and
-development database preparation do not replace the centralized deployment and
-committed production migrations described in [deployment documentation](../../docs/deployment.md).
+Production retains REALTIME EC2, private INFRA Redis and image deployment through
+GitHub Actions. See [deployment](../../docs/deployment.md).

@@ -58,6 +58,10 @@ def rollback():
     services = json.loads((ROOT / '.rollback-services.json').read_text())
     if not isinstance(services, list) or any(name not in RUNTIME for name in services):
         raise ValueError('Invalid rollback service list')
+    added = [name for name in services if name not in previous['images']]
+    if added:
+        compose('stop', *added)
+    services = [name for name in services if name in previous['images']]
     restore_files()
     tags(previous)
     if services:

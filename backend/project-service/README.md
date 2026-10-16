@@ -7,22 +7,15 @@ frontend do not need route changes.
 ## Run locally
 
 ```bash
-copy .env.example .env
 npm install
 npm run prisma:generate
 npm run start:dev
 ```
 
 `JWT_SECRET_KEY` must be the same HS256 secret used by User Service and Kong.
-For Docker development, use the centralized stack from the repository root:
-
-```bash
-docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml up -d --build
-```
-
-Production keeps port `8082` behind Kong. Development publishes it on loopback.
-See [deployment documentation](../../docs/deployment.md) for the SQL migration
-images, centralized configuration and release procedures.
+Use the existing private .env and host URLs. See
+[local development](../../docs/local-development.md) for infrastructure and
+[deployment](../../docs/deployment.md) for EC2 releases.
 
 The database schema is managed by the SQL migrations under
 `database/migrations`. Prisma is used as the typed query client only; do not
@@ -33,10 +26,9 @@ migrations through the deployment/database workflow before starting a new
 service version. In particular, never add `prisma db push --accept-data-loss`
 to the startup command.
 
-`Dockerfile.production` has no Prisma migration target. See the
-[production image guide](../docker/PRODUCTION.md) for deployment steps and the
-two existing `V20` SQL files that must be reconciled with the applied history
-before using a runner that requires unique numeric versions.
+`Dockerfile.production` has no Prisma migration target. Production SQL migration
+images belong to `deploy/shared/sql-migrations`; see
+[deployment](../../docs/deployment.md). Apply SQL against the existing history.
 
 Project and invitation notifications use the `notification_outbox` table.
 Application writes and outbox inserts commit together; the in-process worker

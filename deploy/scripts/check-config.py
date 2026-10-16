@@ -5,10 +5,11 @@ from pathlib import Path
 import re
 import subprocess
 import yaml
+from catalog import IMAGES
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_SERVICES = {'frontend-web', 'kong', 'user-service', 'project-service',
-                    'communication-service', 'document-service', 'calendar-service', 'notification-service'}
+                    'communication-service', 'document-service', 'calendar-service', 'notification-service', 'ai-service', 'ai-worker'}
 
 
 def configuration(area, profile=None):
@@ -21,6 +22,14 @@ def configuration(area, profile=None):
 def require(condition, message):
     if not condition:
         raise AssertionError(message)
+
+
+for name, entry in IMAGES.items():
+    dockerfile = ROOT / entry['dockerfile']
+    require((ROOT / entry['context']).is_dir(), f'Missing image context: {name}')
+    require(dockerfile.is_file(), f'Missing release Dockerfile: {name}')
+    targets = re.findall(r'^FROM\s+\S+\s+AS\s+(\S+)', dockerfile.read_text(), re.MULTILINE | re.IGNORECASE)
+    require(entry['target'] in targets, f'Missing release target: {name}')
 
 
 app = configuration('prod/app', 'migration')['services']
@@ -40,7 +49,7 @@ for name, service in app.items():
         env = service['environment']
         require('kafka:' not in env.get('KAFKA_BROKER', ''), f'Cross-host Docker Kafka DNS: {name}')
 require(all(re.fullmatch(r'sha-[0-9a-f]{40}', tag) for tag in tags), 'Invalid per-image release tags')
-require(len(app) == 14, 'Expected eight application and six migration services')
+require(len(app) == 17, 'Expected ten application and seven migration services')
 require(app['project-service']['environment']['NOTIFICATION_SERVICE_URL'] == 'http://notification-service:8084', 'Project notification URL is not configured')
 require(app['communication-service']['environment']['USER_SERVICE_URL'] == 'http://user-service:8081', 'Communication user URL is not configured')
 internal_keys = {app[name]['environment'].get('INTERNAL_SERVICE_KEY') for name in ('user-service', 'project-service', 'communication-service', 'document-service', 'notification-service')}
@@ -56,10 +65,7 @@ for name, service in realtime.items():
     require('redis' not in service.get('depends_on', {}), f'Remote Redis dependency: {name}')
     require(service.get('network_mode') == 'host', f'Realtime host networking missing: {name}')
 
-development = configuration('dev', 'realtime')['services']
-for name in ('livekit', 'egress'):
-    require('realtime' in development[name]['profiles'], f'Missing optional realtime profile: {name}')
-for config in (app, infra, realtime, development):
+for config in (app, infra, realtime):
     for name, service in config.items():
         image = service.get('image')
         if not image:
@@ -79,7 +85,7 @@ for directory in [ROOT / 'frontend/web', *(ROOT / 'backend' / name for name in R
                 require(re.search(r':v?\d+\.\d+\.\d+', base) or re.match(r'^postgres:\d+\.\d+-alpine', base), f'Unpinned base image: {dockerfile}')
 for template in ('livekit', 'egress'):
     json.loads((ROOT / f'deploy/prod/realtime/{template}.yaml').read_text())
-for directory in (ROOT / '.github/workflows', ROOT / 'deploy'):
+for directory in (ROOT / '.github', ROOT / 'deploy'):
     for path in (*directory.rglob('*.yml'), *directory.rglob('*.yaml')):
         yaml.safe_load(path.read_text())
 print('Deployment contract checks passed')

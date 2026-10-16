@@ -5,23 +5,21 @@ Tính năng đã được hiện thực trên branch `feature/meeting-recording`
 ## Cấu hình
 
 1. Bật Docker Desktop. Dùng một bucket S3 private, bật Block Public Access. Tài khoản lưu trữ cần `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`, `s3:AbortMultipartUpload`, `s3:ListMultipartUploadParts` trên `arn:aws:s3:::<bucket>/recordings/*`. Cấu hình AWS hiện có cũng phục vụ upload chat, nên giữ các quyền chat cần thiết khi giới hạn prefix.
-2. Thêm các biến từ `backend/livekit/recording.env.example` vào `backend/docker/.env`, dùng cùng key/secret LiveKit với communication-service. Giữ nguyên các biến PostgreSQL/Redis hiện có. Với backend chạy Docker, đặt webhook `http://communication-service:8083/api/meetings/livekit/webhook`; với backend chạy trên máy, dùng `http://host.docker.internal:8083/api/meetings/livekit/webhook`.
-3. Thêm các biến từ `backend/communication-service/recording.env.example` vào `.env.docker` của service; nếu chạy Node trên máy thì thêm vào `.env`. `JWT_SECRET_KEY` phải khớp user-service/Kong; không dùng giá trị mẫu. Khi chạy Node trên máy, đổi `LIVEKIT_URL` thành `http://localhost:7880` và bỏ `RECORDING_BACKUP_ROOT` nếu chưa mount cùng volume backup vào backend.
+2. Giữ cấu hình LiveKit trong `backend/docker/.env` và `backend/livekit/.env`: LIVEKIT_API_KEY, LIVEKIT_API_SECRET và LIVEKIT_EGRESS_WEBHOOK_URL. Webhook dùng `http://host.docker.internal:8083/api/meetings/livekit/webhook`.
+3. Dùng `.env` riêng của Communication Service với cùng JWT/LiveKit credentials. LIVEKIT_URL trỏ `http://localhost:7880`. Không đặt RECORDING_BACKUP_ROOT nếu host chưa truy cập được backup.
 4. Áp dụng CORS với origin frontend thực tế theo `backend/livekit/config/recording-s3-cors.example.json`. Thêm lifecycle dọn multipart chưa hoàn tất theo `recording-s3-lifecycle.example.json` vào cấu hình hiện có của bucket. Các file mẫu chưa được áp dụng lên tài khoản AWS. S3 endpoint tùy chỉnh phải truy cập được từ Egress, backend và trình duyệt.
 
 Compose cấp Egress 4 CPU/4 GB RAM, Chrome sandbox và seccomp profile chính thức. Với một worker như cấu hình hiện tại, nên đặt `MEETING_RECORDING_MAX_CONCURRENT=1`; chỉ tăng khi có thêm worker hoặc đã đo tải. `MEETING_RECORDING_MAX_MINUTES` mặc định 120, Egress cũng giới hạn file 2 giờ. Nếu thay thời lượng, cập nhật cả hai nơi. API chỉ nhận lệnh; dữ liệu video không upload qua Kong.
 
-## Chạy toàn bộ backend bằng Docker
-
-Từ thư mục `workspace_hub`:
+## Local: hạ tầng Docker, ứng dụng host
 
 ```powershell
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.yml --profile recording config --quiet
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.yml --profile recording up -d --build communication-service kong livekit livekit-egress
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.yml --profile recording ps
+docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml --profile recording config --quiet
+docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml --profile recording up -d livekit livekit-egress
 ```
 
-Các dependency Redis/PostgreSQL và bước khởi tạo volume được Compose chạy tự động. Khi chỉ chạy hạ tầng Docker và backend Node trên máy, dùng `backend/docker/docker-compose.host.yml` và `up -d livekit livekit-egress`; chạy communication-service riêng như phần sau. Frontend dùng cách khởi động hiện có của dự án.
+Chạy Communication Service và frontend bằng terminal riêng trên host theo
+[hướng dẫn local](docs/local-development.md). Giữ nguyên dữ liệu và volume.
 
 ## Database
 
@@ -49,7 +47,7 @@ Với môi trường đã quản lý migration và baseline đầy đủ, áp d�
 
 Worker lưu START/STOP/DELETE/RECOVER/NOTIFY trong PostgreSQL, có lease/heartbeat và retry. Mỗi 5 giây nhận tác vụ theo ba nhóm độc lập: START/STOP, DELETE/NOTIFY và RECOVER; một upload chậm không chặn lần nhận Start/Stop kế tiếp. Nhóm điều khiển xử lý tối đa hai tác vụ đồng thời; nhóm upload xử lý một file mỗi process. Đối soát Egress mỗi 30 giây, lấy danh sách một lần cho tối đa 50 bản ghi; webhook vẫn cập nhật ngay. Start đã dispatch nhưng mất phản hồi được tìm lại theo room/output key; không gửi một start thứ hai mù. Một start không xác nhận được sau ngân sách retry chuyển FAILED và lên lịch dừng Egress còn sót.
 
-Khi Egress báo dùng backup, volume `recording_backup` giữ file dưới `recordings/<meetingId>/<recordingId>.mp4`. Backend Docker mount cùng volume tại `/recording-backup`. Uploader dự phòng mặc định dùng part 16 MiB và ba part song song, tương ứng khoảng 48 MiB buffer dữ liệu mỗi process, cộng chi phí SDK/runtime; không nạp toàn bộ file. Có thể chỉnh `MEETING_RECORDING_UPLOAD_PART_MIB` trong khoảng 5–64 và `MEETING_RECORDING_UPLOAD_CONCURRENCY` trong khoảng 1–4. File không vượt 10.000 part theo cấu hình đã chọn.
+Khi Egress báo dùng backup, volume `recording_backup` giữ file dưới `recordings/<meetingId>/<recordingId>.mp4`. Backend host cần đường dẫn backup truy cập được để phục hồi từ volume Docker; không đặt RECORDING_BACKUP_ROOT khi chưa có đường dẫn đó. Uploader dự phòng mặc định dùng part 16 MiB và ba part song song, tương ứng khoảng 48 MiB buffer dữ liệu mỗi process, cộng chi phí SDK/runtime; không nạp toàn bộ file. Có thể chỉnh `MEETING_RECORDING_UPLOAD_PART_MIB` trong khoảng 5–64 và `MEETING_RECORDING_UPLOAD_CONCURRENCY` trong khoảng 1–4. File không vượt 10.000 part theo cấu hình đã chọn.
 
 UploadId, fingerprint size/mtime, ETag và CRC32 của từng part được lưu trong `MeetingRecordingJob.uploadState` sau mỗi nhóm upload. Lỗi tạm thời hoặc restart giữ checkpoint, đối chiếu các part S3 và chỉ gửi phần chưa xác nhận. Nếu Complete đã thành công nhưng mất phản hồi, HEAD kiểm tra dung lượng và token metadata riêng trước khi công nhận file. Complete có điều kiện không ghi đè object đã tồn tại; endpoint S3 tương thích phải hỗ trợ CRC32 và conditional multipart completion. File thay đổi hoặc part không hợp lệ khiến uploader abort và xóa checkpoint; mất lease/shutdown hủy request đang chạy. Xóa bản ghi abort multipart đang lưu trước khi dọn object/backup. Upload bỏ dở sau hết retry được lifecycle S3 dọn sau 7 ngày; file backup vẫn giữ để phục hồi thủ công. Chỉ xóa bản sao sau upload xác nhận thành công. Crash Egress giữa lúc encode không bảo đảm phục hồi MP4. Cần theo dõi/dọn file backup thất bại theo chính sách vận hành; không chạy `down -v` nếu còn file cần cứu.
 

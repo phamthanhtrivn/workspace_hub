@@ -4,6 +4,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,6 +16,19 @@ import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
 export class S3Service {
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
+
+  async describeAiSource(key: string, withDownload: boolean) {
+    const object = await this.s3Client.send(new HeadObjectCommand({ Bucket: this.bucketName, Key: key }));
+    if (!object.ETag || object.ContentLength === undefined) {
+      throw new InternalServerErrorException('Document object metadata is incomplete');
+    }
+    const downloadUrl = withDownload ? await getSignedUrl(this.s3Client, new GetObjectCommand({
+      Bucket: this.bucketName, Key: key, VersionId: object.VersionId, IfMatch: object.ETag,
+    }), { expiresIn: 120 }) : undefined;
+    return { etag: object.ETag, sizeBytes: object.ContentLength,
+      mimeType: object.ContentType ?? DOCUMENT_CONSTANTS.DEFAULT_MIME_TYPE,
+      objectVersionId: object.VersionId, downloadUrl };
+  }
 
   constructor() {
     this.bucketName = process.env.AWS_S3_BUCKET_NAME!;

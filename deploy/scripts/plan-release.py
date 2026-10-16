@@ -31,7 +31,8 @@ def selection(value):
 
 def ci_outputs(images, checks):
     return dict(matrix={'include': [IMAGES[name] for name in IMAGES if name in images]},
-                node=[IMAGES[name]['context'] for name in RUNTIME if name in checks and name not in ('user-service', 'kong')],
+                node=[IMAGES[name]['context'] for name in RUNTIME if name in checks and name not in ('user-service', 'kong', 'ai-service', 'ai-worker')],
+                python=bool({'ai-service', 'ai-worker'} & checks),
                 java='user-service' in checks, has_images=bool(images))
 
 
@@ -46,12 +47,14 @@ def production(sha, states, scope='auto', services='auto'):
         old = states[role]
         permitted = scope == 'auto' or scope == role
         changes = diff(old['config_commit'], sha) if old else None
+        if changes is not None:
+            checks.update(classify(changes)[2])
         config_paths = None if changes is None else [path for path in changes if not path.startswith(('backend/', 'frontend/', 'deploy/shared/sql-migrations/')) and path != '.dockerignore']
         config_changed = config_paths is None or role in classify(config_paths)[1]
         selected_images = set()
         if role == 'app':
             for name in IMAGES:
-                paths = diff(old['images'][name]['source_commit'], sha) if old else None
+                paths = diff(old['images'][name]['source_commit'], sha) if old and name in old['images'] else None
                 if paths is None or name in classify(paths)[0]:
                     selected_images.add(name)
             if chosen == 'all':
@@ -59,6 +62,8 @@ def production(sha, states, scope='auto', services='auto'):
             elif isinstance(chosen, set) and old:
                 selected_images &= chosen | {name + '-migration' for name in chosen if name.endswith('-service')}
                 selected_images.update(chosen)
+            if old:
+                selected_images.update(set(IMAGES) - set(old['images']))
             if not permitted:
                 selected_images.clear()
             images.update(selected_images)
@@ -104,7 +109,7 @@ def main():
         result = dict(sha=args.sha, **ci_outputs(*((set(IMAGES), set(RUNTIME)) if paths is None else (classify(paths)[0], classify(paths)[2]))))
     Path(args.output).write_text(json.dumps(result), encoding='utf-8')
     if os.environ.get('GITHUB_OUTPUT'):
-        outputs = {key: result[key] for key in ('matrix', 'node', 'java', 'has_images')}
+        outputs = {key: result[key] for key in ('matrix', 'node', 'java', 'python', 'has_images')}
         outputs['plan'] = result
         outputs.update({role: result.get('roles', {}).get(role, {}).get('enabled', False) for role in ROLES})
         with open(os.environ['GITHUB_OUTPUT'], 'a') as stream:

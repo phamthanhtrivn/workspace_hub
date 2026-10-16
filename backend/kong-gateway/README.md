@@ -6,36 +6,26 @@ Kong is the API gateway for Workspace Hub. It verifies JWT tokens, injects trust
 
 Use one declarative config per runtime:
 
-- `kong.docker.yml`: for the full Docker Compose stack. Upstreams use Docker service names on `wh_network`.
+- `kong.docker.yml`: for production and isolated CI E2E. Upstreams use Docker service names on `wh_network`.
 - `kong.host.yml`: for running Kong in Docker while backend services run directly on the host machine. Upstreams use `host.docker.internal`.
 
-The full stack compose file mounts `kong.docker.yml` by default:
+For backend services running on the host, use the restored host Compose file:
+
+```powershell
+docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml up -d --build --no-deps kong
+```
+
+It mounts the host template at the path used by the current image renderer:
 
 ```yaml
 volumes:
-  - ../kong-gateway/kong.docker.yml:/usr/local/kong/declarative/kong.yml
+  - ../kong-gateway/kong.host.yml:/usr/local/kong/declarative/kong.template.yml:ro
 ```
 
-To use host-mode routing, change that mount to `kong.host.yml`.
-
-## Local Docker
-
-From the repository root:
-
-```bash
-docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml up -d --build
-```
-
-Kong listens on:
-
-- Proxy: `http://localhost:8000`
-- Admin API: disabled
-
-Verify logs:
-
-```bash
-docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml logs kong
-```
+See [host setup](../docker/README.md) for infrastructure, environment files and
+preserving existing local volumes. The host proxy listens on port 8000; its Admin
+API binds to loopback on port 8001. Host and release builds share
+`Dockerfile.production`; the host stack mounts `kong.host.yml`.
 
 ## Production image
 

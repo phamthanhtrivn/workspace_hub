@@ -12,7 +12,8 @@ import unittest
 
 SCRIPTS = Path(__file__).resolve().parents[1] / 'scripts'
 sys.path.insert(0, str(SCRIPTS))
-from catalog import IMAGES, RUNTIME, tag_variable
+from catalog import IMAGES, LEGACY_IMAGES, RUNTIME, tag_variable
+from release_state import validate
 
 OLD, NEW = '1' * 40, '2' * 40
 
@@ -170,10 +171,13 @@ if [[ "${TEST_HEALTH_FAILURE:-0}" == 1 ]] && grep -q 'CALENDAR_SERVICE_IMAGE_TAG
     def test_legacy_release_converts_and_failed_first_release_has_no_state(self):
         (self.root / '.release-state.json').unlink()
         (self.root / '.release.env').write_text('IMAGE_TAG=sha-' + OLD + '\n')
-        self.plan['roles']['app']['expected']['last_services'] = list(RUNTIME)
+        self.plan['roles']['app']['expected'] = validate({'legacy_tag': 'sha-' + OLD})
+        old_configuration = json.loads((self.root / 'compose.yml').read_text())
+        old_configuration['services'] = {key: value for key, value in old_configuration['services'].items() if key in LEGACY_IMAGES}
+        (self.root / 'compose.yml').write_text(json.dumps(old_configuration))
         result = self.deploy()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(len(self.state()['images']), 14)
+        self.assertEqual(len(self.state()['images']), 17)
         (self.root / '.release-state.json').unlink()
         (self.root / '.release.env').unlink()
         self.plan['roles']['app']['expected'] = None
