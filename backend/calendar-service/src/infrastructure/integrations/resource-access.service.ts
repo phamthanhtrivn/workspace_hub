@@ -4,11 +4,11 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { CALENDAR_ERROR_MESSAGES } from '../../common/constants/calendar.constants';
+import { getServiceEndpoints } from '../../common/config/service-endpoints';
 
 @Injectable()
 export class ResourceAccessService {
-  private readonly documentServiceUrl =
-    process.env.DOCUMENT_SERVICE_URL ?? 'http://document-service:8085';
+  private readonly documentServiceUrl = getServiceEndpoints().document;
 
   async assertDocumentAccess(
     userId: string,

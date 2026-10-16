@@ -2,6 +2,12 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+Run the frontend on the host with `npm ci` and `npm run dev`; keep the existing
+`.env.local`. The browser API URL points to local Kong (`http://localhost:8000`).
+See [local development](../../docs/local-development.md) for infrastructure and
+application terminals. `Dockerfile.production` is retained for CI/EC2 releases;
+follow [deployment](../../docs/deployment.md).
+
 First, run the development server:
 
 ```bash

@@ -1,12 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["host.docker.internal"],
+  output: "standalone",
   experimental: {
     optimizePackageImports: ["lucide-react"],
   },
   images: {
     remotePatterns: [
+      ...(process.env.NEXT_PUBLIC_ASSET_HOST
+        ? [{ protocol: "https" as const, hostname: process.env.NEXT_PUBLIC_ASSET_HOST }]
+        : []),
       {
         protocol: "https",
         hostname: "lh3.googleusercontent.com",

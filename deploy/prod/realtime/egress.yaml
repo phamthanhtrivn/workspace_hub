@@ -1,0 +1,6 @@
+{
+  "log_level": "info",
+  "redis": {"address": "RENDER_AT_DEPLOYMENT"},
+  "health_port": 9090,
+  "prometheus_port": 9091
+}

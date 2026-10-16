@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { getServiceEndpoints } from '../../common/config/service-endpoints';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   UserProfileSnapshotPayload,
@@ -12,8 +13,7 @@ import {
 @Injectable()
 export class UserProfileSnapshotService {
   private readonly logger = new Logger(UserProfileSnapshotService.name);
-  private readonly userServiceUrl =
-    process.env.USER_SERVICE_URL ?? 'http://user-service:8081';
+  private readonly userServiceUrl = getServiceEndpoints().user;
 
   constructor(private readonly prisma: PrismaService) {}
 

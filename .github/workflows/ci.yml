@@ -1,0 +1,157 @@
+name: CI
+'on':
+  pull_request:
+    branches:
+      - main
+  workflow_call:
+    inputs:
+      plan:
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      node: ${{ steps.plan.outputs.node }}
+      java: ${{ steps.plan.outputs.java }}
+      python: ${{ steps.plan.outputs.python }}
+      has_images: ${{ steps.plan.outputs.has_images }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: plan
+        env:
+          REQUEST_PLAN: ${{ inputs.plan }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ -n "$REQUEST_PLAN" ]; then
+            printf '%s' "$REQUEST_PLAN" > requested-plan.json
+            python3 deploy/scripts/plan-release.py --sha "$GITHUB_SHA" --existing requested-plan.json --output ci-plan.json
+          else
+            python3 deploy/scripts/plan-release.py --sha "$GITHUB_SHA" --base "$BASE_SHA" --output ci-plan.json
+          fi
+  node:
+    needs: changes
+    if: ${{ needs.changes.outputs.node != '[]' }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJSON(needs.changes.outputs.node) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+    env:
+      DATABASE_URL: postgresql://postgres:ci@localhost:5432/ci
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ci-placeholder
+      NEXT_PUBLIC_NOMINATIM_URL: https://nominatim.openstreetmap.org
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: ${{ format('{0}/package-lock.json', matrix.directory) }}
+      - run: npm ci
+      - name: Read-only lint
+        # Existing application lint debt is advisory; build/tests remain required.
+        continue-on-error: true
+        run: npm run lint -- --no-fix
+      - name: Generate client
+        if: ${{ matrix.directory != 'frontend/web' }}
+        run: npx --no-install prisma generate
+      - name: Available unit tests
+        run: >-
+          node -e "const p=require('./package.json'); if(p.scripts.test)require('child_process').execSync('npm test --
+          --passWithNoTests --runInBand',{stdio:'inherit'})"
+      - run: npm run build
+      - name: Document AI integration contracts
+        if: ${{ matrix.directory == 'backend/document-service' }}
+        run: node --test test/ai-integration.test.cjs
+  python:
+    needs: changes
+    if: ${{ needs.changes.outputs.python == 'true' }}
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:15.18-alpine@sha256:cd17e2ac98240fce1541ad2a803b34009b4eea5aec8a832363cdc7eca62e722e
+        env:
+          POSTGRES_PASSWORD: ci-password
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 12
+    defaults:
+      run:
+        working-directory: backend/ai-service
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:ci-password@localhost:5432/ai_db
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:ci-password@localhost:5432/ai_db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: backend/ai-service/requirements*.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m app.infrastructure.migrate
+      - run: python -m ruff check .
+      - run: python -m ruff format --check .
+      - run: python -m pytest
+      - name: Kong and PostgreSQL end-to-end
+        run: docker compose -f ../../.github/ci/ai/compose.yml up --build --abort-on-container-exit --exit-code-from tests tests
+      - name: Remove AI test containers
+        if: always()
+        run: docker compose -f ../../.github/ci/ai/compose.yml down -v
+  python-windows:
+    needs: changes
+    if: ${{ needs.changes.outputs.python == 'true' }}
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: backend/ai-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          cache: pip
+          cache-dependency-path: backend/ai-service/requirements*.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pip check
+      - run: python -m ruff check .
+      - run: python -m ruff format --check .
+      - run: python -m pytest
+  java:
+    needs: changes
+    if: ${{ needs.changes.outputs.java == 'true' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - run: mvn -B -f backend/user-service/pom.xml verify
+  configuration:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m pip install -r deploy/scripts/requirements.txt PyYAML==6.0.3
+      - run: bash deploy/scripts/validate-config.sh
+  docker:
+    needs: changes
+    if: ${{ needs.changes.outputs.has_images == 'true' }}
+    uses: ./.github/workflows/build-images.yml
+    with:
+      publish: false
+      matrix: ${{ needs.changes.outputs.matrix }}
+    secrets: inherit

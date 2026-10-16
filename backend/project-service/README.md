@@ -7,21 +7,15 @@ frontend do not need route changes.
 ## Run locally
 
 ```bash
-copy .env.example .env
 npm install
 npm run prisma:generate
 npm run start:dev
 ```
 
 `JWT_SECRET_KEY` must be the same HS256 secret used by User Service and Kong.
-For the standalone container stack, set this variable and run:
-
-```bash
-docker compose up --build
-```
-
-The full Workspace Hub stack includes `docker-compose.stack.yml`, which does
-not publish port `8082`; Project Service is reachable through Kong only.
+Use the existing private .env and host URLs. See
+[local development](../../docs/local-development.md) for infrastructure and
+[deployment](../../docs/deployment.md) for EC2 releases.
 
 The database schema is managed by the SQL migrations under
 `database/migrations`. Prisma is used as the typed query client only; do not
@@ -31,6 +25,10 @@ Container startup also does not mutate the database schema. Apply the SQL
 migrations through the deployment/database workflow before starting a new
 service version. In particular, never add `prisma db push --accept-data-loss`
 to the startup command.
+
+`Dockerfile.production` has no Prisma migration target. Production SQL migration
+images belong to `deploy/shared/sql-migrations`; see
+[deployment](../../docs/deployment.md). Apply SQL against the existing history.
 
 Project and invitation notifications use the `notification_outbox` table.
 Application writes and outbox inserts commit together; the in-process worker

@@ -1,0 +1,1 @@
+"""WorkSpaceHub AI service foundation."""

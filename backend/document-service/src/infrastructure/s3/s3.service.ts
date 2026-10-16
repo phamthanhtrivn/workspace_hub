@@ -4,6 +4,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,15 +17,31 @@ export class S3Service {
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
 
+  async describeAiSource(key: string, withDownload: boolean) {
+    const object = await this.s3Client.send(new HeadObjectCommand({ Bucket: this.bucketName, Key: key }));
+    if (!object.ETag || object.ContentLength === undefined) {
+      throw new InternalServerErrorException('Document object metadata is incomplete');
+    }
+    const downloadUrl = withDownload ? await getSignedUrl(this.s3Client, new GetObjectCommand({
+      Bucket: this.bucketName, Key: key, VersionId: object.VersionId, IfMatch: object.ETag,
+    }), { expiresIn: 120 }) : undefined;
+    return { etag: object.ETag, sizeBytes: object.ContentLength,
+      mimeType: object.ContentType ?? DOCUMENT_CONSTANTS.DEFAULT_MIME_TYPE,
+      objectVersionId: object.VersionId, downloadUrl };
+  }
+
   constructor() {
     this.bucketName = process.env.AWS_S3_BUCKET_NAME!;
 
     this.s3Client = new S3Client({
       region: process.env.AWS_REGION!,
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY!,
-        secretAccessKey: process.env.AWS_SECRET_KEY!,
-      },
+      credentials:
+        process.env.AWS_ACCESS_KEY && process.env.AWS_SECRET_KEY
+          ? {
+              accessKeyId: process.env.AWS_ACCESS_KEY,
+              secretAccessKey: process.env.AWS_SECRET_KEY,
+            }
+          : undefined,
     });
   }
 

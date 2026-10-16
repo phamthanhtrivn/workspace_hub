@@ -31,10 +31,13 @@ export class S3Service {
       region: process.env.AWS_REGION!,
       endpoint: process.env.AWS_S3_ENDPOINT || undefined,
       forcePathStyle: process.env.AWS_S3_FORCE_PATH_STYLE === 'true',
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY!,
-        secretAccessKey: process.env.AWS_SECRET_KEY!,
-      },
+      credentials:
+        process.env.AWS_ACCESS_KEY && process.env.AWS_SECRET_KEY
+          ? {
+              accessKeyId: process.env.AWS_ACCESS_KEY,
+              secretAccessKey: process.env.AWS_SECRET_KEY,
+            }
+          : undefined,
     });
   }
 

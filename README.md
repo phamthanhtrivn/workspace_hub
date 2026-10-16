@@ -27,7 +27,7 @@ In the modern digital era, users increasingly struggle with application overload
 
 ## 🏗️ System Architecture & Technology Stack / Kiến Trúc Hệ Thống & Công Nghệ
 
-WorkSpaceHub is designed using a **Microservices Architecture** with high performance, scalability, and loose coupling, orchestrated via Docker.
+WorkSpaceHub uses a **Microservices Architecture**. Local applications run on the host with Docker infrastructure; production runs built images on EC2.
 
 ```mermaid
 graph TD
@@ -136,7 +136,7 @@ graph TD
 workspace_hub/
 ├── backend/                       # Backend Microservices
 │   ├── kong-gateway/              # Kong API Gateway Config
-│   ├── docker/                    # Shared Infrastructure Docker Compose (PostgreSQL, Redis, Kafka)
+│   ├── docker/                    # Local infrastructure and host gateway
 │   ├── user-service/              # Spring Boot User Management Service
 │   ├── project-service/           # NestJS Project & Productivity Service
 │   ├── communication-service/     # NestJS Real-time Chat Service
@@ -153,78 +153,18 @@ workspace_hub/
 
 ## 🚀 How to Run the Project / Hướng dẫn khởi chạy
 
-### Prerequisites
+### Local setup
 
-- **Docker Desktop** & **Docker Compose**
-- **Java 21 SDK & Maven** (for the User Service)
-- **Node.js (v20+) & npm** (for NestJS and Next.js development)
+Run frontend, backend services and AI API/worker on the host. Docker runs
+PostgreSQL, Redis, Kafka, Kong and LiveKit only:
 
-### Step 1: Start Shared Infrastructure
-
-Navigate to the backend Docker directory and spin up the database, cache, gateway, and message broker:
-
-```bash
-cd backend/docker
-docker-compose up -d
+```powershell
+docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml up -d --build
 ```
 
-This starts:
-
-- **Kong API Gateway** (Port `8000`)
-- **PostgreSQL Database** (Port `5432`)
-- **Redis Cache** (Port `6379`)
-- **Apache Kafka** (Port `9092`)
-
-### Step 2: Configure Environment Variables
-
-Copy the `.env.example` file to `.env` in the services (`user-service`, `project-service`, `communication-service`, `notification-service`, `kong-gateway`) and fill in the necessary secrets (such as JWT keys and Database connections).
-
-### Step 3: Run Microservices
-
-Each service can be run locally in development mode:
-
-- **User Service:**
-
-  ```bash
-  cd backend/user-service
-  mvn spring-boot:run
-  ```
-
-- **Project Service:**
-
-  ```bash
-  cd backend/project-service
-  copy .env.example .env
-  npm install
-  npm run prisma:generate
-  npm run start:dev
-  ```
-
-- **Communication Service:**
-
-  ```bash
-  cd backend/communication-service
-  npm install
-  npx prisma migrate dev
-  npm run start:dev
-  ```
-
-- **Notification Service:**
-
-  ```bash
-  cd backend/notification-service
-  npm install
-  npm run start:dev
-  ```
-
-### Step 4: Run Frontend
-
-- **Next.js Web Client:**
-
-  ```bash
-  cd frontend/web
-  npm install
-  npm run dev
-  ```
-
-  Open `http://localhost:3000` to interact with the platform.
+Follow [local development](docs/local-development.md) for each terminal,
+environment files, SQL/Prisma/Alembic preparation, readiness and recording.
+Keep existing private env files and data volumes.
+GitHub Actions keeps lint/build/tests and isolated Docker E2E. Production keeps
+image build/push followed by EC2 pull/run, migrations, health checks and rollback.
+See [deployment](docs/deployment.md).

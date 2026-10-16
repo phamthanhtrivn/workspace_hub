@@ -1,0 +1,66 @@
+name: workspacehub-ai-test
+services:
+  postgres:
+    image: postgres:15.18-alpine@sha256:cd17e2ac98240fce1541ad2a803b34009b4eea5aec8a832363cdc7eca62e722e
+    environment:
+      POSTGRES_PASSWORD: ai-test-only-password
+      POSTGRES_DB: ai_db
+    tmpfs: [/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD, pg_isready, -U, postgres]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+  ai-service:
+    build: &test-build
+      context: ../../../backend/ai-service
+      dockerfile: Dockerfile.production
+      target: ci-test
+    image: workspacehub-ai-test:0.1.0
+    environment: &test-environment
+      NODE_ENV: test
+      AI_ENABLED: 'true'
+      DATABASE_URL: postgresql+psycopg://postgres:ai-test-only-password@postgres:5432/ai_db
+      JWT_SECRET_KEY: ai-test-only-jwt-key-with-at-least-32-characters
+      INTERNAL_SERVICE_KEY: ai-test-only-service-delegation-key
+      DOCUMENT_SERVICE_URL: http://unused-document-service:8085
+      GEMINI_API_KEY: test-only-no-real-provider-calls
+      PORT: '8087'
+    command: [sh, -c, 'python -m app.infrastructure.migrate && python -m tests.kong_stack']
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8087/ready', timeout=3)"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  kong:
+    build:
+      context: ../../../backend/kong-gateway
+      dockerfile: Dockerfile.production
+      target: production
+    image: workspacehub-ai-test-kong:0.1.0
+    environment:
+      FRONTEND_URL: http://localhost:3000
+      JWT_SECRET_KEY: ai-test-only-jwt-key-with-at-least-32-characters
+    depends_on:
+      ai-service:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, kong, health]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  tests:
+    build: *test-build
+    image: workspacehub-ai-test:0.1.0
+    environment:
+      <<: *test-environment
+      AI_ENABLED: 'false'
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:ai-test-only-password@postgres:5432/ai_db
+      KONG_TEST_URL: http://kong:8000
+    depends_on:
+      kong:
+        condition: service_healthy
+    command: [sh, -c, 'python -m ruff check . && python -m ruff format --check . && python -m pytest -o addopts= -q']
