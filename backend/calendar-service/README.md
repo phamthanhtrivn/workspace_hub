@@ -34,7 +34,7 @@ The current Pomodoro page still uses browser storage and `/api/pomodoros` points
 
 ## Local configuration
 
-Copy `.env.example` to `.env` when running the service outside Docker. Apply schema changes with migrations:
+Keep the existing private .env with localhost infrastructure/service URLs. Apply reviewed migrations explicitly:
 
 ```sh
 npm ci
@@ -43,7 +43,7 @@ npx prisma migrate deploy
 npm run start:dev
 ```
 
-The shared Docker Compose stack does not publish port `8086` to the host; Calendar is reached through Kong. It uses `calendar_db`, which is created when the Postgres volume is initialized.
+Calendar runs on the host at port 8086, backed by calendar_db. Kong forwards public calls. USER_SERVICE_URL and DOCUMENT_SERVICE_URL override localhost defaults in every environment. See [local setup](../../docs/local-development.md).
 
 ## Kafka topics
 

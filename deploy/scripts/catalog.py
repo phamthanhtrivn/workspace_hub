@@ -3,9 +3,11 @@ BACKENDS = ('user', 'project', 'communication', 'document', 'calendar', 'notific
 ROLES = ('infra', 'realtime', 'app')
 HOST_SERVICES = {'infra': ('postgres', 'redis', 'kafka'), 'realtime': ('livekit', 'egress')}
 RUNTIME = tuple(f'{name}-service' for name in BACKENDS) + ('kong', 'frontend-web')
+LEGACY_IMAGES = set(RUNTIME) | {f'{name}-service-migration' for name in BACKENDS}
+RUNTIME += ('ai-service', 'ai-worker')
 IMAGES = {}
 for service in RUNTIME:
-    directory = 'frontend/web' if service == 'frontend-web' else f'backend/{"kong-gateway" if service == "kong" else service}'
+    directory = 'frontend/web' if service == 'frontend-web' else f'backend/{"kong-gateway" if service == "kong" else "ai-service" if service == "ai-worker" else service}'
     IMAGES[service] = dict(service=service, name='web' if service == 'frontend-web' else service,
                            context=directory, dockerfile=f'{directory}/Dockerfile.production', target='production')
 for backend in BACKENDS:
@@ -14,6 +16,8 @@ for backend in BACKENDS:
     IMAGES[service] = dict(service=service, name=service, context='.' if sql else f'backend/{backend}-service',
                            dockerfile='deploy/shared/sql-migrations/Dockerfile' if sql else f'backend/{backend}-service/Dockerfile.production',
                            target=backend if sql else 'migration')
+IMAGES['ai-service-migration'] = dict(service='ai-service-migration', name='ai-service-migration',
+    context='backend/ai-service', dockerfile='backend/ai-service/Dockerfile.production', target='migration')
 
 
 def tag_variable(service):
@@ -25,6 +29,11 @@ def classify(paths):
     for path in paths:
         if any(part.startswith('.env') for part in path.split('/')):
             continue
+        if path.startswith('.github/ci/ai/'):
+            checks.update(('ai-service', 'ai-worker'))
+            continue
+        if path.startswith(('backend/docker/', 'backend/livekit/', 'backend/scripts/', 'deploy/dev/')) or path == 'backend/kong-gateway/kong.host.yml':
+            continue
         if path.startswith('.github/workflows/') or path in ('deploy/scripts/catalog.py', 'deploy/scripts/plan-release.py', 'deploy/scripts/release_state.py', 'deploy/scripts/read-host-state.py'):
             images.update(IMAGES)
             roles.add('app')
@@ -32,11 +41,15 @@ def classify(paths):
         for service in RUNTIME:
             directory = IMAGES[service]['context'] + '/'
             if path.startswith(directory):
+                relative = path[len(directory):]
+                if relative.endswith('.md') or relative == 'Dockerfile' or relative.startswith(('tests/', 'test/')) or relative.endswith(('.spec.ts', '.test.ts', '.test.cjs')):
+                    checks.add(service)
+                    continue
                 images.add(service)
                 checks.add(service)
                 roles.add('app')
                 relative = path[len(directory):]
-                if service.endswith('-service') and (relative.startswith(('prisma/', 'database/migrations/', 'src/main/resources/db/migration/')) or relative in ('package.json', 'package-lock.json', 'pom.xml', '.dockerignore') or relative.startswith('Dockerfile')):
+                if service.endswith('-service') and (relative.startswith(('prisma/', 'database/migrations/', 'src/main/resources/db/migration/', 'migrations/')) or relative in ('package.json', 'package-lock.json', 'pom.xml', '.dockerignore', 'requirements.txt', 'alembic.ini') or relative.startswith('Dockerfile')):
                     images.add(service + '-migration')
         if path == '.dockerignore' or path.startswith('deploy/shared/sql-migrations/'):
             images.update(('user-service-migration', 'project-service-migration'))

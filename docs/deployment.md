@@ -7,44 +7,25 @@ it needs neither a Git checkout nor application build tools.
 
 | Host | Runtime directory | Services |
 | --- | --- | --- |
-| APP | `/opt/workspacehub/app` | web, Kong, user, project, communication, document, calendar, notification |
+| APP | `/opt/workspacehub/app` | web, Kong, user, project, communication, document, calendar, notification, AI API/worker |
 | REALTIME | `/opt/workspacehub/realtime` | LiveKit, Egress |
 | INFRA | `/opt/workspacehub/infra` | PostgreSQL, Redis, Kafka, topic initializer |
 
-## Development
+## Local development
 
-Create your local, ignored `deploy/dev/.env`; the deleted example files are not
-required. Use the APP env names below, plus `DEV_IMAGE_TAG=sha-<full commit SHA>`,
-`POSTGRES_PASSWORD_URLENCODED` (percent-encoded password), and `NEXT_PUBLIC_API_URL`,
-`NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_NOMINATIM_URL`, `NEXT_PUBLIC_ASSET_HOST`.
-Development does not need `DOCKERHUB_USERNAME`, `INFRA_PRIVATE_HOST` or `LIVEKIT_URL`.
-Use `FRONTEND_URL=http://localhost:3000` and browser API URL `http://localhost:8000`.
-
-```bash
-docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml up -d --build
-docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml --profile realtime up -d --build
-docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml down
-```
-
-Source bind mounts retain hot reload. Local SHA images are not published. The
-default bridge network uses persistent named volumes; stopping preserves data.
-Legacy volumes are not automatically adopted: back up and restore explicitly.
-Kong Admin is disabled. Development service/database ports bind to loopback.
-
-Create Prisma migrations explicitly, for example:
-
-```bash
-docker compose --env-file deploy/dev/.env -f deploy/dev/compose.yml exec communication-service npx prisma migrate dev --name change_name
-```
-
-Startup applies committed migrations. User/project one-shot SQL jobs complete
-before applications start; rerun those jobs when adding SQL files.
+Applications run on the host. Docker runs infrastructure and Kong only.
+Follow [local development](local-development.md) for environment scopes,
+application terminals, explicit SQL/Prisma/Alembic migrations and recording.
+The sole local Docker entry point is `backend/docker/docker-compose.host.yml`.
+GitHub Actions keeps isolated application E2E under `.github/ci/ai`.
+Production retains image build/push, EC2 pull/run, migrations and rollback.
 
 ## Images and GitHub configuration
 
-Production publishes eight application repositories: `workspacehub-web`,
+Production publishes ten application repositories: `workspacehub-web`,
 `workspacehub-kong`, and `workspacehub-{user,project,communication,document,calendar,notification}-service`.
-Six more `workspacehub-<service>-migration` repositories contain migration tools.
+`workspacehub-ai-service` and `workspacehub-ai-worker` provide document QA.
+Seven `workspacehub-<service>-migration` repositories contain migration tools.
 Each image uses `sha-<full Git commit SHA>` for its own last build. Unchanged images
 retain their previous tags, so one APP release can contain different SHA tags.
 Enable immutable SHA tags in Docker Hub;
@@ -90,7 +71,7 @@ later hosts. Image builds can run alongside INFRA deployment after CI succeeds.
 
 **Release production** on main accepts `services=auto`, `all`, or comma-separated
 Compose names, such as `calendar-service,frontend-web`. `auto` reconciles pending
-APP changes, `all` builds all 14 APP images, and an explicit list rebuilds those
+APP changes, `all` builds all 17 APP images, and an explicit list rebuilds those
 runtime images plus affected migration images. **Deploy infra** and **Deploy realtime**
 remain available for manual redeployment of operator env changes. All entrypoints
 share one production concurrency group. Normal APP code changes do not deploy
@@ -263,7 +244,7 @@ secure context; configure domains/TLS and Google origins/S3 CORS for full testin
 4. Dispatch **Deploy realtime** on main; verify signaling, ICE and webhook access.
 5. Dispatch **Release production** on main, or push a new main commit. CI must pass
    before selected images publish and the APP configuration is sent by SCP. A new
-   APP host builds all 14 images; later releases build only affected images.
+   APP host builds all 17 images; later releases build only affected images.
 6. The host verifies SHA-256 before extraction, acquires its deployment lock, renders
    runtime env, pulls selected images, runs selected migrations, rolls out selected
    APP containers and checks their health/readiness. Bootstrap runs all six

@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / 'scripts'
 sys.path.insert(0, str(SCRIPTS))
-from catalog import IMAGES, ROLES, RUNTIME, classify
+from catalog import IMAGES, LEGACY_IMAGES, ROLES, RUNTIME, classify
 from release_state import validate
 
 spec = importlib.util.spec_from_file_location('planner', SCRIPTS / 'plan-release.py')
@@ -26,6 +26,18 @@ def states():
 
 
 class ClassificationTests(unittest.TestCase):
+    def test_local_only_inputs_do_not_select_production(self):
+        for path in ('backend/docker/docker-compose.host.yml', 'backend/livekit/docker-compose.yml',
+                     'backend/kong-gateway/kong.host.yml', 'deploy/dev/compose.yml',
+                     'backend/calendar-service/Dockerfile'):
+            with self.subTest(path=path):
+                self.assertEqual(classify([path])[:2], (set(), set()))
+
+    def test_ci_harness_selects_python_without_images(self):
+        images, roles, checks = classify(['.github/ci/ai/compose.yml'])
+        self.assertEqual((images, roles), (set(), set()))
+        self.assertEqual(checks, {'ai-service', 'ai-worker'})
+
     def test_calendar_code_only(self):
         images, roles, checks = classify(['backend/calendar-service/src/main.ts'])
         self.assertEqual(images, {'calendar-service'})
@@ -60,6 +72,12 @@ class ClassificationTests(unittest.TestCase):
 
 
 class PlanningTests(unittest.TestCase):
+    def test_ci_and_host_changes_do_not_roll_out(self):
+        result = self.plan(['.github/ci/ai/compose.yml', 'backend/kong-gateway/kong.host.yml'])
+        self.assertTrue(result['python'])
+        self.assertFalse(result['has_images'])
+        self.assertFalse(any(role['enabled'] for role in result['roles'].values()))
+
     def plan(self, paths, **kwargs):
         with patch.object(planner, 'diff', return_value=paths):
             return planner.production(NEW, states(), **kwargs)
@@ -103,15 +121,15 @@ class PlanningTests(unittest.TestCase):
 
     def test_bootstrap_and_explicit_all(self):
         bootstrap = planner.production(NEW, dict.fromkeys(ROLES))
-        self.assertEqual(len(bootstrap['matrix']['include']), 14)
+        self.assertEqual(len(bootstrap['matrix']['include']), 17)
         self.assertTrue(all(bootstrap['roles'][role]['enabled'] for role in ROLES))
         result = self.plan([], scope='app', services='all')
-        self.assertEqual(len(result['matrix']['include']), 14)
+        self.assertEqual(len(result['matrix']['include']), 17)
         self.assertFalse(result['roles']['infra']['enabled'])
 
     def test_missing_baseline_and_bad_state(self):
         with patch.object(planner, 'diff', return_value=None):
-            self.assertEqual(len(planner.production(NEW, states())['matrix']['include']), 14)
+            self.assertEqual(len(planner.production(NEW, states())['matrix']['include']), 17)
         invalid = states()
         del invalid['app']['images']['calendar-service']
         with self.assertRaises(ValueError):
@@ -124,6 +142,23 @@ class PlanningTests(unittest.TestCase):
         state = validate({'legacy_tag': 'sha-' + OLD})
         self.assertEqual(len(state['images']), 14)
         self.assertEqual({image['tag'] for image in state['images'].values()}, {'sha-' + OLD})
+
+    def test_ai_changes_select_python_and_worker_without_node(self):
+        result = self.plan(['backend/ai-service/app/main.py'])
+        self.assertEqual({entry['service'] for entry in result['matrix']['include']}, {'ai-service', 'ai-worker'})
+        self.assertTrue(result['python'])
+        self.assertEqual(result['node'], [])
+        result = self.plan(['backend/ai-service/migrations/versions/new.py'])
+        self.assertEqual(set(result['roles']['app']['migrations']), {'ai-service-migration'})
+
+    def test_existing_release_bootstraps_only_new_ai_images(self):
+        old = states()
+        old['app']['images'] = {key: value for key, value in old['app']['images'].items() if key in LEGACY_IMAGES}
+        with patch.object(planner, 'diff', return_value=[]):
+            result = planner.production(NEW, old, scope='app', services='calendar-service')
+        selected = {entry['service'] for entry in result['matrix']['include']}
+        self.assertEqual(selected, {'calendar-service', 'ai-service', 'ai-worker', 'ai-service-migration'})
+        self.assertEqual(set(result['roles']['app']['state']['images']), set(IMAGES))
 
     def test_git_rename_delete_and_merge_base(self):
         with tempfile.TemporaryDirectory() as directory:

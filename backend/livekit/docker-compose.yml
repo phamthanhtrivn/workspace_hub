@@ -1,0 +1,68 @@
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.5@sha256:3497163e15c48fef6e7830c78716f9e9d5edc28abf7aa90b61c86e93bbc306b1
+    container_name: wh_livekit
+    command: --config /etc/livekit/livekit.yaml
+    environment:
+      LIVEKIT_KEYS: '${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}'
+      LIVEKIT_WEBHOOK_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
+      LIVEKIT_WEBHOOK_URLS: ${LIVEKIT_EGRESS_WEBHOOK_URL:-http://host.docker.internal:8083/api/meetings/livekit/webhook}
+    ports:
+      - '${LIVEKIT_PORT:-7880}:7880'
+      - '${LIVEKIT_RTC_TCP_PORT:-7881}:7881'
+      - '${LIVEKIT_RTC_UDP_PORT:-7882}:7882/udp'
+    volumes:
+      - ./config/livekit.yaml:/etc/livekit/livekit.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks: [wh_network]
+    restart: on-failure
+
+  egress-storage-init:
+    image: alpine:3.22
+    profiles: [recording]
+    command: [sh, -c, 'chmod 1777 /backup /recording-tmp']
+    volumes:
+      - recording_backup:/backup
+      - recording_tmp:/recording-tmp
+    restart: 'no'
+
+  livekit-egress:
+    image: livekit/egress:v1.15.0
+    container_name: wh_livekit_egress
+    profiles: [recording]
+    environment:
+      EGRESS_CONFIG_FILE: /etc/egress.yaml
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET:?LIVEKIT_API_SECRET is required}
+      LIVEKIT_WS_URL: ws://livekit:7880
+    cap_add: [SYS_ADMIN]
+    security_opt:
+      - seccomp=${LIVEKIT_EGRESS_SECCOMP_PROFILE:-../livekit/config/chrome-sandboxing-seccomp-profile.json}
+    shm_size: 1gb
+    mem_limit: 4g
+    cpus: 4
+    volumes:
+      - ./config/egress.yaml:/etc/egress.yaml:ro
+      - recording_backup:/backup
+      - recording_tmp:/tmp
+    depends_on:
+      livekit:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      egress-storage-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD-SHELL, 'curl -fsS http://127.0.0.1:7981/ >/dev/null']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [wh_network]
+    restart: on-failure
+
+volumes:
+  recording_backup: {}
+  recording_tmp: {}

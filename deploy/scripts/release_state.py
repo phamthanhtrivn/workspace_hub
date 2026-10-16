@@ -3,7 +3,7 @@ import json
 import os
 from pathlib import Path
 import re
-from catalog import IMAGES, RUNTIME
+from catalog import IMAGES, LEGACY_IMAGES, RUNTIME
 
 SHA = re.compile(r'[0-9a-f]{40}')
 
@@ -17,13 +17,14 @@ def validate(state, role='app'):
         tag = state['legacy_tag']
         if role != 'app' or not isinstance(tag, str) or not re.fullmatch(r'sha-[0-9a-f]{40}', tag):
             raise ValueError('Invalid legacy tag')
-        return dict(version=1, config_commit=tag[4:], images={key: dict(tag=tag, source_commit=tag[4:]) for key in IMAGES}, last_services=list(RUNTIME))
+        return dict(version=1, config_commit=tag[4:], images={key: dict(tag=tag, source_commit=tag[4:]) for key in LEGACY_IMAGES}, last_services=[name for name in RUNTIME if name in LEGACY_IMAGES])
     if state.get('version') != 1 or not isinstance(state.get('config_commit'), str) or not SHA.fullmatch(state['config_commit']):
         raise ValueError('Invalid release version or config commit')
     if not isinstance(state.get('last_services'), list) or any(name not in RUNTIME for name in state['last_services']):
         raise ValueError('Invalid release service list')
     images = state.get('images')
-    if not isinstance(images, dict) or set(images) != (set(IMAGES) if role == 'app' else set()):
+    allowed = (set(IMAGES), LEGACY_IMAGES) if role == 'app' else (set(),)
+    if not isinstance(images, dict) or set(images) not in allowed:
         raise ValueError('Incomplete image state')
     for image in images.values():
         if not isinstance(image, dict) or not isinstance(image.get('tag'), str) or not re.fullmatch(r'sha-[0-9a-f]{40}', image['tag']) or not isinstance(image.get('source_commit'), str) or not SHA.fullmatch(image['source_commit']):

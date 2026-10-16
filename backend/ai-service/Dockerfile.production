@@ -1,0 +1,31 @@
+FROM python:3.12.15-slim-bookworm@sha256:34386ef0cb081344d7ec1c103ba398e6e9f64e9ab3a1509accc92a4e24a07258 AS base
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV TIKTOKEN_CACHE_DIR=/opt/tiktoken
+ENV OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1
+WORKDIR /app
+COPY requirements.txt ./
+RUN python -m pip install --no-cache-dir -r requirements.txt
+RUN python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
+
+FROM base AS ci-test
+COPY requirements-dev.txt ./
+RUN python -m pip install --no-cache-dir -r requirements-dev.txt
+COPY . .
+CMD ["python", "-m", "app.main"]
+
+FROM base AS production
+ENV NODE_ENV=production
+RUN groupadd --system ai && useradd --system --gid ai --home-dir /app ai
+COPY --chown=ai:ai app ./app
+COPY --chown=ai:ai migrations ./migrations
+COPY --chown=ai:ai alembic.ini ./
+USER ai
+HEALTHCHECK --interval=10s --timeout=5s --retries=3 \
+    CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('PORT', '8087') + '/ready', timeout=3)"
+CMD ["python", "-m", "app.main"]
+
+FROM production AS migration
+CMD ["python", "-m", "app.infrastructure.migrate"]
