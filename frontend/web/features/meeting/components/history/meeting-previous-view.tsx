@@ -41,18 +41,18 @@ export function MeetingPreviousView() {
 
   return (
     <section className="flex flex-1 flex-col gap-5">
-      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-black text-[#172B4D]">
+          <h1 className="text-page-title font-semibold text-foreground">
             Previous meetings
           </h1>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
+          <p className="mt-1 text-sm font-semibold text-muted-foreground">
             Review sessions you hosted or joined.
           </p>
         </div>
 
         <div
-          className="flex w-fit rounded-lg border border-slate-200 bg-slate-100 p-1"
+          className="flex w-fit rounded-lg border border-border bg-muted p-1"
           role="tablist"
           aria-label="Meeting history layout"
         >
@@ -68,8 +68,8 @@ export function MeetingPreviousView() {
                 className={cn(
                   "size-9",
                   isActive
-                    ? "bg-white text-[#0052CC] shadow-sm hover:bg-white"
-                    : "text-slate-500 hover:text-[#172B4D]",
+                    ? "bg-card text-info hover:bg-card"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               />
             );
@@ -80,10 +80,10 @@ export function MeetingPreviousView() {
       {isInitialLoading ? (
         <MeetingLoadingState label="Loading meeting history..." />
       ) : historyQuery.isError ? (
-        <div className="grid min-h-80 place-items-center rounded-lg border border-dashed border-red-200 bg-white/70 px-4">
+        <div className="grid min-h-80 place-items-center rounded-lg border border-dashed border-border bg-card px-4">
           <div className="flex max-w-sm flex-col items-center text-center">
-            <VideoOff className="h-9 w-9 text-red-500" />
-            <p className="mt-3 text-sm font-black text-slate-700">
+            <VideoOff className="h-9 w-9 text-destructive" />
+            <p className="mt-3 text-sm font-semibold text-foreground">
               Could not load meeting history.
             </p>
             <MeetingButton

@@ -29,7 +29,7 @@ export function DashboardTasks({
             type="button"
             aria-pressed={filter === taskFilter}
             onClick={() => setTaskFilter(filter)}
-            className={`min-h-9 border-b-2 px-3 py-1.5 text-xs font-medium ${filter === taskFilter ? "border-[var(--color-primary)] text-[var(--color-primary-dark)]" : "border-transparent text-slate-500 hover:text-[var(--color-primary-dark)]"}`}
+            className={`min-h-9 border-b-2 px-3 py-1.5 text-xs font-medium ${filter === taskFilter ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {filter}
           </button>
@@ -55,17 +55,17 @@ export function DashboardTasks({
                 className="flex items-center gap-3 border-b border-border py-4 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-slate-800">
+                  <span className="block truncate text-sm font-medium text-foreground">
                     {task.title}
                   </span>
-                  <p className="mt-1 truncate text-xs text-slate-500">
+                  <p className="mt-1 truncate text-xs text-muted-foreground">
                     {task.projectName}
                     {task.priority !== "MEDIUM" &&
                       ` · ${task.priority.toLowerCase()}`}
                   </p>
                 </div>
                 <span
-                  className={`shrink-0 text-[10px] font-medium sm:text-xs ${bucket === "Overdue" ? "text-[var(--color-destructive)]" : bucket === "Today" ? "text-[var(--color-primary)]" : "text-slate-500"}`}
+                  className={`shrink-0 text-xs font-medium sm:text-xs ${bucket === "Overdue" ? "text-destructive" : bucket === "Today" ? "text-primary" : "text-muted-foreground"}`}
                   title={taskDate(task, zone)}
                 >
                   {bucket === "Upcoming" ? taskDate(task, zone) : bucket}
@@ -81,11 +81,11 @@ export function DashboardTasks({
         })}
       </ul>
       {visibleTasks.length > 6 && (
-        <p className="mt-3 text-xs text-slate-500">
+        <p className="mt-3 text-xs text-muted-foreground">
           Showing 6 of {visibleTasks.length} open tasks
         </p>
       )}
-      <div className="mt-4 flex gap-4 border-t border-slate-100 pt-3 text-xs font-medium text-[var(--color-primary)]">
+      <div className="mt-4 flex gap-4 border-t border-border pt-3 text-xs font-medium text-primary">
         <Link href="/calendar" className="hover:underline">
           Personal tasks
         </Link>

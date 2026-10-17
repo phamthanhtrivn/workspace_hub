@@ -102,31 +102,31 @@ const UserProfileModal = React.memo(function UserProfileModal() {
   };
 
   const modalContent = (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/40 backdrop-blur-sm px-4 transition-opacity duration-300">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-          <h2 className="text-xl font-bold text-gray-800 tracking-tight">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-overlay/40 px-4 transition-opacity duration-200">
+      <div className="bg-card rounded-panel w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col border border-border animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-card sticky top-0 z-10">
+          <h2 className="text-section-title font-semibold text-foreground tracking-tight">
             User Profile
           </h2>
-          <button
+          <button aria-label="Close"
             onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+            className="p-2 text-muted-foreground hover:text-muted-foreground hover:bg-muted rounded-full cursor-pointer transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1 bg-white">
+        <div className="p-6 overflow-y-auto flex-1 bg-card">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
-              <div className="w-8 h-8 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin"></div>
-              <p className="text-sm font-medium text-gray-500">
+              <div className="w-8 h-8 border-4 border-border border-t-info rounded-full animate-spin"></div>
+              <p className="text-sm font-medium text-muted-foreground">
                 Loading profile...
               </p>
             </div>
           ) : (
             <div className="flex flex-col items-center">
-              <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center overflow-hidden shadow-md border-2 border-white mb-4">
+              <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center overflow-hidden border-2 border-border mb-4">
                 {userProfile?.avatarUrl ? (
                   <img
                     src={userProfile.avatarUrl}
@@ -134,33 +134,33 @@ const UserProfileModal = React.memo(function UserProfileModal() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <User size={40} className="text-gray-400" />
+                  <User size={40} className="text-muted-foreground" />
                 )}
               </div>
-              <h3 className="text-xl font-bold text-gray-800">
+              <h3 className="text-section-title font-semibold text-foreground">
                 {userProfile?.fullName || "Unknown User"}
               </h3>
-              <p className="text-gray-500 text-sm mb-6">
+              <p className="text-muted-foreground text-sm mb-6">
                 {userProfile?.email || "No email available"}
               </p>
 
-              <div className="w-full bg-gray-50 rounded-xl p-4 flex flex-col gap-3 mb-6">
-                <div className="flex items-center gap-3 text-sm text-gray-700">
-                  <Phone size={18} className="text-gray-400" />
+              <div className="w-full bg-background rounded-panel p-4 flex flex-col gap-3 mb-6">
+                <div className="flex items-center gap-3 text-sm text-foreground">
+                  <Phone size={18} className="text-muted-foreground" />
                   <span>
                     {userProfile?.phoneNumber || "Phone number not provided"}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-gray-700">
-                  <Calendar size={18} className="text-gray-400" />
+                <div className="flex items-center gap-3 text-sm text-foreground">
+                  <Calendar size={18} className="text-muted-foreground" />
                   <span>
                     {userProfile?.dob
                       ? new Date(userProfile.dob).toLocaleDateString("en-US")
                       : "Date of birth not provided"}
                   </span>
                 </div>
-                <div className="flex items-start gap-3 text-sm text-gray-700 mt-2 pt-2 border-t border-gray-200">
-                  <Info size={18} className="text-gray-400 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 text-sm text-foreground mt-2 pt-2 border-t border-border">
+                  <Info size={18} className="text-muted-foreground shrink-0 mt-0.5" />
                   {userProfile?.bio ? (
                     <span className="italic">"{userProfile.bio}"</span>
                   ) : (
@@ -172,7 +172,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
               {currentUserId !== selectedProfileUserId && (
                 <button
                   onClick={handleMessage}
-                  className="cursor-pointer w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                  className="cursor-pointer w-full bg-primary text-primary-foreground font-semibold py-3 rounded-control transform transition-all duration-200"
                 >
                   Send Message
                 </button>

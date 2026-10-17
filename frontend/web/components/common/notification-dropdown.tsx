@@ -560,16 +560,16 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             type="button"
             variant="outline"
             size="icon"
-            className={`relative z-[80] h-11 w-11 rounded-full border bg-white shadow-sm transition focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 ${
+            className={`relative z-[80] h-11 w-11 rounded-full border bg-card transition focus-visible:ring-4 focus-visible:ring-ring ${
               isOpen
-                ? "border-blue-300 bg-blue-50 text-[var(--color-primary)]"
-                : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                ? "border-info bg-info-soft text-primary"
+                : "border-border text-muted-foreground hover:bg-background"
             }`}
             aria-label="Notifications"
           >
-            <Bell size={22} className={isOpen ? "fill-blue-100" : ""} />
+            <Bell size={22} className={isOpen ? "fill-info" : ""} />
             {unreadCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1.5 text-[11px] font-bold text-white shadow-sm">
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-border bg-destructive px-1.5 text-xs font-semibold text-destructive-foreground">
                 {formatNotificationCount(unreadCount)}
               </span>
             ) : null}
@@ -580,10 +580,10 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
           align="end"
           sideOffset={10}
           onOpenAutoFocus={(event) => event.preventDefault()}
-          className="w-[min(calc(100vw-1.5rem),26rem)] overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-[0_20px_55px_rgba(15,23,42,0.18)] ring-1 ring-black/5"
+          className="w-[min(calc(100vw-1.5rem),26rem)] overflow-hidden rounded-panel border-border bg-card p-0 ring-1 ring-foreground/5"
         >
-          <div className="flex items-center justify-between gap-3 bg-slate-50/80 px-4 py-3">
-            <h3 className="text-base font-black text-slate-800">
+          <div className="flex items-center justify-between gap-3 bg-background px-4 py-3">
+            <h3 className="text-base font-semibold text-foreground">
               Notifications
             </h3>
             {unreadCount > 0 ? (
@@ -592,7 +592,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                 variant="ghost"
                 size="sm"
                 onClick={handleMarkAllAsRead}
-                className="h-7 rounded-full px-2 text-xs font-black text-[var(--color-primary)] hover:bg-blue-50 hover:text-[var(--color-primary-dark)]"
+                className="h-7 rounded-full px-2 text-xs font-semibold text-primary hover:bg-info-soft hover:text-foreground"
               >
                 <Check size={14} />
                 Mark all as read
@@ -622,7 +622,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
 
           <Separator />
 
-          <div className="bg-slate-50/60 px-3 py-2.5">
+          <div className="bg-background px-3 py-2.5">
             <CustomDateRange
               value={timeFilter}
               options={timeFilterOptions}
@@ -669,7 +669,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                       ? "Delete read"
                       : `Delete read ${categoryConfig[category].label}`
                   }
-                  className="h-8 min-w-0 shrink rounded-lg border-slate-200 bg-white px-2 text-xs font-black text-slate-500 hover:border-red-100 hover:bg-red-50 hover:text-red-600"
+                  className="h-8 min-w-0 shrink rounded-control border-border bg-card px-2 text-xs font-semibold text-muted-foreground hover:border-border hover:bg-destructive-soft hover:text-destructive"
                 >
                   <Trash2 className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">
@@ -699,7 +699,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             />
           </div>
 
-          <div className="border-t border-slate-100 bg-slate-50/80 px-3 py-2">
+          <div className="border-t border-border bg-background px-3 py-2">
             <SimplePagination
               page={currentPage}
               totalPages={pagination.totalPages}

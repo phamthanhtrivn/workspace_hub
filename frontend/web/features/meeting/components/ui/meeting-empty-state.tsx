@@ -23,15 +23,15 @@ export function MeetingEmptyState({
   return (
     <div
       className={cn(
-        "flex min-h-72 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white/70 px-6 py-10 text-center",
+        "flex min-h-40 flex-col items-center justify-center px-6 py-8 text-center",
         className,
       )}
     >
-      <span className="grid size-12 place-items-center rounded-lg bg-blue-50 text-[#0052CC] ring-1 ring-blue-100">
+      <span className="text-muted-foreground">
         <Icon className="size-5" />
       </span>
-      <h3 className="mt-4 text-base font-black text-[#172B4D]">{title}</h3>
-      <p className="mt-1 max-w-sm text-sm font-semibold leading-6 text-slate-500">
+      <h3 className="mt-4 text-base font-semibold text-foreground">{title}</h3>
+      <p className="mt-1 max-w-sm text-sm font-semibold leading-6 text-muted-foreground">
         {description}
       </p>
       {actionLabel && onAction ? (

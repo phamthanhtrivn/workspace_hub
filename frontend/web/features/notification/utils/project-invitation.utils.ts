@@ -22,7 +22,7 @@ export function getProjectInvitationMetadata(
 export function getProjectColor(value?: string | null): string {
   return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
     ? value
-    : "#0052CC";
+    : "var(--primary)";
 }
 
 export function getProjectInviterInitials(name: string): string {

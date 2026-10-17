@@ -68,15 +68,15 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/50 p-4">
+      <div className="bg-card rounded-panel w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="flex justify-between items-center p-4 border-b border-border">
+          <h2 className="text-section-title font-semibold text-foreground">
             Create a Poll
           </h2>
-          <button
+          <button aria-label="Close"
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+            className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground"
           >
             <X size={20} />
           </button>
@@ -84,7 +84,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-foreground mb-1">
               Poll Question
             </label>
             <input
@@ -92,13 +92,13 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ask a question..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              className="w-full px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info outline-none transition-all"
               required
             />
           </div>
 
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-foreground">
               Options
             </label>
             {options.map((option, index) => (
@@ -108,14 +108,14 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                   value={option}
                   onChange={(e) => handleOptionChange(index, e.target.value)}
                   placeholder={`Option ${index + 1}`}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  className="flex-1 px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info outline-none transition-all"
                   required={index < 2}
                 />
                 {options.length > 2 && (
-                  <button
+                  <button aria-label="Remove poll option"
                     type="button"
                     onClick={() => handleRemoveOption(index)}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive-soft rounded-control transition-colors"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -125,21 +125,21 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
             <button
               type="button"
               onClick={handleAddOption}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
+              className="flex items-center gap-2 text-info hover:text-info text-sm font-medium p-2 rounded-control hover:bg-info-soft transition-colors cursor-pointer"
             >
               <Plus size={16} /> Add Option
             </button>
           </div>
 
-          <div className="space-y-3 pt-4 border-t border-gray-100">
+          <div className="space-y-3 pt-4 border-t border-border">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={multipleChoice}
                 onChange={(e) => setMultipleChoice(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-info rounded focus:ring-ring"
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-foreground">
                 Allow multiple choices
               </span>
             </label>
@@ -148,9 +148,9 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                 type="checkbox"
                 checked={allowAddOptions}
                 onChange={(e) => setAllowAddOptions(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-info rounded focus:ring-ring"
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-foreground">
                 Allow members to add options
               </span>
             </label>
@@ -159,9 +159,9 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                 type="checkbox"
                 checked={anonymous}
                 onChange={(e) => setAnonymous(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-info rounded focus:ring-ring"
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-foreground">
                 Anonymous voting
               </span>
             </label>
@@ -173,7 +173,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
               disabled={
                 !title.trim() || options.filter((o) => o.trim()).length < 2
               }
-              className="cursor-pointer w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="cursor-pointer w-full bg-primary hover:bg-primary text-primary-foreground font-medium py-2.5 rounded-control transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create Poll
             </button>

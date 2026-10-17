@@ -33,26 +33,26 @@ export default function NotesSection({
     <div>
       <button
         onClick={onToggle}
-        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
-        <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-          <FileText size={18} className="text-gray-500" />
+        <div className="flex items-center gap-3 text-foreground font-medium text-sm">
+          <FileText size={18} className="text-muted-foreground" />
           Notes
         </div>
         {isExpanded ? (
-          <ChevronDown size={16} className="text-gray-400" />
+          <ChevronDown size={16} className="text-muted-foreground" />
         ) : (
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={16} className="text-muted-foreground" />
         )}
       </button>
       {isExpanded && (
         <div className="px-4 pb-4">
           {loading ? (
             <div className="flex justify-center py-4">
-              <Loader2 size={16} className="text-gray-400 animate-spin" />
+              <Loader2 size={16} className="text-muted-foreground animate-spin" />
             </div>
           ) : notes.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-2">
+            <p className="text-xs text-muted-foreground text-center py-2">
               No notes yet
             </p>
           ) : (
@@ -62,14 +62,14 @@ export default function NotesSection({
                   <div
                     key={note.id}
                     onClick={() => setSelectedNoteId(note.id)}
-                    className="p-3 bg-amber-50 border border-amber-100 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors"
+                    className="p-3 bg-warning-soft border border-border rounded-lg cursor-pointer hover:bg-warning-soft transition-colors"
                   >
-                    <p className="text-xs font-semibold text-amber-900 mb-1 truncate">
+                    <p className="text-xs font-semibold text-warning mb-1 truncate">
                       {note.title || "Untitled Note"}{" "}
                       -{" "}
                       {formatDateTime(note.createdAt)}
                     </p>
-                    <p className="text-[10px] text-amber-700/80 line-clamp-2">
+                    <p className="text-xs text-warning line-clamp-2">
                       {note.content}
                     </p>
                   </div>
@@ -84,7 +84,7 @@ export default function NotesSection({
           )}
         </div>
       )}
-      <div className="h-px bg-gray-100 mx-4 my-1"></div>
+      <div className="h-px bg-muted mx-4 my-1"></div>
 
       <ViewNoteModal
         isOpen={!!selectedNoteId}

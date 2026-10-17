@@ -75,10 +75,10 @@ export function CalendarDocumentPickerDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0">
-        <DialogHeader className="border-b border-slate-100 px-5 py-4 text-left">
-          <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
-            <FolderOpen className="h-4 w-4 text-[#0052CC]" />
+      <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-dialog border-border bg-card p-0">
+        <DialogHeader className="border-b border-border px-5 py-4 text-left">
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <FolderOpen className="h-4 w-4 text-info" />
             Attach from My Files
           </DialogTitle>
         </DialogHeader>
@@ -87,17 +87,17 @@ export function CalendarDocumentPickerDialog({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search files"
-            className="h-9 rounded-lg text-sm"
+            className="h-9 rounded-control text-sm"
           />
 
-          <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200">
+          <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
             {query.isLoading ? (
-              <div className="flex items-center gap-2 px-3 py-6 text-sm text-slate-500">
+              <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading files...
               </div>
             ) : files.length === 0 ? (
-              <div className="px-3 py-6 text-sm text-slate-500">
+              <div className="px-3 py-6 text-sm text-muted-foreground">
                 No files found.
               </div>
             ) : (
@@ -109,26 +109,26 @@ export function CalendarDocumentPickerDialog({
                     type="button"
                     onClick={() => toggleSelected(item)}
                     className={[
-                      "flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2 text-left last:border-b-0",
-                      selected ? "bg-blue-50" : "bg-white hover:bg-slate-50",
+                      "flex w-full items-center gap-2 border-b border-border px-3 py-2 text-left last:border-b-0",
+                      selected ? "bg-info-soft" : "bg-card hover:bg-background",
                     ].join(" ")}
                   >
                     <span
                       className={[
-                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px]",
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border text-xs",
                         selected
-                          ? "border-[#0052CC] bg-[#0052CC] text-white"
-                          : "border-slate-300 bg-white text-transparent",
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-input bg-card text-transparent",
                       ].join(" ")}
                     >
                       <Check className="h-3 w-3" />
                     </span>
-                    <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-slate-800">
+                      <span className="block truncate text-sm font-semibold text-foreground">
                         {item.name}
                       </span>
-                      <span className="block text-xs text-slate-500">
+                      <span className="block text-xs text-muted-foreground">
                         {formatBytes(item.sizeBytes)}
                       </span>
                     </span>
@@ -143,7 +143,7 @@ export function CalendarDocumentPickerDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="h-8 rounded-lg px-3 text-xs"
+              className="h-8 rounded-control px-3 text-xs"
             >
               Cancel
             </Button>
@@ -151,7 +151,7 @@ export function CalendarDocumentPickerDialog({
               type="button"
               disabled={selectedIds.length === 0}
               onClick={handleAttach}
-              className="h-8 rounded-lg bg-[#0052CC] px-3 text-xs text-white hover:bg-[#0747A6]"
+              className="h-8 rounded-control bg-primary px-3 text-xs text-primary-foreground hover:bg-primary-hover"
             >
               Attach {selectedIds.length || ""}
             </Button>

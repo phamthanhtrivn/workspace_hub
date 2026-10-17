@@ -82,7 +82,7 @@ const NAV_ITEMS: Array<{
     { view: "board", label: "Kanban Board", icon: LayoutGrid },
     { view: "list", label: "Backlog", icon: ListTodo },
     { view: "calendar", label: "Schedule", icon: CalendarClock },
-    { view: "gantt", label: "Grantt Chart", icon: Route },
+    { view: "gantt", label: "Gantt chart", icon: Route },
     { view: "documents", label: "Documents", icon: FileText },
   ];
 
@@ -122,11 +122,11 @@ function SidebarNavItem({
         onClick={() => onSelect(view)}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "group h-12 w-full justify-start gap-3 rounded-lg px-2.5 text-sm font-semibold transition-colors",
-          "focus-visible:ring-2 focus-visible:ring-[#0052CC]/35",
+          "group h-12 w-full justify-start gap-3 rounded-control px-2.5 text-sm font-semibold transition-colors",
+          "focus-visible:ring-2 focus-visible:ring-ring",
           active
-            ? "bg-[#0052CC] text-white hover:bg-[#0747A6] hover:text-white"
-            : "text-slate-600 hover:bg-slate-100 hover:text-[#172B4D]",
+            ? "bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground",
           isCollapsed && "lg:justify-center lg:px-2",
         )}
       >
@@ -134,8 +134,8 @@ function SidebarNavItem({
           className={cn(
             "grid h-8 w-8 shrink-0 place-items-center rounded-md transition-colors",
             active
-              ? "bg-white/15"
-              : "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-[#0052CC]",
+              ? "bg-overlay/10"
+              : "bg-muted text-muted-foreground group-hover:bg-card group-hover:text-info",
           )}
         >
           <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
@@ -182,7 +182,7 @@ export default function ProjectDetailSidebar({
         aria-label="Close project navigation overlay"
         aria-hidden={!isMobileOpen}
         className={cn(
-          "fixed inset-0 z-40 h-auto w-auto rounded-none bg-slate-950/30 p-0 backdrop-blur-[1px] transition-opacity hover:bg-slate-950/30 lg:hidden",
+          "fixed inset-0 z-40 h-auto w-auto rounded-none bg-overlay/30 p-0 transition-opacity hover:bg-overlay/30 lg:hidden",
           isMobileOpen
             ? "visible pointer-events-auto opacity-100"
             : "invisible pointer-events-none opacity-0",
@@ -192,7 +192,7 @@ export default function ProjectDetailSidebar({
       <aside
         aria-label="Project navigation"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[calc(100vw-3rem)] shrink-0 flex-col border-r border-slate-200/80 bg-white shadow-[18px_0_48px_rgba(15,40,84,0.08)] transition-[width,transform,visibility] duration-300 ease-in-out",
+          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[calc(100vw-3rem)] shrink-0 flex-col border-r border-border bg-card transition-[width,transform,visibility] duration-200 ease-in-out shadow-dialog",
           "lg:relative lg:inset-auto lg:z-20 lg:h-full lg:max-w-none lg:translate-x-0 lg:visible",
           isMobileOpen
             ? "visible translate-x-0"
@@ -209,7 +209,7 @@ export default function ProjectDetailSidebar({
             isCollapsed ? "Expand project sidebar" : "Collapse project sidebar"
           }
           aria-expanded={!isCollapsed}
-          className="absolute -right-4 top-8 z-30 hidden h-8 w-8 rounded-full border-slate-200 bg-white text-slate-500 shadow-sm hover:bg-slate-50 hover:text-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/35 lg:flex"
+          className="absolute -right-4 top-8 z-30 hidden h-8 w-8 rounded-full border-border bg-card text-muted-foreground hover:bg-background hover:text-info focus-visible:ring-2 focus-visible:ring-ring lg:flex shadow-panel"
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -218,10 +218,10 @@ export default function ProjectDetailSidebar({
           )}
         </Button>
 
-        <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-slate-100 px-3">
+        <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-border px-3">
           <span
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-lg font-bold shadow-sm"
-            style={{ color: project.color }}
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-border bg-background text-lg font-semibold"
+            style={{ borderColor: project.color, color: "var(--foreground)" }}
             aria-hidden="true"
           >
             {project.icon ? (
@@ -236,12 +236,12 @@ export default function ProjectDetailSidebar({
               isCollapsed && "lg:w-0 lg:flex-none lg:opacity-0",
             )}
           >
-            <h2 className="truncate text-sm font-bold text-[#172B4D]">
+            <h2 className="truncate text-sm font-semibold text-foreground">
               {project.name}
             </h2>
             {projectIdSuffix ? (
               <p
-                className="mt-0.5 truncate font-mono text-[11px] font-semibold text-slate-500"
+                className="mt-0.5 truncate font-mono text-xs font-semibold text-muted-foreground"
                 title={`Project ID: ${project.id}`}
               >
                 {projectIdSuffix}
@@ -254,7 +254,7 @@ export default function ProjectDetailSidebar({
             size="icon-sm"
             onClick={onMobileClose}
             aria-label="Close project navigation"
-            className="ml-auto h-8 w-8 text-slate-500 hover:bg-slate-100 hover:text-slate-800 lg:hidden"
+            className="ml-auto h-8 w-8 text-muted-foreground hover:bg-muted hover:text-foreground lg:hidden"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -275,7 +275,7 @@ export default function ProjectDetailSidebar({
             ))}
           </div>
 
-          <div className="my-3 h-px shrink-0 bg-slate-100" />
+          <div className="my-3 h-px shrink-0 bg-muted" />
 
           <section
             className="flex min-h-0 flex-1 flex-col overflow-hidden"
@@ -298,10 +298,10 @@ export default function ProjectDetailSidebar({
                   onClick={() => onViewChange("members")}
                   aria-current={membersActive ? "page" : undefined}
                   className={cn(
-                    "group h-12 min-w-0 flex-1 justify-start gap-3 rounded-lg px-2.5 text-sm font-semibold transition-colors",
+                    "group h-12 min-w-0 flex-1 justify-start gap-3 rounded-control px-2.5 text-sm font-semibold transition-colors",
                     membersActive
-                      ? "bg-[#0052CC] text-white hover:bg-[#0747A6] hover:text-white"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-[#172B4D]",
+                      ? "bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     isCollapsed &&
                     "lg:w-full lg:flex-none lg:justify-center lg:px-2",
                   )}
@@ -310,13 +310,13 @@ export default function ProjectDetailSidebar({
                     className={cn(
                       "relative grid h-8 w-8 shrink-0 place-items-center rounded-md",
                       membersActive
-                        ? "bg-white/15"
-                        : "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-[#0052CC]",
+                        ? "bg-overlay/10"
+                        : "bg-muted text-muted-foreground group-hover:bg-card group-hover:text-info",
                     )}
                   >
                     <Users className="h-[18px] w-[18px]" strokeWidth={2} />
                     {isCollapsed ? (
-                      <span className="absolute -right-2 -top-2 hidden min-w-5 items-center justify-center rounded-full bg-[#0052CC] px-1 text-[9px] font-bold leading-5 text-white ring-2 ring-white lg:inline-flex">
+                      <span className="absolute -right-2 -top-2 hidden min-w-5 items-center justify-center rounded-full bg-primary px-1 text-xs font-semibold leading-5 text-primary-foreground ring-2 ring-border lg:inline-flex">
                         {members.length > 99 ? "99+" : members.length}
                       </span>
                     ) : null}
@@ -330,10 +330,10 @@ export default function ProjectDetailSidebar({
                     <span>Members</span>
                     <span
                       className={cn(
-                        "rounded-md px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+                        "rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums",
                         membersActive
-                          ? "bg-white/15 text-white"
-                          : "bg-slate-100 text-slate-500",
+                          ? "bg-overlay/10 text-primary-foreground"
+                          : "bg-muted text-muted-foreground",
                       )}
                     >
                       {members.length}
@@ -355,7 +355,7 @@ export default function ProjectDetailSidebar({
                     onClick={onInviteMembers}
                     aria-label="Invite member"
                     className={cn(
-                      "h-9 text-[#0052CC] hover:bg-blue-50 hover:text-[#0747A6]",
+                      "h-9 text-info hover:bg-info-soft hover:text-info",
                       isCollapsed ? "lg:w-full" : "w-9",
                     )}
                   >
@@ -367,7 +367,7 @@ export default function ProjectDetailSidebar({
 
             <div
               className={cn(
-                "mt-1 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-1 pb-2 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300",
+                "mt-1 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-1 pb-2 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border",
                 isCollapsed && "lg:hidden",
               )}
             >
@@ -377,7 +377,7 @@ export default function ProjectDetailSidebar({
                   type="button"
                   variant="ghost"
                   onClick={() => onViewChange("members")}
-                  className="h-auto w-full justify-start gap-2.5 rounded-lg px-2 py-2 font-normal hover:bg-slate-50"
+                  className="h-auto w-full justify-start gap-2.5 rounded-control px-2 py-2 font-normal hover:bg-background"
                 >
                   <Avatar
                     user={{
@@ -388,10 +388,10 @@ export default function ProjectDetailSidebar({
                     size="xs"
                   />
                   <span className="min-w-0 flex-1 text-left">
-                    <span className="block truncate text-xs font-semibold text-slate-700">
+                    <span className="block truncate text-xs font-semibold text-foreground">
                       {member.displayName}
                     </span>
-                    <span className="block text-[10px] font-medium text-slate-400">
+                    <span className="block text-xs font-medium text-muted-foreground">
                       {member.role === ProjectRole.ADMIN ? "Owner" : "Member"}
                     </span>
                   </span>
@@ -399,7 +399,7 @@ export default function ProjectDetailSidebar({
               ))}
 
               {remainingMembers > 0 ? (
-                <p className="px-2 py-1 text-[11px] font-semibold text-slate-400">
+                <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">
                   +{remainingMembers} more members
                 </p>
               ) : null}
@@ -408,7 +408,7 @@ export default function ProjectDetailSidebar({
                 type="button"
                 variant="ghost"
                 onClick={() => onViewChange("members")}
-                className="h-9 w-full justify-between rounded-lg px-2 text-xs font-semibold text-[#0052CC] hover:bg-blue-50 hover:text-[#0747A6]"
+                className="h-9 w-full justify-between rounded-control px-2 text-xs font-semibold text-info hover:bg-info-soft hover:text-info"
               >
                 <span>View all members</span>
                 <ChevronRight className="h-4 w-4" />
@@ -417,7 +417,7 @@ export default function ProjectDetailSidebar({
           </section>
         </nav>
 
-        <footer className="mt-auto shrink-0 border-t border-slate-100 p-2">
+        <footer className="mt-auto shrink-0 border-t border-border p-2">
           <div className="space-y-1">
             {canOpenSettings ? (
               <SidebarTooltip label="Project settings" enabled={isCollapsed}>
@@ -426,11 +426,11 @@ export default function ProjectDetailSidebar({
                   variant="ghost"
                   onClick={onOpenSettings}
                   className={cn(
-                    "group h-12 w-full justify-start gap-3 rounded-lg px-2.5 text-slate-600 hover:bg-slate-100 hover:text-[#172B4D]",
+                    "group h-12 w-full justify-start gap-3 rounded-control px-2.5 text-muted-foreground hover:bg-muted hover:text-foreground",
                     isCollapsed && "lg:justify-center lg:px-2",
                   )}
                 >
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-[#0052CC]">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground group-hover:bg-card group-hover:text-info">
                     <Settings
                       className="h-[18px] w-[18px]"
                       strokeWidth={2}
@@ -455,12 +455,12 @@ export default function ProjectDetailSidebar({
                 asChild
                 variant="ghost"
                 className={cn(
-                  "group h-12 w-full justify-start gap-3 rounded-lg px-2.5 text-rose-600 hover:bg-rose-50 hover:text-rose-700",
+                  "group h-12 w-full justify-start gap-3 rounded-control px-2.5 text-destructive hover:bg-destructive-soft hover:text-destructive",
                   isCollapsed && "lg:justify-center lg:px-2",
                 )}
               >
                 <Link href="/projects" aria-label="Exit project">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-rose-50 text-rose-500 group-hover:bg-white group-hover:text-rose-600">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-destructive-soft text-destructive group-hover:bg-card group-hover:text-destructive">
                     <ArrowLeft
                       className="h-[18px] w-[18px]"
                       strokeWidth={2}

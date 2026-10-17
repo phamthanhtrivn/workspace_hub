@@ -7,7 +7,7 @@ function MeetingCard({ className, ...props }: React.ComponentProps<"article">) {
     <article
       data-slot="meeting-card"
       className={cn(
-        "rounded-lg border border-slate-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.08)]",
+        "rounded-lg border border-border bg-card",
         className,
       )}
       {...props}
@@ -20,7 +20,7 @@ function MeetingPanel({ className, ...props }: React.ComponentProps<"section">) 
     <section
       data-slot="meeting-panel"
       className={cn(
-        "rounded-lg border border-slate-200 bg-white shadow-sm",
+        "rounded-lg border border-border bg-card",
         className,
       )}
       {...props}

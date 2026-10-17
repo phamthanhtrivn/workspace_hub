@@ -13,7 +13,7 @@ export function DashboardFocus({
       <QueryFeedback query={query} label="today's focus" />
       {today && (
         <div className="flex items-center justify-between gap-4">
-          <p className="text-2xl font-semibold text-primary-dark tabular-nums">
+          <p className="text-2xl font-semibold text-foreground tabular-nums">
             {formatMinutes(today.minutes)}
           </p>
           <p className="text-xs text-muted-foreground">

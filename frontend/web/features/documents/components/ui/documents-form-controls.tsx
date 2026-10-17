@@ -21,18 +21,19 @@ export function DocumentsSearchInput({
 }: DocumentsSearchInputProps) {
   return (
     <div className={cn("relative flex-1 min-w-[200px]", className)}>
-      <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-10 rounded-2xl border border-slate-200 bg-slate-50/50 pl-10 pr-8 text-sm font-semibold text-slate-700 placeholder:text-slate-400 focus:border-[var(--color-primary)] focus:bg-white focus:outline-hidden transition-all"
+        className="h-10 rounded-control border border-input bg-background pl-10 pr-8 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden transition-all"
       />
       {value ? (
         <button
           type="button"
           onClick={() => onChange("")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+          aria-label="Clear document search"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground cursor-pointer"
         >
           <X className="h-3.5 w-3.5" />
         </button>
@@ -68,7 +69,7 @@ export function DocumentsSelect<T extends string = string>({
       onChange={onChange}
       ariaLabel={ariaLabel}
       triggerClassName={cn(
-        "h-10 rounded-md border border-slate-200/80 bg-white px-3.5 text-xs font-bold text-slate-700 hover:border-slate-300 transition-colors shadow-2xs cursor-pointer min-w-[110px]",
+        "h-10 rounded-md border border-input bg-card px-3.5 text-xs font-semibold text-foreground hover:border-input transition-colors cursor-pointer min-w-[110px]",
         className
       )}
     />

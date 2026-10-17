@@ -22,14 +22,14 @@ export const ShareSuggestionsDropdown = React.memo(
     if (!show || results.length === 0) return null;
 
     return (
-      <div className="absolute left-0 right-0 z-50 mt-1 max-h-[248px] overflow-y-auto bg-white border border-slate-200 rounded-2xl shadow-xl py-1 divide-y divide-slate-50 animate-in fade-in slide-in-from-top-1 duration-150">
+      <div className="absolute left-0 right-0 z-50 mt-1 max-h-[248px] overflow-y-auto bg-card border border-border rounded-panel py-1 divide-y divide-border animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel">
         {results.map((user) => (
           <div
             key={user.id}
             onClick={() => onSelect(user)}
-            className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 cursor-pointer transition-colors"
+            className="flex items-center gap-3 px-4 py-2 hover:bg-background cursor-pointer transition-colors"
           >
-            <div className="relative w-8 h-8 rounded-full bg-slate-100 border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+            <div className="relative w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
               {user.avatarUrl ? (
                 <Image
                   src={user.avatarUrl}
@@ -39,14 +39,14 @@ export const ShareSuggestionsDropdown = React.memo(
                   className="object-cover rounded-full"
                 />
               ) : (
-                <User size={14} className="text-slate-400" />
+                <User size={14} className="text-muted-foreground" />
               )}
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <p className="text-xs font-bold text-slate-700 truncate">
+              <p className="text-xs font-semibold text-foreground truncate">
                 {user.fullName || USER_FALLBACK_NAME}
               </p>
-              <p className="text-[10px] text-slate-400 truncate font-semibold">
+              <p className="text-xs text-muted-foreground truncate font-semibold">
                 {user.email}
               </p>
             </div>

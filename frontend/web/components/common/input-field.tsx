@@ -10,18 +10,20 @@ const InputField = React.memo(function InputField({
   onChange,
   rightIcon,
   onRightClick,
+  variant = "default",
 }: any) {
   return (
     <div className="space-y-1">
       <div
-        className={`flex h-12 items-center gap-3 rounded-2xl border bg-slate-50/80 px-4 transition
-        ${
+        className={`flex h-12 items-center gap-3 border px-4 transition ${
+          variant === "auth" ? "rounded-2xl bg-background/80" : "rounded-control bg-background"
+        } ${
           error
-            ? "border-red-500 bg-red-50/40"
-            : "border-slate-200 hover:border-slate-300 focus-within:border-[var(--color-primary)]"
+            ? "border-destructive bg-destructive-soft/40"
+            : "border-input hover:border-input focus-within:border-primary"
         }`}
       >
-        <Icon className="h-4 w-4 text-slate-400 shrink-0" />
+        <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
 
         <input
           id={id}
@@ -36,14 +38,15 @@ const InputField = React.memo(function InputField({
           <button
             type="button"
             onClick={onRightClick}
-            className="text-slate-400 hover:text-slate-600 transition cursor-pointer"
+            aria-label={type === "password" ? "Show password" : "Hide password"}
+            className="text-muted-foreground hover:text-muted-foreground transition cursor-pointer"
           >
             {rightIcon}
           </button>
         )}
       </div>
 
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   );
 });

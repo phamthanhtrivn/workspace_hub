@@ -16,19 +16,19 @@ export default function EditingBanner({
   onCancelEdit,
 }: EditingBannerProps) {
   return (
-    <div className="bg-orange-50 border-t border-orange-100 p-2 px-4 flex items-center justify-between">
-      <div className="flex flex-col min-w-0 flex-1 border-l-4 border-orange-500 pl-3">
-        <span className="text-xs font-semibold text-orange-600">
+    <div className="bg-warning-soft border-t border-border p-2 px-4 flex items-center justify-between">
+      <div className="flex flex-col min-w-0 flex-1 border-l border-warning pl-3">
+        <span className="text-xs font-semibold text-warning">
           Edit Message
         </span>
-        <span className="text-sm text-gray-600 truncate">
+        <span className="text-sm text-muted-foreground truncate">
           {editingMessage.content}
         </span>
       </div>
       <button
         onClick={onCancelEdit}
         aria-label="Cancel"
-        className="p-1 text-gray-400 hover:text-gray-600 hover:bg-orange-100 rounded-full cursor-pointer ml-2 transition-colors"
+        className="p-1 text-muted-foreground hover:text-muted-foreground hover:bg-warning-soft rounded-full cursor-pointer ml-2 transition-colors"
       >
         <X size={16} />
       </button>

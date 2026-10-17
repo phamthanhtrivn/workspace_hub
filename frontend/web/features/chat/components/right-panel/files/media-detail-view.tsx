@@ -106,7 +106,7 @@ function getMediaKind(item: any) {
 
 function getFileIcon(item: any) {
   const kind = getMediaKind(item);
-  const className = "text-white";
+  const className = "text-primary-foreground";
 
   if (kind === "image") return <FileImage size={20} className={className} />;
   if (kind === "video") return <FileVideo size={20} className={className} />;
@@ -124,15 +124,15 @@ function getFileIcon(item: any) {
 
 function getFileIconBg(item: any) {
   const kind = getMediaKind(item);
-  if (kind === "image") return "bg-emerald-500";
-  if (kind === "video") return "bg-violet-500";
-  if (kind === "audio") return "bg-pink-500";
-  if (kind === "pdf") return "bg-red-500";
-  if (kind === "spreadsheet") return "bg-green-600";
-  if (kind === "presentation") return "bg-orange-500";
-  if (kind === "archive") return "bg-amber-600";
-  if (kind === "code") return "bg-slate-700";
-  return "bg-blue-500";
+  if (kind === "image") return "bg-success";
+  if (kind === "video") return "bg-primary";
+  if (kind === "audio") return "bg-primary";
+  if (kind === "pdf") return "bg-destructive";
+  if (kind === "spreadsheet") return "bg-success";
+  if (kind === "presentation") return "bg-warning";
+  if (kind === "archive") return "bg-warning";
+  if (kind === "code") return "bg-primary";
+  return "bg-primary";
 }
 
 function formatMediaDate(item: any) {
@@ -242,23 +242,23 @@ export default function MediaDetailView({
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-white">
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center gap-3">
-        <button
+    <div className="w-full h-full flex flex-col bg-card">
+      <div className="h-16 px-4 border-b border-border flex items-center gap-3">
+        <button aria-label="Back"
           onClick={onBack}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <ArrowLeft size={20} />
         </button>
-        <h2 className="font-semibold text-gray-800">
+        <h2 className="font-semibold text-foreground">
           Files
         </h2>
       </div>
 
-      <div className="border-b border-gray-100 px-4 py-3 flex flex-col gap-3 shrink-0">
+      <div className="border-b border-border px-4 py-3 flex flex-col gap-3 shrink-0">
         <div className="relative">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={16}
           />
           <input
@@ -266,12 +266,12 @@ export default function MediaDetailView({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search files by name..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card focus:border-info focus:ring-1 focus:ring-ring outline-none transition"
           />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-[11px] font-semibold text-gray-500">
+          <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
             File Type
           </label>
           <select
@@ -279,7 +279,7 @@ export default function MediaDetailView({
             onChange={(event) =>
               setActiveFilter((event.target.value || undefined) as FileFilter)
             }
-            className="w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full cursor-pointer rounded-lg border border-input bg-card px-3 py-2 text-xs font-medium text-foreground outline-none transition focus:border-info focus:ring-1 focus:ring-ring"
           >
             {FILE_FILTERS.map((filter) => (
               <option key={filter.label} value={filter.value || ""}>
@@ -292,11 +292,11 @@ export default function MediaDetailView({
 
       <div className="flex-1 overflow-y-auto p-3">
         {isLoading ? (
-          <div className="text-center text-sm text-gray-400 py-4">
+          <div className="text-center text-sm text-muted-foreground py-4">
             Loading files...
           </div>
         ) : allItems.length === 0 ? (
-          <div className="text-center text-sm text-gray-400 py-4">
+          <div className="text-center text-sm text-muted-foreground py-4">
             No files available
           </div>
         ) : (
@@ -308,9 +308,9 @@ export default function MediaDetailView({
                 <button
                   key={item.id}
                   onClick={() => openItem(item)}
-                  className="group flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 bg-white p-2 text-left transition hover:bg-gray-50"
+                  className="group flex w-full cursor-pointer items-center gap-3 rounded-control border border-border bg-card p-2 text-left transition hover:bg-background"
                 >
-                  <span className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-gray-100 flex items-center justify-center">
+                  <span className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted flex items-center justify-center">
                     {kind === "image" && item.fileUrl ? (
                       <img
                         src={item.fileUrl}
@@ -331,17 +331,17 @@ export default function MediaDetailView({
                     )}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold text-gray-900">
+                    <span className="block truncate text-sm font-semibold text-foreground">
                       {item.name}
                     </span>
-                    <span className="mt-1 block truncate text-xs text-gray-500">
+                    <span className="mt-1 block truncate text-xs text-muted-foreground">
                       {formatFileSize(item.sizeBytes)} - {formatMediaDate(item)}
                     </span>
                   </span>
                   {item.fileUrl && (
                     <span
                       onClick={(e) => handleDownload(e, item)}
-                      className="rounded-md p-2 text-gray-400 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
+                      className="rounded-md p-2 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info group-hover:opacity-100"
                       title="Download"
                     >
                       <Download size={16} />
@@ -355,7 +355,7 @@ export default function MediaDetailView({
               className="h-8 flex items-center justify-center"
             >
               {isFetchingNextPage && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   Loading more...
                 </span>
               )}

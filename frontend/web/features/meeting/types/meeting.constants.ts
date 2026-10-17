@@ -219,10 +219,10 @@ export const meetingActionIconById = {
 } as const;
 
 export const meetingActionToneClassByTone = {
-  [MeetingDashboardTone.PRIMARY]: "bg-[#0052CC]",
-  [MeetingDashboardTone.BLUE]: "bg-[#0C66E4]",
-  [MeetingDashboardTone.VIOLET]: "bg-violet-600",
-  [MeetingDashboardTone.AMBER]: "bg-amber-500",
+  [MeetingDashboardTone.PRIMARY]: "bg-primary",
+  [MeetingDashboardTone.BLUE]: "bg-primary",
+  [MeetingDashboardTone.VIOLET]: "bg-primary",
+  [MeetingDashboardTone.AMBER]: "bg-primary",
 } as const;
 
 export const MEETING_ROOM_REACTIONS = [

@@ -67,12 +67,12 @@ export function UpcomingMeetingsView({
 
   return (
     <section className="flex flex-1 flex-col gap-5">
-      <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-black text-[#172B4D]">
+          <h1 className="text-page-title font-semibold text-foreground">
             Upcoming meetings
           </h1>
-          <p className="mt-1 text-sm font-semibold text-slate-500">
+          <p className="mt-1 text-sm font-semibold text-muted-foreground">
             Scheduled meetings you host or are invited to.
           </p>
         </div>
@@ -89,10 +89,10 @@ export function UpcomingMeetingsView({
       {isInitialLoading ? (
         <MeetingLoadingState label="Loading upcoming meetings..." />
       ) : upcomingQuery.isError ? (
-        <div className="grid min-h-80 place-items-center rounded-lg border border-dashed border-red-200 bg-white/70 px-4">
+        <div className="grid min-h-80 place-items-center rounded-lg border border-dashed border-border bg-card px-4">
           <div className="flex max-w-sm flex-col items-center text-center">
-            <CalendarDays className="h-9 w-9 text-red-500" />
-            <p className="mt-3 text-sm font-black text-slate-700">
+            <CalendarDays className="h-9 w-9 text-destructive" />
+            <p className="mt-3 text-sm font-semibold text-foreground">
               Could not load upcoming meetings.
             </p>
             <MeetingButton

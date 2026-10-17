@@ -2,45 +2,73 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
+/* Runtime source of truth. See docs/design-tokens.md for roles and usage. */
 @theme inline {
-  --color-primary-dark: #0f2854;
-  --color-primary: #1c4d8d;
-  --color-secondary: #4988c4;
-  --color-background-soft: #bde8f5;
-
-  --color-background: #ffffff;
-  --color-foreground: #0f2854;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
+  --text-page-title: 1.375rem;
+  --text-page-title--line-height: 1.25;
+  --text-section-title: 1.125rem;
+  --text-section-title--line-height: 1.3;
+  --text-compact: 0.8125rem;
+  --text-compact--line-height: 1.5;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-foreground: var(--primary-soft-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-overlay: var(--overlay);
+  --color-media-background: var(--media-background);
+  --color-media-surface: var(--media-surface);
+  --color-media-foreground: var(--media-foreground);
+  --color-on-color: var(--on-color);
+  --color-on-color-dark: var(--on-color-dark);
+  --color-brand-ice: var(--brand-ice);
+  --color-brand-midnight: var(--brand-midnight);
+  --color-brand-blue: var(--brand-blue);
+  --color-brand-navy: var(--brand-navy);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,91 +76,224 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-html {
-  scroll-behavior: smooth;
+  --radius-control: 8px;
+  --radius-panel: 14px;
+  --radius-dialog: 16px;
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  color-scheme: light;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --overlay: #010736;
+  --media-background: #010736;
+  --media-surface: #0D1C42;
+  --media-foreground: #E6EDF8;
+  --on-color: #FFFFFF;
+  --on-color-dark: #000000;
+  --brand-ice: #E6EDF8;
+  --brand-midnight: #010736;
+  --brand-blue: #22396F;
+  --brand-navy: #0D1C42;
+  --background: #FFFFFF;
+  --foreground: #010736;
+  --card: #FFFFFF;
+  --card-foreground: #010736;
+  --popover: #FFFFFF;
+  --popover-foreground: #010736;
+  --primary: #22396F;
+  --primary-foreground: #E6EDF8;
+  --primary-hover: #0D1C42;
+  --primary-soft: #E6EDF8;
+  --primary-soft-foreground: #22396F;
+  --secondary: #E6EDF8;
+  --secondary-foreground: #010736;
+  --muted: #F3F4F7;
+  --muted-foreground: #53617C;
+  --accent: #E6EDF8;
+  --accent-foreground: #010736;
+  --border: #CDD2DD;
+  --input: #78849D;
+  --ring: #22396F;
+  --destructive: #B42332;
+  --destructive-foreground: #FFFFFF;
+  --destructive-soft: #FBE9EC;
+  --success: #18633E;
+  --success-foreground: #FFFFFF;
+  --success-soft: #E5F2EB;
+  --warning: #805313;
+  --warning-foreground: #FFFFFF;
+  --warning-soft: #FAEFD9;
+  --info: #22396F;
+  --info-foreground: #E6EDF8;
+  --info-soft: #EDF0F6;
+  --chart-1: #22396F;
+  --chart-2: #53617C;
+  --chart-3: #805313;
+  --chart-4: #18633E;
+  --chart-5: #B42332;
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --shadow-color: 1 7 54;
+  --shadow-panel: 0 12px 32px rgb(var(--shadow-color) / 16%);
+  --shadow-dialog: 0 24px 70px rgb(var(--shadow-color) / 20%);
+  --duration-fast: 130ms;
+  --duration-normal: 200ms;
+  --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  color-scheme: dark;
+  --background: #010736;
+  --foreground: #E6EDF8;
+  --card: #0D1C42;
+  --card-foreground: #E6EDF8;
+  --popover: #0D1C42;
+  --popover-foreground: #E6EDF8;
+  --primary: #E6EDF8;
+  --primary-foreground: #010736;
+  --primary-hover: #FFFFFF;
+  --primary-soft: #22396F;
+  --primary-soft-foreground: #E6EDF8;
+  --secondary: #22396F;
+  --secondary-foreground: #E6EDF8;
+  --muted: #22396F;
+  --muted-foreground: #C3C9D6;
+  --accent: #22396F;
+  --accent-foreground: #E6EDF8;
+  --border: #344B7C;
+  --input: #8597BB;
+  --ring: #E6EDF8;
+  --destructive: #FFB4BC;
+  --destructive-foreground: #010736;
+  --destructive-soft: #512E46;
+  --success: #86D6AE;
+  --success-foreground: #010736;
+  --success-soft: #173F38;
+  --warning: #F0CD88;
+  --warning-foreground: #010736;
+  --warning-soft: #423E36;
+  --info: #B7C8F0;
+  --info-foreground: #010736;
+  --info-soft: #22396F;
+  --chart-1: #E6EDF8;
+  --chart-2: #C3C9D6;
+  --chart-3: #F0CD88;
+  --chart-4: #86D6AE;
+  --chart-5: #FFB4BC;
+  --shadow-color: 1 7 54;
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
+  * { @apply border-border outline-ring/50; }
+  html { @apply font-sans; scroll-behavior: smooth; scrollbar-color: var(--input) var(--background); }
+  body { @apply bg-background text-foreground text-sm; }
+  ::selection { background: var(--primary); color: var(--primary-foreground); }
+  input, textarea { caret-color: var(--primary); }
+  ::placeholder { color: var(--muted-foreground); opacity: 1; }
+  a { text-underline-offset: 0.2em; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  textarea, select { border-color: var(--input); }
+}
+
+/* Native-content canvases keep their own contrast instead of recoloring media. */
+.media-canvas { background: var(--media-background); color: var(--media-foreground); }
+
+.swal2-popup {
+  --swal2-background: var(--popover);
+  --swal2-color: var(--popover-foreground);
+  --swal2-confirm-button-background-color: var(--primary);
+  --swal2-confirm-button-color: var(--primary-foreground);
+  --swal2-cancel-button-background-color: var(--muted);
+  --swal2-cancel-button-color: var(--foreground);
+  background: var(--popover);
+  color: var(--popover-foreground);
+}
+
+.swal2-popup .swal2-input {
+  background: var(--card);
+  color: var(--foreground);
+  border-color: var(--input);
+}
+
+.swal2-popup .swal2-input:focus {
+  border-color: var(--ring);
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.swal2-popup .swal2-input::placeholder {
+  color: var(--muted-foreground);
+  opacity: 1;
+}
+
+.swal2-popup .swal2-validation-message {
+  background: var(--destructive-soft);
+  color: var(--destructive);
+}
+
+.swal2-popup .swal2-icon.swal2-question,
+.swal2-popup .swal2-icon.swal2-info {
+  color: var(--info);
+  border-color: var(--info);
+}
+
+.swal2-popup .swal2-icon.swal2-warning {
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.swal2-popup .swal2-icon.swal2-error { border-color: var(--destructive); }
+.swal2-popup .swal2-icon.swal2-success .swal2-success-ring { border-color: var(--success); }
+.swal2-popup .swal2-icon.swal2-success [class^="swal2-success-line"] { background: var(--success); }
+.swal2-popup .swal2-icon.swal2-error [class^="swal2-x-mark-line"] { background: var(--destructive); }
+
+:root .EmojiPickerReact, :root .EmojiPickerReact.epr-dark-theme {
+  --epr-bg-color: var(--popover);
+  --epr-text-color: var(--popover-foreground);
+  --epr-search-input-bg-color: var(--muted);
+  --epr-search-input-text-color: var(--foreground);
+  --epr-search-input-placeholder-color: var(--muted-foreground);
+  --epr-search-border-color: var(--input);
+  --epr-category-label-bg-color: var(--popover);
+  --epr-category-label-text-color: var(--muted-foreground);
+  --epr-hover-bg-color: var(--accent);
+  --epr-focus-bg-color: var(--accent);
+  --epr-highlight-color: var(--primary);
+  --epr-picker-border-color: var(--border);
+  --epr-preview-border-color: var(--border);
+}
+
+:root [data-sonner-toaster][data-sonner-theme] {
+  --normal-bg: var(--popover);
+  --normal-text: var(--popover-foreground);
+  --normal-border: var(--border);
+  --success-bg: var(--success-soft);
+  --success-text: var(--success);
+  --success-border: var(--success);
+  --error-bg: var(--destructive-soft);
+  --error-text: var(--destructive);
+  --error-border: var(--destructive);
+  --warning-bg: var(--warning-soft);
+  --warning-text: var(--warning);
+  --warning-border: var(--warning);
+  --info-bg: var(--info-soft);
+  --info-text: var(--info);
+  --info-border: var(--info);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .animate-spin, .animate-pulse, .animate-ping { animation: none !important; }
+  .animate-in, .animate-out, .meeting-room-floating-reaction { animation: none !important; }
+  *, *::before, *::after { transition-duration: 0s !important; scroll-behavior: auto !important; }
 }
 
 @keyframes meeting-room-reaction-float {
@@ -165,11 +326,11 @@ html {
 
 .calendar-shell .fc {
   height: 100%;
-  --fc-border-color: rgb(226 232 240);
-  --fc-page-bg-color: #ffffff;
-  --fc-neutral-bg-color: rgb(248 250 252);
-  --fc-today-bg-color: rgb(239 246 255 / 0.45);
-  --fc-now-indicator-color: #ef4444;
+  --fc-border-color: var(--border);
+  --fc-page-bg-color: var(--card);
+  --fc-neutral-bg-color: var(--muted);
+  --fc-today-bg-color: color-mix(in srgb, var(--primary-soft) 45%, transparent);
+  --fc-now-indicator-color: var(--destructive);
   --fc-event-border-color: transparent;
   --fc-event-bg-color: var(--color-primary);
   --fc-small-font-size: 0.75rem;
@@ -179,22 +340,22 @@ html {
   overflow: hidden;
   border-width: 0 0 1px;
   border-radius: 0;
-  background: #ffffff;
+  background: var(--card);
   box-shadow: none;
 }
 
 .calendar-shell .fc-col-header-cell {
-  background: #ffffff;
+  background: var(--card);
   padding: 0.6rem 0;
-  border-bottom: 1px solid rgb(226 232 240);
+  border-bottom: 1px solid var(--border);
 }
 
 .calendar-shell .fc-col-header-cell.fc-day-today {
-  background: rgb(239 246 255 / 0.4);
+  background: color-mix(in srgb, var(--primary-soft) 40%, transparent);
 }
 
 .calendar-shell .fc-col-header-cell-cushion {
-  color: rgb(100 116 139);
+  color: var(--muted-foreground);
   font-size: 0.75rem;
   font-weight: 600;
   text-decoration: none;
@@ -202,14 +363,14 @@ html {
 }
 
 .calendar-shell .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
-  color: rgb(37 99 235);
-  font-weight: 700;
+  color: var(--info);
+  font-weight: 600;
 }
 
 .calendar-shell .fc-timegrid-axis-cushion,
 .calendar-shell .fc-timegrid-slot-label-cushion {
-  color: rgb(148 163 184);
-  font-size: 0.7rem;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   text-decoration: none;
@@ -217,11 +378,11 @@ html {
 
 .calendar-shell .fc-timegrid-slot-minor {
   border-top-style: dotted;
-  border-top-color: rgb(241 245 249);
+  border-top-color: var(--muted);
 }
 
 .calendar-shell .fc-daygrid-day-number {
-  color: rgb(71 85 105);
+  color: var(--muted-foreground);
   font-size: 0.8rem;
   font-weight: 500;
   text-decoration: none;
@@ -230,25 +391,20 @@ html {
 .calendar-shell .fc-event {
   border-radius: 6px;
   border: 0;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  box-shadow: none;
   cursor: pointer;
-  transition:
-    filter 130ms cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 130ms cubic-bezier(0.4, 0, 0.2, 1),
-    transform 130ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: outline-color 130ms var(--ease-standard);
 }
 
 .calendar-shell .fc-event:hover {
-  filter: brightness(0.96);
-  box-shadow:
-    0 4px 12px -2px rgb(15 23 42 / 18%),
-    0 2px 4px -1px rgb(15 23 42 / 10%);
-  transform: translateY(-0.5px);
+  outline: 1px solid var(--ring);
+  outline-offset: 1px;
   z-index: 5 !important;
 }
 
-.calendar-shell .fc-event:active {
-  transform: translateY(0.5px);
+.calendar-shell .fc-event:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 .calendar-shell .fc-daygrid-dot-event,
@@ -261,9 +417,7 @@ html {
 
 .calendar-shell .calendar-task-event {
   border-radius: 6px;
-  box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 16%),
-    0 1px 2px 0 rgb(0 0 0 / 0.05);
+  box-shadow: none;
 }
 
 .calendar-shell .calendar-task-event .fc-event-main {
@@ -275,11 +429,7 @@ html {
 }
 
 .calendar-shell .calendar-task-event-completed {
-  opacity: 0.48;
-}
-
-.calendar-shell .calendar-task-event-completed:hover {
-  opacity: 0.62;
+  text-decoration: line-through;
 }
 
 .calendar-shell .fc-event-main {
@@ -293,24 +443,24 @@ html {
 
 .calendar-shell .fc-timegrid-more-link {
   z-index: 3;
-  border: 1px solid #fed7aa;
-  border-radius: 6px;
-  background: #fff7ed;
-  color: #9a3412;
-  font-size: 0.7rem;
-  font-weight: 700;
-  box-shadow: 0 1px 2px rgb(154 52 18 / 8%);
+  border: 1px solid var(--warning);
+  border-radius: 8px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: none;
 }
 
 .calendar-shell .fc-timegrid-more-link:hover,
 .calendar-shell .fc-timegrid-more-link:focus-visible {
-  border-color: #fb923c;
-  background: #ffedd5;
-  color: #7c2d12;
+  border-color: var(--warning);
+  background: var(--warning-soft);
+  color: var(--warning);
 }
 
 .calendar-shell .fc-timegrid-more-link:focus-visible {
-  outline: 2px solid #ea580c;
+  outline: 2px solid var(--warning);
   outline-offset: 2px;
 }
 
@@ -321,41 +471,32 @@ html {
 
 .calendar-shell .fc-popover {
   max-width: min(320px, calc(100vw - 24px));
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  box-shadow: 0 12px 32px rgb(15 23 42 / 16%);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-panel);
   overflow: hidden;
 }
 
 .calendar-shell .fc-popover-header {
   padding: 8px 10px;
-  background: #f8fafc;
-  color: #334155;
+  background: var(--muted);
+  color: var(--foreground);
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .calendar-shell .fc-timegrid-event-harness-inset > .fc-timegrid-event {
-  box-shadow:
-    inset 0 0 0 1px #ffffff,
-    0 1px 2px 0 rgb(0 0 0 / 0.05);
-}
-
-.calendar-shell .fc-timegrid-event-harness-inset > .fc-timegrid-event:hover {
-  box-shadow:
-    inset 0 0 0 1px #ffffff,
-    0 4px 12px -2px rgb(15 23 42 / 18%),
-    0 2px 4px -1px rgb(15 23 42 / 10%);
+  box-shadow: none;
 }
 
 .calendar-shell .fc-timegrid-now-indicator-line {
   border-top-width: 2px;
-  border-top-color: #ef4444;
+  border-top-color: var(--destructive);
   z-index: 4;
 }
 
 .calendar-shell .fc-timegrid-now-indicator-arrow {
-  border-color: #ef4444;
+  border-color: var(--destructive);
   border-width: 5px 0 5px 6px;
   border-bottom-color: transparent;
   border-top-color: transparent;
@@ -366,7 +507,7 @@ html {
   border: 0;
   border-radius: 0;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--card);
 }
 
 .calendar-shell .fc-timegrid-slot {
@@ -375,9 +516,9 @@ html {
 
 .calendar-shell .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
   align-items: center;
-  background: #2563eb;
+  background: var(--primary);
   border-radius: 9999px;
-  color: #ffffff;
+  color: var(--primary-foreground);
   display: inline-flex;
   font-size: 0.75rem;
   font-weight: 600;
@@ -418,7 +559,7 @@ html {
 }
 
 .calendar-mini-shell .fc-col-header-cell-cushion {
-  color: rgb(71 85 105);
+  color: var(--muted-foreground);
   display: block;
   font-size: 0.68rem;
   font-weight: 700;
@@ -448,7 +589,7 @@ html {
 .calendar-mini-shell .fc-daygrid-day-number {
   align-items: center;
   border-radius: 9999px;
-  color: rgb(30 41 59);
+  color: var(--foreground);
   display: inline-flex;
   font-size: 0.72rem;
   font-weight: 600;
@@ -461,23 +602,23 @@ html {
 }
 
 .calendar-mini-shell .fc-daygrid-day-number:hover {
-  background: rgb(241 245 249);
+  background: var(--muted);
 }
 
 .calendar-mini-shell .fc-day-other .fc-daygrid-day-number {
-  color: rgb(148 163 184);
-  opacity: 0.6;
+  color: var(--muted-foreground);
+  opacity: 1;
 }
 
 .calendar-mini-shell .fc-day-today .fc-daygrid-day-number {
-  background: rgb(239 246 255);
-  color: rgb(37 99 235);
+  background: var(--primary-soft);
+  color: var(--info);
   font-weight: 700;
 }
 
 .calendar-mini-shell .is-selected-date .fc-daygrid-day-number {
-  background: rgb(37 99 235) !important;
-  color: #ffffff !important;
+  background: var(--info) !important;
+  color: var(--primary-foreground) !important;
   font-weight: 700;
 }
 

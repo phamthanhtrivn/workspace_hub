@@ -123,14 +123,14 @@ export function ShareModalList({
 
   return (
     <div className="space-y-3">
-      <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider block">
+      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
         People with access
       </h4>
-      <div className="divide-y divide-slate-50 border border-slate-100 rounded-2xl p-2 max-h-64 overflow-y-auto bg-white">
+      <div className="divide-y divide-border border border-border rounded-panel p-2 max-h-64 overflow-y-auto bg-card">
         {/* Owner Item */}
         <div className="flex items-center justify-between p-2">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-black uppercase tracking-wider shrink-0 relative overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-info-soft text-info flex items-center justify-center text-xs font-semibold uppercase tracking-wider shrink-0 relative overflow-hidden">
               {ownerProfile?.avatarUrl ? (
                 <Image
                   src={ownerProfile.avatarUrl}
@@ -144,22 +144,22 @@ export function ShareModalList({
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-700 truncate max-w-[220px]">
+              <p className="text-xs font-semibold text-foreground truncate max-w-[220px]">
                 {ownerProfile?.fullName || ownerEmail}
               </p>
-              <p className="text-[10px] font-bold text-slate-400 truncate max-w-[220px]">
+              <p className="text-xs font-semibold text-muted-foreground truncate max-w-[220px]">
                 {ownerEmail}
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-black text-slate-400 bg-slate-100 rounded-lg px-2 py-1 uppercase tracking-wide">
+          <span className="text-xs font-semibold text-muted-foreground bg-muted rounded-lg px-2 py-1 uppercase tracking-wide">
             Owner
           </span>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-6">
-            <Loader2 size={20} className="animate-spin text-slate-400" />
+            <Loader2 size={20} className="animate-spin text-muted-foreground" />
           </div>
         ) : (
           shares.map((share) => {
@@ -173,7 +173,7 @@ export function ShareModalList({
                 className="flex items-center justify-between p-2"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black uppercase tracking-wider shrink-0 relative overflow-hidden">
+                  <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs font-semibold uppercase tracking-wider shrink-0 relative overflow-hidden">
                     {profile?.avatarUrl ? (
                       <Image
                         src={profile.avatarUrl}
@@ -187,10 +187,10 @@ export function ShareModalList({
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-700 truncate max-w-[220px]">
+                    <p className="text-xs font-semibold text-foreground truncate max-w-[220px]">
                       {profile?.fullName || share.shareWithEmail}
                     </p>
-                    <p className="flex items-center gap-2 text-[10px] font-bold text-slate-400 truncate max-w-[220px]">
+                    <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground truncate max-w-[220px]">
                       {share.shareWithEmail}
                     </p>
                   </div>
@@ -206,7 +206,7 @@ export function ShareModalList({
                             e.target.value as SharePermission,
                           )
                         }
-                        className="bg-transparent hover:bg-slate-50 border-0 rounded-lg py-1 px-1.5 text-xs font-black text-slate-500 hover:text-slate-700 outline-hidden transition-all cursor-pointer"
+                        className="bg-transparent hover:bg-background border-0 rounded-lg py-1 px-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground outline-hidden transition-all cursor-pointer"
                       >
                         {Object.values(SharePermission).map((value) => (
                           <option key={value} value={value}>
@@ -214,17 +214,17 @@ export function ShareModalList({
                           </option>
                         ))}
                       </select>
-                      <button
+                      <button aria-label="Remove sharing access"
                         onClick={() =>
                           handleRemoveShare(share.id, share.shareWithEmail)
                         }
-                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive-soft/50 rounded-control transition-colors cursor-pointer"
                       >
                         <Trash2 size={14} />
                       </button>
                     </>
                   ) : (
-                    <span className="text-[10px] font-black text-slate-400 bg-slate-100 rounded-lg px-2.5 py-1 uppercase tracking-wide">
+                    <span className="text-xs font-semibold text-muted-foreground bg-muted rounded-lg px-2.5 py-1 uppercase tracking-wide">
                       {permissionLabel(share.permission)}
                     </span>
                   )}

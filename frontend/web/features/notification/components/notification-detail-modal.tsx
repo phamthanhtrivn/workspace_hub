@@ -54,15 +54,15 @@ const NotificationDetailModal = React.memo(function NotificationDetailModal({
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-0">
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-overlay/40"
         onClick={onClose}
       ></div>
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="font-bold text-slate-800">Notification Details</h2>
-          <button
+      <div className="relative bg-card rounded-panel w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background">
+          <h2 className="font-semibold text-foreground">Notification Details</h2>
+          <button aria-label="Close"
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition cursor-pointer"
+            className="p-1 rounded-control text-muted-foreground hover:bg-accent hover:text-muted-foreground transition cursor-pointer"
           >
             <X size={18} />
           </button>

@@ -259,12 +259,12 @@ export function CalendarWorkspace() {
   }, [tasksData, calendarEvents, projectCalendarIds]);
 
   return (
-    <section className="relative h-full w-full overflow-hidden bg-white">
+    <section className="relative h-full w-full overflow-hidden bg-card">
       {mobileSidebarOpen && (
         <Button
           type="button"
           variant="ghost"
-          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-slate-950/30 p-0 lg:hidden"
+          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-overlay/30 p-0 lg:hidden"
           onClick={() => setMobileSidebarOpen(false)}
           aria-label="Close"
         />
@@ -272,7 +272,7 @@ export function CalendarWorkspace() {
       <div className="flex h-full min-h-0 w-full overflow-hidden">
         <div
           className={cn(
-            "z-30 shrink-0 transform transition-all duration-300 ease-in-out",
+            "z-50 shrink-0 transform transition-transform duration-200 ease-out",
             "fixed inset-y-0 left-0 w-64 lg:static lg:inset-auto",
             mobileSidebarOpen
               ? "translate-x-0"
@@ -315,7 +315,7 @@ export function CalendarWorkspace() {
           </div>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-slate-50/60">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
           <CalendarToolbar
             title={calendar.title}
             activeView={calendar.activeView}
@@ -326,9 +326,9 @@ export function CalendarWorkspace() {
 
           {calendar.hasError ? (
             <div className="flex flex-1 items-center justify-center p-6">
-              <div className="rounded-xl border border-red-100 bg-white px-5 py-4 text-center shadow-sm">
-                <AlertCircle className="mx-auto h-8 w-8 text-red-500" />
-                <p className="mt-2 text-sm font-bold text-slate-700">
+              <div className="rounded-panel border border-border bg-card px-5 py-4 text-center">
+                <AlertCircle className="mx-auto h-8 w-8 text-destructive" />
+                <p className="mt-2 text-sm font-semibold text-foreground">
                   Failed to load calendar events
                 </p>
               </div>

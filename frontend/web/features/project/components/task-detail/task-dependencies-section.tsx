@@ -94,15 +94,15 @@ export default function TaskDependenciesSection({
             variant="outline"
             size="sm"
             onClick={() => setIsOpen((prev) => !prev)}
-            className="h-7 cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-2.5 text-xs font-semibold text-slate-600 transition hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700"
+            className="h-7 cursor-pointer items-center gap-1.5 rounded-control border border-dashed border-input px-2.5 text-xs font-semibold text-muted-foreground transition hover:border-info hover:bg-info-soft hover:text-info"
           >
             <Link2 className="h-3.5 w-3.5" />
             Blocked by ({taskDependencies.length})
           </Button>
           {isOpen && (
-            <div className="absolute left-0 top-full z-30 mt-1 max-h-60 w-64 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+            <div className="absolute left-0 top-full z-30 mt-1 max-h-60 w-64 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
               {dependencyCandidates.length === 0 ? (
-                <p className="px-3 py-2.5 text-xs text-slate-400">
+                <p className="px-3 py-2.5 text-xs text-muted-foreground">
                   No available tasks can block this task.
                 </p>
               ) : (
@@ -116,7 +116,7 @@ export default function TaskDependenciesSection({
                       setIsOpen(false);
                       void onCreateDependency(candidate.id);
                     }}
-                    className="flex h-auto w-full cursor-pointer justify-start truncate rounded-lg px-2.5 py-1.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    className="flex h-auto w-full cursor-pointer justify-start truncate rounded-control px-2.5 py-1.5 text-left text-xs font-medium text-foreground hover:bg-background"
                   >
                     Blocked by {candidate.title}
                   </Button>
@@ -137,7 +137,7 @@ export default function TaskDependenciesSection({
               <Badge
                 key={dependency.id}
                 variant="outline"
-                className="inline-flex max-w-full items-center gap-1.5 rounded-full border-indigo-200 bg-indigo-50/80 px-2.5 py-0.5 text-[11px] font-semibold text-indigo-700"
+                className="inline-flex max-w-full items-center gap-1.5 rounded-full border-border bg-info-soft/80 px-2.5 py-0.5 text-xs font-semibold text-info"
               >
                 <span className="truncate">
                   Blocked by {predecessor?.title || "Predecessor Task"}
@@ -150,7 +150,7 @@ export default function TaskDependenciesSection({
                     onClick={() =>
                       void onDeleteDependency(dependency.predecessorTaskId)
                     }
-                    className="ml-0.5 h-3.5 w-3.5 cursor-pointer p-0 font-bold hover:bg-transparent hover:text-red-600"
+                    className="ml-0.5 h-3.5 w-3.5 cursor-pointer p-0 font-semibold hover:bg-transparent hover:text-destructive"
                     aria-label="Remove dependency"
                   >
                     x
@@ -172,7 +172,7 @@ export default function TaskDependenciesSection({
               <Badge
                 key={dependency.id}
                 variant="outline"
-                className="inline-flex max-w-full items-center gap-1.5 rounded-full border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600"
+                className="inline-flex max-w-full items-center gap-1.5 rounded-full border-border bg-background px-2.5 py-0.5 text-xs font-semibold text-muted-foreground"
               >
                 <span className="truncate">
                   Blocking {successor?.title || "Successor Task"}

@@ -57,10 +57,10 @@ function ListView({
   isProjectDocuments = false,
 }: ListViewProps) {
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs animate-in fade-in duration-200">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-panel border border-border bg-card animate-in fade-in duration-200">
       <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto">
-        <table className="w-full border-collapse text-left text-sm text-slate-700">
-          <tbody className="divide-y divide-slate-100">
+        <table className="w-full border-collapse text-left text-sm text-foreground">
+          <tbody className="divide-y divide-border">
             {items.map((item) => (
               <ListViewRow
                 key={item.id}

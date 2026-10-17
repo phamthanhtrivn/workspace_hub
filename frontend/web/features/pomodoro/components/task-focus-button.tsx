@@ -19,7 +19,7 @@ function FocusButton({ target, compact = false }: { target: PomodoroActiveTask; 
   if (compact) return (
     <span data-card-interactive="true" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
       <Popover>
-        <PopoverTrigger asChild><Button type="button" size="sm" variant="ghost" disabled={disabled} aria-label={`Focus actions: ${target.title}`} title={label} className="size-7 rounded-md p-1 text-blue-700"><Timer className="size-3.5" /></Button></PopoverTrigger>
+        <PopoverTrigger asChild><Button type="button" size="sm" variant="ghost" disabled={disabled} aria-label={`Focus actions: ${target.title}`} title={label} className="size-7 rounded-control p-1 text-info"><Timer className="size-3.5" /></Button></PopoverTrigger>
         <PopoverContent align="end" className="w-44 p-1">
           <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => void startFocus(target)} className="w-full justify-start gap-2 text-xs"><Timer className="size-3.5" />{label}</Button>
         </PopoverContent>
@@ -30,7 +30,7 @@ function FocusButton({ target, compact = false }: { target: PomodoroActiveTask; 
     <span data-card-interactive="true" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
       <Button type="button" size="sm" variant="outline" disabled={disabled}
         title={label} aria-label={`${label}: ${target.title}`} onClick={(event) => { event.stopPropagation(); void startFocus(target); }}
-        className="h-8 gap-1.5 rounded-lg text-xs">
+        className="h-8 gap-1.5 rounded-control text-xs">
         <Timer className="size-3.5" />{label}
       </Button>
     </span>

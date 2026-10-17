@@ -32,7 +32,7 @@ export function MeetingMessageReadReceipts({
           return (
             <div
               key={userId}
-              className="relative h-4 w-4 cursor-pointer overflow-hidden rounded-full border-2 border-[#1f2937] bg-slate-700 shadow-sm transition-transform hover:z-10 hover:scale-105"
+              className="relative h-4 w-4 cursor-pointer overflow-hidden rounded-full border-2 border-border bg-primary transition-transform hover:z-10"
               title={`Read by ${readerName}`}
             >
               {readerProfile?.avatarUrl ? (
@@ -47,8 +47,8 @@ export function MeetingMessageReadReceipts({
               ) : (
                 <AvatarFallback
                   label={readerName}
-                  className="h-full w-full bg-slate-700 ring-0 shadow-none"
-                  iconClassName="h-2.5 w-2.5 text-slate-300"
+                  className="h-full w-full bg-primary ring-0 shadow-none"
+                  iconClassName="h-2.5 w-2.5 text-muted-foreground"
                 />
               )}
             </div>
@@ -56,8 +56,8 @@ export function MeetingMessageReadReceipts({
         })}
 
         {otherReaders.length > 5 && (
-          <div className="relative z-0 flex h-4 w-4 items-center justify-center rounded-full border-2 border-[#1f2937] bg-slate-700 shadow-sm hover:z-10">
-            <span className="text-[7px] font-bold leading-none text-slate-200">
+          <div className="relative z-0 flex h-4 w-4 items-center justify-center rounded-full border-2 border-border bg-primary hover:z-10">
+            <span className="text-[7px] font-semibold leading-none text-muted-foreground">
               +{otherReaders.length - 5}
             </span>
           </div>

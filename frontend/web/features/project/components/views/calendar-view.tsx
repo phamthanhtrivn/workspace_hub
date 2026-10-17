@@ -40,23 +40,23 @@ const MONTH_INDEXES = Array.from({ length: 12 }, (_, index) => index);
 const statusColors: Record<TaskStatus, { label: string; card: string }> = {
   [TaskStatus.TODO]: {
     label: "To Do",
-    card: "border-slate-600 bg-slate-500 hover:bg-slate-600 text-white",
+    card: "border-input bg-muted-foreground hover:bg-primary text-primary-foreground",
   },
   [TaskStatus.IN_PROGRESS]: {
     label: "In Progress",
-    card: "border-[#0747A6] bg-[#0052CC] hover:bg-[#0747A6] text-white",
+    card: "border-border bg-primary hover:bg-primary-hover text-primary-foreground",
   },
   [TaskStatus.IN_REVIEW]: {
     label: "In Review",
-    card: "border-amber-600 bg-amber-500 hover:bg-amber-600 text-white",
+    card: "border-warning bg-warning hover:bg-warning text-warning-foreground",
   },
   [TaskStatus.DONE]: {
     label: "Done",
-    card: "border-emerald-700 bg-emerald-600 hover:bg-emerald-700 text-white",
+    card: "border-success bg-success hover:bg-success text-success-foreground",
   },
   [TaskStatus.CANCELLED]: {
     label: "Cancelled",
-    card: "border-red-700 bg-red-600 hover:bg-red-700 text-white",
+    card: "border-destructive bg-destructive hover:bg-destructive text-destructive-foreground",
   },
 };
 
@@ -162,22 +162,22 @@ function DroppableCalendarDay({
   return (
     <div
       ref={setNodeRef}
-      className={`group relative border-r border-slate-100 p-2 last:border-r-0 transition-colors ${
+      className={`group relative border-r border-border p-2 last:border-r-0 transition-colors ${
         !isCurrentMonth
-          ? "bg-slate-50/40 pointer-events-none"
+          ? "bg-background pointer-events-none"
           : isOver
-            ? "bg-blue-50/90 ring-2 ring-inset ring-blue-500 shadow-inner"
-            : "bg-white"
+            ? "bg-info-soft/90 ring-2 ring-inset ring-ring"
+            : "bg-card"
       }`}
     >
       {isCurrentMonth && (
         <>
           <div className="flex items-center justify-between">
             <span
-              className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold ${
+              className={`grid h-7 w-7 place-items-center rounded-full text-xs font-semibold ${
                 isToday
-                  ? "bg-[#0052CC] text-white"
-                  : "text-slate-600"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground"
               }`}
             >
               {date.getDate()}
@@ -188,7 +188,7 @@ function DroppableCalendarDay({
                 variant="ghost"
                 size="icon"
                 onClick={() => onCreateDate(keyStr)}
-                className="pointer-events-auto h-7 w-7 rounded-lg text-slate-300 opacity-0 transition hover:bg-slate-100 hover:text-slate-600 group-hover:opacity-100 cursor-pointer p-0"
+                className="pointer-events-auto h-7 w-7 rounded-control text-muted-foreground opacity-0 transition hover:bg-muted hover:text-muted-foreground group-hover:opacity-100 cursor-pointer p-0"
                 aria-label={`Create task for ${keyStr}`}
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -196,14 +196,14 @@ function DroppableCalendarDay({
             )}
           </div>
           {isOver && (
-            <div className="pointer-events-none absolute inset-x-2 top-10 bottom-2 flex items-center justify-center rounded-lg border-2 border-dashed border-blue-400 bg-blue-100/40">
-              <span className="text-[11px] font-bold text-blue-700">
+            <div className="pointer-events-none absolute inset-x-2 top-10 bottom-2 flex items-center justify-center rounded-lg border-2 border-dashed border-info bg-info-soft/40">
+              <span className="text-xs font-semibold text-info">
                 {dropHereText}
               </span>
             </div>
           )}
           {dayTasksCount > 4 && !isOver && (
-            <p className="absolute bottom-2 left-2 text-[10px] font-bold text-slate-400">
+            <p className="absolute bottom-2 left-2 text-xs font-semibold text-muted-foreground">
               {moreTasksText}
             </p>
           )}
@@ -241,20 +241,20 @@ function DraggableUnscheduledTask({
           onClick?.();
         }
       }}
-      className={`group inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left shadow-sm transition hover:border-[#0052CC] hover:shadow-md select-none ${
+      className={`group inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-left transition hover:border-primary select-none ${
         canDrag
-          ? "cursor-grab active:cursor-grabbing hover:border-blue-400"
+          ? "cursor-grab active:cursor-grabbing hover:border-info"
           : "cursor-pointer"
-      } ${isDragging ? "opacity-25 ring-2 ring-blue-400 ring-offset-1" : ""}`}
+      } ${isDragging ? "opacity-25 ring-2 ring-ring ring-offset-1" : ""}`}
     >
       {canDrag && (
-        <GripVertical className="h-3.5 w-3.5 shrink-0 text-slate-300 transition group-hover:text-slate-500" />
+        <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition group-hover:text-muted-foreground" />
       )}
       <span className="shrink-0">{priorityIcon}</span>
-      <span className="max-w-56 truncate text-xs font-bold text-[#172B4D]">
+      <span className="max-w-56 truncate text-xs font-semibold text-foreground">
         {task.title}
       </span>
-      <span className="shrink-0 text-[10px] font-semibold text-slate-400">
+      <span className="shrink-0 text-xs font-semibold text-muted-foreground">
         {task.parentTaskId ? "Subtask" : "Task"}
       </span>
     </div>
@@ -275,21 +275,21 @@ function UnscheduledTasksPanel({
   if (unscheduledTasks.length === 0) return null;
 
   return (
-    <div className="shrink-0 border-t border-slate-100 bg-slate-50/60 px-4 py-4">
+    <div className="shrink-0 border-t border-border bg-background px-4 py-4">
       <div className="flex items-start gap-2.5">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 ring-1 ring-amber-500/20">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-warning-soft text-warning ring-1 ring-warning/20">
           <Clock className="h-4 w-4" />
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-[#172B4D]">
+            <h3 className="text-sm font-semibold text-foreground">
               Unscheduled Tasks
             </h3>
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+            <span className="rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning">
               {unscheduledTasks.length}
             </span>
           </div>
-          <p className="mt-1 text-xs font-semibold text-slate-400">
+          <p className="mt-1 text-xs font-semibold text-muted-foreground">
             Drag unscheduled tasks directly onto any calendar date to schedule
             them. Done and Cancelled tasks cannot be dragged.
           </p>
@@ -418,10 +418,10 @@ export default function CalendarView({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="flex h-full min-h-[560px] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-        <div className="relative shrink-0 flex flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-center">
+      <div className="flex h-full min-h-[560px] flex-col overflow-hidden rounded-panel border border-border bg-card">
+        <div className="relative shrink-0 flex flex-col gap-2 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-center">
           <div className="sm:absolute sm:left-4">
-            <p className="text-xs font-semibold text-slate-400">
+            <p className="text-xs font-semibold text-muted-foreground">
               Click any date or drag tasks to schedule.
             </p>
           </div>
@@ -432,7 +432,7 @@ export default function CalendarView({
               variant="ghost"
               size="icon"
               onClick={() => moveMonth(-1)}
-              className="h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-100 cursor-pointer"
+              className="h-8 w-8 rounded-control text-muted-foreground hover:bg-muted cursor-pointer"
               aria-label="Previous Month"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -444,12 +444,12 @@ export default function CalendarView({
                 onValueChange={handleMonthChange}
               >
                 <SelectTrigger
-                  className="h-8 w-36 rounded-lg border-slate-200 bg-white text-xs font-bold text-[#172B4D] shadow-xs"
+                  className="h-8 w-36 rounded-control border-input bg-card text-xs font-semibold text-foreground"
                   aria-label="Select calendar month"
                 >
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="rounded-lg border-slate-200">
+                <SelectContent className="rounded-lg border-border">
                   {monthOptions.map((month) => (
                     <SelectItem
                       key={month.value}
@@ -485,7 +485,7 @@ export default function CalendarView({
                     event.currentTarget.blur();
                   }
                 }}
-                className="h-8 w-24 rounded-lg border-slate-200 bg-white text-center text-xs font-bold text-[#172B4D] shadow-xs"
+                className="h-8 w-24 rounded-control border-input bg-card text-center text-xs font-semibold text-foreground"
               />
             </div>
 
@@ -494,7 +494,7 @@ export default function CalendarView({
               variant="ghost"
               size="icon"
               onClick={() => moveMonth(1)}
-              className="h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-100 cursor-pointer"
+              className="h-8 w-8 rounded-control text-muted-foreground hover:bg-muted cursor-pointer"
               aria-label="Next Month"
             >
               <ChevronRight className="h-4 w-4" />
@@ -505,18 +505,18 @@ export default function CalendarView({
               variant="outline"
               size="sm"
               onClick={goToToday}
-              className="ml-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 cursor-pointer"
+              className="ml-2 rounded-control border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:bg-background cursor-pointer"
             >
               Today
             </Button>
           </div>
         </div>
 
-        <div className="grid shrink-0 grid-cols-7 border-b border-slate-100 bg-slate-50/70">
+        <div className="grid shrink-0 grid-cols-7 border-b border-border bg-background">
           {WEEKDAYS.map((weekday) => (
             <div
               key={weekday}
-              className="border-r border-slate-100 px-2 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 last:border-r-0"
+              className="border-r border-border px-2 py-2 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground last:border-r-0"
             >
               {weekday}
             </div>
@@ -535,7 +535,7 @@ export default function CalendarView({
               return (
                 <div
                   key={weekDays[0].key}
-                  className="relative grid min-h-40 grid-cols-7 border-b border-slate-100 sm:min-h-44"
+                  className="relative grid min-h-40 grid-cols-7 border-b border-border sm:min-h-44"
                 >
                   {weekDays.map(
                     ({
@@ -575,16 +575,16 @@ export default function CalendarView({
                             gridColumn: `${startColumn + 1} / span ${span}`,
                             gridRow: lane + 1,
                           }}
-                          className={`pointer-events-auto mx-1.5 flex h-auto min-w-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left shadow-xs transition-all hover:brightness-95 hover:shadow-md cursor-pointer ${statusColors[task.status].card}`}
+                          className={`pointer-events-auto mx-1.5 flex h-auto min-w-0 items-center gap-1.5 rounded-control border px-2.5 py-1.5 text-left transition-all cursor-pointer ${statusColors[task.status].card}`}
                         >
                           {showTitle && (
-                            <span className="truncate text-[11px] font-bold text-white">
+                            <span className="truncate text-xs font-semibold text-primary-foreground">
                               {task.title}
                             </span>
                           )}
                           {showTitle && timeLabel && (
-                            <span className="ml-auto inline-flex min-w-0 shrink-0 items-center gap-0.5 truncate text-[9px] font-semibold text-white/90">
-                              <Clock className="h-2.5 w-2.5 text-white/90" />
+                            <span className="ml-auto inline-flex min-w-0 shrink-0 items-center gap-0.5 truncate text-xs font-semibold text-primary-foreground">
+                              <Clock className="h-2.5 w-2.5 text-primary-foreground" />
                               {timeLabel}
                             </span>
                           )}
@@ -610,12 +610,12 @@ export default function CalendarView({
       <DragOverlay dropAnimation={null}>
         {activeTask ? (
           <div
-            className={`pointer-events-none flex items-center gap-2 rounded-lg border px-3 py-2 shadow-2xl opacity-95 ${
-              statusColors[activeTask.status]?.card ?? "bg-slate-700 text-white"
+            className={`pointer-events-none flex items-center gap-2 rounded-lg border px-3 py-2 opacity-95 ${
+              statusColors[activeTask.status]?.card ?? "bg-primary text-primary-foreground"
             }`}
           >
-            <GripVertical className="h-3.5 w-3.5 text-white/80" />
-            <span className="max-w-64 truncate text-xs font-bold text-white">
+            <GripVertical className="h-3.5 w-3.5 text-primary-foreground" />
+            <span className="max-w-64 truncate text-xs font-semibold text-primary-foreground">
               {activeTask.title}
             </span>
           </div>

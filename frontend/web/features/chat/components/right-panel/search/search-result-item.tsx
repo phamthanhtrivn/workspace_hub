@@ -37,13 +37,13 @@ export default function SearchResultItem({
   const renderSnippet = () => {
     if (message.recalled) {
       return (
-        <span className="italic text-gray-500">
+        <span className="italic text-muted-foreground">
           This message was recalled
         </span>
       );
     }
     if (message.type === "SYSTEM") {
-      return <span className="italic text-gray-500">{message.content}</span>;
+      return <span className="italic text-muted-foreground">{message.content}</span>;
     }
     if (message.type === "POLL") {
       return (
@@ -110,9 +110,9 @@ export default function SearchResultItem({
   return (
     <div
       onClick={() => onClick(message.id)}
-      className="cursor-pointer hover:bg-gray-100 p-3 rounded-xl transition flex gap-3 items-start"
+      className="cursor-pointer hover:bg-muted p-3 rounded-panel transition flex gap-3 items-start"
     >
-      <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+      <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden bg-muted">
         {avatarUrl ? (
           <Image
             src={avatarUrl}
@@ -122,21 +122,21 @@ export default function SearchResultItem({
             className="rounded-full object-cover w-full h-full"
           />
         ) : (
-          <User size={20} className="text-gray-400" />
+          <User size={20} className="text-muted-foreground" />
         )}
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <div className="flex justify-between items-baseline mb-1">
-          <span className="font-semibold text-sm text-gray-900 truncate mr-2">
+          <span className="font-semibold text-sm text-foreground truncate mr-2">
             {fullName}
           </span>
-          <span className="text-[11px] text-gray-400 whitespace-nowrap flex-shrink-0">
+          <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
             {formatDateTime(message.createdAt)}
           </span>
         </div>
 
-        <div className="text-sm text-gray-600 truncate">{renderSnippet()}</div>
+        <div className="text-sm text-muted-foreground truncate">{renderSnippet()}</div>
       </div>
     </div>
   );

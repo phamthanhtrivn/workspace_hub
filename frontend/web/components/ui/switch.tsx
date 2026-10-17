@@ -27,7 +27,7 @@ function Switch({
       data-slot="switch"
       data-state={checked ? "checked" : "unchecked"}
       className={cn(
-        "inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border border-transparent bg-input p-0.5 shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary",
+        "inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border border-transparent bg-input p-0.5 outline-none transition focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary",
         className,
       )}
       onClick={(event) => {
@@ -41,7 +41,7 @@ function Switch({
       <span
         data-slot="switch-thumb"
         className={cn(
-          "block size-5 rounded-full bg-background shadow-sm transition-transform",
+          "block size-5 rounded-full bg-background transition-transform",
           checked ? "translate-x-5" : "translate-x-0",
         )}
       />

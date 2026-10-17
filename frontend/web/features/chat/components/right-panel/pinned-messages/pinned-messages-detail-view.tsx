@@ -176,23 +176,23 @@ export default function PinnedMessagesDetailView({
   };
 
   return (
-    <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center gap-3">
-        <button
+    <div className="w-full h-full bg-card border-l border-border flex flex-col">
+      <div className="h-16 px-4 border-b border-border flex items-center gap-3">
+        <button aria-label="Back"
           onClick={onBack}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <ArrowLeft size={18} />
         </button>
-        <h2 className="font-semibold text-gray-800">
+        <h2 className="font-semibold text-foreground">
           Pinned Messages
         </h2>
       </div>
 
-      <div className="px-4 py-3 border-b border-gray-100 flex flex-col gap-3 shrink-0">
+      <div className="px-4 py-3 border-b border-border flex flex-col gap-3 shrink-0">
         <div className="relative">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={16}
           />
           <input
@@ -200,20 +200,20 @@ export default function PinnedMessagesDetailView({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search pinned messages..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card focus:border-info focus:ring-1 focus:ring-ring outline-none transition"
           />
         </div>
 
         {isDirect && (
           <div>
-            <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-500 mb-1.5">
+            <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground mb-1.5">
               <Filter size={13} />
               Sender
             </label>
             <select
               value={senderId}
               onChange={(event) => setSenderId(event.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              className="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info focus:ring-1 focus:ring-ring cursor-pointer"
             >
               <option value="">
                 All Senders
@@ -230,11 +230,11 @@ export default function PinnedMessagesDetailView({
 
       <div className="flex-1 overflow-y-auto p-4">
         {isLoading ? (
-          <div className="text-center text-xs text-gray-400 py-6">
+          <div className="text-center text-xs text-muted-foreground py-6">
             Loading pinned messages...
           </div>
         ) : pinnedMessages.length === 0 ? (
-          <div className="text-center text-xs text-gray-400 py-6">
+          <div className="text-center text-xs text-muted-foreground py-6">
             {searchQuery
               ? "No matching pinned messages"
               : "No pinned messages"}
@@ -244,7 +244,7 @@ export default function PinnedMessagesDetailView({
             {pinnedMessages.map((message: any) => (
               <div
                 key={message.id}
-                className="group flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50/60 p-3 hover:bg-gray-100 transition"
+                className="group flex items-start gap-3 rounded-lg border border-border bg-background p-3 hover:bg-muted transition"
               >
                 {message.senderProfile?.avatarUrl ? (
                   <img
@@ -255,7 +255,7 @@ export default function PinnedMessagesDetailView({
                     className="h-9 w-9 shrink-0 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-600">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-info-soft text-sm font-semibold text-info">
                     {getInitial(message.senderProfile?.fullName)}
                   </div>
                 )}
@@ -264,25 +264,25 @@ export default function PinnedMessagesDetailView({
                   className="min-w-0 flex-1 cursor-pointer text-left"
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-800">
+                    <span className="text-sm font-semibold text-foreground">
                       {message.senderProfile?.fullName || "User"}
                     </span>
                   </div>
-                  <div className="mt-1 text-sm text-gray-600 inline-flex items-center gap-2">
+                  <div className="mt-1 text-sm text-muted-foreground inline-flex items-center gap-2">
                     <span className="block truncate">
                       {getPinnedPreviewText(message)}
                     </span>
-                    <span className="shrink-0 text-[11px] text-gray-400">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {formatDateTime(message.updatedAt)}
                     </span>
                   </div>
                 </button>
                 <button
                   onClick={() => handleUnpin(message.id)}
-                  className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
+                  className="cursor-pointer rounded-control p-1.5 text-muted-foreground hover:bg-destructive-soft hover:text-destructive transition"
                   title="Unpin"
                 >
-                  <Pin size={15} className="mt-1 shrink-0 text-blue-500" />
+                  <Pin size={15} className="mt-1 shrink-0 text-info" />
                 </button>
               </div>
             ))}
@@ -291,7 +291,7 @@ export default function PinnedMessagesDetailView({
               className="h-8 flex items-center justify-center"
             >
               {isFetchingNextPage && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   Loading more...
                 </span>
               )}

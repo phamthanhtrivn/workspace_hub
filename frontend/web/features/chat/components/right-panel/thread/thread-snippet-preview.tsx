@@ -62,12 +62,12 @@ export default function ThreadSnippetPreview({
   if (snippet.isTask) {
     return (
       <div
-        className={`flex items-center gap-1.5 text-xs font-semibold text-slate-800 bg-blue-50/90 border border-blue-100 rounded-lg px-2.5 py-1.5 my-0.5 ${className}`}
+        className={`flex items-center gap-1.5 text-xs font-semibold text-foreground bg-info-soft/90 border border-border rounded-lg px-2.5 py-1.5 my-0.5 ${className}`}
       >
-        <CheckSquare size={13} className="text-blue-600 shrink-0" />
+        <CheckSquare size={13} className="text-info shrink-0" />
         <span className="truncate">{snippet.title}</span>
         {snippet.tag && (
-          <span className="ml-auto text-[10px] font-mono bg-blue-100/90 text-blue-800 px-1.5 py-0.2 rounded font-semibold shrink-0">
+          <span className="ml-auto text-xs font-mono bg-info-soft/90 text-info px-1.5 py-0.2 rounded font-semibold shrink-0">
             {snippet.tag}
           </span>
         )}
@@ -76,7 +76,7 @@ export default function ThreadSnippetPreview({
   }
 
   return (
-    <span className={`block text-xs text-slate-600 line-clamp-2 break-words ${className}`}>
+    <span className={`block text-xs text-muted-foreground line-clamp-2 break-words ${className}`}>
       {snippet.title}
     </span>
   );

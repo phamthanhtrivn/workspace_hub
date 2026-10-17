@@ -90,13 +90,13 @@ export function MeetingPreJoin({
 
   return (
     <MeetingFullscreenPortal>
-      <div className="fixed inset-0 z-[100] flex min-h-[100dvh] flex-col overflow-y-auto bg-[#07111f] text-white">
-        <header className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6">
+      <div className="fixed inset-0 z-[100] flex min-h-[100dvh] flex-col overflow-y-auto bg-card text-foreground">
+        <header className="flex shrink-0 items-center justify-between border-b border-border/10 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-wide text-blue-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-info">
               Instant meeting
             </p>
-            <h2 className="truncate text-base font-black sm:text-lg">
+            <h2 className="truncate text-section-title font-semibold sm:text-section-title">
               Check your audio and video
             </h2>
           </div>
@@ -105,13 +105,13 @@ export function MeetingPreJoin({
             label="Close"
             icon={X}
             onClick={onCancel}
-            className="bg-white/8 text-slate-200 hover:bg-white/14"
+            className="bg-accent text-muted-foreground hover:bg-accent"
           />
         </header>
 
         <main className="grid min-h-0 flex-1 gap-5 px-4 py-5 lg:grid-cols-[minmax(0,1fr)_390px] lg:px-6">
-          <section className="flex min-h-[360px] flex-col overflow-hidden rounded-lg border border-white/10 bg-black shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
-            <div className="relative min-h-0 flex-1 bg-[#101827]">
+          <section className="flex min-h-[360px] flex-col overflow-hidden rounded-lg border border-border bg-overlay">
+            <div className="relative min-h-0 flex-1 bg-media-background text-media-foreground">
               {settings.cameraEnabled && previewStream ? (
                 <video
                   ref={videoRef}
@@ -121,8 +121,8 @@ export function MeetingPreJoin({
                   className="h-full min-h-[360px] w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full min-h-[360px] flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_top,#20304a,transparent_34%),#101827] px-6 text-center">
-                  <span className="grid h-20 w-20 place-items-center rounded-full bg-white/10 text-slate-100 ring-1 ring-white/12">
+                <div className="flex h-full min-h-[360px] flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_top,var(--media-background),transparent_34%),var(--media-background)] px-6 text-center">
+                  <span className="grid h-20 w-20 place-items-center rounded-full bg-accent text-muted-foreground ring-1 ring-border/12">
                     {isPreviewLoading ? (
                       <Loader2 className="h-8 w-8 animate-spin" />
                     ) : settings.cameraEnabled ? (
@@ -132,12 +132,12 @@ export function MeetingPreJoin({
                     )}
                   </span>
                   <div>
-                    <p className="text-lg font-black">
+                    <p className="text-lg font-semibold">
                       {settings.cameraEnabled
                         ? "Preparing your preview"
                         : "Camera is off"}
                     </p>
-                    <p className="mt-1 max-w-sm text-sm font-semibold leading-6 text-slate-300">
+                    <p className="mt-1 max-w-sm text-sm font-semibold leading-6 text-media-foreground">
                       {permissionError ??
                         "Turn on your camera or microphone to test your setup before joining."}
                     </p>
@@ -145,12 +145,12 @@ export function MeetingPreJoin({
                 </div>
               )}
 
-              <div className="absolute left-4 top-4 rounded-md bg-black/45 px-3 py-1.5 text-xs font-black text-white backdrop-blur">
+              <div className="absolute left-4 top-4 rounded-md bg-overlay/90 px-3 py-1.5 text-xs font-semibold text-media-foreground">
                 Local preview
               </div>
             </div>
 
-            <div className="flex shrink-0 flex-wrap items-center justify-center gap-3 border-t border-white/10 bg-[#0b1422] px-4 py-4">
+            <div className="flex shrink-0 flex-wrap items-center justify-center gap-3 border-t border-border bg-card px-4 py-4">
               <MeetingButton
                 type="button"
                 tone={settings.microphoneEnabled ? "secondary" : "danger"}
@@ -187,12 +187,12 @@ export function MeetingPreJoin({
             </div>
           </section>
 
-          <aside className="flex flex-col gap-4 rounded-lg border border-white/10 bg-white p-4 text-[#172B4D] shadow-[0_24px_80px_rgba(0,0,0,0.18)]">
+          <aside className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 text-foreground">
             <div>
-              <h3 className="text-lg font-black">
+              <h3 className="text-section-title font-semibold">
                 Ready to start?
               </h3>
-              <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
+              <p className="mt-1 text-sm font-semibold leading-6 text-muted-foreground">
                 Choose your devices and room settings before entering.
               </p>
             </div>
@@ -241,7 +241,7 @@ export function MeetingPreJoin({
                 tone="primary"
                 controlSize="lg"
                 onClick={onStart}
-                className="w-full shadow-[0_16px_34px_rgba(0,82,204,0.28)] hover:-translate-y-0.5"
+                className="w-full"
               >
                 {isCreateMode ? "Start meeting" : "Join meeting"}
               </MeetingButton>

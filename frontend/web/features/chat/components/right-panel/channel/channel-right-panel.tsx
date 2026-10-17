@@ -236,7 +236,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "files") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <MediaDetailView
           conversationId={activeChannel.id}
           isDirect={false}
@@ -248,7 +248,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "polls") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PollDetailView
           conversationId={activeChannel.id}
           onBack={() => setDetailView(null)}
@@ -259,7 +259,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "notes") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <NoteDetailView
           conversationId={activeChannel.id}
           onBack={() => setDetailView(null)}
@@ -270,7 +270,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "pinned") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PinnedMessagesDetailView
           conversationId={activeChannel.id}
           isDirect={false}
@@ -283,7 +283,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "search") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <SearchMessagesSection
           conversationId={activeChannel.id}
           onBack={() => setDetailView(null)}
@@ -294,7 +294,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "threads") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <ThreadsListView
           conversationId={activeChannel.id}
           isDirect={false}
@@ -310,34 +310,34 @@ export default function ChannelRightPanel({
   const displayDescription = `${memberCount} ${memberCount === 1 ? "member" : "members"}`;
 
   return (
-    <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
+    <div className="w-full h-full bg-card border-l border-border flex flex-col">
       {/* Header */}
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">Channel Details</h2>
-        <button
+      <div className="h-16 px-4 border-b border-border flex items-center justify-between">
+        <h2 className="font-semibold text-foreground">Channel Details</h2>
+        <button aria-label="Close"
           onClick={onClose}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <X size={20} />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="p-6 flex flex-col items-center border-b border-gray-100">
-          <h3 className="font-bold text-gray-900 text-2xl flex items-center gap-1.5">
+        <div className="p-6 flex flex-col items-center border-b border-border">
+          <h3 className="font-semibold text-foreground text-section-title flex items-center gap-1.5">
             <span>{displayName}</span>
           </h3>
-          <p className="text-sm text-gray-500 mb-4">{displayDescription}</p>
+          <p className="text-sm text-muted-foreground mb-4">{displayDescription}</p>
 
           <div className="flex gap-4">
             <button
               onClick={handleTogglePin}
-              className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition"
             >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                 <Pin
                   size={18}
-                  className={isPinned ? "fill-blue-600 text-blue-600" : ""}
+                  className={isPinned ? "fill-info text-info" : ""}
                 />
               </div>
               <span className="text-xs font-medium">
@@ -347,9 +347,9 @@ export default function ChannelRightPanel({
 
             <button
               onClick={handleToggleMute}
-              className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition"
             >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                 {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
               </div>
               <span className="text-xs font-medium">

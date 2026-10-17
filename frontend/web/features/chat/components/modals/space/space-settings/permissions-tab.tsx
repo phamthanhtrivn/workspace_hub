@@ -23,17 +23,17 @@ export function PermissionsTab({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-bold text-slate-900">
+        <h3 className="text-sm font-semibold text-foreground">
           Channel Permissions
         </h3>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           Configure permissions for regular members within this space.
         </p>
       </div>
 
       <div className="space-y-3">
-        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
-          <span className="text-sm font-semibold text-slate-800">
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-panel border border-input bg-background p-4">
+          <span className="text-sm font-semibold text-foreground">
             Allow members to create channels
           </span>
           <input
@@ -43,12 +43,12 @@ export function PermissionsTab({
             onChange={(event) =>
               onAllowMemberCreateChannelChange(event.target.checked)
             }
-            className="h-4 w-4 cursor-pointer accent-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-4 w-4 cursor-pointer accent-info disabled:cursor-not-allowed disabled:opacity-50"
           />
         </label>
 
-        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
-          <span className="text-sm font-semibold text-slate-800">
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-panel border border-input bg-background p-4">
+          <span className="text-sm font-semibold text-foreground">
             Allow members to delete channels they created
           </span>
           <input
@@ -58,7 +58,7 @@ export function PermissionsTab({
             onChange={(event) =>
               onAllowMemberDeleteOwnChannelChange(event.target.checked)
             }
-            className="h-4 w-4 cursor-pointer accent-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-4 w-4 cursor-pointer accent-info disabled:cursor-not-allowed disabled:opacity-50"
           />
         </label>
       </div>

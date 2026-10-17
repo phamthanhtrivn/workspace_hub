@@ -560,15 +560,15 @@ const DirectMessageInput = React.memo(
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className="w-full bg-white border-t border-gray-200 flex justify-center relative"
+          className="w-full bg-card border-t border-border flex justify-center relative"
         >
           {isDraggingOver && (
-            <div className="absolute inset-0 bg-blue-50/80 backdrop-blur-xs border-2 border-dashed border-blue-500 rounded-2xl m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
+            <div className="absolute inset-0 bg-info-soft/80 border-2 border-dashed border-info rounded-panel m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
               <UploadCloud
-                className="text-blue-500 animate-bounce mb-2"
+                className="text-info mb-2"
                 size={28}
               />
-              <p className="text-xs font-black text-blue-600">
+              <p className="text-xs font-semibold text-info">
                 Drop files here
               </p>
             </div>
@@ -581,39 +581,39 @@ const DirectMessageInput = React.memo(
                     key={media.id}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg max-w-[220px] ${
                       media.status === "error"
-                        ? "bg-red-50 border border-red-200"
-                        : "bg-gray-100"
+                        ? "bg-destructive-soft border border-border"
+                        : "bg-muted"
                     }`}
                   >
                     {media.mimeType.startsWith("image/") ? (
                       <ImageIcon
                         size={16}
-                        className="text-blue-500 flex-shrink-0"
+                        className="text-info flex-shrink-0"
                       />
                     ) : (
                       <FileText
                         size={16}
-                        className="text-gray-500 flex-shrink-0"
+                        className="text-muted-foreground flex-shrink-0"
                       />
                     )}
                     <div className="flex flex-col flex-1 min-w-0">
-                      <span className="text-xs truncate text-gray-700">
+                      <span className="text-xs truncate text-foreground">
                         {media.name}
                       </span>
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-xs text-muted-foreground">
                         {formatFileSize(media.sizeBytes)}
                       </span>
                     </div>
                     {media.status === "uploading" && (
                       <Loader2
                         size={14}
-                        className="text-blue-500 animate-spin ml-1 flex-shrink-0"
+                        className="text-info animate-spin ml-1 flex-shrink-0"
                       />
                     )}
                     <button
                       type="button"
                       onClick={() => removeFile(media.id)}
-                      className="text-gray-500 hover:text-red-500 transition ml-1 flex-shrink-0 cursor-pointer"
+                      className="text-muted-foreground hover:text-destructive transition ml-1 flex-shrink-0 cursor-pointer"
                       title="Remove file"
                     >
                       <X size={14} />
@@ -624,8 +624,8 @@ const DirectMessageInput = React.memo(
             )}
 
             <div
-              className={`flex bg-gray-50 border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all relative items-center ${
-                compact ? "rounded-xl p-1.5 gap-1.5" : "rounded-2xl p-2 gap-2"
+              className={`flex bg-background border border-input focus-within:border-info focus-within:ring-1 focus-within:ring-ring transition-all relative items-center ${
+                compact ? "rounded-panel p-1.5 gap-1.5" : "rounded-panel p-2 gap-2"
               }`}
             >
               <input
@@ -644,7 +644,7 @@ const DirectMessageInput = React.memo(
                   type="button"
                   onClick={() => setShowDMOptions(!showDMOptions)}
                   disabled={isUploading}
-                  className={`cursor-pointer rounded-full transition-colors text-gray-500 hover:bg-gray-200 disabled:opacity-50 ${
+                  className={`cursor-pointer rounded-full transition-colors text-muted-foreground hover:bg-accent disabled:opacity-50 ${
                     compact ? "p-1.5" : "p-2"
                   }`}
                   title="Attach options"
@@ -653,16 +653,16 @@ const DirectMessageInput = React.memo(
                 </button>
 
                 {showDMOptions && (
-                  <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50">
+                  <div className="absolute bottom-full left-0 mb-2 bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
                     <button
                       onClick={() => {
                         setShowDMOptions(false);
                         fileInputRef.current?.click();
                       }}
                       disabled={isUploading}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
-                      <Paperclip size={16} className="text-gray-500" />
+                      <Paperclip size={16} className="text-muted-foreground" />
                       Files
                     </button>
                     <button
@@ -671,9 +671,9 @@ const DirectMessageInput = React.memo(
                         setIsMyFilesModalOpen(true);
                       }}
                       disabled={isUploading}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
-                      <Folder size={16} className="text-blue-500" />
+                      <Folder size={16} className="text-info" />
                       My Files
                     </button>
                   </div>
@@ -692,7 +692,7 @@ const DirectMessageInput = React.memo(
                 onPaste={handlePaste}
                 placeholder={resolvedPlaceholder}
                 disabled={isUploading}
-                className={`flex-1 min-w-0 bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto ${
+                className={`flex-1 min-w-0 bg-transparent resize-none outline-none text-foreground placeholder-gray-400 disabled:opacity-50 overflow-y-auto ${
                   compact
                     ? "px-1 py-1 text-xs min-h-[24px]"
                     : "px-2 py-2 text-sm min-h-[36px]"
@@ -708,14 +708,14 @@ const DirectMessageInput = React.memo(
 
               {isRecording ? (
                 <div className="flex items-center gap-2.5 px-1 animate-in fade-in">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-red-500 font-medium text-xs">
+                  <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                  <span className="text-destructive font-medium text-xs">
                     {formatRecordingTime(recordingTime)}
                   </span>
                   <button
                     type="button"
                     onClick={handleCancelRecording}
-                    className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition cursor-pointer"
+                    className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-accent rounded-full transition cursor-pointer"
                     title="Cancel recording"
                   >
                     <Trash2 size={compact ? 14 : 16} />
@@ -723,7 +723,7 @@ const DirectMessageInput = React.memo(
                   <button
                     type="button"
                     onClick={handleStopRecording}
-                    className="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer"
+                    className="p-1.5 text-primary-foreground bg-primary hover:bg-primary rounded-full transition cursor-pointer"
                     title="Send voice message"
                   >
                     <Send size={compact ? 14 : 16} />
@@ -739,8 +739,8 @@ const DirectMessageInput = React.memo(
                       disabled={isUploading}
                       className={`cursor-pointer rounded-full transition-colors disabled:opacity-50 ${
                         showEmojiPicker
-                          ? "bg-blue-100 text-blue-600"
-                          : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
+                          ? "bg-info-soft text-info"
+                          : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                       } ${compact ? "p-1.5" : "p-2"}`}
                       title="Insert emoji"
                     >
@@ -767,10 +767,10 @@ const DirectMessageInput = React.memo(
                       disabled={isUploading}
                       className={`cursor-pointer rounded-full transition-colors disabled:opacity-50 ${
                         isDictating
-                          ? "bg-red-100 text-red-600 animate-pulse"
+                          ? "bg-destructive-soft text-destructive animate-pulse"
                           : showMicOptions
-                            ? "bg-blue-100 text-blue-600"
-                            : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
+                            ? "bg-info-soft text-info"
+                            : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                       } ${compact ? "p-1.5" : "p-2"}`}
                       title="Voice options"
                     >
@@ -778,16 +778,16 @@ const DirectMessageInput = React.memo(
                     </button>
 
                     {showMicOptions && !isDictating && (
-                      <div className="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50">
+                      <div className="absolute bottom-full right-0 mb-2 bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
                         <button
                           type="button"
                           onClick={() => {
                             setShowMicOptions(false);
                             void handleStartRecording();
                           }}
-                          className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition text-left cursor-pointer"
                         >
-                          <Voicemail size={16} className="text-blue-500" />
+                          <Voicemail size={16} className="text-info" />
                           Send voice message
                         </button>
                         <button
@@ -796,9 +796,9 @@ const DirectMessageInput = React.memo(
                             setShowMicOptions(false);
                             handleStartDictation();
                           }}
-                          className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition text-left cursor-pointer"
                         >
-                          <Type size={16} className="text-green-500" />
+                          <Type size={16} className="text-success" />
                           Speech to text
                         </button>
                       </div>
@@ -811,8 +811,8 @@ const DirectMessageInput = React.memo(
                       compact ? "p-1.5" : "p-2"
                     } ${
                       canSend
-                        ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
-                        : "bg-gray-200 text-gray-400"
+                        ? "bg-primary text-primary-foreground hover:bg-primary cursor-pointer"
+                        : "bg-accent text-muted-foreground"
                     }`}
                     disabled={!canSend}
                     onClick={handleSend}

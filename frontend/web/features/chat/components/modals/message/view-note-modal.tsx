@@ -32,15 +32,15 @@ export default function ViewNoteModal({
   if (!isOpen || !mounted || !note) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-overlay/50 p-4">
+      <div className="bg-card rounded-panel w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="flex justify-between items-center p-4 border-b border-border">
+          <h2 className="text-section-title font-semibold text-foreground">
             Note Details
           </h2>
-          <button
+          <button aria-label="Close"
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 cursor-pointer"
+            className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground cursor-pointer"
           >
             <X size={20} />
           </button>

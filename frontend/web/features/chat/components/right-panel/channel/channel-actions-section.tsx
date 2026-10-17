@@ -144,7 +144,7 @@ export default function ChannelActionsSection({
 
   return (
     <>
-      <div className="shrink-0 border-t border-gray-100 bg-white p-4">
+      <div className="shrink-0 border-t border-border bg-card p-4">
         {canDeleteChannel ? (
           <div className="flex flex-col gap-2">
             {canLeaveChannel && (
@@ -152,7 +152,7 @@ export default function ChannelActionsSection({
                 type="button"
                 onClick={confirmLeaveChannel}
                 disabled={leaveMutation.isPending || deleteMutation.isPending}
-                className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card px-3 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive-soft disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <LogOut size={15} />
                 Leave Channel
@@ -162,7 +162,7 @@ export default function ChannelActionsSection({
               type="button"
               onClick={confirmDeleteChannel}
               disabled={deleteMutation.isPending || leaveMutation.isPending}
-              className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-control bg-destructive px-3 py-2 text-sm font-semibold text-destructive-foreground transition hover:bg-destructive disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Trash2 size={15} />
               Delete Channel
@@ -173,7 +173,7 @@ export default function ChannelActionsSection({
             type="button"
             onClick={confirmLeaveChannel}
             disabled={leaveMutation.isPending}
-            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card px-3 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive-soft disabled:cursor-not-allowed disabled:opacity-50"
           >
             <LogOut size={15} />
             {actionLabel}

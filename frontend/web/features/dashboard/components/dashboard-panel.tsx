@@ -22,9 +22,9 @@ export function DashboardPanel({
     >
       <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-4">
         <div>
-          <h2 className="text-base font-semibold text-primary-dark">{title}</h2>
+          <h2 className="text-section-title font-semibold text-foreground">{title}</h2>
           {description && (
-            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+            <p className="mt-1 text-xs text-muted-foreground">
               {description}
             </p>
           )}
@@ -32,7 +32,7 @@ export function DashboardPanel({
         {href && (
           <Link
             href={href}
-            className="flex min-h-6 shrink-0 items-center gap-1 text-xs font-medium text-[var(--muted-foreground)] underline decoration-[var(--border)] underline-offset-4 hover:text-[var(--color-primary)]"
+            className="flex min-h-6 shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-primary"
           >
             View all <ArrowUpRight size={14} />
           </Link>
@@ -54,13 +54,13 @@ export function QueryFeedback({
     return (
       <div
         role="status"
-        className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-800"
+        className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-destructive-soft p-3 text-xs text-destructive"
       >
         <span>Could not load {label}.</span>
         <button
           type="button"
           onClick={() => void query.refetch()}
-          className="flex items-center gap-1 rounded px-2 py-1 font-semibold hover:bg-red-100"
+          className="flex items-center gap-1 rounded px-2 py-1 font-semibold hover:bg-destructive-soft"
         >
           <RefreshCw size={13} /> Retry
         </button>
@@ -81,5 +81,5 @@ export function QueryFeedback({
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
-  return <p className="py-6 text-center text-sm text-slate-500">{children}</p>;
+  return <p className="py-6 text-center text-sm text-muted-foreground">{children}</p>;
 }

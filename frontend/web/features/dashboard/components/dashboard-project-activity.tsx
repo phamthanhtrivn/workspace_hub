@@ -8,10 +8,10 @@ import { dateInZone } from "../utils/dashboard.utils";
 
 const levels = [
   "bg-muted",
-  "bg-green-200",
-  "bg-green-400",
-  "bg-green-600",
-  "bg-green-800",
+  "bg-success/25",
+  "bg-success/50",
+  "bg-success/75",
+  "bg-success",
 ];
 export function DashboardProjectActivity({
   today,
@@ -61,13 +61,13 @@ export function DashboardProjectActivity({
       {tasks.isSuccess && (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-primary-dark">{total}</span>{" "}
+            <span className="font-semibold text-foreground">{total}</span>{" "}
             tasks completed
           </p>
           <div className="flex gap-2">
             <div
               aria-hidden
-              className="grid h-32 grid-rows-7 items-center text-[10px] text-muted-foreground"
+              className="grid h-32 grid-rows-7 items-center text-xs text-muted-foreground"
             >
               <span />
               <span>Mon</span>
@@ -96,7 +96,7 @@ export function DashboardProjectActivity({
               ))}
             </div>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 text-[10px] text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
             <span>
               {start?.toString()} – {today}
             </span>

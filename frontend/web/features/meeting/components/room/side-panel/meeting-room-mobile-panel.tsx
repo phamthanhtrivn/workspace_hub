@@ -33,8 +33,8 @@ export function MeetingRoomMobilePanelHeader({
   if (activePanel === MeetingRoomPanel.NONE) return null;
 
   return (
-    <div className="max-h-[45dvh] overflow-y-auto border-t border-white/10 bg-[#0d1420] p-3 lg:hidden">
-      <div className="flex items-center justify-between rounded-lg bg-white/6 px-3 py-2 text-sm font-black text-slate-200 ring-1 ring-white/8">
+    <div className="max-h-[45dvh] overflow-y-auto border-t border-border bg-card p-3 lg:hidden">
+      <div className="flex items-center justify-between rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-muted-foreground ring-1 ring-border/8">
         <span>{getPanelTitle(activePanel)}</span>
         <div className="flex shrink-0 items-center gap-2">
           {activePanel === MeetingRoomPanel.CHAT ? (
@@ -42,13 +42,13 @@ export function MeetingRoomMobilePanelHeader({
               muted={chatMuted}
               disabled={isChatNotificationPreferencePending}
               onMutedChange={onChatMutedChange}
-              className="grid h-8 w-8 cursor-pointer place-items-center rounded-md bg-white/8 text-slate-300 transition hover:bg-white/14 disabled:cursor-not-allowed disabled:opacity-60"
+              className="grid h-8 w-8 cursor-pointer place-items-center rounded-md bg-accent text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
             />
           ) : null}
           <button
             type="button"
             onClick={onClose}
-            className="grid h-8 w-8 cursor-pointer place-items-center rounded-md bg-white/8"
+            className="grid h-8 w-8 cursor-pointer place-items-center rounded-control bg-accent"
             aria-label="Close"
           >
             <X className="h-4 w-4" />

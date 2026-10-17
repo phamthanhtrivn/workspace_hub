@@ -10,36 +10,36 @@ export default function LoginPage() {
     <div>
       <Link
         href="/"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[var(--color-primary)] transition mb-6"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary transition mb-6"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Home
       </Link>
 
       <div className="mb-8 justify-center text-center">
-        <h2 className="mt-3 text-3xl font-black tracking-tight text-[var(--color-primary-dark)] sm:text-4xl">
+        <h2 className="mt-3 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
           Sign In
         </h2>
-        <p className="text-sm font-semibold text-[var(--color-secondary)]">
+        <p className="text-sm font-semibold text-muted-foreground">
           Welcome back! Please enter your details.
         </p>
       </div>
 
       <LoginForm />
 
-      <div className="my-7 flex items-center gap-3 text-xs font-semibold text-slate-400">
-        <div className="h-px flex-1 bg-slate-200" />
+      <div className="my-7 flex items-center gap-3 text-xs font-semibold text-muted-foreground">
+        <div className="h-px flex-1 bg-accent" />
         Or continue with
-        <div className="h-px flex-1 bg-slate-200" />
+        <div className="h-px flex-1 bg-accent" />
       </div>
 
       <SocialLoginButtons />
 
-      <p className="mt-8 text-center text-sm text-slate-500">
+      <p className="mt-8 text-center text-sm text-muted-foreground">
         Don't have an account?{" "}
         <Link
           href="/register"
-          className="font-bold text-[var(--color-primary)] transition hover:text-[var(--color-primary-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] underline"
+          className="font-bold text-primary transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring underline"
         >
           Sign Up
         </Link>

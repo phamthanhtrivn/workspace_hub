@@ -148,7 +148,7 @@ export function MeetingLayout() {
   });
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f5f9fb] text-[#172B4D] xl:flex-row">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background text-foreground xl:flex-row">
       <MeetingSidebar
         activeItemId={activeNavItemId}
         onItemSelect={setActiveNavItemId}

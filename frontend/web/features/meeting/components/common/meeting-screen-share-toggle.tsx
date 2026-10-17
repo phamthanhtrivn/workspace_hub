@@ -25,8 +25,8 @@ export function MeetingScreenShareToggle({
         "group flex cursor-pointer items-start gap-3 rounded-lg p-3 transition",
         disabled && "cursor-not-allowed opacity-70",
         isDark
-          ? "bg-white/6 ring-1 ring-white/8 hover:bg-white/8"
-          : "border border-slate-200 bg-slate-50/80 hover:border-blue-200 hover:bg-blue-50/70",
+          ? "bg-overlay/10 ring-1 ring-border/8 hover:bg-overlay/10"
+          : "border border-input bg-background hover:border-input hover:bg-info-soft/70",
       )}
     >
       <input
@@ -40,10 +40,10 @@ export function MeetingScreenShareToggle({
         className={cn(
           "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border transition",
           checked
-            ? "border-[#0052CC] bg-[#0052CC] text-white shadow-[0_8px_18px_rgba(0,82,204,0.28)]"
+            ? "border-primary bg-primary text-primary-foreground"
             : isDark
-              ? "border-white/20 bg-white/8 text-transparent group-hover:border-blue-300"
-              : "border-slate-300 bg-white text-transparent group-hover:border-[#0052CC]",
+              ? "border-border bg-overlay/10 text-transparent group-hover:border-info"
+              : "border-input bg-card text-transparent group-hover:border-primary",
         )}
         aria-hidden="true"
       >
@@ -52,14 +52,14 @@ export function MeetingScreenShareToggle({
       <span className="min-w-0 flex-1">
         <span
           className={cn(
-            "flex items-start gap-2 text-sm font-black leading-5",
-            isDark ? "text-slate-100" : "text-[#172B4D]",
+            "flex items-start gap-2 text-sm font-semibold leading-5",
+            isDark ? "text-muted-foreground" : "text-foreground",
           )}
         >
           <MonitorUp
             className={cn(
               "mt-0.5 h-4 w-4 shrink-0",
-              isDark ? "text-blue-200" : "text-[#0052CC]",
+              isDark ? "text-info" : "text-info",
             )}
           />
           Allow screen sharing
@@ -67,7 +67,7 @@ export function MeetingScreenShareToggle({
         <span
           className={cn(
             "mt-1 block text-xs font-semibold leading-5",
-            isDark ? "text-slate-400" : "text-slate-500",
+            isDark ? "text-muted-foreground" : "text-muted-foreground",
           )}
         >
           Hosts and co-hosts can manage who shares their screen.

@@ -42,7 +42,7 @@ export function PomodoroTaskEditor({ task, onUpdate, onClose }: { task: Pomodoro
     <form onSubmit={(event) => void save(event)} className="space-y-2">
       <Input aria-label="Task title" value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={POMODORO_TASK_SETTINGS.maxGoalTitleLength} disabled={saving} />
       <Textarea aria-label="Task description" value={description} onChange={(event) => setDescription(event.target.value)} maxLength={2000} rows={3} disabled={saving} />
-      {error && <p role="alert" className="text-xs text-rose-600">{error}</p>}
+      {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
       <div className="flex gap-2"><Button type="submit" size="sm" disabled={saving}>{saving ? "Saving…" : "Save details"}</Button><Button type="button" size="sm" variant="outline" onClick={onClose} disabled={saving}>Cancel</Button></div>
     </form>
   );

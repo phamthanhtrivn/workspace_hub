@@ -35,23 +35,23 @@ export default function PollDetailView({
     ) ?? 0;
 
   return (
-    <div className="w-full h-full flex flex-col bg-white">
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
-        <button
+    <div className="w-full h-full flex flex-col bg-card">
+      <div className="h-16 px-4 border-b border-border flex items-center gap-3 flex-shrink-0">
+        <button aria-label="Back"
           onClick={onBack}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <ArrowLeft size={20} />
         </button>
-        <h2 className="font-semibold text-gray-800">
+        <h2 className="font-semibold text-foreground">
           Polls
         </h2>
       </div>
 
-      <div className="border-b border-gray-100 px-4 py-3 flex-shrink-0">
+      <div className="border-b border-border px-4 py-3 flex-shrink-0">
         <div className="relative">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={16}
           />
           <input
@@ -59,7 +59,7 @@ export default function PollDetailView({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search polls by title..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card focus:border-info focus:ring-1 focus:ring-ring outline-none transition"
           />
         </div>
       </div>
@@ -67,10 +67,10 @@ export default function PollDetailView({
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
           <div className="text-center py-4 flex justify-center">
-            <Loader2 className="animate-spin text-gray-400" size={24} />
+            <Loader2 className="animate-spin text-muted-foreground" size={24} />
           </div>
         ) : polls.length === 0 ? (
-          <div className="text-center text-sm text-gray-400 py-4">
+          <div className="text-center text-sm text-muted-foreground py-4">
             {searchQuery
               ? "No matching polls found"
               : "No polls available"}
@@ -81,17 +81,17 @@ export default function PollDetailView({
               <div
                 key={poll.id}
                 onClick={() => setSelectedPollId(poll.id)}
-                className="p-4 bg-purple-50 border border-purple-100 rounded-xl cursor-pointer hover:bg-purple-100 transition-colors"
+                className="p-4 bg-info-soft border border-border rounded-panel cursor-pointer hover:bg-info-soft transition-colors"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-info-soft text-info rounded-lg flex items-center justify-center flex-shrink-0">
                     <BarChart2 size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-purple-900 mb-1">
+                    <p className="text-sm font-semibold text-info mb-1">
                       {poll.title || "Untitled Poll"}
                     </p>
-                    <div className="text-xs text-purple-600/70 space-y-1">
+                    <div className="text-xs text-info space-y-1">
                       <p>
                         {`${poll.options?.length || 0} ${poll.options?.length === 1 ? "option" : "options"}`}
                       </p>
@@ -99,7 +99,7 @@ export default function PollDetailView({
                         {`${getVoteCount(poll)} ${getVoteCount(poll) === 1 ? "vote" : "votes"}`}
                       </p>
                       {poll.isLocked && (
-                        <span className="inline-block mt-1 bg-red-50 text-red-600 px-2 py-0.5 rounded font-medium">
+                        <span className="inline-block mt-1 bg-destructive-soft text-destructive px-2 py-0.5 rounded font-medium">
                           Locked
                         </span>
                       )}

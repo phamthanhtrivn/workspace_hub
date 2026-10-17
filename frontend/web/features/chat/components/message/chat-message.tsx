@@ -141,10 +141,10 @@ const ChatMessage = React.memo(function ChatMessage({
     return (
       <div className="flex justify-center my-4 w-full">
         <div className="flex flex-col items-center gap-1.5">
-          <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">
+          <span className="text-xs text-muted-foreground font-semibold tracking-wider uppercase">
             {time}
           </span>
-          <span className="text-xs text-slate-500 bg-slate-100/80 backdrop-blur-sm border border-slate-200/50 px-4 py-1.5 rounded-full text-center shadow-[0_2px_6px_rgba(0,0,0,0.02)] font-medium">
+          <span className="text-xs text-muted-foreground bg-muted border border-border px-4 py-1.5 rounded-full text-center font-medium">
             {msg.content}
           </span>
         </div>
@@ -218,10 +218,10 @@ const ChatMessage = React.memo(function ChatMessage({
     <div
       id={`msg-${msg.id}`}
       className={cn(
-        "w-full flex flex-col mb-1.5 group transition-all duration-200 rounded-2xl",
+        "w-full flex flex-col mb-1.5 group transition-all duration-200 rounded-panel",
         msg.threadReplyCount &&
           msg.threadReplyCount > 0 &&
-          "bg-indigo-50/50 border border-indigo-100/80 py-2.5 px-4 shadow-[0_4px_12px_rgba(99,102,241,0.02)]",
+          "bg-info-soft/50 border border-border py-2.5 px-4",
       )}
     >
       <div
@@ -243,12 +243,12 @@ const ChatMessage = React.memo(function ChatMessage({
               <button
                 type="button"
                 onClick={openSenderProfile}
-                className="text-[13px] text-slate-700 font-bold tracking-tight hover:text-blue-600 transition-colors cursor-pointer truncate"
+                className="text-[13px] text-foreground font-semibold tracking-tight hover:text-info transition-colors cursor-pointer truncate"
               >
                 {senderName}
               </button>
               {showTime && (
-                <span className="text-[11px] text-slate-400 font-medium shrink-0">
+                <span className="text-xs text-muted-foreground font-medium shrink-0">
                   {time}
                 </span>
               )}
@@ -256,14 +256,14 @@ const ChatMessage = React.memo(function ChatMessage({
           )}
 
           {msg.recalled ? (
-            <div className="p-3 shadow-sm text-sm flex flex-col relative italic text-slate-400 bg-slate-100/50 border border-slate-200/40 rounded-2xl rounded-tl-none">
+            <div className="p-3 text-sm flex flex-col relative italic text-muted-foreground bg-muted border border-border rounded-panel rounded-tl-none">
               Message recalled
             </div>
           ) : (
             <>
               {msg.pinned && (
-                <div className="flex items-center gap-1 text-[11px] text-blue-600 font-bold px-1 mb-0.5">
-                  <Pin size={12} className="fill-blue-600 text-blue-600" />
+                <div className="flex items-center gap-1 text-xs text-info font-semibold px-1 mb-0.5">
+                  <Pin size={12} className="fill-info text-info" />
                   Pinned
                 </div>
               )}
@@ -288,10 +288,10 @@ const ChatMessage = React.memo(function ChatMessage({
                   hasText && (
                     <div
                       className={cn(
-                        "p-3 text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden leading-relaxed transition-all duration-200 font-medium rounded-2xl rounded-tl-none",
+                        "p-3 text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden leading-relaxed transition-all duration-200 font-medium rounded-panel rounded-tl-none",
                         msg.threadReplyCount && msg.threadReplyCount > 0
-                          ? "bg-indigo-50 border border-indigo-100 text-indigo-950 shadow-sm"
-                          : "bg-white border border-slate-100 text-slate-800 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.06)]",
+                          ? "bg-info-soft border border-border text-info"
+                          : "bg-card border border-border text-foreground",
                       )}
                     >
                       {renderedMessageContent}
@@ -310,12 +310,12 @@ const ChatMessage = React.memo(function ChatMessage({
                   <button
                     type="button"
                     onClick={() => onThreadReply?.(msg)}
-                    className="flex items-center gap-2 mt-2 text-xs font-bold cursor-pointer hover:underline p-1.5 rounded-lg w-fit border transition-colors text-indigo-600 bg-indigo-50 border-indigo-100 hover:bg-indigo-100/70 mr-auto"
+                    className="flex items-center gap-2 mt-2 text-xs font-semibold cursor-pointer hover:underline p-1.5 rounded-control w-fit border transition-colors text-info bg-info-soft border-border hover:bg-info-soft/70 mr-auto"
                   >
-                    <MessageSquare size={12} className="text-indigo-500" />
+                    <MessageSquare size={12} className="text-info" />
                     <span>{msg.threadReplyCount} replies</span>
                     {msg.threadLastReplyAt && (
-                      <span className="text-[10px] text-indigo-400 font-normal">
+                      <span className="text-xs text-info font-normal">
                         Last: {formatDateTime(msg.threadLastReplyAt)}
                       </span>
                     )}
@@ -332,10 +332,10 @@ const ChatMessage = React.memo(function ChatMessage({
                 isMe ? "items-end" : "items-start",
               )}
             >
-              <span className="text-[9px] text-slate-400 px-1 mt-0.5 flex gap-1 items-center font-bold tracking-tight">
+              <span className="text-xs text-muted-foreground px-1 mt-0.5 flex gap-1 items-center font-semibold tracking-tight">
                 {time}
                 {msg.edited && (
-                  <span className="text-slate-400/80 font-normal">
+                  <span className="text-muted-foreground font-normal">
                     (Edited)
                   </span>
                 )}
@@ -349,28 +349,28 @@ const ChatMessage = React.memo(function ChatMessage({
                 type="button"
                 onClick={() => onThreadReply?.(msg)}
                 title="Reply to thread"
-                className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 shadow-sm cursor-pointer hover:scale-105 transition-all duration-150"
+                className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
               >
                 <MessageSquare size={14} />
               </button>
 
               <div className="relative">
-                <button
+                <button aria-label="Add reaction"
                   type="button"
                   onClick={() => setShowReactionPicker((prev) => !prev)}
-                  className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 shadow-sm cursor-pointer hover:scale-105 transition-all duration-150"
+                  className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
                 >
                   <SmilePlus size={14} />
                 </button>
 
                 {showReactionPicker && (
-                  <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-full shadow-lg p-1 flex gap-0.5 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 bg-card border border-border rounded-full p-1 flex gap-0.5 animate-in fade-in zoom-in-95 duration-100 shadow-panel">
                     {QUICK_EMOJIS.map((emoji) => (
                       <button
                         type="button"
                         key={emoji}
                         onClick={() => handleReactionClick(emoji)}
-                        className="w-7 h-7 flex items-center justify-center text-base hover:bg-slate-100 rounded-full transition-all duration-150 cursor-pointer hover:scale-110"
+                        className="w-7 h-7 flex items-center justify-center text-base hover:bg-muted rounded-full transition-all duration-150 cursor-pointer"
                       >
                         {emoji}
                       </button>
@@ -379,7 +379,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 )}
               </div>
 
-              <button
+              <button aria-label="Message options"
                 type="button"
                 onClick={(event) => {
                   setOptionsMenuRect(
@@ -387,7 +387,7 @@ const ChatMessage = React.memo(function ChatMessage({
                   );
                   setIsOptionsMenuOpen(true);
                 }}
-                className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 shadow-sm cursor-pointer hover:scale-105 transition-all duration-150"
+                className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
               >
                 <MoreHorizontal size={14} />
               </button>

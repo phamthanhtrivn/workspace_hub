@@ -35,20 +35,20 @@ export function PomodoroTaskPicker({ open, onCreateCalendarTask, initialSource }
         const next = POMODORO_FOCUS_SOURCES.find((candidate) => candidate.value === value);
         if (next) setSelection({ context: focusContext, source: next.value });
       }} className="gap-5">
-        <TabsList aria-label="Focus source" className="grid h-auto w-full grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
+        <TabsList aria-label="Focus source" className="grid h-auto w-full grid-cols-3 gap-1 rounded-panel bg-muted p-1">
           {POMODORO_FOCUS_SOURCES.map(({ value, label }) => {
             const Icon = SOURCE_ICONS[value];
-            return <TabsTrigger key={value} value={value} className="h-auto min-h-10 min-w-0 whitespace-normal rounded-lg px-1 py-2 text-[11px] leading-snug data-[state=active]:text-blue-800 sm:gap-2 sm:text-xs">
+            return <TabsTrigger key={value} value={value} className="h-auto min-h-10 min-w-0 whitespace-normal rounded-control px-1 py-2 text-xs leading-snug data-[state=active]:text-info sm:gap-2 sm:text-xs">
               <Icon className="hidden size-3.5 shrink-0 sm:block" />{label}
             </TabsTrigger>;
           })}
         </TabsList>
         <TabsContent value="free" className="space-y-4">
-          <div className="rounded-xl bg-slate-50 px-4 py-5">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-800"><Timer className="size-4 text-blue-700" />Free focus</div>
-            <p className="text-xs leading-relaxed text-slate-500">Start a focus session without a Calendar or Project task. Your focus time will still be saved.</p>
+          <div className="rounded-panel bg-background px-4 py-5">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground"><Timer className="size-4 text-info" />Free focus</div>
+            <p className="text-xs leading-relaxed text-muted-foreground">Start a focus session without a Calendar or Project task. Your focus time will still be saved.</p>
           </div>
-          <Button className="w-full" disabled={!isReady || busy} onClick={() => void startFreeFocus()}>
+          <Button variant="outline" className="w-full" disabled={!isReady || busy} onClick={() => void startFreeFocus()}>
             {!activeTask && status === "PAUSED" ? "Resume free focus" : !activeTask && status === "RUNNING" ? "Continue free focus" : "Start free focus"}
           </Button>
         </TabsContent>

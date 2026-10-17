@@ -167,7 +167,7 @@ const PasswordTab = React.memo(function PasswordTab() {
   if (isLoading) {
     return (
       <div className="flex h-full min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -179,13 +179,13 @@ const PasswordTab = React.memo(function PasswordTab() {
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
       {/* Warning banner — only for Google users without a password */}
       {!hasPassword && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 mt-10">
-          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+        <div className="flex items-start gap-3 rounded-panel border border-warning bg-warning-soft px-4 py-3 mt-10">
+          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
           <div>
-            <p className="text-sm font-bold text-amber-800">
+            <p className="text-sm font-semibold text-warning">
               Your account doesn&apos;t have a password yet
             </p>
-            <p className="text-xs text-amber-700 mt-0.5">
+            <p className="text-xs text-warning mt-0.5">
               Without a password, anyone who gains access to your session can
               permanently lock you out.
             </p>
@@ -196,11 +196,11 @@ const PasswordTab = React.memo(function PasswordTab() {
       {/* Section header */}
       <div className="flex items-center gap-2">
         {hasPassword ? (
-          <ShieldCheck className="h-5 w-5 text-[var(--color-primary)]" />
+          <ShieldCheck className="h-5 w-5 text-primary" />
         ) : (
-          <KeyRound className="h-5 w-5 text-amber-500" />
+          <KeyRound className="h-5 w-5 text-warning" />
         )}
-        <h3 className="text-xl font-black text-slate-800">
+        <h3 className="text-section-title font-semibold text-foreground">
           {hasPassword ? "Change password" : "Set a password"}
         </h3>
       </div>
@@ -236,7 +236,7 @@ const PasswordTab = React.memo(function PasswordTab() {
             id="update-password-btn"
             onClick={handleUpdatePassword}
             disabled={updatePasswordMutation.isPending}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--color-primary)] bg-white text-sm font-bold text-[var(--color-primary)] shadow-sm transition hover:bg-[var(--color-primary)] hover:text-white disabled:opacity-70 cursor-pointer"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-control border border-primary bg-card text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground disabled:opacity-70 cursor-pointer"
           >
             {updatePasswordMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -251,9 +251,9 @@ const PasswordTab = React.memo(function PasswordTab() {
       ) : (
         /* ── Branch B: Set first password (Google users — OTP required) ── */
         <div className="space-y-3">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             We&apos;ll send a one-time code to{" "}
-            <span className="font-semibold text-slate-700">{email} </span> to
+            <span className="font-semibold text-foreground">{email} </span> to
             verify it&apos;s you before setting a password.
           </p>
 
@@ -265,7 +265,7 @@ const PasswordTab = React.memo(function PasswordTab() {
               variant="outline"
               onClick={handleSendOtp}
               disabled={sendOtpMutation.isPending || otpCooldown > 0}
-              className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-60 cursor-pointer"
+              className="flex shrink-0 items-center gap-2 rounded-control border border-input bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-primary hover:text-primary disabled:opacity-60 cursor-pointer"
             >
               {sendOtpMutation.isPending && (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -277,7 +277,7 @@ const PasswordTab = React.memo(function PasswordTab() {
                   : "Send OTP to email"}
             </Button>
             {otpSent && (
-              <p className="text-xs text-emerald-600 font-medium">
+              <p className="text-xs text-success font-medium">
                 Code sent ✓
               </p>
             )}
@@ -298,7 +298,7 @@ const PasswordTab = React.memo(function PasswordTab() {
               }}
               placeholder="6-digit code"
               error={pwErrors.otp}
-              className="w-40 text-center font-bold tracking-widest"
+              className="w-40 text-center font-semibold tracking-widest"
             />
           )}
 
@@ -323,7 +323,7 @@ const PasswordTab = React.memo(function PasswordTab() {
             id="set-password-btn"
             onClick={handleSetFirstPassword}
             disabled={setFirstPasswordMutation.isPending || !otpSent}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-amber-600 disabled:opacity-60 cursor-pointer"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-control bg-warning px-4 py-2.5 text-sm font-semibold text-warning-foreground transition hover:bg-warning disabled:opacity-60 cursor-pointer"
           >
             {setFirstPasswordMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />

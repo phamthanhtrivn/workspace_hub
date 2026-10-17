@@ -38,17 +38,17 @@ const iconByVariant = {
 };
 
 const iconBgByVariant: Record<ChatConfirmVariant, string> = {
-  danger: "bg-red-50 text-red-600 ring-1 ring-red-100",
-  warning: "bg-amber-50 text-amber-600 ring-1 ring-amber-100",
-  info: "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
-  question: "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
+  danger: "bg-destructive-soft text-destructive ring-1 ring-destructive",
+  warning: "bg-warning-soft text-warning ring-1 ring-warning",
+  info: "bg-info-soft text-info ring-1 ring-ring",
+  question: "bg-info-soft text-info ring-1 ring-ring",
 };
 
 const confirmButtonClassByVariant: Record<ChatConfirmVariant, string> = {
-  danger: "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500",
-  warning: "bg-amber-600 text-white hover:bg-amber-700 focus-visible:ring-amber-500",
-  info: "bg-[#0052CC] text-white hover:bg-[#0043A8] focus-visible:ring-blue-500",
-  question: "bg-[#0052CC] text-white hover:bg-[#0043A8] focus-visible:ring-blue-500",
+  danger: "bg-destructive text-destructive-foreground hover:bg-destructive focus-visible:ring-ring",
+  warning: "bg-warning text-warning-foreground hover:bg-warning focus-visible:ring-ring",
+  info: "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:ring-ring",
+  question: "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:ring-ring",
 };
 
 export function ChatConfirmDialog({
@@ -79,30 +79,30 @@ export function ChatConfirmDialog({
     >
       <AlertDialogContent
         role="alertdialog"
-        className="max-w-md border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl"
+        className="max-w-md border-border bg-card p-6 text-foreground rounded-dialog"
         showCloseButton={false}
       >
         <div className="flex items-start gap-4">
           <div
             className={cn(
-              "grid h-10 w-10 shrink-0 place-items-center rounded-2xl",
+              "grid h-10 w-10 shrink-0 place-items-center rounded-panel",
               iconBgByVariant[variant],
             )}
           >
             <IconComponent className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <AlertDialogTitle className="text-base font-black leading-6 text-slate-800">
+            <AlertDialogTitle className="text-base font-semibold leading-6 text-foreground">
               {title}
             </AlertDialogTitle>
             {description ? (
-              <AlertDialogDescription className="mt-1.5 text-sm font-semibold leading-relaxed text-slate-500">
+              <AlertDialogDescription className="mt-1.5 text-sm font-semibold leading-relaxed text-muted-foreground">
                 {description}
               </AlertDialogDescription>
             ) : null}
             {confirmationText !== undefined ? (
               <div className="mt-4 space-y-2">
-                <label className="text-xs font-black uppercase text-slate-500">
+                <label className="text-xs font-semibold uppercase text-muted-foreground">
                   {confirmationLabel ?? `Type "${confirmationText}" to confirm`}
                 </label>
                 <input
@@ -113,7 +113,7 @@ export function ChatConfirmDialog({
                     onConfirmationValueChange?.(event.target.value)
                   }
                   placeholder={confirmationPlaceholder ?? confirmationText}
-                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50"
+                  className="h-10 w-full rounded-control border border-input bg-card px-3 text-sm font-semibold text-foreground outline-none transition focus:border-info focus:ring-4 focus:ring-ring disabled:opacity-50"
                 />
               </div>
             ) : null}
@@ -125,7 +125,7 @@ export function ChatConfirmDialog({
             type="button"
             disabled={isLoading}
             onClick={onCancel}
-            className="h-10 cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:text-slate-800 disabled:opacity-50"
+            className="h-10 cursor-pointer rounded-control border border-border bg-card px-5 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -134,7 +134,7 @@ export function ChatConfirmDialog({
             disabled={isConfirmDisabled}
             onClick={onConfirm}
             className={cn(
-              "h-10 cursor-pointer rounded-2xl px-5 text-xs font-bold transition shadow-md disabled:opacity-50",
+              "h-10 cursor-pointer rounded-control px-5 text-xs font-semibold transition disabled:opacity-50",
               confirmButtonClassByVariant[variant],
             )}
           >

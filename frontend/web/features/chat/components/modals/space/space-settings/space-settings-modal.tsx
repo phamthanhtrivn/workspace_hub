@@ -230,36 +230,36 @@ export default function SpaceSettingsModal({
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40">
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-panel border border-border bg-card flex flex-col">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="min-w-0">
-            <h2 className="text-base font-bold text-slate-900 truncate">
+            <h2 className="text-section-title font-semibold text-foreground truncate">
               Space Settings
             </h2>
-            <p className="text-xs text-slate-500 truncate">{space.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{space.name}</p>
           </div>
-          <button
+          <button aria-label="Close"
             type="button"
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            className="p-2 rounded-control text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
           >
             <X size={18} />
           </button>
         </div>
 
         <div className="flex min-h-0 flex-1">
-          <div className="w-44 shrink-0 border-r border-slate-100 bg-slate-50/70 p-2 flex flex-col gap-2">
+          <div className="w-44 shrink-0 border-r border-border bg-background p-2 flex flex-col gap-2">
             {visibleTabs.map((tab) => (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer",
+                  "w-full text-left px-3 py-2 rounded-control text-xs font-semibold transition cursor-pointer",
                   activeTab === tab.id
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-slate-500 hover:bg-white hover:text-slate-800",
+                    ? "bg-card text-info"
+                    : "text-muted-foreground hover:bg-card hover:text-foreground",
                 )}
               >
                 {TAB_LABELS[tab.id] || tab.id}
@@ -354,8 +354,8 @@ export default function SpaceSettingsModal({
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+        <div className="px-5 py-3 border-t border-border bg-background flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Settings size={14} />
             {settings.isAdmin
               ? "Admin Settings"
@@ -364,7 +364,7 @@ export default function SpaceSettingsModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-300 transition cursor-pointer"
+            className="px-4 py-2 rounded-control bg-accent text-sm font-semibold text-foreground hover:bg-border transition cursor-pointer"
           >
             Close
           </button>

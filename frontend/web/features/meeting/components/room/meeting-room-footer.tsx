@@ -270,7 +270,7 @@ export function MeetingRoomFooter({
   });
 
   return (
-    <footer className="flex shrink-0 items-center justify-center border-t border-white/10 bg-[#0d1420]/95 px-3 py-3 backdrop-blur">
+    <footer className="flex shrink-0 items-center justify-center border-t border-border bg-card px-3 py-3">
       <div className="flex max-w-full items-center gap-2 overflow-x-auto">
         <MeetingMediaToggleButton
           source={Track.Source.Microphone}

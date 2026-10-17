@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import EmojiPicker, { Theme, EmojiStyle } from "emoji-picker-react";
+import { useTheme } from "next-themes";
 
 interface EmojiPickerPopoverProps {
   onEmojiSelect: (emoji: string) => void;
@@ -15,6 +16,7 @@ const EmojiPickerPopover: React.FC<EmojiPickerPopoverProps> = ({
   triggerRef,
 }) => {
   const popoverRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -40,11 +42,11 @@ const EmojiPickerPopover: React.FC<EmojiPickerPopoverProps> = ({
   return (
     <div
       ref={popoverRef}
-      className="absolute bottom-[110%] right-0 z-50 animate-in fade-in zoom-in-95 duration-200 shadow-xl rounded-xl overflow-hidden border border-gray-200 bg-white"
+      className="absolute bottom-[110%] right-0 z-50 animate-in fade-in zoom-in-95 duration-200 rounded-panel overflow-hidden border border-border bg-card shadow-panel"
     >
       <EmojiPicker
         onEmojiClick={(emojiData) => onEmojiSelect(emojiData.emoji)}
-        theme={Theme.LIGHT}
+        theme={resolvedTheme === "dark" ? Theme.DARK : Theme.LIGHT}
         emojiStyle={EmojiStyle.NATIVE}
         lazyLoadEmojis={true}
         searchPlaceHolder="Search emoji..."

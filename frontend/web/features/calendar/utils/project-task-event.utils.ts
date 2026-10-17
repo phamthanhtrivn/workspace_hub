@@ -1,3 +1,4 @@
+import { readableTextOnColor } from "@/lib/color";
 import type { EventInput } from "@fullcalendar/core";
 import type { Project, Task } from "@/features/project/types/project";
 import { taskDateKey } from "@/features/project/utils/task-dates";
@@ -55,7 +56,7 @@ export function mapProjectTaskToCalendarEvent(
     allDay: task.allDay,
     backgroundColor: project.color,
     borderColor: project.color,
-    textColor: "#ffffff",
+    textColor: readableTextOnColor(project.color),
     editable: false,
     startEditable: false,
     durationEditable: false,

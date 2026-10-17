@@ -48,11 +48,11 @@ export function DetailsPanel({
   const isFolder = item.type === DocumentItemType.FOLDER || (item.type as any) === "FOLDER";
 
   return (
-    <div className="flex h-full min-h-0 w-80 shrink-0 flex-col overflow-hidden border-l border-slate-100 bg-white text-slate-700 animate-in slide-in-from-right-4 duration-300">
+    <div className="flex h-full min-h-0 w-80 shrink-0 flex-col overflow-hidden border-l border-border bg-card text-foreground animate-in slide-in-from-right-4 duration-200">
       {/* Panel Header */}
-      <div className="shrink-0 border-b border-slate-100 bg-white px-6 py-4">
+      <div className="shrink-0 border-b border-border bg-card px-6 py-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-black text-slate-800">Details</h3>
+          <h3 className="text-sm font-semibold text-foreground">Details</h3>
           <DocumentsIconButton
             icon={X}
             label="Close"
@@ -65,18 +65,18 @@ export function DetailsPanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
         {/* Thumbnail / Large Icon */}
-        <div className="flex flex-col items-center justify-center rounded-3xl border border-slate-100 bg-slate-50/50 p-6 text-center shadow-xs">
-          <DocumentIcon item={item} iconSize={40} className="p-4 rounded-2xl bg-white shadow-xs border border-slate-100" />
-          <h4 className="mt-4 text-xs font-bold text-slate-800 max-w-[200px] truncate">
+        <div className="flex flex-col items-center justify-center rounded-dialog border border-border bg-background p-6 text-center">
+          <DocumentIcon item={item} iconSize={40} className="p-4 rounded-panel bg-card border border-border" />
+          <h4 className="mt-4 text-xs font-semibold text-foreground max-w-[200px] truncate">
             {item.name}
           </h4>
-          <p className="mt-1 text-[11px] font-semibold text-slate-400">
+          <p className="mt-1 text-xs font-semibold text-muted-foreground">
             {getFileTypeDescription(item.mimeType, item.name)}
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-6 grid grid-cols-4 gap-2 border-y border-slate-100 py-3">
+        <div className="mt-6 grid grid-cols-4 gap-2 border-y border-border py-3">
           {onDownload ? (
             <DocumentsIconButton
               icon={Download}
@@ -109,41 +109,41 @@ export function DetailsPanel({
 
         {/* Metadata Properties */}
         <div className="mt-6 space-y-4 text-xs">
-          <h5 className="font-black text-slate-400 uppercase tracking-wider text-[10px]">
+          <h5 className="font-semibold text-muted-foreground uppercase tracking-wider text-xs">
             Properties
           </h5>
 
           <div className="flex items-center gap-3">
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-slate-50 text-slate-400 border border-slate-100">
+            <div className="grid h-8 w-8 place-items-center rounded-panel bg-background text-muted-foreground border border-border">
               <User className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold text-slate-400">Owner</p>
-              <p className="font-bold text-slate-700 truncate">
+              <p className="text-xs font-semibold text-muted-foreground">Owner</p>
+              <p className="font-semibold text-foreground truncate">
                 {item.ownerEmail || "Me"}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-slate-50 text-slate-400 border border-slate-100">
+            <div className="grid h-8 w-8 place-items-center rounded-panel bg-background text-muted-foreground border border-border">
               <Calendar className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold text-slate-400">Last Modified</p>
-              <p className="font-bold text-slate-700">
+              <p className="text-xs font-semibold text-muted-foreground">Last Modified</p>
+              <p className="font-semibold text-foreground">
                 {formatDateLong(item.updatedAt)}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-slate-50 text-slate-400 border border-slate-100">
+            <div className="grid h-8 w-8 place-items-center rounded-panel bg-background text-muted-foreground border border-border">
               <Layers className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold text-slate-400">Size</p>
-              <p className="font-bold text-slate-700">
+              <p className="text-xs font-semibold text-muted-foreground">Size</p>
+              <p className="font-semibold text-foreground">
                 {isFolder ? "—" : formatBytes(getDocumentDisplaySize(item))}
               </p>
             </div>
@@ -152,8 +152,8 @@ export function DetailsPanel({
       </div>
 
       {/* Footer Role Status */}
-      <div className="flex shrink-0 items-center justify-between border-t border-slate-100 px-6 py-4">
-        <span className="text-xs text-slate-500 font-bold">Access Permission</span>
+      <div className="flex shrink-0 items-center justify-between border-t border-border px-6 py-4">
+        <span className="text-xs text-muted-foreground font-semibold">Access Permission</span>
         <DocumentsStatusBadge type="role" role={item.userRole} />
       </div>
     </div>

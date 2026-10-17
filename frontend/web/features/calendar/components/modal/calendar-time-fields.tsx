@@ -40,7 +40,7 @@ export function QuickRow({
         className,
       )}
     >
-      <span className="mt-1 grid h-9 w-9 place-items-center rounded-xl text-slate-500">
+      <span className="mt-1 grid h-9 w-9 place-items-center rounded-panel text-muted-foreground">
         {icon}
       </span>
       <div className={cn("min-w-0", contentClassName)}>{children}</div>
@@ -75,8 +75,8 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
     <QuickRow icon={<Clock3 className="h-5 w-5" />}>
       <div className="space-y-2">
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="min-w-0 rounded-2xl border border-slate-200/70 bg-slate-50/90 px-3 py-2 transition-colors hover:bg-slate-100/90">
-            <span className="block text-xs font-medium text-slate-500">
+          <label className="min-w-0 rounded-panel border border-input bg-background px-3 py-2 transition-colors hover:bg-muted">
+            <span className="block text-xs font-medium text-muted-foreground">
               {copy.startDate}
             </span>
             <Input
@@ -84,11 +84,11 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
               aria-label={copy.startDate}
               value={getDateInputValue(startAt)}
               onChange={(event) => onStartDateChange(event.target.value)}
-              className="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
+              className="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-foreground shadow-none outline-none focus-visible:ring-0"
             />
           </label>
-          <label className="min-w-0 rounded-2xl border border-slate-200/70 bg-slate-50/90 px-3 py-2 transition-colors hover:bg-slate-100/90">
-            <span className="block text-xs font-medium text-slate-500">
+          <label className="min-w-0 rounded-panel border border-input bg-background px-3 py-2 transition-colors hover:bg-muted">
+            <span className="block text-xs font-medium text-muted-foreground">
               {copy.endDate}
             </span>
             <Input
@@ -97,7 +97,7 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
               value={getDateInputValue(endAt)}
               min={getDateInputValue(startAt)}
               onChange={(event) => onEndDateChange(event.target.value)}
-              className="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
+              className="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-foreground shadow-none outline-none focus-visible:ring-0"
             />
           </label>
         </div>
@@ -109,10 +109,10 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
               options={startTimeOptions}
               ariaLabel={copy.start}
               onChange={onStartTimeChange}
-              triggerClassName="h-10 w-full justify-between rounded-xl border border-slate-200/70 bg-slate-100/80 px-3 text-slate-700 hover:bg-slate-200/70 data-[state=open]:bg-white"
+              triggerClassName="h-10 w-full justify-between rounded-panel border border-input bg-muted px-3 text-foreground hover:bg-accent/70 data-[state=open]:bg-card"
               popupClassName="min-w-[11.75rem]"
             />
-            <span className="hidden text-sm font-medium text-slate-400 sm:block">
+            <span className="hidden text-sm font-medium text-muted-foreground sm:block">
               -
             </span>
             <CalendarSelect
@@ -121,13 +121,13 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
               ariaLabel={copy.end}
               onChange={onEndDateTimeChange}
               triggerLabel={selectedEndTimeLabel}
-              triggerClassName="h-10 w-full justify-between rounded-xl border border-slate-200/70 bg-slate-100/80 px-3 text-slate-700 hover:bg-slate-200/70 data-[state=open]:bg-white"
+              triggerClassName="h-10 w-full justify-between rounded-panel border border-input bg-muted px-3 text-foreground hover:bg-accent/70 data-[state=open]:bg-card"
               popupClassName="min-w-[11.75rem]"
             />
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-xs font-medium text-slate-500">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-xs font-medium text-muted-foreground">
           <label className="inline-flex cursor-pointer items-center gap-2">
             <Checkbox
               aria-label={copy.allDay}
@@ -136,13 +136,13 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
                 setValue("allDay", checked, { shouldDirty: true });
                 onAllDayChange(checked);
               }}
-              className="h-3.5 w-3.5 rounded border-slate-300"
+              className="h-3.5 w-3.5 rounded border-input"
             />
             {copy.allDay}
           </label>
           {showTimeZone && (
             <>
-              <span className="text-slate-300">{"\u00B7"}</span>
+              <span className="text-muted-foreground">{"\u00B7"}</span>
               <span>
                 {copy.timeZone}
               </span>

@@ -374,7 +374,7 @@ export default function ProjectDetailScreen() {
     board: "Kanban Board",
     list: "Backlog",
     calendar: "Schedule",
-    gantt: "Grantt Chart",
+    gantt: "Gantt chart",
     documents: "Documents",
     members: "Members",
   };
@@ -407,7 +407,7 @@ export default function ProjectDetailScreen() {
 
       {/* ── Main Content Area ── */}
       <main
-        className={`flex min-w-0 flex-1 flex-col bg-white px-4 py-5 sm:px-6 lg:px-8 lg:py-6 ${
+        className={`flex min-w-0 flex-1 flex-col bg-card px-4 py-5 sm:px-6 lg:px-8 lg:py-6 ${
           viewMode === "documents" ? "overflow-hidden" : "overflow-y-auto"
         }`}
       >

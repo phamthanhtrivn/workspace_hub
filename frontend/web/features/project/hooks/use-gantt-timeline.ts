@@ -160,17 +160,17 @@ export function taskEnd(task: Task): Date | undefined {
 export function getGanttBarColor(status: TaskStatus): string {
   switch (status) {
     case TaskStatus.TODO:
-      return "bg-slate-500 hover:bg-slate-600 border-slate-600 text-white";
+      return "bg-muted-foreground hover:bg-primary border-input text-primary-foreground";
     case TaskStatus.IN_PROGRESS:
-      return "bg-[#0052CC] hover:bg-[#0747A6] border-[#0747A6] text-white";
+      return "bg-primary hover:bg-primary-hover border-border text-primary-foreground";
     case TaskStatus.IN_REVIEW:
-      return "bg-amber-500 hover:bg-amber-600 border-amber-600 text-white";
+      return "bg-warning hover:bg-warning border-warning text-warning-foreground";
     case TaskStatus.DONE:
-      return "bg-emerald-600 hover:bg-emerald-700 border-emerald-700 text-white";
+      return "bg-success hover:bg-success border-success text-success-foreground";
     case TaskStatus.CANCELLED:
-      return "bg-red-500 hover:bg-red-600 border-red-600 text-white";
+      return "bg-destructive hover:bg-destructive border-destructive text-destructive-foreground";
     default:
-      return "bg-slate-500 text-white";
+      return "bg-muted-foreground text-primary-foreground";
   }
 }
 

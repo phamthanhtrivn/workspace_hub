@@ -39,40 +39,40 @@ export default function ProjectInvitationsScreen({
 
   return (
     <main className="mx-auto w-full max-w-2xl space-y-4 p-6">
-      <h1 className="text-xl font-bold text-slate-800">Project Invitations</h1>
-      <Link href="/projects" className="text-sm font-semibold text-[#0052CC] hover:underline">
+      <h1 className="text-page-title font-semibold text-foreground">Project Invitations</h1>
+      <Link href="/projects" className="text-sm font-semibold text-info hover:underline">
         ← Back to Projects
       </Link>
       {query.isLoading ? (
-        <p className="text-xs text-slate-500">Loading invitations...</p>
+        <p className="text-xs text-muted-foreground">Loading invitations...</p>
       ) : query.isError ? (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className="text-xs text-destructive">
           Failed to load invitations.{" "}
           <Button
             type="button"
             variant="link"
             size="sm"
             onClick={() => void query.refetch()}
-            className="h-auto p-0 font-bold underline text-red-600 hover:text-red-700 cursor-pointer"
+            className="h-auto p-0 font-semibold underline text-destructive hover:text-destructive cursor-pointer"
           >
             Retry
           </Button>
         </p>
       ) : !invitations.length ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-sm font-semibold text-slate-500 shadow-xs">
+        <div className="rounded-panel border border-border bg-card p-6 text-center text-sm font-semibold text-muted-foreground">
           You have no pending project invitations.
         </div>
       ) : (
         invitations.map((invitation) => (
           <section
             key={invitation.id}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-3"
+            className="rounded-panel border border-border bg-card p-5 space-y-3"
           >
-            <h2 className="text-base font-bold text-slate-800">
+            <h2 className="text-section-title font-semibold text-foreground">
               {invitation.projectName}
             </h2>
             {invitation.expiresAt && (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Expires on:{" "}
                 {new Date(invitation.expiresAt).toLocaleDateString(undefined, {
                   dateStyle: "medium",
@@ -85,7 +85,7 @@ export default function ProjectInvitationsScreen({
                 type="button"
                 disabled={respond.isPending}
                 onClick={() => void handleRespond(invitation.id, "accept")}
-                className="bg-[#0052CC] hover:bg-[#0747A6] text-white font-bold text-xs h-9 px-4 rounded-xl cursor-pointer"
+                className="bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-xs h-9 px-4 rounded-control cursor-pointer"
               >
                 Accept
               </Button>
@@ -94,7 +94,7 @@ export default function ProjectInvitationsScreen({
                 variant="outline"
                 disabled={respond.isPending}
                 onClick={() => void handleRespond(invitation.id, "decline")}
-                className="border-slate-200 text-slate-700 font-bold text-xs h-9 px-4 rounded-xl hover:bg-slate-50 cursor-pointer"
+                className="border-border text-foreground font-semibold text-xs h-9 px-4 rounded-control hover:bg-background cursor-pointer"
               >
                 Decline
               </Button>

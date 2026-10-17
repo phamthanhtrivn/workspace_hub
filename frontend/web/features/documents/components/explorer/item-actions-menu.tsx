@@ -103,7 +103,7 @@ export function ItemActionsMenu({
       />
 
       {isOpen ? (
-        <div className="absolute right-0 z-50 mt-1.5 w-48 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl text-xs font-bold text-slate-700 animate-in fade-in slide-in-from-top-1 duration-150">
+        <div className="absolute right-0 z-50 mt-1.5 w-48 rounded-panel border border-border bg-card p-2 text-xs font-semibold text-foreground animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel">
           {activeView !== DocumentViewType.TRASH ? (
             <>
               {!isFolder && onPreview ? (
@@ -114,7 +114,7 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onPreview();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[#0052CC] hover:bg-slate-50 transition cursor-pointer"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-info hover:bg-background transition cursor-pointer"
                 >
                   <FaEye className="h-3.5 w-3.5" />
                   <span>Preview</span>
@@ -129,9 +129,9 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onDownload();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
                 >
-                  <FaDownload className="h-3.5 w-3.5 text-emerald-500" />
+                  <FaDownload className="h-3.5 w-3.5 text-success" />
                   <span>Download</span>
                 </button>
               ) : null}
@@ -144,9 +144,9 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onDownloadFolder();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
                 >
-                  <FaDownload className="h-3.5 w-3.5 text-emerald-500" />
+                  <FaDownload className="h-3.5 w-3.5 text-success" />
                   <span>Download ZIP</span>
                 </button>
               ) : null}
@@ -159,9 +159,9 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onManageVersions();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
                 >
-                  <FaHistory className="h-3.5 w-3.5 text-indigo-500" />
+                  <FaHistory className="h-3.5 w-3.5 text-info" />
                   <span>Manage versions</span>
                 </button>
               ) : null}
@@ -174,9 +174,9 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onShare();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-blue-600 hover:bg-slate-50 transition cursor-pointer"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-info hover:bg-background transition cursor-pointer"
                 >
-                  <FaShareAlt className="h-3.5 w-3.5 text-blue-500" />
+                  <FaShareAlt className="h-3.5 w-3.5 text-info" />
                   <span>Share</span>
                 </button>
               ) : null}
@@ -189,9 +189,9 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onShareToChat();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-violet-600 hover:bg-slate-50 transition cursor-pointer"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-info hover:bg-background transition cursor-pointer"
                 >
-                  <FaPaperPlane className="h-3.5 w-3.5 text-violet-500" />
+                  <FaPaperPlane className="h-3.5 w-3.5 text-info" />
                   <span>Share to chat</span>
                 </button>
               ) : null}
@@ -203,9 +203,9 @@ export function ItemActionsMenu({
                   setActiveMenuId(null);
                   onViewDetails?.();
                 }}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
               >
-                <FaInfoCircle className="h-3.5 w-3.5 text-slate-400" />
+                <FaInfoCircle className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Details</span>
               </button>
 
@@ -217,9 +217,9 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onRename();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
                 >
-                  <FaEdit className="h-3.5 w-3.5 text-amber-500" />
+                  <FaEdit className="h-3.5 w-3.5 text-warning" />
                   <span>Rename</span>
                 </button>
               ) : null}
@@ -232,9 +232,9 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onMove();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
                 >
-                  <FaFolderOpen className="h-3.5 w-3.5 text-teal-500" />
+                  <FaFolderOpen className="h-3.5 w-3.5 text-success" />
                   <span>Move</span>
                 </button>
               ) : null}
@@ -247,12 +247,12 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onToggleStar();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
                 >
                   {item.isStarred ? (
-                    <FaStar className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+                    <FaStar className="h-3.5 w-3.5 text-warning fill-warning" />
                   ) : (
-                    <FaRegStar className="h-3.5 w-3.5 text-amber-400" />
+                    <FaRegStar className="h-3.5 w-3.5 text-warning" />
                   )}
                   <span>{item.isStarred ? "Unstar" : "Star"}</span>
                 </button>
@@ -266,9 +266,9 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onArchive(true);
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-red-600 hover:bg-red-50/50 transition cursor-pointer border-t border-slate-50 mt-1 pt-2"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-destructive hover:bg-destructive-soft/50 transition cursor-pointer border-t border-border mt-1 pt-2"
                 >
-                  <FaTrashAlt className="h-3.5 w-3.5 text-red-500" />
+                  <FaTrashAlt className="h-3.5 w-3.5 text-destructive" />
                   <span>Move to trash</span>
                 </button>
               ) : null}
@@ -281,9 +281,9 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onDeletePermanently();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-red-600 hover:bg-red-50/50 transition cursor-pointer border-t border-slate-50 mt-1 pt-2"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-destructive hover:bg-destructive-soft/50 transition cursor-pointer border-t border-border mt-1 pt-2"
                 >
-                  <FaTrash className="h-3.5 w-3.5 text-rose-600" />
+                  <FaTrash className="h-3.5 w-3.5 text-destructive" />
                   <span>Delete permanently</span>
                 </button>
               ) : null}
@@ -298,9 +298,9 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onArchive(false);
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-green-600 hover:bg-green-50/50 transition cursor-pointer"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-success hover:bg-success-soft/50 transition cursor-pointer"
                 >
-                  <FaUndo className="h-3.5 w-3.5 text-green-600" />
+                  <FaUndo className="h-3.5 w-3.5 text-success" />
                   <span>Restore</span>
                 </button>
               ) : null}
@@ -313,9 +313,9 @@ export function ItemActionsMenu({
                     setActiveMenuId(null);
                     onDeletePermanently();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-red-600 hover:bg-red-50/50 transition cursor-pointer border-t border-slate-50 mt-1 pt-2"
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-destructive hover:bg-destructive-soft/50 transition cursor-pointer border-t border-border mt-1 pt-2"
                 >
-                  <FaTrash className="h-3.5 w-3.5 text-rose-600" />
+                  <FaTrash className="h-3.5 w-3.5 text-destructive" />
                   <span>Delete permanently</span>
                 </button>
               ) : null}

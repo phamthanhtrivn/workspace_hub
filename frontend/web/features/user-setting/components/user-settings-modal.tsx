@@ -39,17 +39,17 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
         showCloseButton={false}
-        className="flex h-[550px] max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border-none bg-white p-0 shadow-2xl md:flex-row"
+        className="flex h-[550px] max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-dialog border-none bg-card p-0 md:flex-row"
       >
         <DialogTitle className="sr-only">User Settings</DialogTitle>
-        <div className="w-full border-b border-slate-100 bg-slate-50 p-4 md:w-56 md:border-b-0 md:border-r">
+        <div className="w-full border-b border-border bg-background p-4 md:w-56 md:border-b-0 md:border-r">
           <div className="mb-6 flex items-center justify-between md:mb-8">
-            <h2 className="text-lg font-black text-slate-800">
+            <h2 className="text-section-title font-semibold text-foreground">
               Settings
             </h2>
             <button
               onClick={onClose}
-              className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-600 md:hidden cursor-pointer"
+              className="rounded-control p-2 text-muted-foreground hover:bg-accent hover:text-muted-foreground md:hidden cursor-pointer"
               aria-label="Close"
             >
               <X className="h-5 w-5" />
@@ -60,30 +60,30 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
             <button
               onClick={() => setActiveTab(UserSettingTab.PROFILE)}
               className={cn(
-                `flex min-w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold ${
+                `flex min-w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-control px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-semibold ${
                   activeTab === UserSettingTab.PROFILE
-                    ? "text-white bg-[var(--color-primary-dark)] shadow-sm"
-                    : "text-slate-600 hover:bg-slate-300/70"
+                    ? "text-primary-foreground bg-primary"
+                    : "text-muted-foreground hover:bg-border/70"
                 }`,
               )}
             >
               <User className="h-5 w-5 md:h-4 md:w-4" />
-              <span className="text-xs font-bold md:text-sm">
+              <span className="text-xs font-semibold md:text-sm">
                 Account
               </span>
             </button>
             <button
               onClick={() => setActiveTab(UserSettingTab.GENERAL)}
               className={cn(
-                `flex min-w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold ${
+                `flex min-w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-control px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-semibold ${
                   activeTab === UserSettingTab.GENERAL
-                    ? "text-white bg-[var(--color-primary-dark)] shadow-sm"
-                    : "text-slate-600 hover:bg-slate-300/70"
+                    ? "text-primary-foreground bg-primary"
+                    : "text-muted-foreground hover:bg-border/70"
                 }`,
               )}
             >
               <Settings className="h-5 w-5 md:h-4 md:w-4" />
-              <span className="text-xs font-bold md:text-sm">
+              <span className="text-xs font-semibold md:text-sm">
                 Preferences
               </span>
             </button>
@@ -92,47 +92,47 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               onClick={() => setActiveTab(UserSettingTab.POMODORO)}
               aria-current={activeTab === UserSettingTab.POMODORO ? "page" : undefined}
               className={cn(
-                "flex min-w-[110px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold",
+                "flex min-w-[110px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-control px-3 py-2.5 transition-colors md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-semibold",
                 activeTab === UserSettingTab.POMODORO
-                  ? "bg-[var(--color-primary-dark)] text-white shadow-sm"
-                  : "text-slate-600 hover:bg-slate-300/70",
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-border/70",
               )}
             >
               <Clock3 className="h-5 w-5 md:h-4 md:w-4" />
-              <span className="text-xs font-bold md:text-sm">Pomodoro</span>
+              <span className="text-xs font-semibold md:text-sm">Pomodoro</span>
             </button>
             <button
               onClick={() => setActiveTab(UserSettingTab.SESSION)}
               className={cn(
-                `flex min-w-[110px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold ${
+                `flex min-w-[110px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-control px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-semibold ${
                   activeTab === UserSettingTab.SESSION
-                    ? "text-white bg-[var(--color-primary-dark)] shadow-sm"
-                    : "text-slate-600 hover:bg-slate-300/70"
+                    ? "text-primary-foreground bg-primary"
+                    : "text-muted-foreground hover:bg-border/70"
                 }`,
               )}
             >
               <Shield className="h-5 w-5 md:h-4 md:w-4" />
-              <span className="text-xs font-bold md:text-sm">
+              <span className="text-xs font-semibold md:text-sm">
                 Security
               </span>
             </button>
             <button
               onClick={() => setActiveTab(UserSettingTab.PASSWORD)}
               className={cn(
-                `relative flex min-w-[110px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold ${
+                `relative flex min-w-[110px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-control px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-semibold ${
                   activeTab === UserSettingTab.PASSWORD
-                    ? "text-white bg-[var(--color-primary-dark)] shadow-sm"
-                    : "text-slate-600 hover:bg-slate-300/70"
+                    ? "text-primary-foreground bg-primary"
+                    : "text-muted-foreground hover:bg-border/70"
                 }`,
               )}
             >
               <span className="relative">
                 <KeyRound className="h-5 w-5 md:h-4 md:w-4" />
                 {!hasPassword && (
-                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white" />
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-warning ring-2 ring-border" />
                 )}
               </span>
-              <span className="text-xs font-bold md:text-sm">
+              <span className="text-xs font-semibold md:text-sm">
                 Password
               </span>
             </button>
@@ -142,7 +142,7 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
         <div className="relative min-h-0 min-w-0 flex-1 overflow-y-auto p-5 md:p-6">
           <button
             onClick={onClose}
-            className="absolute right-6 top-6 hidden rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 md:block cursor-pointer"
+            className="absolute right-6 top-6 hidden rounded-control p-2 text-muted-foreground hover:bg-muted hover:text-muted-foreground md:block cursor-pointer"
             aria-label="Close"
           >
             <X className="h-5 w-5" />

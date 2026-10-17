@@ -17,6 +17,7 @@ import type { DateClickArg } from "@fullcalendar/interaction";
 import { Circle, CircleCheck } from "lucide-react";
 import { memo, RefObject, useCallback, useEffect, useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { readableTextOnColor } from "@/lib/color";
 
 import {
   CALENDAR_INITIAL_VIEW,
@@ -81,7 +82,7 @@ export const CalendarGrid = memo(function CalendarGrid({
   const renderEventContent = useCallback(
     (arg: EventContentArg) => {
       const calendarColor = String(
-        arg.event.extendedProps.calendarColor || "#2563eb",
+        arg.event.extendedProps.calendarColor || "var(--primary)",
       );
       const eventColor = arg.event.backgroundColor || calendarColor;
       const hasCustomEventColor = Boolean(
@@ -108,7 +109,7 @@ export const CalendarGrid = memo(function CalendarGrid({
       if (isMonthTimedEvent) {
         return (
           <div
-            className={`flex min-w-0 items-center gap-1.5 px-1 py-0.5 text-slate-800 ${
+            className={`flex min-w-0 items-center gap-1.5 px-1 py-0.5 text-foreground ${
               isDeclined ? "opacity-60" : ""
             }`}
           >
@@ -116,12 +117,12 @@ export const CalendarGrid = memo(function CalendarGrid({
               aria-hidden="true"
               className="h-2 w-2 shrink-0 rounded-full"
               style={{
-                backgroundColor: isDeclined ? "#94a3b8" : eventColor,
+                backgroundColor: isDeclined ? "var(--muted-foreground)" : eventColor,
               }}
             />
             <p
               className={`min-w-0 truncate text-xs leading-5 ${
-                isDeclined ? "line-through text-slate-400" : ""
+                isDeclined ? "line-through text-muted-foreground" : ""
               }`}
             >
               {arg.timeText && (
@@ -135,10 +136,13 @@ export const CalendarGrid = memo(function CalendarGrid({
 
       return (
         <div
-          className={`relative min-h-full min-w-0 overflow-hidden rounded px-1.5 py-1 text-white ${
+          className={`relative min-h-full min-w-0 overflow-hidden rounded px-1.5 py-1 text-primary-foreground ${
             isTask ? "calendar-task-event-content" : ""
           } ${isDeclined ? "opacity-60" : ""}`}
-          style={{ backgroundColor: isDeclined ? "#94a3b8" : eventColor }}
+          style={{
+            backgroundColor: isDeclined ? "var(--muted-foreground)" : eventColor,
+            color: isDeclined ? "var(--background)" : readableTextOnColor(eventColor),
+          }}
         >
           {hasCustomEventColor && !isTask && (
             <span
@@ -165,7 +169,7 @@ export const CalendarGrid = memo(function CalendarGrid({
                 onCheckedChange={() => {
                   if (taskEvent) onTaskCompletionToggle(taskEvent);
                 }}
-                className={`group/task-toggle relative mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full outline-none ring-white/90 focus-visible:ring-2 ${
+                className={`group/task-toggle relative mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full outline-none ring-border/90 focus-visible:ring-2 ${
                   taskCompletionBusy
                     ? "cursor-wait opacity-70"
                     : "cursor-pointer"
@@ -186,7 +190,7 @@ export const CalendarGrid = memo(function CalendarGrid({
               </p>
               {!arg.event.allDay && (
                 <p
-                  className={`mt-0.5 truncate text-[11px] font-medium leading-[1.2] opacity-95 tabular-nums ${
+                  className={`mt-0.5 truncate text-xs font-medium leading-[1.2] opacity-95 tabular-nums ${
                     isCompletedTask || isDeclined ? "line-through" : ""
                   }`}
                 >
@@ -213,10 +217,10 @@ export const CalendarGrid = memo(function CalendarGrid({
   return (
     <div
       ref={containerRef}
-      className="calendar-shell relative min-h-0 flex-1 bg-white"
+      className="calendar-shell relative min-h-0 flex-1 bg-card"
     >
       {loading && (
-        <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-blue-100 bg-white/95 px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm">
+        <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-info shadow-panel">
           Loading...
         </div>
       )}

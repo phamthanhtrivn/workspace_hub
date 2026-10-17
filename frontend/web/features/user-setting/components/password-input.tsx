@@ -26,7 +26,7 @@ const PasswordInput = React.memo(function PasswordInput({
 
   return (
     <div className="flex flex-col gap-1 w-full">
-      <label htmlFor={id} className="text-sm font-bold text-slate-700">
+      <label htmlFor={id} className="text-sm font-semibold text-foreground">
         {label}
       </label>
       <div className="relative">
@@ -37,22 +37,22 @@ const PasswordInput = React.memo(function PasswordInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={cn(
-            "h-10 w-full rounded-xl border bg-white px-3 pr-10 text-sm font-semibold text-slate-800 transition-all placeholder:text-slate-400 focus-visible:ring-2",
+            "h-10 w-full rounded-control border bg-card px-3 pr-10 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground focus-visible:ring-2",
             error
-              ? "border-red-500 focus-visible:ring-red-500/20"
-              : "border-slate-200 focus-visible:border-[var(--color-primary)] focus-visible:ring-[var(--color-primary)]/20",
+              ? "border-destructive focus-visible:ring-ring"
+              : "border-input focus-visible:border-primary focus-visible:ring-ring",
           )}
         />
         <button
           type="button"
           onClick={() => setShow((s) => !s)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition cursor-pointer"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground transition cursor-pointer"
           aria-label={show ? "Hide password" : "Show password"}
         >
           {show ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>
       </div>
-      {error && <p className="text-xs font-semibold text-red-500">{error}</p>}
+      {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
     </div>
   );
 });

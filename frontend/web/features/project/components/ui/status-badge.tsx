@@ -22,6 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CustomBadge } from "@/components/ui/custom/custom-badge";
 import { cn } from "@/lib/utils";
+import { readableTextOnColor } from "@/lib/color";
 
 // ─── Task Status ──────────────────────────────────────────────────────────────
 
@@ -31,32 +32,32 @@ const taskStatusConfig: Record<
 > = {
   [TaskStatus.TODO]: {
     label: "To Do",
-    color: "text-slate-600",
-    bg: "bg-slate-100 border-slate-200",
+    color: "text-muted-foreground",
+    bg: "bg-muted border-border",
     icon: Circle,
   },
   [TaskStatus.IN_PROGRESS]: {
     label: "In Progress",
-    color: "text-blue-700",
-    bg: "bg-blue-50 border-blue-200",
+    color: "text-info",
+    bg: "bg-info-soft border-border",
     icon: Loader2,
   },
   [TaskStatus.IN_REVIEW]: {
     label: "In Review",
-    color: "text-amber-700",
-    bg: "bg-amber-50 border-amber-200",
+    color: "text-warning",
+    bg: "bg-warning-soft border-border",
     icon: Eye,
   },
   [TaskStatus.DONE]: {
     label: "Done",
-    color: "text-emerald-700",
-    bg: "bg-emerald-50 border-emerald-200",
+    color: "text-success",
+    bg: "bg-success-soft border-border",
     icon: CheckCircle2,
   },
   [TaskStatus.CANCELLED]: {
     label: "Cancelled",
-    color: "text-red-700",
-    bg: "bg-red-50 border-red-200",
+    color: "text-destructive",
+    bg: "bg-destructive-soft border-border",
     icon: Ban,
   },
 };
@@ -69,26 +70,26 @@ const projectStatusConfig: Record<
 > = {
   [ProjectStatus.ACTIVE]: {
     label: "Active",
-    color: "text-emerald-700",
-    bg: "bg-emerald-50 border-emerald-200",
+    color: "text-success",
+    bg: "bg-success-soft border-border",
     icon: Loader2,
   },
   [ProjectStatus.ON_HOLD]: {
     label: "On Hold",
-    color: "text-amber-700",
-    bg: "bg-amber-50 border-amber-200",
+    color: "text-warning",
+    bg: "bg-warning-soft border-border",
     icon: Pause,
   },
   [ProjectStatus.COMPLETED]: {
     label: "Completed",
-    color: "text-blue-700",
-    bg: "bg-blue-50 border-blue-200",
+    color: "text-info",
+    bg: "bg-info-soft border-border",
     icon: CheckCircle2,
   },
   [ProjectStatus.ARCHIVED]: {
     label: "Archived",
-    color: "text-slate-600",
-    bg: "bg-slate-100 border-slate-200",
+    color: "text-muted-foreground",
+    bg: "bg-muted border-border",
     icon: Archive,
   },
 };
@@ -108,8 +109,8 @@ export function TaskStatusBadge({
     <Badge
       variant="outline"
       className={cn(
-        "inline-flex items-center gap-1.5 font-bold transition-all",
-        compact ? "rounded-md px-1.5 py-0.5 text-[10px]" : "rounded-full px-2.5 py-0.5 text-xs",
+        "inline-flex items-center gap-1.5 font-semibold transition-all",
+        compact ? "rounded-md px-1.5 py-0.5 text-xs" : "rounded-full px-2.5 py-0.5 text-xs",
         cfg.bg,
         cfg.color
       )}
@@ -127,7 +128,7 @@ export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
     <Badge
       variant="outline"
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold transition-all",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold transition-all",
         cfg.bg,
         cfg.color
       )}
@@ -146,26 +147,26 @@ const taskPriorityConfig: Record<
 > = {
   [TaskPriority.URGENT]: {
     label: "Urgent",
-    color: "text-red-700",
-    bg: "bg-red-50 border-red-200",
+    color: "text-destructive",
+    bg: "bg-destructive-soft border-border",
     icon: ChevronsUp,
   },
   [TaskPriority.HIGH]: {
     label: "High",
-    color: "text-amber-700",
-    bg: "bg-amber-50 border-amber-200",
+    color: "text-warning",
+    bg: "bg-warning-soft border-border",
     icon: ChevronUp,
   },
   [TaskPriority.MEDIUM]: {
     label: "Medium",
-    color: "text-blue-700",
-    bg: "bg-blue-50 border-blue-200",
+    color: "text-info",
+    bg: "bg-info-soft border-border",
     icon: Equal,
   },
   [TaskPriority.LOW]: {
     label: "Low",
-    color: "text-slate-600",
-    bg: "bg-slate-100 border-slate-200",
+    color: "text-muted-foreground",
+    bg: "bg-muted border-border",
     icon: ChevronDown,
   },
 };
@@ -183,8 +184,8 @@ export function TaskPriorityBadge({
     <Badge
       variant="outline"
       className={cn(
-        "inline-flex items-center gap-1.5 font-bold transition-all",
-        compact ? "rounded-md px-1.5 py-0.5 text-[10px]" : "rounded-full px-2.5 py-0.5 text-xs",
+        "inline-flex items-center gap-1.5 font-semibold transition-all",
+        compact ? "rounded-md px-1.5 py-0.5 text-xs" : "rounded-full px-2.5 py-0.5 text-xs",
         cfg.bg,
         cfg.color
       )}
@@ -199,7 +200,7 @@ export function LabelBadge({ name, color }: { name: string; color: string }) {
   return (
     <CustomBadge
       variantStyle="label"
-      style={{ backgroundColor: color }}
+      style={{ backgroundColor: color, color: readableTextOnColor(color) }}
     >
       {name}
     </CustomBadge>

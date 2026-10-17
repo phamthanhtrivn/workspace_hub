@@ -43,7 +43,7 @@ function SenderAvatar({
 
   return (
     <div
-      className={`${sizeClass} relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white bg-gradient-to-br from-blue-100 via-slate-100 to-indigo-100 font-black text-slate-600 shadow-sm ring-1 ring-slate-200`}
+      className={`${sizeClass} relative flex shrink-0 items-center justify-center overflow-hidden rounded-panel border border-border bg-info-soft font-semibold text-muted-foreground ring-1 ring-ring`}
     >
       {notification.senderAvatar ? (
         <Image
@@ -71,37 +71,37 @@ export const InvitationListItemRenderer: React.FC<{
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full cursor-pointer gap-3 border-b border-slate-100 p-3 text-left transition last:border-0 hover:bg-blue-50/45 ${
-        !notification.isRead ? "bg-blue-50/60" : "bg-white"
+      className={`group flex w-full cursor-pointer gap-3 border-b border-border p-3 text-left transition last:border-0 hover:bg-info-soft/45 ${
+        !notification.isRead ? "bg-info-soft/60" : "bg-card"
       }`}
     >
       <NotificationCategoryIcon notification={notification} />
 
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex items-center gap-2">
-          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-blue-700">
+          <span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info">
             Space invite
           </span>
-          <span className="text-[10px] font-semibold text-slate-400">
+          <span className="text-xs font-semibold text-muted-foreground">
             {formatTimeAgo(new Date(notification.createdAt))}
           </span>
         </div>
 
-        <p className="line-clamp-2 text-sm font-bold leading-5 text-slate-800">
-          <span className="text-slate-950">
+        <p className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
+          <span className="text-foreground">
             {notification.senderName || "Someone"}
           </span>{" "}
           invited you to{" "}
-          <span className="text-blue-700">{spaceName}</span>
+          <span className="text-info">{spaceName}</span>
         </p>
 
-        <p className="mt-1 line-clamp-1 text-xs text-slate-500">
+        <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
           {notification.content}
         </p>
       </div>
 
       {!notification.isRead && (
-        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500 shadow-sm shadow-blue-500/40" />
+        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
       )}
     </button>
   );
@@ -151,8 +151,8 @@ export const InvitationModalRenderer: React.FC<{
           : `This invitation to ${spaceName} will be dismissed.`,
       icon: "question",
       showCancelButton: true,
-      confirmButtonColor: action === "accept" ? "#2563eb" : "#dc2626",
-      cancelButtonColor: "#94a3b8",
+      confirmButtonColor: action === "accept" ? "var(--primary)" : "var(--destructive)",
+      cancelButtonColor: "var(--muted)",
       confirmButtonText: action === "accept" ? "Join space" : "Decline",
       cancelButtonText: "Cancel",
     });
@@ -189,23 +189,23 @@ export const InvitationModalRenderer: React.FC<{
   };
 
   return (
-    <div className="bg-white">
-      <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-slate-50 px-6 pb-6 pt-7 text-center">
-        <div className="mx-auto mb-4 flex w-fit items-center gap-3 rounded-2xl border border-white bg-white/80 p-2 shadow-sm ring-1 ring-slate-200/70">
+    <div className="bg-card">
+      <div className="relative overflow-hidden bg-info-soft px-6 pb-6 pt-7 text-center">
+        <div className="mx-auto mb-4 flex w-fit items-center gap-3 rounded-panel border border-border bg-card p-2 ring-1 ring-ring/70">
           <SenderAvatar notification={notification} size="lg" />
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/20">
+          <div className="flex h-12 w-12 items-center justify-center rounded-panel bg-primary text-primary-foreground">
             <UserPlus size={22} />
           </div>
         </div>
 
-        <p className="mb-2 text-xs font-black uppercase tracking-wide text-blue-700">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-info">
           Space invitation
         </p>
-        <h3 className="text-2xl font-black tracking-tight text-slate-950">
+        <h3 className="text-section-title font-semibold tracking-tight text-foreground">
           {spaceName}
         </h3>
-        <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-slate-600">
-          <span className="font-bold text-slate-900">
+        <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-muted-foreground">
+          <span className="font-semibold text-foreground">
             {notification.senderName || "Someone"}
           </span>{" "}
           invited you to collaborate in this space.
@@ -213,25 +213,25 @@ export const InvitationModalRenderer: React.FC<{
       </div>
 
       <div className="space-y-4 p-5">
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="rounded-panel border border-border bg-background p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm ring-1 ring-slate-200">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-panel bg-card text-info ring-1 ring-ring">
               <Users size={21} />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-black text-slate-900">
+              <p className="truncate text-sm font-semibold text-foreground">
                 {spaceName}
               </p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {notification.content}
               </p>
             </div>
-            <ArrowRight size={18} className="shrink-0 text-slate-300" />
+            <ArrowRight size={18} className="shrink-0 text-muted-foreground" />
           </div>
         </div>
 
         {isResponded ? (
-          <div className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm font-bold text-emerald-700">
+          <div className="flex items-center justify-center gap-2 rounded-panel border border-border bg-success-soft p-3 text-sm font-semibold text-success">
             <CheckCircle2 size={17} />
             This invitation has already been handled
           </div>
@@ -240,7 +240,7 @@ export const InvitationModalRenderer: React.FC<{
             <button
               onClick={() => handleResponse("decline")}
               disabled={isProcessing}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-foreground transition hover:border-border hover:bg-destructive-soft hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
               <XCircle size={16} />
               Decline
@@ -248,7 +248,7 @@ export const InvitationModalRenderer: React.FC<{
             <button
               onClick={() => handleResponse("accept")}
               disabled={isProcessing}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
               {isProcessing ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -262,7 +262,7 @@ export const InvitationModalRenderer: React.FC<{
 
         <button
           onClick={onClose}
-          className="w-full rounded-xl py-2 text-xs font-bold text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 cursor-pointer"
+          className="w-full rounded-control py-2 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-muted-foreground cursor-pointer"
         >
           Close
         </button>

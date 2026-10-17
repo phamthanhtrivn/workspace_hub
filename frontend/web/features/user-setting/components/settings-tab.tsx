@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { UserTheme, UserTimezone } from "../types/settings.enums";
+import { USER_SETTING_SAVE_ERROR, UserTheme } from "../types/settings.enums";
 import { UserSettings } from "../types/user-setting.types";
 import {
   useUpdateUserSettingsMutation,
@@ -16,14 +16,6 @@ import { SettingSelect, SettingSwitchCard } from "./ui/setting-form-controls";
 const THEME_OPTIONS = [
   { value: UserTheme.LIGHT, label: "Light" },
   { value: UserTheme.DARK, label: "Dark" },
-];
-
-const TIMEZONE_OPTIONS = [
-  {
-    value: UserTimezone.ASIA_HO_CHI_MINH,
-    label: "Asia/Ho_Chi_Minh (GMT+7)",
-  },
-  { value: UserTimezone.UTC, label: "UTC" },
 ];
 
 const SettingsTab = React.memo(function SettingsTab() {
@@ -68,7 +60,7 @@ const SettingsTab = React.memo(function SettingsTab() {
         },
         onError: (error) => {
           toast.error(
-            getUserSettingErrorMessage(error, "Failed to save settings"),
+            getUserSettingErrorMessage(error, USER_SETTING_SAVE_ERROR),
           );
         },
       },
@@ -78,7 +70,7 @@ const SettingsTab = React.memo(function SettingsTab() {
   if (isLoading) {
     return (
       <div className="flex h-full min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -87,10 +79,22 @@ const SettingsTab = React.memo(function SettingsTab() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-      <h3 className="text-2xl font-black text-slate-800">Preferences</h3>
+      <h3 className="text-section-title font-semibold text-foreground">Preferences</h3>
 
       <div className="space-y-4">
-        <h4 className="text-lg font-bold text-slate-800">Notifications</h4>
+        <SettingSelect
+          label="Appearance"
+          ariaLabel="Theme"
+          value={settingsForm.theme}
+          options={THEME_OPTIONS}
+          onChange={(theme) => updateLocalSetting("theme", theme)}
+          disabled={settingsMutation.isPending}
+        />
+        <p className="text-sm text-muted-foreground">
+          Choose Light or Dark, then save your settings to apply it.
+        </p>
+
+        <h4 className="text-lg font-semibold text-foreground">Notifications</h4>
 
         <SettingSwitchCard
           title="Mute Notifications"
@@ -102,8 +106,8 @@ const SettingsTab = React.memo(function SettingsTab() {
           disabled={settingsMutation.isPending}
         />
 
-        <hr className="my-4 border-slate-200" />
-        <h4 className="text-lg font-bold text-slate-800">Privacy</h4>
+        <hr className="my-4 border-border" />
+        <h4 className="text-lg font-semibold text-foreground">Privacy</h4>
 
         <SettingSwitchCard
           title="Allow New Direct Messages"
@@ -118,7 +122,7 @@ const SettingsTab = React.memo(function SettingsTab() {
         <Button
           onClick={handleSaveSettings}
           disabled={settingsMutation.isPending}
-          className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-dark)] text-sm font-bold text-white shadow-md transition hover:bg-[var(--color-primary)] cursor-pointer"
+          className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary cursor-pointer"
         >
           {settingsMutation.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />

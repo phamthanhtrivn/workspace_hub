@@ -17,7 +17,7 @@ export default React.memo(function MentionDropdown({
   if (query === null || members.length === 0) return null;
 
   return (
-    <div className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto bg-white border border-gray-200 shadow-xl rounded-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-200">
+    <div className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto bg-card border border-border rounded-panel z-50 py-1 animate-in fade-in zoom-in-95 duration-200 shadow-panel">
       {members.map((user, idx) => (
         <button
           key={user.id}
@@ -27,13 +27,13 @@ export default React.memo(function MentionDropdown({
           }}
           className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors ${
             idx === selectedIndex
-              ? "bg-blue-50 text-blue-700"
-              : "text-gray-700 hover:bg-gray-100"
+              ? "bg-info-soft text-info"
+              : "text-foreground hover:bg-muted"
           }`}
         >
-          <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-xs flex-shrink-0 overflow-hidden">
+          <div className="w-6 h-6 rounded-full bg-info-soft flex items-center justify-center text-info font-medium text-xs flex-shrink-0 overflow-hidden">
             {user.id === "all" ? (
-              <Users size={15} className="text-blue-600" />
+              <Users size={15} className="text-info" />
             ) : user.avatarUrl ? (
               <img
                 src={user.avatarUrl}
@@ -41,7 +41,7 @@ export default React.memo(function MentionDropdown({
                 className="w-full h-full object-cover"
               />
             ) : (
-              <User size={15} className="text-gray-400" />
+              <User size={15} className="text-muted-foreground" />
             )}
           </div>
           <span className="truncate">{user.name}</span>

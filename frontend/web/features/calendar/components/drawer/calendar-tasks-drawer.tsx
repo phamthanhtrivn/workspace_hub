@@ -49,7 +49,7 @@ export function CalendarTasksDrawer({
   projects = [],
   selectedProject = null,
   onSelectProject,
-  color = "#f59e0b",
+  color = "var(--warning)",
   loading = false,
   error = false,
   showCompleted,
@@ -129,7 +129,7 @@ export function CalendarTasksDrawer({
         <Button
           type="button"
           variant="ghost"
-          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-slate-950/30 p-0 backdrop-blur-xs lg:hidden"
+          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-overlay/30 p-0 lg:hidden"
           onClick={onClose}
           aria-label="Close"
         />
@@ -137,9 +137,9 @@ export function CalendarTasksDrawer({
 
       <aside
         className={cn(
-          "z-30 flex flex-col border-l border-slate-200 bg-white transition-all duration-300 ease-in-out lg:static lg:z-auto lg:h-full lg:shadow-none",
+          "z-30 flex flex-col border-l border-border bg-card transition-all duration-200 ease-in-out lg:static lg:z-auto lg:h-full lg:shadow-none",
           // Mobile: fixed overlay from right
-          "fixed inset-y-0 right-0 w-full max-w-[400px] shadow-2xl sm:w-[400px]",
+          "fixed inset-y-0 right-0 w-full max-w-[400px] sm:w-[400px]",
           open ? "translate-x-0" : "translate-x-full lg:translate-x-0",
           // Desktop: in-flow flex child that pushes the calendar
           open
@@ -151,7 +151,7 @@ export function CalendarTasksDrawer({
         aria-hidden={!open}
       >
         <div className="flex h-full w-full flex-col sm:w-[400px] lg:w-[400px]">
-          <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 px-3 sm:px-4">
+          <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/80 px-3 sm:px-4">
             <h2 className="sr-only">Tasks</h2>
 
             <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -183,8 +183,8 @@ export function CalendarTasksDrawer({
                       label: "Overdue",
                     },
                   ]}
-                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-slate-200 bg-white pl-2.5 pr-6 text-xs font-medium text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  contentClassName="rounded-lg border-slate-200"
+                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-input bg-card pl-2.5 pr-6 text-xs font-medium text-foreground transition hover:border-input hover:bg-background focus:border-info focus:ring-2 focus:ring-ring"
+                  contentClassName="rounded-lg border-border"
                 />
               </div>
 
@@ -210,8 +210,8 @@ export function CalendarTasksDrawer({
                       label: "Completed",
                     },
                   ]}
-                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-slate-200 bg-white pl-2.5 pr-6 text-xs font-medium text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  contentClassName="rounded-lg border-slate-200"
+                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-input bg-card pl-2.5 pr-6 text-xs font-medium text-foreground transition hover:border-input hover:bg-background focus:border-info focus:ring-2 focus:ring-ring"
+                  contentClassName="rounded-lg border-border"
                 />
               </div>
             </div>
@@ -221,7 +221,7 @@ export function CalendarTasksDrawer({
               variant="ghost"
               size="icon-sm"
               onClick={onClose}
-              className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+              className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-control text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Close"
             >
               <X className="h-4.5 w-4.5" />
@@ -229,7 +229,7 @@ export function CalendarTasksDrawer({
           </header>
 
           <div
-            className="grid shrink-0 grid-cols-2 gap-1 border-b border-slate-200/80 bg-slate-50/70 p-1.5"
+            className="grid shrink-0 grid-cols-2 gap-1 border-b border-border bg-background p-1.5"
             role="tablist"
             aria-label="Tasks"
           >
@@ -242,10 +242,10 @@ export function CalendarTasksDrawer({
                 aria-selected={activeTab === tab.value}
                 onClick={() => setActiveTab(tab.value)}
                 className={cn(
-                  "flex h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
+                  "flex h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeTab === tab.value
-                    ? "bg-white text-slate-800 shadow-xs"
-                    : "text-slate-500 hover:bg-white/70 hover:text-slate-700",
+                    ? "bg-card text-foreground"
+                    : "text-muted-foreground hover:bg-card hover:text-foreground",
                 )}
               >
                 <span className="truncate">{tab.label}</span>
@@ -255,13 +255,13 @@ export function CalendarTasksDrawer({
 
           <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
             {activeTab === "project" && projects.length > 0 && (
-              <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 shadow-2xs">
+              <div className="mb-3 flex items-center justify-between gap-2 rounded-panel border border-border bg-background px-3 py-2">
                 <div className="flex min-w-0 items-center gap-2">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: selectedProject?.color || color }}
                   />
-                  <span className="truncate text-xs font-bold text-slate-700">
+                  <span className="truncate text-xs font-semibold text-foreground">
                     {selectedProject ? selectedProject.name : "Select project"}
                   </span>
                 </div>
@@ -275,8 +275,8 @@ export function CalendarTasksDrawer({
                       value: p.id,
                       label: p.name,
                     }))}
-                    triggerClassName="h-7 w-full cursor-pointer truncate rounded-lg border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50"
-                    contentClassName="rounded-lg border-slate-200"
+                    triggerClassName="h-7 w-full cursor-pointer truncate rounded-lg border-input bg-card px-2 text-xs font-semibold text-foreground hover:bg-background"
+                    contentClassName="rounded-lg border-border"
                   />
                 </div>
               </div>
@@ -284,7 +284,7 @@ export function CalendarTasksDrawer({
 
             {loading ? (
               <div className="flex h-32 items-center justify-center">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-input border-t-info" />
               </div>
             ) : error && displayedTasks.length === 0 ? (
               <TaskLoadError onRetry={onRetry} />
@@ -299,12 +299,12 @@ export function CalendarTasksDrawer({
             ) : filteredTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
                 <span
-                  className="grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-400"
+                  className="grid h-10 w-10 place-items-center rounded-panel bg-muted text-muted-foreground"
                   aria-hidden="true"
                 >
                   <ListTodo className="h-5 w-5" />
                 </span>
-                <p className="mt-3 text-xs font-semibold text-slate-600">
+                <p className="mt-3 text-xs font-semibold text-muted-foreground">
                   No tasks match the selected filter
                 </p>
               </div>
@@ -339,7 +339,7 @@ function TaskLoadError({
   if (compact) {
     return (
       <div
-        className="flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-medium text-red-700"
+        className="flex items-center gap-2 rounded-lg border border-border bg-destructive-soft px-3 py-2 text-xs font-medium text-destructive"
         role="alert"
       >
         <AlertCircle className="h-4 w-4 shrink-0" />
@@ -350,7 +350,7 @@ function TaskLoadError({
             variant="ghost"
             size="icon-sm"
             onClick={onRetry}
-            className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md transition hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+            className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-control transition hover:bg-destructive-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Retry"
             title="Retry"
           >
@@ -366,10 +366,10 @@ function TaskLoadError({
       className="flex flex-col items-center justify-center px-4 py-12 text-center"
       role="alert"
     >
-      <span className="grid h-12 w-12 place-items-center rounded-xl bg-red-50 text-red-600">
+      <span className="grid h-12 w-12 place-items-center rounded-panel bg-destructive-soft text-destructive">
         <AlertCircle className="h-6 w-6" />
       </span>
-      <p className="mt-3 text-sm font-semibold text-slate-700">
+      <p className="mt-3 text-sm font-semibold text-foreground">
         Could not load tasks
       </p>
       {onRetry && (
@@ -377,7 +377,7 @@ function TaskLoadError({
           type="button"
           variant="outline"
           onClick={onRetry}
-          className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+          className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-control border border-border bg-card px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           Retry
@@ -406,15 +406,15 @@ function TaskEmptyState({
     return (
       <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
         <span
-          className="grid h-12 w-12 place-items-center rounded-xl bg-blue-50 text-blue-600"
+          className="grid h-12 w-12 place-items-center rounded-panel bg-info-soft text-info"
           aria-hidden="true"
         >
           <FolderKanban className="h-6 w-6" />
         </span>
-        <p className="mt-3 text-sm font-semibold text-slate-700">
+        <p className="mt-3 text-sm font-semibold text-foreground">
           No project selected
         </p>
-        <p className="mt-1 max-w-[240px] text-xs text-slate-400">
+        <p className="mt-1 max-w-[240px] text-xs text-muted-foreground">
           Select a project from the sidebar or dropdown below to view project
           tasks
         </p>
@@ -428,8 +428,8 @@ function TaskEmptyState({
               value: p.id,
               label: p.name,
             }))}
-            triggerClassName="h-9 w-full cursor-pointer rounded-xl border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50"
-            contentClassName="rounded-xl border-slate-200"
+            triggerClassName="h-9 w-full cursor-pointer rounded-panel border-input bg-card px-3 text-xs font-semibold text-foreground hover:bg-background"
+            contentClassName="rounded-panel border-border"
           />
         </div>
       </div>
@@ -441,7 +441,7 @@ function TaskEmptyState({
   return (
     <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
       <span
-        className="grid h-12 w-12 place-items-center rounded-xl"
+        className="grid h-12 w-12 place-items-center rounded-panel"
         style={{ backgroundColor: activeColor + "15", color: activeColor }}
         aria-hidden="true"
       >
@@ -451,14 +451,14 @@ function TaskEmptyState({
           <ListTodo className="h-6 w-6" />
         )}
       </span>
-      <p className="mt-3 text-sm font-semibold text-slate-700">
+      <p className="mt-3 text-sm font-semibold text-foreground">
         {projectTab
           ? selectedProject
             ? `No tasks in ${selectedProject.name}`
             : "No project tasks"
           : "No tasks yet"}
       </p>
-      <p className="mt-1 max-w-[220px] text-xs text-slate-400">
+      <p className="mt-1 max-w-[220px] text-xs text-muted-foreground">
         {projectTab
           ? "Tasks created in this project will appear here"
           : "All your personal tasks will appear here"}

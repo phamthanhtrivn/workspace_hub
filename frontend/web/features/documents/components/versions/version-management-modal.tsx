@@ -157,16 +157,16 @@ export function VersionManagementModal({
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-2xl border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl">
+      <DialogContent className="max-w-2xl border-border bg-card p-6 text-foreground rounded-dialog">
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info ring-1 ring-ring">
             <History className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <DialogTitle className="text-base font-black text-slate-800">
+            <DialogTitle className="text-base font-semibold text-foreground">
               Version management
             </DialogTitle>
-            <p className="mt-0.5 truncate text-xs text-slate-400 font-bold max-w-md">
+            <p className="mt-0.5 truncate text-xs text-muted-foreground font-semibold max-w-md">
               {item.name}
             </p>
           </div>

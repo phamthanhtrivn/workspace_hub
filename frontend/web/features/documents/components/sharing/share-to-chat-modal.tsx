@@ -102,32 +102,32 @@ export function ShareToChatModal({
     <>
       <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && onClose()}>
         <DialogContent
-          className="max-w-md border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl"
+          className="max-w-md border-border bg-card p-6 text-foreground rounded-dialog"
           showCloseButton={!isSubmitting}
         >
           <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-purple-50 text-purple-600 ring-1 ring-purple-100">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info ring-1 ring-ring">
               <Send className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="text-base font-black text-slate-800">
+              <DialogTitle className="text-base font-semibold text-foreground">
                 Share to chat
               </DialogTitle>
-              <p className="mt-0.5 truncate text-xs text-slate-400 font-bold">
+              <p className="mt-0.5 truncate text-xs text-muted-foreground font-semibold">
                 {item.name}
               </p>
             </div>
           </DialogHeader>
 
           {!isProjectDocuments ? (
-            <div className="mt-3 flex items-center border-b border-slate-100 gap-6">
+            <div className="mt-3 flex items-center border-b border-border gap-6">
               <button
                 type="button"
                 onClick={() => setActiveTab(ShareTabType.CHANNEL)}
-                className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition cursor-pointer ${
+                className={`flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
                   activeTab === ShareTabType.CHANNEL
-                    ? "border-purple-600 text-purple-600"
-                    : "border-transparent text-slate-400 hover:text-slate-600"
+                    ? "border-info text-info"
+                    : "border-transparent text-muted-foreground hover:text-muted-foreground"
                 }`}
               >
                 <Users className="h-4 w-4" />
@@ -136,10 +136,10 @@ export function ShareToChatModal({
               <button
                 type="button"
                 onClick={() => setActiveTab(ShareTabType.DM)}
-                className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition cursor-pointer ${
+                className={`flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
                   activeTab === ShareTabType.DM
-                    ? "border-purple-600 text-purple-600"
-                    : "border-transparent text-slate-400 hover:text-slate-600"
+                    ? "border-info text-info"
+                    : "border-transparent text-muted-foreground hover:text-muted-foreground"
                 }`}
               >
                 <MessageSquare className="h-4 w-4" />
@@ -153,7 +153,7 @@ export function ShareToChatModal({
               <>
                 {!isProjectDocuments ? (
                   <div className="space-y-1.5">
-                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       Space
                     </label>
                     <CustomSelect
@@ -161,12 +161,12 @@ export function ShareToChatModal({
                       options={spaceOptions}
                       onChange={setSelectedSpaceId}
                       ariaLabel="Select Space"
-                      triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                      triggerClassName="h-10 rounded-panel border border-input bg-background text-sm font-semibold text-foreground hover:bg-muted"
                     />
                   </div>
                 ) : null}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Channel
                   </label>
                   <CustomSelect
@@ -174,18 +174,18 @@ export function ShareToChatModal({
                     options={channelOptions}
                     onChange={setSelectedChatId}
                     ariaLabel="Select Channel"
-                    triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                    triggerClassName="h-10 rounded-panel border border-input bg-background text-sm font-semibold text-foreground hover:bg-muted"
                   />
                 </div>
                 {projectSpaceUnavailable ? (
-                  <p className="text-xs font-semibold text-amber-600">
+                  <p className="text-xs font-semibold text-warning">
                     Project chat space is not available.
                   </p>
                 ) : null}
               </>
             ) : (
               <div className="space-y-1.5">
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Recipient
                 </label>
                 <CustomSelect
@@ -193,20 +193,20 @@ export function ShareToChatModal({
                   options={dmOptions}
                   onChange={setSelectedChatId}
                   ariaLabel="Select Recipient"
-                  triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                  triggerClassName="h-10 rounded-panel border border-input bg-background text-sm font-semibold text-foreground hover:bg-muted"
                 />
               </div>
             )}
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Message (optional)
               </label>
               <Textarea
                 value={introMessage}
                 onChange={(e) => setIntroMessage(e.target.value)}
                 placeholder="Add a message..."
-                className="min-h-[80px] rounded-2xl border border-slate-100 bg-slate-50/50 p-3 text-sm font-semibold text-slate-700 focus:outline-hidden focus:border-purple-500"
+                className="min-h-[80px] rounded-control border border-input bg-background p-3 text-sm font-semibold text-foreground focus:outline-hidden focus:border-info"
               />
             </div>
           </div>
@@ -217,7 +217,7 @@ export function ShareToChatModal({
               variant="ghost"
               disabled={isSubmitting}
               onClick={onClose}
-              className="h-10 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+              className="h-10 rounded-control border border-border bg-card px-5 text-sm font-semibold text-muted-foreground hover:bg-background hover:text-foreground"
             >
               Cancel
             </Button>
@@ -230,7 +230,7 @@ export function ShareToChatModal({
                 !selectedChatId
               }
               onClick={handleShare}
-              className="h-10 rounded-2xl bg-purple-600 hover:bg-purple-700 px-5 text-sm font-bold text-white shadow-md shadow-purple-500/10 disabled:opacity-50"
+              className="h-10 rounded-control bg-primary hover:bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
             >
               {isSubmitting || isLoadingProjectSpace ? "Sharing..." : "Share"}
             </Button>

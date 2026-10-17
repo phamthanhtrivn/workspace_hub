@@ -38,6 +38,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
 
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const userProfile = profileResponse?.data;
   const avatarUrl = userProfile?.avatarUrl || authAvatarUrl;
@@ -89,9 +90,10 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setIsUserDropdownOpen((prev) => !prev)}
-        className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-gray-200 text-sm font-black text-[var(--color-primary-dark)] shadow-sm ring-1 ring-slate-200 transition hover:bg-gray-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer"
+        className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-accent text-sm font-semibold text-foreground ring-1 ring-ring transition hover:bg-border focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer"
         aria-label="Open user menu"
       >
         {avatarUrl ? (
@@ -103,17 +105,17 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
             sizes="44px"
           />
         ) : (
-          <User size={22} className="text-gray-700 rounded-full" />
+          <User size={22} className="text-foreground rounded-full" />
         )}
       </button>
 
       {isUserDropdownOpen && (
-        <div className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-2xl border border-slate-100 bg-white p-2 shadow-lg ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
-          <div className="px-3 py-2 border-b border-slate-100 mb-1">
-            <p className="truncate text-sm font-bold text-slate-800">
+        <div className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-panel border border-border bg-card p-2 ring-1 ring-foreground/5 focus:outline-none animate-in fade-in slide-in-from-top-2 shadow-panel">
+          <div className="px-3 py-2 border-b border-border mb-1">
+            <p className="truncate text-sm font-semibold text-foreground">
               {fullName || "Workspace User"}
             </p>
-            <p className="text-xs font-semibold text-slate-500 truncate">
+            <p className="text-xs font-semibold text-muted-foreground truncate">
               {userProfile?.email || email || ""}
             </p>
           </div>
@@ -122,9 +124,10 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
             <button
               onClick={() => {
                 setIsUserDropdownOpen(false);
+                triggerRef.current?.focus();
                 onOpenSettings(UserSettingTab.PROFILE);
               }}
-              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-[var(--color-primary-dark)] transition cursor-pointer"
+              className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-background hover:text-foreground transition cursor-pointer"
             >
               <User className="h-4 w-4" />
               Profile
@@ -132,9 +135,10 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
             <button
               onClick={() => {
                 setIsUserDropdownOpen(false);
+                triggerRef.current?.focus();
                 onOpenSettings(UserSettingTab.GENERAL);
               }}
-              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-[var(--color-primary-dark)] transition cursor-pointer"
+              className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-background hover:text-foreground transition cursor-pointer"
             >
               <Settings className="h-4 w-4" />
               Settings
@@ -142,7 +146,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
             <button
               onClick={handleLogout}
               disabled={logoutMutation.isPending}
-              className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition cursor-pointer mt-1 disabled:opacity-50"
+              className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold text-destructive hover:bg-destructive-soft transition cursor-pointer mt-1 disabled:opacity-50"
             >
               <LogOut className="h-4 w-4" />
               {logoutMutation.isPending ? "Signing out..." : "Sign Out"}

@@ -24,9 +24,9 @@ export interface MeetingAlertDialogProps {
 
 const confirmButtonClassByVariant: Record<MeetingAlertDialogVariant, string> = {
   danger:
-    "bg-red-600 text-white hover:bg-red-700 shadow-sm shadow-red-600/20 active:scale-[0.98]",
+    "bg-destructive text-destructive-foreground hover:bg-destructive",
   warning:
-    "bg-amber-600 text-white hover:bg-amber-700 shadow-sm shadow-amber-600/20 active:scale-[0.98]",
+    "bg-warning text-warning-foreground hover:bg-warning",
 };
 
 export function MeetingAlertDialog({
@@ -43,25 +43,25 @@ export function MeetingAlertDialog({
     <AlertDialog open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
       <AlertDialogContent
         role="alertdialog"
-        className="max-w-sm rounded-[1.5rem] border border-slate-200/80 bg-white p-5 shadow-2xl ring-1 ring-slate-900/5 transition-all duration-200"
+        className="max-w-sm rounded-dialog border border-border bg-card p-5 ring-1 ring-ring/5 transition-all duration-200"
         showCloseButton={false}
       >
         <div className="flex items-start gap-3.5">
           <span
-            className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl border ${
+            className={`grid h-10 w-10 shrink-0 place-items-center rounded-panel border ${
               variant === "danger"
-                ? "border-red-100 bg-red-50 text-red-600"
-                : "border-amber-100 bg-amber-50 text-amber-600"
+                ? "border-border bg-destructive-soft text-destructive"
+                : "border-border bg-warning-soft text-warning"
             }`}
           >
             <AlertTriangle className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <AlertDialogTitle className="text-base font-bold leading-snug text-slate-900">
+            <AlertDialogTitle className="text-base font-semibold leading-snug text-foreground">
               {title}
             </AlertDialogTitle>
             {description ? (
-              <AlertDialogDescription className="mt-1.5 text-xs font-medium leading-relaxed text-slate-500">
+              <AlertDialogDescription className="mt-1.5 text-xs font-medium leading-relaxed text-muted-foreground">
                 {description}
               </AlertDialogDescription>
             ) : null}
@@ -72,7 +72,7 @@ export function MeetingAlertDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="h-9 cursor-pointer rounded-full border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 shadow-2xs transition hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98]"
+            className="h-9 cursor-pointer rounded-full border border-input bg-card px-4 text-xs font-semibold text-foreground transition hover:bg-muted hover:text-foreground"
           >
             {cancelLabel}
           </button>

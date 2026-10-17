@@ -13,11 +13,11 @@ function MeetingItem({
   zone: string;
 }) {
   return (
-    <li className="border-b border-[var(--border)] pb-4">
-      <p className="truncate text-sm font-semibold text-slate-800">
+    <li className="border-b border-border pb-4">
+      <p className="truncate text-sm font-semibold text-foreground">
         {meeting.title}
       </p>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-muted-foreground">
         {meeting.scheduledStartAt
           ? new Intl.DateTimeFormat("en", {
               timeZone: zone,
@@ -31,7 +31,7 @@ function MeetingItem({
           ` – ${formatTime(meeting.scheduledEndAt, zone)}`}
       </p>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <span className="flex items-center gap-1 text-xs text-slate-500">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <Users size={13} />
           {meeting.participantCount} participants
         </span>

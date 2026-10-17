@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, ChevronRight, Settings } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import CreateProjectDialog from "@/features/project/components/dialogs/create-project-dialog";
 import ProjectSettingsDialog from "@/features/project/components/dialogs/project-settings-dialog";
 import { Avatar } from "@/features/project/components/ui/avatar-stack";
@@ -153,27 +152,19 @@ export default function ProjectsPage() {
 
   return (
     <div className="w-full min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-      {/* Breadcrumb & Title */}
-      <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-        <Link href="/dashboard" className="hover:text-blue-600 transition">
-          Workspace
-        </Link>
-        <ChevronRight className="h-3 w-3 text-slate-400" />
-        <span className="text-slate-700">Projects</span>
-      </div>
 
       <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#172B4D]">
+          <h1 className="text-page-title font-semibold tracking-tight text-foreground">
             Projects
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage your projects, track tasks, and collaborate with team members.
           </p>
         </div>
         <Button
           onClick={() => setShowCreate(true)}
-          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl bg-[#0052CC] hover:bg-[#0747A6] px-4 py-2 text-sm font-semibold text-white shadow-xs transition duration-150 active:scale-[0.98]"
+          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-control bg-primary hover:bg-primary-hover px-4 py-2 text-sm font-semibold text-primary-foreground transition duration-150"
         >
           <Plus className="h-4 w-4" strokeWidth={2.5} />
           Create Project
@@ -181,7 +172,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* Filter Tabs & Search */}
-      <div className="mt-6 flex min-w-0 flex-col gap-3 border-b border-slate-200 pb-3 md:flex-row md:items-center md:justify-between">
+      <div className="mt-6 flex min-w-0 flex-col gap-3 border-b border-border pb-3 md:flex-row md:items-center md:justify-between">
         <CustomTabs
           value={activeFilter}
           options={PROJECT_FILTER_OPTIONS}
@@ -201,30 +192,30 @@ export default function ProjectsPage() {
       </div>
 
       {/* Main Table */}
-      <div className="mt-4 min-w-0 rounded-xl border border-slate-200 bg-white shadow-xs">
+      <div className="mt-4 min-w-0 rounded-panel border border-border bg-card">
         {isLoading ? (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-border">
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="flex items-center gap-4 px-6 py-4.5 animate-pulse bg-white"
+                className="flex items-center gap-4 px-6 py-4.5 animate-pulse bg-card"
               >
-                <div className="h-10 w-10 rounded-xl bg-slate-100" />
+                <div className="h-10 w-10 rounded-panel bg-muted" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-1/3 rounded bg-slate-100" />
-                  <div className="h-3 w-1/4 rounded bg-slate-100" />
+                  <div className="h-4 w-1/3 rounded bg-muted" />
+                  <div className="h-3 w-1/4 rounded bg-muted" />
                 </div>
               </div>
             ))}
           </div>
         ) : isError ? (
-          <div className="py-12 text-center text-sm font-semibold text-red-500">
+          <div className="py-12 text-center text-sm font-semibold text-destructive">
             Failed to load projects. Please try refreshing the page.
           </div>
         ) : projects.length > 0 ? (
           <>
             <div role="region" aria-label="Projects table" tabIndex={0}
-              className="overflow-x-auto rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0052CC]/30">
+              className="overflow-x-auto rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
             <table className="w-full min-w-[760px] table-fixed border-collapse text-left text-sm">
               <colgroup>
                 <col />
@@ -234,7 +225,7 @@ export default function ProjectsPage() {
                 <col className="w-20" />
               </colgroup>
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/75 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr className="border-b border-border bg-background text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <th className="px-6 py-3 font-semibold">Name</th>
                   <th className="px-6 py-3 font-semibold">Owner</th>
                   <th className="px-6 py-3 font-semibold">Status</th>
@@ -242,7 +233,7 @@ export default function ProjectsPage() {
                   <th className="px-6 py-3 text-right"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {projects.map((project) => {
                   const owner =
                     project.members.find((m) => m.role === ProjectRole.ADMIN) ||
@@ -271,27 +262,27 @@ export default function ProjectsPage() {
                           router.push(`/projects/${project.id}`);
                         }
                       }}
-                      className="group cursor-pointer transition duration-150 hover:bg-slate-50/70 focus-visible:bg-blue-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0052CC]/30"
+                      className="group cursor-pointer transition duration-150 hover:bg-background focus-visible:bg-info-soft/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
                       <td className="px-6 py-3.5">
                         <div className="flex min-w-0 items-center gap-3">
                           <span
-                            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xl shadow-2xs border border-slate-200 font-semibold"
+                            className="grid h-10 w-10 shrink-0 place-items-center rounded-panel text-xl border border-border font-semibold"
                             style={{
                               backgroundColor: `${project.color}14`,
-                              color: project.color,
+                              color: "var(--foreground)",
                             }}
                           >
                             {project.icon || "📁"}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <span title={project.name} className="block truncate text-sm font-bold text-[#0052CC] group-hover:underline">
+                            <span title={project.name} className="block truncate text-sm font-semibold text-info group-hover:underline">
                               {project.name}
                             </span>
                             {projectIdSuffix ? (
                               <div className="mt-0.5">
                                 <span
-                                  className="inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-500"
+                                  className="inline-flex rounded-md bg-muted px-1.5 py-0.5 font-mono text-xs font-semibold text-muted-foreground"
                                   title={`Project ID: ${project.id}`}
                                 >
                                   {projectIdSuffix}
@@ -313,12 +304,12 @@ export default function ProjectsPage() {
                                 }}
                                 size="xs"
                               />
-                              <span title={owner.displayName} className="min-w-0 truncate text-slate-700 font-medium">
+                              <span title={owner.displayName} className="min-w-0 truncate text-foreground font-medium">
                                 {owner.displayName}
                               </span>
                             </>
                           ) : (
-                            <span className="text-slate-400 font-medium">—</span>
+                            <span className="text-muted-foreground font-medium">—</span>
                           )}
                         </div>
                       </td>
@@ -327,18 +318,18 @@ export default function ProjectsPage() {
                       </td>
                       <td className="px-6 py-3.5">
                         <div className="flex flex-col gap-1">
-                          <div className="flex justify-between text-[11px] font-bold text-slate-500">
+                          <div className="flex justify-between text-xs font-semibold text-muted-foreground">
                             <span>{progress}%</span>
                             <span>
                               {doneTasks}/{totalTasks}
                             </span>
                           </div>
-                          <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                             <div
-                              className="h-full rounded-full transition-all duration-300"
+                              className="h-full rounded-full transition-all duration-200"
                               style={{
                                 width: `${progress}%`,
-                                backgroundColor: project.color || "#0052CC",
+                                backgroundColor: project.color || "var(--primary)",
                               }}
                             />
                           </div>
@@ -356,7 +347,7 @@ export default function ProjectsPage() {
                               event.stopPropagation();
                               setSelectedProject(project);
                             }}
-                            className="h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                            className="h-8 w-8 rounded-control text-muted-foreground hover:bg-accent hover:text-foreground"
                           >
                             <Settings className="h-4 w-4" />
                           </Button>
@@ -388,19 +379,19 @@ export default function ProjectsPage() {
           </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-slate-50 text-3xl border border-slate-100">
+            <div className="grid h-16 w-16 place-items-center rounded-panel bg-background text-3xl border border-border">
               📂
             </div>
-            <p className="mt-4 text-sm font-bold text-slate-700">
+            <p className="mt-4 text-sm font-semibold text-foreground">
               {emptyStateTitle}
             </p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-muted-foreground">
               {emptyStateDescription}
             </p>
             {showEmptyCreateAction ? (
               <Button
                 onClick={() => setShowCreate(true)}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[#0052CC] hover:bg-[#0747A6] px-4 py-2 text-xs font-semibold text-white transition cursor-pointer"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-control bg-primary hover:bg-primary-hover px-4 py-2 text-xs font-semibold text-primary-foreground transition cursor-pointer"
               >
                 Create New Project
               </Button>

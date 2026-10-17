@@ -59,13 +59,13 @@ export function MeetingIconDropdown({ label, items }: MeetingIconDropdownProps) 
         aria-expanded={isOpen}
         disabled={!hasEnabledItems}
         onClick={() => setIsOpen((current) => !current)}
-        className="grid h-8 w-8 cursor-pointer place-items-center rounded-md text-slate-300 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+        className="grid h-8 w-8 cursor-pointer place-items-center rounded-control text-current transition hover:bg-overlay/15 disabled:cursor-not-allowed disabled:opacity-40"
       >
         <MoreVertical className="h-4 w-4" />
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 top-9 z-20 w-48 overflow-hidden rounded-lg bg-[#111827] py-1 shadow-xl ring-1 ring-white/10">
+        <div className="absolute right-0 top-9 z-20 w-48 overflow-hidden rounded-lg bg-card py-1 text-card-foreground ring-1 ring-border/10 shadow-panel">
           {items.map((item) => (
             <button
               key={item.id}
@@ -77,10 +77,10 @@ export function MeetingIconDropdown({ label, items }: MeetingIconDropdownProps) 
                 item.onSelect();
                 setIsOpen(false);
               }}
-              className={`flex h-9 w-full cursor-pointer items-center gap-2 px-3 text-left text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-45 ${
+              className={`flex h-9 w-full cursor-pointer items-center gap-2 px-3 text-left text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
                 item.danger
-                  ? "text-red-200 hover:bg-red-500 hover:text-white"
-                  : "text-slate-200 hover:bg-white/10 hover:text-white"
+                  ? "text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  : "text-muted-foreground hover:bg-overlay/10 hover:text-foreground"
               }`}
             >
               <item.icon className="h-3.5 w-3.5" />

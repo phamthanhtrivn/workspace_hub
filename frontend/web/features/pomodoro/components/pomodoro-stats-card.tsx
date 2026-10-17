@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import React, { useEffect, useState } from "react";
-import { Clock, CheckCircle2, Flame, TrendingUp } from "lucide-react";
 import { getDailyStats } from "../api/pomodoro-server.api";
 import type { PomodoroDailyStats } from "../types/pomodoro";
 
@@ -24,10 +23,10 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
     return () => { active = false; };
   }, [lastUpdated, retryRevision]);
 
-  if (failed) return <p role="alert" className="text-xs text-rose-600">
+  if (failed) return <p role="alert" className="text-xs text-destructive">
     Unable to load today&apos;s stats. <Button variant="ghost" type="button" className="underline" onClick={() => setRetryRevision((value) => value + 1)}>Retry</Button>
   </p>;
-  if (!stats) return <p role="status" className="text-xs text-slate-500">Loading stats...</p>;
+  if (!stats) return <p role="status" className="text-xs text-muted-foreground">Loading stats...</p>;
 
   const hours = Math.floor(stats.totalFocusMinutes / 60);
   const mins = stats.totalFocusMinutes % 60;
@@ -40,85 +39,16 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
   );
 
   return (
-    <div className="w-full min-w-0 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm shadow-slate-200/40 backdrop-blur-md">
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-extrabold tracking-tight text-slate-900">
-            Today&apos;s performance
-          </h3>
-          <p className="text-xs text-slate-500">
-            Your work rhythm and focus stats
-          </p>
+    <section className="w-full min-w-0 border-t border-border pt-5">
+      <h3 className="text-base font-semibold text-foreground">Today&apos;s performance</h3>
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5">
+        <div><dt className="text-xs text-muted-foreground">Focus time</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">{timeDisplay}</dd></div>
+        <div><dt className="text-xs text-muted-foreground">Completed</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">{stats.completedPomodoros} <span className="text-xs font-normal text-muted-foreground">sessions</span></dd></div>
+        <div><dt className="text-xs text-muted-foreground">Daily goal</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-foreground">{stats.completedPomodoros} / {dailyGoalPomodoros ?? stats.dailyGoalPomodoros} sessions</dd>
+          <div role="progressbar" aria-label="Daily focus goal" aria-valuemin={0} aria-valuemax={100} aria-valuenow={goalPercent} className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-[width] duration-200 motion-reduce:transition-none" style={{ width: goalPercent + "%" }} /></div>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2.5">
-        {/* Total Focus Time */}
-        <div className="min-w-0 rounded-xl border border-blue-100/70 bg-gradient-to-br from-blue-50/70 to-indigo-50/30 p-3 transition-all hover:shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-blue-700 font-semibold">
-            <div className="size-7 rounded-lg bg-blue-100/80 flex items-center justify-center text-blue-700">
-              <Clock className="size-3.5" />
-            </div>
-            <span>Focus time</span>
-          </div>
-          <div className="mt-2 text-xl font-black text-slate-900 font-mono tracking-tight tabular-nums">
-            {timeDisplay}
-          </div>
-          <p className="mt-1 text-[11px] text-slate-400">Actual focus time</p>
-        </div>
-
-        {/* Completed Pomodoros */}
-        <div className="min-w-0 rounded-xl border border-emerald-100/70 bg-gradient-to-br from-emerald-50/70 to-teal-50/30 p-3 transition-all hover:shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-emerald-700 font-semibold">
-            <div className="size-7 rounded-lg bg-emerald-100/80 flex items-center justify-center text-emerald-700">
-              <CheckCircle2 className="size-3.5" />
-            </div>
-            <span>Completed</span>
-          </div>
-          <div className="mt-2 text-xl font-black text-slate-900 font-mono tracking-tight tabular-nums flex flex-wrap items-baseline gap-1">
-            <span>{stats.completedPomodoros}</span>
-            <span className="text-base font-normal text-slate-500">Pomodoros 🍅</span>
-          </div>
-          <p className="mt-1 text-[11px] text-slate-400">Fully completed sessions</p>
-        </div>
-
-        {/* Goal Progress */}
-        <div className="min-w-0 rounded-xl border border-indigo-100/70 bg-gradient-to-br from-indigo-50/70 to-sky-50/30 p-3 transition-all hover:shadow-xs">
-          <div className="flex items-center justify-between text-xs text-indigo-700 font-semibold">
-            <div className="flex items-center gap-2">
-              <div className="size-7 rounded-lg bg-indigo-100/80 flex items-center justify-center text-indigo-700">
-                <TrendingUp className="size-3.5" />
-              </div>
-              <span>Daily goal</span>
-            </div>
-            <span className="font-bold">{goalPercent}%</span>
-          </div>
-          <div className="mt-2 text-base font-extrabold text-slate-900 tabular-nums">
-            {stats.completedPomodoros} / {dailyGoalPomodoros ?? stats.dailyGoalPomodoros} sessions
-          </div>
-          <div className="mt-2 w-full h-2 rounded-full bg-slate-200/80 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-700 shadow-xs"
-              style={{ width: `${goalPercent}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Streak */}
-        <div className="min-w-0 rounded-xl border border-amber-100/70 bg-gradient-to-br from-amber-50/70 to-orange-50/30 p-3 transition-all hover:shadow-xs">
-          <div className="flex items-center gap-2 text-xs text-amber-700 font-semibold">
-            <div className="size-7 rounded-lg bg-amber-100/80 flex items-center justify-center text-amber-700">
-              <Flame className="size-3.5" />
-            </div>
-            <span>Streak</span>
-          </div>
-          <div className="mt-2 text-xl font-black text-slate-900 tracking-tight flex flex-wrap items-center gap-1.5 tabular-nums">
-            <span>{stats.currentStreak} days</span>
-            <span className="text-xl">🔥</span>
-          </div>
-          <p className="mt-1 text-[11px] text-slate-400">Keep your daily habit going</p>
-        </div>
-      </div>
-    </div>
+        <div><dt className="text-xs text-muted-foreground">Streak</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">{stats.currentStreak} <span className="text-xs font-normal text-muted-foreground">days</span></dd></div>
+      </dl>
+    </section>
   );
 });

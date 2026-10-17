@@ -71,19 +71,19 @@ export function ChatInputModal({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isLoading && onCancel()}>
       <DialogContent
-        className="max-w-md border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl"
+        className="max-w-md border-border bg-card p-6 text-foreground rounded-dialog"
         showCloseButton={!isLoading}
       >
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blue-50 text-[#0052CC] ring-1 ring-blue-100">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info ring-1 ring-ring">
             <Icon className="h-5 w-5" />
           </div>
           <div>
-            <DialogTitle className="text-base font-black text-slate-800">
+            <DialogTitle className="text-base font-semibold text-foreground">
               {title}
             </DialogTitle>
             {description ? (
-              <p className="mt-0.5 text-xs font-bold text-slate-400">{description}</p>
+              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">{description}</p>
             ) : null}
           </div>
         </DialogHeader>
@@ -100,12 +100,12 @@ export function ChatInputModal({
               placeholder={placeholder}
               disabled={isLoading}
               className={cn(
-                "h-11 rounded-2xl border border-slate-200 bg-slate-50/50 px-4 text-sm font-semibold text-slate-700 placeholder:text-slate-400 focus:border-[#0052CC] focus:bg-white focus:outline-hidden",
-                error && "border-red-400 focus-visible:ring-red-400"
+                "h-11 rounded-control border border-input bg-background px-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden",
+                error && "border-destructive focus-visible:ring-ring"
               )}
             />
             {error ? (
-              <p className="mt-1.5 text-xs font-bold text-red-500">{error}</p>
+              <p className="mt-1.5 text-xs font-semibold text-destructive">{error}</p>
             ) : null}
           </div>
 
@@ -115,14 +115,14 @@ export function ChatInputModal({
               variant="ghost"
               disabled={isLoading}
               onClick={onCancel}
-              className="h-10 cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+              className="h-10 cursor-pointer rounded-control border border-border bg-card px-5 text-xs font-semibold text-muted-foreground hover:bg-background hover:text-foreground"
             >
               {cancelLabel}
             </Button>
             <Button
               type="submit"
               disabled={isLoading || !value.trim()}
-              className="h-10 cursor-pointer rounded-2xl bg-[#0052CC] hover:bg-[#0043A8] px-5 text-xs font-bold text-white shadow-md shadow-blue-500/10 disabled:opacity-50"
+              className="h-10 cursor-pointer rounded-control bg-primary hover:bg-primary-hover px-5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
             >
               {isLoading ? "..." : confirmLabel}
             </Button>

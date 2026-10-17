@@ -38,16 +38,16 @@ export function MeetingRoomControlButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "cursor-pointer relative flex h-[68px] w-[76px] shrink-0 flex-col items-center justify-center gap-1.5 overflow-visible rounded-lg text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50",
+        "cursor-pointer relative flex h-[68px] w-[76px] shrink-0 flex-col items-center justify-center gap-1.5 overflow-visible rounded-control text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
         danger
-          ? "bg-red-600 text-white hover:bg-red-500"
+          ? "bg-destructive text-destructive-foreground hover:bg-destructive"
           : active
-            ? "bg-white text-[#172B4D] shadow-lg"
-            : "bg-white/10 text-slate-200 ring-1 ring-white/10 hover:bg-white/16",
+            ? "bg-card text-foreground"
+            : "bg-accent text-muted-foreground ring-1 ring-border/10 hover:bg-accent",
       )}
     >
       {shouldShowBadge ? (
-        <span className="absolute right-3.5 top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black leading-none text-white shadow-[0_8px_18px_rgba(220,38,38,0.35)] ring-1 ring-white/30">
+        <span className="absolute right-3.5 top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-semibold leading-none text-destructive-foreground ring-1 ring-border/30">
           <span>{badgeLabel}</span>
         </span>
       ) : null}

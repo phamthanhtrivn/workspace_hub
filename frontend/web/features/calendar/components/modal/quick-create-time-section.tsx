@@ -22,7 +22,7 @@ export function QuickCreateTimeSection({ kind, recurrencePreset, recurrenceOptio
     <QuickRow icon={null}>
       <CalendarSelect value={recurrencePreset} options={recurrenceOptions} ariaLabel={copy.recurrence}
         onChange={(value) => onRecurrenceChange(value as CalendarRecurrencePreset)} alignItemWithTrigger={false}
-        triggerClassName="h-10 w-full justify-between rounded-xl border border-slate-200/70 bg-slate-100/80 px-3 text-sm font-semibold text-slate-600 hover:bg-slate-200/70 data-[state=open]:bg-white"
+        triggerClassName="h-10 w-full justify-between rounded-panel border border-input bg-muted px-3 text-sm font-semibold text-muted-foreground hover:bg-accent/70 data-[state=open]:bg-card"
         popupClassName="min-w-[15.5rem]" />
     </QuickRow>
   </div>;

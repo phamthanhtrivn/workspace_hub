@@ -110,7 +110,7 @@ export function GridViewCard({
             onPreview?.(item);
           }
         }}
-        className="group flex flex-col justify-between h-40 select-none cursor-pointer border-slate-100 hover:border-amber-200/80 hover:bg-amber-50/10"
+        className="group flex flex-col justify-between h-40 select-none cursor-pointer border-border hover:border-border hover:bg-warning-soft/10"
       >
         {/* Header Icon & Menu */}
         <div className="flex items-start justify-between">
@@ -118,7 +118,7 @@ export function GridViewCard({
             item={item}
             iconSize={22}
             isSelected={isSelected}
-            className="p-3 rounded-xl transition-all duration-300"
+            className="p-3 rounded-panel transition-all duration-200"
           />
 
           <ItemActionsMenu
@@ -144,19 +144,19 @@ export function GridViewCard({
 
         {/* Info Body */}
         <div className="min-w-0 mt-3 flex-1">
-          <h4 className="truncate font-bold text-sm text-slate-700 group-hover:text-slate-900 transition-colors">
+          <h4 className="truncate font-semibold text-sm text-foreground group-hover:text-foreground transition-colors">
             {item.name}
           </h4>
-          <p className="mt-1 text-xs text-slate-400 font-semibold">
+          <p className="mt-1 text-xs text-muted-foreground font-semibold">
             {isFolder ? "Folder" : formatBytes(item.sizeBytes)}
           </p>
         </div>
 
         {/* Footer Indicators */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+        <div className="flex items-center justify-between pt-2">
           <DocumentsStatusBadge type="itemType" itemType={item.type} />
           {!isProjectDocuments && item.isStarred ? (
-            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+            <Star className="h-3.5 w-3.5 fill-warning text-warning" />
           ) : null}
         </div>
       </DocumentsCard>

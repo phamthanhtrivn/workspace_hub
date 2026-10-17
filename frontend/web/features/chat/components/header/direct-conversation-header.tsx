@@ -52,11 +52,11 @@ export default function DirectConversationHeader({
   };
 
   return (
-    <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">
+    <div className="h-16 px-4 border-b border-border flex items-center justify-between bg-card z-10">
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
         {onBack && (
-          <button
-            className="md:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full transition"
+          <button aria-label="Back"
+            className="md:hidden p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition"
             onClick={onBack}
           >
             <ArrowLeft size={20} />
@@ -72,9 +72,9 @@ export default function DirectConversationHeader({
             }
           }}
         >
-          <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold overflow-hidden">
+          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center font-semibold overflow-hidden">
             {isLoadingProfile ? (
-              <div className="h-full w-full animate-pulse rounded-full bg-gray-200" />
+              <div className="h-full w-full animate-pulse rounded-full bg-accent" />
             ) : displayAvatarUrl ? (
               <Image
                 src={displayAvatarUrl}
@@ -84,7 +84,7 @@ export default function DirectConversationHeader({
                 className="rounded-full"
               />
             ) : (
-              <User size={20} className="text-gray-400" />
+              <User size={20} className="text-muted-foreground" />
             )}
           </div>
         </button>
@@ -92,15 +92,15 @@ export default function DirectConversationHeader({
         <div className="min-w-0">
           {isLoadingProfile ? (
             <>
-              <div className="mb-1 h-4 w-32 animate-pulse rounded bg-gray-200" />
-              <div className="h-3 w-24 animate-pulse rounded bg-gray-100" />
+              <div className="mb-1 h-4 w-32 animate-pulse rounded bg-accent" />
+              <div className="h-3 w-24 animate-pulse rounded bg-muted" />
             </>
           ) : (
             <>
-              <h2 className="font-semibold text-gray-800 truncate">
+              <h2 className="font-semibold text-foreground truncate">
                 {displayName}
               </h2>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Direct Message
               </p>
             </>
@@ -108,25 +108,25 @@ export default function DirectConversationHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-1 text-gray-500">
+      <div className="flex items-center gap-1 text-muted-foreground">
         <button
-          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info rounded-full transition"
           onClick={onOpenSearch}
           title="Search"
         >
           <Search size={20} />
         </button>
         <button
-          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition disabled:opacity-50"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info rounded-full transition disabled:opacity-50"
           onClick={() => setIsConfirmModalOpen(true)}
           disabled={isCreating || !activeConversation?.id}
           title="Start instant meeting"
         >
           <Video size={20} />
         </button>
-        <div className="w-px h-6 bg-gray-200 mx-1" />
+        <div className="w-px h-6 bg-accent mx-1" />
         <button
-          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info rounded-full transition"
           onClick={onToggleRightPanel}
           title="Conversation info"
         >

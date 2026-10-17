@@ -14,7 +14,6 @@ import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
 import { POMODORO_AUDIO_MESSAGES } from "../constants/pomodoro-audio";
-import { POMODORO_MODE_THEMES } from "../constants/pomodoro-mode-theme";
 
 export function PomodoroView() {
   const userId = useAppSelector((state) => state.auth.userId);
@@ -60,30 +59,20 @@ function UserPomodoroView({ userId }: { userId: string }) {
 
   const { viewMode, setViewMode } = usePomodoroViewMode(userId);
   const minimalMode = viewMode === "focus";
-  const isRunning = status === "RUNNING";
   const handleReset = useCallback(() => reset(), [reset]);
   const handleSkip = useCallback(() => skip(), [skip]);
 
   return (
     <div className="relative w-full min-w-0 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-      {/* Dynamic Background Atmosphere Glow */}
-      <div
-        className={cn(
-          "pointer-events-none fixed -top-40 left-1/2 -z-10 h-[600px] w-[90%] max-w-[900px] -translate-x-1/2 rounded-full blur-[140px] transition-all duration-1000",
-          POMODORO_MODE_THEMES[mode].pageGlowClass,
-          isRunning ? "opacity-100 scale-105" : "opacity-60",
-        )}
-      />
-
       {/* Top Header & Context Bar */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border/80 pb-4">
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-black tracking-tight text-[var(--color-primary-dark,#0F2854)]">
+            <h1 className="text-page-title font-semibold tracking-tight text-foreground">
               Pomodoro Focus
             </h1>
           </div>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             A space for deep focus, a steady work rhythm and fewer distractions.
           </p>
         </div>
@@ -97,10 +86,10 @@ function UserPomodoroView({ userId }: { userId: string }) {
             onClick={() => setViewMode(minimalMode ? "full" : "focus")}
             aria-pressed={minimalMode}
             className={cn(
-              "rounded-full border-slate-200 text-xs font-bold transition-all shadow-xs h-9 px-4",
+              "rounded-full border-border text-xs font-semibold transition-all h-9 px-4",
               minimalMode
-                ? "bg-[var(--color-primary,#1C4D8D)] text-white hover:bg-[var(--color-primary-strong,#0F2854)] hover:text-white border-transparent"
-                : "text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50",
+                ? "bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground border-transparent"
+                : "text-foreground hover:text-foreground bg-card hover:bg-background",
             )}
           >
             {minimalMode ? (
@@ -162,18 +151,18 @@ function UserPomodoroView({ userId }: { userId: string }) {
           {!isReady && (
             <p
               role="status"
-              className="text-xs text-amber-700"
+              className="text-xs text-warning"
             >
               Loading Pomodoro...
             </p>
           )}
           {isReady && loadError && (
-            <p role="status" className="text-xs text-amber-700">
+            <p role="status" className="text-xs text-warning">
               Using local data. Sync will resume automatically when Calendar is available again.
             </p>
           )}
           {isReady && status === "RUNNING" && timeLeft === 0 && (
-            <p role="status" className="text-xs text-slate-500">
+            <p role="status" className="text-xs text-muted-foreground">
               Saving your completed session. The system will retry if the connection is interrupted.
             </p>
           )}
@@ -198,17 +187,17 @@ function UserPomodoroView({ userId }: { userId: string }) {
             />
           </div>
           {!isAmbientReady ? (
-            <p role="status" className="text-xs text-slate-500">Loading audio preferences...</p>
+            <p role="status" className="text-xs text-muted-foreground">Loading audio preferences...</p>
           ) : ambientSyncStatus === "error" ? (
-            <p role="status" className="text-center text-xs text-amber-700">Audio preferences are saved locally. Account sync will retry automatically.</p>
+            <p role="status" className="text-center text-xs text-warning">Audio preferences are saved locally. Account sync will retry automatically.</p>
           ) : ambientSyncStatus === "saving" ? (
-            <p role="status" className="text-xs text-slate-500">Saving audio preferences...</p>
+            <p role="status" className="text-xs text-muted-foreground">Saving audio preferences...</p>
           ) : null}
           {hasPlaybackError && (
-            <p role="status" className="text-center text-xs text-amber-700">{POMODORO_AUDIO_MESSAGES.playError}</p>
+            <p role="status" className="text-center text-xs text-warning">{POMODORO_AUDIO_MESSAGES.playError}</p>
           )}
           {isTrackUnavailable && (
-            <p role="status" className="text-center text-xs text-amber-700">{POMODORO_AUDIO_MESSAGES.unavailable}</p>
+            <p role="status" className="text-center text-xs text-warning">{POMODORO_AUDIO_MESSAGES.unavailable}</p>
           )}
         </div>
 
@@ -230,7 +219,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
         )}
       </div>
 
-      <div hidden={minimalMode} className="mt-8 min-w-0 border-t border-slate-200/80 pt-6">
+      <div hidden={minimalMode} className="mt-8 min-w-0 border-t border-border/80 pt-6">
         <PomodoroReport lastUpdated={sessionRevision} />
       </div>
 

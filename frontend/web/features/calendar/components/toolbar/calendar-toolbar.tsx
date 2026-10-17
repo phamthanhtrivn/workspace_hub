@@ -27,14 +27,14 @@ export function CalendarToolbar({
 
 
   return (
-    <div className="flex min-h-14 items-center justify-between gap-3 border-b border-slate-200/80 bg-white px-3 py-2 sm:px-5">
+    <div className="flex min-h-14 items-center justify-between gap-3 border-b border-border bg-card px-3 py-2 sm:px-5">
       <div className="flex min-w-0 items-center gap-1 sm:gap-2">
         <Button
           type="button"
           variant="ghost"
           size="icon"
           onClick={onToggleSidebar}
-          className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+          className="grid h-9 w-9 cursor-pointer place-items-center rounded-control text-muted-foreground transition hover:bg-muted hover:text-foreground"
           aria-label="My Calendars"
           title="My Calendars"
         >
@@ -44,7 +44,7 @@ export function CalendarToolbar({
           type="button"
           variant="outline"
           onClick={() => onNavigate("today")}
-          className="hidden cursor-pointer rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] sm:block"
+          className="hidden cursor-pointer rounded-control border border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-foreground transition hover:border-input hover:bg-background sm:block"
         >
           Today
         </Button>
@@ -54,7 +54,7 @@ export function CalendarToolbar({
             variant="ghost"
             size="icon-sm"
             onClick={() => onNavigate("prev")}
-            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 active:scale-95"
+            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
             aria-label="Previous"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -64,19 +64,19 @@ export function CalendarToolbar({
             variant="ghost"
             size="icon-sm"
             onClick={() => onNavigate("next")}
-            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 active:scale-95"
+            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
             aria-label="Next"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <h2 className="truncate px-2 text-base font-bold capitalize tracking-tight text-slate-800 sm:text-lg">
+        <h2 className="truncate px-2 text-section-title font-semibold capitalize tracking-tight text-foreground sm:text-section-title">
           {title || "Calendar"}
         </h2>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        <CalendarDays className="hidden h-4 w-4 text-slate-400 sm:block" />
+        <CalendarDays className="hidden h-4 w-4 text-muted-foreground sm:block" />
         <CustomSelect
           value={activeView}
           onChange={onViewChange}
@@ -85,8 +85,8 @@ export function CalendarToolbar({
             value: view.value,
             label: view.label,
           }))}
-          triggerClassName="h-9 cursor-pointer rounded-lg border-slate-200 bg-white pl-3 pr-8 text-xs font-bold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-blue-100"
-          contentClassName="rounded-lg border-slate-200"
+          triggerClassName="h-9 cursor-pointer rounded-lg border-input bg-card pl-3 pr-8 text-xs font-semibold text-foreground transition hover:border-input hover:bg-background focus:border-primary focus:ring-2 focus:ring-ring"
+          contentClassName="rounded-lg border-border"
         />
       </div>
     </div>

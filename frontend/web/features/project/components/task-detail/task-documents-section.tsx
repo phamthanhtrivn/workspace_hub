@@ -144,10 +144,10 @@ export default function TaskDocumentsSection({
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+        <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           <Paperclip className="h-3.5 w-3.5" />
           Attachments
-          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+          <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
             {attachments.length}
           </span>
         </h3>
@@ -166,7 +166,7 @@ export default function TaskDocumentsSection({
               variant="outline"
               disabled={isBusy}
               onClick={() => fileInputRef.current?.click()}
-              className="h-7 rounded-lg px-2 text-xs"
+              className="h-7 rounded-control px-2 text-xs"
             >
               {isUploading ? (
                 <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
@@ -181,7 +181,7 @@ export default function TaskDocumentsSection({
               variant="outline"
               disabled={isBusy}
               onClick={() => setPickerMode("MY_FILES")}
-              className="h-7 rounded-lg px-2 text-xs"
+              className="h-7 rounded-control px-2 text-xs"
             >
               My Files
             </Button>
@@ -191,7 +191,7 @@ export default function TaskDocumentsSection({
               variant="outline"
               disabled={isBusy}
               onClick={() => setPickerMode("PROJECT_DOCUMENT")}
-              className="h-7 rounded-lg px-2 text-xs"
+              className="h-7 rounded-control px-2 text-xs"
             >
               Project
             </Button>
@@ -200,12 +200,12 @@ export default function TaskDocumentsSection({
       </div>
 
       {documentsQuery.isLoading ? (
-        <div className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Loading attachments...
         </div>
       ) : attachments.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-3 text-xs text-slate-500">
+        <div className="rounded-lg border border-dashed border-border bg-background px-3 py-3 text-xs text-muted-foreground">
           No documents attached.
         </div>
       ) : (
@@ -213,14 +213,14 @@ export default function TaskDocumentsSection({
           {attachments.map((attachment) => (
             <div
               key={attachment.id}
-              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2"
+              className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2"
             >
-              <FileText className="h-4 w-4 shrink-0 text-[#0052CC]" />
+              <FileText className="h-4 w-4 shrink-0 text-info" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-slate-800">
+                <p className="truncate text-xs font-semibold text-foreground">
                   {attachment.name}
                 </p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   {formatBytes(attachment.sizeBytes)} -{" "}
                   {sourceLabel(attachment.source)}
                 </p>
@@ -229,7 +229,7 @@ export default function TaskDocumentsSection({
                 type="button"
                 size="icon"
                 variant="ghost"
-                className="h-7 w-7 rounded-lg"
+                className="h-7 w-7 rounded-control"
                 onClick={() => void handleDownload(attachment.documentItemId)}
                 title="Download"
                 aria-label="Download"
@@ -242,7 +242,7 @@ export default function TaskDocumentsSection({
                   size="icon"
                   variant="ghost"
                   disabled={detachDocument.isPending}
-                  className="h-7 w-7 rounded-lg text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                  className="h-7 w-7 rounded-control text-destructive hover:bg-destructive-soft hover:text-destructive"
                   onClick={() => void handleRemove(attachment.id)}
                   title="Remove"
                   aria-label="Remove"
@@ -365,10 +365,10 @@ function TaskDocumentPickerDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white p-0">
-        <DialogHeader className="border-b border-slate-100 px-5 py-4 text-left">
-          <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
-            <FolderOpen className="h-4 w-4 text-[#0052CC]" />
+      <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-dialog border-border bg-card p-0">
+        <DialogHeader className="border-b border-border px-5 py-4 text-left">
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <FolderOpen className="h-4 w-4 text-info" />
             {mode === "PROJECT_DOCUMENT"
               ? "Attach project documents"
               : "Attach from My Files"}
@@ -379,17 +379,17 @@ function TaskDocumentPickerDialog({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search files"
-            className="h-9 rounded-lg text-sm"
+            className="h-9 rounded-control text-sm"
           />
 
-          <div className="max-h-72 overflow-y-auto rounded-lg border border-slate-200">
+          <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
             {query.isLoading ? (
-              <div className="flex items-center gap-2 px-3 py-6 text-sm text-slate-500">
+              <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading files...
               </div>
             ) : files.length === 0 ? (
-              <div className="px-3 py-6 text-sm text-slate-500">
+              <div className="px-3 py-6 text-sm text-muted-foreground">
                 No files found.
               </div>
             ) : (
@@ -401,26 +401,26 @@ function TaskDocumentPickerDialog({
                     type="button"
                     onClick={() => toggleSelected(item)}
                     className={[
-                      "flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2 text-left last:border-b-0",
-                      selected ? "bg-blue-50" : "bg-white hover:bg-slate-50",
+                      "flex w-full items-center gap-2 border-b border-border px-3 py-2 text-left last:border-b-0",
+                      selected ? "bg-info-soft" : "bg-card hover:bg-background",
                     ].join(" ")}
                   >
                     <span
                       className={[
-                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px]",
+                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border text-xs",
                         selected
-                          ? "border-[#0052CC] bg-[#0052CC] text-white"
-                          : "border-slate-300 bg-white text-transparent",
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-input bg-card text-transparent",
                       ].join(" ")}
                     >
                       <Check className="h-3 w-3" />
                     </span>
-                    <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-slate-800">
+                      <span className="block truncate text-sm font-semibold text-foreground">
                         {item.name}
                       </span>
-                      <span className="block text-xs text-slate-500">
+                      <span className="block text-xs text-muted-foreground">
                         {formatBytes(item.sizeBytes)}
                       </span>
                     </span>
@@ -435,7 +435,7 @@ function TaskDocumentPickerDialog({
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="h-8 rounded-lg px-3 text-xs"
+              className="h-8 rounded-control px-3 text-xs"
             >
               Cancel
             </Button>
@@ -443,7 +443,7 @@ function TaskDocumentPickerDialog({
               type="button"
               disabled={selectedIds.length === 0 || attachDocuments.isPending}
               onClick={() => void handleAttach()}
-              className="h-8 rounded-lg bg-[#0052CC] px-3 text-xs text-white hover:bg-[#0747A6]"
+              className="h-8 rounded-control bg-primary px-3 text-xs text-primary-foreground hover:bg-primary-hover"
             >
               {attachDocuments.isPending && (
                 <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />

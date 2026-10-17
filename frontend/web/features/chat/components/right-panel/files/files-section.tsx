@@ -51,7 +51,7 @@ function FileThumb({ item }: { item: any }) {
         : File;
 
   return (
-    <span className="flex h-full w-full items-center justify-center bg-blue-500 text-white">
+    <span className="flex h-full w-full items-center justify-center bg-primary text-primary-foreground">
       <Icon size={18} />
     </span>
   );
@@ -83,23 +83,23 @@ export default function FilesSection({
     <div>
       <button
         onClick={onToggle}
-        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
-        <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-          <FileText size={18} className="text-gray-500" />
+        <div className="flex items-center gap-3 text-foreground font-medium text-sm">
+          <FileText size={18} className="text-muted-foreground" />
           Files
         </div>
         {isExpanded ? (
-          <ChevronDown size={16} className="text-gray-400" />
+          <ChevronDown size={16} className="text-muted-foreground" />
         ) : (
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={16} className="text-muted-foreground" />
         )}
       </button>
 
       {isExpanded && (
         <div className="px-4 pb-4">
           {files.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-2">
+            <p className="text-xs text-muted-foreground text-center py-2">
               No files available
             </p>
           ) : (
@@ -121,16 +121,16 @@ export default function FilesSection({
                         );
                       }
                     }}
-                    className="group flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-2 text-left transition hover:bg-gray-50"
+                    className="group flex w-full cursor-pointer items-center gap-3 rounded-control border border-border p-2 text-left transition hover:bg-background"
                   >
-                    <span className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-gray-100">
+                    <span className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
                       <FileThumb item={item} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-gray-800">
+                      <span className="block truncate text-sm font-semibold text-foreground">
                         {item.name}
                       </span>
-                      <span className="block truncate text-xs text-gray-500">
+                      <span className="block truncate text-xs text-muted-foreground">
                         {formatFileSize(item.sizeBytes)} -{" "}
                         {formatDateTime(
                           item.message?.createdAt || item.createdAt,
@@ -140,7 +140,7 @@ export default function FilesSection({
                     {item.fileUrl && (
                       <span
                         onClick={(e) => handleDownload(e, item)}
-                        className="rounded-md p-1.5 text-gray-400 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
+                        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info group-hover:opacity-100"
                         title="Download"
                       >
                         <Download size={15} />
@@ -158,7 +158,7 @@ export default function FilesSection({
           )}
         </div>
       )}
-      <div className="h-px bg-gray-100 mx-4 my-1" />
+      <div className="h-px bg-muted mx-4 my-1" />
     </div>
   );
 }

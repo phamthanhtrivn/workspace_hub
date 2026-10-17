@@ -59,7 +59,7 @@ export function DashboardNotificationDialog({
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-muted/30 px-5 py-4 sm:px-6">
+        <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-muted px-5 py-4 sm:px-6">
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>

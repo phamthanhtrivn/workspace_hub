@@ -36,14 +36,14 @@ export default function ChannelSettingsSection({
       <button
         type="button"
         onClick={onOpenSettings}
-        className="w-full px-4 py-3 flex items-center justify-between transition cursor-pointer hover:bg-gray-50"
+        className="w-full px-4 py-3 flex items-center justify-between transition cursor-pointer hover:bg-background"
       >
-        <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-          <Settings size={18} className="text-gray-500" />
+        <div className="flex items-center gap-3 text-foreground font-medium text-sm">
+          <Settings size={18} className="text-muted-foreground" />
           Channel Settings
         </div>
       </button>
-      <div className="h-px bg-gray-100 mx-4 my-1" />
+      <div className="h-px bg-muted mx-4 my-1" />
     </div>
   ) : null;
 }

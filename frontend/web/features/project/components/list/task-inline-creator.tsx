@@ -54,11 +54,11 @@ export default function TaskInlineCreator({
   if (isOpen) {
     return (
       <div
-        className={`flex items-center gap-2.5 border-t border-slate-200 bg-white px-4 py-2 ${
+        className={`flex items-center gap-2.5 border-t border-input bg-card px-4 py-2 ${
           className ?? ""
         }`}
       >
-        <CheckSquare2 className="h-4 w-4 shrink-0 text-[#0052CC] fill-[#DEEBFF]" />
+        <CheckSquare2 className="h-4 w-4 shrink-0 text-info fill-primary-soft" />
         <Input
           type="text"
           value={title}
@@ -72,14 +72,14 @@ export default function TaskInlineCreator({
               handleCancel();
             }
           }}
-          className="h-8 flex-1 border-slate-200 bg-transparent text-xs font-semibold text-[#172B4D] placeholder:text-slate-400"
+          className="h-8 flex-1 border-input bg-transparent text-xs font-semibold text-foreground placeholder:text-muted-foreground"
         />
         <Button
           type="button"
           size="sm"
           onClick={() => void handleSubmit()}
           disabled={!title.trim() || isSubmitting}
-          className="h-8 rounded-lg bg-[#0052CC] hover:bg-[#0747A6] px-3 text-xs font-bold text-white cursor-pointer"
+          className="h-8 rounded-control bg-primary hover:bg-primary-hover px-3 text-xs font-semibold text-primary-foreground cursor-pointer"
         >
           {isSubmitting ? "Creating..." : "Create"}
         </Button>
@@ -88,7 +88,7 @@ export default function TaskInlineCreator({
           variant="outline"
           size="sm"
           onClick={handleCancel}
-          className="h-8 rounded-lg border-slate-200 px-2.5 text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
+          className="h-8 rounded-control border-border px-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted cursor-pointer"
         >
           Cancel
         </Button>
@@ -104,7 +104,7 @@ export default function TaskInlineCreator({
         setIsOpen(true);
         setTitle("");
       }}
-      className={`flex h-9 w-full justify-start rounded-none items-center gap-1.5 border-t border-slate-200 bg-white px-4 py-2.5 text-left text-xs font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-[#0052CC] cursor-pointer ${
+      className={`flex h-9 w-full justify-start rounded-none items-center gap-1.5 border-t border-border bg-card px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-info cursor-pointer ${
         buttonClassName ?? ""
       }`}
     >

@@ -112,15 +112,15 @@ export default function ChannelSettingsModal({
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-gray-100 flex flex-col max-h-[85vh]">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white shrink-0">
-          <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/50 transition-all duration-200">
+      <div className="bg-card rounded-dialog w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-border flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between p-6 border-b border-border bg-card shrink-0">
+          <h2 className="text-section-title font-semibold text-foreground tracking-tight">
             Channel Settings
           </h2>
-          <button
+          <button aria-label="Close"
             onClick={onClose}
-            className="cursor-pointer p-2.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+            className="cursor-pointer p-2.5 text-muted-foreground hover:text-muted-foreground rounded-full hover:bg-muted transition-colors"
           >
             <FiX size={20} />
           </button>
@@ -129,11 +129,11 @@ export default function ChannelSettingsModal({
         {/* Scrollable Modal Content */}
         <div className="overflow-y-auto flex-1 custom-scrollbar">
           {/* Channel Info Section */}
-          <div className="p-5 bg-gray-50/50 flex flex-col gap-4 border-b border-gray-100">
+          <div className="p-5 bg-background flex flex-col gap-4 border-b border-border">
             {canEditName ? (
               <div className="flex flex-col items-center gap-4">
                 <div className="w-full">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
                     Channel Name
                   </label>
                   <input
@@ -141,17 +141,17 @@ export default function ChannelSettingsModal({
                     value={channelName}
                     onChange={(e) => setChannelName(e.target.value)}
                     placeholder="Enter channel name"
-                    className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium text-gray-800"
+                    className="w-full px-4 py-2 bg-card border border-input rounded-control focus:outline-none focus:border-info focus:ring-2 focus:ring-ring transition-all text-sm font-medium text-foreground"
                   />
                 </div>
               </div>
             ) : (
               <div className="flex items-center gap-3">
                 <div>
-                  <h3 className="font-bold text-gray-800 text-base">
+                  <h3 className="font-semibold text-foreground text-base">
                     {channelName}
                   </h3>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Only channel creators or admins can edit channel settings.
                   </p>
                 </div>
@@ -160,8 +160,8 @@ export default function ChannelSettingsModal({
           </div>
 
           {canEditSettings && (
-            <div className="p-5 bg-gray-50/50">
-              <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100 shadow-sm">
+            <div className="p-5 bg-background">
+              <div className="border border-border rounded-panel overflow-hidden divide-y divide-border">
                 <SettingItem
                   title="Allow Sending Messages"
                   description="Members can post messages in this channel."
@@ -209,10 +209,10 @@ export default function ChannelSettingsModal({
           )}
         </div>
 
-        <div className="flex justify-end p-5 border-t border-gray-100 gap-3 bg-gray-50/80 shrink-0">
+        <div className="flex justify-end p-5 border-t border-border gap-3 bg-background shrink-0">
           <button
             onClick={onClose}
-            className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer shadow-sm"
+            className="px-5 py-2.5 text-sm font-semibold text-foreground bg-card border border-border hover:bg-background rounded-control transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -220,7 +220,7 @@ export default function ChannelSettingsModal({
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-200"
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-foreground bg-primary hover:bg-primary rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? (
                 "Saving..."
@@ -255,25 +255,25 @@ function SettingItem({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-white hover:bg-slate-50 transition-colors">
+    <div className="flex items-center justify-between p-4 bg-card hover:bg-background transition-colors">
       <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-panel bg-info-soft text-info flex items-center justify-center shrink-0">
           {icon}
         </div>
         <div>
-          <h3 className="font-semibold text-gray-800">{title}</h3>
-          <p className="text-sm text-gray-500 mt-0.5">{description}</p>
+          <h3 className="font-semibold text-foreground">{title}</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
         </div>
       </div>
       <button
         onClick={onChange}
         disabled={disabled}
-        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-          checked ? "bg-blue-600" : "bg-gray-200"
+        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+          checked ? "bg-primary" : "bg-accent"
         } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         <span
-          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${
+          className={`inline-block h-5 w-5 transform rounded-full bg-card transition-transform duration-200 ease-in-out ${
             checked ? "translate-x-5" : "translate-x-0.5"
           }`}
         />

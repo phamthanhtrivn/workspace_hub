@@ -25,7 +25,7 @@ export function MeetingSidebar({
   onItemSelect,
 }: MeetingSidebarProps) {
   return (
-    <aside className="flex shrink-0 flex-col gap-5 border-b border-slate-200 bg-white/90 px-4 py-4 shadow-[0_12px_32px_rgba(15,40,84,0.06)] xl:w-80 xl:border-b-0 xl:border-r xl:py-6">
+    <aside className="flex shrink-0 flex-col gap-5 border-b border-border bg-card px-4 py-4 xl:w-80 xl:border-b-0 xl:border-r xl:py-6">
       <nav
         className="flex gap-2 overflow-x-auto xl:flex-col xl:overflow-visible"
         aria-label="Meeting dashboard"
@@ -42,17 +42,17 @@ export function MeetingSidebar({
               disabled={!isEnabled}
               onClick={() => onItemSelect(item.id)}
               className={cn(
-                "cursor-pointer flex h-12 shrink-0 items-center gap-3 rounded-md px-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]",
+                "cursor-pointer flex h-12 shrink-0 items-center gap-3 rounded-md px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isActive
-                  ? "bg-[#0052CC] text-white shadow-[0_12px_28px_rgba(0,82,204,0.22)]"
-                  : "text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70",
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-70",
               )}
               aria-current={isActive ? "page" : undefined}
             >
               <span
                 className={cn(
                   "grid h-8 w-8 shrink-0 place-items-center rounded-md",
-                  isActive ? "bg-white/16" : "bg-slate-50 text-slate-500",
+                  isActive ? "bg-overlay/10" : "bg-background text-muted-foreground",
                 )}
               >
                 <Icon className="h-4 w-4" />

@@ -77,18 +77,18 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
 
   return (
     <div className="flex flex-col items-center my-3 w-full">
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm max-w-md w-full relative transition-all duration-200 hover:border-blue-300 hover:shadow-md">
+      <div className="bg-card border border-border rounded-panel p-4 max-w-md w-full relative transition-all duration-200 hover:border-info">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="bg-blue-50 text-blue-600 border border-blue-100 p-2.5 rounded-xl shrink-0">
+            <div className="bg-info-soft text-info border border-border p-2.5 rounded-panel shrink-0">
               <Video size={20} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm md:text-base font-bold text-slate-900 leading-tight truncate">
+              <h3 className="text-sm md:text-base font-semibold text-foreground leading-tight truncate">
                 {meetingTitle}
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5 font-medium truncate">
+              <p className="text-xs text-muted-foreground mt-0.5 font-medium truncate">
                 Started by {senderName}{" "}
                 {startedAtFormatted ? `• ${startedAtFormatted}` : ""}
               </p>
@@ -98,12 +98,12 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
           {/* Status badge */}
           <div className="shrink-0">
             {isLive ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-soft text-success border border-border">
+                <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
                 LIVE
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border">
                 ENDED
               </span>
             )}
@@ -112,12 +112,12 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
 
         {/* Action buttons or Ended status text */}
         {isLive ? (
-          <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100">
+          <div className="flex items-center gap-2 pt-2.5 border-t border-border">
             <button
               type="button"
               onClick={handleJoinInApp}
               disabled={!joinToken}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs md:text-sm transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-control bg-primary hover:bg-primary active:bg-primary text-primary-foreground font-semibold text-xs md:text-sm transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play size={15} className="fill-current" />
               <span>Join Now</span>
@@ -128,7 +128,7 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
               onClick={handleOpenNewTab}
               disabled={!joinToken}
               title="Open in new tab"
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 font-medium text-xs transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-control bg-muted hover:bg-accent text-foreground border border-border font-medium text-xs transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ExternalLink size={15} />
               <span className="hidden sm:inline">
@@ -137,8 +137,8 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
             </button>
           </div>
         ) : (
-          <div className="pt-2.5 border-t border-slate-100 text-center">
-            <span className="text-xs font-semibold text-slate-500 py-1 inline-block">
+          <div className="pt-2.5 border-t border-border text-center">
+            <span className="text-xs font-semibold text-muted-foreground py-1 inline-block">
               This meeting has ended
             </span>
           </div>

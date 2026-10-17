@@ -111,7 +111,7 @@ const ProfileTab = React.memo(function ProfileTab() {
   if (isLoading) {
     return (
       <div className="flex h-full min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -120,13 +120,13 @@ const ProfileTab = React.memo(function ProfileTab() {
 
   return (
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
-      <h3 className="text-xl font-black text-slate-800">
+      <h3 className="text-section-title font-semibold text-foreground">
         Personal information
       </h3>
 
-      <div className="flex flex-col items-center sm:flex-row sm:items-center gap-5 pb-5 border-b border-slate-100">
+      <div className="flex flex-col items-center sm:flex-row sm:items-center gap-5 pb-5 border-b border-border">
         <div className="relative group shrink-0">
-          <div className="relative grid h-20 w-20 place-items-center overflow-hidden rounded-full border border-gray-700 bg-white text-2xl font-bold text-white shadow-md">
+          <div className="relative grid h-20 w-20 place-items-center overflow-hidden rounded-full border border-input bg-card text-2xl font-semibold text-foreground">
             {profileForm.avatarUrl ? (
               <Image
                 src={profileForm.avatarUrl}
@@ -136,13 +136,13 @@ const ProfileTab = React.memo(function ProfileTab() {
                 className="object-cover"
               />
             ) : (
-              <User size={30} className="text-gray-700" />
+              <User size={30} className="text-foreground" />
             )}
           </div>
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadAvatarMutation.isPending}
-            className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer disabled:opacity-50"
+            className="absolute inset-0 bg-overlay/80 text-media-foreground opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer disabled:opacity-50"
             aria-label="Upload avatar"
           >
             {uploadAvatarMutation.isPending ? (
@@ -160,8 +160,8 @@ const ProfileTab = React.memo(function ProfileTab() {
           />
         </div>
         <div className="text-center sm:text-left w-full sm:w-auto">
-          <p className="font-semibold text-slate-500 mb-1">Email</p>
-          <p className="text-sm font-bold text-slate-800 rounded-xl w-full sm:w-64 inline-block">
+          <p className="font-semibold text-muted-foreground mb-1">Email</p>
+          <p className="text-sm font-semibold text-foreground rounded-panel w-full sm:w-64 inline-block">
             {profileForm.email || email}
           </p>
         </div>
@@ -208,7 +208,7 @@ const ProfileTab = React.memo(function ProfileTab() {
       <Button
         onClick={handleSaveProfile}
         disabled={updateProfileMutation.isPending}
-        className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-dark)] text-sm font-bold text-white shadow-md transition hover:bg-[var(--color-primary)] disabled:opacity-70 cursor-pointer"
+        className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary disabled:opacity-70 cursor-pointer"
       >
         {updateProfileMutation.isPending ? (
           <Loader2 className="h-4 w-4 animate-spin" />

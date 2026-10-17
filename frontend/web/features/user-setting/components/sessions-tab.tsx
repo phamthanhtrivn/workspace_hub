@@ -36,15 +36,15 @@ const SessionsTab = React.memo(function SessionsTab() {
   if (isLoading) {
     return (
       <div className="flex h-full min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-      <h3 className="text-2xl font-black text-slate-800">Signed-in sessions</h3>
-      <p className="text-sm font-semibold text-slate-500">
+      <h3 className="text-section-title font-semibold text-foreground">Signed-in sessions</h3>
+      <p className="text-sm font-semibold text-muted-foreground">
         Manage the devices currently signed in to your account.
       </p>
 
@@ -58,10 +58,10 @@ const SessionsTab = React.memo(function SessionsTab() {
           return (
             <div
               key={session.id}
-              className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-4 rounded-panel border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex items-center gap-4">
-                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-500">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
                   {isDesktop ? (
                     <Monitor className="h-5 w-5" />
                   ) : (
@@ -69,18 +69,18 @@ const SessionsTab = React.memo(function SessionsTab() {
                   )}
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
                     {session.deviceName || "Unknown device"}
                     {session.currentSession && (
-                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none font-bold uppercase text-[10px] px-1.5 py-0.5">
+                      <Badge className="bg-success-soft text-success hover:bg-success-soft border-none font-semibold uppercase text-xs px-1.5 py-0.5">
                         Current device
                       </Badge>
                     )}
                   </p>
-                  <p className="text-xs font-semibold text-slate-500">
+                  <p className="text-xs font-semibold text-muted-foreground">
                     {session.platform || "Unknown platform"}
                   </p>
-                  <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                  <p className="text-xs font-semibold text-muted-foreground mt-0.5">
                     {session.location || session.ipAddress} • Expires:{" "}
                     {new Date(session.expiresAt).toLocaleDateString("en-US")}
                   </p>
@@ -92,7 +92,7 @@ const SessionsTab = React.memo(function SessionsTab() {
                   variant="outline"
                   size="sm"
                   onClick={() => setRevokingSessionId(session.id)}
-                  className="flex items-center justify-center gap-2 rounded-lg border-red-200 bg-red-50 text-xs font-bold text-red-600 hover:bg-red-100 hover:text-red-700 cursor-pointer"
+                  className="flex items-center justify-center gap-2 rounded-control border-border bg-destructive-soft text-xs font-semibold text-destructive hover:bg-destructive-soft hover:text-destructive cursor-pointer"
                 >
                   <LogOut className="h-3 w-3" />
                   Sign out
@@ -103,7 +103,7 @@ const SessionsTab = React.memo(function SessionsTab() {
         })}
 
         {sessions.length === 0 && (
-          <p className="text-sm text-slate-500 text-center py-4">
+          <p className="text-sm text-muted-foreground text-center py-4">
             No signed-in sessions found.
           </p>
         )}

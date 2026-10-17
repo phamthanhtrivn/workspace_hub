@@ -26,7 +26,7 @@ export function ProjectSearchInput({
 }: ProjectSearchInputProps) {
   return (
     <div className={cn("relative flex-1 min-w-[180px]", className)}>
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         type="text"
         role="searchbox"
@@ -35,7 +35,7 @@ export function ProjectSearchInput({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={ariaLabel || placeholder}
-        className="h-9 rounded-xl border border-slate-200 bg-slate-50/60 pl-9 pr-8 text-xs font-semibold text-slate-700 placeholder:text-slate-400 focus:border-[#0052CC] focus:bg-white focus:outline-hidden transition-all"
+        className="h-9 rounded-control border border-input bg-background pl-9 pr-8 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden transition-all"
       />
       {value ? (
         <Button
@@ -44,7 +44,7 @@ export function ProjectSearchInput({
           size="icon"
           onClick={() => onChange("")}
           aria-label="Clear search"
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 hover:text-slate-600 hover:bg-transparent cursor-pointer p-0"
+          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-muted-foreground hover:bg-transparent cursor-pointer p-0"
         >
           <X className="h-3.5 w-3.5" />
         </Button>
@@ -77,10 +77,10 @@ export function ProjectSelect<TValue extends string = string>({
       ariaLabel={ariaLabel || placeholder || "Select option"}
       placeholder={placeholder}
       triggerClassName={cn(
-        "h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:border-slate-300 transition-colors shadow-2xs cursor-pointer",
+        "h-9 rounded-control border border-input bg-card px-3 text-xs font-semibold text-foreground hover:border-input transition-colors cursor-pointer",
         triggerClassName
       )}
-      contentClassName={cn("rounded-xl border-slate-200 shadow-lg", contentClassName)}
+      contentClassName={cn("rounded-control border-border", contentClassName)}
       {...props}
     />
   );

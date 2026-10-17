@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
+import { useTheme } from "next-themes";
 import { Folder, Loader2, Paperclip, Send, Smile, X } from "lucide-react";
 import { toast } from "sonner";
 import MyFilesSelectModal from "@/features/chat/components/modals/shared/my-files-select-modal";
@@ -55,6 +56,7 @@ export const MeetingMessageInput = forwardRef<
   { meetingId, editingMessage, onSubmit, onCancelEdit },
   ref,
 ) {
+  const { resolvedTheme } = useTheme();
   const [message, setMessage] = useState(editingMessage?.content ?? "");
   const [uploads, setUploads] = useState<UploadingMeetingMedia[]>([]);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
@@ -244,19 +246,19 @@ export const MeetingMessageInput = forwardRef<
   };
 
   return (
-    <div className="relative border-t border-white/10 p-3 mt-2">
+    <div className="relative border-t border-border/10 p-3 mt-2">
       {uploads.length > 0 && (
-        <div className="mb-2 flex max-h-24 flex-col gap-1 overflow-y-auto rounded-lg border border-white/10 bg-black/20 p-2">
+        <div className="mb-2 flex max-h-24 flex-col gap-1 overflow-y-auto rounded-lg border border-border bg-overlay/20 p-2">
           {uploads.map((upload) => (
             <div
               key={upload.id}
-              className="flex items-center justify-between gap-2 text-xs font-semibold text-slate-300"
+              className="flex items-center justify-between gap-2 text-xs font-semibold text-muted-foreground"
             >
               <span className="min-w-0 flex-1 truncate">
                 {upload.name} - {formatFileSize(upload.sizeBytes)}
               </span>
               {upload.status === "uploading" ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-sky-300" />
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-info" />
               ) : (
                 <MeetingIconButton
                   label="Remove upload"
@@ -266,7 +268,7 @@ export const MeetingMessageInput = forwardRef<
                       current.filter((item) => item.id !== upload.id),
                     )
                   }
-                  className="size-6 p-0 text-slate-300 hover:bg-white/10"
+                  className="size-6 p-0 text-muted-foreground hover:bg-accent"
                 />
               )}
             </div>
@@ -277,7 +279,7 @@ export const MeetingMessageInput = forwardRef<
       {isEmojiOpen && (
         <div
           ref={emojiPickerRef}
-          className="absolute bottom-full left-3 right-3 z-[90] mb-2 overflow-hidden rounded-lg border border-white/10 bg-[#111827] shadow-2xl"
+          className="absolute bottom-full left-3 right-3 z-[90] mb-2 overflow-hidden rounded-lg border border-border bg-card shadow-panel"
         >
           <EmojiPicker
             onEmojiClick={(emojiData) => {
@@ -285,7 +287,7 @@ export const MeetingMessageInput = forwardRef<
               setIsEmojiOpen(false);
               setTimeout(() => textareaRef.current?.focus(), 0);
             }}
-            theme={Theme.DARK}
+            theme={resolvedTheme === "dark" ? Theme.DARK : Theme.LIGHT}
             emojiStyle={EmojiStyle.NATIVE}
             lazyLoadEmojis
             width="100%"
@@ -296,7 +298,7 @@ export const MeetingMessageInput = forwardRef<
         </div>
       )}
 
-      <div className="flex items-end gap-2 rounded-xl border border-white/10 bg-black/25 p-2">
+      <div className="flex items-end gap-2 rounded-panel border border-input bg-overlay/25 p-2">
         <input
           ref={fileInputRef}
           type="file"
@@ -317,11 +319,11 @@ export const MeetingMessageInput = forwardRef<
               icon={Paperclip}
               disabled={isUploading}
               onClick={() => setIsAttachOptionsOpen((value) => !value)}
-              className="size-9 text-slate-300 hover:bg-white/10"
+              className="size-9 text-muted-foreground hover:bg-accent"
             />
 
             {isAttachOptionsOpen && (
-              <div className="absolute bottom-full left-0 z-[95] mb-2 flex min-w-40 flex-col gap-1 rounded-xl border border-white/10 bg-[#111827] p-2 shadow-2xl">
+              <div className="absolute bottom-full left-0 z-[95] mb-2 flex min-w-40 flex-col gap-1 rounded-panel border border-border bg-card p-2 shadow-panel">
                 <button
                   type="button"
                   onClick={() => {
@@ -329,9 +331,9 @@ export const MeetingMessageInput = forwardRef<
                     fileInputRef.current?.click();
                   }}
                   disabled={isUploading}
-                  className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex cursor-pointer items-center gap-3 rounded-control px-3 py-2 text-left text-sm font-semibold text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Paperclip className="h-4 w-4 text-slate-400" />
+                  <Paperclip className="h-4 w-4 text-muted-foreground" />
                   Files
                 </button>
                 <button
@@ -341,9 +343,9 @@ export const MeetingMessageInput = forwardRef<
                     setIsMyFilesModalOpen(true);
                   }}
                   disabled={isUploading}
-                  className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex cursor-pointer items-center gap-3 rounded-control px-3 py-2 text-left text-sm font-semibold text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Folder className="h-4 w-4 text-sky-300" />
+                  <Folder className="h-4 w-4 text-info" />
                   My files
                 </button>
               </div>
@@ -357,7 +359,7 @@ export const MeetingMessageInput = forwardRef<
           onChange={(event) => setMessage(event.target.value)}
           placeholder="Message..."
           rows={1}
-          className="max-h-32 min-h-9 flex-1 border-0 bg-transparent px-1 py-2 text-sm font-semibold leading-5 text-slate-100 shadow-none placeholder:text-slate-500 focus-visible:ring-0"
+          className="max-h-32 min-h-9 flex-1 border-0 bg-transparent px-1 py-2 text-sm font-semibold leading-5 text-muted-foreground shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();
@@ -374,7 +376,7 @@ export const MeetingMessageInput = forwardRef<
           label="Insert emoji"
           icon={Smile}
           onClick={() => setIsEmojiOpen((value) => !value)}
-          className="size-9 shrink-0 text-slate-300 hover:bg-white/10"
+          className="size-9 shrink-0 text-muted-foreground hover:bg-accent"
         />
 
         <MeetingIconButton
@@ -388,7 +390,7 @@ export const MeetingMessageInput = forwardRef<
               : !message.trim() &&
                 uploads.every((upload) => upload.status !== "success"))
           }
-          className="size-9 shrink-0 bg-sky-500 text-white hover:bg-sky-400 disabled:bg-white/10 disabled:text-slate-500"
+          className="size-9 shrink-0 bg-primary text-primary-foreground hover:bg-primary disabled:bg-accent disabled:text-muted-foreground"
         />
       </div>
 

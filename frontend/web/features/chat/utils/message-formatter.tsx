@@ -74,26 +74,26 @@ export const parseInlineStyles = (
         return (
           <code
             key={`inline-code-${index}`}
-            className="bg-gray-100 text-red-500 font-mono px-1 py-0.5 rounded text-[11px] border border-gray-200"
+            className="bg-muted text-destructive font-mono px-1 py-0.5 rounded text-[11px] border border-border"
           >
             {t.text}
           </code>
         );
       case "bold":
         return (
-          <strong key={`bold-${index}`} className="font-bold text-gray-900">
+          <strong key={`bold-${index}`} className="font-bold text-foreground">
             {t.text}
           </strong>
         );
       case "italic":
         return (
-          <em key={`italic-${index}`} className="italic text-gray-800">
+          <em key={`italic-${index}`} className="italic text-foreground">
             {t.text}
           </em>
         );
       case "strike":
         return (
-          <span key={`strike-${index}`} className="line-through text-gray-400">
+          <span key={`strike-${index}`} className="line-through text-muted-foreground">
             {t.text}
           </span>
         );
@@ -125,7 +125,7 @@ export const formatMessageContent = (
             newParts.push(
               <span
                 key={`special-${specialStr}-${partIdx}-${idx}`}
-                className="font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded-md transition-colors"
+                className="font-semibold text-info bg-info-soft/80 px-1.5 py-0.5 rounded-md transition-colors"
               >
                 {specialStr}
               </span>,
@@ -160,7 +160,7 @@ export const formatMessageContent = (
             newParts.push(
               <span
                 key={`user-${userId}-${partIdx}-${idx}`}
-                className="font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
+                className="font-semibold text-info bg-info-soft/80 px-1.5 py-0.5 rounded-md hover:bg-info-soft transition-colors cursor-pointer"
               >
                 {searchStr}
               </span>,
@@ -191,7 +191,7 @@ export const formatMessageContent = (
         fallbackParts.push(
           <span
             key={`mention-regex-${partIdx}-${matchIdx}`}
-            className="font-semibold text-blue-600 bg-blue-50/80 px-1.5 py-0.5 rounded-md hover:bg-blue-100 transition-colors cursor-pointer"
+            className="font-semibold text-info bg-info-soft/80 px-1.5 py-0.5 rounded-md hover:bg-info-soft transition-colors cursor-pointer"
           >
             {fullMention}
           </span>,
@@ -228,7 +228,7 @@ export const formatMessageContent = (
             href={linkUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-500 hover:underline break-all"
+            className="text-info hover:underline break-all"
             onClick={(e) => e.stopPropagation()}
           >
             {linkText}
@@ -259,7 +259,7 @@ export const formatMessageContent = (
               href={s}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-500 hover:underline break-all"
+              className="text-info hover:underline break-all"
               onClick={(e) => e.stopPropagation()}
             >
               {s}
@@ -339,7 +339,7 @@ export const parseBlocks = (
           return (
             <pre
               key={`block-code-${partIdx}`}
-              className="bg-gray-950 text-gray-100 font-mono text-[11px] p-3 rounded-lg overflow-x-auto max-w-full my-1.5 border border-gray-800 leading-normal select-text"
+              className="bg-primary text-primary-foreground font-mono text-[11px] p-3 rounded-lg overflow-x-auto max-w-full my-1.5 border border-input leading-normal select-text"
             >
               <code>{part.content.trim()}</code>
             </pre>
@@ -420,13 +420,13 @@ export const parseBlocks = (
               if (node.type === "heading") {
                 const HeadingTag = `h${node.level}` as any;
                 const classMap: Record<number, string> = {
-                  1: "text-xl font-black text-gray-950 mt-3 mb-1.5 leading-tight tracking-tight",
-                  2: "text-lg font-extrabold text-gray-950 mt-2.5 mb-1.5 leading-tight tracking-tight",
-                  3: "text-base font-extrabold text-gray-950 mt-2 mb-1 leading-snug",
+                  1: "text-xl font-black text-foreground mt-3 mb-1.5 leading-tight tracking-tight",
+                  2: "text-lg font-extrabold text-foreground mt-2.5 mb-1.5 leading-tight tracking-tight",
+                  3: "text-base font-extrabold text-foreground mt-2 mb-1 leading-snug",
                 };
                 const className =
                   classMap[node.level!] ||
-                  "text-sm font-bold text-gray-950 mt-1.5 mb-0.5 leading-snug";
+                  "text-sm font-bold text-foreground mt-1.5 mb-0.5 leading-snug";
                 return (
                   <HeadingTag key={`h-${nodeIdx}`} className={className}>
                     {formatMessageContentAndStyles(node.text!, memberProfiles)}
@@ -438,7 +438,7 @@ export const parseBlocks = (
                 return (
                   <blockquote
                     key={`quote-${nodeIdx}`}
-                    className="border-l-4 border-gray-300 px-3 py-1  my-1 text-gray-600 bg-gray-100 rounded-r-md italic text-xs leading-relaxed"
+                    className="border-l-4 border-input px-3 py-1  my-1 text-muted-foreground bg-muted rounded-r-md italic text-xs leading-relaxed"
                   >
                     {formatMessageContentAndStyles(node.text!, memberProfiles)}
                   </blockquote>
@@ -449,7 +449,7 @@ export const parseBlocks = (
                 return (
                   <ul
                     key={`bullet-${nodeIdx}`}
-                    className="list-disc list-inside pl-4 text-xs text-gray-800 my-1 space-y-0.5"
+                    className="list-disc list-inside pl-4 text-xs text-foreground my-1 space-y-0.5"
                   >
                     {node.items!.map((item, itemIdx) => (
                       <li key={`bullet-item-${itemIdx}`}>
@@ -464,7 +464,7 @@ export const parseBlocks = (
                 return (
                   <ol
                     key={`number-${nodeIdx}`}
-                    className="list-decimal list-inside pl-4 text-xs text-gray-800 my-1 space-y-0.5"
+                    className="list-decimal list-inside pl-4 text-xs text-foreground my-1 space-y-0.5"
                   >
                     {node.items!.map((item, itemIdx) => (
                       <li key={`number-item-${itemIdx}`}>

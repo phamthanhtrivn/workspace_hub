@@ -79,17 +79,17 @@ export function ShareModalLink({
   }, [documentItemId]);
 
   return (
-    <div className="space-y-3 pt-4 border-t border-slate-100">
-      <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider block">
+    <div className="space-y-3 pt-4 border-t border-border">
+      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
         General access
       </h4>
-      <div className="flex items-start gap-3 bg-slate-50/70 border border-slate-100 rounded-2xl p-4">
+      <div className="flex items-start gap-3 bg-background border border-border rounded-panel p-4">
         <div
           className={cn(
-            "p-2.5 rounded-xl shrink-0 mt-0.5",
+            "p-2.5 rounded-panel shrink-0 mt-0.5",
             linkAccess === LinkAccess.NONE
-              ? "bg-amber-50 text-amber-500"
-              : "bg-green-50 text-green-600",
+              ? "bg-warning-soft text-warning"
+              : "bg-success-soft text-success",
           )}
         >
           {linkAccess === LinkAccess.NONE ? (
@@ -106,7 +106,7 @@ export function ShareModalLink({
                 onChange={(e) =>
                   void handleLinkAccessChange(e.target.value as LinkAccess)
                 }
-                className="bg-transparent border border-gray-300 rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-black text-slate-800 outline-hidden focus:ring-1 focus:ring-slate-100 transition-all cursor-pointer"
+                className="bg-transparent border border-input rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-semibold text-foreground outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
               >
                 {Object.entries(LINK_ACCESS_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -115,12 +115,12 @@ export function ShareModalLink({
                 ))}
               </select>
             ) : (
-              <span className="text-sm font-black text-slate-800 py-0.5 px-1.5 block -ml-1.5">
+              <span className="text-sm font-semibold text-foreground py-0.5 px-1.5 block -ml-1.5">
                 {LINK_ACCESS_LABELS[linkAccess]}
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-400 font-bold mt-1 leading-normal">
+          <p className="text-xs text-muted-foreground font-semibold mt-1 leading-normal">
             {LINK_ACCESS_DESCRIPTIONS[linkAccess]}
           </p>
         </div>
@@ -129,12 +129,12 @@ export function ShareModalLink({
       {/* Copy Link Button */}
       <button
         onClick={handleCopyLink}
-        className="flex items-center justify-center gap-2 w-full rounded-2xl bg-slate-50 hover:bg-slate-100 border border-slate-200/50 hover:border-slate-200 text-slate-700 px-4 py-3 text-xs font-black transition-all cursor-pointer shadow-xs active:scale-99"
+        className="flex items-center justify-center gap-2 w-full rounded-control bg-background hover:bg-muted border border-border hover:border-border text-foreground px-4 py-3 text-xs font-semibold transition-all cursor-pointer"
       >
         {isCopied ? (
           <>
-            <Check size={14} className="text-green-600" />
-            <span className="text-green-600">Link copied!</span>
+            <Check size={14} className="text-success" />
+            <span className="text-success">Link copied!</span>
           </>
         ) : (
           <>

@@ -51,14 +51,14 @@ export function CustomTabs<TValue extends string = string>({
             value={option.value}
             disabled={option.disabled}
             className={cn(
-              "relative h-10 cursor-pointer rounded-none border-b-2 border-transparent bg-transparent px-2.5 text-sm font-black text-slate-500 shadow-none data-[state=active]:border-[var(--color-primary)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-none",
+              "relative h-10 cursor-pointer rounded-none border-b-2 border-transparent bg-transparent px-2.5 text-sm font-semibold text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none",
               triggerClassName,
             )}
           >
             {option.label}
             {typeof option.count === "number" && option.count > 0 ? (
               <Badge
-                className="h-5 min-w-5 rounded-full border-2 border-white bg-red-500 px-1.5 text-[11px] font-bold leading-none text-white shadow-sm"
+                className="h-5 min-w-5 rounded-full border-2 border-border bg-destructive px-1.5 text-xs font-semibold leading-none text-destructive-foreground"
               >
                 {option.count > 99 ? "99+" : option.count}
               </Badge>

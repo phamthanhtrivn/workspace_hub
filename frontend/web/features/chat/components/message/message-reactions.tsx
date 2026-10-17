@@ -37,10 +37,10 @@ export default function MessageReactions({
             key={emoji}
             onClick={() => onReactionClick(emoji)}
             className={cn(
-              "cursor-pointer flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border transition-all duration-150",
+              "cursor-pointer flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border transition-all duration-150",
               userReacted
-                ? "bg-blue-50 border-blue-200 text-blue-700 font-bold"
-                : "bg-slate-50/60 border-slate-200/60 text-slate-600 hover:bg-slate-100 hover:text-slate-800",
+                ? "bg-info-soft border-border text-info font-semibold"
+                : "bg-background border-border text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             <span>{emoji}</span>
@@ -50,7 +50,7 @@ export default function MessageReactions({
       })}
       <button
         onClick={onOpenDetails}
-        className="cursor-pointer text-[10px] text-slate-400 hover:text-slate-600 hover:underline px-2 py-0.5 transition"
+        className="cursor-pointer text-xs text-muted-foreground hover:text-muted-foreground hover:underline px-2 py-0.5 transition"
       >
         Details
       </button>

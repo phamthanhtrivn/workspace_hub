@@ -13,7 +13,7 @@ export function MeetingLoadingState({
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
+          className="rounded-lg border border-border bg-card p-4"
         >
           <div className="flex items-center gap-3">
             <Skeleton className="size-11 rounded-lg" />

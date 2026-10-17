@@ -32,9 +32,9 @@ export function BreadcrumbLink({ name, folderId, isActive, onClick }: Breadcrumb
       ref={setNodeRef}
       onClick={onClick}
       className={cn(
-        "font-bold text-xs px-2 py-1 rounded-md transition-all cursor-pointer",
-        isActive ? "text-[#172B4D]" : "text-slate-400 hover:text-[#0052CC] hover:bg-slate-100",
-        isOver && "bg-blue-50 text-[#0052CC] ring-2 ring-dashed ring-blue-400 scale-105 shadow-xs"
+        "font-semibold text-xs px-2 py-1 rounded-md transition-all cursor-pointer",
+        isActive ? "text-foreground" : "text-muted-foreground hover:text-info hover:bg-muted",
+        isOver && "bg-info-soft text-info ring-2 ring-dashed ring-ring scale-105"
       )}
     >
       {displayName}

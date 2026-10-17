@@ -127,16 +127,16 @@ export default function InviteSpaceMembersModal({
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40 animate-fade-in">
+      <div className="w-full max-w-md bg-card rounded-panel border border-border flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-800">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <h2 className="text-section-title font-semibold text-foreground">
             Invite Members to Space
           </h2>
-          <button
+          <button aria-label="Close"
             onClick={onClose}
-            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+            className="p-1 rounded-control text-muted-foreground hover:text-muted-foreground hover:bg-muted transition cursor-pointer"
           >
             <X size={20} />
           </button>
@@ -146,19 +146,19 @@ export default function InviteSpaceMembersModal({
         <div className="p-6 flex flex-col gap-4 overflow-y-auto">
           {/* Selected Users Chips */}
           {selectedUsers.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 p-2 bg-gray-50 rounded-xl border border-gray-100 max-h-24 overflow-y-auto">
+            <div className="flex flex-wrap gap-1.5 p-2 bg-background rounded-panel border border-border max-h-24 overflow-y-auto">
               {selectedUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-lg"
+                  className="flex items-center gap-1.5 bg-info-soft border border-border text-info text-xs px-2.5 py-1 rounded-lg"
                 >
                   <span>
                     {user.fullName} ({user.email})
                   </span>
-                  <button
+                  <button aria-label="Remove selected member"
                     type="button"
                     onClick={() => handleRemoveUser(user.id)}
-                    className="hover:bg-blue-100 rounded text-blue-500 hover:text-blue-700 p-0.5 cursor-pointer"
+                    className="hover:bg-info-soft rounded text-info hover:text-info p-0.5 cursor-pointer"
                   >
                     <X size={12} />
                   </button>
@@ -170,7 +170,7 @@ export default function InviteSpaceMembersModal({
           {/* Search Box */}
           <div className="relative">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={16}
             />
             <input
@@ -178,15 +178,15 @@ export default function InviteSpaceMembersModal({
               placeholder="Enter user email to search..."
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl text-sm outline-none transition"
+              className="w-full pl-9 pr-4 py-2.5 bg-background border border-transparent focus:border-info focus:bg-card rounded-control text-sm outline-none transition"
             />
           </div>
 
           {/* Results List */}
-          <div className="min-h-[120px] max-h-[200px] overflow-y-auto flex flex-col gap-1 border border-gray-100 rounded-xl p-1">
+          <div className="min-h-[120px] max-h-[200px] overflow-y-auto flex flex-col gap-1 border border-border rounded-panel p-1">
             {loading ? (
-              <div className="flex justify-center items-center py-6 text-gray-400 text-xs gap-1.5">
-                <Loader2 size={14} className="animate-spin text-blue-500" />
+              <div className="flex justify-center items-center py-6 text-muted-foreground text-xs gap-1.5">
+                <Loader2 size={14} className="animate-spin text-info" />
                 Searching...
               </div>
             ) : results.length > 0 ? (
@@ -194,10 +194,10 @@ export default function InviteSpaceMembersModal({
                 <div
                   key={user.id}
                   onClick={() => handleSelectUser(user)}
-                  className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition"
+                  className="flex items-center justify-between p-2 hover:bg-background rounded-lg cursor-pointer transition"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 bg-gradient-to-br from-blue-50 to-slate-200 rounded-full flex items-center justify-center overflow-hidden border border-slate-200/60 shadow-sm">
+                    <div className="w-7 h-7 bg-info-soft rounded-full flex items-center justify-center overflow-hidden border border-border">
                       {user.avatarUrl ? (
                         <Image
                           src={user.avatarUrl}
@@ -207,14 +207,14 @@ export default function InviteSpaceMembersModal({
                           className="rounded-full animate-fade-in object-cover"
                         />
                       ) : (
-                        <User size={13} className="text-slate-400" />
+                        <User size={13} className="text-muted-foreground" />
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-slate-800">
+                      <span className="text-xs font-semibold text-foreground">
                         {user.fullName}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-xs text-muted-foreground">
                         {user.email}
                       </span>
                     </div>
@@ -222,11 +222,11 @@ export default function InviteSpaceMembersModal({
                 </div>
               ))
             ) : error ? (
-              <div className="text-center py-8 text-xs text-gray-400">
+              <div className="text-center py-8 text-xs text-muted-foreground">
                 {error}
               </div>
             ) : (
-              <div className="text-center py-8 text-xs text-gray-400">
+              <div className="text-center py-8 text-xs text-muted-foreground">
                 Enter an email address to search for workspace members.
               </div>
             )}
@@ -234,19 +234,19 @@ export default function InviteSpaceMembersModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+        <div className="px-6 py-4 border-t border-border flex justify-end gap-3 bg-background">
           <button
             type="button"
             onClick={onClose}
             disabled={isInviting}
-            className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-accent rounded-control transition cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={handleInvite}
             disabled={isInviting || selectedUsers.length === 0}
-            className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer"
+            className="px-5 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary disabled:bg-primary rounded-control transition flex items-center gap-1.5 cursor-pointer"
           >
             {isInviting && <Loader2 size={16} className="animate-spin" />}
             Send Invitation

@@ -95,13 +95,13 @@ export default function ProjectSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isBusy && onClose()}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-2xl sm:rounded-2xl">
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
         <form onSubmit={(event) => void handleSubmit(event)} className="flex flex-col">
-          <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-slate-100">
-            <DialogTitle className="text-lg font-bold text-[#172B4D]">
+          <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-border">
+            <DialogTitle className="text-section-title font-semibold text-foreground">
               {canEditProject ? "Project Settings" : "Project Labels"}
             </DialogTitle>
-            <DialogDescription className="mt-1 text-xs font-semibold text-slate-500">
+            <DialogDescription className="mt-1 text-xs font-semibold text-muted-foreground">
               {canEditProject
                 ? "Update project details, status, timelines, and manage labels."
                 : "Manage custom task tags and labels for this project."}
@@ -120,57 +120,57 @@ export default function ProjectSettingsDialog({
             {canEditProject && (
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block text-xs font-bold text-slate-600">
+                  <label className="block text-xs font-semibold text-muted-foreground">
                     Start Date
                     <Input
                       type="date"
                       value={startDate}
                       onChange={(event) => setStartDate(event.target.value)}
                       max={dueDate || undefined}
-                      className="mt-1 h-10 rounded-xl border-slate-200 text-xs font-semibold"
+                      className="mt-1 h-10 rounded-control border-input text-xs font-semibold"
                     />
                   </label>
-                  <label className="block text-xs font-bold text-slate-600">
+                  <label className="block text-xs font-semibold text-muted-foreground">
                     Due Date
                     <Input
                       type="date"
                       value={dueDate}
                       onChange={(event) => setDueDate(event.target.value)}
                       min={startDate || undefined}
-                      className="mt-1 h-10 rounded-xl border-slate-200 text-xs font-semibold"
+                      className="mt-1 h-10 rounded-control border-input text-xs font-semibold"
                     />
                   </label>
                 </div>
                 {startDate && dueDate && startDate > dueDate && (
-                  <p className="text-xs font-semibold text-red-600">
+                  <p className="text-xs font-semibold text-destructive">
                     Start date cannot be after due date.
                   </p>
                 )}
 
-                <label className="block text-xs font-bold text-slate-600">
-                  Project Name <span className="text-red-500">*</span>
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Project Name <span className="text-destructive">*</span>
                   <Input
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     required
                     placeholder="Project name"
-                    className="mt-1 h-10 rounded-xl border-slate-200 text-xs font-semibold"
+                    className="mt-1 h-10 rounded-control border-input text-xs font-semibold"
                   />
                 </label>
 
-                <label className="block text-xs font-bold text-slate-600">
+                <label className="block text-xs font-semibold text-muted-foreground">
                   Description
                   <Textarea
                     value={description}
                     onChange={(event) => setDescription(event.target.value)}
                     rows={3}
                     placeholder="Optional project description..."
-                    className="mt-1 resize-none rounded-xl border-slate-200 text-xs font-medium"
+                    className="mt-1 resize-none rounded-control border-input text-xs font-medium"
                   />
                 </label>
 
                 <fieldset>
-                  <legend className="block text-xs font-bold text-slate-600">
+                  <legend className="block text-xs font-semibold text-muted-foreground">
                     Project Icon
                   </legend>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -187,10 +187,10 @@ export default function ProjectSettingsDialog({
                           aria-pressed={selected}
                           onClick={() => setSelectedIcon(icon)}
                           className={cn(
-                            "h-9 w-9 cursor-pointer rounded-xl border p-0 text-base transition duration-150",
+                            "h-9 w-9 cursor-pointer rounded-control border p-0 text-base transition duration-150",
                             selected
-                              ? "border-[#0052CC] bg-[#E8F0FE] shadow-sm ring-1 ring-[#0052CC]/20 hover:bg-[#E8F0FE]"
-                              : "border-transparent bg-slate-100 hover:border-slate-300 hover:bg-slate-200",
+                              ? "border-primary bg-primary-soft ring-1 ring-primary/20 hover:bg-primary-soft"
+                              : "border-transparent bg-muted hover:border-input hover:bg-accent",
                           )}
                         >
                           {icon}
@@ -201,7 +201,7 @@ export default function ProjectSettingsDialog({
                 </fieldset>
 
                 <fieldset>
-                  <legend className="block text-xs font-bold text-slate-600">
+                  <legend className="block text-xs font-semibold text-muted-foreground">
                     Theme Color
                   </legend>
                   <div className="mt-2 flex flex-wrap gap-2.5">
@@ -218,15 +218,15 @@ export default function ProjectSettingsDialog({
                           aria-pressed={selected}
                           onClick={() => setSelectedColor(color)}
                           className={cn(
-                            "h-8 w-8 cursor-pointer rounded-full border-2 border-white p-0 shadow-sm transition duration-150",
+                            "h-8 w-8 cursor-pointer rounded-full border-2 border-border p-0 transition duration-150",
                             selected
-                              ? "scale-110 hover:scale-110"
-                              : "hover:scale-105 hover:shadow-md",
+                              ? "scale-110"
+                              : "",
                           )}
                           style={{
                             backgroundColor: color,
                             boxShadow: selected
-                              ? `0 0 0 2px #ffffff, 0 0 0 4px ${color}`
+                              ? `0 0 0 2px var(--card), 0 0 0 4px ${color}`
                               : undefined,
                           }}
                         />
@@ -236,7 +236,7 @@ export default function ProjectSettingsDialog({
                 </fieldset>
 
                 <div>
-                  <span className="block mb-1 text-xs font-bold text-slate-600">
+                  <span className="block mb-1 text-xs font-semibold text-muted-foreground">
                     Status
                   </span>
                   <ProjectSelect
@@ -263,14 +263,14 @@ export default function ProjectSettingsDialog({
             ) : null}
           </div>
 
-          <DialogFooter className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
+          <DialogFooter className="flex items-center justify-between gap-2 border-t border-border bg-background px-6 py-4">
             {canEditProject ? (
               <Button
                 type="button"
                 variant="ghost"
                 disabled={isBusy}
                 onClick={() => void onArchive()}
-                className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl px-3 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                className="cursor-pointer inline-flex items-center gap-1.5 rounded-control px-3 text-xs font-semibold text-destructive hover:bg-destructive-soft hover:text-destructive disabled:opacity-50"
               >
                 <Archive className="h-3.5 w-3.5" /> Archive Project
               </Button>
@@ -282,7 +282,7 @@ export default function ProjectSettingsDialog({
                 type="button"
                 variant="outline"
                 onClick={onClose}
-                className="cursor-pointer rounded-xl font-bold text-slate-600 hover:bg-slate-100"
+                className="cursor-pointer rounded-control font-semibold text-muted-foreground hover:bg-muted"
               >
                 Cancel
               </Button>
@@ -290,7 +290,7 @@ export default function ProjectSettingsDialog({
                 <Button
                   type="submit"
                   disabled={isBusy || !name.trim()}
-                  className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50"
+                  className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
                 >
                   {isBusy ? "Saving..." : "Save Changes"}
                 </Button>

@@ -109,26 +109,26 @@ export default function SearchMessagesSection({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-card">
       {/* Header */}
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center gap-3">
-        <button
+      <div className="h-16 px-4 border-b border-border flex items-center gap-3">
+        <button aria-label="Back"
           onClick={onBack}
-          className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full transition cursor-pointer"
+          className="p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition cursor-pointer"
         >
           <ArrowLeft size={20} />
         </button>
-        <h2 className="font-semibold text-gray-800">
+        <h2 className="font-semibold text-foreground">
           Search Messages
         </h2>
       </div>
 
       {/* Search Form */}
-      <div className="p-4 border-b border-gray-100 flex flex-col gap-3">
+      <div className="p-4 border-b border-border flex flex-col gap-3">
         <div className="relative">
           <form onSubmit={handleSearch}>
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={16}
             />
             <input
@@ -136,7 +136,7 @@ export default function SearchMessagesSection({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by content or file name..."
-              className="w-full pl-9 pr-3 py-2 text-sm bg-gray-100 border-transparent rounded-md focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-200 outline-none transition"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-muted border-transparent rounded-control focus:bg-card focus:border-info focus:ring-1 focus:ring-ring outline-none transition"
             />
           </form>
         </div>
@@ -145,21 +145,21 @@ export default function SearchMessagesSection({
           <button
             type="button"
             onClick={() => setIsSenderDropdownOpen(!isSenderDropdownOpen)}
-            className="w-full flex items-center justify-between text-sm bg-gray-100 p-2 rounded-md outline-none cursor-pointer hover:bg-gray-200 transition"
+            className="w-full flex items-center justify-between text-sm bg-muted p-2 rounded-control outline-none cursor-pointer hover:bg-accent transition"
           >
             <span className="truncate">{getSelectedSenderName()}</span>
-            <ChevronDown size={14} className="text-gray-500 shrink-0" />
+            <ChevronDown size={14} className="text-muted-foreground shrink-0" />
           </button>
 
           {isSenderDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 max-h-64 flex flex-col overflow-hidden">
-              <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg z-20 max-h-64 flex flex-col overflow-hidden shadow-panel">
+              <div className="p-2 border-b border-border bg-background">
                 <input
                   type="text"
                   value={senderSearch}
                   onChange={(e) => setSenderSearch(e.target.value)}
                   placeholder="Search sender..."
-                  className="w-full p-1.5 text-sm bg-white border border-gray-200 rounded-md outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition"
+                  className="w-full p-1.5 text-sm bg-card border border-input rounded-control outline-none focus:border-info focus:ring-1 focus:ring-ring transition"
                 />
               </div>
               <div className="overflow-y-auto flex-1 p-1 custom-scrollbar">
@@ -168,11 +168,11 @@ export default function SearchMessagesSection({
                     setSenderId("");
                     setIsSenderDropdownOpen(false);
                   }}
-                  className={`p-2 text-sm cursor-pointer rounded-md hover:bg-gray-100 flex items-center justify-between transition ${!senderId ? "bg-blue-50 text-blue-600 font-medium" : ""}`}
+                  className={`p-2 text-sm cursor-pointer rounded-md hover:bg-muted flex items-center justify-between transition ${!senderId ? "bg-info-soft text-info font-medium" : ""}`}
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-                      <Users size={12} className="text-gray-500" />
+                    <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center shrink-0">
+                      <Users size={12} className="text-muted-foreground" />
                     </div>
                     <span>All Senders</span>
                   </div>
@@ -194,10 +194,10 @@ export default function SearchMessagesSection({
                         setSenderId(m.userId);
                         setIsSenderDropdownOpen(false);
                       }}
-                      className={`p-2 mt-0.5 text-sm cursor-pointer rounded-md hover:bg-gray-100 flex items-center justify-between transition ${senderId === m.userId ? "bg-blue-50 text-blue-600 font-medium" : ""}`}
+                      className={`p-2 mt-0.5 text-sm cursor-pointer rounded-md hover:bg-muted flex items-center justify-between transition ${senderId === m.userId ? "bg-info-soft text-info font-medium" : ""}`}
                     >
                       <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0 overflow-hidden">
+                        <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center shrink-0 overflow-hidden">
                           {avatarUrl ? (
                             <img
                               src={avatarUrl}
@@ -205,7 +205,7 @@ export default function SearchMessagesSection({
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <User size={12} className="text-gray-500" />
+                            <User size={12} className="text-muted-foreground" />
                           )}
                         </div>
                         <span className="truncate">{name}</span>
@@ -217,7 +217,7 @@ export default function SearchMessagesSection({
                   );
                 })}
                 {filteredMembers.length === 0 && (
-                  <div className="p-4 text-sm text-gray-500 text-center">
+                  <div className="p-4 text-sm text-muted-foreground text-center">
                     No member found
                   </div>
                 )}
@@ -230,7 +230,7 @@ export default function SearchMessagesSection({
       {/* Results */}
       <div className="flex-1 overflow-y-auto p-2">
         {loading ? (
-          <div className="p-4 text-center text-sm text-gray-500">
+          <div className="p-4 text-center text-sm text-muted-foreground">
             Searching...
           </div>
         ) : results.length > 0 ? (
@@ -247,7 +247,7 @@ export default function SearchMessagesSection({
             ))}
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-500 text-sm">
+          <div className="p-8 text-center text-muted-foreground text-sm">
             No results found.
           </div>
         )}

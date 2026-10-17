@@ -47,7 +47,7 @@ export default function TaskStatusPicker({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={[
-          "flex h-7 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition border border-transparent shadow-2xs hover:opacity-90",
+          "flex h-7 items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-semibold transition border border-transparent hover:opacity-90",
           currentOption.color,
           disabled ? "cursor-default opacity-80" : "cursor-pointer",
         ].join(" ")}
@@ -57,7 +57,7 @@ export default function TaskStatusPicker({
       </Button>
 
       {isOpen && !disabled && (
-        <div className="absolute left-0 mt-1 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl z-20">
+        <div className="absolute left-0 mt-1 w-40 overflow-hidden rounded-panel border border-border bg-card py-1 z-20 shadow-panel">
           {TASK_DRAWER_STATUS_OPTIONS.map((opt) => (
             <Button
               key={opt.value}
@@ -69,10 +69,10 @@ export default function TaskStatusPicker({
                 void onChange(opt.value);
               }}
               className={[
-                "flex w-full justify-start rounded-none cursor-pointer items-center px-3 py-2 h-auto text-left text-xs font-bold transition hover:bg-slate-100",
+                "flex w-full justify-start rounded-none cursor-pointer items-center px-3 py-2 h-auto text-left text-xs font-semibold transition hover:bg-muted",
                 opt.value === status
-                  ? "text-[#0052CC] bg-blue-50/50 hover:bg-blue-50/80 hover:text-[#0052CC]"
-                  : "text-slate-700",
+                  ? "text-info bg-info-soft/50 hover:bg-info-soft/80 hover:text-info"
+                  : "text-foreground",
               ].join(" ")}
             >
               {opt.label}

@@ -106,30 +106,30 @@ export default function SelectTaskChannelDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-md p-6 rounded-2xl border-slate-200 bg-white shadow-2xl">
+      <DialogContent className="max-w-md p-6 rounded-dialog border-border bg-card">
         <DialogHeader className="text-left pb-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-blue-600">
+          <div className="flex items-center gap-2 text-xs font-semibold text-info">
             <MessageSquare size={16} />
             <span>Task Discussion Thread</span>
           </div>
-          <DialogTitle className="text-base font-bold text-slate-900 mt-1">
+          <DialogTitle className="text-base font-semibold text-foreground mt-1">
             Choose Channel for Discussion Thread
           </DialogTitle>
-          <DialogDescription className="text-xs text-slate-500 mt-1">
-            Select a Space Channel that you have joined. A dedicated Thread for Task <span className="font-semibold text-slate-700">"{task.title}"</span> will be created inside it.
+          <DialogDescription className="text-xs text-muted-foreground mt-1">
+            Select a Space Channel that you have joined. A dedicated Thread for Task <span className="font-semibold text-foreground">"{task.title}"</span> will be created inside it.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-              <UserCheck size={14} className="text-blue-600" />
+            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <UserCheck size={14} className="text-info" />
               <span>Target Channel {spaceId ? `(${channels.length} available)` : ""}</span>
             </label>
 
             {!spaceId ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-800 font-medium flex flex-col gap-1">
-                <span className="font-bold flex items-center gap-1.5 text-amber-900">
+              <div className="rounded-panel border border-border bg-warning-soft/80 p-3.5 text-xs text-warning font-medium flex flex-col gap-1">
+                <span className="font-semibold flex items-center gap-1.5 text-warning">
                   <AlertCircle size={14} /> Project Space Required
                 </span>
                 <span>
@@ -137,12 +137,12 @@ export default function SelectTaskChannelDialog({
                 </span>
               </div>
             ) : loadingChannels ? (
-              <div className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 flex items-center text-xs text-slate-400 font-medium">
+              <div className="h-11 w-full rounded-panel border border-border bg-background px-3.5 flex items-center text-xs text-muted-foreground font-medium">
                 Loading your space channels...
               </div>
             ) : channels.length === 0 ? (
-              <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3.5 text-xs text-amber-800 font-medium flex flex-col gap-1">
-                <span className="font-bold flex items-center gap-1.5 text-amber-900">
+              <div className="rounded-panel border border-border bg-warning-soft/80 p-3.5 text-xs text-warning font-medium flex flex-col gap-1">
+                <span className="font-semibold flex items-center gap-1.5 text-warning">
                   <AlertCircle size={14} /> No Selectable Channels
                 </span>
                 <span>
@@ -154,21 +154,21 @@ export default function SelectTaskChannelDialog({
                 value={selectedChannelId}
                 onValueChange={(val) => setSelectedChannelId(val)}
               >
-                <SelectTrigger className="h-11 w-full rounded-xl border-slate-200 bg-slate-50/80 px-3.5 text-xs font-semibold text-slate-800 focus:ring-1 focus:ring-blue-600 focus:border-blue-600 cursor-pointer shadow-xs transition-colors">
+                <SelectTrigger className="h-11 w-full rounded-control border-input bg-background px-3.5 text-xs font-semibold text-foreground focus:ring-1 focus:ring-ring focus:border-info cursor-pointer transition-colors">
                   <SelectValue placeholder="Select a channel..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-slate-200 bg-white shadow-xl z-[130]">
+                <SelectContent className="rounded-panel border-border bg-card z-[130]">
                   {channels.map((channel) => (
                     <SelectItem
                       key={channel.id}
                       value={channel.id}
-                      className="cursor-pointer text-xs py-2.5 px-3 focus:bg-blue-50 focus:text-blue-700 font-medium rounded-lg"
+                      className="cursor-pointer text-xs py-2.5 px-3 focus:bg-info-soft focus:text-info font-medium rounded-lg"
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <Hash size={14} className="text-blue-600 shrink-0" />
+                        <Hash size={14} className="text-info shrink-0" />
                         <span className="truncate">{channel.name}</span>
                         {channel.isDefault && (
-                          <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.2 rounded-full font-medium ml-1">
+                          <span className="text-xs bg-info-soft text-info px-1.5 py-0.2 rounded-full font-medium ml-1">
                             default
                           </span>
                         )}
@@ -180,18 +180,18 @@ export default function SelectTaskChannelDialog({
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              className="rounded-control px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!spaceId || isSubmitting || loadingChannels || channels.length === 0}
-              className="flex items-center gap-1.5 rounded-xl bg-[#0052CC] px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs cursor-pointer"
+              className="flex items-center gap-1.5 rounded-control bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <Sparkles size={13} />
               <span>{isSubmitting ? "Opening..." : "Open Thread in Space"}</span>

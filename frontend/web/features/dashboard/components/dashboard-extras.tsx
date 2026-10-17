@@ -61,11 +61,11 @@ export function DashboardExtras({
             return (
               <div
                 key={project.id}
-                className="min-w-0 rounded-lg p-3 transition-colors hover:bg-muted/50"
+                className="min-w-0 rounded-lg p-3 transition-colors hover:bg-muted"
               >
                 <Link
                   href={`/projects/${encodeURIComponent(project.id)}`}
-                  className="flex min-w-0 items-center gap-3 text-sm font-semibold text-slate-800 hover:text-primary"
+                  className="flex min-w-0 items-center gap-3 text-sm font-semibold text-foreground hover:text-primary"
                 >
                   <span
                     aria-hidden
@@ -91,7 +91,7 @@ export function DashboardExtras({
                 )}
                 {counts && (
                   <>
-                    <div className="mt-4 flex justify-between text-xs text-slate-500">
+                    <div className="mt-4 flex justify-between text-xs text-muted-foreground">
                       <span>
                         {counts.DONE} / {total} tasks completed
                       </span>
@@ -114,7 +114,7 @@ export function DashboardExtras({
                         }}
                       />
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">
+                    <p className="mt-2 text-xs text-muted-foreground">
                       {counts.IN_PROGRESS} in progress · {counts.IN_REVIEW} in
                       review
                     </p>
@@ -141,20 +141,20 @@ export function DashboardExtras({
                 <button
                   type="button"
                   onClick={() => openNotification(item)}
-                  className={`flex w-full items-start gap-3 rounded-lg p-3 text-left hover:bg-slate-50 ${item.isRead ? "" : "bg-blue-50/50"}`}
+                  className={`flex w-full items-start gap-3 rounded-control p-3 text-left hover:bg-background ${item.isRead ? "" : "bg-info-soft/50"}`}
                 >
-                  <Bell size={16} className="mt-0.5 shrink-0 text-slate-400" />
+                  <Bell size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-slate-700">
+                    <span className="block truncate text-sm font-medium text-foreground">
                       {item.title}
                     </span>
-                    <span className="mt-1 block truncate text-xs text-slate-500">
+                    <span className="mt-1 block truncate text-xs text-muted-foreground">
                       {item.content}
                     </span>
                   </span>
                   <time
                     dateTime={item.createdAt}
-                    className="shrink-0 text-xs text-slate-500"
+                    className="shrink-0 text-xs text-muted-foreground"
                   >
                     {new Intl.DateTimeFormat("en", {
                       timeZone: dashboard.zone,

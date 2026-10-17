@@ -26,7 +26,7 @@ export function PomodoroTaskFilterControls({ sourceLabel, filters, onChange }: P
       </div>
       <Input aria-label={`Search ${sourceLabel} tasks`} value={filters.search}
         onChange={(event) => onChange({ ...filters, search: event.target.value })} placeholder={`Search ${sourceLabel} tasks…`} />
-      <p className="text-[11px] leading-relaxed text-slate-500">
+      <p className="text-xs leading-relaxed text-muted-foreground">
         {filters.scope === "today" ? "Tasks scheduled for today" : "Today, upcoming or unscheduled"} · Completed and overdue tasks excluded
       </p>
     </div>
@@ -35,7 +35,7 @@ export function PomodoroTaskFilterControls({ sourceLabel, filters, onChange }: P
 
 export function PomodoroTaskEmptyState({ sourceLabel, filters, onChange }: PomodoroTaskFiltersProps) {
   return (
-    <div className="rounded-xl bg-slate-50 px-4 py-6 text-center text-xs text-slate-500">
+    <div className="rounded-panel bg-background px-4 py-6 text-center text-xs text-muted-foreground">
       <p>No matching {sourceLabel} tasks available for focus.</p>
       {filters.scope === "today" && <Button size="sm" variant="link" onClick={() => onChange({ ...filters, scope: "all" })}>
         Show upcoming & unscheduled tasks

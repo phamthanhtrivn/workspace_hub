@@ -116,27 +116,27 @@ export function ListViewRow({
         }
       }}
       className={cn(
-        "hover:bg-slate-50/50 cursor-pointer select-none transition-colors border-b border-slate-100/60",
-        isSelected && "bg-blue-50/40",
-        isOver && "bg-blue-100/50 border-y-2 border-dashed border-blue-400"
+        "hover:bg-background cursor-pointer select-none transition-colors border-b border-border",
+        isSelected && "bg-info-soft/40",
+        isOver && "bg-info-soft/50 border-y-2 border-dashed border-info"
       )}
     >
       <td className="p-4 flex items-center gap-3 min-w-0">
-        <DocumentIcon item={item} iconSize={18} className="p-2 rounded-xl" />
-        <span className="font-bold text-slate-700 truncate max-w-xs">
+        <DocumentIcon item={item} iconSize={18} className="p-2 rounded-panel" />
+        <span className="font-semibold text-foreground truncate max-w-xs">
           {item.name}
         </span>
         {!isProjectDocuments && item.isStarred ? (
-          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0 ml-1" />
+          <Star className="h-3.5 w-3.5 fill-warning text-warning shrink-0 ml-1" />
         ) : null}
       </td>
       <td className="p-4 hidden sm:table-cell">
         <DocumentsStatusBadge type="itemType" itemType={item.type} />
       </td>
-      <td className="p-4 text-slate-500 font-semibold hidden md:table-cell">
+      <td className="p-4 text-muted-foreground font-semibold hidden md:table-cell">
         {formatDateShort(item.updatedAt)}
       </td>
-      <td className="p-4 text-slate-500 font-semibold hidden lg:table-cell">
+      <td className="p-4 text-muted-foreground font-semibold hidden lg:table-cell">
         {isFolder ? "—" : formatBytes(getDocumentDisplaySize(item))}
       </td>
       <td className="p-4 text-right">

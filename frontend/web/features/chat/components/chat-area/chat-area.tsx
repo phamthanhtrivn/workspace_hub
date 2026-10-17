@@ -801,7 +801,7 @@ export default function ChatArea({
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 flex flex-col bg-white h-full min-h-0 relative">
+    <div className="flex-1 flex flex-col bg-card h-full min-h-0 relative">
       {/* Header */}
       <ChatHeader
         onToggleRightPanel={onToggleRightPanel}
@@ -812,7 +812,7 @@ export default function ChatArea({
       {/* Message List Area */}
       <div
         ref={chatContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#f8fafc] space-y-1 relative flex flex-col-reverse [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full"
+        className="flex-1 min-h-0 overflow-y-auto p-4 bg-background space-y-1 relative flex flex-col-reverse [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-thumb]:rounded-full"
       >
         <div
           ref={(el) => {
@@ -890,8 +890,8 @@ export default function ChatArea({
 
       {/* Input Area */}
       {isDirectConversation && directInputMessage ? (
-        <div className="w-full border-t border-gray-200 bg-white p-3" role="status">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-center text-sm text-gray-600">
+        <div className="w-full border-t border-border bg-card p-3" role="status">
+          <div className="rounded-panel border border-border bg-background p-3 text-center text-sm text-muted-foreground">
             {directInputMessage}
           </div>
         </div>

@@ -55,10 +55,10 @@ export function CalendarRadioGroup<TValue extends string = string>({
             disabled={optionDisabled}
             onClick={() => onChange(option.value)}
             className={cn(
-              "flex h-auto w-full cursor-pointer items-center justify-start gap-2.5 rounded-xl border p-2.5 text-left text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
+              "flex h-auto w-full cursor-pointer items-center justify-start gap-2.5 rounded-control border p-2.5 text-left text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
               selected
-                ? "border-blue-500 bg-blue-50/50 text-blue-900 hover:bg-blue-50/70"
-                : "border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900",
+                ? "border-info bg-info-soft/50 text-info hover:bg-info-soft/70"
+                : "border-border text-foreground hover:bg-background hover:text-foreground",
               optionClassName,
             )}
           >
@@ -66,8 +66,8 @@ export function CalendarRadioGroup<TValue extends string = string>({
               className={cn(
                 "grid h-4 w-4 shrink-0 place-items-center rounded-full border",
                 selected
-                  ? "border-blue-600 bg-blue-600 text-white"
-                  : "border-slate-300 bg-white",
+                  ? "border-info bg-primary text-primary-foreground"
+                  : "border-input bg-card",
               )}
               aria-hidden="true"
             >

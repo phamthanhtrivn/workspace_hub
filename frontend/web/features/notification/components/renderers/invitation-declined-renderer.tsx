@@ -17,30 +17,30 @@ export const InvitationDeclinedListItemRenderer: React.FC<{
   return (
     <div
       onClick={onClick}
-      className={`flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer transition border-b border-slate-100 last:border-0 ${!notification.isRead ? "bg-blue-50/50" : ""}`}
+      className={`flex items-start gap-3 p-3 hover:bg-background cursor-pointer transition border-b border-border last:border-0 ${!notification.isRead ? "bg-info-soft/50" : ""}`}
     >
       <NotificationCategoryIcon notification={notification} className="h-10 w-10" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+          <span className="text-xs font-semibold text-destructive bg-destructive-soft px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
             <XCircle size={10} /> Declined
           </span>
         </div>
-        <p className="text-sm font-semibold text-slate-800 line-clamp-2">
+        <p className="text-sm font-semibold text-foreground line-clamp-2">
           {notification.title}
         </p>
-        <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
-          <span className="font-semibold text-slate-700">
+        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+          <span className="font-semibold text-foreground">
             {notification.senderName || "Invited user"}
           </span>{" "}
           declined the invitation
         </p>
-        <p className="text-[10px] font-medium text-slate-400 mt-1">
+        <p className="text-xs font-medium text-muted-foreground mt-1">
           {formatTimeAgo(new Date(notification.createdAt))}
         </p>
       </div>
       {!notification.isRead && (
-        <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></div>
+        <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0"></div>
       )}
     </div>
   );
@@ -57,7 +57,7 @@ export const InvitationDeclinedModalRenderer: React.FC<{
     <div className="p-5">
       <div className="flex flex-col items-center justify-center mb-6 text-center">
         <div className="relative mb-4">
-          <div className="relative h-16 w-16 rounded-full overflow-hidden shadow-sm border-2 border-white ring-4 ring-red-50 bg-red-100 flex items-center justify-center text-red-500">
+          <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-border ring-4 ring-destructive bg-destructive-soft flex items-center justify-center text-destructive">
             {notification.senderAvatar ? (
               <Image
                 src={notification.senderAvatar}
@@ -70,32 +70,32 @@ export const InvitationDeclinedModalRenderer: React.FC<{
             )}
           </div>
 
-          <div className="absolute -bottom-1 -right-1 bg-red-500 text-white p-1 rounded-full border-2 border-white">
+          <div className="absolute -bottom-1 -right-1 bg-destructive text-destructive-foreground p-1 rounded-full border-2 border-border">
             <XCircle size={12} strokeWidth={3} />
           </div>
         </div>
-        <h3 className="text-lg font-bold text-slate-800 mb-1">
+        <h3 className="text-section-title font-semibold text-foreground mb-1">
           {notification.senderName || "Invited user"}
         </h3>
-        <p className="text-sm font-medium text-red-500 bg-red-50 px-3 py-1 rounded-full inline-block">
+        <p className="text-sm font-medium text-destructive bg-destructive-soft px-3 py-1 rounded-full inline-block">
           Declined invitation
         </p>
       </div>
 
-      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6 text-sm text-slate-600 text-center">
+      <div className="bg-background p-4 rounded-panel border border-border mb-6 text-sm text-muted-foreground text-center">
         <span className="font-semibold">
           {notification.senderName || "This user"}
         </span>{" "}
         declined to join the space{" "}
-        <span className="font-semibold text-slate-800">
+        <span className="font-semibold text-foreground">
           {metadata?.conversationName || "chat"}
         </span>
       </div>
 
-      <div className="flex justify-end gap-3 border-t border-slate-100 pt-4 mt-2">
+      <div className="flex justify-end gap-3 border-t border-border pt-4 mt-2">
         <button
           onClick={onClose}
-          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition cursor-pointer"
+          className="px-4 py-2 bg-muted hover:bg-accent text-foreground rounded-control text-sm font-semibold transition cursor-pointer"
         >
           Close
         </button>

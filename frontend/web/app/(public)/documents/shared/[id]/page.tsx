@@ -143,7 +143,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
       showCancelButton: true,
       confirmButtonText: "Lưu lại",
       cancelButtonText: "Hủy bỏ",
-      confirmButtonColor: "var(--color-primary, #3b82f6)",
+      confirmButtonColor: "var(--color-primary, var(--primary))",
       inputValidator: (value) => {
         if (!value) {
           return "Tên không được để trống!";
@@ -183,8 +183,8 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 gap-3 text-slate-500">
-        <Loader2 className="animate-spin text-blue-600" size={36} />
+      <div className="flex min-h-screen flex-col items-center justify-center bg-background gap-3 text-muted-foreground">
+        <Loader2 className="animate-spin text-info" size={36} />
         <span className="text-sm font-semibold">
           Đang tải thông tin tài liệu...
         </span>
@@ -199,7 +199,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
   // ── Folder: render folder browser ─────────────────────────────────────────
   if (item.type === DocumentItemType.FOLDER) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col">
         <SharedHeader isLoggedIn={isLoggedIn} />
         <main className="flex-1 max-w-4xl w-full mx-auto p-6 md:p-8 flex flex-col gap-6">
           <SharedDetails
@@ -221,7 +221,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
 
   // ── File: existing behavior ────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <SharedHeader isLoggedIn={isLoggedIn} />
 

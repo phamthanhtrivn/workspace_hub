@@ -114,7 +114,7 @@ export function MeetingRoomReactionPicker({
         aria-haspopup="menu"
         onClick={() => setIsOpen((current) => !current)}
         className={cn(
-          "relative flex h-[68px] w-[76px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 overflow-visible rounded-lg bg-white/10 text-[11px] font-bold text-slate-200 ring-1 ring-white/10 transition hover:bg-white/16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50",
+          "relative flex h-[68px] w-[76px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 overflow-visible rounded-control bg-accent text-xs font-semibold text-muted-foreground ring-1 ring-border/10 transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >
         <SmilePlus className="h-5 w-5" />
@@ -126,7 +126,7 @@ export function MeetingRoomReactionPicker({
             <div
               ref={menuRef}
               role="menu"
-              className="fixed z-[120] grid w-[148px] grid-cols-3 gap-1.5 rounded-lg bg-[#111827] p-2 shadow-xl ring-1 ring-white/10"
+              className="fixed z-[120] grid w-[148px] grid-cols-3 gap-1.5 rounded-lg bg-card p-2 ring-1 ring-border/10 shadow-panel"
               style={{
                 left: pickerPosition?.left ?? VIEWPORT_GAP_PX,
                 top: pickerPosition?.top ?? VIEWPORT_GAP_PX,
@@ -137,7 +137,7 @@ export function MeetingRoomReactionPicker({
                   key={emoji}
                   type="button"
                   role="menuitem"
-                  className="grid h-10 w-10 cursor-pointer place-items-center rounded-md text-2xl transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                  className="grid h-10 w-10 cursor-pointer place-items-center rounded-control text-2xl transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-label={`${label} ${emoji}`}
                   onClick={() => {
                     onSendReaction(emoji);

@@ -31,7 +31,7 @@ export function MeetingRoomStage({
   if (activeScreenShareTrack) {
     return (
       <div className="flex min-h-full flex-col justify-center gap-4">
-        <div className="mx-auto aspect-video w-full max-w-6xl min-h-[18rem] overflow-hidden rounded-lg bg-black shadow-[0_24px_64px_rgba(0,0,0,0.34)] ring-1 ring-white/10">
+        <div className="mx-auto aspect-video w-full max-w-6xl min-h-[18rem] overflow-hidden rounded-lg bg-overlay ring-1 ring-border/10">
           <MeetingParticipantTile
             trackRef={activeScreenShareTrack}
             isMainTile

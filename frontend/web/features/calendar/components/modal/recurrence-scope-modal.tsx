@@ -30,21 +30,21 @@ export function RecurrenceScopeModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/40 p-4">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-overlay/40 p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="calendar-recurrence-scope-title"
-        className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-2xl"
+        className="w-full max-w-md overflow-hidden rounded-panel bg-card"
       >
-        <div className="flex items-center gap-3 border-b border-slate-200 px-5 py-4">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-blue-50 text-blue-600">
+        <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-info-soft text-info">
             <Repeat2 className="h-4 w-4" />
           </span>
           <h2
             id="calendar-recurrence-scope-title"
-            className="min-w-0 flex-1 text-base font-semibold text-slate-800"
+            className="min-w-0 flex-1 text-section-title font-semibold text-foreground"
           >
             {title}
           </h2>
@@ -53,7 +53,7 @@ export function RecurrenceScopeModal({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-500 hover:bg-slate-100"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground hover:bg-muted"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
@@ -73,19 +73,19 @@ export function RecurrenceScopeModal({
                 type="button"
                 variant="ghost"
                 onClick={() => onSelect(scope)}
-                className="h-auto w-full cursor-pointer justify-start rounded-lg px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-blue-50 hover:text-blue-800"
+                className="h-auto w-full cursor-pointer justify-start rounded-control px-4 py-3 text-left text-sm font-medium text-foreground transition hover:bg-info-soft hover:text-info"
               >
                 {SCOPE_LABELS[scope]}
               </Button>
             ))}
         </div>
 
-        <div className="flex justify-end border-t border-slate-200 px-4 py-3">
+        <div className="flex justify-end border-t border-border px-4 py-3">
           <Button
             type="button"
             variant="ghost"
             onClick={onClose}
-            className="cursor-pointer rounded-md px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+            className="cursor-pointer rounded-control px-4 py-2 text-sm font-semibold text-info hover:bg-info-soft"
           >
             Cancel
           </Button>

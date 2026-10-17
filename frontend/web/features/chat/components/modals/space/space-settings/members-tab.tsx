@@ -43,24 +43,24 @@ export function MembersTab({
       <div className="relative">
         <Search
           size={15}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
         />
         <input
           type="text"
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Search members..."
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:bg-white"
+          className="w-full rounded-control border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-info focus:bg-card"
         />
       </div>
 
       <div className="space-y-1">
         {isLoading ? (
-          <div className="py-8 text-center text-xs text-slate-400">
+          <div className="py-8 text-center text-xs text-muted-foreground">
             Loading members...
           </div>
         ) : members.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-400">
+          <div className="py-8 text-center text-xs text-muted-foreground">
             No members found
           </div>
         ) : (
@@ -117,10 +117,10 @@ function MemberRow({
     isCurrentUserCreator && !isCreator && Boolean(onUpdateRole);
 
   return (
-    <div className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-slate-50">
+    <div className="flex items-center justify-between rounded-panel px-3 py-2 hover:bg-background">
       <div className="flex min-w-0 items-center gap-3">
         <div className="relative h-9 w-9 shrink-0">
-          <div className="h-full w-full overflow-hidden rounded-full bg-slate-100 flex items-center justify-center">
+          <div className="h-full w-full overflow-hidden rounded-full bg-muted flex items-center justify-center">
             {member.profile?.avatarUrl ? (
               <Image
                 src={member.profile.avatarUrl}
@@ -130,19 +130,19 @@ function MemberRow({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <User size={16} className="text-slate-400" />
+              <User size={16} className="text-muted-foreground" />
             )}
           </div>
           {isCreator ? (
             <span
-              className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 border border-white text-white shadow-sm"
+              className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-warning border border-border text-warning-foreground"
               title="Owner"
             >
               <FaKey size={8} />
             </span>
           ) : member.role === SpaceRole.ADMIN ? (
             <span
-              className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-400 border border-white text-white shadow-sm"
+              className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted-foreground border border-border text-primary-foreground"
               title="Admin"
             >
               <FaKey size={8} />
@@ -151,20 +151,20 @@ function MemberRow({
         </div>
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
-            <p className="truncate text-sm font-semibold text-slate-800">
+            <p className="truncate text-sm font-semibold text-foreground">
               {isMe ? "You" : name}
             </p>
             {isCreator ? (
-              <span className="shrink-0 rounded-md border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+              <span className="shrink-0 rounded-md border border-border bg-warning-soft px-1.5 py-0.5 text-xs font-semibold text-warning">
                 Owner
               </span>
             ) : member.role === SpaceRole.ADMIN ? (
-              <span className="shrink-0 rounded-md border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
+              <span className="shrink-0 rounded-md border border-border bg-info-soft px-1.5 py-0.5 text-xs font-semibold text-info">
                 Admin
               </span>
             ) : null}
           </div>
-          <p className="truncate text-xs text-slate-400">
+          <p className="truncate text-xs text-muted-foreground">
             {member.profile?.email || member.userId}
           </p>
         </div>
@@ -180,7 +180,7 @@ function MemberRow({
                   title="Promote to Admin"
                   disabled={disabled}
                   onClick={() => onUpdateRole?.(member, SpaceRole.ADMIN)}
-                  className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-50 cursor-pointer transition-colors"
+                  className="p-2 rounded-control text-muted-foreground hover:text-info hover:bg-info-soft disabled:opacity-50 cursor-pointer transition-colors"
                 >
                   <Shield size={16} />
                 </button>
@@ -191,7 +191,7 @@ function MemberRow({
                   title="Demote to Member"
                   disabled={disabled}
                   onClick={() => onUpdateRole?.(member, SpaceRole.MEMBER)}
-                  className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 disabled:opacity-50 cursor-pointer transition-colors"
+                  className="p-2 rounded-control text-muted-foreground hover:text-muted-foreground hover:bg-background disabled:opacity-50 cursor-pointer transition-colors"
                 >
                   <ShieldOff size={16} />
                 </button>
@@ -205,9 +205,9 @@ function MemberRow({
                 title="Transfer Ownership"
                 disabled={disabled}
                 onClick={() => onTransferOwnership?.(member)}
-                className="p-2 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 disabled:opacity-50 cursor-pointer transition-colors"
+                className="p-2 rounded-control text-muted-foreground hover:text-warning hover:bg-warning-soft disabled:opacity-50 cursor-pointer transition-colors"
               >
-                <Crown size={16} className="fill-amber-400 text-amber-500" />
+                <Crown size={16} className="fill-warning text-warning" />
               </button>
             </>
           )}
@@ -217,7 +217,7 @@ function MemberRow({
               title="Remove from Space"
               disabled={disabled}
               onClick={() => onRemove(member)}
-              className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 cursor-pointer transition-colors"
+              className="p-2 rounded-control text-muted-foreground hover:text-destructive hover:bg-destructive-soft disabled:opacity-50 cursor-pointer transition-colors"
             >
               <Trash2 size={16} />
             </button>

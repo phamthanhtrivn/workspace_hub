@@ -203,25 +203,25 @@ export function MeetingRoomContent({
   const closePanel = () => setActivePanel(MeetingRoomPanel.NONE);
 
   return (
-    <div className="fixed inset-0 z-[90] flex min-h-[100dvh] flex-col overflow-hidden bg-[#070b12] text-white">
-      <header className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 bg-[#0d1420]/95 px-4 backdrop-blur sm:px-6">
+    <div className="fixed inset-0 z-[90] flex min-h-[100dvh] flex-col overflow-hidden bg-card text-foreground">
+      <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#0052CC] shadow-[0_12px_28px_rgba(0,82,204,0.28)]">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary">
             <Video className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <h1 className="truncate text-sm font-black sm:text-base">
+            <h1 className="truncate text-sm font-semibold sm:text-base">
               Instant meeting
             </h1>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <span className="hidden rounded-md bg-emerald-500/12 px-3 py-1.5 text-xs font-black text-emerald-200 ring-1 ring-emerald-300/15 sm:inline-flex">
+          <span className="hidden rounded-md bg-success/12 px-3 py-1.5 text-xs font-semibold text-success ring-1 ring-success/15 sm:inline-flex">
             {getRoomStatusLabel(connectionState)}
           </span>
           <MeetingRecordingBanner joinToken={joinToken} meetingId={meetingId} />
-          <span className="rounded-md bg-white/8 px-3 py-1.5 text-xs font-black text-slate-100 ring-1 ring-white/10">
+          <span className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-muted-foreground ring-1 ring-border/10">
             {formatElapsedTime(elapsedSeconds)}
           </span>
         </div>
@@ -253,12 +253,12 @@ export function MeetingRoomContent({
             />
             {showParticipantPagination ? (
               <div className="mt-6 shrink-0">
-                <div className="mx-auto flex w-fit items-center justify-center gap-2 rounded-md bg-black/24 px-2 py-1.5 text-xs font-black text-slate-100 ring-1 ring-white/8 backdrop-blur">
+                <div className="mx-auto flex w-fit items-center justify-center gap-2 rounded-md bg-overlay/24 px-2 py-1.5 text-xs font-semibold text-muted-foreground ring-1 ring-border/8">
                   <button
                     type="button"
                     disabled={!canGoPrevious}
                     onClick={goToPreviousParticipantPage}
-                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-200 sm:w-auto sm:gap-1.5 sm:px-2.5"
+                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-control text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground sm:w-auto sm:gap-1.5 sm:px-2.5"
                     aria-label="Previous"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -267,7 +267,7 @@ export function MeetingRoomContent({
                     </span>
                   </button>
 
-                  <span className="min-w-14 rounded-md bg-white/6 px-2.5 py-1.5 text-center text-slate-300 ring-1 ring-white/6">
+                  <span className="min-w-14 rounded-md bg-accent px-2.5 py-1.5 text-center text-muted-foreground ring-1 ring-border/6">
                     {currentParticipantPage} / {totalParticipantPages}
                   </span>
 
@@ -275,7 +275,7 @@ export function MeetingRoomContent({
                     type="button"
                     disabled={!canGoNext}
                     onClick={goToNextParticipantPage}
-                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-200 sm:w-auto sm:gap-1.5 sm:px-2.5"
+                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-control text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground sm:w-auto sm:gap-1.5 sm:px-2.5"
                     aria-label="Next"
                   >
                     <span className="hidden sm:inline">

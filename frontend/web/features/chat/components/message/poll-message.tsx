@@ -48,7 +48,7 @@ const PollMessage = React.memo(function PollMessage({
 
   if (!poll || !poll.options) {
     return (
-      <div className="text-gray-500 italic p-4">
+      <div className="text-muted-foreground italic p-4">
         Poll unavailable
       </div>
     );
@@ -101,19 +101,19 @@ const PollMessage = React.memo(function PollMessage({
 
   return (
     <div className="flex flex-col items-center my-4 w-full">
-      <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] max-w-md w-full relative overflow-hidden transition-all duration-350 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
+      <div className="bg-card border border-border rounded-panel p-5 max-w-md w-full relative overflow-hidden transition-all duration-200">
         <div className="flex items-start gap-3.5 mb-4 justify-between">
           <div className="flex items-start gap-3">
-            <div className="bg-purple-50 p-2.5 rounded-2xl text-purple-600 mt-1 border border-purple-100/50">
+            <div className="bg-info-soft p-2.5 rounded-panel text-info mt-1 border border-border">
               <BarChart2 size={24} />
             </div>
             <div>
-              <h3 className="font-extrabold text-slate-800 text-[17px] leading-snug tracking-tight mb-1">
+              <h3 className="font-semibold text-foreground text-[17px] leading-snug tracking-tight mb-1">
                 {poll.title}
               </h3>
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                 <span>Created by</span>
-                <span className="font-semibold text-slate-600">
+                <span className="font-semibold text-muted-foreground">
                   <span
                     className={`font-semibold ${!isMe ? "cursor-pointer hover:underline" : ""}`}
                     onClick={() => {
@@ -135,7 +135,7 @@ const PollMessage = React.memo(function PollMessage({
           {isMe && onEditPoll && !poll.isLocked && (
             <button
               onClick={() => setIsEditModalOpen(true)}
-              className="cursor-pointer p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-colors flex-shrink-0"
+              className="cursor-pointer p-2 text-muted-foreground hover:text-info hover:bg-info-soft rounded-control transition-colors flex-shrink-0"
               title="Edit Poll"
             >
               <Edit2 size={16} />
@@ -156,12 +156,12 @@ const PollMessage = React.memo(function PollMessage({
               <div
                 key={option.id}
                 onClick={() => handleOptionClick(option.id)}
-                className={`relative overflow-hidden rounded-xl border transition-all duration-200 ${isSelected ? "border-purple-500 bg-purple-50/20" : "border-slate-200/80 hover:bg-slate-50/80 hover:border-slate-300"} ${!poll.isLocked ? "cursor-pointer" : ""} group`}
+                className={`relative overflow-hidden rounded-panel border transition-all duration-200 ${isSelected ? "border-info bg-info-soft/20" : "border-border hover:bg-background hover:border-input"} ${!poll.isLocked ? "cursor-pointer" : ""} group`}
               >
                 {/* Progress bar background */}
                 {(userHasVoted || totalVotes > 0) && (
                   <div
-                    className={`absolute top-0 left-0 bottom-0 ${isSelected ? "bg-purple-500/10" : "bg-slate-100/70"} transition-all duration-500 ease-out`}
+                    className={`absolute top-0 left-0 bottom-0 ${isSelected ? "bg-primary/10" : "bg-muted"} transition-all duration-200 ease-out`}
                     style={{ width: `${percentage}%` }}
                   />
                 )}
@@ -169,20 +169,20 @@ const PollMessage = React.memo(function PollMessage({
                 <div className="relative p-3 flex items-center justify-between z-10">
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-150 ${isSelected ? "border-purple-600 bg-purple-600 shadow-sm shadow-purple-600/20" : "border-slate-300 group-hover:border-purple-400"}`}
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-150 ${isSelected ? "border-info bg-primary" : "border-input group-hover:border-info"}`}
                     >
                       {isSelected && (
-                        <CheckCircle2 size={13} className="text-white" />
+                        <CheckCircle2 size={13} className="text-primary-foreground" />
                       )}
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span
-                        className={`text-sm ${isSelected ? "font-bold text-purple-950" : "font-medium text-slate-700"}`}
+                        className={`text-sm ${isSelected ? "font-semibold text-info" : "font-medium text-foreground"}`}
                       >
                         {option.text}
                       </span>
                       {option.createdBy && (
-                        <span className="text-[9px] text-slate-400 font-semibold mt-0.5 uppercase tracking-wide">
+                        <span className="text-xs text-muted-foreground font-semibold mt-0.5 uppercase tracking-wide">
                           Added by{" "}
                           {memberProfiles?.[option.createdBy]?.fullName ||
                             (option.createdBy == currentUser?.userId
@@ -211,9 +211,9 @@ const PollMessage = React.memo(function PollMessage({
                                     onUserClick?.(vote.userId);
                                   }
                                 }}
-                                className={`w-5 h-5 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center overflow-hidden ${
+                                className={`w-5 h-5 rounded-full bg-accent border-2 border-border flex items-center justify-center overflow-hidden ${
                                   vote.userId !== currentUser?.userId
-                                    ? "cursor-pointer hover:z-10 hover:scale-105"
+                                    ? "cursor-pointer hover:z-10"
                                     : ""
                                 }`}
                                 title={profile?.fullName || "User"}
@@ -225,17 +225,17 @@ const PollMessage = React.memo(function PollMessage({
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <User size={10} className="text-slate-400" />
+                                  <User size={10} className="text-muted-foreground" />
                                 )}
                               </div>
                             );
                           })}
                         </div>
                       )}
-                      <span className="rounded-md bg-purple-50 px-1.5 py-0.5 text-xs font-extrabold text-purple-700">
+                      <span className="rounded-md bg-info-soft px-1.5 py-0.5 text-xs font-semibold text-info">
                         {percentage}%
                       </span>
-                      <span className="w-12 text-right text-xs font-extrabold text-slate-800">
+                      <span className="w-12 text-right text-xs font-semibold text-foreground">
                         {voteCount === 1 ? "1 vote" : `${voteCount} votes`}
                       </span>
                     </div>
@@ -258,13 +258,13 @@ const PollMessage = React.memo(function PollMessage({
                   value={newOptionText}
                   onChange={(e) => setNewOptionText(e.target.value)}
                   placeholder="Enter new option..."
-                  className="flex-1 px-3.5 py-2 text-xs border border-slate-200 focus:border-purple-500 rounded-xl outline-none transition"
+                  className="flex-1 px-3.5 py-2 text-xs border border-input focus:border-info rounded-control outline-none transition"
                   autoFocus
                 />
                 <button
                   type="submit"
                   disabled={!newOptionText.trim()}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl disabled:opacity-50 transition"
+                  className="px-4 py-2 bg-primary hover:bg-primary text-primary-foreground text-xs font-semibold rounded-control disabled:opacity-50 transition"
                 >
                   Add
                 </button>
@@ -274,7 +274,7 @@ const PollMessage = React.memo(function PollMessage({
                     setIsAddingOption(false);
                     setNewOptionText("");
                   }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition"
+                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground text-xs font-semibold rounded-control transition"
                 >
                   Cancel
                 </button>
@@ -282,7 +282,7 @@ const PollMessage = React.memo(function PollMessage({
             ) : (
               <button
                 onClick={() => setIsAddingOption(true)}
-                className="flex items-center justify-center gap-1.5 text-xs text-purple-600 font-bold py-2.5 px-3 cursor-pointer rounded-xl bg-slate-50 border border-slate-200/50 hover:bg-purple-50/50 hover:border-purple-200/50 transition-all duration-150 w-full"
+                className="flex items-center justify-center gap-1.5 text-xs text-info font-semibold py-2.5 px-3 cursor-pointer rounded-control bg-background border border-border hover:bg-info-soft/50 hover:border-border transition-all duration-150 w-full"
               >
                 <Plus size={15} />{" "}
                 Add Poll Option
@@ -291,13 +291,13 @@ const PollMessage = React.memo(function PollMessage({
           </div>
         )}
 
-        <div className="flex items-center justify-between text-xs text-slate-500 border-t border-slate-100 pt-3 mt-1.5">
+        <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3 mt-1.5">
           <div className="flex items-center gap-2">
             {!poll.anonymous && totalUniqueVoters > 0 ? (
               <button
                 type="button"
                 onClick={() => setIsVotersModalOpen(true)}
-                className="flex cursor-pointer items-center gap-1 rounded-lg px-1.5 py-1 font-bold text-purple-600 transition hover:bg-purple-50 hover:text-purple-700"
+                className="flex cursor-pointer items-center gap-1 rounded-control px-1.5 py-1 font-semibold text-info transition hover:bg-info-soft hover:text-info"
               >
                 <Users size={14} />
                 <span>
@@ -308,25 +308,25 @@ const PollMessage = React.memo(function PollMessage({
                 <ChevronRight size={13} />
               </button>
             ) : (
-              <span className="font-bold text-slate-600">
+              <span className="font-semibold text-muted-foreground">
                 {totalVotes === 1 ? "1 vote" : `${totalVotes} votes`}{" "}
                 {poll.anonymous ? "(Anonymous)" : ""}
               </span>
             )}
             {poll.isLocked && (
-              <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+              <span className="bg-destructive-soft text-destructive px-2 py-0.5 rounded-lg text-xs font-semibold uppercase tracking-wider">
                 LOCKED
               </span>
             )}
           </div>
           <div className="flex gap-2">
             {poll.multipleChoice && (
-              <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+              <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-lg text-xs font-semibold">
                 Multiple Choice
               </span>
             )}
             {poll.anonymous && (
-              <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+              <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-lg text-xs font-semibold">
                 Anonymous
               </span>
             )}

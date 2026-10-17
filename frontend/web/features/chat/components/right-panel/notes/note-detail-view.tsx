@@ -30,23 +30,23 @@ export default function NoteDetailView({
   const selectedNote = notes.find((note) => note.id === selectedNoteId);
 
   return (
-    <div className="w-full h-full flex flex-col bg-white">
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
-        <button
+    <div className="w-full h-full flex flex-col bg-card">
+      <div className="h-16 px-4 border-b border-border flex items-center gap-3 flex-shrink-0">
+        <button aria-label="Back"
           onClick={onBack}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <ArrowLeft size={20} />
         </button>
-        <h2 className="font-semibold text-gray-800">
+        <h2 className="font-semibold text-foreground">
           Notes
         </h2>
       </div>
 
-      <div className="border-b border-gray-100 px-4 py-3 flex-shrink-0">
+      <div className="border-b border-border px-4 py-3 flex-shrink-0">
         <div className="relative">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={16}
           />
           <input
@@ -54,7 +54,7 @@ export default function NoteDetailView({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search notes..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card focus:border-info focus:ring-1 focus:ring-ring outline-none transition"
           />
         </div>
       </div>
@@ -62,10 +62,10 @@ export default function NoteDetailView({
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
           <div className="text-center py-4 flex justify-center">
-            <Loader2 className="animate-spin text-gray-400" size={24} />
+            <Loader2 className="animate-spin text-muted-foreground" size={24} />
           </div>
         ) : notes.length === 0 ? (
-          <div className="text-center text-sm text-gray-400 py-4">
+          <div className="text-center text-sm text-muted-foreground py-4">
             {searchQuery
               ? "No matching notes found"
               : "No notes available"}
@@ -76,19 +76,19 @@ export default function NoteDetailView({
               <div
                 key={note.id}
                 onClick={() => setSelectedNoteId(note.id)}
-                className="p-4 bg-amber-50 border border-amber-100 rounded-xl cursor-pointer hover:bg-amber-100 transition-colors"
+                className="p-4 bg-warning-soft border border-border rounded-panel cursor-pointer hover:bg-warning-soft transition-colors"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-warning-soft text-warning rounded-lg flex items-center justify-center flex-shrink-0">
                     <FileText size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-amber-900 mb-1 truncate">
+                    <p className="text-sm font-semibold text-warning mb-1 truncate">
                       {note.title || "Untitled Note"}{" "}
                       -{" "}
                       {formatDateTime(note.createdAt)}
                     </p>
-                    <p className="text-xs text-amber-700/80 line-clamp-3">
+                    <p className="text-xs text-warning line-clamp-3">
                       {note.content}
                     </p>
                   </div>

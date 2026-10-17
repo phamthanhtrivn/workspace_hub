@@ -93,7 +93,7 @@ interface ChatSidebarProps {
 
 function ProjectSpaceBadge() {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold normal-case leading-none text-blue-600">
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-info-soft px-1.5 py-0.5 text-xs font-semibold normal-case leading-none text-info">
       <FolderKanban size={11} strokeWidth={2.5} />
       Project
     </span>
@@ -690,24 +690,24 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   );
 
   return (
-    <div className="w-full h-full bg-white border-r border-slate-200/60 flex flex-col select-none">
+    <div className="w-full h-full bg-card border-r border-border flex flex-col select-none">
       {/* Header with Space Selector Dropdown */}
-      <div className="p-3 border-b border-slate-100 relative" ref={dropdownRef}>
+      <div className="p-3 border-b border-border relative" ref={dropdownRef}>
         <div
           onClick={() => setIsSpaceDropdownOpen((prev) => !prev)}
-          className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-200/40 hover:bg-slate-100 hover:border-slate-200/80 rounded-xl cursor-pointer transition-all duration-200 select-none group"
+          className="flex items-center justify-between px-3 py-2 bg-background border border-border hover:bg-muted hover:border-border rounded-panel cursor-pointer transition-all duration-200 select-none group"
         >
           <div className="flex min-w-0 flex-1 flex-col pr-2">
-            <h2 className="flex min-w-0 items-start gap-1.5 text-sm font-bold leading-tight text-slate-800 mb-2">
+            <h2 className="flex min-w-0 items-start gap-1.5 text-sm font-semibold leading-tight text-foreground mb-2">
               <span className="min-w-0 break-words">
                 {activeSpace ? activeSpace.name : "Select Space"}
               </span>
               <ChevronDown
                 size={14}
-                className="mt-0.5 shrink-0 text-slate-400 transition group-hover:text-slate-600"
+                className="mt-0.5 shrink-0 text-muted-foreground transition group-hover:text-muted-foreground"
               />
             </h2>
-            <span className="flex flex-wrap items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-slate-400 select-none">
+            <span className="flex flex-wrap items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground select-none">
               <span>Space</span>
               {activeSpace?.projectId && <ProjectSpaceBadge />}
               {activeSpace &&
@@ -724,7 +724,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                           ),
                         );
                       }}
-                      className="hover:text-blue-600 hover:underline cursor-pointer normal-case"
+                      className="hover:text-info hover:underline cursor-pointer normal-case"
                     >
                       {activeSpace.creatorProfile.fullName}
                     </span>
@@ -734,19 +734,19 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           </div>
           <button
             onClick={() => setIsFollowedThreadsModalOpen(true)}
-            className="flex items-center justify-between px-3 py-2 mx-1 rounded-xl cursor-pointer transition-all duration-200 select-none group bg-slate-600 text-white hover:bg-slate-900 shadow-sm"
+            className="flex items-center justify-between px-3 py-2 mx-1 rounded-control cursor-pointer transition-all duration-200 select-none group bg-primary text-primary-foreground hover:bg-primary"
           >
             <span className="flex items-center min-w-0 gap-2.5">
               <MessageSquareText
                 size={15}
-                className="shrink-0 text-slate-100"
+                className="shrink-0 text-muted-foreground"
               />
-              <span className="text-[13px] font-bold truncate">
+              <span className="text-[13px] font-semibold truncate">
                 {ChatSidebarSection.THREADS}
               </span>
             </span>
             {followedThreadsUnreadCount > 0 && (
-              <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0 ml-2.5">
+              <span className="bg-destructive text-destructive-foreground text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0 ml-2.5">
                 {followedThreadsUnreadCount > MAX_UNREAD_COUNT
                   ? "99+"
                   : followedThreadsUnreadCount}
@@ -757,11 +757,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
         {/* Dropdown Menu */}
         {isSpaceDropdownOpen && (
-          <div className="absolute left-3 right-3 top-[64px] z-50 bg-white/95 backdrop-blur-md rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-slate-100 py-1.5 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-100">
-            <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <div className="absolute left-3 right-3 top-[64px] z-50 bg-card rounded-panel border border-border py-1.5 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-100 shadow-panel">
+            <div className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Spaces
             </div>
-            <div className="max-h-[min(18rem,55vh)] overflow-y-auto flex flex-col gap-0.5 px-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+            <div className="max-h-[min(18rem,55vh)] overflow-y-auto flex flex-col gap-0.5 px-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-thumb]:rounded-full">
               {spaces.map((space) => {
                 const hasCollision = spaceNameCounts[space.name] > 1;
                 return (
@@ -771,8 +771,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                     className={cn(
                       "px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-colors flex items-center justify-between gap-2",
                       space.id === activeSpaceId
-                        ? "bg-blue-50 text-blue-700 font-bold"
-                        : "text-slate-600 hover:bg-slate-50",
+                        ? "bg-info-soft text-info font-semibold"
+                        : "text-muted-foreground hover:bg-background",
                     )}
                   >
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -781,7 +781,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                         {space.projectId && <ProjectSpaceBadge />}
                       </div>
                       {hasCollision && space.creatorProfile?.fullName && (
-                        <div className="flex min-w-0 gap-1 truncate text-[10px] font-normal text-slate-400">
+                        <div className="flex min-w-0 gap-1 truncate text-xs font-normal text-muted-foreground">
                           <span>
                             Created by
                           </span>
@@ -795,7 +795,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                                 ),
                               );
                             }}
-                            className="hover:text-blue-600 hover:underline cursor-pointer"
+                            className="hover:text-info hover:underline cursor-pointer"
                           >
                             {space.creatorProfile.email}
                           </span>
@@ -806,21 +806,21 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 );
               })}
               {spaces.length === 0 && (
-                <div className="px-3 py-2 text-xs text-slate-400 italic">
+                <div className="px-3 py-2 text-xs text-muted-foreground italic">
                   No spaces joined
                 </div>
               )}
             </div>
-            <div className="h-[1px] bg-slate-100 my-1" />
+            <div className="h-[1px] bg-muted my-1" />
             <div className="px-1 flex flex-col gap-0.5">
               <button
                 onClick={() => {
                   setIsCreateSpaceModalOpen(true);
                   setIsSpaceDropdownOpen(false);
                 }}
-                className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2 cursor-pointer transition"
+                className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-background rounded-control flex items-center gap-2 cursor-pointer transition"
               >
-                <PlusCircle size={14} className="text-slate-400" />
+                <PlusCircle size={14} className="text-muted-foreground" />
                 Create new space
               </button>
               {isActiveSpaceAdmin && (
@@ -832,9 +832,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                     setIsSpaceDropdownOpen(false);
                   }}
                   disabled={!activeSpaceId}
-                  className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg flex items-center gap-2 cursor-pointer transition"
+                  className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-background disabled:opacity-50 disabled:pointer-events-none rounded-control flex items-center gap-2 cursor-pointer transition"
                 >
-                  <Settings size={14} className="text-slate-400" />
+                  <Settings size={14} className="text-muted-foreground" />
                   Space settings
                 </button>
               )}
@@ -844,10 +844,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       </div>
 
       {/* Search Filter */}
-      <div className="p-3 border-b border-slate-100">
+      <div className="p-3 border-b border-border">
         <div className="relative">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={14}
           />
           <input
@@ -855,19 +855,19 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search channels, conversations..."
-            className="w-full pl-9 pr-4 py-2 text-xs bg-slate-100/70 border border-transparent focus:border-blue-500/20 focus:ring-4 focus:ring-blue-500/5 rounded-xl outline-none transition-all duration-200"
+            className="w-full pl-9 pr-4 py-2 text-xs bg-muted border border-transparent focus:border-info/20 focus:ring-4 focus:ring-ring rounded-control outline-none transition-all duration-200"
           />
         </div>
       </div>
 
       {/* Main Items Scrollable List */}
-      <div className="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+      <div className="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-thumb]:rounded-full">
         {/* Channels Section */}
         <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between px-3 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none">
+          <div className="flex items-center justify-between px-3 mb-1 text-xs font-semibold text-muted-foreground uppercase tracking-widest select-none">
             <button
               onClick={() => setIsChannelsExpanded(!isChannelsExpanded)}
-              className="flex items-center gap-1 hover:text-slate-600 transition cursor-pointer text-left"
+              className="flex items-center gap-1 hover:text-muted-foreground transition cursor-pointer text-left"
             >
               {isChannelsExpanded ? (
                 <ChevronDown size={12} />
@@ -882,21 +882,21 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   onClick={() =>
                     setIsChannelsDropdownOpen(!isChannelsDropdownOpen)
                   }
-                  className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                  className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-muted-foreground transition cursor-pointer"
                   title="Channel options"
                 >
                   <Plus size={14} />
                 </button>
                 {isChannelsDropdownOpen && (
-                  <div className="absolute right-0 mt-1 w-44 bg-white border border-slate-150 rounded-xl shadow-lg z-50 py-1 text-slate-700 font-normal normal-case">
+                  <div className="absolute right-0 mt-1 w-44 bg-card border border-border rounded-panel z-50 py-1 text-foreground font-normal normal-case shadow-panel">
                     <button
                       onClick={() => {
                         setIsBrowseChannelsModalOpen(true);
                         setIsChannelsDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 transition cursor-pointer"
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-background flex items-center gap-2 transition cursor-pointer"
                     >
-                      <Globe size={14} className="text-slate-400" />
+                      <Globe size={14} className="text-muted-foreground" />
                       Browse channels
                     </button>
                     {canCreateChannelInActiveSpace && (
@@ -905,9 +905,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                           setIsCreateChannelModalOpen(true);
                           setIsChannelsDropdownOpen(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 transition cursor-pointer"
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-background flex items-center gap-2 transition cursor-pointer"
                       >
-                        <Plus size={14} className="text-slate-400" />
+                        <Plus size={14} className="text-muted-foreground" />
                         Create new channel
                       </button>
                     )}
@@ -919,12 +919,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           {isChannelsExpanded && (
             <div
               className={cn(
-                "pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full",
+                "pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-thumb]:rounded-full",
                 joinedChannels.length > 10 && "max-h-80 overflow-y-auto",
               )}
             >
               {loadingChannels ? (
-                <div className="text-[11px] text-slate-400 italic px-3 py-1">
+                <div className="text-xs text-muted-foreground italic px-3 py-1">
                   Loading channels...
                 </div>
               ) : joinedChannels.length > 0 ? (
@@ -972,7 +972,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   );
                 })
               ) : (
-                <div className="text-[11px] text-slate-400 italic px-3 py-1">
+                <div className="text-xs text-muted-foreground italic px-3 py-1">
                   {isSearchingSidebar
                     ? "No channels found"
                     : activeSpaceId

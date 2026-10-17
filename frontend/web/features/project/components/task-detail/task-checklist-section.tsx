@@ -76,15 +76,15 @@ export default function TaskChecklistSection({
   };
 
   return (
-    <div className="space-y-2 border-t border-slate-100 pt-4">
+    <div className="space-y-2 border-t border-border pt-4">
       <div className="flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
+        <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           <CheckSquare className="h-3.5 w-3.5" />
           Checklist
         </h3>
         <div className="flex items-center gap-2">
           {totalCount > 0 && (
-            <span className="text-[11px] font-bold text-slate-500">
+            <span className="text-xs font-semibold text-muted-foreground">
               {completedCount}/{totalCount} ({progress}%)
             </span>
           )}
@@ -94,7 +94,7 @@ export default function TaskChecklistSection({
               variant="ghost"
               size="sm"
               onClick={() => setIsAdding((value) => !value)}
-              className="h-7 w-7 p-0 text-slate-400 hover:bg-blue-50 hover:text-[#0052CC] cursor-pointer"
+              className="h-7 w-7 p-0 text-muted-foreground hover:bg-info-soft hover:text-info cursor-pointer"
               title="Add checklist item"
             >
               <Plus className="h-4 w-4" />
@@ -113,12 +113,12 @@ export default function TaskChecklistSection({
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Add an item..."
-            className="h-8 min-w-0 flex-1 rounded-lg border-slate-300 text-xs font-semibold focus-visible:border-[#0052CC]"
+            className="h-8 min-w-0 flex-1 rounded-control border-input text-xs font-semibold focus-visible:border-primary"
           />
           <Button
             type="submit"
             disabled={!title.trim()}
-            className="h-8 rounded-lg bg-[#0052CC] px-3 text-xs font-bold text-white hover:bg-[#0747A6] disabled:opacity-50 cursor-pointer"
+            className="h-8 rounded-control bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50 cursor-pointer"
           >
             Add
           </Button>
@@ -127,31 +127,31 @@ export default function TaskChecklistSection({
 
       {totalCount ? (
         <div className="space-y-1.5">
-          <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+              className="h-full rounded-full bg-success transition-all duration-200"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <div className="space-y-1 bg-white">
+          <div className="space-y-1 bg-card">
             {task.checklists.map((item) => (
               <label
                 key={item.id}
                 className={`flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs transition ${
-                  isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-slate-50"
+                  isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-background"
                 }`}
               >
                 <Checkbox
                   checked={item.completed}
                   onCheckedChange={() => void handleUpdate(item)}
                   disabled={isReadOnly}
-                  className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 cursor-pointer"
+                  className="data-[state=checked]:bg-success data-[state=checked]:border-success cursor-pointer"
                 />
                 <span
                   className={
                     item.completed
-                      ? "font-medium text-slate-400 line-through select-none"
-                      : "font-semibold text-slate-700 select-none"
+                      ? "font-medium text-muted-foreground line-through select-none"
+                      : "font-semibold text-foreground select-none"
                   }
                 >
                   {item.title}
@@ -162,7 +162,7 @@ export default function TaskChecklistSection({
                     variant="ghost"
                     size="icon"
                     onClick={() => void handleDelete(item.id)}
-                    className="ml-auto h-6 w-6 rounded text-slate-300 hover:bg-red-50 hover:text-red-500 cursor-pointer"
+                    className="ml-auto h-6 w-6 rounded text-muted-foreground hover:bg-destructive-soft hover:text-destructive cursor-pointer"
                     title="Delete item"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -173,7 +173,7 @@ export default function TaskChecklistSection({
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/40 py-4 text-center text-xs font-semibold text-slate-400">
+        <div className="rounded-panel border border-dashed border-border bg-background py-4 text-center text-xs font-semibold text-muted-foreground">
           No checklist items yet.
         </div>
       )}

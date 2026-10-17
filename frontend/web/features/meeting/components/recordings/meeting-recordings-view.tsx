@@ -61,7 +61,7 @@ export function MeetingRecordingsView() {
   return (
     <section aria-label="Meeting recordings" className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">Recordings</h1>
+        <h1 className="text-page-title font-semibold">Recordings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Your recordings and videos shared with you.
         </p>
@@ -78,11 +78,11 @@ export function MeetingRecordingsView() {
               search: event.target.value,
             }))
           }
-          className="max-w-sm bg-white"
+          className="max-w-sm bg-card"
         />
         <select
           aria-label="Recording access filter"
-          className="h-10 rounded-md border bg-white px-3 text-sm"
+          className="h-10 rounded-md border bg-card px-3 text-sm"
           value={params.scope}
           onChange={(event) =>
             setParams((current) => ({
@@ -103,14 +103,14 @@ export function MeetingRecordingsView() {
       {query.isLoading ? (
         <p className="py-12 text-center">Loading recordings…</p>
       ) : query.isError ? (
-        <div role="alert" className="rounded-lg border bg-white p-6">
+        <div role="alert" className="rounded-lg border bg-card p-6">
           <p>Could not load recordings.</p>
           <MeetingButton className="mt-3" onClick={refresh}>
             Try again
           </MeetingButton>
         </div>
       ) : !query.data?.items.length ? (
-        <div className="rounded-lg border bg-white px-6 py-12 text-center">
+        <div className="rounded-lg border bg-card px-6 py-12 text-center">
           <Radio className="mx-auto mb-3 size-8 text-muted-foreground" />
           <p className="font-semibold">No recordings yet</p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -118,7 +118,7 @@ export function MeetingRecordingsView() {
           </p>
         </div>
       ) : (
-        <div className="divide-y rounded-lg border bg-white">
+        <div className="divide-y rounded-lg border bg-card">
           {query.data.items.map((recording) => (
             <article
               key={recording.id}

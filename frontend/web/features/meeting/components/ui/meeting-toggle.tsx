@@ -31,8 +31,8 @@ export function MeetingToggle({
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg p-3 transition",
         isDark
-          ? "bg-white/6 ring-1 ring-white/8 hover:bg-white/8"
-          : "border border-slate-200 bg-slate-50/70 hover:border-blue-200 hover:bg-blue-50/70",
+          ? "bg-overlay/10 ring-1 ring-border/8 hover:bg-overlay/10"
+          : "border border-border bg-background hover:border-border hover:bg-info-soft/70",
         disabled && "opacity-70",
         className,
       )}
@@ -40,8 +40,8 @@ export function MeetingToggle({
       <div className="flex min-w-0 items-start gap-3">
         <span
           className={cn(
-            "grid size-9 shrink-0 place-items-center rounded-md shadow-sm",
-            isDark ? "bg-white/8 text-blue-200" : "bg-white text-[#0052CC]",
+            "grid size-9 shrink-0 place-items-center rounded-md",
+            isDark ? "bg-overlay/10 text-info" : "bg-card text-info",
           )}
         >
           <Icon className="size-4" />
@@ -49,8 +49,8 @@ export function MeetingToggle({
         <span className="min-w-0">
           <span
             className={cn(
-              "block text-sm font-black",
-              isDark ? "text-slate-100" : "text-[#172B4D]",
+              "block text-sm font-semibold",
+              isDark ? "text-muted-foreground" : "text-foreground",
             )}
           >
             {title}
@@ -58,7 +58,7 @@ export function MeetingToggle({
           <span
             className={cn(
               "mt-0.5 block text-xs font-semibold leading-5",
-              isDark ? "text-slate-400" : "text-slate-500",
+              isDark ? "text-muted-foreground" : "text-muted-foreground",
             )}
           >
             {description}

@@ -160,7 +160,7 @@ export function ShareModalForm({
 
   return (
     <form onSubmit={handleAddShare} className="space-y-2">
-      <label className="text-xs font-black text-slate-400 uppercase tracking-wider block">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
         Share with others
       </label>
       <div className="flex items-center gap-2">
@@ -168,12 +168,12 @@ export function ShareModalForm({
           {isSearching ? (
             <Loader2
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 animate-spin"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin"
             />
           ) : (
             <Mail
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
           )}
           <input
@@ -187,7 +187,7 @@ export function ShareModalForm({
                 setShowSuggestions(true);
               }
             }}
-            className="w-full bg-slate-50/50 border border-slate-100 hover:border-slate-200 focus:border-blue-500 rounded-2xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-700 outline-hidden transition-all placeholder:text-slate-400"
+            className="w-full bg-background border border-input hover:border-input focus:border-info rounded-control py-2.5 pl-10 pr-4 text-xs font-semibold text-foreground outline-hidden transition-all placeholder:text-muted-foreground"
           />
 
           <ShareSuggestionsDropdown
@@ -201,7 +201,7 @@ export function ShareModalForm({
           onChange={(e) =>
             setPermissionInput(e.target.value as SharePermission)
           }
-          className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl py-2.5 px-3 text-xs font-black text-slate-700 outline-hidden transition-all cursor-pointer"
+          className="bg-card border border-input hover:border-input rounded-panel py-2.5 px-3 text-xs font-semibold text-foreground outline-hidden transition-all cursor-pointer"
         >
           <option value={SharePermission.VIEWER}>Can view</option>
           <option value={SharePermission.EDITOR}>Can edit</option>
@@ -209,7 +209,7 @@ export function ShareModalForm({
         <button
           type="submit"
           disabled={addShareMutation.isPending}
-          className="flex items-center justify-center p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+          className="flex items-center justify-center p-2.5 bg-primary hover:bg-primary text-primary-foreground rounded-control transition-all disabled:opacity-50 cursor-pointer"
         >
           {addShareMutation.isPending ? (
             <Loader2 size={16} className="animate-spin" />

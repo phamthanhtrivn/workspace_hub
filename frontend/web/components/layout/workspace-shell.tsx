@@ -132,17 +132,18 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
   }, []);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-[#f5f9fb] text-[var(--color-primary-dark)]">
+    <div className="flex h-dvh overflow-hidden bg-background text-foreground">
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-overlay/50 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
+            aria-label="Close navigation"
         />
       )}
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/80 bg-white/90 px-4 py-5 shadow-[18px_0_48px_rgba(15,40,84,0.06)] backdrop-blur-xl transition-all duration-300 ease-in-out lg:relative lg:flex",
+          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card px-4 py-5 transition-all duration-200 ease-in-out lg:relative lg:flex shadow-dialog",
           isMobileMenuOpen
             ? "translate-x-0"
             : "-translate-x-full lg:translate-x-0",
@@ -152,7 +153,8 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
       >
         <button
           onClick={toggleSidebar}
-          className="absolute -right-3 top-8 z-100 hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:text-slate-600 hover:shadow lg:flex cursor-pointer"
+          aria-label={isSidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+          className="absolute -right-3 top-8 z-100 hidden h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:text-muted-foreground hover:shadow lg:flex cursor-pointer shadow-panel"
         >
           {isSidebarCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -165,35 +167,35 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
           <Link
             href="/dashboard"
             className={cn(
-              "flex min-w-0 items-center rounded-2xl p-2 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20",
+              "flex min-w-0 items-center rounded-panel p-2 transition hover:bg-background focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring",
               isSidebarCollapsed ? "lg:mx-auto" : "",
             )}
           >
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--color-primary-dark)] text-sm font-black text-white shadow-[0_14px_28px_rgba(15,40,84,0.22)] transition-all">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-panel bg-primary text-sm font-semibold text-primary-foreground transition-all">
               W
             </span>
             <div
               className={cn(
-                "transition-all duration-300 ease-in-out overflow-hidden",
+                "transition-all duration-200 ease-in-out overflow-hidden",
                 isSidebarCollapsed
                   ? "lg:w-0 lg:opacity-0"
                   : "w-auto lg:w-48 opacity-100",
               )}
             >
               <div className="pl-3 whitespace-nowrap">
-                <span className="block text-base font-black leading-tight">
+                <span className="block text-base font-semibold leading-tight">
                   WorkspaceHub
                 </span>
-                <span className="block text-xs font-semibold text-slate-500">
-                  Intelligent Workspace
+                <span className="block text-xs font-semibold text-muted-foreground">
+                  Your workspace
                 </span>
               </div>
             </div>
           </Link>
 
-          <button
+          <button aria-label="Close"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="shrink-0 p-2 text-slate-500 hover:text-slate-700 lg:hidden cursor-pointer"
+            className="shrink-0 p-2 text-muted-foreground hover:text-foreground lg:hidden cursor-pointer"
           >
             <X className="h-6 w-6" />
           </button>
@@ -215,27 +217,27 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                 href={item.href}
                 title={isSidebarCollapsed ? label : undefined}
                 className={cn(
-                  "group flex items-center rounded-2xl p-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 relative",
+                  "group flex items-center rounded-panel p-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring relative",
                   isActive
-                    ? "bg-[var(--color-primary-dark)] text-white"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-[var(--color-primary-dark)]",
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   isSidebarCollapsed ? "lg:justify-center" : "",
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
                 <span
                   className={cn(
-                    "grid h-9 w-9 shrink-0 place-items-center rounded-xl transition relative",
+                    "grid h-9 w-9 shrink-0 place-items-center rounded-panel transition relative",
                     isActive
-                      ? "bg-white/14 text-white"
-                      : "bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 group-hover:text-[var(--color-primary)]",
+                      ? "bg-overlay/10 text-primary-foreground"
+                      : "bg-card text-muted-foreground group-hover:text-primary",
                   )}
                 >
                   <Icon className="h-4 w-4" strokeWidth={2} />
                 </span>
                 <div
                   className={cn(
-                    "transition-all duration-300 ease-in-out overflow-hidden",
+                    "transition-all duration-200 ease-in-out overflow-hidden",
                     isSidebarCollapsed
                       ? "lg:w-0 lg:opacity-0"
                       : "w-auto lg:w-48 opacity-100",
@@ -246,7 +248,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                     <span
                       className={cn(
                         "block text-xs font-semibold leading-tight",
-                        isActive ? "text-blue-100" : "text-slate-400",
+                        isActive ? "text-primary-foreground" : "text-muted-foreground",
                       )}
                     >
                       {description}
@@ -262,7 +264,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
           <div
             onClick={() => handleOpenSettings(UserSettingTab.PROFILE)}
             className={cn(
-              "rounded-2xl border border-slate-200 bg-slate-50 p-4 transition-all duration-300 cursor-pointer hover:bg-slate-100",
+              "rounded-panel border border-border bg-background p-4 transition-all duration-200 cursor-pointer hover:bg-muted",
               isSidebarCollapsed ? "lg:px-2 lg:flex lg:justify-center" : "",
             )}
           >
@@ -272,22 +274,22 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                 isSidebarCollapsed ? "lg:justify-center" : "",
               )}
             >
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-[var(--color-primary)] shadow-sm ring-1 ring-slate-200 transition-all">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-card text-primary ring-1 ring-ring transition-all">
                 <Settings className="h-4 w-4" strokeWidth={2} />
               </div>
               <div
                 className={cn(
-                  "transition-all duration-300 ease-in-out overflow-hidden",
+                  "transition-all duration-200 ease-in-out overflow-hidden",
                   isSidebarCollapsed
                     ? "lg:w-0 lg:opacity-0"
                     : "w-auto lg:w-48 opacity-100",
                 )}
               >
                 <div className="pl-3 whitespace-nowrap">
-                  <p className="text-sm font-black text-slate-800 hover:text-[var(--color-primary-dark)]">
+                  <p className="text-sm font-semibold text-foreground hover:text-foreground">
                     Settings
                   </p>
-                  <p className="truncate text-[0.7rem] font-semibold text-slate-500">
+                  <p className="truncate text-[0.7rem] font-semibold text-muted-foreground">
                     {email}
                   </p>
                 </div>

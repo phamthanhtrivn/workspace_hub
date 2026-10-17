@@ -49,7 +49,7 @@ export default function TaskLabelsPicker({
           size="sm"
           onClick={() => !disabled && setIsOpen((prev) => !prev)}
           disabled={disabled}
-          className="h-7 cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-2.5 text-xs font-semibold text-slate-600 hover:border-[#0052CC] hover:bg-blue-50/50 hover:text-[#0052CC] disabled:cursor-default disabled:hover:border-slate-300 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition"
+          className="h-7 cursor-pointer items-center gap-1.5 rounded-control border border-dashed border-input px-2.5 text-xs font-semibold text-muted-foreground hover:border-primary hover:bg-info-soft/50 hover:text-info disabled:cursor-default disabled:hover:border-input disabled:hover:bg-transparent disabled:hover:text-muted-foreground transition"
           title="Attach or remove labels"
         >
           <Tag className="h-3.5 w-3.5" />
@@ -60,9 +60,9 @@ export default function TaskLabelsPicker({
         </Button>
 
         {isOpen && !disabled && (
-          <div className="absolute left-0 top-full z-30 mt-1 max-h-60 w-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+          <div className="absolute left-0 top-full z-30 mt-1 max-h-60 w-56 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
             {availableLabels.length === 0 ? (
-              <p className="px-3 py-2.5 text-xs text-slate-400">
+              <p className="px-3 py-2.5 text-xs text-muted-foreground">
                 No labels configured in project settings.
               </p>
             ) : (
@@ -82,13 +82,13 @@ export default function TaskLabelsPicker({
                       event.preventDefault();
                       void onToggleLabel(label);
                     }}
-                    className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#0052CC]/20"
+                    className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition hover:bg-background focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
                   >
                     <Checkbox
                       checked={attached}
                       tabIndex={-1}
                       aria-hidden="true"
-                      className="pointer-events-none size-4 border-slate-300 data-[state=checked]:border-[#0052CC] data-[state=checked]:bg-[#0052CC]"
+                      className="pointer-events-none size-4 border-input data-[state=checked]:border-primary data-[state=checked]:bg-primary"
                     />
                     <LabelBadge name={label.name} color={label.color} />
                   </div>

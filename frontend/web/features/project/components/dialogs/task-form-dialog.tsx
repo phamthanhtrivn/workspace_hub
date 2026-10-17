@@ -47,8 +47,8 @@ function FieldLabel({
   children: React.ReactNode;
 }) {
   return (
-    <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold text-slate-600">
-      <Icon className="h-3.5 w-3.5 text-slate-400" strokeWidth={2} />
+    <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
       {children}
     </span>
   );
@@ -123,16 +123,16 @@ export default function TaskFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && handleClose()}>
-      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-2xl sm:rounded-2xl">
+      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
         <form onSubmit={(event) => void handleSubmit(event)} className="flex flex-col">
-          <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-slate-100 sm:px-7">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+          <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-border sm:px-7">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {projectName ? `Project: ${projectName}` : "Project"}
             </p>
-            <DialogTitle className="mt-1 text-xl font-bold tracking-tight text-[#172B4D]">
+            <DialogTitle className="mt-1 text-section-title font-semibold tracking-tight text-foreground">
               Create New Task
             </DialogTitle>
-            <DialogDescription className="mt-1 text-xs text-slate-500">
+            <DialogDescription className="mt-1 text-xs text-muted-foreground">
               Fill in the details below to create a new task in this project.
             </DialogDescription>
           </DialogHeader>
@@ -140,8 +140,8 @@ export default function TaskFormDialog({
           <div className="space-y-6 px-6 py-6 sm:px-7 max-h-[calc(100dvh-16rem)] overflow-y-auto">
             <section>
               <label className="block">
-                <span className="mb-1.5 block text-xs font-bold text-slate-700">
-                  Task Title <span className="text-red-500">*</span>
+                <span className="mb-1.5 block text-xs font-semibold text-foreground">
+                  Task Title <span className="text-destructive">*</span>
                 </span>
                 <Input
                   autoFocus
@@ -150,9 +150,9 @@ export default function TaskFormDialog({
                   placeholder="What needs to be done?"
                   maxLength={200}
                   required
-                  className="h-11 w-full rounded-xl border-slate-300 px-4 text-sm font-semibold text-slate-800 placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+                  className="h-11 w-full rounded-control border-input px-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                 />
-                <span className="mt-1 block text-[11px] text-slate-400">
+                <span className="mt-1 block text-xs text-muted-foreground">
                   A clear, concise summary of the task.
                 </span>
               </label>
@@ -166,7 +166,7 @@ export default function TaskFormDialog({
                   onChange={(event) => setDescription(event.target.value)}
                   placeholder="Add a detailed description, acceptance criteria, or context..."
                   rows={5}
-                  className="w-full resize-y rounded-xl border-slate-200 px-4 py-3 text-xs leading-6 text-slate-700 placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+                  className="w-full resize-y rounded-control border-input px-4 py-3 text-xs leading-6 text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </label>
             </section>
@@ -191,8 +191,8 @@ export default function TaskFormDialog({
 
           </div>
 
-          <DialogFooter className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-6 py-4 sm:px-7">
-            <p className="hidden items-center gap-1.5 text-[11px] text-slate-400 sm:flex">
+          <DialogFooter className="flex items-center justify-between border-t border-border bg-background px-6 py-4 sm:px-7">
+            <p className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
               <Clock3 className="h-3.5 w-3.5" />
               You can always edit this task later from the detail drawer.
             </p>
@@ -202,14 +202,14 @@ export default function TaskFormDialog({
                 variant="outline"
                 onClick={handleClose}
                 disabled={isSubmitting}
-                className="cursor-pointer rounded-xl font-bold text-slate-600 hover:bg-slate-100"
+                className="cursor-pointer rounded-control font-semibold text-muted-foreground hover:bg-muted"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={!title.trim() || isSubmitting}
-                className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50"
+                className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
               >
                 {isSubmitting ? "Saving..." : "Create Task"}
               </Button>

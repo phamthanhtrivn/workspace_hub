@@ -98,29 +98,29 @@ export function LocationPickerInput({
           }}
           className={
             className ||
-            "h-auto w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-2xs outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100"
+            "h-auto w-full rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground hover:border-input focus-visible:border-info focus-visible:ring-2 focus-visible:ring-ring"
           }
         />
         {loading && (
-          <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-slate-400" />
+          <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
         )}
       </div>
 
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-panel border border-border bg-card py-1 shadow-panel">
           {suggestions.map((item) => (
             <button
               key={item.place_id}
               type="button"
               onClick={() => handleSelect(item)}
-              className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition hover:bg-slate-50"
+              className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition hover:bg-background"
             >
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-info" />
               <div className="min-w-0 flex-1">
-                <p className="break-words text-xs font-semibold text-slate-800">
+                <p className="break-words text-xs font-semibold text-foreground">
                   {item.name || item.display_name.split(",")[0]}
                 </p>
-                <p className="line-clamp-2 text-[11px] text-slate-500">
+                <p className="line-clamp-2 text-xs text-muted-foreground">
                   {item.display_name}
                 </p>
               </div>

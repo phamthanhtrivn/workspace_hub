@@ -63,29 +63,29 @@ export function CustomDateRange<TValue extends string = string>({
           <label className="min-w-0">
             <span className="sr-only">{fromLabel}</span>
             <div className="relative">
-              <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="date"
                 value={fromDate}
                 max={toDate || undefined}
                 onChange={(event) => onFromDateChange(event.target.value)}
                 aria-label={fromLabel}
-                className="h-8 min-w-0 cursor-pointer rounded-lg border-slate-200 pl-8 pr-2 text-xs font-semibold"
+                className="h-8 min-w-0 cursor-pointer rounded-control border-input pl-8 pr-2 text-xs font-semibold"
               />
             </div>
           </label>
-          <span className="text-xs font-black text-slate-400">{toText}</span>
+          <span className="text-xs font-semibold text-muted-foreground">{toText}</span>
           <label className="min-w-0">
             <span className="sr-only">{toLabel}</span>
             <div className="relative">
-              <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+              <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="date"
                 value={toDate}
                 min={fromDate || undefined}
                 onChange={(event) => onToDateChange(event.target.value)}
                 aria-label={toLabel}
-                className="h-8 min-w-0 cursor-pointer rounded-lg border-slate-200 pl-8 pr-2 text-xs font-semibold"
+                className="h-8 min-w-0 cursor-pointer rounded-control border-input pl-8 pr-2 text-xs font-semibold"
               />
             </div>
           </label>

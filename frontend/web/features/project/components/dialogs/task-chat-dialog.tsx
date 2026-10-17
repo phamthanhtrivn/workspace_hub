@@ -44,14 +44,14 @@ export default function TaskChatDialog({
 
   return (
     <Dialog open={Boolean(task)} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-2xl sm:rounded-2xl">
-        <DialogHeader className="px-6 pt-5 pb-4 text-left border-b border-slate-100 flex-row items-center justify-between">
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
+        <DialogHeader className="px-6 pt-5 pb-4 text-left border-b border-border flex-row items-center justify-between">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-              <MessageCircle size={15} className="text-[#0052CC]" />
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <MessageCircle size={15} className="text-info" />
               <span>Task Discussion</span>
             </div>
-            <DialogTitle className="mt-1 truncate text-base font-bold text-slate-900">
+            <DialogTitle className="mt-1 truncate text-base font-semibold text-foreground">
               {task.title}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -63,7 +63,7 @@ export default function TaskChatDialog({
               type="button"
               disabled={isOpeningChannel}
               onClick={handleChatClick}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-[#0052CC] hover:bg-blue-100 transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-control bg-info-soft px-3 py-1.5 text-xs font-semibold text-info hover:bg-info-soft transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
               title="Open real-time discussion thread in Space Chat"
             >
               <MessageSquare size={13} />

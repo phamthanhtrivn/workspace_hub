@@ -115,27 +115,27 @@ export default function PinnedMessagesSection({
     <div>
       <button
         onClick={onToggle}
-        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
-        <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-          <Pin size={18} className="text-gray-500" />
+        <div className="flex items-center gap-3 text-foreground font-medium text-sm">
+          <Pin size={18} className="text-muted-foreground" />
           Pinned Messages
         </div>
         {isExpanded ? (
-          <ChevronDown size={16} className="text-gray-400" />
+          <ChevronDown size={16} className="text-muted-foreground" />
         ) : (
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={16} className="text-muted-foreground" />
         )}
       </button>
 
       {isExpanded && (
         <div className="px-4 pb-3">
           {isLoading ? (
-            <div className="text-xs text-gray-400 py-2">
+            <div className="text-xs text-muted-foreground py-2">
               Loading pinned messages...
             </div>
           ) : pinnedMessages.length === 0 ? (
-            <div className="text-xs text-gray-400 py-2">
+            <div className="text-xs text-muted-foreground py-2">
               No pinned messages
             </div>
           ) : (
@@ -144,7 +144,7 @@ export default function PinnedMessagesSection({
                 <button
                   key={message.id}
                   onClick={() => onJumpToMessage(message.id)}
-                  className="w-full cursor-pointer flex items-start gap-2 rounded-lg p-2 text-left hover:bg-gray-100 transition"
+                  className="w-full cursor-pointer flex items-start gap-2 rounded-control p-2 text-left hover:bg-muted transition"
                 >
                   {message.senderProfile?.avatarUrl ? (
                     <img
@@ -155,15 +155,15 @@ export default function PinnedMessagesSection({
                       className="h-7 w-7 shrink-0 rounded-full object-cover"
                     />
                   ) : (
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-info-soft text-xs font-semibold text-info">
                       {getInitial(message.senderProfile?.fullName)}
                     </span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-xs font-semibold text-gray-800">
+                    <span className="block truncate text-xs font-semibold text-foreground">
                       {message.senderProfile?.fullName || "User"}
                     </span>
-                    <span className="block truncate text-xs text-gray-500">
+                    <span className="block truncate text-xs text-muted-foreground">
                       {getPinnedPreviewText(message)}
                     </span>
                   </span>
@@ -172,10 +172,10 @@ export default function PinnedMessagesSection({
                       e.stopPropagation();
                       handleUnpin(message.id);
                     }}
-                    className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
+                    className="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-destructive-soft hover:text-destructive transition"
                     title="Unpin"
                   >
-                    <Pin size={13} className="mt-1 shrink-0 text-blue-500" />
+                    <Pin size={13} className="mt-1 shrink-0 text-info" />
                   </span>
                 </button>
               ))}
@@ -189,7 +189,7 @@ export default function PinnedMessagesSection({
         </div>
       )}
 
-      <div className="h-px bg-gray-100 mx-4 my-1" />
+      <div className="h-px bg-muted mx-4 my-1" />
     </div>
   );
 }

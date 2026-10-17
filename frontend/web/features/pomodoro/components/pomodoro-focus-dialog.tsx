@@ -31,7 +31,7 @@ export function PomodoroFocusDialog({ initialView, focusDurationMinutes, onClose
   }, [setFocusDialogOpen]);
 
   return <Dialog open onOpenChange={(open) => { if (!open) close(); }}>
-    <DialogContent role="presentation" aria-modal={undefined} showCloseButton={false} className="flex max-w-[40rem] flex-col rounded-2xl border-slate-200 bg-white">
+    <DialogContent role="presentation" aria-modal={undefined} showCloseButton={false} className="flex max-w-[40rem] flex-col rounded-dialog border-border bg-card">
       <FocusDialogContent initialView={initialView} focusDurationMinutes={focusDurationMinutes} onClose={close}
         onCreated={onClose} onSavingChange={setSavingTask} locked={locked} confirming={Boolean(pendingFocusTarget)} />
     </DialogContent>
@@ -60,7 +60,7 @@ function FocusDialogContent({ initialView, focusDurationMinutes, onClose, onCrea
 
   return <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}
     aria-describedby={`${id}-description`} className="flex min-h-0 flex-col">
-    <DialogHeader className="shrink-0 border-b border-slate-100 pr-16">
+    <DialogHeader className="shrink-0 border-b border-border pr-16">
       <DialogTitle id={`${id}-title`} ref={headingRef} tabIndex={-1} className="outline-none">
         {confirming ? "Confirm focus switch" : view === "create" ? "New task" : "Change focus"}
       </DialogTitle>

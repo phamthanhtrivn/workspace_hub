@@ -53,7 +53,7 @@ export function MeetingMessageOptionsMenu({
     <div
       ref={menuRef}
       style={style}
-      className="fixed z-[100] min-w-40 rounded-lg border border-white/10 bg-[#111827] py-1 text-sm text-slate-200 shadow-2xl"
+      className="fixed z-[100] min-w-40 rounded-lg border border-border bg-card py-1 text-sm text-muted-foreground shadow-panel"
     >
       {canEdit && (
         <button
@@ -62,7 +62,7 @@ export function MeetingMessageOptionsMenu({
             onEdit();
             onClose();
           }}
-          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-white/8"
+          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-accent"
         >
           <Edit2 className="h-4 w-4" />
           <span>Edit message</span>
@@ -75,7 +75,7 @@ export function MeetingMessageOptionsMenu({
             onRecall();
             onClose();
           }}
-          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-red-300 transition hover:bg-red-500/10"
+          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-destructive transition hover:bg-destructive/10"
         >
           <Trash2 className="h-4 w-4" />
           <span>Recall message</span>

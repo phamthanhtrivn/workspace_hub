@@ -81,7 +81,7 @@ export default function ChatLayout() {
   };
 
   return (
-    <div className="flex h-full w-full bg-white overflow-hidden relative">
+    <div className="flex h-full w-full bg-card overflow-hidden relative">
       {/* Sidebar */}
       <div
         className={`flex-shrink-0 z-20 w-full md:w-80 ${mobileView === "sidebar" ? "block" : "hidden md:block"}`}
@@ -91,7 +91,7 @@ export default function ChatLayout() {
 
       {/* Main Chat Area or Empty State */}
       <div
-        className={`flex-1 min-w-0 h-full min-h-0 z-10 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)] relative ${mobileView === "chat" ? "flex" : "hidden md:flex"} flex-col bg-gray-50`}
+        className={`flex-1 min-w-0 h-full min-h-0 z-10 relative ${mobileView === "chat" ? "flex" : "hidden md:flex"} flex-col bg-background`}
       >
         {activeChatId ? (
           <ChatArea
@@ -100,14 +100,14 @@ export default function ChatLayout() {
             onBack={() => setMobileView("sidebar")}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-500 bg-white">
-            <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-6 shadow-sm">
-              <MessageCircle size={48} className="text-blue-500" />
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-card">
+            <div className="w-24 h-24 bg-info-soft rounded-full flex items-center justify-center mb-6">
+              <MessageCircle size={48} className="text-info" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            <h2 className="text-section-title font-semibold text-foreground mb-2">
               Welcome to Workspace Hub Chat
             </h2>
-            <p className="text-gray-500 max-w-md text-center mb-6">
+            <p className="text-muted-foreground max-w-md text-center mb-6">
               Select a channel or direct message from the sidebar to start communicating with your team.
             </p>
           </div>
@@ -116,14 +116,14 @@ export default function ChatLayout() {
 
       {/* Thread Panel - separate from conversation info */}
       {activeThreadRootMessageId && activeChatId && (
-        <div className="absolute inset-y-0 right-0 z-30 w-full md:w-[340px] md:static flex-shrink-0 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]">
+        <div className="absolute inset-y-0 right-0 z-30 w-full md:w-[340px] md:static flex-shrink-0 shadow-panel">
           <ThreadSidePanel />
         </div>
       )}
 
       {/* Right Panel - Togglable (Only show if active chat and no thread) */}
       {showRightPanel && activeChatId && !activeThreadRootMessageId && (
-        <div className="absolute inset-y-0 right-0 z-30 w-full md:w-[340px] md:static flex-shrink-0 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]">
+        <div className="absolute inset-y-0 right-0 z-30 w-full md:w-[340px] md:static flex-shrink-0 shadow-panel">
           <ChatRightPanel
             onClose={() => {
               setShowRightPanel(false);

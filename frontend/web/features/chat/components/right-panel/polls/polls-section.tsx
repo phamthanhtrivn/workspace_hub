@@ -32,26 +32,26 @@ export default function PollsSection({
     <div>
       <button
         onClick={onToggle}
-        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
-        <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-          <BarChart2 size={18} className="text-gray-500" />
+        <div className="flex items-center gap-3 text-foreground font-medium text-sm">
+          <BarChart2 size={18} className="text-muted-foreground" />
           Polls
         </div>
         {isExpanded ? (
-          <ChevronDown size={16} className="text-gray-400" />
+          <ChevronDown size={16} className="text-muted-foreground" />
         ) : (
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={16} className="text-muted-foreground" />
         )}
       </button>
       {isExpanded && (
         <div className="px-4 pb-4">
           {loading ? (
             <div className="flex justify-center py-4">
-              <Loader2 size={16} className="text-gray-400 animate-spin" />
+              <Loader2 size={16} className="text-muted-foreground animate-spin" />
             </div>
           ) : polls.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-2">
+            <p className="text-xs text-muted-foreground text-center py-2">
               No polls available
             </p>
           ) : (
@@ -61,14 +61,14 @@ export default function PollsSection({
                   <div
                     key={poll.id}
                     onClick={() => setSelectedPollId(poll.id)}
-                    className="p-3 bg-purple-50 border border-purple-100 rounded-lg cursor-pointer hover:bg-purple-100 transition-colors"
+                    className="p-3 bg-info-soft border border-border rounded-lg cursor-pointer hover:bg-info-soft transition-colors"
                   >
-                    <p className="text-xs font-semibold text-purple-900 mb-1 truncate">
+                    <p className="text-xs font-semibold text-info mb-1 truncate">
                       {poll.title || "Untitled Poll"}{" "}
                       -{" "}
                       {formatDateTime(poll.createdAt)}
                     </p>
-                    <p className="text-[10px] text-purple-600/70">
+                    <p className="text-xs text-info">
                       {`${poll.options?.length || 0} ${poll.options?.length === 1 ? "option" : "options"}`}
                     </p>
                   </div>
@@ -83,7 +83,7 @@ export default function PollsSection({
           )}
         </div>
       )}
-      <div className="h-px bg-gray-100 mx-4 my-1"></div>
+      <div className="h-px bg-muted mx-4 my-1"></div>
 
       <ViewPollModal
         isOpen={!!selectedPoll}

@@ -21,25 +21,25 @@ export function MeetingWaitingApproval({
 
   return (
     <MeetingFullscreenPortal>
-      <div className="fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-[#07111f] px-4 text-white">
-        <section className="w-full max-w-md rounded-lg border border-white/10 bg-[#0d1420] p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
-          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white/10 text-blue-100 ring-1 ring-white/12">
+      <div className="fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-card px-4 text-foreground">
+        <section className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center">
+          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-accent text-info ring-1 ring-border/12">
             {isRejected ? (
-              <XCircle className="h-8 w-8 text-red-300" />
+              <XCircle className="h-8 w-8 text-destructive" />
             ) : (
-              <ShieldCheck className="h-8 w-8 text-blue-200" />
+              <ShieldCheck className="h-8 w-8 text-info" />
             )}
           </span>
-          <h2 className="mt-5 text-xl font-black">
+          <h2 className="mt-5 text-section-title font-semibold">
             {isRejected ? "Request declined" : "Waiting for approval"}
           </h2>
-          <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+          <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">
             {isRejected
               ? "A host declined your request to join this meeting."
               : "A host or co-host needs to approve your request before you can enter this meeting."}
           </p>
           {!isRejected ? (
-            <div className="mt-5 inline-flex items-center gap-2 rounded-md bg-white/8 px-3 py-2 text-xs font-black text-slate-200 ring-1 ring-white/10">
+            <div className="mt-5 inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-muted-foreground ring-1 ring-border/10">
               <Loader2 className="h-4 w-4 animate-spin" />
               Request sent
             </div>
@@ -49,7 +49,7 @@ export function MeetingWaitingApproval({
             tone="secondary"
             controlSize="lg"
             onClick={onBack}
-            className="mt-6 w-full bg-white font-black text-[#172B4D] hover:bg-slate-100"
+            className="mt-6 w-full bg-card font-semibold text-foreground hover:bg-muted"
           >
             Back to meetings
           </MeetingButton>

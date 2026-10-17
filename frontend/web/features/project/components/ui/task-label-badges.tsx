@@ -48,7 +48,7 @@ export default function TaskLabelBadges({
               aria-label={`${hiddenLabels.length} more labels`}
               onClick={stopParentActivation}
               onKeyDown={stopParentActivation}
-              className="inline-flex h-5 min-w-6 cursor-default items-center justify-center rounded-full bg-slate-100 px-2 font-mono text-[10px] font-bold text-slate-600 ring-1 ring-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/30"
+              className="inline-flex h-5 min-w-6 cursor-default items-center justify-center rounded-full bg-muted px-2 font-mono text-xs font-semibold text-muted-foreground ring-1 ring-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               +{hiddenLabels.length}
             </span>
