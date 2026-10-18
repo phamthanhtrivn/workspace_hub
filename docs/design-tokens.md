@@ -111,12 +111,6 @@ Preferences exposes Light and Dark. Selecting an option edits the form; Save Set
 
 ## Verification
 
-Run the existing dashboard tests with:
-
-```powershell
-node --test features/dashboard/utils/dashboard.utils.test.mjs
-```
-
-The temporary theme/color tests, browser suite, and audit scripts from the UI work were removed at the user's request. Previous verification results remain documented in `docs/ui-audit.md`.
+The dashboard utility test, project i18n audit script, and temporary theme/color tests and browser suite from the UI work were removed at the user's request. Previous verification results remain documented in `docs/ui-audit.md`.
 
 Run commands from `frontend/web`. Also run TypeScript, lint, and a production build. Check both themes on desktop/mobile, saved/failed preferences, account changes, keyboard focus, overlays, emoji pickers, chart tooltips, and loading/empty/error states. Normal text must reach 4.5:1 contrast; meaningful control boundaries must reach 3:1.

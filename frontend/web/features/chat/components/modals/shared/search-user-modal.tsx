@@ -178,7 +178,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
           <>
             <div className="px-6 py-5 flex-shrink-0 border-b border-border bg-background">
               <div className="relative group">
-                <Input unstyled
+                <Input aria-label="Enter user email" unstyled
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -233,10 +233,9 @@ const SearchUserModal = React.memo(function SearchUserModal({
                   {results.map((user) => (
                     <div
                       key={user.id}
-                      onClick={() => handleSelectUser(user)}
-                      className="group flex items-center justify-between p-3 rounded-panel hover:bg-info-soft/50 border border-transparent hover:border-border transition-all duration-200 cursor-pointer"
+                      className="w-full text-left group flex items-center justify-between p-3 rounded-panel hover:bg-info-soft/50 border border-transparent hover:border-border transition-all duration-200 cursor-pointer"
                     >
-                      <div className="flex items-center gap-3 overflow-hidden">
+                      <Button variant="unstyled" type="button" onClick={() => handleSelectUser(user)} className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden text-left">
                         <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center overflow-hidden shrink-0 border border-border">
                           {user.avatarUrl ? (
                             <img
@@ -256,7 +255,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                             {user.email}
                           </p>
                         </div>
-                      </div>
+                      </Button>
                       <Button variant="unstyled"
                         onClick={(e) => {
                           e.stopPropagation();

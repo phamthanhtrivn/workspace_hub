@@ -1,5 +1,6 @@
 "use client";
 
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState, useEffect, useRef } from "react";
 import { socketService } from "../../../api/chat-socket.service";
 import { ChatEvent } from "../../../api/chat.events";
@@ -57,6 +58,9 @@ export default function DirectMessageRightPanel({
   const [detailView, setDetailView] = useState<
     "files" | "polls" | "search" | "threads" | "pinned" | null
   >(initialDetailView || null);
+  const [mediaError, setMediaError] = useState(false);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaRetry, setMediaRetry] = useState(0);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const lastFetchedChatId = useRef<string | null>(null);
@@ -222,6 +226,7 @@ export default function DirectMessageRightPanel({
       expandedSection === "files" &&
       lastFetchedChatId.current !== activeConversation.id
     ) {
+      setMediaLoading(true); setMediaError(false);
       getDirectConversationMedia(activeConversation.id)
         .then((res: any) => {
           if (res.data && res.data.medias) {
@@ -229,11 +234,9 @@ export default function DirectMessageRightPanel({
             lastFetchedChatId.current = activeConversation.id;
           }
         })
-        .catch((err: unknown) =>
-          logApiError(err, "Failed to fetch direct message media"),
-        );
+        .catch((err: unknown) => { setMediaError(true); logApiError(err, "Could not load conversation files"); }).finally(() => setMediaLoading(false));
     }
-  }, [activeConversation?.id, expandedSection]);
+  }, [activeConversation?.id, expandedSection, mediaRetry]);
 
   useEffect(() => {
     if (
@@ -328,8 +331,8 @@ export default function DirectMessageRightPanel({
 
       <div className="flex-1 overflow-y-auto">
         <div className="p-6 flex flex-col items-center border-b border-border">
-          <div
-            className="w-20 h-20 bg-muted rounded-full flex items-center justify-center font-semibold text-3xl mb-3 overflow-hidden cursor-pointer"
+          <Button variant="unstyled" type="button"
+            className="w-full text-left w-20 h-20 bg-muted rounded-full flex items-center justify-center font-semibold text-3xl mb-3 overflow-hidden cursor-pointer"
             onClick={() => {
               if (otherMemberId) {
                 dispatch(setSelectedProfileUserId(otherMemberId));
@@ -347,7 +350,7 @@ export default function DirectMessageRightPanel({
             ) : (
               <User size={40} className="text-muted-foreground" />
             )}
-          </div>
+          </Button>
           <h3 className="font-semibold text-foreground text-section-title">{displayName}</h3>
           <p className="text-sm text-muted-foreground mb-4">{displayDescription}</p>
 
@@ -401,10 +404,13 @@ export default function DirectMessageRightPanel({
             onOpenThread={handleOpenThread}
           />
 
+          {expandedSection === "files" && <QueryFeedback label="conversation files" pending={mediaLoading} error={mediaError} retrying={mediaLoading} onRetry={() => setMediaRetry(value => value + 1)} />}
           <FilesSection
             isExpanded={expandedSection === "files"}
             onToggle={() => toggleSection("files")}
             files={mediaItems}
+            loading={mediaLoading}
+            error={mediaError}
             onOpenPreview={(mediaId) => {
               const visualItems = mediaItems.filter(
                 (m) =>

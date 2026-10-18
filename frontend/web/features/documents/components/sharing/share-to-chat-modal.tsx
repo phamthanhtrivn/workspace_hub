@@ -1,4 +1,5 @@
 "use client";
+import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
@@ -34,6 +35,7 @@ export function ShareToChatModal({
   item,
   projectId,
 }: ShareToChatModalProps) {
+  const inputFieldId = useInputFieldId();
   const isModalOpen = open ?? isOpen ?? false;
 
   const {
@@ -201,10 +203,10 @@ export function ShareToChatModal({
             )}
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <label htmlFor={`${inputFieldId}-field-206`} className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Message (optional)
               </label>
-              <Textarea
+              <Textarea id={`${inputFieldId}-field-206`} aria-label="Message (optional)"
                 value={introMessage}
                 onChange={(e) => setIntroMessage(e.target.value)}
                 placeholder="Add a message..."

@@ -439,6 +439,7 @@ export default function ProjectDetailScreen() {
           onToggleOnlyMyIssues={() => setOnlyMyIssues((value) => !value)}
           onClearFilters={clearAllFilters}
           onToggleMembers={() => setShowMembers((visible) => !visible)}
+          navigationOpen={isMobileSidebarOpen}
           onOpenProjectNavigation={openMobileSidebar}
           onCreateTask={() => openCreateTask()}
           onInviteMembers={() => setShowInviteDialog(true)}

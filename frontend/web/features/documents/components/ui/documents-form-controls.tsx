@@ -11,6 +11,7 @@ export interface DocumentsSearchInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  inputRef?: React.Ref<HTMLInputElement>;
 }
 
 export function DocumentsSearchInput({
@@ -18,9 +19,10 @@ export function DocumentsSearchInput({
   onChange,
   placeholder = "Search files & folders...",
   className,
+  inputRef,
 }: DocumentsSearchInputProps) {
   return (
-    <SearchInput
+    <SearchInput ref={inputRef} aria-keyshortcuts="Control+k Meta+k"
       value={value}
       onChange={(event) => onChange(event.target.value)}
       onClear={() => onChange("")}

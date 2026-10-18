@@ -44,8 +44,8 @@ function TabsTrigger({
       data-slot="tabs-trigger"
       className={cn(
         unstyled
-          ? "cursor-pointer outline-none disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-ring"
-          : "inline-flex h-7 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-2.5 text-sm font-semibold outline-none transition disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+          ? "touch-target cursor-pointer outline-none disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-ring"
+          : "touch-target inline-flex h-7 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-2.5 text-sm font-semibold outline-none transition disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
         className,
       )}
       {...props}

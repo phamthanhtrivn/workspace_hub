@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { LinkAccess } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
+import { Input } from "@/components/ui/input";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Button } from "@/components/ui/button";
 
@@ -73,12 +74,18 @@ export function ShareModalLink({
     [updateLinkAccessMutation],
   );
 
-  const handleCopyLink = useCallback(() => {
+  const [copyFailed, setCopyFailed] = React.useState(false);
+  const [copying, setCopying] = React.useState(false);
+  const handleCopyLink = useCallback(async () => {
+    setCopying(true); setCopyFailed(false);
+    try {
     const shareUrl = `${window.location.origin}/documents/shared/${documentItemId}`;
-    void navigator.clipboard.writeText(shareUrl);
+    await navigator.clipboard.writeText(shareUrl);
     setIsCopied(true);
     toast.success("Link copied to clipboard!");
     setTimeout(() => setIsCopied(false), 2000);
+    } catch { setIsCopied(false); setCopyFailed(true); toast.error("Could not copy the link. Select and copy it below."); }
+    finally { setCopying(false); }
   }, [documentItemId]);
 
   return (
@@ -129,8 +136,10 @@ export function ShareModalLink({
         </div>
       </div>
 
+      {copyFailed && <div role="status" className="space-y-2"><p className="text-xs text-destructive-content">Copy the link manually:</p><Input aria-label="Share link" readOnly value={typeof window === "undefined" ? "" : `${window.location.origin}/documents/shared/${documentItemId}`} onFocus={event => event.currentTarget.select()} /></div>}
       {/* Copy Link Button */}
       <Button variant="unstyled"
+        disabled={copying}
         onClick={handleCopyLink}
         className="flex items-center justify-center gap-2 w-full rounded-control bg-background hover:bg-muted border border-border hover:border-border text-foreground px-4 py-3 text-xs font-semibold transition-all cursor-pointer"
       >

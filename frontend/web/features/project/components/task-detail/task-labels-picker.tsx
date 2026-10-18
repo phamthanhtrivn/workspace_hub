@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import { useRef, useState } from "react";
 import { ChevronDown, Tag } from "lucide-react";
@@ -24,6 +25,7 @@ export default function TaskLabelsPicker({
   disabled = false,
   showSelectedBadges = true,
 }: TaskLabelsPickerProps) {
+  const controlledPopupId = useControlledPopupId();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +35,7 @@ export default function TaskLabelsPicker({
     <div className="flex flex-wrap items-center gap-1.5" ref={containerRef}>
       {/* Trigger Button & Dropdown */}
       <div className="relative">
-        <Button
+        <Button aria-expanded={isOpen} aria-controls={`${controlledPopupId}-isOpen`} aria-haspopup="dialog"
           type="button"
           variant="outline"
           size="sm"
@@ -50,7 +52,7 @@ export default function TaskLabelsPicker({
         </Button>
 
         {isOpen && !disabled && (
-          <AnchoredPopover onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task labels" className="z-30 max-h-60 w-56 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
+          <AnchoredPopover id={`${controlledPopupId}-isOpen`} onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task labels" className="z-30 max-h-60 w-56 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
             {availableLabels.length === 0 ? (
               <p className="px-3 py-2.5 text-xs text-muted-foreground">
                 No labels configured in project settings.
@@ -61,27 +63,18 @@ export default function TaskLabelsPicker({
                   (item) => item.id === label.id,
                 );
                 return (
-                  <div
+                  <label
                     key={label.id}
-                    role="menuitemcheckbox"
-                    aria-checked={attached}
-                    tabIndex={0}
-                    onClick={() => void onToggleLabel(label)}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter" && event.key !== " ") return;
-                      event.preventDefault();
-                      void onToggleLabel(label);
-                    }}
                     className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition hover:bg-background focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
                   >
                     <Checkbox
                       checked={attached}
-                      tabIndex={-1}
-                      aria-hidden="true"
-                      className="pointer-events-none size-4 border-input data-[state=checked]:border-primary data-[state=checked]:bg-primary"
+                      aria-label={label.name}
+                      onCheckedChange={() => void onToggleLabel(label)}
+                      className="size-4 border-input data-[state=checked]:border-primary data-[state=checked]:bg-primary"
                     />
                     <LabelBadge name={label.name} color={label.color} />
-                  </div>
+                  </label>
                 );
               })
             )}

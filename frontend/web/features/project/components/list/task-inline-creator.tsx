@@ -59,7 +59,7 @@ export default function TaskInlineCreator({
         }`}
       >
         <CheckSquare2 className="h-4 w-4 shrink-0 text-info-content fill-primary-soft" />
-        <Input
+        <Input aria-label="Task title"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}

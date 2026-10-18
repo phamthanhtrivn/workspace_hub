@@ -300,7 +300,7 @@ export default function ManageMembersModal({
               size={18}
               className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-info-content transition-colors"
             />
-            <Input unstyled
+            <Input aria-label="Search members" unstyled
               type="text"
               placeholder="Search members..."
               value={searchTerm}

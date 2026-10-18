@@ -63,7 +63,7 @@ export default function ProjectTaskRow({
   const subtaskActionVisibility =
     isExpanded || isCreatingSubtask
       ? "opacity-100"
-      : "opacity-0 group-hover:opacity-100";
+      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100";
 
   const formattedDueDate = task.dueDate
     ? new Date(task.dueDate).toLocaleDateString(undefined, {
@@ -92,12 +92,13 @@ export default function ProjectTaskRow({
       }}
       onClick={() => onTaskClick?.(task)}
       onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.target !== event.currentTarget) return;
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           onTaskClick?.(task);
         }
       }}
-      className={`group relative grid ${BACKLOG_LAYOUT.minWidth} ${BACKLOG_LAYOUT.columns} items-center border-b border-border bg-card px-4 py-[7px] text-left transition-colors hover:z-20 hover:bg-background focus-within:z-20 focus-visible:bg-info-soft/50 focus-visible:outline-hidden cursor-pointer`}
+      className={`group relative grid ${BACKLOG_LAYOUT.minWidth} ${BACKLOG_LAYOUT.columns} items-center border-b border-border bg-card px-4 py-[7px] text-left transition-colors hover:z-20 hover:bg-background focus-within:z-20 focus-visible:bg-info-soft/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring cursor-pointer`}
     >
       <div
         className="flex min-w-0 items-center gap-2"

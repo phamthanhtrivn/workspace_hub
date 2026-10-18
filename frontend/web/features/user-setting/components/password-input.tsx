@@ -14,6 +14,7 @@ interface PasswordInputProps {
   onChange: (value: string) => void;
   placeholder?: string;
   error?: string;
+  autoComplete?: string;
 }
 
 const PasswordInput = React.memo(function PasswordInput({
@@ -23,6 +24,7 @@ const PasswordInput = React.memo(function PasswordInput({
   onChange,
   placeholder,
   error,
+  autoComplete = id.includes("current") ? "current-password" : "new-password",
 }: PasswordInputProps) {
   const [show, setShow] = useState(false);
 
@@ -34,12 +36,16 @@ const PasswordInput = React.memo(function PasswordInput({
       <div className="relative">
         <Input
           id={id}
+          autoComplete={autoComplete}
+          required
+          aria-invalid={Boolean(error) || undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
           type={show ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={cn(
-            "h-10 w-full rounded-control border bg-card px-3 pr-10 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground focus-visible:ring-2",
+            "h-10 w-full rounded-control [@media(pointer:coarse)]:pr-16 border bg-card px-3 pr-10 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground focus-visible:ring-2",
             error
               ? "border-destructive-outline focus-visible:ring-ring"
               : "border-input focus-visible:border-primary focus-visible:ring-ring",
@@ -54,7 +60,7 @@ const PasswordInput = React.memo(function PasswordInput({
           {show ? <EyeOff size={16} /> : <Eye size={16} />}
         </Button>
       </div>
-      {error && <p className="text-xs font-semibold text-destructive-content">{error}</p>}
+      {error && <p id={`${id}-error`} role="alert" className="text-xs font-semibold text-destructive-content">{error}</p>}
     </div>
   );
 });

@@ -7,7 +7,7 @@ const FOCUSABLE_SELECTOR = [
   "select:not([disabled])", "textarea:not([disabled])",
   '[tabindex]:not([tabindex="-1"])',
 ].join(",");
-const MODAL_SELECTOR = '[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]';
+const MODAL_SELECTOR = '[role="dialog"][aria-modal="true"]:not([aria-hidden="true"]), [role="alertdialog"][aria-modal="true"]:not([aria-hidden="true"])';
 const POPUP_SELECTOR = '[data-slot="select-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"], [data-slot="combobox-content"], [data-slot="tooltip-content"], .EmojiPickerReact';
 
 interface UseModalDialogOptions {
@@ -22,6 +22,9 @@ let scrollLockCount = 0;
 let originalBodyOverflow = "";
 let originalBodyPaddingRight = "";
 let originalDocumentOverflow = "";
+// In-flow sheets can appear before an existing dialog in DOM order. Opening
+// order, rather than DOM order, determines which modal owns the keyboard.
+const modalStack: HTMLElement[] = [];
 
 function focusableElements(container: HTMLElement) {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
@@ -65,7 +68,7 @@ export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, 
   useEffect(() => {
     const rememberFocus = (event?: FocusEvent) => {
       const active = document.activeElement;
-      if (!dialogRef.current && active instanceof HTMLElement && active !== document.body) {
+      if ((!dialogRef.current || dialogRef.current.getAttribute("aria-hidden") === "true") && active instanceof HTMLElement && active !== document.body) {
         const modal = active.closest(MODAL_SELECTOR);
         // React autoFocus fires before the parent dialog ref is attached.
         // Its relatedTarget is the opener, not another dialog field.
@@ -89,12 +92,12 @@ export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, 
     const active = document.activeElement as HTMLElement | null;
     const previouslyFocused = active && active !== document.body && !dialog.contains(active) ? active : returnFocusRef.current;
     if (lockDocumentScroll) lockScroll();
+    if (trapFocus) modalStack.push(dialog);
 
     const firstFocus = () => focusableElements(dialog).find(element => element.hasAttribute("data-modal-initial-focus")) ??
       focusableElements(dialog)[0] ?? dialog;
     const isTopmost = () => {
-      const dialogs = document.querySelectorAll(MODAL_SELECTOR);
-      return trapFocus ? dialogs[dialogs.length - 1] === dialog : dialogs.length === 0;
+      return trapFocus ? modalStack[modalStack.length - 1] === dialog : modalStack.length === 0;
     };
     if (trapFocus) focusWithoutScroll(firstFocus());
 
@@ -133,11 +136,14 @@ export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, 
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("focusin", handleFocusIn);
+      if (trapFocus) {
+        const index = modalStack.lastIndexOf(dialog);
+        if (index >= 0) modalStack.splice(index, 1);
+      }
       if (lockDocumentScroll) unlockScroll();
       // Wait for portal removal and any nested popup's own focus cleanup.
       requestAnimationFrame(() => {
-        const modals = document.querySelectorAll(MODAL_SELECTOR);
-        const activeModal = modals[modals.length - 1];
+        const activeModal = modalStack[modalStack.length - 1];
         const closed = !dialog.isConnected || dialog.getAttribute("aria-hidden") === "true";
         if (trapFocus && closed && previouslyFocused?.isConnected &&
           (!activeModal || activeModal.contains(previouslyFocused))) focusWithoutScroll(previouslyFocused);

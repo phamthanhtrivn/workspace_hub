@@ -134,11 +134,11 @@ export default function FollowedThreadsModal({
 
   if (!isOpen || typeof document === "undefined") return null;
 
-  return <DialogSurface onClose={handleClose}>{<div
+  return <DialogSurface onClose={handleClose}>{<div data-ui-interaction-exception="Backdrop dismissal; close button and Escape are available."
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-overlay/45 p-4 animate-in fade-in duration-150"
       onClick={handleClose}
     >
-      <div
+      <div data-ui-interaction-exception="Propagation boundary; no action."
         className={`${dialogLayout.surface} w-full max-w-2xl max-h-[86vh] bg-card rounded-panel border border-border overflow-hidden flex flex-col animate-in zoom-in-95 duration-150`}
         onClick={(event) => event.stopPropagation()}
       >
@@ -171,7 +171,7 @@ export default function FollowedThreadsModal({
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
-            <Input unstyled
+            <Input aria-label="Search followed threads" unstyled
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search followed threads..."

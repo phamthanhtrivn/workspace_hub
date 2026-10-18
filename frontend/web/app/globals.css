@@ -233,6 +233,9 @@
 
 /* Deep navy actions retain a quiet visible edge against charcoal surfaces. */
 @layer utilities {
+  @media (pointer: coarse) {
+    .touch-target { min-width: 2.75rem; min-height: 2.75rem; }
+  }
   .dark :is(button, a, [role="button"]).bg-primary {
     @apply inset-ring-1 inset-ring-primary-outline;
   }

@@ -10,6 +10,7 @@ const VIEWPORT_GAP_PX = 12;
 
 interface MessageOptionsDropdownProps {
   isOpen: boolean;
+  id?: string;
   onClose: () => void;
   buttonRect: DOMRect | null;
   isMe: boolean;
@@ -23,6 +24,7 @@ interface MessageOptionsDropdownProps {
 
 export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   isOpen,
+  id,
   onClose,
   buttonRect,
   isMe,
@@ -41,7 +43,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
 
 
 
-  return typeof document === "undefined" ? null : <AnchoredMenu ref={menuRef} onClose={onClose} anchorRect={buttonRect} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="start" alignOffset={isMe ? buttonRect.width + VIEWPORT_GAP_PX : 0} className="z-50 w-[180px] max-w-[calc(100vw-1.5rem)] overflow-y-auto bg-card border border-border rounded-panel py-1 text-sm text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel">
+  return typeof document === "undefined" ? null : <AnchoredMenu id={id} aria-label="Message options" ref={menuRef} onClose={onClose} anchorRect={buttonRect} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="start" alignOffset={isMe ? buttonRect.width + VIEWPORT_GAP_PX : 0} className="z-50 w-[180px] max-w-[calc(100vw-1.5rem)] overflow-y-auto bg-card border border-border rounded-panel py-1 text-sm text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel">
       {isMe && canEdit && (
         <DropdownMenuItem closeOnClick={false}
           onClick={() => {

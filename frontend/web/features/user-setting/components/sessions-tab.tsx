@@ -9,10 +9,12 @@ import {
   useRevokeUserSessionMutation,
   useUserSessionsQuery,
 } from "@/features/user-setting/hooks/useUserSettingQueries";
+import { QueryFeedback } from "@/components/common/query-feedback";
 import RevokeSessionModal from "./revoke-session-modal";
 
 const SessionsTab = React.memo(function SessionsTab() {
-  const { data: sessionsResponse, isLoading } = useUserSessionsQuery();
+  const sessionsQuery = useUserSessionsQuery();
+  const { data: sessionsResponse, isLoading } = sessionsQuery;
   const revokeSessionMutation = useRevokeUserSessionMutation();
   const [revokingSessionId, setRevokingSessionId] = useState<string | null>(
     null,
@@ -33,6 +35,7 @@ const SessionsTab = React.memo(function SessionsTab() {
     }
   };
 
+  if (!sessionsResponse && (isLoading || sessionsQuery.isError)) return <QueryFeedback label="signed-in sessions" pending={isLoading} error={sessionsQuery.isError} retrying={sessionsQuery.isFetching} onRetry={() => sessionsQuery.refetch()} />;
   if (isLoading) {
     return (
       <div className="flex h-full min-h-[300px] items-center justify-center">
@@ -43,6 +46,7 @@ const SessionsTab = React.memo(function SessionsTab() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+      <QueryFeedback label="signed-in sessions" error={sessionsQuery.isError} retrying={sessionsQuery.isFetching} onRetry={() => sessionsQuery.refetch()} />
       <h3 className="text-section-title font-semibold text-foreground">Signed-in sessions</h3>
       <p className="text-sm font-semibold text-muted-foreground">
         Manage the devices currently signed in to your account.

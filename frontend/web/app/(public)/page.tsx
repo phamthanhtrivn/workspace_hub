@@ -87,7 +87,7 @@ export default function PublicPage() {
               Smart workspace for teams and individuals.
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-              Streamline your projects, tasks, documents, schedules and collaboration with AI power.
+              Streamline your projects, tasks, documents, schedules and collaboration with connected tasks, calendars and focus sessions.
             </p>
 
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-x-6">

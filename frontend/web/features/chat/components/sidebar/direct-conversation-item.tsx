@@ -1,3 +1,4 @@
+import { useId as useControlledPopupId } from "react";
 import React, { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Bell, BellOff, MoreVertical, Pin, User } from "lucide-react";
@@ -40,6 +41,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
   onTogglePin,
   onToggleMute,
 }: DirectConversationItemProps) {
+  const controlledPopupId = useControlledPopupId();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -73,9 +75,8 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
           ? "bg-primary-soft text-primary-soft-foreground font-semibold"
           : "hover:bg-muted text-muted-foreground hover:text-foreground",
       )}
-      onClick={() => onClick(conversation)}
     >
-      <div className="flex items-center min-w-0 gap-2.5 flex-1">
+      <Button variant="unstyled" type="button" aria-current={isActive ? "true" : undefined} onClick={() => onClick(conversation)} className="flex items-center min-w-0 gap-2.5 flex-1 text-left self-stretch">
         <div className="shrink-0">
           <div className="w-7 h-7 bg-info-soft rounded-full flex items-center justify-center overflow-hidden border border-border transition-transform duration-200">
             {isDirectProfileLoading ? (
@@ -113,7 +114,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
         {isMuted && (
           <BellOff size={11} className="text-muted-foreground shrink-0 ml-1" />
         )}
-      </div>
+      </Button>
 
       <div className="flex items-center justify-end shrink-0 pl-1 gap-1">
         {isPinned && (
@@ -136,7 +137,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
         ) : null}
 
         <div ref={menuRef} className="relative">
-          <Button variant="unstyled"
+          <Button aria-expanded={isMenuOpen} aria-controls={`${controlledPopupId}-isMenuOpen`} aria-haspopup="menu" variant="unstyled"
             type="button"
             onClick={(event) => {
               event.stopPropagation();
@@ -149,7 +150,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
           </Button>
 
           {isMenuOpen && (
-            <AnchoredMenu onClose={() => setIsMenuOpen(false)} side="bottom" align="end" aria-label="Conversation actions"
+            <AnchoredMenu id={`${controlledPopupId}-isMenuOpen`} onClose={() => setIsMenuOpen(false)} side="bottom" align="end" aria-label="Conversation actions"
               className="z-30 min-w-[150px] rounded-panel border border-border bg-card py-1 text-xs text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel"
               onClick={(event) => event.stopPropagation()}
             >

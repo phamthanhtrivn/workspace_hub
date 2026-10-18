@@ -1,4 +1,5 @@
 "use client";
+import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
@@ -36,6 +37,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
   poll,
   onSubmit,
 }) => {
+  const inputFieldId = useInputFieldId();
   const [title, setTitle] = useState("");
   const [multipleChoice, setMultipleChoice] = useState(true);
   const [allowAddOptions, setAllowAddOptions] = useState(true);
@@ -90,10 +92,10 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
 
         <form onSubmit={handleSubmit} className={`${dialogLayout.body} p-6 space-y-5`}>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <label htmlFor={`${inputFieldId}-field-95`} className="block text-sm font-medium text-foreground mb-1">
               Poll Question
             </label>
-            <Input unstyled
+            <Input id={`${inputFieldId}-field-95`} aria-label="Poll Question" unstyled
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}

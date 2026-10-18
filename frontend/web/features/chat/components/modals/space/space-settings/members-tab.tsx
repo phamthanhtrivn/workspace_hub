@@ -48,7 +48,7 @@ export function MembersTab({
           size={15}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
         />
-        <Input unstyled
+        <Input aria-label="Search members" unstyled
           type="text"
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}

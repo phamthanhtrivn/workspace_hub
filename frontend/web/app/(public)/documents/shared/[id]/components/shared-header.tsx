@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { getLoginRedirectPath } from "@/features/auth/utils/auth-redirect";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 interface SharedHeaderProps {
@@ -8,6 +10,7 @@ interface SharedHeaderProps {
 }
 
 export function SharedHeader({ isLoggedIn }: SharedHeaderProps) {
+  const pathname = usePathname();
   return (
     <header className="border-b border-border bg-card sticky top-0 z-40 px-6 py-4.5 flex items-center justify-between">
       <Link href="/" className="flex items-center gap-2">
@@ -21,14 +24,14 @@ export function SharedHeader({ isLoggedIn }: SharedHeaderProps) {
           href="/documents"
           className="rounded-panel border border-border hover:bg-background text-muted-foreground px-4 py-2.5 text-xs font-semibold transition-all cursor-pointer"
         >
-          Vào Workspace
+          Open workspace
         </Link>
       ) : (
         <Link
-          href="/login"
+          href={getLoginRedirectPath(pathname)}
           className="rounded-panel bg-primary hover:bg-primary text-primary-foreground px-4 py-2.5 text-xs font-semibold transition-all cursor-pointer"
         >
-          Đăng nhập
+          Sign in
         </Link>
       )}
     </header>

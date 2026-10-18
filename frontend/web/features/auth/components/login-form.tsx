@@ -81,6 +81,7 @@ const LoginForm = React.memo(function LoginForm() {
           const validationErrors = getAuthValidationErrors(error);
           if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
+            requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
             return;
           }
 
@@ -107,7 +108,7 @@ const LoginForm = React.memo(function LoginForm() {
           </label>
         </div>
 
-        <InputField
+        <InputField autoComplete="email" required
           variant="auth"
           id="email"
           type="email"
@@ -137,7 +138,7 @@ const LoginForm = React.memo(function LoginForm() {
           </div>
         </div>
 
-        <InputField
+        <InputField autoComplete="current-password" required
           variant="auth"
           id="password"
           type={showPassword ? "text" : "password"}

@@ -1,5 +1,6 @@
 "use client";
 
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { DndContext } from "@dnd-kit/core";
@@ -175,6 +176,8 @@ export function DocumentExplorer({
     isFetchingNextPage,
     fetchNextPage,
     hasNextPage,
+    refetch,
+    isFetching,
   } = useInfiniteQuery({
     queryKey: [
       "documents",
@@ -362,22 +365,23 @@ export function DocumentExplorer({
         </div>
 
         {/* Main Content Area */}
-        <div className={`flex flex-1 overflow-hidden @container/document-canvas relative min-h-40 min-w-0 shrink-0`}>
+        <div data-document-canvas className={`flex flex-1 overflow-hidden @container/document-canvas relative min-h-40 min-w-0 shrink-0`}>
           <div className="flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden">
+            {isError && items.length > 0 && <QueryFeedback label="documents" error retrying={isFetching} onRetry={() => refetch()} />}
             {/* Items View Area */}
             <div className={`flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden @container/document-items min-w-0 px-3 mb-3 @min-[640px]/explorer:px-4 @min-[640px]/explorer:mb-4`}>
               {isLoading ? (
                 <DocumentsLoadingState
                   view={viewLayout === "GRID" ? "grid" : "list"}
                 />
-              ) : isError ? (
-                <DocumentsEmptyState
+              ) : isError && items.length === 0 ? (
+                <div className="space-y-3"><QueryFeedback label="documents" error retrying={isFetching} onRetry={() => refetch()} /><DocumentsEmptyState
                   title={accessErrorTitle}
                   description={
                     (documentError as { response?: { data?: { message?: string } } })
-                      ?.response?.data?.message || accessErrorDescription
+                      ?.response?.data?.message || ((documentError as { response?: { status?: number } })?.response?.status === 403 ? accessErrorDescription : "The document service is unavailable. Your files have not been removed.")
                   }
-                />
+                /></div>
               ) : items.length === 0 ? (
                 <DocumentsEmptyState
                   title={

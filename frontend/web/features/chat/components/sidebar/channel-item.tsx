@@ -1,3 +1,4 @@
+import { useId as useControlledPopupId } from "react";
 import React, { useRef, useState } from "react";
 import {
   Bell,
@@ -42,6 +43,7 @@ const ChannelItem = React.memo(function ChannelItem({
   canLeave,
   canDelete,
 }: ChannelItemProps) {
+  const controlledPopupId = useControlledPopupId();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -63,9 +65,8 @@ const ChannelItem = React.memo(function ChannelItem({
           ? "bg-primary-soft text-primary-soft-foreground font-semibold"
           : "hover:bg-muted text-muted-foreground hover:text-foreground",
       )}
-      onClick={() => onClick(channel)}
     >
-      <div className="flex items-center min-w-0 gap-2.5 flex-1">
+      <Button variant="unstyled" type="button" aria-current={isActive ? "true" : undefined} onClick={() => onClick(channel)} className="flex items-center min-w-0 gap-2.5 flex-1 text-left self-stretch">
         <span
           className={cn(
             "shrink-0 p-1 rounded-lg transition-all duration-150",
@@ -96,7 +97,7 @@ const ChannelItem = React.memo(function ChannelItem({
         {isMuted && (
           <BellOff size={11} className="text-muted-foreground shrink-0 ml-1" />
         )}
-      </div>
+      </Button>
 
       <div className="flex items-center justify-end shrink-0 pl-1 gap-1">
         {isPinned && (
@@ -119,7 +120,7 @@ const ChannelItem = React.memo(function ChannelItem({
         ) : null}
 
         <div ref={menuRef} className="relative">
-          <Button variant="unstyled"
+          <Button aria-expanded={isMenuOpen} aria-controls={`${controlledPopupId}-isMenuOpen`} aria-haspopup="menu" variant="unstyled"
             type="button"
             onClick={(event) => {
               event.stopPropagation();
@@ -132,7 +133,7 @@ const ChannelItem = React.memo(function ChannelItem({
           </Button>
 
           {isMenuOpen && (
-            <AnchoredMenu onClose={() => setIsMenuOpen(false)} side="bottom" align="end" aria-label="Channel actions"
+            <AnchoredMenu id={`${controlledPopupId}-isMenuOpen`} onClose={() => setIsMenuOpen(false)} side="bottom" align="end" aria-label="Channel actions"
               className="z-30 min-w-[150px] rounded-panel border border-border bg-card py-1 text-xs text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel"
               onClick={(event) => event.stopPropagation()}
             >

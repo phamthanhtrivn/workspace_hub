@@ -49,6 +49,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
     const validationErrors = getAuthValidationErrors(error);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
       return;
     }
 
@@ -101,6 +102,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
       setErrors({
         confirmPassword: "Passwords do not match",
       });
+      requestAnimationFrame(() => document.getElementById("confirmPassword")?.focus());
       return;
     }
 
@@ -141,6 +143,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
 
   return (
     <div className="space-y-6">
+      <ol aria-label="Password recovery progress" className="flex flex-wrap gap-3 text-xs text-muted-foreground">{[[ForgotPasswordStep.EMAIL, "Email"], [ForgotPasswordStep.OTP, "Verify code"], [ForgotPasswordStep.PASSWORD, "New password"]].map(([value, label]) => <li key={value} aria-current={step === value ? "step" : undefined} className={step === value ? "font-semibold text-foreground" : undefined}>{label}</li>)}</ol>
       {step !== ForgotPasswordStep.EMAIL && (
         <Button variant="unstyled"
           type="button"
@@ -171,7 +174,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             >
               Email <span className="text-destructive-content">*</span>
             </label>
-            <InputField
+            <InputField autoComplete="email" required
               variant="auth"
               id="email"
               type="email"
@@ -213,7 +216,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             </div>
 
             <div className="flex flex-col items-center gap-2">
-              <OtpInput
+              <OtpInput error={errors.otp}
                 length={6}
                 value={otp}
                 onChange={(value) => {
@@ -221,9 +224,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
                   if (errors.otp) setErrors((prev) => ({ ...prev, otp: "" }));
                 }}
               />
-              {errors.otp && (
-                <p className="text-xs text-destructive-content mt-2">{errors.otp}</p>
-              )}
+
             </div>
 
             <div className="text-center text-sm">
@@ -262,7 +263,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             >
               New Password <span className="text-destructive-content">*</span>
             </label>
-            <InputField
+            <InputField autoComplete="new-password" required
               variant="auth"
               id="newPassword"
               type={showPassword ? "text" : "password"}
@@ -289,7 +290,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             >
               Confirm Password <span className="text-destructive-content">*</span>
             </label>
-            <InputField
+            <InputField autoComplete="new-password" required
               variant="auth"
               id="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}

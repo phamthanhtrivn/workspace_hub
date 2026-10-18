@@ -146,7 +146,7 @@ export default function MediaLightbox({
   };
 
   const content = (
-    <div
+    <div data-ui-interaction-exception="Backdrop dismissal; close button and Escape are available."
       className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/95 text-media-foreground [&_button:focus-visible]:outline-media-foreground backdrop-blur-sm select-none"
       onClick={onClose}
     >
@@ -210,7 +210,7 @@ export default function MediaLightbox({
             style={{ maxHeight: "80vh", maxWidth: "80vw" }}
           />
         ) : (
-          <img
+          <img data-ui-interaction-exception="Media drag surface; click only prevents backdrop dismissal."
             ref={imgRef}
             src={currentMedia.fileUrl}
             alt={currentMedia.name}
@@ -241,7 +241,7 @@ export default function MediaLightbox({
 
       {/* Zoom Controls */}
       {currentMedia.type !== "VIDEO" && (
-        <div
+        <div data-ui-interaction-exception="Propagation boundary; no action."
           className="absolute bottom-3 left-1/2 -translate-x-1/2 flex max-w-[calc(100vw-1.5rem)] items-center gap-2 overflow-x-auto bg-media-surface px-3 py-2 rounded-full backdrop-blur-md z-10"
           onClick={(e) => e.stopPropagation()}
         >

@@ -1,3 +1,5 @@
+import { useId as useControlledPopupId } from "react";
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useState, useRef, useMemo } from "react";
 import {
   ArrowLeft,
@@ -32,6 +34,9 @@ export default function SearchMessagesSection({
   conversationId,
   onBack,
 }: SearchMessagesSectionProps) {
+  const controlledPopupId = useControlledPopupId();
+  const [searchError, setSearchError] = useState(false);
+  const [searched, setSearched] = useState(false);
   const [query, setQuery] = useState("");
   const [senderId, setSenderId] = useState("");
   const [results, setResults] = useState<any[]>([]);
@@ -78,20 +83,22 @@ export default function SearchMessagesSection({
   const handleSearch = async (e?: React.FormEvent) => {
     e?.preventDefault();
     setLoading(true);
+    setSearchError(false);
+    setSearched(true);
     try {
       const isDirectMessage = activeChatType === ChatContextType.DIRECT_MESSAGE;
       const searchMessages = isDirectMessage
         ? searchDirectConversationMessages
         : searchChannelMessages;
       const res = await searchMessages(conversationId, query, senderId);
-      if (res?.success || res?.data) {
+      if (res?.success) {
         setResults(res.data);
       } else {
-        setResults([]);
+        setSearchError(true);
       }
     } catch (err) {
       logApiError(err, "Failed to search chat messages");
-      setResults([]);
+      setSearchError(true);
     } finally {
       setLoading(false);
     }
@@ -124,7 +131,7 @@ export default function SearchMessagesSection({
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={16}
             />
-            <Input unstyled
+            <Input aria-label="Search by content or file name" unstyled
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -135,7 +142,7 @@ export default function SearchMessagesSection({
         </div>
 
         <div className="relative" ref={dropdownRef}>
-          <Button variant="unstyled"
+          <Button aria-expanded={isSenderDropdownOpen} aria-controls={`${controlledPopupId}-isSenderDropdownOpen`} aria-haspopup="dialog" variant="unstyled"
             type="button"
             onClick={() => setIsSenderDropdownOpen(!isSenderDropdownOpen)}
             className="w-full flex items-center justify-between text-sm bg-muted p-2 rounded-control outline-none cursor-pointer hover:bg-accent transition"
@@ -145,9 +152,9 @@ export default function SearchMessagesSection({
           </Button>
 
           {isSenderDropdownOpen && (
-            <AnchoredPopover onClose={() => setIsSenderDropdownOpen(false)} side="bottom" align="end" aria-label="Search senders" className="bg-card border border-border rounded-lg z-20 max-h-64 flex flex-col overflow-hidden shadow-panel w-[var(--radix-popover-trigger-width)]">
+            <AnchoredPopover id={`${controlledPopupId}-isSenderDropdownOpen`} onClose={() => setIsSenderDropdownOpen(false)} side="bottom" align="end" aria-label="Search senders" className="bg-card border border-border rounded-lg z-20 max-h-64 flex flex-col overflow-hidden shadow-panel w-[var(--radix-popover-trigger-width)]">
               <div className="p-2 border-b border-border bg-background">
-                <Input unstyled
+                <Input aria-label="Search sender" unstyled
                   type="text"
                   value={senderSearch}
                   onChange={(e) => setSenderSearch(e.target.value)}
@@ -156,7 +163,7 @@ export default function SearchMessagesSection({
                 />
               </div>
               <div className="overflow-y-auto flex-1 p-1 custom-scrollbar">
-                <div
+                <Button variant="unstyled" type="button"
                   onClick={() => {
                     setSenderId("");
                     setIsSenderDropdownOpen(false);
@@ -170,7 +177,7 @@ export default function SearchMessagesSection({
                     <span>All Senders</span>
                   </div>
                   {!senderId && <Check size={14} className="shrink-0" />}
-                </div>
+                </Button>
 
                 {filteredMembers.map((m: any) => {
                   const profile = memberProfiles?.[m.userId];
@@ -181,7 +188,7 @@ export default function SearchMessagesSection({
                     : profile?.fullName || "User";
 
                   return (
-                    <div
+                    <Button variant="unstyled" type="button"
                       key={m.userId}
                       onClick={() => {
                         setSenderId(m.userId);
@@ -206,7 +213,7 @@ export default function SearchMessagesSection({
                       {senderId === m.userId && (
                         <Check size={14} className="shrink-0" />
                       )}
-                    </div>
+                    </Button>
                   );
                 })}
                 {filteredMembers.length === 0 && (
@@ -220,6 +227,7 @@ export default function SearchMessagesSection({
         </div>
       </div>
 
+      {searchError && <QueryFeedback label="message search results" error retrying={loading} onRetry={() => handleSearch()} />}
       {/* Results */}
       <div className="flex-1 overflow-y-auto p-2">
         {loading ? (
@@ -241,7 +249,7 @@ export default function SearchMessagesSection({
           </div>
         ) : (
           <div className="p-8 text-center text-muted-foreground text-sm">
-            No results found.
+            {searchError ? "Your search could not be completed." : searched ? "No results found." : "Enter a search term or choose a sender to find messages."}
           </div>
         )}
       </div>

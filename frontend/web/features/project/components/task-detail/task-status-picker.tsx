@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import { useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
@@ -20,6 +21,7 @@ export default function TaskStatusPicker({
   onChange,
   disabled = false,
 }: TaskStatusPickerProps) {
+  const controlledPopupId = useControlledPopupId();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -31,7 +33,7 @@ export default function TaskStatusPicker({
 
   return (
     <div className="relative inline-block" ref={containerRef}>
-      <Button
+      <Button aria-expanded={isOpen} aria-controls={`${controlledPopupId}-isOpen`} aria-haspopup="menu"
         type="button"
         variant="ghost"
         size="sm"
@@ -48,7 +50,7 @@ export default function TaskStatusPicker({
       </Button>
 
       {isOpen && !disabled && (
-        <AnchoredMenu onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task status" className="w-40 overflow-hidden rounded-panel border border-border bg-card py-1 z-20 shadow-panel">
+        <AnchoredMenu id={`${controlledPopupId}-isOpen`} onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task status" className="w-40 overflow-hidden rounded-panel border border-border bg-card py-1 z-20 shadow-panel">
           {TASK_DRAWER_STATUS_OPTIONS.map((opt) => (
             <DropdownMenuItem closeOnClick={false}
               key={opt.value}

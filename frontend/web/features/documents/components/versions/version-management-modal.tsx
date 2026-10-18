@@ -6,6 +6,7 @@ import React, { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
 import { DocumentItem } from "../../types/documents.types";
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { History } from "lucide-react";
 import {
   DocumentItemType,
@@ -49,7 +50,7 @@ export function VersionManagementModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingFileName, setUploadingFileName] = useState("");
 
-  const { data: versions = [], isLoading } = useQuery({
+  const versionsQuery = useQuery({
     queryKey: ["document-versions", item?.id],
     queryFn: () => {
       if (!item) return Promise.resolve([]);
@@ -60,6 +61,7 @@ export function VersionManagementModal({
     enabled: isModalOpen && !!item && item.type !== DocumentItemType.FOLDER,
   });
 
+  const { data: versions = [], isLoading } = versionsQuery;
   const handleDownload = useCallback(
     async (versionId: string) => {
       if (!item) return;
@@ -186,13 +188,14 @@ export function VersionManagementModal({
             />
           ) : null}
 
-          <VersionHistoryTable
+          {versionsQuery.isError && <QueryFeedback label="version history" error retrying={versionsQuery.isFetching} onRetry={() => versionsQuery.refetch()} />}
+        {(!versionsQuery.isError || versions.length > 0) && <VersionHistoryTable
             versions={versions}
             isLoading={isLoading}
             item={item}
             onPreviewVersion={onPreviewVersion}
             onDownload={handleDownload}
-          />
+          />}
         </div>
       </DialogContent>
     </Dialog>

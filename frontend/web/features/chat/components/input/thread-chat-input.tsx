@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import React, {
   useState,
@@ -85,6 +86,7 @@ const ThreadChatInput = React.memo(
     { onSendMessage },
     ref,
   ) {
+  const controlledPopupId = useControlledPopupId();
     const [message, setMessage] = useState("");
     const [showThreadOptions, setShowThreadOptions] = useState(false);
     const [showFormatting, setShowFormatting] = useState(false);
@@ -103,6 +105,7 @@ const ThreadChatInput = React.memo(
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [mentions, setMentions] = useState<string[]>([]);
 
+    const mentionListId = React.useId();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const plusButtonRef = useRef<HTMLButtonElement>(null);
@@ -668,7 +671,7 @@ const ThreadChatInput = React.memo(
 
             {/* Actions Trigger Dropdown */}
             <div ref={threadOptionsRef} className="relative flex-shrink-0">
-              <Button variant="unstyled"
+              <Button aria-expanded={showThreadOptions} aria-controls={`${controlledPopupId}-showThreadOptions`} aria-haspopup="menu" variant="unstyled"
                 ref={plusButtonRef}
                 type="button"
                 onClick={() => setShowThreadOptions(!showThreadOptions)}
@@ -687,7 +690,7 @@ const ThreadChatInput = React.memo(
               </Button>
 
               {showThreadOptions && (
-                <AnchoredMenu onClose={() => setShowThreadOptions(false)} side="top" align="start" aria-label="Thread attachments" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[170px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                <AnchoredMenu id={`${controlledPopupId}-showThreadOptions`} onClose={() => setShowThreadOptions(false)} side="top" align="start" aria-label="Thread attachments" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[170px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
                   <DropdownMenuItem closeOnClick={false}
                     onClick={() => {
                       setShowThreadOptions(false);
@@ -763,7 +766,7 @@ const ThreadChatInput = React.memo(
             />
 
             {/* Mention Dropdown */}
-            <MentionDropdown
+            <MentionDropdown id={mentionListId}
               query={mentionQuery}
               members={filteredMembers}
               selectedIndex={selectedIndex}
@@ -852,7 +855,7 @@ const ThreadChatInput = React.memo(
               )}
 
               {/* Textarea Input */}
-              <Textarea unstyled
+              <Textarea unstyled role="combobox" aria-label="Reply in thread" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
                 id="thread-chat-input-textarea"
                 ref={textareaRef}
                 onPaste={handlePaste}

@@ -377,7 +377,7 @@ export default function GanttView({
                       role="button"
                       tabIndex={0}
                       onKeyDown={(event) => {
-                        if (event.key === "Enter") onTaskClick?.(task);
+                        if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); onTaskClick?.(task); }
                       }}
                       className={`group grid cursor-pointer text-left transition-colors duration-150 ${
                         isHovered ? "bg-info-soft/40" : "hover:bg-background"

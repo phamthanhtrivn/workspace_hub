@@ -54,7 +54,7 @@ const NoteMessage = React.memo(function NoteMessage({
             <div className="flex items-center gap-2 text-xs text-warning-content mt-1 font-medium">
               <span>
                 by{" "}
-                <span
+                <Button variant="unstyled" type="button"
                   className={`font-semibold text-warning-content ${!isMe ? "cursor-pointer hover:underline" : ""}`}
                   onClick={() => {
                     if (!isMe) onUserClick?.(note.createdBy);
@@ -65,7 +65,7 @@ const NoteMessage = React.memo(function NoteMessage({
                     : creatorProfile?.fullName ||
                       creatorProfile?.email ||
                       "User"}
-                </span>
+                </Button>
               </span>
               <span>-</span>
               <span>{formatDateTime(note.createdAt)}</span>

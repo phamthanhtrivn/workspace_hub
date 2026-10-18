@@ -1,3 +1,4 @@
+import { useId as useInputFieldId } from "react";
 import { SpaceResponse } from "@/features/chat/types/chat.types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ export function OverviewTab({
   onSpaceNameChange,
   onSave,
 }: OverviewTabProps) {
+  const inputFieldId = useInputFieldId();
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-3 gap-3">
@@ -47,11 +49,11 @@ export function OverviewTab({
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <label htmlFor={`${inputFieldId}-field-53`} className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Space Name
         </label>
         <div className="flex gap-2">
-          <Input unstyled
+          <Input id={`${inputFieldId}-field-53`} aria-label="Space Name" unstyled
             type="text"
             value={spaceName}
             disabled={!isOwner || isSaving}

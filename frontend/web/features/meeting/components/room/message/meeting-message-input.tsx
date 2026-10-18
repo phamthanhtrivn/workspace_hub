@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import {
   forwardRef,
@@ -60,6 +61,7 @@ export const MeetingMessageInput = forwardRef<
   { meetingId, editingMessage, onSubmit, onCancelEdit },
   ref,
 ) {
+  const controlledPopupId = useControlledPopupId();
   const { resolvedTheme } = useTheme();
   const [message, setMessage] = useState(editingMessage?.content ?? "");
   const [uploads, setUploads] = useState<UploadingMeetingMedia[]>([]);
@@ -264,7 +266,7 @@ export const MeetingMessageInput = forwardRef<
       )}
 
       {isEmojiOpen && (
-        <AnchoredPopover onClose={() => setIsEmojiOpen(false)} side="top" align="end" aria-label="Message emoji"
+        <AnchoredPopover id={`${controlledPopupId}-isEmojiOpen`} onClose={() => setIsEmojiOpen(false)} side="top" align="end" aria-label="Message emoji"
           ref={emojiPickerRef}
           className="z-[90] overflow-hidden rounded-lg border border-border bg-card shadow-panel"
         >
@@ -301,7 +303,7 @@ export const MeetingMessageInput = forwardRef<
 
         {!editingMessage && (
           <div className="relative shrink-0">
-            <MeetingIconButton
+            <MeetingIconButton aria-expanded={isAttachOptionsOpen} aria-controls={`${controlledPopupId}-isAttachOptionsOpen`} aria-haspopup="menu"
               label="Attach options"
               icon={Paperclip}
               disabled={isUploading}
@@ -310,7 +312,7 @@ export const MeetingMessageInput = forwardRef<
             />
 
             {isAttachOptionsOpen && (
-              <AnchoredMenu onClose={() => setIsAttachOptionsOpen(false)} side="top" align="start" aria-label="Message attachments" className="z-[95] flex min-w-40 flex-col gap-1 rounded-panel border border-border bg-card p-2 shadow-panel">
+              <AnchoredMenu id={`${controlledPopupId}-isAttachOptionsOpen`} onClose={() => setIsAttachOptionsOpen(false)} side="top" align="start" aria-label="Message attachments" className="z-[95] flex min-w-40 flex-col gap-1 rounded-panel border border-border bg-card p-2 shadow-panel">
                 <DropdownMenuItem closeOnClick={false}
 
                   onClick={() => {
@@ -358,7 +360,7 @@ export const MeetingMessageInput = forwardRef<
           }}
         />
 
-        <MeetingIconButton
+        <MeetingIconButton aria-expanded={isEmojiOpen} aria-controls={`${controlledPopupId}-isEmojiOpen`} aria-haspopup="dialog"
           ref={emojiButtonRef}
           label="Insert emoji"
           icon={Smile}

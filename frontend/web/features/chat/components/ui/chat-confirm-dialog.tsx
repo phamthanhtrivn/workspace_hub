@@ -1,4 +1,5 @@
 "use client";
+import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
@@ -72,6 +73,7 @@ export function ChatConfirmDialog({
   onConfirm,
   onCancel,
 }: ChatConfirmDialogProps) {
+  const inputFieldId = useInputFieldId();
   const IconComponent = iconByVariant[variant];
   const isConfirmDisabled =
     isLoading ||
@@ -107,10 +109,10 @@ export function ChatConfirmDialog({
             ) : null}
             {confirmationText !== undefined ? (
               <div className="mt-4 space-y-2">
-                <label className="text-xs font-semibold uppercase text-muted-foreground">
+                <label htmlFor={`${inputFieldId}-field-112`} className="text-xs font-semibold uppercase text-muted-foreground">
                   {confirmationLabel ?? `Type "${confirmationText}" to confirm`}
                 </label>
-                <Input unstyled
+                <Input id={`${inputFieldId}-field-112`} unstyled
                   type="text"
                   value={confirmationValue}
                   disabled={isLoading}

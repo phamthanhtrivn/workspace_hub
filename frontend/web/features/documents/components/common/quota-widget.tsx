@@ -1,3 +1,4 @@
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
@@ -6,7 +7,7 @@ import { calculateQuotaStats } from "../../utils/documents.utils";
 import { cn } from "@/lib/utils";
 
 function QuotaWidget() {
-  const { data: quota, isLoading } = useQuery({
+  const { data: quota, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["document-quota"],
     queryFn: documentsApi.getQuota,
   });
@@ -26,7 +27,7 @@ function QuotaWidget() {
     );
   }
 
-  if (!quota) return null;
+  if (!quota) return <QueryFeedback label="storage usage" error={isError} retrying={isFetching} onRetry={() => refetch()} />;
 
   return (
     <div className="rounded-panel border border-border bg-background p-4">

@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 export interface SettingFieldProps {
   label?: string;
+  description?: string;
   error?: string;
   className?: string;
 }
@@ -19,7 +20,7 @@ export interface SettingInputProps
     SettingFieldProps {}
 
 export const SettingInput = React.forwardRef<HTMLInputElement, SettingInputProps>(
-  ({ label, error, className, id, ...props }, ref) => {
+  ({ label, description, error, className, id, ...props }, ref) => {
     const generatedId = React.useId();
     const inputId = id ?? generatedId;
     return (
@@ -30,9 +31,10 @@ export const SettingInput = React.forwardRef<HTMLInputElement, SettingInputProps
           </label>
         )}
         <Input
+          {...props}
           id={inputId}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${inputId}-error` : undefined}
+          aria-describedby={[props["aria-describedby"], description ? `${inputId}-description` : undefined, error ? `${inputId}-error` : undefined].filter(Boolean).join(" ") || undefined}
           ref={ref}
           className={cn(
             "h-10 rounded-control border bg-card px-3 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground focus-visible:ring-2",
@@ -41,8 +43,8 @@ export const SettingInput = React.forwardRef<HTMLInputElement, SettingInputProps
               : "border-input focus-visible:border-primary focus-visible:ring-ring",
             className,
           )}
-          {...props}
         />
+        {description && <p id={`${inputId}-description`} className="text-xs text-muted-foreground">{description}</p>}
         {error && <p id={`${inputId}-error`} role="alert" className="text-xs font-semibold text-destructive-content">{error}</p>}
       </div>
     );
@@ -85,6 +87,7 @@ export const SettingSlider = React.forwardRef<HTMLInputElement, SettingSliderPro
             inputRef: ref,
             onBlur,
             "aria-describedby": error ? `${id}-error` : undefined,
+            "aria-invalid": Boolean(error) || undefined,
             getAriaValueText: (_, currentValue) => `${currentValue}${unit}`,
           }}
         />
@@ -106,17 +109,22 @@ export interface SettingTextareaProps
 export const SettingTextarea = React.forwardRef<
   HTMLTextAreaElement,
   SettingTextareaProps
->(({ label, error, className, id, ...props }, ref) => {
+>(({ label, description, error, className, id, ...props }, ref) => {
+  const generatedId = React.useId();
+  const inputId = id ?? generatedId;
   return (
     <div className="flex flex-col gap-1 w-full">
       {label && (
-        <label htmlFor={id} className="text-sm font-semibold text-foreground">
+        <label htmlFor={inputId} className="text-sm font-semibold text-foreground">
           {label}
         </label>
       )}
       <Textarea
-        id={id}
+        {...props}
+        id={inputId}
         ref={ref}
+        aria-invalid={Boolean(error) || undefined}
+        aria-describedby={[props["aria-describedby"], description ? `${inputId}-description` : undefined, error ? `${inputId}-error` : undefined].filter(Boolean).join(" ") || undefined}
         className={cn(
           "rounded-control border bg-card px-3 py-2.5 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground focus-visible:ring-2 resize-none",
           error
@@ -124,9 +132,9 @@ export const SettingTextarea = React.forwardRef<
             : "border-input focus-visible:border-primary focus-visible:ring-ring",
           className,
         )}
-        {...props}
       />
-      {error && <p className="text-xs font-semibold text-destructive-content">{error}</p>}
+      {description && <p id={`${inputId}-description`} className="text-xs text-muted-foreground">{description}</p>}
+      {error && <p id={`${inputId}-error`} role="alert" className="text-xs font-semibold text-destructive-content">{error}</p>}
     </div>
   );
 });

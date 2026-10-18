@@ -4,6 +4,75 @@ Updated 2026-10-18. This records the approved targeted simplification. Inter, wo
 
 The original inventory contains **417 TSX files** across **687 source files**. Every TSX file is listed below: **328 change**, **70 keep**, and **19 functional/content exception**. An exception may include changes to surrounding interface styling. Shared focus logic is listed separately. The added tests, temporary scripts, Playwright setup, and generated test reports were subsequently removed at the user's request; the verification results below are historical.
 
+<!-- web-ux-hardening:start -->
+## Cross-module UX hardening — 2026-10-18
+
+Implements the approved critique follow-up across the entire web frontend. The inventory below supersedes earlier counts in this historical audit. The navy/neutral palette, stored custom colors, media/document contents, backend APIs, permissions, authentication and saved-theme application remain unchanged. Pomodoro continues to exclude overdue tasks by the user's explicit choice.
+
+### Requirement and implementation coverage
+
+| Approved requirement | Implemented source evidence |
+| --- | --- |
+| Keyboard-operable actions | Channel/DM primary buttons are siblings of overflow actions; space selection, profile actions, polls, version upload, notification renderers, task property/title/description editing and document opening use owned controls. Poll choices use native adapters with radio/checkbox semantics. Task drag surfaces guard keyboard bubbling from child controls. |
+| Named forms and validation | Shared Settings fields generate IDs and connect labels, descriptions and errors. Rich-text fields accept accessible naming props; poll options and search/edit fields are named. Auth fields have matching labels, autocomplete, required constraints and validation focus. OTP cells expose digit positions/error descriptions and accept full-code autofill. |
+| Mobile navigation and overlays | Workspace and Project navigation, Calendar navigation, Chat detail/thread panels and narrow Documents Details use SheetPanel with modal lifecycle only at their actual breakpoint. Closed panels are inert. Shared modal handling follows opening order, restores focus and retains reference-counted scroll locking; the old Project sidebar lock/Escape effect was removed. |
+| Popup relationships | Controlled menu/popover triggers expose expanded state, popup kind and stable IDs. Owned adapters provide a compatibility relationship for existing triggers; context-menu rectangles remain supported. Mention options have listbox/option semantics, an active descendant and keyboard scrolling without taking composer focus. |
+| Accurate async states | Shared QueryFeedback provides pending/error/Retry feedback without owning feature data. Account, Preferences, Security, Password, Calendar, Documents explorer/versions/folder picker, Notifications and Chat thread/search/file/note/poll/pin views distinguish failures from genuine empty results. Existing content is retained where a refresh fails. Version upload errors show an error icon/status rather than a spinner. |
+| Settings draft lifecycle | Account, Preferences and Pomodoro panes retain drafts while changing sections. Query updates do not replace dirty fields. Closing offers Save changes / Discard / Keep editing; saves run Account → Preferences → Pomodoro, stop on failure and expose the failed pane. Password/OTP inputs are discarded on leaving their pane, with a warning when dirty. Closing or changing account destroys the draft session. No browser/Redux persistence was added. |
+| Trustworthy action feedback | Shared-document link copy awaits clipboard success and offers selectable text on failure. File download failures are visible. AI navigation is labeled Coming soon; public acquisition copy describes working connections. Public shared-document text is English, and sign-in preserves the safe document return path. Public rename composes the owned document input dialog. |
+| Discovery and density | Documents implements Ctrl/Cmd+K for visible search outside editing/modal contexts. Help & shortcuts is available from the user menu. Project assignee shortcuts are grouped under disclosure without changing query semantics. Read filters, view switches and media toggles expose their actual selected/pressed state. Pomodoro explains eligibility and links back to the task source. |
+| Pointer/touch states | Owned buttons and tab triggers provide a 44px minimum target for coarse pointers. Hover-revealed actions are also exposed on focus and devices without hover. Chat message actions remain inside the narrow layout; search/password input spacing reserves room for larger action targets. |
+| Regression boundary | The local shared-ui ESLint rule additionally rejects unexplained click-only nonsemantic controls. Existing native-input, vendor-DOM and drag ownership exceptions are retained. No dependency, backend, API module or theme-token changes were required. |
+
+### Current source inventory
+
+All **431 TSX sources** were included in the final read-only AST screen. This is source coverage, not certification that every rendering branch or device was exercised.
+
+| Area | TSX |
+| --- | ---: |
+| App routes/layouts/public | 27 |
+| Shared common/layout/UI | 45 |
+| Auth | 4 |
+| Calendar | 35 |
+| Chat | 90 |
+| Dashboard | 12 |
+| Documents | 39 |
+| Meetings | 71 |
+| Notifications | 16 |
+| Pomodoro | 28 |
+| Projects | 51 |
+| User settings | 11 |
+| Store providers | 2 |
+| **Total** | **431** |
+
+The three additional TSX sources since critique are the common QueryFeedback, WorkspaceHelpDialog and Settings draft context/hook. The media/container-query hooks are owned UI TypeScript helpers. The prior consolidation inventory also omitted the two pre-existing store providers; they are counted here.
+
+### Intentional interaction exceptions
+
+Thirteen source boundaries carry an explicit data-ui-interaction-exception reason. They do not create an alternative base control:
+
+- Workspace backdrop; notification-detail backdrop; followed-thread backdrop; media-lightbox backdrop: pointer dismissal with a named close control and Escape supplied by the modal lifecycle.
+- Followed-thread content, media-lightbox toolbar and image: stop propagation or preserve media dragging without adding a second action.
+- Search-result row: pointer delegation has a named shared Open message button; formatted links remain independently operable, outside that button.
+- Compact focus action and task priority wrapper: prevent the parent task card from activating; contained owned controls handle keyboard interaction.
+- Hidden-label tooltip trigger: focusable information trigger; its click handler only prevents parent activation.
+- Project calendar drag chip: dnd-kit owns keyboard attributes and an explicit Enter/Space handler opens the task.
+- Backlog inline-creation container: propagation boundary around owned form controls.
+
+Hidden file inputs, the intentionally native OTP cells, rich/document/media content, library-generated DOM and specialized drag structures retain the earlier ownership exceptions.
+
+### Bounded verification and limitations
+
+- TypeScript: noEmit with incremental disabled passed. No package, test suite, test file, server or cache setup was added.
+- Focused ESLint: **140 changed/new TS/TSX/MJS files**, **138 existing errors / 44 existing warnings**, **zero added diagnostics** against HEAD after normalizing diagnostic locations; **zero shared-ui violations**. Unrelated existing React Compiler/hook and other baseline findings remain.
+- Final AST screen: 431 TSX parsed; zero syntax diagnostics, unexplained click-only candidates, unnamed direct Input/Textarea/NativeSelect candidates or statically nested controls. Wrapped fields, spread props and third-party/composed output still require runtime inspection; screening does not prove their rendered behavior.
+- Eight in-memory ESLint policy fixtures passed: raw buttons/vendor imports/click-only or incomplete keyboard controls are rejected; owned controls, explicit boundaries, keyboard drag surfaces and hidden file inputs are accepted. No fixture files were written.
+- One final full-target detector pass returned one side-tab warning at chat/utils/message-formatter.tsx:441. It is the existing neutral semantic blockquote border, an intentional false positive. No decorative recoloring or quote-border removal was applied.
+- A fresh browser inventory returned apps=[] and browsers=[]. Desktop/mobile, both themes, 200% zoom, live Tab/Escape/focus restoration, screen-reader output, touch, uploads, drag-and-drop and media/device checks could not be run. No screenshot, overlay or end-to-end success is claimed.
+- No current full-web critique snapshot existed for polish to close. This audit records the implementation and limits directly.
+
+<!-- web-ux-hardening:end -->
+
 <!-- shared-base-ui:start -->
 ## Shared base UI consolidation - 2026-10-18
 
@@ -18,9 +87,9 @@ Preserves the approved layout, navy/neutral themes, native form/ref/event contra
 - Validation: TypeScript passed with noEmit and incremental disabled after resolving adapter integration errors. ESLint checked 198 changed/new TS/TSX/MJS files: 151 existing errors and 51 existing warnings, zero added diagnostics against HEAD after normalizing diagnostic locations; zero shared-ui boundary violations. A focused scan of shared components returned no detector findings; in-memory policy checks confirmed raw buttons are rejected and hidden file inputs are allowed. Source inventory found zero unclassified native base controls or feature createPortal imports.
 - Browser inventory returned no apps/browsers. Runtime desktop/mobile, theme, keyboard, touch, drag-and-drop, upload and device checks could not run. Source coverage is not rendered-state certification. No test suite, packages, server, temporary test files or cache setup were added.
 
-### Current source coverage
+### Source coverage at base consolidation
 
-All 426 current TSX files are classified below: 36 owned UI, 263 direct consumers, 73 consumers through composition, and 54 content/layout/provider sources. Import-graph classification documents ownership; it does not assert every branch was rendered. The 10 allowed native inputs are listed separately.
+At consolidation, 426 TSX files are classified below: 36 owned UI, 263 direct consumers, 73 consumers through composition, and 54 content/layout/provider sources. Import-graph classification documents ownership; it does not assert every branch was rendered. The 10 allowed native inputs are listed separately.
 
 | Module | TSX files | Owned UI | Direct | Composed | Content/layout/provider |
 | --- | ---: | ---: | ---: | ---: | ---: |

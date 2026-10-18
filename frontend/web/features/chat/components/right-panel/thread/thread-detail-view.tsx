@@ -1,3 +1,4 @@
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, {
   useCallback,
   useEffect,
@@ -214,7 +215,7 @@ export default function ThreadDetailView({
   };
 
   // Fetch thread messages (root message + replies)
-  const { data: threadData, isLoading } = useQuery({
+  const threadQuery = useQuery({
     queryKey: chatKeys.threadMessages(
       isDirect ? ChatScope.DIRECT : ChatScope.CHANNEL,
       rootMessage.id,
@@ -226,6 +227,7 @@ export default function ThreadDetailView({
     staleTime: 1000 * 30, // 30s
   });
 
+  const { data: threadData, isLoading } = threadQuery;
   const activeRootMessage = threadData?.data?.rootMessage || rootMessage;
   const replies = threadData?.data?.replies || [];
 
@@ -632,7 +634,8 @@ export default function ThreadDetailView({
         </div>
 
         {/* Loading / Replies */}
-        {isLoading ? (
+        {threadQuery.isError && replies.length > 0 && <QueryFeedback label="thread replies" error retrying={threadQuery.isFetching} onRetry={() => threadQuery.refetch()} />}
+        {threadQuery.isError && replies.length === 0 ? <QueryFeedback label="thread replies" error retrying={threadQuery.isFetching} onRetry={() => threadQuery.refetch()} /> : isLoading ? (
           <div className="text-center text-xs text-muted-foreground py-4">
             Loading comments...
           </div>

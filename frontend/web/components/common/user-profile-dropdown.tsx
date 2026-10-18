@@ -1,9 +1,11 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import React, { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, User } from "lucide-react";
+import { WorkspaceHelpDialog } from "./workspace-help-dialog";
+import { HelpCircle, LogOut, Settings, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { clearCredentials } from "@/store/auth/auth-slice";
@@ -28,6 +30,7 @@ interface UserProfileDropdownProps {
 const UserProfileDropdown = React.memo(function UserProfileDropdown({
   onOpenSettings,
 }: UserProfileDropdownProps) {
+  const controlledPopupId = useControlledPopupId();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const logoutMutation = useLogoutMutation();
@@ -40,6 +43,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   } = useAppSelector((state) => state.auth);
   const { data: profileResponse } = useUserProfileQuery();
 
+  const [helpOpen, setHelpOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -79,7 +83,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <Button variant="unstyled"
+      <Button aria-expanded={isUserDropdownOpen} aria-controls={`${controlledPopupId}-isUserDropdownOpen`} aria-haspopup="menu" variant="unstyled"
         ref={triggerRef}
         type="button"
         onClick={() => setIsUserDropdownOpen((prev) => !prev)}
@@ -100,7 +104,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
       </Button>
 
       {isUserDropdownOpen && (
-        <AnchoredMenu onClose={() => setIsUserDropdownOpen(false)} side="bottom" align="end" aria-label="User menu" className="z-50 w-56 rounded-panel border border-border bg-card p-2 ring-1 ring-foreground/5 focus:outline-none animate-in fade-in slide-in-from-top-2 shadow-panel">
+        <AnchoredMenu id={`${controlledPopupId}-isUserDropdownOpen`} onClose={() => setIsUserDropdownOpen(false)} side="bottom" align="end" aria-label="User menu" className="z-50 w-56 rounded-panel border border-border bg-card p-2 ring-1 ring-foreground/5 focus:outline-none animate-in fade-in slide-in-from-top-2 shadow-panel">
           <div className="px-3 py-2 border-b border-border mb-1">
             <p className="truncate text-sm font-semibold text-foreground">
               {fullName || "Workspace User"}
@@ -133,6 +137,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
               <Settings className="h-4 w-4" />
               Settings
             </DropdownMenuItem>
+            <DropdownMenuItem closeOnClick={false} onClick={() => { setIsUserDropdownOpen(false); triggerRef.current?.focus(); setHelpOpen(true); }}><HelpCircle className="size-4" />Help & shortcuts</DropdownMenuItem>
             <DropdownMenuItem closeOnClick={false}
               onClick={handleLogout}
               disabled={logoutMutation.isPending}
@@ -144,6 +149,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
           </div>
         </AnchoredMenu>
       )}
+      <WorkspaceHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 });

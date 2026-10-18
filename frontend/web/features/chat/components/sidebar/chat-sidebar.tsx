@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
@@ -106,6 +107,7 @@ function ProjectSpaceBadge() {
 }
 
 export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
+  const controlledPopupId = useControlledPopupId();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCreateSpaceModalOpen, setIsCreateSpaceModalOpen] = useState(false);
@@ -682,11 +684,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       {/* Header with Space Selector Dropdown */}
       <div className="p-3 border-b border-border relative" ref={dropdownRef}>
         <div
-          onClick={() => setIsSpaceDropdownOpen((prev) => !prev)}
           className="flex items-center justify-between px-3 py-2 bg-background border border-border hover:bg-muted hover:border-border rounded-panel cursor-pointer transition-all duration-200 select-none group"
         >
           <div className="flex min-w-0 flex-1 flex-col pr-2">
-            <h2 className="flex min-w-0 items-start gap-1.5 text-sm font-semibold leading-tight text-foreground mb-2">
+            <h2 className="mb-2"><Button aria-controls={`${controlledPopupId}-isSpaceDropdownOpen`} variant="unstyled" type="button" aria-haspopup="menu" aria-expanded={isSpaceDropdownOpen} onClick={() => setIsSpaceDropdownOpen(prev => !prev)} className="flex w-full min-w-0 items-start gap-1.5 text-left text-sm font-semibold leading-tight text-foreground">
               <span className="min-w-0 break-words">
                 {activeSpace ? activeSpace.name : "Select Space"}
               </span>
@@ -694,7 +695,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 size={14}
                 className="mt-0.5 shrink-0 text-muted-foreground transition group-hover:text-muted-foreground"
               />
-            </h2>
+            </Button></h2>
             <span className="flex flex-wrap items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground select-none">
               <span>Space</span>
               {activeSpace?.projectId && <ProjectSpaceBadge />}
@@ -703,7 +704,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 activeSpace.creatorProfile?.fullName && (
                   <>
                     <span>&bull;</span>
-                    <span
+                    <Button variant="unstyled" type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         dispatch(
@@ -715,7 +716,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                       className="hover:text-info-content hover:underline cursor-pointer normal-case"
                     >
                       {activeSpace.creatorProfile.fullName}
-                    </span>
+                    </Button>
                   </>
                 )}
             </span>
@@ -745,7 +746,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
         {/* Dropdown Menu */}
         {isSpaceDropdownOpen && (
-          <AnchoredMenu onClose={() => setIsSpaceDropdownOpen(false)} side="bottom" align="end" aria-label="Workspace actions" className="z-50 bg-card rounded-panel border border-border py-1.5 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-100 shadow-panel">
+          <AnchoredMenu id={`${controlledPopupId}-isSpaceDropdownOpen`} onClose={() => setIsSpaceDropdownOpen(false)} side="bottom" align="end" aria-label="Workspace actions" className="z-50 bg-card rounded-panel border border-border py-1.5 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-100 shadow-panel">
             <div className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Spaces
             </div>
@@ -755,7 +756,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 return (
                   <div
                     key={space.id}
-                    onClick={() => handleSelectSpace(space.id)}
                     className={cn(
                       "px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-colors flex items-center justify-between gap-2",
                       space.id === activeSpaceId
@@ -765,7 +765,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   >
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="truncate">{space.name}</span>
+                        <DropdownMenuItem closeOnClick={false} onClick={() => handleSelectSpace(space.id)} className="min-w-0 flex-1 px-0 py-1 text-left"><span className="truncate">{space.name}</span></DropdownMenuItem>
                         {space.projectId && <ProjectSpaceBadge />}
                       </div>
                       {hasCollision && space.creatorProfile?.fullName && (
@@ -773,7 +773,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                           <span>
                             Created by
                           </span>
-                          <span
+                          <Button variant="unstyled" type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               setIsSpaceDropdownOpen(false);
@@ -786,7 +786,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                             className="hover:text-info-content hover:underline cursor-pointer"
                           >
                             {space.creatorProfile.email}
-                          </span>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -838,7 +838,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={14}
           />
-          <Input unstyled
+          <Input aria-label="Search channels, conversations" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -866,7 +866,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             </Button>
             {activeSpaceId && (
               <div className="relative" ref={channelsDropdownRef}>
-                <Button variant="unstyled"
+                <Button aria-expanded={isChannelsDropdownOpen} aria-controls={`${controlledPopupId}-isChannelsDropdownOpen`} aria-haspopup="menu" variant="unstyled"
                   onClick={() =>
                     setIsChannelsDropdownOpen(!isChannelsDropdownOpen)
                   }
@@ -876,7 +876,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   <Plus size={14} />
                 </Button>
                 {isChannelsDropdownOpen && (
-                  <AnchoredMenu onClose={() => setIsChannelsDropdownOpen(false)} side="bottom" align="end" aria-label="Channel actions" className="w-44 bg-card border border-border rounded-panel z-50 py-1 text-foreground font-normal normal-case shadow-panel">
+                  <AnchoredMenu id={`${controlledPopupId}-isChannelsDropdownOpen`} onClose={() => setIsChannelsDropdownOpen(false)} side="bottom" align="end" aria-label="Channel actions" className="w-44 bg-card border border-border rounded-panel z-50 py-1 text-foreground font-normal normal-case shadow-panel">
                     <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setIsBrowseChannelsModalOpen(true);

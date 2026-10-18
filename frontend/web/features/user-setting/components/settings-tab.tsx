@@ -11,6 +11,9 @@ import {
   useUserSettingsQuery,
 } from "../hooks/useUserSettingQueries";
 import { getUserSettingErrorMessage } from "../utils/user-setting-error";
+import { QueryFeedback } from "@/components/common/query-feedback";
+import { useSettingsDraft } from "../hooks/use-settings-draft";
+import { UserSettingTab } from "../types/settings.enums";
 import { SettingSelect, SettingSwitchCard } from "./ui/setting-form-controls";
 
 const THEME_OPTIONS = [
@@ -19,15 +22,18 @@ const THEME_OPTIONS = [
 ];
 
 const SettingsTab = React.memo(function SettingsTab() {
-  const { data: settingsResponse, isLoading } = useUserSettingsQuery();
+  const settingsQuery = useUserSettingsQuery();
+  const { data: settingsResponse, isLoading } = settingsQuery;
   const settingsMutation = useUpdateUserSettingsMutation();
   const [settingsForm, setSettingsForm] = useState<UserSettings | null>(null);
 
+  const [savedValue, setSavedValue] = useState("null");
+  const dirty = settingsForm !== null && JSON.stringify(settingsForm) !== savedValue;
   useEffect(() => {
-    if (settingsResponse?.data) {
-      setSettingsForm(settingsResponse.data);
+    if (settingsResponse?.data && !dirty) {
+      setSettingsForm(settingsResponse.data); setSavedValue(JSON.stringify(settingsResponse.data));
     }
-  }, [settingsResponse]);
+  }, [settingsResponse, dirty]);
 
   const updateLocalSetting = <Key extends keyof UserSettings>(
     key: Key,
@@ -43,42 +49,28 @@ const SettingsTab = React.memo(function SettingsTab() {
     );
   };
 
-  const handleSaveSettings = () => {
-    if (!settingsForm) return;
-
-    settingsMutation.mutate(
-      {
-        theme: settingsForm.theme,
-        language: settingsForm.language,
-        timezone: settingsForm.timezone,
-        allowNewDirectMessages: settingsForm.allowNewDirectMessages,
-        muteNotification: settingsForm.muteNotification,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Settings saved successfully");
-        },
-        onError: (error) => {
-          toast.error(
-            getUserSettingErrorMessage(error, USER_SETTING_SAVE_ERROR),
-          );
-        },
-      },
-    );
+  const handleSaveSettings = async () => {
+    if (!settingsForm || settingsMutation.isPending) return false;
+    try {
+      const response = await settingsMutation.mutateAsync({
+        theme: settingsForm.theme, language: settingsForm.language, timezone: settingsForm.timezone,
+        allowNewDirectMessages: settingsForm.allowNewDirectMessages, muteNotification: settingsForm.muteNotification,
+      });
+      setSettingsForm(response.data); setSavedValue(JSON.stringify(response.data));
+      toast.success("Settings saved successfully");
+      return true;
+    } catch (error) { toast.error(getUserSettingErrorMessage(error, USER_SETTING_SAVE_ERROR)); return false; }
   };
+  useSettingsDraft(UserSettingTab.GENERAL, {
+    dirty, pending: settingsMutation.isPending, save: handleSaveSettings,
+    discard: () => { setSettingsForm(settingsResponse?.data ?? null); setSavedValue(JSON.stringify(settingsResponse?.data ?? null)); },
+  });
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-link" />
-      </div>
-    );
-  }
-
-  if (!settingsForm) return null;
+  if (!settingsForm) return <QueryFeedback label="preferences" pending={isLoading} error={settingsQuery.isError} retrying={settingsQuery.isFetching} onRetry={() => settingsQuery.refetch()} />;
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+    <form onSubmit={event => { event.preventDefault(); void handleSaveSettings(); }} className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+      <QueryFeedback label="preferences" error={settingsQuery.isError} retrying={settingsQuery.isFetching} onRetry={() => settingsQuery.refetch()} />
       <h3 className="text-section-title font-semibold text-foreground">Preferences</h3>
 
       <div className="space-y-4">
@@ -120,7 +112,7 @@ const SettingsTab = React.memo(function SettingsTab() {
         />
 
         <Button
-          onClick={handleSaveSettings}
+          type="submit"
           disabled={settingsMutation.isPending}
           className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary cursor-pointer"
         >
@@ -132,7 +124,7 @@ const SettingsTab = React.memo(function SettingsTab() {
           Save Settings
         </Button>
       </div>
-    </div>
+    </form>
   );
 });
 

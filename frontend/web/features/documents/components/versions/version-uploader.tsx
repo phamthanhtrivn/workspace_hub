@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
-import { UploadCloud, Loader2, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { UploadCloud, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { UploadState } from "../../types/documents.enums";
 
 interface VersionUploaderProps {
@@ -39,9 +41,9 @@ export function VersionUploader({
         className="hidden"
       />
       {uploadState === UploadState.IDLE ? (
-        <div
+        <Button variant="unstyled" type="button"
           onClick={onTriggerFileSelect}
-          className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-panel p-6 hover:bg-background hover:border-info-outline cursor-pointer transition-all duration-200 group"
+          className="w-full text-left flex flex-col items-center justify-center border-2 border-dashed border-border rounded-panel p-6 hover:bg-background hover:border-info-outline cursor-pointer transition-all duration-200 group"
         >
           <div className="p-3 bg-background text-muted-foreground rounded-panel group-hover:bg-info-soft group-hover:text-info-content transition-all duration-200 mb-3">
             <UploadCloud size={24} />
@@ -52,7 +54,7 @@ export function VersionUploader({
           <span className="text-xs text-muted-foreground font-semibold mt-1">
             Old versions will be kept safely in history
           </span>
-        </div>
+        </Button>
       ) : (
         <div className="border border-border rounded-panel p-5 bg-background">
           <div className="flex items-center justify-between mb-2">
@@ -62,7 +64,7 @@ export function VersionUploader({
                   size={16}
                   className="text-success-content shrink-0"
                 />
-              ) : (
+              ) : uploadState === UploadState.ERROR ? <AlertCircle size={16} className="shrink-0 text-destructive-content" /> : (
                 <Loader2
                   size={16}
                   className="text-info-content animate-spin shrink-0"
@@ -76,13 +78,13 @@ export function VersionUploader({
               {uploadProgress}%
             </span>
           </div>
-          <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden">
+          <Progress value={uploadState === UploadState.ERROR ? null : uploadProgress} aria-label="Version upload progress" className="w-full bg-muted h-1.5 rounded-full overflow-hidden">
             <div
               className="bg-link h-full rounded-full transition-all duration-200"
               style={{ width: `${uploadProgress}%` }}
             />
-          </div>
-          <p className="text-xs text-muted-foreground font-semibold mt-2">
+          </Progress>
+          <p role={uploadState === UploadState.ERROR ? "alert" : "status"} className="text-xs text-muted-foreground font-semibold mt-2">
             {statusMessage}
           </p>
         </div>

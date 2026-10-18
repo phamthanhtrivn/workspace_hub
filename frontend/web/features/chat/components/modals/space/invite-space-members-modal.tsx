@@ -178,7 +178,7 @@ export default function InviteSpaceMembersModal({
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={16}
             />
-            <Input unstyled
+            <Input aria-label="Enter user email to search" unstyled
               type="text"
               placeholder="Enter user email to search..."
               value={email}
@@ -196,10 +196,10 @@ export default function InviteSpaceMembersModal({
               </div>
             ) : results.length > 0 ? (
               results.map((user) => (
-                <div
+                <Button variant="unstyled" type="button"
                   key={user.id}
                   onClick={() => handleSelectUser(user)}
-                  className="flex items-center justify-between p-2 hover:bg-background rounded-lg cursor-pointer transition"
+                  className="w-full text-left flex items-center justify-between p-2 hover:bg-background rounded-lg cursor-pointer transition"
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 bg-info-soft rounded-full flex items-center justify-center overflow-hidden border border-border">
@@ -224,7 +224,7 @@ export default function InviteSpaceMembersModal({
                       </span>
                     </div>
                   </div>
-                </div>
+                </Button>
               ))
             ) : error ? (
               <div className="text-center py-8 text-xs text-muted-foreground">

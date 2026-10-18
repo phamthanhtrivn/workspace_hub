@@ -5,7 +5,9 @@ import type { EventClickArg } from "@fullcalendar/core";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { QueryFeedback } from "@/components/common/query-feedback";
+import { SheetPanel } from "@/components/ui/sheet";
+import { useElementMinWidth } from "@/components/ui/use-element-min-width";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -67,6 +69,7 @@ export function CalendarWorkspace() {
   const tasksQuery = useCalendarTasks();
   const createCalendar = useCreateCalendar();
   const workspaceRef = useRef<HTMLElement>(null);
+  const wideWorkspace = useElementMinWidth(workspaceRef, 960);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [tasksDrawerOpen, setTasksDrawerOpen] = useState(false);
@@ -260,7 +263,7 @@ export function CalendarWorkspace() {
   }, [tasksData, calendarEvents, projectCalendarIds]);
 
   return (
-    <section ref={workspaceRef} className="@container/calendar-workspace relative h-full min-h-0 min-w-0 w-full overflow-hidden bg-card">
+    <section data-calendar-workspace ref={workspaceRef} className="@container/calendar-workspace relative h-full min-h-0 min-w-0 w-full overflow-hidden bg-card">
       {mobileSidebarOpen && (
         <Button
           type="button"
@@ -271,7 +274,7 @@ export function CalendarWorkspace() {
         />
       )}
       <div className="flex h-full min-h-0 w-full overflow-hidden">
-        <div
+        <SheetPanel id="calendar-navigation" open={wideWorkspace ? desktopSidebarOpen : mobileSidebarOpen} modal={!wideWorkspace} onClose={() => setMobileSidebarOpen(false)} aria-label="Calendar navigation"
           className={cn(
             "z-50 shrink-0 transform transition-transform duration-200 ease-out",
             "fixed inset-y-0 left-0 w-64 @min-[960px]/calendar-workspace:static @min-[960px]/calendar-workspace:inset-auto",
@@ -314,11 +317,12 @@ export function CalendarWorkspace() {
               }}
             />
           </div>
-        </div>
+        </SheetPanel>
 
         <div data-calendar-canvas className="@container/calendar-canvas relative flex min-h-0 min-w-0 flex-1">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
           <CalendarToolbar
+            navigationOpen={wideWorkspace ? desktopSidebarOpen : mobileSidebarOpen}
             title={calendar.title}
             activeView={calendar.activeView}
             onViewChange={calendar.handleViewChange}
@@ -326,16 +330,8 @@ export function CalendarWorkspace() {
             onToggleSidebar={handleToggleSidebar}
           />
 
-          {calendar.hasError ? (
-            <div className="flex flex-1 items-center justify-center p-6">
-              <div className="rounded-panel border border-border bg-card px-5 py-4 text-center">
-                <AlertCircle className="mx-auto h-8 w-8 text-destructive-content" />
-                <p className="mt-2 text-sm font-semibold text-foreground">
-                  Failed to load calendar events
-                </p>
-              </div>
-            </div>
-          ) : (
+          {calendar.hasError && <QueryFeedback label="calendar events" error retrying={calendar.retrying} onRetry={calendar.retry} />}
+          {(!calendar.hasError || calendar.hasLoadedContent) && (
             <CalendarGrid
               calendarRef={calendarRef}
               events={displayEvents}

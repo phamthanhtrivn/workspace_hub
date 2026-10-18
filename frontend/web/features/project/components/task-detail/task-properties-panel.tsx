@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import { useRef, useState } from "react";
 import { CalendarDays, ChevronDown, Layers } from "lucide-react";
@@ -55,6 +56,7 @@ export default function TaskPropertiesPanel({
   onStartDateChange,
   onDueDateChange,
 }: TaskPropertiesPanelProps) {
+  const controlledPopupId = useControlledPopupId();
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
 
@@ -130,13 +132,13 @@ export default function TaskPropertiesPanel({
             Assignee
           </span>
           <div className="relative">
-            <div
+            <Button aria-controls={`${controlledPopupId}-showAssigneeDropdown`} variant="unstyled" type="button" disabled={isReadOnly} aria-expanded={showAssigneeDropdown} aria-haspopup="dialog"
               onClick={
                 isReadOnly
                   ? undefined
                   : () => setShowAssigneeDropdown((prev) => !prev)
               }
-              className={`-ml-1 flex items-center justify-between rounded-lg p-1.5 transition ${
+              className={`w-full text-left -ml-1 flex items-center justify-between rounded-lg p-1.5 transition ${
                 isReadOnly
                   ? "cursor-default"
                   : "cursor-pointer hover:bg-background"
@@ -171,10 +173,10 @@ export default function TaskPropertiesPanel({
               {!isReadOnly && (
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
               )}
-            </div>
+            </Button>
 
             {showAssigneeDropdown && !isReadOnly && (
-              <AnchoredPopover onClose={() => setShowAssigneeDropdown(false)} side="bottom" align="start" aria-label="Task assignee" className="z-20 max-h-48 w-full overflow-y-auto rounded-panel border border-border bg-card py-1 shadow-panel">
+              <AnchoredPopover id={`${controlledPopupId}-showAssigneeDropdown`} onClose={() => setShowAssigneeDropdown(false)} side="bottom" align="start" aria-label="Task assignee" className="z-20 max-h-48 w-full overflow-y-auto rounded-panel border border-border bg-card py-1 shadow-panel">
                 <Button
                   type="button"
                   variant="ghost"
@@ -224,13 +226,13 @@ export default function TaskPropertiesPanel({
             Priority
           </span>
           <div className="relative">
-            <div
+            <Button aria-controls={`${controlledPopupId}-showPriorityDropdown`} variant="unstyled" type="button" disabled={isReadOnly} aria-expanded={showPriorityDropdown} aria-haspopup="menu"
               onClick={
                 isReadOnly
                   ? undefined
                   : () => setShowPriorityDropdown((prev) => !prev)
               }
-              className={`-ml-1 flex items-center justify-between rounded-lg p-1.5 transition ${
+              className={`w-full text-left -ml-1 flex items-center justify-between rounded-lg p-1.5 transition ${
                 isReadOnly
                   ? "cursor-default"
                   : "cursor-pointer hover:bg-background"
@@ -245,10 +247,10 @@ export default function TaskPropertiesPanel({
               {!isReadOnly && (
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
               )}
-            </div>
+            </Button>
 
             {showPriorityDropdown && !isReadOnly && (
-              <AnchoredMenu onClose={() => setShowPriorityDropdown(false)} side="bottom" align="start" aria-label="Task priority" className="z-20 w-full overflow-hidden rounded-panel border border-border bg-card py-1 shadow-panel">
+              <AnchoredMenu id={`${controlledPopupId}-showPriorityDropdown`} onClose={() => setShowPriorityDropdown(false)} side="bottom" align="start" aria-label="Task priority" className="z-20 w-full overflow-hidden rounded-panel border border-border bg-card py-1 shadow-panel">
                 {TASK_DRAWER_PRIORITY_OPTIONS.map((opt) => (
                   <DropdownMenuItem closeOnClick={false}
                     key={opt.value}
@@ -309,7 +311,7 @@ export default function TaskPropertiesPanel({
             <CalendarDays className="h-3 w-3" strokeWidth={2} />
             {task.allDay ? "Start Date" : "Start Date & Time"}
           </span>
-          <Input
+          <Input aria-label="Task start date"
             type={task.allDay ? "date" : "datetime-local"}
             value={startDateValue}
             onChange={(e) => void onStartDateChange(e.target.value)}
@@ -324,7 +326,7 @@ export default function TaskPropertiesPanel({
             <CalendarDays className="h-3 w-3" strokeWidth={2} />
             {task.allDay ? "Due Date" : "Due Date & Time"}
           </span>
-          <Input
+          <Input aria-label="Task due date"
             type={task.allDay ? "date" : "datetime-local"}
             value={dueDateValue}
             onChange={(e) => void onDueDateChange(e.target.value)}

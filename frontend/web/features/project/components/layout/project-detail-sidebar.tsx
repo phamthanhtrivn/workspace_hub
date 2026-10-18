@@ -31,6 +31,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getProjectIdSuffix } from "@/features/project/utils/project-id.utils";
+import { SheetPanel } from "@/components/ui/sheet";
+import { useMediaQuery } from "@/components/ui/use-media-query";
 import { cn } from "@/lib/utils";
 
 export type ProjectViewMode =
@@ -167,6 +169,7 @@ export default function ProjectDetailSidebar({
   onOpenSettings,
   onInviteMembers,
 }: ProjectDetailSidebarProps) {
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const visibleMembers = members.slice(0, 5);
   const remainingMembers = Math.max(0, members.length - visibleMembers.length);
   const membersActive = viewMode === "members";
@@ -189,7 +192,7 @@ export default function ProjectDetailSidebar({
         )}
       />
 
-      <aside
+      <SheetPanel id="project-navigation" open={isDesktop || isMobileOpen} modal={!isDesktop} onClose={onMobileClose}
         aria-label="Project navigation"
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[calc(100vw-3rem)] shrink-0 flex-col border-r border-border bg-sidebar transition-[width,transform,visibility] duration-200 ease-in-out shadow-dialog",
@@ -481,7 +484,7 @@ export default function ProjectDetailSidebar({
             </SidebarTooltip>
           </div>
         </footer>
-      </aside>
+      </SheetPanel>
     </>
   );
 }

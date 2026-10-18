@@ -1,5 +1,6 @@
 "use client";
 
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
@@ -57,7 +58,7 @@ export default function ThreadsListView({
       .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label));
   }, [activeConversation?.members, currentUserId, isDirect, memberProfiles]);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, isFetching, refetch } =
     useInfiniteQuery({
       queryKey: [
         ...chatKeys.threads(
@@ -75,12 +76,14 @@ export default function ThreadsListView({
               20,
               senderId || undefined,
             );
+            if (!res?.success) throw new Error("Could not load threads");
             return res?.success
               ? res.data
               : { messages: [], nextCursor: undefined };
           }
 
           const res = await getChannelThreads(conversationId);
+          if (!res?.success) throw new Error("Could not load threads");
           return {
             messages: res?.success && Array.isArray(res.data) ? res.data : [],
             nextCursor: undefined,
@@ -92,7 +95,7 @@ export default function ThreadsListView({
               ? "Failed to fetch direct message threads list"
               : "Failed to fetch channel threads list",
           );
-          return { messages: [], nextCursor: undefined };
+          throw error;
         }
       },
       initialPageParam: undefined as string | undefined,
@@ -132,6 +135,7 @@ export default function ThreadsListView({
         </Button>
       </div>
 
+      {isError && threads.length > 0 && <QueryFeedback label="conversation threads" error retrying={isFetching} onRetry={() => refetch()} />}
       {isDirect && (
         <div className="px-4 py-3 border-b border-border shrink-0">
           <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground mb-1.5">
@@ -157,7 +161,7 @@ export default function ThreadsListView({
 
       {/* List content */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
-        {isLoading ? (
+        {isError && threads.length === 0 ? <QueryFeedback label="conversation threads" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
           <div className="text-center py-8 text-xs text-muted-foreground italic">
             Loading threads...
           </div>
@@ -174,10 +178,10 @@ export default function ThreadsListView({
             }
 
             return (
-              <div
+              <Button variant="unstyled" type="button"
                 key={msg.id}
                 onClick={() => handleOpenThread(msg)}
-                className="p-3 border border-border hover:border-border hover:bg-info-soft/20 rounded-panel cursor-pointer transition flex flex-col gap-2"
+                className="w-full text-left p-3 border border-border hover:border-border hover:bg-info-soft/20 rounded-panel cursor-pointer transition flex flex-col gap-2"
               >
                 {/* Header info */}
                 <div className="flex items-center gap-2 shrink-0">
@@ -214,7 +218,7 @@ export default function ThreadsListView({
                     </span>
                   )}
                 </div>
-              </div>
+              </Button>
             );
           })
         ) : (

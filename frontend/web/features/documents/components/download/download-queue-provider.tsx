@@ -155,16 +155,15 @@ export function DownloadQueueProvider({
         {/* Header */}
         <div
           className="flex items-center justify-between px-4 py-3 hover:bg-muted transition-colors cursor-pointer"
-          onClick={() => setIsCollapsed((c) => !c)}
         >
-          <div className="flex items-center gap-2.5">
+          <Button variant="unstyled" type="button" aria-expanded={!isCollapsed} onClick={() => setIsCollapsed(value => !value)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
             <Download size={15} className="text-info-content shrink-0" />
             <span className="text-sm font-semibold text-foreground">
               {activeCount > 0
                 ? `Downloading ${activeCount} item${activeCount > 1 ? "s" : ""}...`
                 : "Download completed"}
             </span>
-          </div>
+          </Button>
           <div className="flex items-center gap-1">
             {tasks.some(
               (t) =>
@@ -186,6 +185,7 @@ export function DownloadQueueProvider({
                 e.stopPropagation();
                 setIsCollapsed((c) => !c);
               }}
+              aria-label={isCollapsed ? "Expand downloads" : "Collapse downloads"} aria-expanded={!isCollapsed}
               className="w-6 h-6 flex items-center justify-center rounded-control hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-xs font-semibold cursor-pointer"
             >
               {isCollapsed ? <FaAngleUp /> : <FaAngleDown />}

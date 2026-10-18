@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import React from "react";
 import { Star } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
@@ -144,9 +145,7 @@ export function GridViewCard({
 
         {/* Info Body */}
         <div className="min-w-0 mt-3 flex-1">
-          <h4 className="truncate font-semibold text-sm text-foreground group-hover:text-foreground transition-colors">
-            {item.name}
-          </h4>
+          <h4><Button variant="unstyled" type="button" className="block w-full truncate text-left text-sm font-semibold text-foreground" onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); if (isFolder) onFolderClick(item); else onPreview?.(item); }}>{item.name}</Button></h4>
           <p className="mt-1 text-xs text-muted-foreground font-semibold">
             {isFolder ? "Folder" : formatBytes(item.sizeBytes)}
           </p>

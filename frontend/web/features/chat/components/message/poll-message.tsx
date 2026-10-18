@@ -17,6 +17,8 @@ import { PollResponse } from "../../types/chat.types";
 import EditPollModal from "../modals/message/edit-poll-modal";
 import PollVotersModal from "../modals/message/poll-voters-modal";
 import { Button } from "@/components/ui/button";
+import { NativeCheckbox } from "@/components/ui/checkbox";
+import { NativeRadio } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 
 
@@ -41,6 +43,7 @@ const PollMessage = React.memo(function PollMessage({
   onAddOption,
   onEditPoll,
 }: PollMessageProps) {
+  const pollFieldId = React.useId();
   const currentUser = useAppSelector((state) => state.auth);
   const memberProfiles = useChatMemberProfiles();
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -117,8 +120,8 @@ const PollMessage = React.memo(function PollMessage({
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
                 <span>Created by</span>
                 <span className="font-semibold text-muted-foreground">
-                  <span
-                    className={`font-semibold ${!isMe ? "cursor-pointer hover:underline" : ""}`}
+                  <Button variant="unstyled" type="button"
+                    className={`relative z-30 font-semibold ${!isMe ? "cursor-pointer hover:underline" : ""}`}
                     onClick={() => {
                       if (!isMe) onUserClick?.(poll.createdBy);
                     }}
@@ -128,7 +131,7 @@ const PollMessage = React.memo(function PollMessage({
                       : creatorProfile?.fullName ||
                         creatorProfile?.email ||
                         "User"}
-                  </span>
+                  </Button>
                 </span>
                 <span>-</span>
                 <span>{formatDateTime(poll.createdAt)}</span>
@@ -146,7 +149,7 @@ const PollMessage = React.memo(function PollMessage({
           )}
         </div>
 
-        <div className="space-y-2.5 mb-4">
+        <div role={poll.multipleChoice ? "group" : "radiogroup"} aria-label={poll.title} className="space-y-2.5 mb-4">
           {poll.options.map((option) => {
             const voteCount = option.votes?.length || 0;
             const percentage =
@@ -158,9 +161,12 @@ const PollMessage = React.memo(function PollMessage({
             return (
               <div
                 key={option.id}
-                onClick={() => handleOptionClick(option.id)}
                 className={`relative overflow-hidden rounded-panel border transition-all duration-200 ${isSelected ? "border-info-outline bg-info-soft/20" : "border-border hover:bg-background hover:border-input"} ${!poll.isLocked ? "cursor-pointer" : ""} group`}
               >
+                <label className="absolute inset-0 z-20 cursor-pointer has-[:disabled]:cursor-default rounded-[inherit] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
+                  <span className="sr-only">{option.text}</span>
+                  {poll.multipleChoice ? <NativeCheckbox className="sr-only" checked={Boolean(isSelected)} disabled={poll.isLocked} onChange={() => handleOptionClick(option.id)} /> : <NativeRadio className="sr-only" name={pollFieldId} checked={Boolean(isSelected)} disabled={poll.isLocked} onChange={() => handleOptionClick(option.id)} onClick={() => { if (isSelected) handleOptionClick(option.id); }} />}
+                </label>
                 {/* Progress bar background */}
                 {(userHasVoted || totalVotes > 0) && (
                   <div
@@ -169,7 +175,7 @@ const PollMessage = React.memo(function PollMessage({
                   />
                 )}
 
-                <div className="relative p-3 flex items-center justify-between z-10">
+                <div className="relative p-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-150 ${isSelected ? "border-info-outline bg-primary" : "border-input group-hover:border-info-outline"}`}
@@ -206,7 +212,7 @@ const PollMessage = React.memo(function PollMessage({
                               memberProfiles?.[vote.userId] ||
                               null;
                             return (
-                              <div
+                              <Button variant="unstyled" type="button"
                                 key={idx}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -214,7 +220,7 @@ const PollMessage = React.memo(function PollMessage({
                                     onUserClick?.(vote.userId);
                                   }
                                 }}
-                                className={`w-5 h-5 rounded-full bg-accent border-2 border-border flex items-center justify-center overflow-hidden ${
+                                className={`relative z-30 w-5 h-5 rounded-full bg-accent border-2 border-border flex items-center justify-center overflow-hidden ${
                                   vote.userId !== currentUser?.userId
                                     ? "cursor-pointer hover:z-10"
                                     : ""
@@ -230,7 +236,7 @@ const PollMessage = React.memo(function PollMessage({
                                 ) : (
                                   <User size={10} className="text-muted-foreground" />
                                 )}
-                              </div>
+                              </Button>
                             );
                           })}
                         </div>
@@ -256,7 +262,7 @@ const PollMessage = React.memo(function PollMessage({
                 onSubmit={handleAddOptionSubmit}
                 className="flex gap-2 animate-in fade-in slide-in-from-top-2"
               >
-                <Input unstyled
+                <Input aria-label="Enter new option" unstyled
                   type="text"
                   value={newOptionText}
                   onChange={(e) => setNewOptionText(e.target.value)}

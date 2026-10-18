@@ -52,6 +52,7 @@ interface ProjectDetailToolbarProps {
   onClearFilters: () => void;
   onToggleMembers?: () => void;
   onOpenProjectNavigation: () => void;
+  navigationOpen?: boolean;
   onCreateTask: () => void;
   onInviteMembers?: () => void;
   onOpenProjectChat?: () => void;
@@ -110,6 +111,7 @@ export default function ProjectDetailToolbar({
   onToggleOnlyMyIssues,
   onClearFilters,
   onOpenProjectNavigation,
+  navigationOpen,
   onCreateTask,
   onInviteMembers,
   onOpenProjectChat,
@@ -126,7 +128,7 @@ export default function ProjectDetailToolbar({
           variant="ghost"
           size="icon-sm"
           onClick={onOpenProjectNavigation}
-          aria-label="Open project navigation"
+          aria-label="Open project navigation" aria-expanded={navigationOpen} aria-controls="project-navigation"
           className="mr-1 h-8 w-8 shrink-0 text-muted-foreground hover:bg-muted hover:text-info-content lg:hidden"
         >
           <Menu className="h-4 w-4" />
@@ -245,6 +247,7 @@ export default function ProjectDetailToolbar({
               onAssigneeChange={onAssigneeChange}
             />
 
+            <details className="min-w-0 max-w-full"><summary className="min-h-9 cursor-pointer rounded-control px-2 py-2 text-xs font-semibold text-muted-foreground">Assignee options{selectedAssigneeIds.length > 0 ? ` (${selectedAssigneeIds.length} selected)` : ""}{onlyMyIssues ? " · My tasks" : ""}</summary><div className="flex flex-wrap items-center gap-3 pt-2">
             <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
               <span className="mr-1 text-xs font-semibold text-muted-foreground">
                 Assignee:
@@ -259,6 +262,7 @@ export default function ProjectDetailToolbar({
                       variant="ghost"
                       size="icon"
                       onClick={() => onToggleAssignee(member.userId)}
+                      aria-label={`Filter tasks assigned to ${member.displayName}`} aria-pressed={isSelected}
                       title={member.displayName}
                       className={[
                         "relative h-6 w-6 rounded-full ring-2 transition-transform cursor-pointer p-0",
@@ -278,6 +282,7 @@ export default function ProjectDetailToolbar({
               type="button"
               variant="outline"
               size="sm"
+              aria-pressed={onlyMyIssues}
               onClick={onToggleOnlyMyIssues}
               className={[
                 "h-9 rounded-control px-3 text-xs font-semibold transition cursor-pointer",
@@ -289,6 +294,7 @@ export default function ProjectDetailToolbar({
               Only My Tasks
             </Button>
 
+            </div></details>
             {isFiltersActive && (
               <Button
                 type="button"

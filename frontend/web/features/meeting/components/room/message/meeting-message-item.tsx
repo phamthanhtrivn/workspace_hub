@@ -1,5 +1,6 @@
 "use client";
 
+import { useId } from "react";
 import { useMemo, useState } from "react";
 import { MoreHorizontal, SmilePlus } from "lucide-react";
 import { formatDateTime } from "@/lib/date";
@@ -44,6 +45,7 @@ export function MeetingMessageItem({
   onEdit,
   onRecall,
 }: MeetingMessageItemProps) {
+  const optionsId = useId();
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [optionsRect, setOptionsRect] = useState<DOMRect | null>(null);
@@ -175,7 +177,7 @@ export function MeetingMessageItem({
         {!message.recalled && (
           <div
             className={cn(
-              "mt-0 flex max-h-0 w-max max-w-full flex-wrap items-center gap-1 overflow-hidden opacity-0 transition-[max-height,margin,opacity] duration-150 focus-within:mt-1 focus-within:max-h-24 focus-within:opacity-100 group-hover:mt-1 group-hover:max-h-24 group-hover:opacity-100",
+              "mt-0 flex max-h-0 w-max max-w-full flex-wrap items-center gap-1 overflow-hidden opacity-0 transition-[max-height,margin,opacity] duration-150 focus-within:mt-1 focus-within:max-h-24 focus-within:opacity-100 group-hover:mt-1 group-hover:max-h-24 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100",
               isMe ? "justify-end" : "justify-start",
             )}
           >
@@ -209,6 +211,7 @@ export function MeetingMessageItem({
 
             {(canEdit || canRecall) && (
               <MeetingIconButton
+                aria-haspopup="menu" aria-expanded={isOptionsOpen} aria-controls={optionsId}
                 label="More actions"
                 icon={MoreHorizontal}
                 onClick={(event) => {
@@ -222,7 +225,7 @@ export function MeetingMessageItem({
         )}
       </div>
 
-      <MeetingMessageOptionsMenu
+      <MeetingMessageOptionsMenu id={optionsId}
         isOpen={isOptionsOpen}
         buttonRect={optionsRect}
         onClose={() => setIsOptionsOpen(false)}

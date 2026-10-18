@@ -1,3 +1,4 @@
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { ChevronDown, ChevronRight, Pin } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -44,7 +45,7 @@ export default function PinnedMessagesSection({
   const queryClient = useQueryClient();
   const { unpinMessage: unpinDirectPinnedMessage } = useDirectMessageActions();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: chatKeys.pinnedMessagesPreview(
       isDirect ? ChatScope.DIRECT : ChatScope.CHANNEL,
       conversationId,
@@ -132,7 +133,8 @@ export default function PinnedMessagesSection({
 
       {isExpanded && (
         <div className="px-4 pb-3">
-          {isLoading ? (
+          {isError && pinnedMessages.length > 0 && <QueryFeedback label="pinned messages" error retrying={isFetching} onRetry={() => refetch()} />}
+          {isError && pinnedMessages.length === 0 ? <QueryFeedback label="pinned messages" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
             <div className="text-xs text-muted-foreground py-2">
               Loading pinned messages...
             </div>
@@ -143,12 +145,12 @@ export default function PinnedMessagesSection({
           ) : (
             <div className="space-y-1">
               {pinnedMessages.map((message: any) => (
-                <Button variant="unstyled"
+                <div
                   key={message.id}
-                  onClick={() => onJumpToMessage(message.id)}
+
                   className="w-full cursor-pointer flex items-start gap-2 rounded-control p-2 text-left hover:bg-muted transition"
                 >
-                  {message.senderProfile?.avatarUrl ? (
+                  <Button variant="unstyled" type="button" onClick={() => onJumpToMessage(message.id)} className="flex min-w-0 flex-1 items-start gap-2 text-left">{message.senderProfile?.avatarUrl ? (
                     <img
                       src={message.senderProfile.avatarUrl || ""}
                       alt={
@@ -169,7 +171,7 @@ export default function PinnedMessagesSection({
                       {getPinnedPreviewText(message)}
                     </span>
                   </span>
-                  <span
+                  </Button><Button variant="unstyled" type="button" aria-label="Unpin message"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleUnpin(message.id);
@@ -178,8 +180,8 @@ export default function PinnedMessagesSection({
                     title="Unpin"
                   >
                     <Pin size={13} className="mt-1 shrink-0 text-info-content" />
-                  </span>
-                </Button>
+                  </Button>
+                </div>
               ))}
               {data?.nextCursor && (
                 <SeeAllButton onClick={onSeeAll} className="mt-2">

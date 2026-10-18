@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import { useRef, useState } from "react";
 import { MoreVertical } from "lucide-react";
@@ -23,6 +24,7 @@ interface MeetingIconDropdownProps {
 }
 
 export function MeetingIconDropdown({ label, items }: MeetingIconDropdownProps) {
+  const controlledPopupId = useControlledPopupId();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const hasEnabledItems = items.some((item) => !item.disabled);
@@ -33,7 +35,7 @@ export function MeetingIconDropdown({ label, items }: MeetingIconDropdownProps) 
 
   return (
     <div ref={dropdownRef} className="relative shrink-0">
-      <Button variant="unstyled"
+      <Button aria-controls={`${controlledPopupId}-isOpen`} aria-haspopup="menu" variant="unstyled"
         type="button"
         aria-label={label}
         aria-expanded={isOpen}
@@ -45,7 +47,7 @@ export function MeetingIconDropdown({ label, items }: MeetingIconDropdownProps) 
       </Button>
 
       {isOpen ? (
-        <AnchoredMenu onClose={() => setIsOpen(false)} side="bottom" align="end" aria-label="Meeting actions" className="z-20 w-48 overflow-hidden rounded-lg bg-card py-1 text-card-foreground ring-1 ring-border/10 shadow-panel">
+        <AnchoredMenu id={`${controlledPopupId}-isOpen`} onClose={() => setIsOpen(false)} side="bottom" align="end" aria-label="Meeting actions" className="z-20 w-48 overflow-hidden rounded-lg bg-card py-1 text-card-foreground ring-1 ring-border/10 shadow-panel">
           {items.map((item) => (
             <DropdownMenuItem closeOnClick={false}
               key={item.id}

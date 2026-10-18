@@ -125,7 +125,7 @@ export default function ListView({
                     ))}
 
                   {isCreatingSubtask && onAddTaskInline && (
-                    <div
+                    <div data-ui-interaction-exception="Propagation boundary; no action."
                       className="border-b border-border bg-background pl-16"
                       onClick={(event) => event.stopPropagation()}
                     >

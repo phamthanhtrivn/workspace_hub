@@ -1,4 +1,5 @@
 "use client";
+import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
@@ -37,6 +38,7 @@ export default function ChannelSettingsModal({
   channel,
   onClose,
 }: ChannelSettingsModalProps) {
+  const inputFieldId = useInputFieldId();
   const [settings, setSettings] = useState({
     allowSendMessage: channel.setting?.allowSendMessage ?? true,
     allowPinMessage: channel.setting?.allowPinMessage ?? true,
@@ -138,10 +140,10 @@ export default function ChannelSettingsModal({
             {canEditName ? (
               <div className="flex flex-col items-center gap-4">
                 <div className="w-full">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
+                  <label htmlFor={`${inputFieldId}-field-143`} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
                     Channel Name
                   </label>
-                  <Input unstyled
+                  <Input id={`${inputFieldId}-field-143`} aria-label="Channel Name" unstyled
                     type="text"
                     value={channelName}
                     onChange={(e) => setChannelName(e.target.value)}

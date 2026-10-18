@@ -2,6 +2,7 @@
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
@@ -66,7 +67,7 @@ export function FolderPickerModal({
     pickerRootName,
   ]);
 
-  const { data: response, isLoading } = useQuery({
+  const { data: response, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["folder-picker", currentFolderId, projectId, pickerRootFolderId],
     queryFn: () =>
       documentsApi.getDocuments({
@@ -146,7 +147,7 @@ export function FolderPickerModal({
 
         {/* Sub-folders list */}
         <div className={`${dialogLayout.body} mt-3 flex max-h-56 min-h-36 flex-col gap-1 overflow-y-auto rounded-panel border border-border bg-card p-2`}>
-          {isLoading ? (
+          {isError ? <QueryFeedback label="destination folders" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
             <div className="flex flex-1 flex-col items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin text-info-content" />
               <span className="mt-2 text-xs font-semibold">

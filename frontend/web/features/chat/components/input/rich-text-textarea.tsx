@@ -21,6 +21,11 @@ import { Textarea } from "@/components/ui/textarea";
 
 
 interface RichTextTextareaProps {
+  id?: string;
+  label?: string;
+  "aria-labelledby"?: string;
+  "aria-describedby"?: string;
+  "aria-invalid"?: React.AriaAttributes["aria-invalid"];
   value: string;
   setValue: React.Dispatch<React.SetStateAction<string>>;
   placeholder?: string;
@@ -45,6 +50,11 @@ const FORMAT_BUTTONS: Array<{
 ];
 
 export default function RichTextTextarea({
+  id,
+  label = "Message content",
+  "aria-labelledby": labelledBy,
+  "aria-describedby": describedBy,
+  "aria-invalid": invalid,
   value,
   setValue,
   placeholder,
@@ -79,6 +89,11 @@ export default function RichTextTextarea({
         ))}
       </div>
       <Textarea unstyled
+        id={id}
+        aria-label={labelledBy ? undefined : label}
+        aria-labelledby={labelledBy}
+        aria-describedby={describedBy}
+        aria-invalid={invalid}
         ref={textareaRef}
         value={value}
         onChange={(event) => setValue(event.target.value)}

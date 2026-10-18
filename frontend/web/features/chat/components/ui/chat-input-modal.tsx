@@ -44,6 +44,7 @@ export function ChatInputModal({
   onConfirm,
   onCancel,
 }: ChatInputModalProps) {
+  const fieldId = React.useId();
   const [value, setValue] = useState(defaultValue);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -92,7 +93,7 @@ export function ChatInputModal({
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <Input
+            <Input id={fieldId} aria-label={title} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? `${fieldId}-error` : undefined}
               ref={inputRef}
               value={value}
               onChange={(e) => {
@@ -107,7 +108,7 @@ export function ChatInputModal({
               )}
             />
             {error ? (
-              <p className="mt-1.5 text-xs font-semibold text-destructive-content">{error}</p>
+              <p id={`${fieldId}-error`} role="alert" className="mt-1.5 text-xs font-semibold text-destructive-content">{error}</p>
             ) : null}
           </div>
 

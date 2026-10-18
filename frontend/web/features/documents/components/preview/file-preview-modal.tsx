@@ -10,6 +10,8 @@ import { PreviewFileType } from "../../types/documents.enums";
 import { getPreviewFileType, formatBytes } from "../../utils/documents.utils";
 import { MAX_TEXT_PREVIEW_SIZE } from "../../types/documents.constants";
 import { PreviewContent, PreviewIcon } from "./preview-content";
+import { toast } from "sonner";
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { Download } from "lucide-react";
 import {
   Dialog,
@@ -44,7 +46,7 @@ export function FilePreviewModal({
   const {
     data: previewUrl,
     isLoading: isUrlLoading,
-    error,
+    error, refetch, isFetching,
   } = useQuery({
     queryKey: ["document-preview", item?.id, versionId],
     queryFn: () =>
@@ -111,6 +113,7 @@ export function FilePreviewModal({
         document.body.removeChild(link);
       } catch (err) {
         console.error("Failed to generate download URL", err);
+        toast.error("Could not download this file. Please try again.");
       }
     }
   }, [item, versionId, onDownload]);
@@ -144,7 +147,8 @@ export function FilePreviewModal({
         </DialogHeader>
 
         <div className={`${dialogLayout.body} mt-4 h-[min(65dvh,640px)] overflow-auto rounded-panel bg-background p-4 border border-border`}>
-          <PreviewContent fitToContainer
+          {error && <QueryFeedback label="document preview" error retrying={isFetching} onRetry={() => refetch()} />}
+        <PreviewContent fitToContainer
             item={item}
             previewType={previewType}
             previewUrl={previewUrl}

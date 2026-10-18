@@ -109,12 +109,13 @@ export default function TaskCard({
       onDragStart={handleDragStart}
       onClick={onClick}
       onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           onClick?.();
         }
       }}
-      className={`group relative min-w-0 w-full shrink-0 overflow-visible rounded-panel border border-border bg-card text-left transition duration-150 hover:z-20 hover:border-input hover:bg-background focus-within:z-20 focus-visible:outline-hidden ${
+      className={`group relative min-w-0 w-full shrink-0 overflow-visible rounded-panel border border-border bg-card text-left transition duration-150 hover:z-20 hover:border-input hover:bg-background focus-within:z-20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring ${
         isCompact ? "p-2.5" : "p-3"
       } ${
         isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"
@@ -246,6 +247,7 @@ function TaskPrioritySelect({
 
   return (
     <div
+      data-ui-interaction-exception="Propagation boundary; the contained Select owns activation."
       data-card-interactive="true"
       onClick={stopCardInteraction}
       onPointerDown={stopCardInteraction}

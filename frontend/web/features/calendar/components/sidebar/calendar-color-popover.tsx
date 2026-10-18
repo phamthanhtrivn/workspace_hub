@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import { Check, MoreVertical, Plus } from "lucide-react";
 import { useRef, useState } from "react";
@@ -22,6 +23,7 @@ export function CalendarColorPopover({
   triggerClassName?: string;
   onChange: (color: string) => void | Promise<void>;
 }) {
+  const controlledPopupId = useControlledPopupId();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +35,7 @@ export function CalendarColorPopover({
 
   return (
     <div ref={rootRef} className="relative">
-      <Button
+      <Button aria-controls={`${controlledPopupId}-open`}
         type="button"
         variant="ghost"
         size="icon"
@@ -51,7 +53,7 @@ export function CalendarColorPopover({
       </Button>
 
       {open && (
-        <AnchoredPopover onClose={() => setOpen(false)} side="bottom" align="end"
+        <AnchoredPopover id={`${controlledPopupId}-open`} onClose={() => setOpen(false)} side="bottom" align="end"
           role="dialog"
           aria-label={label}
           className="z-30 w-[12.5rem] max-w-[calc(100vw-1.5rem)] rounded-lg border border-border bg-card p-3 shadow-panel"

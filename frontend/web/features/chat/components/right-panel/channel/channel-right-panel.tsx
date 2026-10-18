@@ -1,5 +1,6 @@
 "use client";
 
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState, useEffect, useRef } from "react";
 import { socketService } from "../../../api/chat-socket.service";
 import { ChatEvent } from "../../../api/chat.events";
@@ -54,6 +55,9 @@ export default function ChannelRightPanel({
   const [detailView, setDetailView] = useState<
     "files" | "polls" | "notes" | "search" | "threads" | "pinned" | null
   >(initialDetailView || null);
+  const [mediaError, setMediaError] = useState(false);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaRetry, setMediaRetry] = useState(0);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -179,6 +183,7 @@ export default function ChannelRightPanel({
       expandedSection === "files" &&
       lastFetchedChatId.current !== activeChannel.id
     ) {
+      setMediaLoading(true); setMediaError(false);
       getChannelMedia(activeChannel.id)
         .then((res: any) => {
           if (res.data && res.data.medias) {
@@ -186,11 +191,9 @@ export default function ChannelRightPanel({
             lastFetchedChatId.current = activeChannel.id;
           }
         })
-        .catch((err: unknown) =>
-          logApiError(err, "Failed to fetch channel media"),
-        );
+        .catch((err: unknown) => { setMediaError(true); logApiError(err, "Could not load conversation files"); }).finally(() => setMediaLoading(false));
     }
-  }, [activeChannel?.id, expandedSection]);
+  }, [activeChannel?.id, expandedSection, mediaRetry]);
 
   useEffect(() => {
     if (activeChannel?.id && lastFetchedChatId.current !== activeChannel.id) {
@@ -378,10 +381,13 @@ export default function ChannelRightPanel({
             onJumpToMessage={handleJumpToMessage}
           />
 
+          {expandedSection === "files" && <QueryFeedback label="conversation files" pending={mediaLoading} error={mediaError} retrying={mediaLoading} onRetry={() => setMediaRetry(value => value + 1)} />}
           <FilesSection
             isExpanded={expandedSection === "files"}
             onToggle={() => toggleSection("files")}
             files={mediaItems}
+            loading={mediaLoading}
+            error={mediaError}
             onOpenPreview={(mediaId) => {
               const visualItems = mediaItems.filter(
                 (m) =>

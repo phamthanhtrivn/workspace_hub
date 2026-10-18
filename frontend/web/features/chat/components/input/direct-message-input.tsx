@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import React, {
   forwardRef,
@@ -71,6 +72,7 @@ const DirectMessageInput = React.memo(
       },
       ref,
     ) {
+  const controlledPopupId = useControlledPopupId();
       const { activeChatId: activeConversationId, activeChatType } =
         useActiveChat();
       const resolvedPlaceholder = placeholder ?? "Type a message...";
@@ -604,7 +606,7 @@ const DirectMessageInput = React.memo(
 
               {/* Actions Trigger Dropdown */}
               <div ref={dmOptionsRef} className="relative flex-shrink-0">
-                <Button variant="unstyled"
+                <Button aria-expanded={showDMOptions} aria-controls={`${controlledPopupId}-showDMOptions`} aria-haspopup="menu" variant="unstyled"
                   type="button"
                   onClick={() => setShowDMOptions(!showDMOptions)}
                   disabled={isUploading}
@@ -617,7 +619,7 @@ const DirectMessageInput = React.memo(
                 </Button>
 
                 {showDMOptions && (
-                  <AnchoredMenu onClose={() => setShowDMOptions(false)} side="top" align="start" aria-label="Message attachments" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                  <AnchoredMenu id={`${controlledPopupId}-showDMOptions`} onClose={() => setShowDMOptions(false)} side="top" align="start" aria-label="Message attachments" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
                     <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setShowDMOptions(false);
@@ -644,7 +646,7 @@ const DirectMessageInput = React.memo(
                 )}
               </div>
 
-              <Textarea unstyled
+              <Textarea unstyled aria-label="Direct message"
                 ref={textareaRef}
                 value={
                   message +
@@ -719,7 +721,7 @@ const DirectMessageInput = React.memo(
                   </div>
 
                   <div ref={micOptionsRef} className="relative flex-shrink-0">
-                    <Button variant="unstyled"
+                    <Button aria-expanded={showMicOptions} aria-controls={`${controlledPopupId}-showMicOptions`} aria-haspopup="menu" variant="unstyled"
                       type="button"
                       onClick={() => {
                         if (isDictating) {
@@ -742,7 +744,7 @@ const DirectMessageInput = React.memo(
                     </Button>
 
                     {showMicOptions && !isDictating && (
-                      <AnchoredMenu onClose={() => setShowMicOptions(false)} side="top" align="end" aria-label="Microphone options" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                      <AnchoredMenu id={`${controlledPopupId}-showMicOptions`} onClose={() => setShowMicOptions(false)} side="top" align="end" aria-label="Microphone options" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
                         <DropdownMenuItem closeOnClick={false}
 
                           onClick={() => {

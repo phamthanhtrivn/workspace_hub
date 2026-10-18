@@ -14,6 +14,7 @@ export const sharedUiRule = {
       control: "Use the shared UI component for <{{tag}}> instead of implementing another base control.",
       vendor: "Import the owned components/ui adapter instead of a vendor primitive.",
       portal: "Use the shared UI portal, Dialog, Sheet or popup adapter.",
+      interaction: "Use a shared button/link for this action. A specialized interaction needs keyboard semantics; a non-action boundary needs an explicit data-ui-interaction-exception reason.",
     },
   },
   create(context) {
@@ -27,10 +28,16 @@ export const sharedUiRule = {
         if (source === "react-dom" && node.specifiers.some((specifier) => specifier.type === "ImportSpecifier" && specifier.imported.name === "createPortal")) context.report({ node, messageId: "portal" });
       },
       JSXOpeningElement(node) {
-        if (node.name.type !== "JSXIdentifier" || !controls.has(node.name.name)) return;
+        if (node.name.type !== "JSXIdentifier") return;
         const tag = node.name.name;
         const attribute = (name) => node.attributes.find((candidate) => candidate.type === "JSXAttribute" && candidate.name.name === name);
         const literal = (name) => attribute(name)?.value?.value;
+        if (["div", "span", "p", "h1", "h2", "h3", "h4", "img"].includes(tag) && attribute("onClick")) {
+          const reason = literal("data-ui-interaction-exception");
+          if (!(typeof reason === "string" && reason.length >= 12) &&
+            !(attribute("role") && attribute("tabIndex") && attribute("onKeyDown"))) context.report({ node, messageId: "interaction" });
+        }
+        if (!controls.has(tag)) return;
         const filePicker = tag === "input" && literal("type") === "file" && (attribute("hidden") || /\bhidden\b/.test(literal("className") || ""));
         const otpCell = tag === "input" && filename.endsWith("/components/common/otp-input.tsx");
         if (filePicker || otpCell) return;

@@ -195,7 +195,7 @@ export default function TaskCommentsSection({
 
                 {editingCommentId === comment.id && !isReadOnly ? (
                   <div className="mt-2 space-y-2">
-                    <Textarea
+                    <Textarea aria-label="Edit comment"
                       value={editingComment}
                       onChange={(event) =>
                         setEditingComment(event.target.value)

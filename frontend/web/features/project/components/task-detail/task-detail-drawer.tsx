@@ -202,7 +202,7 @@ export default function TaskDetailDrawer({
           <div className="flex flex-wrap items-start gap-2.5">
             {isEditingTitle && !isReadOnly ? (
               <div className="min-w-0 flex-1 basis-full space-y-1.5">
-                <Input
+                <Input aria-label="Task title"
                   type="text"
                   value={tempTitle}
                   onChange={(e) => setTempTitle(e.target.value)}
@@ -239,7 +239,8 @@ export default function TaskDetailDrawer({
               </div>
             ) : (
               <>
-                <h2
+                <h2 className="min-w-0 flex-1">
+                <Button variant="unstyled" type="button" disabled={isReadOnly} aria-label="Edit task title"
                   onClick={
                     isReadOnly
                       ? undefined
@@ -249,13 +250,14 @@ export default function TaskDetailDrawer({
                         }
                   }
                   className={[
-                    "min-w-0 flex-1 rounded border border-transparent p-1 -ml-1 text-section-title font-semibold leading-snug text-foreground break-words transition text-section-title",
+                    "w-full text-left min-w-0 flex-1 rounded border border-transparent p-1 -ml-1 text-section-title font-semibold leading-snug text-foreground break-words transition text-section-title",
                     isReadOnly
                       ? "cursor-default"
                       : "cursor-pointer hover:border-input hover:bg-background",
                   ].join(" ")}
                 >
                   {task.title}
+                </Button>
                 </h2>
                 <TaskLabelBadges
                   labels={task.labels}
@@ -302,7 +304,7 @@ export default function TaskDetailDrawer({
             </h3>
             {isEditingDesc && !isReadOnly ? (
               <div className="space-y-2">
-                <Textarea
+                <Textarea aria-label="Task description"
                   value={tempDesc}
                   onChange={(e) => setTempDesc(e.target.value)}
                   rows={4}
@@ -332,7 +334,7 @@ export default function TaskDetailDrawer({
                 </div>
               </div>
             ) : (
-              <div
+              <Button variant="unstyled" type="button" disabled={isReadOnly} aria-label="Edit task description"
                 onClick={
                   isReadOnly
                     ? undefined
@@ -342,7 +344,7 @@ export default function TaskDetailDrawer({
                       }
                 }
                 className={[
-                  "min-h-[60px] p-2.5 rounded-panel border border-transparent bg-background text-xs transition leading-relaxed text-muted-foreground break-words",
+                  "w-full text-left min-h-[60px] p-2.5 rounded-panel border border-transparent bg-background text-xs transition leading-relaxed text-muted-foreground break-words",
                   isReadOnly
                     ? "cursor-default"
                     : "cursor-pointer hover:border-input",
@@ -350,7 +352,7 @@ export default function TaskDetailDrawer({
                 ].join(" ")}
               >
                 {task.description || "Add a description..."}
-              </div>
+              </Button>
             )}
           </div>
 

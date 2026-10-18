@@ -1,3 +1,4 @@
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Filter, Pin, Search } from "lucide-react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -69,7 +70,7 @@ export default function PinnedMessagesDetailView({
   );
   const memberProfiles = useChatMemberProfiles(conversationMemberIds);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, isFetching, refetch } =
     useInfiniteQuery({
       queryKey: [
         ...chatKeys.pinnedMessagesDetail(
@@ -199,7 +200,7 @@ export default function PinnedMessagesDetailView({
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={16}
           />
-          <Input unstyled
+          <Input aria-label="Search pinned messages" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -233,7 +234,7 @@ export default function PinnedMessagesDetailView({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {isLoading ? (
+        {isError && pinnedMessages.length === 0 ? <QueryFeedback label="pinned messages" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
           <div className="text-center text-xs text-muted-foreground py-6">
             Loading pinned messages...
           </div>

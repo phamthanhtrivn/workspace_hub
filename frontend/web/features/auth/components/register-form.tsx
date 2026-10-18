@@ -58,6 +58,7 @@ const RegisterForm = React.memo(function RegisterForm() {
       setErrors({
         confirmPassword: "Passwords do not match",
       });
+      requestAnimationFrame(() => document.getElementById("confirmPassword")?.focus());
       return;
     }
 
@@ -86,6 +87,7 @@ const RegisterForm = React.memo(function RegisterForm() {
           const validationErrors = getAuthValidationErrors(error);
           if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
+            requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
             return;
           }
 
@@ -104,11 +106,11 @@ const RegisterForm = React.memo(function RegisterForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-foreground">
+          <label htmlFor="fullName" className="text-sm font-semibold text-foreground">
             Full Name <span className="text-destructive-content">*</span>
           </label>
 
-          <InputField
+          <InputField autoComplete="name" required
             variant="auth"
             id="fullName"
             type="text"
@@ -121,11 +123,11 @@ const RegisterForm = React.memo(function RegisterForm() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-foreground">
+          <label htmlFor="dob" className="text-sm font-semibold text-foreground">
             Date of Birth <span className="text-destructive-content">*</span>
           </label>
 
-          <InputField
+          <InputField autoComplete="bday" required
             variant="auth"
             id="dob"
             type="date"
@@ -139,11 +141,11 @@ const RegisterForm = React.memo(function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-semibold text-foreground">
+        <label htmlFor="email" className="text-sm font-semibold text-foreground">
           Email <span className="text-destructive-content">*</span>
         </label>
 
-        <InputField
+        <InputField autoComplete="email" required
           variant="auth"
           id="email"
           type="email"
@@ -156,11 +158,11 @@ const RegisterForm = React.memo(function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-semibold text-foreground">
+        <label htmlFor="password" className="text-sm font-semibold text-foreground">
           Password <span className="text-destructive-content">*</span>
         </label>
 
-        <InputField
+        <InputField autoComplete="new-password" required
           variant="auth"
           id="password"
           type={showPassword ? "text" : "password"}
@@ -181,11 +183,11 @@ const RegisterForm = React.memo(function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-semibold text-foreground">
+        <label htmlFor="confirmPassword" className="text-sm font-semibold text-foreground">
           Confirm Password <span className="text-destructive-content">*</span>
         </label>
 
-        <InputField
+        <InputField autoComplete="new-password" required
           variant="auth"
           id="confirmPassword"
           type={showConfirmPassword ? "text" : "password"}

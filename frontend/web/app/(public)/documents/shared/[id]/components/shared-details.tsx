@@ -45,7 +45,7 @@ export function SharedDetails({
             {onRename && (
               <Button variant="unstyled"
                 onClick={onRename}
-                title="Đổi tên tài liệu"
+                title="Rename document"
                 className="p-1 text-muted-foreground hover:text-muted-foreground hover:bg-background rounded-control transition-all cursor-pointer shrink-0"
               >
                 <Edit3 size={14} />
@@ -53,9 +53,9 @@ export function SharedDetails({
             )}
           </h1>
           <div className="flex items-center gap-3 text-xs text-muted-foreground font-semibold mt-1.5 flex-wrap">
-            <span>Dung lượng: {formatBytes(item.sizeBytes)}</span>
+            <span>Size: {formatBytes(item.sizeBytes)}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            <span className="truncate">Chủ sở hữu: {item.ownerEmail}</span>
+            <span className="truncate">Owner: {item.ownerEmail}</span>
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
 
             {/* General Link Access Badge */}
@@ -63,8 +63,8 @@ export function SharedDetails({
               <Globe size={10} />
               <span>
                 {userRole === DocumentRole.EDITOR
-                  ? "Bất kỳ ai có liên kết (Sửa)"
-                  : "Bất kỳ ai có liên kết (Xem)"}
+                  ? "Anyone with the link (Edit)"
+                  : "Anyone with the link (View)"}
               </span>
             </div>
 
@@ -86,7 +86,7 @@ export function SharedDetails({
             className="flex items-center justify-center gap-1.5 rounded-control border border-border hover:bg-background text-muted-foreground px-4 py-3 text-xs font-semibold transition-all cursor-pointer w-full md:w-auto"
           >
             <History size={14} />
-            <span>Lịch sử phiên bản</span>
+            <span>Version history</span>
           </Button>
         )}
         {onDownload && (
@@ -95,7 +95,7 @@ export function SharedDetails({
             className="flex items-center justify-center gap-2 rounded-control bg-primary hover:bg-primary text-primary-foreground px-5 py-3 text-xs font-semibold cursor-pointer transition-all w-full md:w-auto"
           >
             <Download size={14} />
-            <span>Tải xuống tệp</span>
+            <span>Download file</span>
           </Button>
         )}
       </div>

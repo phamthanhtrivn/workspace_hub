@@ -192,7 +192,7 @@ export function ProjectLabelManager({
               {isEditing ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Input
+                    <Input aria-label="Label name"
                       value={editingLabel.name}
                       onChange={(event) =>
                         setEditingLabel((current) => ({
@@ -296,7 +296,7 @@ export function ProjectLabelManager({
       {onCreateLabel ? (
         <div className="mt-4 border-t border-border pt-4">
           <div className="flex items-center gap-2">
-            <Input
+            <Input aria-label="Label name"
               value={newLabel.name}
               onChange={(event) =>
                 setNewLabel((current) => ({

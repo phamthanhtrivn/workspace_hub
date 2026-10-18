@@ -28,6 +28,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const fieldId = React.useId();
   const [title, setTitle] = useState("");
   const [options, setOptions] = useState<string[]>(["", ""]);
   const [multipleChoice, setMultipleChoice] = useState(true);
@@ -90,10 +91,10 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
 
         <form onSubmit={handleSubmit} className={`${dialogLayout.body} p-6 space-y-5`}>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <label htmlFor={`${fieldId}-question`} className="block text-sm font-medium text-foreground mb-1">
               Poll Question
             </label>
-            <Input unstyled
+            <Input unstyled id={`${fieldId}-question`}
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -109,7 +110,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
             </label>
             {options.map((option, index) => (
               <div key={index} className="flex items-center gap-2">
-                <Input unstyled
+                <Input unstyled id={`${fieldId}-option-${index}`} aria-label={`Poll option ${index + 1}`}
                   type="text"
                   value={option}
                   onChange={(e) => handleOptionChange(index, e.target.value)}

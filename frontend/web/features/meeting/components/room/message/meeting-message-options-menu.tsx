@@ -11,6 +11,7 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface MeetingMessageOptionsMenuProps {
   isOpen: boolean;
+  id?: string;
   buttonRect: DOMRect | null;
   onClose: () => void;
   onEdit: () => void;
@@ -21,6 +22,7 @@ interface MeetingMessageOptionsMenuProps {
 
 export function MeetingMessageOptionsMenu({
   isOpen,
+  id,
   buttonRect,
   onClose,
   onEdit,
@@ -38,7 +40,7 @@ export function MeetingMessageOptionsMenu({
 
 
 
-  return typeof document === "undefined" ? null : <AnchoredMenu ref={menuRef} onClose={onClose} anchorRect={buttonRect} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="end"  className="z-[100] min-w-40 rounded-lg border border-border bg-card py-1 text-sm text-muted-foreground shadow-panel">
+  return typeof document === "undefined" ? null : <AnchoredMenu id={id} aria-label="Meeting message options" ref={menuRef} onClose={onClose} anchorRect={buttonRect} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="end"  className="z-[100] min-w-40 rounded-lg border border-border bg-card py-1 text-sm text-muted-foreground shadow-panel">
       {canEdit && (
         <DropdownMenuItem closeOnClick={false}
           onClick={() => {

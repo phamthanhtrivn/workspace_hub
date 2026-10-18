@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 
 interface MentionDropdownProps {
   query: string | null;
+  id: string;
   members: any[];
   selectedIndex: number;
   onSelect: (user: any) => void;
@@ -12,16 +13,20 @@ interface MentionDropdownProps {
 
 export default React.memo(function MentionDropdown({
   query,
+  id,
   members,
   selectedIndex,
   onSelect,
 }: MentionDropdownProps) {
+  React.useEffect(() => {
+    document.getElementById(`${id}-option-${selectedIndex}`)?.scrollIntoView({ block: "nearest" });
+  }, [id, selectedIndex]);
   if (query === null || members.length === 0) return null;
 
   return (
-    <div className="absolute bottom-full left-0 mb-2 w-64 max-w-full max-h-[min(12rem,40dvh)] overflow-y-auto bg-card border border-border rounded-panel z-50 py-1 animate-in fade-in zoom-in-95 duration-200 shadow-panel">
+    <div id={id} role="listbox" aria-label="Mention suggestions" className="absolute bottom-full left-0 mb-2 w-64 max-w-full max-h-[min(12rem,40dvh)] overflow-y-auto bg-card border border-border rounded-panel z-50 py-1 animate-in fade-in zoom-in-95 duration-200 shadow-panel">
       {members.map((user, idx) => (
-        <Button variant="unstyled"
+        <Button variant="unstyled" type="button" role="option" id={`${id}-option-${idx}`} aria-selected={idx === selectedIndex} tabIndex={-1} onMouseDown={event => event.preventDefault()}
           key={user.id}
           onClick={(e) => {
             e.preventDefault();

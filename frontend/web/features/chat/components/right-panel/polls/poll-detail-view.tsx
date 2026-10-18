@@ -1,3 +1,4 @@
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState, useEffect } from "react";
 import { ArrowLeft, BarChart2, Loader2, Search } from "lucide-react";
 import ViewPollModal from "../../modals/message/view-poll-modal";
@@ -27,7 +28,7 @@ export default function PollDetailView({
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const { polls, loading } = usePolls(conversationId, debouncedSearchQuery);
+  const { polls, loading, isError, retrying, retry } = usePolls(conversationId, debouncedSearchQuery);
 
   const selectedPoll = polls.find((poll) => poll.id === selectedPollId);
   const getVoteCount = (poll: PollResponse) =>
@@ -57,7 +58,7 @@ export default function PollDetailView({
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={16}
           />
-          <Input unstyled
+          <Input aria-label="Search polls by title" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -68,7 +69,8 @@ export default function PollDetailView({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {loading ? (
+        {isError && polls.length > 0 && <QueryFeedback label="polls" error retrying={retrying} onRetry={() => retry()} />}
+          {isError && polls.length === 0 ? <QueryFeedback label="polls" error retrying={retrying} onRetry={() => retry()} /> : loading ? (
           <div className="text-center py-4 flex justify-center">
             <Loader2 className="animate-spin text-muted-foreground" size={24} />
           </div>
@@ -81,10 +83,10 @@ export default function PollDetailView({
         ) : (
           <div className="flex flex-col gap-3">
             {polls.map((poll) => (
-              <div
+              <Button variant="unstyled" type="button"
                 key={poll.id}
                 onClick={() => setSelectedPollId(poll.id)}
-                className="p-4 bg-info-soft border border-border rounded-panel cursor-pointer hover:bg-info-soft transition-colors"
+                className="w-full text-left p-4 bg-info-soft border border-border rounded-panel cursor-pointer hover:bg-info-soft transition-colors"
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-info-soft text-info-content rounded-lg flex items-center justify-center flex-shrink-0">
@@ -109,7 +111,7 @@ export default function PollDetailView({
                     </div>
                   </div>
                 </div>
-              </div>
+              </Button>
             ))}
           </div>
         )}

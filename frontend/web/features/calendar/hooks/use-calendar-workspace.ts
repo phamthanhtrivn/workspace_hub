@@ -37,6 +37,9 @@ export function useCalendarWorkspace(
     events,
     displayTimeZone: defaultCalendar?.timeZone || "Asia/Ho_Chi_Minh",
     hasError: calendarsQuery.isError || eventsQuery.isError,
+    hasLoadedContent: calendarsQuery.data !== undefined && eventsQuery.data !== undefined,
+    retrying: calendarsQuery.isFetching || eventsQuery.isFetching,
+    retry: () => Promise.all([calendarsQuery.refetch(), eventsQuery.refetch()]),
     isPreparingDefaultCalendar:
       calendars.length === 0 && calendarsQuery.isLoading,
     loading: calendarsQuery.isLoading || eventsQuery.isLoading,

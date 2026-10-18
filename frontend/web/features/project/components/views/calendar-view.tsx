@@ -188,7 +188,7 @@ function DroppableCalendarDay({
                 variant="ghost"
                 size="icon"
                 onClick={() => onCreateDate(keyStr)}
-                className="pointer-events-auto h-7 w-7 rounded-control text-muted-foreground opacity-0 transition hover:bg-muted hover:text-muted-foreground group-hover:opacity-100 cursor-pointer p-0"
+                className="pointer-events-auto h-7 w-7 rounded-control text-muted-foreground opacity-0 transition hover:bg-muted hover:text-muted-foreground group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 cursor-pointer p-0"
                 aria-label={`Create task for ${keyStr}`}
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -231,6 +231,7 @@ function DraggableUnscheduledTask({
 
   return (
     <div
+      data-ui-interaction-exception="Drag surface uses dnd-kit keyboard attributes and an Enter/Space handler."
       ref={setNodeRef}
       {...attributes}
       {...listeners}

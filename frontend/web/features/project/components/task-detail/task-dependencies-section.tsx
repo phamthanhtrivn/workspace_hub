@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import { useRef, useState } from "react";
 import { Link2 } from "lucide-react";
@@ -52,6 +53,7 @@ export default function TaskDependenciesSection({
   onDeleteDependency,
   disabled = false,
 }: TaskDependenciesSectionProps) {
+  const controlledPopupId = useControlledPopupId();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -79,7 +81,7 @@ export default function TaskDependenciesSection({
     <div className="flex flex-wrap items-center gap-1.5" ref={containerRef}>
       {onCreateDependency && !disabled && (
         <div className="relative">
-          <Button
+          <Button aria-expanded={isOpen} aria-controls={`${controlledPopupId}-isOpen`} aria-haspopup="dialog"
             type="button"
             variant="outline"
             size="sm"
@@ -90,7 +92,7 @@ export default function TaskDependenciesSection({
             Blocked by ({taskDependencies.length})
           </Button>
           {isOpen && (
-            <AnchoredPopover onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task dependencies" className="z-30 max-h-60 w-64 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
+            <AnchoredPopover id={`${controlledPopupId}-isOpen`} onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task dependencies" className="z-30 max-h-60 w-64 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
               {dependencyCandidates.length === 0 ? (
                 <p className="px-3 py-2.5 text-xs text-muted-foreground">
                   No available tasks can block this task.

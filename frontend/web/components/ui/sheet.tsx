@@ -34,5 +34,5 @@ export function SheetPanel({ open, onClose, modal = false, modalBelow, modalCont
   const isModal = modalBelow === undefined ? modal : compact;
   const { captureOpener } = useModalDialog({ dialogRef: panelRef, onClose, enabled: open, trapFocus: isModal, lockDocumentScroll: isModal });
   return <aside ref={(node) => { panelRef.current = node; if (typeof ref === "function") ref(node); else if (ref) ref.current = node; }}
-    data-slot="sheet-panel" role={isModal ? "dialog" : "complementary"} aria-modal={isModal && open ? true : undefined} aria-hidden={!open} tabIndex={-1} onFocusCapture={(event) => { captureOpener(event); onFocusCapture?.(event); }} {...props} />;
+    data-slot="sheet-panel" role={isModal ? "dialog" : "complementary"} aria-modal={isModal && open ? true : undefined} aria-hidden={!open} inert={!open ? true : undefined} tabIndex={-1} onFocusCapture={(event) => { captureOpener(event); onFocusCapture?.(event); }} {...props} />;
 }

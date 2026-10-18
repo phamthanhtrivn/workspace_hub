@@ -35,7 +35,7 @@ export function DashboardTasks({
     >
       <QueryFeedback query={personal} label="personal tasks" />
       <QueryFeedback query={project} label="project tasks" />
-      <div className="mb-3 flex flex-wrap gap-1" aria-label="Filter tasks">
+      <div role="group" className="mb-3 flex flex-wrap gap-1" aria-label="Filter tasks">
         {(["All", "Overdue", "Today"] as const).map((filter) => (
           <Button variant="unstyled"
             key={filter}

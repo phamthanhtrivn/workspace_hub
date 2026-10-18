@@ -303,7 +303,7 @@ export default function ProjectMembersView({
         {activeTab !== "PENDING" && (
           <div className="relative min-w-0 w-full @min-[800px]/project-detail:w-64">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
+            <Input aria-label="Search members"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}

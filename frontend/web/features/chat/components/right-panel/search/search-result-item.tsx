@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import {
   User,
@@ -108,11 +109,11 @@ export default function SearchResultItem({
   };
 
   return (
-    <div
+    <div data-ui-interaction-exception="Pointer row delegation; the named Open message button is the keyboard equivalent."
       onClick={() => onClick(message.id)}
-      className="cursor-pointer hover:bg-muted p-3 rounded-panel transition flex gap-3 items-start"
+      className="w-full text-left cursor-pointer hover:bg-muted p-3 rounded-panel transition flex gap-3 items-start"
     >
-      <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden bg-muted">
+      <Button variant="unstyled" type="button" aria-label={`Open message from ${fullName}`} onClick={event => { event.stopPropagation(); onClick(message.id); }} className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden bg-muted">
         {avatarUrl ? (
           <Image
             src={avatarUrl}
@@ -124,7 +125,7 @@ export default function SearchResultItem({
         ) : (
           <User size={20} className="text-muted-foreground" />
         )}
-      </div>
+      </Button>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <div className="flex justify-between items-baseline mb-1">

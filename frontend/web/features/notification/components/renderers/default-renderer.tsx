@@ -14,7 +14,7 @@ export const DefaultListItemRenderer: React.FC<{
   onClick: () => void;
 }> = ({ notification, onClick }) => {
   return (
-    <div
+    <Button variant="unstyled" type="button"
       onClick={onClick}
       className={`flex items-start gap-3 p-3 hover:bg-background cursor-pointer transition border-b border-border last:border-0 ${!notification.isRead ? "bg-info-soft/50" : ""}`}
     >
@@ -38,7 +38,7 @@ export const DefaultListItemRenderer: React.FC<{
       {!notification.isRead && (
         <div className="w-2 h-2 rounded-full bg-link mt-1.5 flex-shrink-0"></div>
       )}
-    </div>
+    </Button>
   );
 };
 
@@ -76,7 +76,7 @@ export const DefaultModalRenderer: React.FC<{
           onClick={onClose}
           className="px-4 py-2 bg-muted hover:bg-accent text-foreground rounded-control text-sm font-semibold transition cursor-pointer"
         >
-          Đóng
+          Close
         </Button>
       </div>
     </div>

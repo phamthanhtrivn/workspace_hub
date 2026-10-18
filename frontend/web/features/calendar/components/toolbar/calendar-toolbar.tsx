@@ -13,12 +13,14 @@ import { CALENDAR_VIEW_OPTIONS } from "../../types/calendar.constants";
 
 export function CalendarToolbar({
   title,
+  navigationOpen,
   activeView,
   onViewChange,
   onNavigate,
   onToggleSidebar,
 }: {
   title: string;
+  navigationOpen: boolean;
   activeView: string;
   onViewChange: (view: string) => void;
   onNavigate: (direction: "prev" | "next" | "today") => void;
@@ -35,7 +37,7 @@ export function CalendarToolbar({
           size="icon"
           onClick={onToggleSidebar}
           className="grid h-9 w-9 cursor-pointer place-items-center rounded-control text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          aria-label="My Calendars"
+          aria-label="My Calendars" aria-expanded={navigationOpen} aria-controls="calendar-navigation"
           title="My Calendars"
         >
           <Menu className="h-5 w-5" />

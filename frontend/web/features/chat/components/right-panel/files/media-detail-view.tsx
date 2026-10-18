@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useMemo, useState, useEffect } from "react";
 import {
   ArrowLeft,
@@ -161,7 +163,7 @@ export default function MediaDetailView({
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, isFetching, refetch } =
     useInfiniteQuery({
       queryKey: [
         "media",
@@ -190,7 +192,7 @@ export default function MediaDetailView({
               ? "Failed to fetch direct message media detail"
               : "Failed to fetch channel media detail",
           );
-          return { medias: [], nextCursor: undefined };
+          throw error;
         }
       },
       initialPageParam: undefined as string | undefined,
@@ -242,6 +244,7 @@ export default function MediaDetailView({
       saveAs(blob, item.name);
     } catch (error) {
       console.error("Download error:", error);
+      toast.error("Could not download this file. Please try again.");
     }
   };
 
@@ -265,7 +268,7 @@ export default function MediaDetailView({
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={16}
           />
-          <Input unstyled
+          <Input aria-label="Search files by name" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -295,7 +298,8 @@ export default function MediaDetailView({
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">
-        {isLoading ? (
+        {isError && allItems.length > 0 && <QueryFeedback label="conversation files" error retrying={isFetching} onRetry={() => refetch()} />}
+        {isError && allItems.length === 0 ? <QueryFeedback label="conversation files" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
           <div className="text-center text-sm text-muted-foreground py-4">
             Loading files...
           </div>
@@ -309,12 +313,12 @@ export default function MediaDetailView({
               const kind = getMediaKind(item);
 
               return (
-                <Button variant="unstyled"
+                <div
                   key={item.id}
-                  onClick={() => openItem(item)}
+
                   className="group flex w-full cursor-pointer items-center gap-3 rounded-control border border-border bg-card p-2 text-left transition hover:bg-background"
                 >
-                  <span className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted flex items-center justify-center">
+                  <Button variant="unstyled" type="button" onClick={() => openItem(item)} className="flex min-w-0 flex-1 items-center gap-3 text-left"><span className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted flex items-center justify-center">
                     {kind === "image" && item.fileUrl ? (
                       <img
                         src={item.fileUrl}
@@ -342,16 +346,16 @@ export default function MediaDetailView({
                       {formatFileSize(item.sizeBytes)} - {formatMediaDate(item)}
                     </span>
                   </span>
-                  {item.fileUrl && (
-                    <span
+                  </Button>{item.fileUrl && (
+                    <Button variant="unstyled" type="button" aria-label="Download file"
                       onClick={(e) => handleDownload(e, item)}
-                      className="rounded-md p-2 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100"
+                      className="rounded-md p-2 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
                       title="Download"
                     >
                       <Download size={16} />
-                    </span>
+                    </Button>
                   )}
-                </Button>
+                </div>
               );
             })}
             <div

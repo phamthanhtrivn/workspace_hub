@@ -45,7 +45,7 @@ const InputField = React.memo(function InputField({
           placeholder={placeholder}
           aria-invalid={Boolean(error) || undefined}
           aria-describedby={[inputProps["aria-describedby"], error && id ? `${id}-error` : undefined].filter(Boolean).join(" ") || undefined}
-          className="h-full w-full bg-transparent text-sm outline-none"
+          className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none"
         />
 
         {rightIcon && (

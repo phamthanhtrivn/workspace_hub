@@ -12,7 +12,8 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { MAX_TEXT_PREVIEW_SIZE } from "@/features/documents/types/documents.constants";
 import { useAppSelector } from "@/store/store";
-import Swal from "sweetalert2";
+import { DocumentsInputModal } from "@/features/documents/components/ui/documents-input-modal";
+import { QueryFeedback } from "@/components/common/query-feedback";
 import VersionManagementModal from "@/features/documents/components/versions/version-management-modal";
 
 import { SharedHeader } from "./components/shared-header";
@@ -28,6 +29,11 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
   const { id } = use(params);
   const isLoggedIn = useAppSelector((state) => !!state.auth.accessToken);
 
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const [item, setItem] = useState<DocumentItem | null>(null);
   const [userRole, setUserRole] = useState<DocumentRole>(DocumentRole.NONE);
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(undefined);
@@ -45,12 +51,14 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
 
     async function loadData() {
       setIsLoading(true);
-      setError(null);
+      setError(null); setAccessDenied(false); setPreviewError(null);
+      let metadataAvailable = false;
       try {
         // 1. Fetch public metadata
         const data = await documentsApi.getPublicDocument(id);
         if (!active) return;
 
+        metadataAvailable = true;
         setItem(data.item);
         setUserRole(data.userRole as DocumentRole);
 
@@ -80,7 +88,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
             if (text.length > MAX_TEXT_PREVIEW_SIZE) {
               setTextContent(
                 text.slice(0, MAX_TEXT_PREVIEW_SIZE) +
-                  "\n\n... [Nội dung quá dài, vui lòng tải xuống để xem toàn bộ] ...",
+                  "\n\n... [Preview truncated. Download to read the full document] ...",
               );
             } else {
               setTextContent(text);
@@ -88,7 +96,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
           } catch (textErr) {
             console.error(textErr);
             if (active) {
-              setTextContent("Không thể tải nội dung tệp văn bản này.");
+              setPreviewError("Could not load the text preview.");
             }
           } finally {
             if (active) setLoadingText(false);
@@ -98,17 +106,19 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
         console.error("Failed to load shared document", err);
         if (active) {
           const axiosError = err as {
-            response?: { data?: { message?: string } };
+            response?: { status?: number; data?: { message?: string } };
             message?: string;
           };
+          if (metadataAvailable) { setPreviewError("Could not load the document preview."); return; }
+          setAccessDenied([401, 403, 404, 410].includes(axiosError.response?.status ?? 0));
           setError(
             axiosError.response?.data?.message ||
               axiosError.message ||
-              "Lỗi tải thông tin chia sẻ",
+              "Could not load shared document details",
           );
         }
       } finally {
-        if (active) setIsLoading(false);
+        if (active) { setIsLoading(false); setIsUrlLoading(false); }
       }
     }
 
@@ -117,7 +127,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, retryKey]);
 
   const handleDownload = async () => {
     if (!item) return;
@@ -130,40 +140,16 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
       document.body.removeChild(link);
     } catch (err) {
       console.error("Failed to download file", err);
-      toast.error("Không thể tạo liên kết tải xuống");
+      toast.error("Could not create a download link");
     }
   };
 
-  const handleRename = () => {
-    if (!item) return;
-    void Swal.fire({
-      title: "Đổi tên tài liệu công khai",
-      input: "text",
-      inputValue: item.name,
-      showCancelButton: true,
-      confirmButtonText: "Lưu lại",
-      cancelButtonText: "Hủy bỏ",
-      confirmButtonColor: "var(--color-primary, var(--primary))",
-      inputValidator: (value) => {
-        if (!value) {
-          return "Tên không được để trống!";
-        }
-        return null;
-      },
-    }).then(async (result) => {
-      if (result.isConfirmed && result.value) {
-        try {
-          const updated = await documentsApi.renamePublicItem(
-            item.id,
-            result.value as string,
-          );
-          setItem(updated);
-          toast.success("Đã đổi tên tài liệu");
-        } catch (err: any) {
-          toast.error(err.response?.data?.message || "Lỗi đổi tên tài liệu");
-        }
-      }
-    });
+  const saveRename = async (name: string) => {
+    if (!item || renaming) return;
+    setRenaming(true);
+    try { const updated = await documentsApi.renamePublicItem(item.id, name); setItem(updated); setRenameOpen(false); toast.success("Document renamed"); }
+    catch { toast.error("Could not rename this document. Please try again."); }
+    finally { setRenaming(false); }
   };
 
   const handleVersionUploaded = async () => {
@@ -178,6 +164,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
       setPreviewUrl(url);
     } catch (err) {
       console.error("Failed to refresh document after upload", err);
+      toast.error("The version was uploaded, but the preview could not refresh. Try again.");
     }
   };
 
@@ -186,14 +173,15 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
       <div className="flex min-h-screen flex-col items-center justify-center bg-background gap-3 text-muted-foreground">
         <Loader2 className="animate-spin text-info-content" size={36} />
         <span className="text-sm font-semibold">
-          Đang tải thông tin tài liệu...
+          Loading document details...
         </span>
       </div>
     );
   }
 
   if (error || !item) {
-    return <SharedDenied />;
+    if (accessDenied) return <SharedDenied />;
+    return <div className="min-h-screen bg-background p-6"><SharedHeader isLoggedIn={isLoggedIn} /><QueryFeedback label="shared document" error onRetry={() => setRetryKey(value => value + 1)} /></div>;
   }
 
   // ── Folder: render folder browser ─────────────────────────────────────────
@@ -233,9 +221,10 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
           userRole={userRole}
           onDownload={handleDownload}
           onViewVersions={() => setIsVersionModalOpen(true)}
-          onRename={userRole === DocumentRole.EDITOR ? handleRename : undefined}
+          onRename={userRole === DocumentRole.EDITOR ? () => setRenameOpen(true) : undefined}
         />
 
+        {previewError && <QueryFeedback label="document preview" error onRetry={() => setRetryKey(value => value + 1)} />}
         {/* Preview Panel */}
         <SharedPreview
           item={item}
@@ -243,11 +232,12 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
           textContent={textContent}
           isUrlLoading={isUrlLoading}
           loadingText={loadingText}
-          error={error}
+          error={previewError}
           onDownload={handleDownload}
         />
       </main>
 
+      <DocumentsInputModal open={renameOpen} title="Rename shared document" defaultValue={item.name} confirmLabel="Save" cancelLabel="Cancel" isLoading={renaming} onCancel={() => setRenameOpen(false)} onConfirm={name => void saveRename(name)} />
       <VersionManagementModal
         isOpen={isVersionModalOpen}
         onClose={() => setIsVersionModalOpen(false)}
@@ -263,7 +253,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
             setIsUrlLoading(false);
           } catch (err) {
             console.error("Failed to preview version", err);
-            toast.error("Không thể xem trước phiên bản này");
+            toast.error("Could not preview this version");
             setIsUrlLoading(false);
           }
         }}

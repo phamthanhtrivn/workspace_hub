@@ -108,7 +108,7 @@ export default function TaskChecklistSection({
           onSubmit={(event) => void handleCreate(event)}
           className="mt-2 flex items-center gap-2"
         >
-          <Input
+          <Input aria-label="Add an item"
             autoFocus
             value={title}
             onChange={(event) => setTitle(event.target.value)}

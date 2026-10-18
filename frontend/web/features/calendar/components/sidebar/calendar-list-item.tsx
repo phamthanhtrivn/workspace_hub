@@ -138,7 +138,7 @@ export function CalendarListItem({
             value={calendar.color}
             label="Color"
             pending={updateCalendar.isPending}
-            triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+            triggerClassName="opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 focus-visible:opacity-100 transition-opacity"
             onChange={changeColor}
           />
         ) : (

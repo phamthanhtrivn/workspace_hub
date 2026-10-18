@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import React from "react";
 import {
   ChevronDown,
@@ -17,6 +18,8 @@ import { Button } from "@/components/ui/button";
 
 interface FilesSectionProps {
   isExpanded: boolean;
+  loading?: boolean;
+  error?: boolean;
   onToggle: () => void;
   files: any[];
   onSeeAll?: () => void;
@@ -61,6 +64,8 @@ function FileThumb({ item }: { item: any }) {
 
 export default function FilesSection({
   isExpanded,
+  loading = false,
+  error = false,
   onToggle,
   files,
   onSeeAll,
@@ -78,6 +83,7 @@ export default function FilesSection({
       saveAs(blob, item.name);
     } catch (error) {
       console.error("Download error:", error);
+      toast.error("Could not download this file. Please try again.");
     }
   };
 
@@ -100,7 +106,7 @@ export default function FilesSection({
 
       {isExpanded && (
         <div className="px-4 pb-4">
-          {files.length === 0 ? (
+          {(loading || error) && files.length === 0 ? null : files.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-2">
               No files available
             </p>
@@ -108,9 +114,12 @@ export default function FilesSection({
             <>
               <div className="flex flex-col gap-2">
                 {displayItems.map((item, idx) => (
-                  <Button variant="unstyled"
+                  <div
                     key={item.id || idx}
-                    onClick={() => {
+
+                    className="group flex w-full cursor-pointer items-center gap-3 rounded-control border border-border p-2 text-left transition hover:bg-background"
+                  >
+                    <Button variant="unstyled" type="button" onClick={() => {
                       if (isVisualFile(item)) {
                         onOpenPreview?.(item.id);
                         return;
@@ -122,10 +131,7 @@ export default function FilesSection({
                           "noopener,noreferrer",
                         );
                       }
-                    }}
-                    className="group flex w-full cursor-pointer items-center gap-3 rounded-control border border-border p-2 text-left transition hover:bg-background"
-                  >
-                    <span className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                    }} className="flex min-w-0 flex-1 items-center gap-3 text-left"><span className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
                       <FileThumb item={item} />
                     </span>
                     <span className="min-w-0 flex-1">
@@ -139,16 +145,16 @@ export default function FilesSection({
                         )}
                       </span>
                     </span>
-                    {item.fileUrl && (
-                      <span
+                    </Button>{item.fileUrl && (
+                      <Button variant="unstyled" type="button" aria-label="Download file"
                         onClick={(e) => handleDownload(e, item)}
-                        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100"
+                        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
                         title="Download"
                       >
                         <Download size={15} />
-                      </span>
+                      </Button>
                     )}
-                  </Button>
+                  </div>
                 ))}
               </div>
               {hasMore && (

@@ -24,6 +24,9 @@ import { cn } from "@/lib/utils";
 import WorkspaceHeader from "./workspace-header";
 import { PomodoroMiniTimer } from "@/features/pomodoro/components/pomodoro-mini-timer";
 import { Button } from "@/components/ui/button";
+import { SheetPanel } from "@/components/ui/sheet";
+import { useMediaQuery } from "@/components/ui/use-media-query";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 const menuItems = [
@@ -72,7 +75,7 @@ const menuItems = [
   {
     href: "/ai",
     label: "AI Assistant",
-    description: "Chat & Smart Insights",
+    description: "Coming soon",
     icon: Bot,
   },
 ];
@@ -87,6 +90,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const currentItem = menuItems.find((item) =>
     isWorkspaceRouteActive(pathname, item.href),
   );
@@ -125,6 +129,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
   }, []);
 
   const handleOpenSettings = useCallback((tab: UserSettingTab) => {
+    setIsMobileMenuOpen(false);
     setActiveSettingsTab(tab);
     setIsSettingsModalOpen(true);
   }, []);
@@ -136,14 +141,14 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
   return (
     <div className="flex h-dvh overflow-hidden bg-background text-foreground">
       {isMobileMenuOpen && (
-        <div
+        <div data-ui-interaction-exception="Backdrop dismissal; close button and Escape are available."
           className="fixed inset-0 z-40 bg-overlay/50 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
             aria-label="Close navigation"
         />
       )}
 
-      <aside
+      <SheetPanel id="workspace-navigation" aria-label="Workspace navigation" open={isDesktop || isMobileMenuOpen} modal={!isDesktop} onClose={() => setIsMobileMenuOpen(false)}
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-sidebar px-4 py-5 transition-all duration-200 ease-in-out lg:relative lg:flex shadow-dialog",
           isMobileMenuOpen
@@ -214,7 +219,8 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
             const description = item.description;
 
             return (
-              <Link
+              <Tooltip key={item.href}><TooltipTrigger asChild><Link
+                aria-label={item.href === "/ai" ? "AI Assistant — coming soon" : label}
                 key={item.href}
                 href={item.href}
                 title={isSidebarCollapsed ? label : undefined}
@@ -257,16 +263,16 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                     </span>
                   </div>
                 </div>
-              </Link>
+              </Link></TooltipTrigger>{isSidebarCollapsed && <TooltipContent>{label}{item.href === "/ai" ? " — coming soon" : ""}</TooltipContent>}</Tooltip>
             );
           })}
         </nav>
 
         <div className="mt-auto mb-2 pt-4">
-          <div
+          <Button variant="unstyled" type="button" aria-label="Open settings"
             onClick={() => handleOpenSettings(UserSettingTab.PROFILE)}
             className={cn(
-              "rounded-panel border border-border bg-background p-4 transition-all duration-200 cursor-pointer hover:bg-muted",
+              "w-full text-left rounded-panel border border-border bg-background p-4 transition-all duration-200 cursor-pointer hover:bg-muted",
               isSidebarCollapsed ? "lg:px-2 lg:flex lg:justify-center" : "",
             )}
           >
@@ -297,12 +303,13 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                 </div>
               </div>
             </div>
-          </div>
+          </Button>
         </div>
-      </aside>
+      </SheetPanel>
 
-      <div className="flex flex-1 flex-col min-w-0 bg-background text-foreground">
+      <div inert={!isDesktop && isMobileMenuOpen ? true : undefined} className="flex flex-1 flex-col min-w-0 bg-background text-foreground">
         <WorkspaceHeader
+          navigationOpen={isMobileMenuOpen}
           currentTitle={currentTitle}
           onMenuClick={handleMenuClick}
           onOpenSettings={handleOpenSettings}

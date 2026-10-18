@@ -121,7 +121,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
   if (isInitializing) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
+      <div role="status" aria-label="Loading your workspace" className="flex h-screen items-center justify-center bg-background">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-border border-t-[var(--color-primary)]"></div>
       </div>
     );

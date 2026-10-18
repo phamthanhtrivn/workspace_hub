@@ -17,7 +17,7 @@ export const InvitationAcceptedListItemRenderer: React.FC<{
   onClick: () => void;
 }> = ({ notification, onClick }) => {
   return (
-    <div
+    <Button variant="unstyled" type="button"
       onClick={onClick}
       className={`flex items-start gap-3 p-3 hover:bg-background cursor-pointer transition border-b border-border last:border-0 ${!notification.isRead ? "bg-info-soft/50" : ""}`}
     >
@@ -44,7 +44,7 @@ export const InvitationAcceptedListItemRenderer: React.FC<{
       {!notification.isRead && (
         <div className="w-2 h-2 rounded-full bg-link mt-1.5 flex-shrink-0"></div>
       )}
-    </div>
+    </Button>
   );
 };
 

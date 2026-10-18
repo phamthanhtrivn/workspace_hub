@@ -1,3 +1,4 @@
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState, useEffect } from "react";
 import { ArrowLeft, FileText, Loader2, Search } from "lucide-react";
 import ViewNoteModal from "../../modals/message/view-note-modal";
@@ -28,7 +29,7 @@ export default function NoteDetailView({
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
-  const { notes, loading } = useNotes(conversationId, debouncedSearchQuery);
+  const { notes, loading, isError, retrying, retry } = useNotes(conversationId, debouncedSearchQuery);
 
   const selectedNote = notes.find((note) => note.id === selectedNoteId);
 
@@ -52,7 +53,7 @@ export default function NoteDetailView({
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={16}
           />
-          <Input unstyled
+          <Input aria-label="Search notes" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -63,7 +64,8 @@ export default function NoteDetailView({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        {loading ? (
+        {isError && notes.length > 0 && <QueryFeedback label="notes" error retrying={retrying} onRetry={() => retry()} />}
+          {isError && notes.length === 0 ? <QueryFeedback label="notes" error retrying={retrying} onRetry={() => retry()} /> : loading ? (
           <div className="text-center py-4 flex justify-center">
             <Loader2 className="animate-spin text-muted-foreground" size={24} />
           </div>
@@ -76,10 +78,10 @@ export default function NoteDetailView({
         ) : (
           <div className="flex flex-col gap-3">
             {notes.map((note) => (
-              <div
+              <Button variant="unstyled" type="button"
                 key={note.id}
                 onClick={() => setSelectedNoteId(note.id)}
-                className="p-4 bg-warning-soft border border-border rounded-panel cursor-pointer hover:bg-warning-soft transition-colors"
+                className="w-full text-left p-4 bg-warning-soft border border-border rounded-panel cursor-pointer hover:bg-warning-soft transition-colors"
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-warning-soft text-warning-content rounded-lg flex items-center justify-center flex-shrink-0">
@@ -96,7 +98,7 @@ export default function NoteDetailView({
                     </p>
                   </div>
                 </div>
-              </div>
+              </Button>
             ))}
           </div>
         )}

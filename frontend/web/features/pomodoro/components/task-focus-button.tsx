@@ -17,7 +17,7 @@ function FocusButton({ target, compact = false }: { target: PomodoroActiveTask; 
   const label = current && status === "RUNNING" ? "Focusing" : current && status === "PAUSED" ? "Resume focus" : "Start focus";
   const disabled = !isReady || busy || (current && status === "RUNNING");
   if (compact) return (
-    <span data-card-interactive="true" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+    <span data-ui-interaction-exception="Propagation boundary; the contained shared button owns activation." data-card-interactive="true" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
       <Popover>
         <PopoverTrigger asChild><Button type="button" size="sm" variant="ghost" disabled={disabled} aria-label={`Focus actions: ${target.title}`} title={label} className="size-7 rounded-control p-1 text-info-content"><Timer className="size-3.5" /></Button></PopoverTrigger>
         <PopoverContent align="end" className="w-44 p-1">

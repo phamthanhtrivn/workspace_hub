@@ -12,6 +12,9 @@ import {
   useUserProfileQuery,
 } from "../hooks/useUserSettingQueries";
 import { getUserSettingErrorMessage } from "../utils/user-setting-error";
+import { QueryFeedback } from "@/components/common/query-feedback";
+import { useSettingsDraft } from "../hooks/use-settings-draft";
+import { UserSettingTab } from "../types/settings.enums";
 import PasswordInput from "./password-input";
 import { SettingInput } from "./ui/setting-form-controls";
 
@@ -28,7 +31,8 @@ const EMPTY_PW_FORM: PasswordForm = {
 };
 
 const PasswordTab = React.memo(function PasswordTab() {
-  const { data: profileResponse, isLoading } = useUserProfileQuery();
+  const profileQuery = useUserProfileQuery();
+  const { data: profileResponse, isLoading } = profileQuery;
   const sendOtpMutation = useSendPasswordOtpMutation();
   const setFirstPasswordMutation = useSetFirstPasswordMutation();
   const updatePasswordMutation = useUpdatePasswordMutation();
@@ -88,6 +92,7 @@ const PasswordTab = React.memo(function PasswordTab() {
     }
 
     setPwErrors(errs);
+    if (Object.keys(errs).length) requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-settings-pane] [aria-invalid="true"]')?.focus());
     return Object.keys(errs).length === 0;
   };
 
@@ -164,6 +169,12 @@ const PasswordTab = React.memo(function PasswordTab() {
     );
   };
 
+  useSettingsDraft(UserSettingTab.PASSWORD, {
+    dirty: Boolean(otp || Object.values(pwForm).some(Boolean)),
+    pending: sendOtpMutation.isPending || setFirstPasswordMutation.isPending || updatePasswordMutation.isPending,
+    discard: () => { setPwForm(EMPTY_PW_FORM); setOtp(""); setPwErrors({}); },
+  });
+  if (!profileResponse?.data) return <QueryFeedback label="account security" pending={isLoading} error={profileQuery.isError} retrying={profileQuery.isFetching} onRetry={() => profileQuery.refetch()} />;
   if (isLoading) {
     return (
       <div className="flex h-full min-h-[300px] items-center justify-center">
@@ -186,8 +197,7 @@ const PasswordTab = React.memo(function PasswordTab() {
               Your account doesn&apos;t have a password yet
             </p>
             <p className="text-xs text-warning-content mt-0.5">
-              Without a password, anyone who gains access to your session can
-              permanently lock you out.
+              Set a password to sign in with your email as well as Google. Keep your verification codes private.
             </p>
           </div>
         </div>

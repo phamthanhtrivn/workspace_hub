@@ -85,7 +85,7 @@ export function CalendarDocumentPickerDialog({
           </DialogTitle>
         </DialogHeader>
         <div className={`${dialogLayout.body} space-y-3 p-5`}>
-          <Input
+          <Input aria-label="Search files"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search files"

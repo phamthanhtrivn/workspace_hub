@@ -16,23 +16,33 @@ import {
   getUserSettingErrorMessage,
   getUserSettingValidationErrors,
 } from "../utils/user-setting-error";
+import { QueryFeedback } from "@/components/common/query-feedback";
+import { useSettingsDraft } from "../hooks/use-settings-draft";
+import { UserSettingTab } from "../types/settings.enums";
 import { SettingInput, SettingTextarea } from "./ui/setting-form-controls";
+
+const draftValue = (profile: UserProfile | null) => JSON.stringify(profile ? [profile.fullName, profile.phoneNumber, profile.dob, profile.bio] : null);
 
 const ProfileTab = React.memo(function ProfileTab() {
   const { email } = useAppSelector((state) => state.auth);
-  const { data: profileResponse, isLoading } = useUserProfileQuery();
+  const profileQuery = useUserProfileQuery();
+  const { data: profileResponse, isLoading } = profileQuery;
   const updateProfileMutation = useUpdateUserProfileMutation();
   const uploadAvatarMutation = useUploadAvatarMutation();
 
   const [profileForm, setProfileForm] = useState<UserProfile | null>(null);
+  const [savedValue, setSavedValue] = useState(draftValue(null));
+  const dirty = profileForm !== null && draftValue(profileForm) !== savedValue;
+  const formRef = useRef<HTMLFormElement>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (profileResponse?.data) {
-      setProfileForm(profileResponse.data);
+      if (!dirty) { setProfileForm(profileResponse.data); setSavedValue(draftValue(profileResponse.data)); }
+      else setProfileForm(current => current && current.avatarUrl !== profileResponse.data.avatarUrl ? { ...current, avatarUrl: profileResponse.data.avatarUrl } : current);
     }
-  }, [profileResponse]);
+  }, [profileResponse, dirty]);
 
   const updateProfileField = (field: keyof UserProfile, value: string) => {
     setProfileForm((current) =>
@@ -81,45 +91,34 @@ const ProfileTab = React.memo(function ProfileTab() {
     );
   };
 
-  const handleSaveProfile = () => {
-    if (!profileForm) return;
+  const handleSaveProfile = async () => {
+    if (!profileForm || updateProfileMutation.isPending || uploadAvatarMutation.isPending) return false;
     setErrors({});
-
-    updateProfileMutation.mutate(profileForm, {
-      onSuccess: () => {
-        toast.success("Profile updated successfully.");
-      },
-      onError: (error) => {
-        console.error(error);
-        const validationErrors = getUserSettingValidationErrors(error);
-
-        if (Object.keys(validationErrors).length > 0) {
-          setErrors(validationErrors);
-          return;
-        }
-
-        toast.error(
-          getUserSettingErrorMessage(
-            error,
-            "Something went wrong while saving your profile.",
-          ),
-        );
-      },
-    });
+    try {
+      const response = await updateProfileMutation.mutateAsync(profileForm);
+      setProfileForm(response.data); setSavedValue(draftValue(response.data));
+      toast.success("Profile updated successfully.");
+      return true;
+    } catch (error) {
+      const validationErrors = getUserSettingValidationErrors(error);
+      if (Object.keys(validationErrors).length) {
+        setErrors(validationErrors);
+        requestAnimationFrame(() => formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
+      } else toast.error(getUserSettingErrorMessage(error, "Could not save your profile. Please try again."));
+      return false;
+    }
   };
+  useSettingsDraft(UserSettingTab.PROFILE, {
+    dirty, pending: updateProfileMutation.isPending || uploadAvatarMutation.isPending,
+    save: handleSaveProfile,
+    discard: () => { setProfileForm(profileResponse?.data ?? null); setSavedValue(draftValue(profileResponse?.data ?? null)); setErrors({}); },
+  });
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-link" />
-      </div>
-    );
-  }
-
-  if (!profileForm) return null;
+  if (!profileForm) return <QueryFeedback label="your profile" pending={isLoading} error={profileQuery.isError} retrying={profileQuery.isFetching} onRetry={() => profileQuery.refetch()} />;
 
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
+    <form ref={formRef} noValidate onSubmit={event => { event.preventDefault(); void handleSaveProfile(); }} className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
+      <QueryFeedback label="your profile" error={profileQuery.isError} retrying={profileQuery.isFetching} onRetry={() => profileQuery.refetch()} />
       <h3 className="text-section-title font-semibold text-foreground">
         Personal information
       </h3>
@@ -142,7 +141,7 @@ const ProfileTab = React.memo(function ProfileTab() {
           <Button variant="unstyled"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadAvatarMutation.isPending}
-            className="absolute inset-0 bg-overlay/80 text-media-foreground opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer disabled:opacity-50"
+            className="absolute inset-0 bg-overlay/80 text-media-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer disabled:opacity-50"
             aria-label="Upload avatar"
           >
             {uploadAvatarMutation.isPending ? (
@@ -206,8 +205,8 @@ const ProfileTab = React.memo(function ProfileTab() {
       />
 
       <Button
-        onClick={handleSaveProfile}
-        disabled={updateProfileMutation.isPending}
+        type="submit"
+        disabled={updateProfileMutation.isPending || uploadAvatarMutation.isPending}
         className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary disabled:opacity-70 cursor-pointer"
       >
         {updateProfileMutation.isPending ? (
@@ -217,7 +216,7 @@ const ProfileTab = React.memo(function ProfileTab() {
         )}
         {updateProfileMutation.isPending ? "Saving..." : "Save changes"}
       </Button>
-    </div>
+    </form>
   );
 });
 

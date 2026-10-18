@@ -77,12 +77,12 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
 
         <div className={`${dialogLayout.body} p-2 max-h-[300px] overflow-y-auto`}>
           {displayReactions.map((reaction, idx) => (
-            <div
+            <Button variant="unstyled" type="button"
               key={idx}
               onClick={() => {
                 onClose();
               }}
-              className="flex items-center justify-between p-3 rounded-panel hover:bg-background transition-colors cursor-pointer group"
+              className="w-full text-left flex items-center justify-between p-3 rounded-panel hover:bg-background transition-colors cursor-pointer group"
             >
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -107,7 +107,7 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
                   {reaction.user?.name || "User"}
                 </span>
               </div>
-            </div>
+            </Button>
           ))}
         </div>
       </div>

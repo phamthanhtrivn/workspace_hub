@@ -11,6 +11,8 @@ import { POMODORO_NUMBER_FIELDS, POMODORO_SETTINGS_MESSAGES, POMODORO_SOUND_OPTI
 import type { PomodoroConfig } from "../types/pomodoro";
 import type { PomodoroConfigSyncStatus } from "../utils/pomodoro-config-sync";
 import { fromPomodoroSettingsForm, pomodoroSettingsSchema, toPomodoroSettingsForm, type PomodoroSettingsFormValues } from "../utils/pomodoro-settings-validation";
+import { useSettingsDraft } from "@/features/user-setting/hooks/use-settings-draft";
+import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { playPomodoroSound } from "../utils/sound";
 
 interface PomodoroSettingsFormProps {
@@ -34,27 +36,32 @@ export function PomodoroSettingsForm({ config, syncStatus, onSave }: PomodoroSet
     if (!isDirty && !isSubmitting) reset(toPomodoroSettingsForm(config));
   }, [config, isDirty, isSubmitting, reset]);
 
-  const submit = handleSubmit(async (values) => {
+  const saveDraft = async () => {
+    let savedSuccessfully = false;
+    await handleSubmit(async (values) => {
     clearErrors("root");
     try {
       const saved = await onSave(fromPomodoroSettingsForm(values));
       reset(toPomodoroSettingsForm(saved));
       toast.success(POMODORO_SETTINGS_MESSAGES.saved);
+      savedSuccessfully = true;
     } catch {
       setError("root.server", { message: POMODORO_SETTINGS_MESSAGES.pending });
     }
-  });
+    })();
+    return savedSuccessfully;
+  };
+  useSettingsDraft(UserSettingTab.POMODORO, { dirty: isDirty, pending: disabled, save: saveDraft, discard: () => reset(toPomodoroSettingsForm(config)) });
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-6">
+    <form onSubmit={event => { event.preventDefault(); void saveDraft(); }} noValidate className="space-y-6">
       <fieldset disabled={disabled} className="min-w-0 space-y-4">
         <legend className="mb-4 text-lg font-semibold text-foreground">Duration & goals</legend>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {POMODORO_NUMBER_FIELDS.map((field) => (
             <div key={field.name} className="min-w-0">
-              <SettingInput label={field.label} type="number" min={field.min} max={field.max} step={1}
+              <SettingInput label={field.label} description={"description" in field ? field.description : undefined} type="number" min={field.min} max={field.max} step={1}
                 {...register(field.name, { valueAsNumber: true })} error={errors[field.name]?.message} />
-              {"description" in field && <p className="mt-1 text-xs text-muted-foreground">{field.description}</p>}
             </div>
           ))}
         </div>

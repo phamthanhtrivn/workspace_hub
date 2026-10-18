@@ -68,6 +68,7 @@ export function ItemActionsMenu({
   onShareToChat,
   isProjectDocuments = false,
 }: ItemActionsMenuProps) {
+  const menuId = React.useId();
   const isOpen = activeMenuId === item.id;
   const userRole = item.userRole ?? DocumentRole.OWNER;
   const isOwner = userRole === DocumentRole.OWNER;
@@ -83,6 +84,7 @@ export function ItemActionsMenu({
   return (
     <div className="relative" ref={menuRef}>
       <DocumentsIconButton
+        aria-haspopup="menu" aria-expanded={isOpen} aria-controls={menuId}
         icon={MoreVertical}
         label="Actions"
         showTooltip={false}
@@ -94,7 +96,7 @@ export function ItemActionsMenu({
       />
 
       {isOpen ? (
-        <AnchoredMenu onClose={() => setActiveMenuId(null)} side="bottom" align="end" aria-label="Document actions" className="z-50 w-48 rounded-panel border border-border bg-card p-2 text-xs font-semibold text-foreground animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel">
+        <AnchoredMenu id={menuId} onClose={() => setActiveMenuId(null)} side="bottom" align="end" aria-label="Document actions" className="z-50 w-48 rounded-panel border border-border bg-card p-2 text-xs font-semibold text-foreground animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel">
           {activeView !== DocumentViewType.TRASH ? (
             <>
               {!isFolder && onPreview ? (

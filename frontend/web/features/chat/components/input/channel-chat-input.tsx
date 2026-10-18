@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import React, {
   useState,
@@ -101,6 +102,7 @@ const ChannelChatInput = React.memo(
       },
       ref,
     ) {
+  const controlledPopupId = useControlledPopupId();
       const [message, setMessage] = useState("");
       const [showOptions, setShowOptions] = useState(false);
       const [showFormatting, setShowFormatting] = useState(true);
@@ -142,7 +144,8 @@ const ChannelChatInput = React.memo(
       const [selectedIndex, setSelectedIndex] = useState(0);
       const [mentions, setMentions] = useState<string[]>([]);
 
-      const textareaRef = useRef<HTMLTextAreaElement>(null);
+      const mentionListId = React.useId();
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
       const fileInputRef = useRef<HTMLInputElement>(null);
       const emojiButtonRef = useRef<HTMLButtonElement>(null);
       const mainOptionsRef = useRef<HTMLDivElement>(null);
@@ -814,7 +817,7 @@ const ChannelChatInput = React.memo(
 
               {/* Actions Trigger */}
               <div className="relative flex-shrink-0" ref={mainOptionsRef}>
-                <Button variant="unstyled" aria-label="Message options"
+                <Button aria-expanded={showOptions} aria-controls={`${controlledPopupId}-showOptions`} aria-haspopup="menu" variant="unstyled" aria-label="Message options"
                   type="button"
                   onClick={() => setShowOptions(!showOptions)}
                   disabled={isUploading}
@@ -831,7 +834,7 @@ const ChannelChatInput = React.memo(
                 </Button>
 
                 {showOptions && (
-                  <AnchoredMenu onClose={() => setShowOptions(false)} side="top" align="start" aria-label="Message attachments" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                  <AnchoredMenu id={`${controlledPopupId}-showOptions`} onClose={() => setShowOptions(false)} side="top" align="start" aria-label="Message attachments" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
                     <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setShowOptions(false);
@@ -904,7 +907,7 @@ const ChannelChatInput = React.memo(
               </div>
 
               {/* Mention Dropdown */}
-              <MentionDropdown
+              <MentionDropdown id={mentionListId}
                 query={mentionQuery}
                 members={filteredMembers}
                 selectedIndex={selectedIndex}
@@ -995,7 +998,7 @@ const ChannelChatInput = React.memo(
                 )}
 
                 {/* Textarea Input */}
-                <Textarea unstyled
+                <Textarea unstyled role="combobox" aria-label="Message channel" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
                   id="chat-input-textarea"
                   ref={textareaRef}
                   onPaste={handlePaste}
@@ -1130,7 +1133,7 @@ const ChannelChatInput = React.memo(
 
                     {/* Mic Dictation Trigger */}
                     <div className="relative">
-                      <Button variant="unstyled"
+                      <Button aria-expanded={showMicOptions} aria-controls={`${controlledPopupId}-showMicOptions`} aria-haspopup="menu" variant="unstyled"
                         onClick={() => {
                           if (isDictating) {
                             stopDictation();
@@ -1152,7 +1155,7 @@ const ChannelChatInput = React.memo(
                       </Button>
 
                       {showMicOptions && !isDictating && (
-                        <AnchoredMenu onClose={() => setShowMicOptions(false)} side="top" align="end" aria-label="Microphone options" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                        <AnchoredMenu id={`${controlledPopupId}-showMicOptions`} onClose={() => setShowMicOptions(false)} side="top" align="end" aria-label="Microphone options" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
                           <DropdownMenuItem closeOnClick={false}
                             onClick={() => {
                               setShowMicOptions(false);

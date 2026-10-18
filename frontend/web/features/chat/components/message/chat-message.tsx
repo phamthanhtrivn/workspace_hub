@@ -1,3 +1,4 @@
+import { useId as useControlledPopupId } from "react";
 import React, { useMemo, useState } from "react";
 import { MoreHorizontal, Pin, MessageSquare, SmilePlus } from "lucide-react";
 import { MessageOptionsDropdown } from "./message-options-dropdown";
@@ -83,6 +84,7 @@ const ChatMessage = React.memo(function ChatMessage({
   onPinMessage,
   onThreadReply,
 }: ChatMessageProps) {
+  const controlledPopupId = useControlledPopupId();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [isReactionDetailOpen, setIsReactionDetailOpen] = useState(false);
@@ -347,7 +349,7 @@ const ChatMessage = React.memo(function ChatMessage({
           )}
 
           {!msg.recalled && (
-            <div className="absolute top-1/2 -translate-y-1/2 left-full ml-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 opacity-100 sm:absolute sm:top-1/2 sm:-translate-y-1/2 sm:left-full sm:ml-3 sm:mt-0 sm:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-all duration-200 z-10">
               <Button variant="unstyled"
                 type="button"
                 onClick={() => onThreadReply?.(msg)}
@@ -358,7 +360,7 @@ const ChatMessage = React.memo(function ChatMessage({
               </Button>
 
               <div className="relative">
-                <Button variant="unstyled" aria-label="Add reaction"
+                <Button aria-expanded={showReactionPicker} aria-controls={`${controlledPopupId}-showReactionPicker`} aria-haspopup="dialog" variant="unstyled" aria-label="Add reaction"
                   type="button"
                   onClick={() => setShowReactionPicker((prev) => !prev)}
                   className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
@@ -367,7 +369,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 </Button>
 
                 {showReactionPicker && (
-                  <AnchoredPopover onClose={() => setShowReactionPicker(false)} side="bottom" align="start" aria-label="Message reactions" className="ml-2 bg-card border border-border rounded-full p-1 flex gap-0.5 animate-in fade-in zoom-in-95 duration-100 shadow-panel">
+                  <AnchoredPopover id={`${controlledPopupId}-showReactionPicker`} onClose={() => setShowReactionPicker(false)} side="bottom" align="start" aria-label="Message reactions" className="ml-2 bg-card border border-border rounded-full p-1 flex gap-0.5 animate-in fade-in zoom-in-95 duration-100 shadow-panel">
                     {QUICK_EMOJIS.map((emoji) => (
                       <Button variant="unstyled"
                         type="button"
@@ -382,7 +384,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 )}
               </div>
 
-              <Button variant="unstyled" aria-label="Message options"
+              <Button variant="unstyled" aria-label="Message options" aria-haspopup="menu" aria-expanded={isOptionsMenuOpen} aria-controls={`${controlledPopupId}-message-options`}
                 type="button"
                 onClick={(event) => {
                   setOptionsMenuRect(
@@ -422,7 +424,7 @@ const ChatMessage = React.memo(function ChatMessage({
         })}
       />
 
-      <MessageOptionsDropdown
+      <MessageOptionsDropdown id={`${controlledPopupId}-message-options`}
         isOpen={isOptionsMenuOpen}
         onClose={() => setIsOptionsMenuOpen(false)}
         buttonRect={optionsMenuRect}

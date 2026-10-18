@@ -130,13 +130,13 @@ export function CalendarColorPicker({
 
       {showCustomColor && (
         <div className="flex items-center gap-2">
-          <Input
+          <Input aria-label="Calendar color"
             type="color"
             value={value}
             onChange={(event) => onChange(event.target.value)}
             className="h-9 w-10 cursor-pointer rounded-control border border-input bg-card p-0.5"
           />
-          <Input
+          <Input aria-label="Calendar color"
             value={value}
             onChange={(event) => onChange(event.target.value)}
             className="min-w-0 flex-1 rounded-control border border-input px-3 py-1.5 text-xs font-mono font-medium text-foreground shadow-none outline-none focus-visible:border-info-outline focus-visible:ring-2 focus-visible:ring-ring"

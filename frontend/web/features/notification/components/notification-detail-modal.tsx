@@ -55,7 +55,7 @@ const NotificationDetailModal = React.memo(function NotificationDetailModal({
   if (!mounted) return null;
 
   return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-0">
-      <div
+      <div data-ui-interaction-exception="Backdrop dismissal; close button and Escape are available."
         className="absolute inset-0 bg-overlay/40"
         onClick={onClose}
       ></div>

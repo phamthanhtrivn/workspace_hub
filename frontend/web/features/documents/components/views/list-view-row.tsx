@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import React from "react";
 import { Star } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
@@ -124,9 +125,7 @@ export function ListViewRow({
     >
       <TableCell unstyled className="p-4 flex items-center gap-3 min-w-0">
         <DocumentIcon item={item} iconSize={18} className="p-2 rounded-panel" />
-        <span className="font-semibold text-foreground truncate max-w-xs">
-          {item.name}
-        </span>
+        <Button variant="unstyled" type="button" className="min-w-0 truncate text-left font-semibold text-foreground max-w-xs" onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); if (isFolder) onFolderClick(item); else onPreview?.(item); }}>{item.name}</Button>
         {!isProjectDocuments && item.isStarred ? (
           <Star className="h-3.5 w-3.5 fill-warning-content text-warning-content shrink-0 ml-1" />
         ) : null}

@@ -1,5 +1,6 @@
 "use client";
 
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Folder,
@@ -49,6 +50,7 @@ function SharedFolderBrowserInner({
   rootId,
   userRole,
 }: SharedFolderBrowserProps) {
+  const [loadError, setLoadError] = useState(false);
   const [children, setChildren] = useState<DocumentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentFolderId, setCurrentFolderId] = useState<string>(rootId);
@@ -60,7 +62,7 @@ function SharedFolderBrowserInner({
 
   const loadChildren = useCallback(
     async (folderId: string) => {
-      setIsLoading(true);
+      setIsLoading(true); setLoadError(false);
       try {
         const items = await documentsApi.getPublicFolderChildren(
           rootId,
@@ -69,7 +71,8 @@ function SharedFolderBrowserInner({
         setChildren(items);
       } catch (err) {
         console.error("Failed to load folder children", err);
-        toast.error("Không thể tải nội dung thư mục");
+        setLoadError(true);
+        toast.error("Could not load this folder");
       } finally {
         setIsLoading(false);
       }
@@ -82,6 +85,7 @@ function SharedFolderBrowserInner({
   }, [currentFolderId, loadChildren]);
 
   const handleNavigateInto = (folder: DocumentItem) => {
+    setChildren([]);
     setCurrentFolderId(folder.id);
     setBreadcrumbs((prev) => [...prev, { id: folder.id, name: folder.name }]);
   };
@@ -89,6 +93,7 @@ function SharedFolderBrowserInner({
   const handleBreadcrumbClick = (index: number) => {
     const target = breadcrumbs[index];
     setBreadcrumbs(breadcrumbs.slice(0, index + 1));
+    setChildren([]);
     setCurrentFolderId(target.id);
   };
 
@@ -102,7 +107,7 @@ function SharedFolderBrowserInner({
       document.body.removeChild(a);
     } catch (err) {
       console.error("Failed to download file", err);
-      toast.error("Không thể tải xuống tệp tin");
+      toast.error("Could not download this file");
     }
   };
 
@@ -147,7 +152,7 @@ function SharedFolderBrowserInner({
           className="flex items-center gap-1.5 ml-4 shrink-0 rounded-control bg-primary hover:bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold cursor-pointer transition-all"
         >
           <FolderArchive size={13} />
-          <span>Tải tất cả (ZIP)</span>
+          <span>Download all (ZIP)</span>
         </Button>
       </div>
 
@@ -158,19 +163,20 @@ function SharedFolderBrowserInner({
           className="flex items-center gap-2 w-full px-5 py-3 text-xs font-semibold text-muted-foreground hover:bg-background transition-colors border-b border-border cursor-pointer"
         >
           <ArrowLeft size={13} />
-          <span>Quay lại</span>
+          <span>Back</span>
         </Button>
       )}
 
       {/* File/Folder List */}
-      {isLoading ? (
+      {loadError && <QueryFeedback label="shared folder contents" error retrying={isLoading} onRetry={() => loadChildren(currentFolderId)} />}
+      {loadError && children.length === 0 ? null : isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 size={24} className="animate-spin text-info-content" />
         </div>
       ) : children.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <Folder size={40} className="text-muted-foreground mb-3" />
-          <span className="text-sm font-semibold">Thư mục trống</span>
+          <span className="text-sm font-semibold">This folder is empty</span>
         </div>
       ) : (
         <div className="divide-y divide-border">
@@ -196,7 +202,7 @@ function SharedFolderBrowserInner({
                       {item.name}
                     </p>
                     <p className="text-xs font-semibold text-muted-foreground mt-0.5">
-                      {isFolder ? "Thư mục" : formatBytes(item.sizeBytes)}
+                      {isFolder ? "Folder" : formatBytes(item.sizeBytes)}
                       {" · "}
                       {formatDateShort(item.updatedAt)}
                     </p>
@@ -204,11 +210,11 @@ function SharedFolderBrowserInner({
                 </Button>
 
                 {/* Action buttons */}
-                <div className="flex items-center gap-1 ml-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 ml-3 shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
                   {isFolder ? (
                     <Button variant="unstyled"
                       onClick={() => enqueueDownload(item.id, item.name, true)}
-                      title="Tải xuống thư mục (ZIP)"
+                      title="Download folder (ZIP)"
                       className="p-1.5 rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft transition-colors cursor-pointer"
                     >
                       <FolderArchive size={14} />
@@ -216,7 +222,7 @@ function SharedFolderBrowserInner({
                   ) : (
                     <Button variant="unstyled"
                       onClick={() => void handleDownloadFile(item)}
-                      title="Tải xuống tệp"
+                      title="Download file"
                       className="p-1.5 rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft transition-colors cursor-pointer"
                     >
                       <Download size={14} />

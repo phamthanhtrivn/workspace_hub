@@ -1,3 +1,4 @@
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState } from "react";
 import { BarChart2, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import ViewPollModal from "../../modals/message/view-poll-modal";
@@ -23,7 +24,7 @@ export default function PollsSection({
 
   const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
 
-  const { polls, loading } = usePolls(activeConversation?.id);
+  const { polls, loading, isError, retrying, retry } = usePolls(activeConversation?.id);
 
   const displayPolls = polls.slice(0, 3);
   const hasMore = polls.length > 3;
@@ -48,7 +49,8 @@ export default function PollsSection({
       </Button>
       {isExpanded && (
         <div className="px-4 pb-4">
-          {loading ? (
+          {isError && polls.length > 0 && <QueryFeedback label="polls" error retrying={retrying} onRetry={() => retry()} />}
+          {isError && polls.length === 0 ? <QueryFeedback label="polls" error retrying={retrying} onRetry={() => retry()} /> : loading ? (
             <div className="flex justify-center py-4">
               <Loader2 size={16} className="text-muted-foreground animate-spin" />
             </div>
@@ -60,10 +62,10 @@ export default function PollsSection({
             <>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {displayPolls.map((poll) => (
-                  <div
+                  <Button variant="unstyled" type="button"
                     key={poll.id}
                     onClick={() => setSelectedPollId(poll.id)}
-                    className="p-3 bg-info-soft border border-border rounded-lg cursor-pointer hover:bg-info-soft transition-colors"
+                    className="w-full text-left p-3 bg-info-soft border border-border rounded-lg cursor-pointer hover:bg-info-soft transition-colors"
                   >
                     <p className="text-xs font-semibold text-info-content mb-1 truncate">
                       {poll.title || "Untitled Poll"}{" "}
@@ -73,7 +75,7 @@ export default function PollsSection({
                     <p className="text-xs text-info-content">
                       {`${poll.options?.length || 0} ${poll.options?.length === 1 ? "option" : "options"}`}
                     </p>
-                  </div>
+                  </Button>
                 ))}
               </div>
               {hasMore && (

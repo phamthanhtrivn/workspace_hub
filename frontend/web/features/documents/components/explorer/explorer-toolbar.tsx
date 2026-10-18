@@ -1,6 +1,7 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Grid, List, ChevronDown, FolderPlus, UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DocumentViewType } from "../../types/documents.enums";
@@ -38,7 +39,20 @@ export function ExplorerToolbar({
   sortBy,
   onSortByChange,
 }: ExplorerToolbarProps) {
+  const controlledPopupId = useControlledPopupId();
   const [isNewMenuOpen, setIsNewMenuOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const focusSearch = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.altKey || !(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "k") return;
+      const target = event.target;
+      if (target instanceof HTMLElement && (target.isContentEditable || target.closest("input,textarea,select,[role=combobox]"))) return;
+      if (document.querySelector('[aria-modal="true"]:not([aria-hidden="true"])') || !searchInputRef.current?.getClientRects().length) return;
+      event.preventDefault(); searchInputRef.current.focus();
+    };
+    document.addEventListener("keydown", focusSearch);
+    return () => document.removeEventListener("keydown", focusSearch);
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sortOptions = [
@@ -55,16 +69,16 @@ export function ExplorerToolbar({
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-input pb-5">
       {/* Search Input */}
-      <DocumentsSearchInput
+      <DocumentsSearchInput inputRef={searchInputRef}
         value={searchQuery}
         onChange={onSearchQueryChange}
-        placeholder="Search documents, folders (Ctrl+K)..."
+        placeholder="Search documents and folders..."
         className="w-full min-w-0 max-w-none flex-none @min-[800px]/explorer:max-w-md @min-[800px]/explorer:flex-1"
       />
 
       <div className="flex min-w-0 max-w-full flex-wrap items-center gap-3">
         {/* Sort Select */}
-        <DocumentsSelect
+        <DocumentsSelect ariaLabel="Sort documents"
           value={sortBy}
           options={sortOptions}
           onChange={onSortByChange}
@@ -81,7 +95,7 @@ export function ExplorerToolbar({
                 ? "bg-card text-info-content border border-border"
                 : "text-muted-foreground hover:text-foreground"
             )}
-            title="Grid View"
+            title="Grid View" aria-label="Grid view" aria-pressed={viewLayout === ViewLayout.GRID}
           >
             <Grid className="h-4 w-4" />
           </Button>
@@ -94,7 +108,7 @@ export function ExplorerToolbar({
                 ? "bg-card text-info-content border border-border"
                 : "text-muted-foreground hover:text-foreground"
             )}
-            title="List View"
+            title="List View" aria-label="List view" aria-pressed={viewLayout === ViewLayout.LIST}
           >
             <List className="h-4 w-4" />
           </Button>
@@ -103,7 +117,7 @@ export function ExplorerToolbar({
         {/* Create/Upload Dropdown */}
         {activeView === DocumentViewType.MY_FILES && canEditDocuments ? (
           <div className="relative">
-            <Button
+            <Button aria-expanded={isNewMenuOpen} aria-controls={`${controlledPopupId}-isNewMenuOpen`} aria-haspopup="menu"
               type="button"
               onClick={() => setIsNewMenuOpen((prev) => !prev)}
               className="h-10 gap-2 rounded-control bg-primary hover:bg-primary-hover text-primary-foreground px-4 text-sm font-semibold transition cursor-pointer"
@@ -114,11 +128,7 @@ export function ExplorerToolbar({
 
             {isNewMenuOpen ? (
               <>
-                <div
-                  className="fixed inset-0 z-30"
-                  onClick={() => setIsNewMenuOpen(false)}
-                />
-                <AnchoredMenu onClose={() => setIsNewMenuOpen(false)} side="bottom" align="end" aria-label="Create document" className="z-40 w-48 rounded-panel border border-border bg-card p-1.5 animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel">
+                <AnchoredMenu id={`${controlledPopupId}-isNewMenuOpen`} onClose={() => setIsNewMenuOpen(false)} side="bottom" align="end" aria-label="Create document" className="z-40 w-48 rounded-panel border border-border bg-card p-1.5 animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel">
                   <DropdownMenuItem closeOnClick={false}
 
                     onClick={() => {

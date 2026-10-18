@@ -1,4 +1,5 @@
 "use client";
+import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
@@ -26,6 +27,7 @@ export default function EditNoteModal({
   initialContent,
   onSave,
 }: EditNoteModalProps) {
+  const inputFieldId = useInputFieldId();
   const [mounted, setMounted] = useState(false);
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
@@ -67,10 +69,10 @@ export default function EditNoteModal({
 
         <form onSubmit={handleSubmit} className={`${dialogLayout.body} p-6 space-y-4`}>
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <label htmlFor={`${inputFieldId}-field-72`} className="block text-sm font-medium text-foreground mb-1">
               Note Title
             </label>
-            <Input unstyled
+            <Input id={`${inputFieldId}-field-72`} aria-label="Note Title" unstyled
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}

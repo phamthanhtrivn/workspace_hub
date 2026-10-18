@@ -43,7 +43,7 @@ export default function TaskLabelBadges({
       {hiddenLabels.length > 0 ? (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span
+            <span data-ui-interaction-exception="Focusable tooltip trigger; click only prevents parent card activation."
               tabIndex={0}
               aria-label={`${hiddenLabels.length} more labels`}
               onClick={stopParentActivation}

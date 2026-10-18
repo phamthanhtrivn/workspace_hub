@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { FocusTaskScope } from "../utils/focus-task";
@@ -18,7 +19,7 @@ interface PomodoroTaskFiltersProps {
 export function PomodoroTaskFilterControls({ sourceLabel, filters, onChange }: PomodoroTaskFiltersProps) {
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2" aria-label={`${sourceLabel} date scope`}>
+      <div role="group" className="flex flex-wrap gap-2" aria-label={`${sourceLabel} date scope`}>
         <Button size="sm" variant={filters.scope === "today" ? "default" : "outline"} aria-pressed={filters.scope === "today"}
           onClick={() => onChange({ ...filters, scope: "today" })}>Today</Button>
         <Button size="sm" variant={filters.scope === "all" ? "default" : "outline"} aria-pressed={filters.scope === "all"}
@@ -29,6 +30,7 @@ export function PomodoroTaskFilterControls({ sourceLabel, filters, onChange }: P
       <p className="text-xs leading-relaxed text-muted-foreground">
         {filters.scope === "today" ? "Tasks scheduled for today" : "Today, upcoming or unscheduled"} · Completed and overdue tasks excluded
       </p>
+      <Link className="inline-flex min-h-11 items-center text-xs text-link underline" href={sourceLabel.toLowerCase() === "calendar" ? "/calendar" : "/projects"}>Review overdue tasks in {sourceLabel}</Link>
     </div>
   );
 }

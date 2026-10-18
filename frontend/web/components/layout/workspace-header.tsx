@@ -11,12 +11,14 @@ import { Button } from "@/components/ui/button";
 
 interface WorkspaceHeaderProps {
   currentTitle: string;
+  navigationOpen: boolean;
   onMenuClick: () => void;
   onOpenSettings: (tab: UserSettingTab) => void;
 }
 
 const WorkspaceHeader = React.memo(function WorkspaceHeader({
   currentTitle,
+  navigationOpen,
   onMenuClick,
   onOpenSettings,
 }: WorkspaceHeaderProps) {
@@ -27,7 +29,7 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
       <div className="flex w-full items-center justify-between gap-4">
         {/* Left: Breadcrumbs & Mobile Menu */}
         <div className="flex min-w-0 items-center gap-3">
-          <Button variant="unstyled" aria-label="Open navigation"
+          <Button variant="unstyled" aria-label="Open navigation" aria-expanded={navigationOpen} aria-controls="workspace-navigation"
             onClick={onMenuClick}
             className="-ml-2 rounded-control p-2 text-muted-foreground hover:bg-muted lg:hidden cursor-pointer"
           >

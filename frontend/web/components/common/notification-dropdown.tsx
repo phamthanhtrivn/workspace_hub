@@ -36,6 +36,7 @@ import type {
   NotificationUnreadCountsByCategory,
 } from "@/features/notification/types/notification.types";
 
+import { QueryFeedback } from "@/components/common/query-feedback";
 import NotificationList from "@/features/notification/components/notification-list";
 import NotificationDetailModal from "@/features/notification/components/notification-detail-modal";
 import { registerNotificationRenderer } from "@/features/notification/components/notification-registry";
@@ -198,6 +199,8 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   } = useAppSelector((state) => state.notification);
   const { accessToken } = useAppSelector((state) => state.auth);
 
+  const [listError, setListError] = useState(false);
+  const [markingRead, setMarkingRead] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [tab, setTab] = useState<NotificationReadFilter>("ALL");
   const [category, setCategory] = useState<NotificationCategory>("ALL");
@@ -300,6 +303,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       }
       try {
         dispatch(setLoading(true));
+        setListError(false);
         const hasDateFilter = Boolean(dateRange.fromDate || dateRange.toDate);
         const [res, globalUnreadRes] = await Promise.all([
           getNotifications(
@@ -340,6 +344,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
         });
       } catch (error) {
         logApiError(error, "Failed to fetch notifications");
+        setListError(true);
       } finally {
         dispatch(setLoading(false));
       }
@@ -385,6 +390,8 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   }, [fetchList, isOpen, page]);
 
   const handleMarkAllAsRead = async () => {
+    if (markingRead) return;
+    setMarkingRead(true);
     try {
       await markAllAsRead();
       dispatch(markAllReadSuccess());
@@ -392,7 +399,8 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       if (isOpen) void fetchList(1);
     } catch (error) {
       console.error("Failed to mark all as read", error);
-    }
+      toast.error("Could not mark notifications as read.", { action: { label: "Retry", onClick: () => void handleMarkAllAsRead() } });
+    } finally { setMarkingRead(false); }
   };
 
   const handleCategoryChange = (nextCategory: NotificationCategory) => {
@@ -591,6 +599,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                 type="button"
                 variant="ghost"
                 size="sm"
+                disabled={markingRead}
                 onClick={handleMarkAllAsRead}
                 className="h-7 rounded-full px-2 text-xs font-semibold text-link hover:bg-info-soft hover:text-foreground"
               >
@@ -648,7 +657,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
               value={tab}
               options={readTabOptions}
               onChange={handleTabChange}
-              ariaLabel="Notification time range"
+              ariaLabel="Notification read status"
               className="min-w-0 shrink-0"
             />
             <div className="flex min-w-0 items-center justify-end py-2">
@@ -685,7 +694,8 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
           <Separator />
 
           <div className="max-h-[52vh] overflow-y-auto overscroll-contain">
-            <NotificationList
+            <QueryFeedback label="notifications" error={listError} retrying={loading} onRetry={() => fetchList(page)} />
+            {(!listError || visibleNotifications.length > 0) && <NotificationList
               notifications={visibleNotifications}
               onItemClick={handleItemClick}
               onDelete={
@@ -696,7 +706,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
               }
               deletingNotificationId={deletingNotificationId}
               isLoading={loading}
-            />
+            />}
           </div>
 
           <div className="border-t border-border bg-background px-3 py-2">

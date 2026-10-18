@@ -30,7 +30,7 @@ export function SharedPreview({
     <div className="bg-card rounded-dialog border border-border overflow-hidden flex-1 flex flex-col min-h-[450px]">
       <div className="border-b border-border px-6 py-4.5 bg-background shrink-0 flex items-center justify-between">
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Bản xem trước tài liệu
+          Document preview
         </h3>
         <span className="text-xs text-muted-foreground font-semibold">
           {getFileTypeDescription(item.mimeType, item.name)}

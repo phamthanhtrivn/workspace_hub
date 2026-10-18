@@ -164,7 +164,7 @@ export default function BrowseChannelsModal({
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={16}
             />
-            <Input unstyled
+            <Input aria-label="Search channels by name" unstyled
               type="text"
               placeholder="Search channels by name..."
               value={searchQuery}
