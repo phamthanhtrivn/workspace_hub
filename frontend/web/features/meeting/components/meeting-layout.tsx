@@ -148,14 +148,15 @@ export function MeetingLayout() {
   });
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background text-foreground xl:flex-row">
+    <div className="@container/meetings h-full min-h-0 min-w-0 w-full overflow-y-auto bg-background text-foreground">
+    <div className="flex min-h-full min-w-0 flex-col @min-[1120px]/meetings:flex-row">
       <MeetingSidebar
         activeItemId={activeNavItemId}
         onItemSelect={setActiveNavItemId}
       />
 
-      <section className="flex min-w-0 flex-1 flex-col overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
-        <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5">
+      <section className="@container/meeting-content flex min-w-0 flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 w-full flex-1 flex-col gap-5">
           {isOverviewActive ? (
             <>
               <MeetingHero
@@ -168,7 +169,7 @@ export function MeetingLayout() {
               />
 
               <section
-                className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+                className="grid min-w-0 grid-cols-1 gap-4 @min-[480px]/meeting-content:grid-cols-2 @min-[880px]/meeting-content:grid-cols-4"
                 aria-label="Meeting actions"
               >
                 {meetingDashboardActions.map((action) => (
@@ -197,6 +198,7 @@ export function MeetingLayout() {
           )}
         </div>
       </section>
+    </div>
 
       <MeetingJoinLinkModal
         open={isJoinLinkModalOpen}

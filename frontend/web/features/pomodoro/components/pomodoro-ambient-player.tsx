@@ -107,7 +107,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
           </PopoverTrigger>
 
           <PopoverContent
-            className="w-96 max-w-[calc(100vw-2rem)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto rounded-panel border border-border bg-card p-4 shadow-panel"
+            className="w-96 max-w-[min(24rem,calc(100vw-2rem))] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto rounded-panel border border-border bg-card p-4 shadow-panel"
             align="start"
             sideOffset={8}
           >
@@ -133,7 +133,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
             />
 
             {/* Auto-play Switch Row */}
-            <div className="mt-3 border-t border-border pt-3 px-1 flex items-center justify-between">
+            <div className="mt-3 border-t border-border pt-3 px-1 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-xs text-foreground font-semibold">
                   Auto-play during focus

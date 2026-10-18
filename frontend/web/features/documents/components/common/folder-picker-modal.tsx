@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
@@ -108,7 +110,7 @@ export function FolderPickerModal({
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-md border-border bg-card p-6 text-foreground rounded-dialog">
+      <DialogContent className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}>
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-warning-soft text-warning ring-1 ring-warning">
             <Folder className="h-5 w-5" />
@@ -143,7 +145,7 @@ export function FolderPickerModal({
         </div>
 
         {/* Sub-folders list */}
-        <div className="mt-3 flex max-h-56 min-h-36 flex-col gap-1 overflow-y-auto rounded-panel border border-border bg-card p-2">
+        <div className={`${dialogLayout.body} mt-3 flex max-h-56 min-h-36 flex-col gap-1 overflow-y-auto rounded-panel border border-border bg-card p-2`}>
           {isLoading ? (
             <div className="flex flex-1 flex-col items-center justify-center py-8 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin text-info" />

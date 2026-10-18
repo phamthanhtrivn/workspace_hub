@@ -51,7 +51,7 @@ function ReminderRow({
       name={`reminders.${index}.minutesBefore`}
       render={({ field, fieldState }) => (
         <div className="space-y-2">
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
             <Controller
               control={control}
               name={`reminders.${index}.method`}

@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -113,7 +115,7 @@ export default function ChannelSettingsModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/50 transition-all duration-200">
-      <div className="bg-card rounded-dialog w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-border flex flex-col max-h-[85vh]">
+      <div className={`${dialogLayout.surface} bg-card rounded-dialog w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-border flex flex-col max-h-[85vh]`}>
         <div className="flex items-center justify-between p-6 border-b border-border bg-card shrink-0">
           <h2 className="text-section-title font-semibold text-foreground tracking-tight">
             Channel Settings
@@ -127,7 +129,7 @@ export default function ChannelSettingsModal({
         </div>
 
         {/* Scrollable Modal Content */}
-        <div className="overflow-y-auto flex-1 custom-scrollbar">
+        <div className={`${dialogLayout.body} overflow-y-auto flex-1 custom-scrollbar`}>
           {/* Channel Info Section */}
           <div className="p-5 bg-background flex flex-col gap-4 border-b border-border">
             {canEditName ? (

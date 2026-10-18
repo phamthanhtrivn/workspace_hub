@@ -117,7 +117,7 @@ export function PomodoroTimerDisplay({
       </TabsList>
 
       <TabsContent value={safeMode} forceMount className="flex w-full min-w-0 flex-col items-center">
-      <div className="relative my-3 flex w-full max-w-[300px] items-center justify-center sm:max-w-[320px]">
+      <div className="@container/timer relative my-3 flex min-w-0 w-full max-w-[300px] items-center justify-center sm:max-w-[320px]">
         <div className="relative flex w-full aspect-square items-center justify-center rounded-full bg-card">
           {/* SVG Progress Circle */}
           <svg width={dialSize} height={dialSize} viewBox={`0 0 ${dialSize} ${dialSize}`} className="pointer-events-none absolute inset-0 size-full -rotate-90" aria-hidden>
@@ -149,7 +149,7 @@ export function PomodoroTimerDisplay({
             </div>
             <div
               aria-label={formattedTime}
-              className="my-3.5 text-[52px] leading-none font-semibold tracking-[-0.04em] text-foreground tabular-nums"
+              className="my-3.5 text-[clamp(2rem,16cqi,3.25rem)] leading-none font-semibold tracking-[-0.04em] text-foreground tabular-nums"
             >
               {formattedTime}
             </div>

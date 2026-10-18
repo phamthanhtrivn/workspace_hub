@@ -38,7 +38,7 @@ export function VersionHistoryTable({
   }
 
   return (
-    <div className="border border-border rounded-panel overflow-hidden">
+    <div className="border border-border rounded-panel overflow-x-auto">
       <table className="w-full text-left border-collapse text-xs">
         <thead>
           <tr className="bg-background border-b border-border text-muted-foreground font-semibold uppercase tracking-wider">

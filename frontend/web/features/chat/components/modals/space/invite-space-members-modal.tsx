@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Search, X, Loader2, User } from "lucide-react";
@@ -128,7 +130,7 @@ export default function InviteSpaceMembersModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40 animate-fade-in">
-      <div className="w-full max-w-md bg-card rounded-panel border border-border flex flex-col max-h-[90vh]">
+      <div className={`${dialogLayout.surface} w-full max-w-md bg-card rounded-panel border border-border flex flex-col max-h-[90vh]`}>
         {/* Header */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <h2 className="text-section-title font-semibold text-foreground">
@@ -143,7 +145,7 @@ export default function InviteSpaceMembersModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 flex flex-col gap-4 overflow-y-auto">
+        <div className={`${dialogLayout.body} p-6 flex flex-col gap-4 overflow-y-auto`}>
           {/* Selected Users Chips */}
           {selectedUsers.length > 0 && (
             <div className="flex flex-wrap gap-1.5 p-2 bg-background rounded-panel border border-border max-h-24 overflow-y-auto">

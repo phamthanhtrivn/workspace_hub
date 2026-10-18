@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React from "react";
 import { AlertTriangle, Trash2, Info } from "lucide-react";
 import {
@@ -60,7 +62,7 @@ export function DocumentsConfirmDialog({
     <AlertDialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isLoading && onCancel()}>
       <AlertDialogContent
         role="alertdialog"
-        className="max-w-md border-border bg-card p-6 text-foreground rounded-dialog"
+        className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}
         showCloseButton={false}
       >
         <div className="flex items-start gap-4">

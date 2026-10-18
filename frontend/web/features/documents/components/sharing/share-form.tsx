@@ -163,8 +163,8 @@ export function ShareModalForm({
       <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
         Share with others
       </label>
-      <div className="flex items-center gap-2">
-        <div ref={containerRef} className="relative flex-1">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div ref={containerRef} className="relative min-w-0 flex-1">
           {isSearching ? (
             <Loader2
               size={16}

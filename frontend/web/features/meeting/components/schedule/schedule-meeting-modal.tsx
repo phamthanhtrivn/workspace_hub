@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ChevronDown,
@@ -409,14 +411,14 @@ export function ScheduleMeetingModal({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent
-        className="max-w-2xl overflow-y-auto p-0 text-foreground"
+        className={`${dialogLayout.surface} max-w-2xl overflow-y-auto p-0 text-foreground`}
         showCloseButton={false}
       >
       <form
         onSubmit={onSubmit}
-        className="max-h-[92dvh] overflow-y-auto"
+        className="flex min-h-0 max-h-[inherit] flex-col"
       >
-        <DialogHeader className="flex flex-row items-center justify-between border-b border-border px-5 py-4">
+        <DialogHeader className="flex shrink-0 flex-row flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-4">
           <DialogTitle className="text-section-title font-semibold">
             {isEditing ? "Edit meeting" : "Schedule a meeting"}
           </DialogTitle>
@@ -427,7 +429,7 @@ export function ScheduleMeetingModal({
           />
         </DialogHeader>
 
-        <div className="space-y-5 px-5 py-5">
+        <div className={`${dialogLayout.body} space-y-5 px-5 py-5`}>
           <MeetingInput
             {...form.register("title")}
             autoFocus
@@ -645,7 +647,7 @@ export function ScheduleMeetingModal({
           </section>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="shrink-0 flex-wrap">
           <MeetingButton
             type="button"
             tone="ghost"

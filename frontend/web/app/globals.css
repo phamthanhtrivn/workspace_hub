@@ -428,6 +428,25 @@
   letter-spacing: 0.005em;
 }
 
+.calendar-shell .calendar-event-title {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.calendar-shell .fc-timegrid-event {
+  container: calendar-event / inline-size;
+}
+
+@container calendar-event (max-width: 80px) {
+  .calendar-shell .calendar-event-content {
+    padding-inline: 2px;
+  }
+
+  .calendar-shell .calendar-event-status {
+    display: none;
+  }
+}
+
 .calendar-shell .calendar-task-event-completed {
   text-decoration: line-through;
 }
@@ -471,6 +490,8 @@
 
 .calendar-shell .fc-popover {
   max-width: min(320px, calc(100vw - 24px));
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--shadow-panel);

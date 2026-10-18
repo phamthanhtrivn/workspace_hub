@@ -16,7 +16,7 @@ export function ExplorerBreadcrumbs({
   onBackToParent,
 }: ExplorerBreadcrumbsProps) {
   return (
-    <div className="flex items-center gap-1 text-sm font-semibold text-foreground">
+    <div className="flex min-w-0 flex-wrap items-center gap-1 break-all text-sm font-semibold text-foreground">
       {path.length > 1 && onBackToParent ? (
         <button aria-label="Open parent folder"
           type="button"

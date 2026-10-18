@@ -36,9 +36,9 @@ export function DocumentsSidebar({ activeView, onViewChange }: DocumentsSidebarP
   ];
 
   return (
-    <aside className="flex shrink-0 flex-col gap-5 border-b border-border bg-card px-4 py-4 xl:w-80 xl:border-b-0 xl:border-r xl:py-6">
+    <aside className="flex shrink-0 flex-col gap-5 border-b border-border bg-card px-4 py-4 @min-[960px]/documents:w-80 @min-[960px]/documents:border-b-0 @min-[960px]/documents:border-r @min-[960px]/documents:py-6">
       <nav
-        className="flex gap-2 overflow-x-auto xl:flex-col xl:overflow-visible"
+        className="flex gap-2 overflow-x-auto @min-[960px]/documents:flex-col @min-[960px]/documents:overflow-visible"
         aria-label="Document Navigation"
       >
         {navItems.map((item) => {

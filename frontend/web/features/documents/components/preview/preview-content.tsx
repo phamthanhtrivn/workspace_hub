@@ -26,6 +26,7 @@ interface PreviewContentProps {
   loadingText: boolean;
   error: any;
   handleDownload: () => void;
+  fitToContainer?: boolean;
 }
 
 export const PreviewContent = React.memo(function PreviewContent({
@@ -37,6 +38,7 @@ export const PreviewContent = React.memo(function PreviewContent({
   loadingText,
   error,
   handleDownload,
+  fitToContainer = false,
 }: PreviewContentProps) {
   if (isUrlLoading || (previewType === PreviewFileType.TEXT && loadingText)) {
     return (
@@ -80,18 +82,18 @@ export const PreviewContent = React.memo(function PreviewContent({
   switch (previewType) {
     case PreviewFileType.IMAGE:
       return (
-        <div className="flex items-center justify-center w-full h-full max-h-[70vh] bg-overlay/2 rounded-panel p-2 overflow-hidden">
+        <div className={`flex items-center justify-center w-full h-full ${fitToContainer ? "max-h-full" : "max-h-[70vh]"} bg-overlay/2 rounded-panel p-2 overflow-hidden`}>
           <img
             src={previewUrl}
             alt={item.name}
-            className="max-w-full max-h-[68vh] object-contain rounded-panel border border-border"
+            className={`max-w-full ${fitToContainer ? "max-h-full" : "max-h-[68vh]"} object-contain rounded-panel border border-border`}
           />
         </div>
       );
 
     case PreviewFileType.PDF:
       return (
-        <div className="w-full h-[70vh] rounded-panel overflow-hidden border border-border bg-background">
+        <div className={`w-full ${fitToContainer ? "h-full min-h-0" : "h-[70vh]"} rounded-panel overflow-hidden border border-border bg-background`}>
           <iframe
             src={`${previewUrl}#toolbar=0`}
             className="w-full h-full border-0"
@@ -106,7 +108,7 @@ export const PreviewContent = React.memo(function PreviewContent({
           <video
             controls
             autoPlay
-            className="w-full max-h-[70vh] outline-none"
+            className={`w-full ${fitToContainer ? "max-h-full" : "max-h-[70vh]"} outline-none`}
             src={previewUrl}
           />
         </div>
@@ -136,7 +138,7 @@ export const PreviewContent = React.memo(function PreviewContent({
     case PreviewFileType.TEXT:
       if (textContent !== null) {
         return (
-          <div className="w-full max-h-[70vh] bg-background border border-border rounded-panel p-4 overflow-auto text-left">
+          <div className={`w-full ${fitToContainer ? "max-h-full" : "max-h-[70vh]"} bg-background border border-border rounded-panel p-4 overflow-auto text-left`}>
             <pre className="font-mono text-xs text-foreground whitespace-pre-wrap break-all leading-relaxed">
               {textContent}
             </pre>
@@ -148,7 +150,7 @@ export const PreviewContent = React.memo(function PreviewContent({
     case PreviewFileType.OFFICE:
       const officeViewerUrl = `${OFFICE_VIEWER_BASE_URL}?src=${encodeURIComponent(previewUrl)}`;
       return (
-        <div className="w-full h-[70vh] rounded-panel overflow-hidden border border-border bg-background relative group">
+        <div className={`w-full ${fitToContainer ? "h-full min-h-0" : "h-[70vh]"} rounded-panel overflow-hidden border border-border bg-background relative group`}>
           <iframe
             src={officeViewerUrl}
             className="w-full h-full border-0"

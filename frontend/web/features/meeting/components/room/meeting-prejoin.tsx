@@ -90,7 +90,7 @@ export function MeetingPreJoin({
 
   return (
     <MeetingFullscreenPortal>
-      <div className="fixed inset-0 z-[100] flex min-h-[100dvh] flex-col overflow-y-auto bg-card text-foreground">
+      <div className="fixed inset-0 z-[100] flex h-dvh min-h-0 flex-col overflow-y-auto bg-card text-foreground">
         <header className="flex shrink-0 items-center justify-between border-b border-border/10 px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-info">
@@ -110,7 +110,7 @@ export function MeetingPreJoin({
         </header>
 
         <main className="grid min-h-0 flex-1 gap-5 px-4 py-5 lg:grid-cols-[minmax(0,1fr)_390px] lg:px-6">
-          <section className="flex min-h-[360px] flex-col overflow-hidden rounded-lg border border-border bg-overlay">
+          <section className="flex min-h-[min(240px,40dvh)] flex-col overflow-hidden rounded-lg border border-border bg-overlay">
             <div className="relative min-h-0 flex-1 bg-media-background text-media-foreground">
               {settings.cameraEnabled && previewStream ? (
                 <video
@@ -118,10 +118,10 @@ export function MeetingPreJoin({
                   autoPlay
                   muted
                   playsInline
-                  className="h-full min-h-[360px] w-full object-cover"
+                  className="h-full min-h-[min(240px,40dvh)] w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full min-h-[360px] flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_top,var(--media-background),transparent_34%),var(--media-background)] px-6 text-center">
+                <div className="flex h-full min-h-[min(240px,40dvh)] flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_top,var(--media-background),transparent_34%),var(--media-background)] px-6 text-center">
                   <span className="grid h-20 w-20 place-items-center rounded-full bg-accent text-muted-foreground ring-1 ring-border/12">
                     {isPreviewLoading ? (
                       <Loader2 className="h-8 w-8 animate-spin" />

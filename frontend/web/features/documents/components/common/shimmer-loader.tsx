@@ -8,7 +8,7 @@ function ShimmerLoader() {
       {/* Folder Section Shimmer */}
       <div>
         <div className="h-5 w-32 bg-accent rounded-lg mb-4" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] gap-4">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={`folder-shimmer-${i}`}
@@ -27,7 +27,7 @@ function ShimmerLoader() {
       {/* File Section Shimmer */}
       <div>
         <div className="h-5 w-24 bg-accent rounded-lg mb-4" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] gap-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <div
               key={`file-shimmer-${i}`}

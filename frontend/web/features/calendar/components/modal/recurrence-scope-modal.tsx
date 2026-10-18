@@ -1,5 +1,7 @@
 "use client";
 
+import { createPortal } from "react-dom";
+
 import { Repeat2, X } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
@@ -29,14 +31,14 @@ export function RecurrenceScopeModal({
   useModalDialog({ dialogRef, onClose });
   if (!open) return null;
 
-  return (
+  return typeof document === "undefined" ? null : createPortal((
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-overlay/40 p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="calendar-recurrence-scope-title"
-        className="w-full max-w-md overflow-hidden rounded-panel bg-card"
+        className="max-h-[calc(100dvh-2rem)] min-w-0 w-full max-w-md overflow-y-auto rounded-panel bg-card"
       >
         <div className="flex items-center gap-3 border-b border-border px-5 py-4">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-info-soft text-info">
@@ -92,5 +94,5 @@ export function RecurrenceScopeModal({
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }

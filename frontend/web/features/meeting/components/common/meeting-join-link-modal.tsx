@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ExternalLink, Link as LinkIcon, X } from "lucide-react";
 import {
@@ -67,7 +69,7 @@ export function MeetingJoinLinkModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-md p-0" showCloseButton={false}>
+      <DialogContent className={`${dialogLayout.surface} max-w-md p-0`} showCloseButton={false}>
         <DialogHeader className="flex flex-row items-start justify-between gap-4 border-b border-border px-5 py-4">
           <div className="min-w-0">
             <DialogTitle

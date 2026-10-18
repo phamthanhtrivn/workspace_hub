@@ -52,11 +52,11 @@ export default function DirectConversationHeader({
   };
 
   return (
-    <div className="h-16 px-4 border-b border-border flex items-center justify-between bg-card z-10">
+    <div className="min-h-16 min-w-0 shrink-0 px-3 py-2 border-b border-border flex flex-wrap items-center justify-between gap-2 bg-card z-10">
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
         {onBack && (
           <button aria-label="Back"
-            className="md:hidden p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition"
+            className="@min-[720px]/messages:hidden shrink-0 p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition"
             onClick={onBack}
           >
             <ArrowLeft size={20} />
@@ -108,7 +108,7 @@ export default function DirectConversationHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-1 text-muted-foreground">
+      <div className="flex shrink-0 flex-wrap items-center gap-1 text-muted-foreground">
         <button
           className="cursor-pointer p-2 hover:bg-muted hover:text-info rounded-full transition"
           onClick={onOpenSearch}

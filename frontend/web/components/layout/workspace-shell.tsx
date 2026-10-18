@@ -315,10 +315,10 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
               pathname.startsWith("/calendar")
               ? "overflow-hidden"
               : "overflow-y-auto",
-            "relative flex flex-col",
+            "relative flex min-h-0 min-w-0 flex-col",
           )}
         >
-          <div className="flex-1 w-full h-full flex flex-col">{children}</div>
+          <div className="flex-1 min-h-0 min-w-0 w-full h-full flex flex-col">{children}</div>
         </main>
       </div>
 

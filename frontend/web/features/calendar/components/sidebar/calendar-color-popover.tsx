@@ -68,7 +68,7 @@ export function CalendarColorPopover({
         <div
           role="dialog"
           aria-label={label}
-          className="absolute right-0 top-[calc(100%+0.1rem)] z-30 w-[12.5rem] rounded-lg border border-border bg-card p-3 shadow-panel"
+          className="absolute right-0 top-[calc(100%+0.1rem)] z-30 w-[12.5rem] max-w-[calc(100vw-1.5rem)] rounded-lg border border-border bg-card p-3 shadow-panel"
         >
           <div className="grid grid-cols-6 gap-2">
             {CALENDAR_COLOR_CHOICES.map((color) => (

@@ -58,8 +58,8 @@ function ListView({
 }: ListViewProps) {
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-panel border border-border bg-card animate-in fade-in duration-200">
-      <div ref={scrollContainerRef} className={`flex-1 min-h-0 ${isProjectDocuments ? "min-w-0 overflow-auto" : "overflow-y-auto"}`}>
-        <table className={`w-full border-collapse text-left text-sm text-foreground ${isProjectDocuments ? "min-w-[640px]" : ""}`}>
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 min-w-0 overflow-auto">
+        <table className="w-full min-w-[640px] border-collapse text-left text-sm text-foreground">
           <tbody className="divide-y divide-border">
             {items.map((item) => (
               <ListViewRow

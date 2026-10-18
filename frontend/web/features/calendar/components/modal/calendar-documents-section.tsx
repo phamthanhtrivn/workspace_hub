@@ -110,7 +110,7 @@ export function CalendarDocumentsSection({
   return (
     <div className="space-y-2">
       {!hideHeader && (
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
           <h3 className="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground">
             <FileText className="h-3.5 w-3.5" />
             Attachments

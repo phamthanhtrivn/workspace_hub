@@ -271,7 +271,8 @@ export function MeetingRoomFooter({
 
   return (
     <footer className="flex shrink-0 items-center justify-center border-t border-border bg-card px-3 py-3">
-      <div className="flex max-w-full items-center gap-2 overflow-x-auto">
+      <div className="flex min-w-0 w-full flex-col items-center gap-2 @min-[960px]/meeting-room:flex-row @min-[960px]/meeting-room:justify-center">
+      <div className="flex shrink-0 items-center gap-2">
         <MeetingMediaToggleButton
           source={Track.Source.Microphone}
           settings={settings}
@@ -289,6 +290,15 @@ export function MeetingRoomFooter({
           disabledIcon={VideoOff}
         />
 
+        <MeetingRoomControlButton
+          label="Leave"
+          icon={LogOut}
+          danger
+          disabled={isLeavePending}
+          onClick={onLeave}
+        />
+      </div>
+      <div className="flex min-w-0 max-w-full items-center gap-2 overflow-x-auto pb-1">
         <MeetingRoomControlButton
           label={isHandRaised ? "Lower hand" : "Raise hand"}
           icon={Hand}
@@ -364,13 +374,8 @@ export function MeetingRoomFooter({
           />
         )}
 
-        <MeetingRoomControlButton
-          label="Leave"
-          icon={LogOut}
-          danger
-          disabled={isLeavePending}
-          onClick={onLeave}
-        />
+
+      </div>
       </div>
     </footer>
   );

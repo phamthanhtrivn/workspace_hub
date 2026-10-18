@@ -240,7 +240,7 @@ export default function MediaLightbox({
       {/* Zoom Controls */}
       {currentMedia.type !== "VIDEO" && (
         <div
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-overlay/50 px-6 py-3 rounded-full backdrop-blur-md z-10"
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 flex max-w-[calc(100vw-1.5rem)] items-center gap-2 overflow-x-auto bg-overlay/50 px-3 py-2 rounded-full backdrop-blur-md z-10"
           onClick={(e) => e.stopPropagation()}
         >
           <button

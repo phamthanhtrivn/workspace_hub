@@ -35,7 +35,7 @@ function UploadProgress({
   };
 
   return (
-    <div className="absolute bottom-6 right-6 z-50 bg-card border border-border p-5 rounded-panel w-80 animate-in slide-in-from-bottom-5 duration-200 shadow-panel">
+    <div className="absolute bottom-6 right-6 z-50 bg-card border border-border p-5 rounded-panel w-80 max-w-[calc(100vw-1.5rem)] animate-in slide-in-from-bottom-5 duration-200 shadow-panel">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {getStatusLabel()}

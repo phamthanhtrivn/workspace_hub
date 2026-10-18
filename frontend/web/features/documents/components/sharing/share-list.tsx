@@ -128,7 +128,7 @@ export function ShareModalList({
       </h4>
       <div className="divide-y divide-border border border-border rounded-panel p-2 max-h-64 overflow-y-auto bg-card">
         {/* Owner Item */}
-        <div className="flex items-center justify-between p-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 p-2">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-full bg-info-soft text-info flex items-center justify-center text-xs font-semibold uppercase tracking-wider shrink-0 relative overflow-hidden">
               {ownerProfile?.avatarUrl ? (
@@ -170,7 +170,7 @@ export function ShareModalList({
             return (
               <div
                 key={share.id}
-                className="flex items-center justify-between p-2"
+                className="flex min-w-0 flex-wrap items-center justify-between gap-2 p-2"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs font-semibold uppercase tracking-wider shrink-0 relative overflow-hidden">

@@ -15,7 +15,7 @@ interface MeetingHistoryListRowProps {
 
 export function MeetingHistoryListRow({ meeting }: MeetingHistoryListRowProps) {
   return (
-    <article className="grid gap-4 rounded-lg border border-border bg-card p-4 sm:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.8fr)_7rem] sm:items-center">
+    <article className="grid gap-4 rounded-lg border border-border bg-card p-4 @min-[760px]/meeting-content:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.8fr)_7rem] sm:items-center">
       <div className="flex min-w-0 items-center gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary-soft text-info">
           <CalendarClock className="h-5 w-5" />

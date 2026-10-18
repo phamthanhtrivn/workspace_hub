@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, FileText, FolderOpen, Loader2 } from "lucide-react";
@@ -75,14 +77,14 @@ export function CalendarDocumentPickerDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-dialog border-border bg-card p-0">
+      <DialogContent className={`${dialogLayout.surface} max-w-lg gap-0 overflow-hidden rounded-dialog border-border bg-card p-0`}>
         <DialogHeader className="border-b border-border px-5 py-4 text-left">
           <DialogTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
             <FolderOpen className="h-4 w-4 text-info" />
             Attach from My Files
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 p-5">
+        <div className={`${dialogLayout.body} space-y-3 p-5`}>
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}

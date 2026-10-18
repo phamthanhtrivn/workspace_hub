@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -276,7 +278,7 @@ export default function ManageMembersModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/50 transition-all duration-200">
-      <div className="bg-card rounded-dialog w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] border border-border">
+      <div className={`${dialogLayout.surface} bg-card rounded-dialog w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] border border-border`}>
         <div className="flex items-center justify-between p-6 border-b border-border bg-card">
           <h2 className="text-section-title font-semibold text-foreground tracking-tight">
             Manage Members
@@ -305,7 +307,7 @@ export default function ManageMembersModal({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
+        <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar`}>
           {filteredMembers?.map((member: ConversationMember) => {
             const profile = memberProfiles?.[member.userId];
             const name =

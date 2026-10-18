@@ -81,17 +81,17 @@ export default function ChatLayout() {
   };
 
   return (
-    <div className="flex h-full w-full bg-card overflow-hidden relative">
+    <div className="@container/messages relative flex h-full min-h-0 min-w-0 w-full overflow-hidden bg-card">
       {/* Sidebar */}
       <div
-        className={`flex-shrink-0 z-20 w-full md:w-80 ${mobileView === "sidebar" ? "block" : "hidden md:block"}`}
+        className={`z-20 min-h-0 w-full shrink-0 @min-[720px]/messages:w-80 ${mobileView === "sidebar" ? "block" : "hidden @min-[720px]/messages:block"}`}
       >
         <ChatSidebar onSelectChat={handleSelectChat} />
       </div>
 
       {/* Main Chat Area or Empty State */}
       <div
-        className={`flex-1 min-w-0 h-full min-h-0 z-10 relative ${mobileView === "chat" ? "flex" : "hidden md:flex"} flex-col bg-background`}
+        className={`flex-1 min-w-0 h-full min-h-0 z-10 relative ${mobileView === "chat" ? "flex" : "hidden @min-[720px]/messages:flex"} flex-col bg-background`}
       >
         {activeChatId ? (
           <ChatArea
@@ -116,14 +116,14 @@ export default function ChatLayout() {
 
       {/* Thread Panel - separate from conversation info */}
       {activeThreadRootMessageId && activeChatId && (
-        <div className="absolute inset-y-0 right-0 z-30 w-full md:w-[340px] md:static flex-shrink-0 shadow-panel">
+        <div className="absolute inset-y-0 right-0 z-30 min-h-0 min-w-0 w-full shrink-0 bg-card shadow-panel @min-[720px]/messages:w-[340px] @min-[1060px]/messages:static">
           <ThreadSidePanel />
         </div>
       )}
 
       {/* Right Panel - Togglable (Only show if active chat and no thread) */}
       {showRightPanel && activeChatId && !activeThreadRootMessageId && (
-        <div className="absolute inset-y-0 right-0 z-30 w-full md:w-[340px] md:static flex-shrink-0 shadow-panel">
+        <div className="absolute inset-y-0 right-0 z-30 min-h-0 min-w-0 w-full shrink-0 bg-card shadow-panel @min-[720px]/messages:w-[340px] @min-[1060px]/messages:static">
           <ChatRightPanel
             onClose={() => {
               setShowRightPanel(false);

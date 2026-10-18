@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -145,7 +147,7 @@ export default function FollowedThreadsModal({
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-2xl max-h-[86vh] bg-card rounded-panel border border-border overflow-hidden flex flex-col animate-in zoom-in-95 duration-150"
+        className={`${dialogLayout.surface} w-full max-w-2xl max-h-[86vh] bg-card rounded-panel border border-border overflow-hidden flex flex-col animate-in zoom-in-95 duration-150`}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
@@ -186,7 +188,7 @@ export default function FollowedThreadsModal({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 bg-card">
+        <div className={`${dialogLayout.body} flex-1 min-h-0 overflow-y-auto p-3 bg-card`}>
           {isLoading ? (
             <div className="h-48 flex flex-col items-center justify-center gap-3 text-muted-foreground">
               <Loader2 size={24} className="animate-spin text-info" />

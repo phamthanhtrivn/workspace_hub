@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Folder, FileText, X, ChevronRight, Check } from "lucide-react";
@@ -120,7 +122,7 @@ export default function MyFilesSelectModal({
       }`}
     >
       <div
-        className={`w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[500px] ${
+        className={`${dialogLayout.surface} w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[500px] ${
           isDarkTone
             ? "rounded-lg border border-border bg-card text-muted-foreground"
             : "rounded-dialog bg-card"
@@ -195,7 +197,7 @@ export default function MyFilesSelectModal({
         </div>
 
         {/* Content List Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-1.5 min-h-[220px]">
+        <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-4 space-y-1.5 min-h-[220px]`}>
           {isLoading ? (
             <div
               className={`flex items-center justify-center h-full text-xs font-semibold ${

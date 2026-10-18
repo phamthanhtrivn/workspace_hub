@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { AlertTriangle } from "lucide-react";
 import {
   AlertDialog,
@@ -43,7 +45,7 @@ export function MeetingAlertDialog({
     <AlertDialog open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
       <AlertDialogContent
         role="alertdialog"
-        className="max-w-sm rounded-dialog border border-border bg-card p-5 ring-1 ring-ring/5 transition-all duration-200"
+        className={`${dialogLayout.surface} max-w-sm rounded-dialog border border-border bg-card p-5 ring-1 ring-ring/5 transition-all duration-200`}
         showCloseButton={false}
       >
         <div className="flex items-start gap-3.5">

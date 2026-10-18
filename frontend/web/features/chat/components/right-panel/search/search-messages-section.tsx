@@ -111,7 +111,7 @@ export default function SearchMessagesSection({
   return (
     <div className="flex flex-col h-full bg-card">
       {/* Header */}
-      <div className="h-16 px-4 border-b border-border flex items-center gap-3">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center gap-3">
         <button aria-label="Back"
           onClick={onBack}
           className="p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition cursor-pointer"

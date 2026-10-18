@@ -1,5 +1,7 @@
 "use client";
 
+import { createPortal } from "react-dom";
+
 import { useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -88,7 +90,7 @@ export function CustomRecurrenceModal({
     });
   };
 
-  return (
+  return typeof document === "undefined" ? null : createPortal((
     <div
       className="fixed inset-0 z-[120] flex items-center justify-center bg-overlay/60 p-4"
       onWheelCapture={(event) => {
@@ -226,7 +228,7 @@ export function CustomRecurrenceModal({
                 (endType) => (
                   <div
                     key={endType}
-                    className="grid min-h-11 grid-cols-[7rem_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[8rem_minmax(0,1fr)]"
+                    className="grid min-h-11 grid-cols-1 items-center gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]"
                   >
                     <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold text-foreground">
                       <input
@@ -313,5 +315,5 @@ export function CustomRecurrenceModal({
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }

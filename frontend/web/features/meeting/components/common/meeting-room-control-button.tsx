@@ -38,7 +38,7 @@ export function MeetingRoomControlButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "cursor-pointer relative flex h-[68px] w-[76px] shrink-0 flex-col items-center justify-center gap-1.5 overflow-visible rounded-control text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+        "cursor-pointer relative flex h-12 w-14 sm:h-[68px] sm:w-[76px] shrink-0 flex-col items-center justify-center gap-1.5 overflow-visible rounded-control text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
         danger
           ? "bg-destructive text-destructive-foreground hover:bg-destructive"
           : active

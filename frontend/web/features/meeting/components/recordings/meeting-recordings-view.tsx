@@ -211,7 +211,7 @@ export function MeetingRecordingsView() {
         </div>
       )}
       {query.data && query.data.totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <MeetingButton
             tone="outline"
             disabled={(params.page ?? 1) <= 1}

@@ -801,7 +801,7 @@ export default function ChatArea({
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 flex flex-col bg-card h-full min-h-0 relative">
+    <div className="flex-1 flex min-w-0 flex-col bg-card h-full min-h-0 relative">
       {/* Header */}
       <ChatHeader
         onToggleRightPanel={onToggleRightPanel}

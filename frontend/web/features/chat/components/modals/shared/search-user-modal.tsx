@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -143,7 +145,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
 
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-overlay/40 px-4 transition-opacity duration-200">
-      <div className="bg-card rounded-panel w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col border border-border animate-in fade-in zoom-in-95 duration-200">
+      <div className={`${dialogLayout.surface} bg-card rounded-panel w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col border border-border animate-in fade-in zoom-in-95 duration-200`}>
         <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-card sticky top-0 z-10">
           <div className="flex items-center gap-3">
             {selectedUser && (

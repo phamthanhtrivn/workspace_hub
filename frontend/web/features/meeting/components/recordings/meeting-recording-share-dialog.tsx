@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -52,7 +54,7 @@ export function MeetingRecordingShareDialog({
       }}
     >
       <DialogContent
-        className="max-h-[85dvh] overflow-y-auto p-6"
+        className={`${dialogLayout.surface} max-h-[85dvh] overflow-y-auto p-6`}
         aria-labelledby="recording-share-title"
       >
         <DialogTitle id="recording-share-title">Share recording</DialogTitle>

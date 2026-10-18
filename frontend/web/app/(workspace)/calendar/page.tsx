@@ -3,7 +3,7 @@ import { CalendarWorkspace } from "@/features/calendar/components/workspace/cale
 
 export default function CalendarPage() {
   return (
-    <div className="h-full w-full">
+    <div className="flex h-full min-h-0 min-w-0 w-full flex-1 flex-col">
       <Suspense fallback={null}>
         <CalendarWorkspace />
       </Suspense>

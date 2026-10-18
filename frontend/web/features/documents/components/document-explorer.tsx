@@ -319,7 +319,7 @@ export function DocumentExplorer({
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className={`relative flex flex-1 flex-col min-h-0 h-full bg-card text-foreground ${isProjectDocuments ? "min-w-0 overflow-y-auto" : "overflow-hidden"}`}>
+      <div className="@container/explorer relative flex flex-1 flex-col min-h-0 min-w-0 h-full overflow-y-auto bg-card text-foreground">
         {/* Full Window Dropzone Overlay */}
         {isDraggingOver ? (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-primary/10 border-2 border-dashed border-info">
@@ -333,7 +333,7 @@ export function DocumentExplorer({
         ) : null}
 
         {/* Explorer Header Toolbar */}
-        <div className={`relative z-20 shrink-0 flex flex-col gap-3 bg-card ${isProjectDocuments ? "min-w-0 p-3 @min-[640px]/project-detail:p-4 [&>div:first-child]:flex-wrap [&>div:first-child]:break-all" : "p-6"}`}>
+        <div className={`relative z-20 shrink-0 flex flex-col gap-3 bg-card min-w-0 p-3 @min-[640px]/explorer:p-4`}>
           <ExplorerBreadcrumbs
             path={path}
             onBreadcrumbClick={handleBreadcrumbClick}
@@ -349,7 +349,6 @@ export function DocumentExplorer({
             onCreateFolder={openCreateFolder}
             onUploadFile={uploadFile}
             canEditDocuments={canEditDocuments}
-            isProjectDocuments={isProjectDocuments}
           />
           {activeView === DocumentViewType.TRASH ? (
             <div className="flex items-start gap-2 rounded-panel border border-border bg-warning-soft px-3.5 py-3 text-xs font-semibold text-warning">
@@ -363,10 +362,10 @@ export function DocumentExplorer({
         </div>
 
         {/* Main Content Area */}
-        <div className={`flex flex-1 overflow-hidden ${isProjectDocuments ? "min-h-40 min-w-0 shrink-0" : "min-h-0"}`}>
-          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        <div className={`flex flex-1 overflow-hidden @container/document-canvas relative min-h-40 min-w-0 shrink-0`}>
+          <div className="flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden">
             {/* Items View Area */}
-            <div className={`flex flex-1 flex-col min-h-0 overflow-hidden ${isProjectDocuments ? "@container/project-documents min-w-0 px-3 mb-3 @min-[640px]/project-detail:px-4 @min-[640px]/project-detail:mb-4" : "px-6 mb-6"}`}>
+            <div className={`flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden @container/document-items min-w-0 px-3 mb-3 @min-[640px]/explorer:px-4 @min-[640px]/explorer:mb-4`}>
               {isLoading ? (
                 <DocumentsLoadingState
                   view={viewLayout === "GRID" ? "grid" : "list"}

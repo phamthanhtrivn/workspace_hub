@@ -129,7 +129,7 @@ export function CalendarTasksDrawer({
         <Button
           type="button"
           variant="ghost"
-          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-overlay/30 p-0 lg:hidden"
+          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-overlay/30 p-0 @min-[1040px]/calendar-canvas:hidden"
           onClick={onClose}
           aria-label="Close"
         />
@@ -137,20 +137,20 @@ export function CalendarTasksDrawer({
 
       <aside
         className={cn(
-          "z-30 flex flex-col border-l border-border bg-card transition-all duration-200 ease-in-out lg:static lg:z-auto lg:h-full lg:shadow-none",
+          "z-50 flex min-h-0 min-w-0 flex-col border-l border-border bg-card transition-all duration-200 ease-in-out @min-[1040px]/calendar-canvas:static @min-[1040px]/calendar-canvas:z-auto @min-[1040px]/calendar-canvas:h-full @min-[1040px]/calendar-canvas:shadow-none",
           // Mobile: fixed overlay from right
-          "fixed inset-y-0 right-0 w-full max-w-[400px] sm:w-[400px]",
-          open ? "translate-x-0" : "translate-x-full lg:translate-x-0",
+          "fixed inset-y-0 right-0 w-full max-w-[400px] @min-[1040px]/calendar-canvas:w-[400px]",
+          open ? "visible translate-x-0" : "invisible translate-x-full @min-[1040px]/calendar-canvas:translate-x-0",
           // Desktop: in-flow flex child that pushes the calendar
           open
-            ? "lg:w-[400px] lg:opacity-100"
-            : "lg:w-0 lg:overflow-hidden lg:opacity-0 lg:border-none pointer-events-none lg:pointer-events-none",
+            ? "@min-[1040px]/calendar-canvas:w-[400px] @min-[1040px]/calendar-canvas:opacity-100"
+            : "@min-[1040px]/calendar-canvas:w-0 @min-[1040px]/calendar-canvas:overflow-hidden @min-[1040px]/calendar-canvas:opacity-0 @min-[1040px]/calendar-canvas:border-none pointer-events-none",
         )}
         role="dialog"
         aria-label="Tasks"
         aria-hidden={!open}
       >
-        <div className="flex h-full w-full flex-col sm:w-[400px] lg:w-[400px]">
+        <div className="flex h-full min-h-0 min-w-0 w-full flex-col">
           <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/80 px-3 sm:px-4">
             <h2 className="sr-only">Tasks</h2>
 

@@ -193,7 +193,7 @@ export function CalendarModal(props: CalendarModalProps) {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-5 py-3.5">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-3.5">
           {props.mode === "edit" && props.canDelete ? (
             <Button
               type="button"

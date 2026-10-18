@@ -77,7 +77,7 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
 
   return (
     <div className="flex flex-col items-center my-3 w-full">
-      <div className="bg-card border border-border rounded-panel p-4 max-w-md w-full relative transition-all duration-200 hover:border-info">
+      <div className="bg-card border border-border rounded-panel p-4 max-w-md min-w-0 w-full [overflow-wrap:anywhere] relative transition-all duration-200 hover:border-info">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-3 min-w-0">

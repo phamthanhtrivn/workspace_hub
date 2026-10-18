@@ -29,7 +29,7 @@ export function DangerZoneTab({
     return (
       <div className="rounded-panel border border-border bg-background p-4">
         <div className="h-4 w-28 rounded bg-accent animate-pulse" />
-        <div className="mt-2 h-3 w-64 rounded bg-muted animate-pulse" />
+        <div className="mt-2 h-3 w-64 max-w-full rounded bg-muted animate-pulse" />
       </div>
     );
   }

@@ -39,7 +39,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
 
   return (
     <div className="flex items-center justify-center">
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex max-w-full flex-wrap items-center justify-center gap-2 sm:gap-3">
         <Button
           type="button"
           variant="ghost"

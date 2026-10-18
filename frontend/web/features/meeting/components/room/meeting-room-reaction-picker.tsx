@@ -114,7 +114,7 @@ export function MeetingRoomReactionPicker({
         aria-haspopup="menu"
         onClick={() => setIsOpen((current) => !current)}
         className={cn(
-          "relative flex h-[68px] w-[76px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 overflow-visible rounded-control bg-accent text-xs font-semibold text-muted-foreground ring-1 ring-border/10 transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+          "relative flex h-12 w-14 sm:h-[68px] sm:w-[76px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 overflow-visible rounded-control bg-accent text-xs font-semibold text-muted-foreground ring-1 ring-border/10 transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >
         <SmilePlus className="h-5 w-5" />

@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, FileText } from "lucide-react";
@@ -46,7 +48,7 @@ export default function EditNoteModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-overlay/50 p-4">
-      <div className="bg-card rounded-panel w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className={`${dialogLayout.surface} bg-card rounded-panel w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200`}>
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h2 className="text-section-title font-semibold text-foreground flex items-center gap-2">
             <FileText size={20} className="text-warning" />
@@ -60,7 +62,7 @@ export default function EditNoteModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className={`${dialogLayout.body} p-6 space-y-4`}>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
               Note Title

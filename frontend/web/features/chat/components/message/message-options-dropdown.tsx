@@ -1,5 +1,9 @@
+import { createPortal } from "react-dom";
 import React, { useEffect, useRef } from "react";
 import { Edit2, Pin, Trash2 } from "lucide-react";
+
+const MENU_WIDTH_PX = 180;
+const VIEWPORT_GAP_PX = 12;
 
 interface MessageOptionsDropdownProps {
   isOpen: boolean;
@@ -47,24 +51,32 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
 
   const getStyle = (): React.CSSProperties => {
     const style: React.CSSProperties = {
-      left: isMe ? buttonRect.right + 10 : buttonRect.left,
+      left: Math.max(
+        VIEWPORT_GAP_PX,
+        Math.min(
+          isMe ? buttonRect.right + VIEWPORT_GAP_PX : buttonRect.left,
+          window.innerWidth - MENU_WIDTH_PX - VIEWPORT_GAP_PX,
+        ),
+      ),
       transform: "none",
     };
 
     if (buttonRect.bottom > window.innerHeight / 2) {
       // Open upwards
-      style.bottom = window.innerHeight - buttonRect.top + 10;
+      style.bottom = window.innerHeight - buttonRect.top + VIEWPORT_GAP_PX;
+      style.maxHeight = Math.max(0, buttonRect.top - VIEWPORT_GAP_PX * 2);
     } else {
       // Open downwards
-      style.top = buttonRect.bottom + 10;
+      style.top = buttonRect.bottom + VIEWPORT_GAP_PX;
+      style.maxHeight = Math.max(0, window.innerHeight - buttonRect.bottom - VIEWPORT_GAP_PX * 2);
     }
     return style;
   };
 
-  return (
+  return typeof document === "undefined" ? null : createPortal((
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[180px] bg-card border border-border rounded-panel py-1 text-sm text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel"
+      className="fixed z-50 w-[180px] max-w-[calc(100vw-1.5rem)] overflow-y-auto bg-card border border-border rounded-panel py-1 text-sm text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel"
       style={getStyle()}
     >
       {isMe && canEdit && (
@@ -109,5 +121,5 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
         </>
       )}
     </div>
-  );
+  ), document.body);
 };

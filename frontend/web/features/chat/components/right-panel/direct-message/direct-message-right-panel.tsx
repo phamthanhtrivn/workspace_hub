@@ -263,7 +263,7 @@ export default function DirectMessageRightPanel({
 
   if (detailView === "files") {
     return (
-      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <MediaDetailView
           conversationId={activeConversation!.id}
           isDirect={true}
@@ -275,7 +275,7 @@ export default function DirectMessageRightPanel({
 
   if (detailView === "pinned") {
     return (
-      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PinnedMessagesDetailView
           conversationId={activeConversation!.id}
           isDirect={true}
@@ -288,7 +288,7 @@ export default function DirectMessageRightPanel({
 
   if (detailView === "search") {
     return (
-      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <SearchMessagesSection
           conversationId={activeConversation!.id}
           onBack={() => setDetailView(null)}
@@ -299,7 +299,7 @@ export default function DirectMessageRightPanel({
 
   if (detailView === "threads") {
     return (
-      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <ThreadsListView
           conversationId={activeConversation!.id}
           isDirect={true}
@@ -310,9 +310,9 @@ export default function DirectMessageRightPanel({
   }
 
   return (
-    <div className="w-full h-full bg-card border-l border-border flex flex-col">
+    <div className="w-full h-full min-h-0 min-w-0 bg-card border-l border-border flex flex-col">
       {/* Header */}
-      <div className="h-16 px-4 border-b border-border flex items-center justify-between">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center justify-between">
         <h2 className="font-semibold text-foreground">
           Details
         </h2>

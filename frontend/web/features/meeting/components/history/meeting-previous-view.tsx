@@ -41,7 +41,7 @@ export function MeetingPreviousView() {
 
   return (
     <section className="flex flex-1 flex-col gap-5">
-      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-4 @min-[600px]/meeting-content:flex-row @min-[600px]/meeting-content:items-center @min-[600px]/meeting-content:justify-between">
         <div>
           <h1 className="text-page-title font-semibold text-foreground">
             Previous meetings
@@ -105,7 +105,7 @@ export function MeetingPreviousView() {
       ) : (
         <div className="flex flex-col gap-5">
           {viewMode === MeetingHistoryViewMode.GRID ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-4 @min-[600px]/meeting-content:grid-cols-2 @min-[960px]/meeting-content:grid-cols-3">
               {meetings.map((meeting) => (
                 <MeetingHistoryCard key={meeting.id} meeting={meeting} />
               ))}

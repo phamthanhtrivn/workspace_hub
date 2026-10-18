@@ -33,7 +33,7 @@ export function MeetingRoomDesktopSidePanel({
   if (activePanel === MeetingRoomPanel.NONE) return null;
 
   return (
-    <aside className="hidden min-h-0 w-100 shrink-0 flex-col border-l border-border bg-card p-4 lg:flex">
+    <aside className="hidden min-h-0 min-w-0 w-[400px] shrink-0 flex-col overflow-hidden border-l border-border bg-card p-4 @min-[1060px]/meeting-room:flex">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-section-title font-semibold">
           {getPanelTitle(activePanel)}

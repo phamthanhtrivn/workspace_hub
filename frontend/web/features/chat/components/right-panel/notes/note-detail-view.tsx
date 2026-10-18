@@ -30,8 +30,8 @@ export default function NoteDetailView({
   const selectedNote = notes.find((note) => note.id === selectedNoteId);
 
   return (
-    <div className="w-full h-full flex flex-col bg-card">
-      <div className="h-16 px-4 border-b border-border flex items-center gap-3 flex-shrink-0">
+    <div className="w-full h-full min-h-0 min-w-0 flex flex-col bg-card">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center gap-3 flex-shrink-0">
         <button aria-label="Back"
           onClick={onBack}
           className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"

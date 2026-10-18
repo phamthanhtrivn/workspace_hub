@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
@@ -117,8 +119,8 @@ export function FilePreviewModal({
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-4xl border-border bg-card p-6 text-foreground rounded-dialog">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 text-left pr-6">
+      <DialogContent className={`${dialogLayout.surface} max-w-4xl border-border bg-card p-6 text-foreground rounded-dialog`}>
+        <DialogHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 text-left pr-6">
           <div className="flex items-center gap-3 min-w-0">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-background text-info border border-border">
               <PreviewIcon previewType={previewType} />
@@ -141,8 +143,8 @@ export function FilePreviewModal({
           ) : null}
         </DialogHeader>
 
-        <div className="mt-4 max-h-[75vh] overflow-auto rounded-panel bg-background p-4 border border-border">
-          <PreviewContent
+        <div className={`${dialogLayout.body} mt-4 h-[min(65dvh,640px)] overflow-auto rounded-panel bg-background p-4 border border-border`}>
+          <PreviewContent fitToContainer
             item={item}
             previewType={previewType}
             previewUrl={previewUrl}

@@ -17,7 +17,7 @@ export default React.memo(function MentionDropdown({
   if (query === null || members.length === 0) return null;
 
   return (
-    <div className="absolute bottom-full left-0 mb-2 w-64 max-h-48 overflow-y-auto bg-card border border-border rounded-panel z-50 py-1 animate-in fade-in zoom-in-95 duration-200 shadow-panel">
+    <div className="absolute bottom-full left-0 mb-2 w-64 max-w-full max-h-[min(12rem,40dvh)] overflow-y-auto bg-card border border-border rounded-panel z-50 py-1 animate-in fade-in zoom-in-95 duration-200 shadow-panel">
       {members.map((user, idx) => (
         <button
           key={user.id}

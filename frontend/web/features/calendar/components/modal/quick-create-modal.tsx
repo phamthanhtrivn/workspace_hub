@@ -1,5 +1,7 @@
 "use client";
 
+import { createPortal } from "react-dom";
+
 import {
   AlignLeft,
   Bell,
@@ -131,7 +133,7 @@ export function QuickCreateModal({
     controller.submit(submitEvent);
   };
 
-  return (
+  return typeof document === "undefined" ? null : createPortal((
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/30 p-2 sm:p-5"
       onWheelCapture={(event) => {
@@ -398,5 +400,5 @@ export function QuickCreateModal({
         </div>
       </form>
     </div>
-  );
+  ), document.body);
 }

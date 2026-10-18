@@ -1,5 +1,7 @@
 "use client";
 
+import { createPortal } from "react-dom";
+
 import { useEffect, useRef } from "react";
 import { Edit2, Trash2 } from "lucide-react";
 
@@ -49,7 +51,7 @@ export function MeetingMessageOptionsMenu({
     style.top = buttonRect.bottom + 8;
   }
 
-  return (
+  return typeof document === "undefined" ? null : createPortal((
     <div
       ref={menuRef}
       style={style}
@@ -82,5 +84,5 @@ export function MeetingMessageOptionsMenu({
         </button>
       )}
     </div>
-  );
+  ), document.body);
 }

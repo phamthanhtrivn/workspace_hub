@@ -42,12 +42,14 @@ const EmojiPickerPopover: React.FC<EmojiPickerPopoverProps> = ({
   return (
     <div
       ref={popoverRef}
-      className="absolute bottom-[110%] right-0 z-50 animate-in fade-in zoom-in-95 duration-200 rounded-panel overflow-hidden border border-border bg-card shadow-panel"
+      className="absolute max-h-[min(420px,60dvh)] max-w-[calc(100vw-1.5rem)] overflow-y-auto bottom-[110%] right-0 z-50 animate-in fade-in zoom-in-95 duration-200 rounded-panel overflow-hidden border border-border bg-card shadow-panel"
     >
       <EmojiPicker
         onEmojiClick={(emojiData) => onEmojiSelect(emojiData.emoji)}
         theme={resolvedTheme === "dark" ? Theme.DARK : Theme.LIGHT}
         emojiStyle={EmojiStyle.NATIVE}
+        width="min(350px, calc(100vw - 1.5rem))"
+        height="min(420px, 60dvh)"
         lazyLoadEmojis={true}
         searchPlaceHolder="Search emoji..."
       />

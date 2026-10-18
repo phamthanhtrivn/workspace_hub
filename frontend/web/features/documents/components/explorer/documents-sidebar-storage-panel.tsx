@@ -26,7 +26,7 @@ export function DocumentsSidebarStoragePanel() {
 
   if (isLoading) {
     return (
-      <div className="mt-auto hidden rounded-lg border border-border bg-card p-4 xl:block">
+      <div className="mt-auto hidden rounded-lg border border-border bg-card p-4 @min-[960px]/documents:block">
         <div className="flex items-center gap-3">
           <Loader2 className="h-4 w-4 animate-spin text-info" />
           <span className="text-xs font-semibold text-muted-foreground">
@@ -39,14 +39,14 @@ export function DocumentsSidebarStoragePanel() {
 
   if (isError || !quota) {
     return (
-      <div className="mt-auto hidden rounded-lg border border-dashed border-border bg-destructive-soft p-3 text-xs font-semibold text-destructive xl:block">
+      <div className="mt-auto hidden rounded-lg border border-dashed border-border bg-destructive-soft p-3 text-xs font-semibold text-destructive @min-[960px]/documents:block">
         Could not load storage quota.
       </div>
     );
   }
 
   return (
-    <section className="mt-auto hidden overflow-hidden rounded-lg border border-border bg-card xl:block">
+    <section className="mt-auto hidden overflow-hidden rounded-lg border border-border bg-card @min-[960px]/documents:block">
       <div className="bg-card p-4 text-card-foreground">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

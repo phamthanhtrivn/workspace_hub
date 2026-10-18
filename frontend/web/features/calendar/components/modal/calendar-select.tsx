@@ -56,7 +56,7 @@ export function CalendarSelect({
         align="start"
         sideOffset={3}
         className={cn(
-          "max-h-[min(24rem,var(--radix-select-content-available-height))] rounded-md border-border bg-card py-1 text-sm text-foreground",
+          "max-w-[calc(100vw-1.5rem)] max-h-[min(24rem,var(--radix-select-content-available-height))] rounded-md border-border bg-card py-1 text-sm text-foreground",
           alignItemWithTrigger
             ? "min-w-[var(--radix-select-trigger-width)]"
             : "min-w-fit",

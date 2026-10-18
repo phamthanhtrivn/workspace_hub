@@ -59,7 +59,7 @@ export default function RichTextTextarea({
     <div
       className={`overflow-hidden rounded-panel border border-input bg-card transition-all focus-within:ring-4 ${focusColorClassName}`}
     >
-      <div className="flex items-center gap-0.5 border-b border-border bg-background px-2 py-1.5">
+      <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-background px-2 py-1.5">
         {FORMAT_BUTTONS.map(({ type, label, icon: Icon }, index) => (
           <React.Fragment key={type}>
             {index === 3 ? <div className="mx-1 h-4 w-px bg-accent" /> : null}

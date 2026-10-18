@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DocumentItem } from "../../types/documents.types";
@@ -45,7 +47,7 @@ export function ShareModal({ open, isOpen, onClose, item }: ShareModalProps) {
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-lg border-border bg-card p-6 text-foreground rounded-dialog">
+      <DialogContent className={`${dialogLayout.surface} max-w-lg border-border bg-card p-6 text-foreground rounded-dialog`}>
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info ring-1 ring-ring">
             <Share2 className="h-5 w-5" />
@@ -60,7 +62,7 @@ export function ShareModal({ open, isOpen, onClose, item }: ShareModalProps) {
           </div>
         </DialogHeader>
 
-        <div className="mt-4 space-y-5 max-h-[65vh] overflow-y-auto pr-1">
+        <div className={`${dialogLayout.body} mt-4 space-y-5 max-h-[65vh] overflow-y-auto pr-1`}>
           {/* Add email access */}
           {isOwner ? <ShareModalForm documentItemId={item.id} /> : null}
 

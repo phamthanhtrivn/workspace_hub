@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { AlertTriangle, HelpCircle, Info, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import {
@@ -76,7 +78,7 @@ export function CalendarConfirmDialog({
     >
       <AlertDialogContent
         role="alertdialog"
-        className="max-w-md rounded-panel border-border bg-card p-6 text-foreground sm:rounded-panel"
+        className={`${dialogLayout.surface} max-w-md rounded-panel border-border bg-card p-6 text-foreground sm:rounded-panel`}
         showCloseButton={false}
       >
         <AlertDialogHeader className="text-left">

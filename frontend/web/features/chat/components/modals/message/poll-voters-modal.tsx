@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, User } from "lucide-react";
@@ -79,7 +81,7 @@ export default function PollVotersModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-overlay/40 px-4 py-6">
-      <div className="flex h-[720px] max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-panel border border-border bg-card text-foreground animate-in fade-in zoom-in-95 duration-200">
+      <div className={`${dialogLayout.surface} flex h-[720px] max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-panel border border-border bg-card text-foreground animate-in fade-in zoom-in-95 duration-200`}>
         <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-border bg-card px-6 py-4">
           <div>
             <h2 className="text-section-title font-semibold tracking-tight text-foreground">
@@ -99,7 +101,7 @@ export default function PollVotersModal({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-card px-4 py-4 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border">
+        <div className={`${dialogLayout.body} min-h-0 flex-1 overflow-y-auto bg-card px-4 py-4 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border`}>
           <div className="space-y-4">
             {voterSections.map((section) => (
               <section

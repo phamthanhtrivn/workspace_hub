@@ -63,7 +63,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
   const handleSkip = useCallback(() => skip(), [skip]);
 
   return (
-    <div className="relative w-full min-w-0 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+    <div className="@container/pomodoro relative w-full min-w-0 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
       {/* Top Header & Context Bar */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border/80 pb-4">
         <div>
@@ -110,7 +110,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
         className={
           minimalMode
             ? "mx-auto grid max-w-xl grid-cols-1 items-start gap-5"
-            : "grid min-w-0 grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:gap-x-8"
+            : "grid min-w-0 grid-cols-1 items-start gap-5 @min-[880px]/pomodoro:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] @min-[880px]/pomodoro:gap-x-8"
         }
       >
         {/* Left Column: Focus Studio Core */}
@@ -118,7 +118,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
           className={
             minimalMode
               ? "flex min-w-0 flex-col items-center gap-4"
-              : "flex min-w-0 flex-col items-center gap-4 xl:col-start-1 xl:row-span-2 xl:row-start-1"
+              : "flex min-w-0 flex-col items-center gap-4 @min-[880px]/pomodoro:col-start-1 @min-[880px]/pomodoro:row-span-2 @min-[880px]/pomodoro:row-start-1"
           }
         >
           {/* Precision Timer Display */}
@@ -205,7 +205,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
         {isReady && (
           <fieldset disabled={isTaskActionPending} className={cn(
             "flex w-full min-w-0 justify-center [&>div]:max-w-none",
-            !minimalMode && "xl:col-start-2 xl:row-start-1",
+            !minimalMode && "@min-[880px]/pomodoro:col-start-2 @min-[880px]/pomodoro:row-start-1",
           )}>
             <PomodoroActiveTaskCard />
           </fieldset>
@@ -213,7 +213,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
 
         {/* Supporting stats sit below the active task. */}
         {!minimalMode && (
-          <div className="min-w-0 xl:col-start-2 xl:row-start-2">
+          <div className="min-w-0 @min-[880px]/pomodoro:col-start-2 @min-[880px]/pomodoro:row-start-2">
             <PomodoroStatsOverview lastUpdated={sessionRevision} dailyGoalPomodoros={config.dailyGoalPomodoros} />
           </div>
         )}

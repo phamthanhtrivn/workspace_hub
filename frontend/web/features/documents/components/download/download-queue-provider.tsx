@@ -149,7 +149,7 @@ export function DownloadQueueProvider({
       {children}
 
       {/* ── Fixed Bottom Bar ── */}
-      <div className="fixed bottom-4 right-4 z-50 w-80 rounded-panel bg-primary border border-input overflow-hidden animate-in slide-in-from-bottom-4 duration-200 shadow-panel">
+      <div className="fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-1.5rem)] rounded-panel bg-primary border border-input overflow-hidden animate-in slide-in-from-bottom-4 duration-200 shadow-panel">
         {/* Header */}
         <div
           className="flex items-center justify-between px-4 py-3 hover:bg-overlay/40 transition-colors cursor-pointer"

@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
@@ -71,7 +73,7 @@ export function DocumentsInputModal({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isLoading && onCancel()}>
       <DialogContent
-        className="max-w-md border-border bg-card p-6 text-foreground rounded-dialog"
+        className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}
         showCloseButton={!isLoading}
       >
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">

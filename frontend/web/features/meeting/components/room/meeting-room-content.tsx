@@ -203,8 +203,8 @@ export function MeetingRoomContent({
   const closePanel = () => setActivePanel(MeetingRoomPanel.NONE);
 
   return (
-    <div className="fixed inset-0 z-[90] flex min-h-[100dvh] flex-col overflow-hidden bg-card text-foreground">
-      <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-4 sm:px-6">
+    <div className="@container/meeting-room fixed inset-0 z-[90] flex h-dvh min-h-0 min-w-0 flex-col overflow-hidden bg-card text-foreground">
+      <header className="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-2 py-2 border-b border-border bg-card px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary">
             <Video className="h-5 w-5" />
@@ -227,7 +227,7 @@ export function MeetingRoomContent({
         </div>
       </header>
 
-      <main className="flex min-h-0 flex-1">
+      <main className="relative flex min-h-0 min-w-0 flex-1">
         <section
           ref={stageContainerRef}
           className="relative min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden"
@@ -316,31 +316,6 @@ export function MeetingRoomContent({
           onToggleParticipantPin={toggleParticipantPin}
           onClose={closePanel}
         />
-      </main>
-
-      <MeetingRoomFooter
-        activePanel={activePanel}
-        joinToken={joinToken}
-        meetingId={meetingId}
-        participantRole={currentParticipantRole}
-        settings={settings}
-        chatMuted={chatMuted}
-        isLocalScreenSharing={isLocalSharing}
-        isScreenSharePending={isScreenSharePending}
-        isHandRaised={Boolean(currentUserHandRaisedAt)}
-        isHandUpdatePending={isHandUpdatePending}
-        isReactionPending={isReactionPending}
-        canStartScreenShare={canStartScreenShare}
-        onToggleScreenShare={toggleScreenShare}
-        onToggleHand={toggleHand}
-        onSendReaction={sendReaction}
-        onPanelChange={setActivePanel}
-        onLeave={handleLeave}
-        onEndForEveryone={handleEndForEveryone}
-        isLeavePending={isLeavePending}
-        isEndPending={isEndPending}
-      />
-
       <MeetingRoomMobilePanelHeader
         activePanel={activePanel}
         joinToken={joinToken}
@@ -366,6 +341,32 @@ export function MeetingRoomContent({
         onToggleParticipantPin={toggleParticipantPin}
         onClose={closePanel}
       />
+      </main>
+
+      <MeetingRoomFooter
+        activePanel={activePanel}
+        joinToken={joinToken}
+        meetingId={meetingId}
+        participantRole={currentParticipantRole}
+        settings={settings}
+        chatMuted={chatMuted}
+        isLocalScreenSharing={isLocalSharing}
+        isScreenSharePending={isScreenSharePending}
+        isHandRaised={Boolean(currentUserHandRaisedAt)}
+        isHandUpdatePending={isHandUpdatePending}
+        isReactionPending={isReactionPending}
+        canStartScreenShare={canStartScreenShare}
+        onToggleScreenShare={toggleScreenShare}
+        onToggleHand={toggleHand}
+        onSendReaction={sendReaction}
+        onPanelChange={setActivePanel}
+        onLeave={handleLeave}
+        onEndForEveryone={handleEndForEveryone}
+        isLeavePending={isLeavePending}
+        isEndPending={isEndPending}
+      />
+
+
 
       <MeetingRoomAudioRenderer mutedParticipantIds={mutedParticipantIds} />
       <MeetingAlertDialog {...alertDialogProps} />

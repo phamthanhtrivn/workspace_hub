@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Loader2, Search, Hash, Check, Globe, Trash2 } from "lucide-react";
@@ -135,7 +137,7 @@ export default function BrowseChannelsModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40 animate-fade-in">
-      <div className="w-full max-w-lg bg-card rounded-panel overflow-hidden border border-border flex flex-col h-[600px] max-h-[100vh]">
+      <div className={`${dialogLayout.surface} w-full max-w-lg bg-card rounded-panel overflow-hidden border border-border flex flex-col h-[600px] max-h-[100vh]`}>
         {/* Header */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -170,7 +172,7 @@ export default function BrowseChannelsModal({
         </div>
 
         {/* Channel List */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-4 flex flex-col gap-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full`}>
           {isLoading ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
               <Loader2 className="animate-spin text-info" size={24} />

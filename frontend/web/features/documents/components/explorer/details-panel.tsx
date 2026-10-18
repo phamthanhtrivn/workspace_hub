@@ -48,7 +48,7 @@ export function DetailsPanel({
   const isFolder = item.type === DocumentItemType.FOLDER || (item.type as any) === "FOLDER";
 
   return (
-    <div className="flex h-full min-h-0 w-80 shrink-0 flex-col overflow-hidden border-l border-border bg-card text-foreground animate-in slide-in-from-right-4 duration-200">
+    <div className="absolute inset-0 z-40 flex h-full min-h-0 min-w-0 w-full shrink-0 flex-col overflow-hidden @min-[800px]/document-canvas:static @min-[800px]/document-canvas:w-80 border-l border-border bg-card text-foreground animate-in slide-in-from-right-4 duration-200">
       {/* Panel Header */}
       <div className="shrink-0 border-b border-border bg-card px-6 py-4">
         <div className="flex items-center justify-between">

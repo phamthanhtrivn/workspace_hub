@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React from "react";
 import { Send, Users, MessageSquare } from "lucide-react";
 import { DocumentItem } from "../../types/documents.types";
@@ -102,7 +104,7 @@ export function ShareToChatModal({
     <>
       <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && onClose()}>
         <DialogContent
-          className="max-w-md border-border bg-card p-6 text-foreground rounded-dialog"
+          className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}
           showCloseButton={!isSubmitting}
         >
           <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
@@ -148,7 +150,7 @@ export function ShareToChatModal({
             </div>
           ) : null}
 
-          <div className="mt-4 space-y-4">
+          <div className={`${dialogLayout.body} mt-4 space-y-4`}>
             {selectedTab === ShareTabType.CHANNEL ? (
               <>
                 {!isProjectDocuments ? (

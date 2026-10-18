@@ -718,7 +718,7 @@ const ChannelChatInput = React.memo(
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className="w-full bg-card border-t border-border flex justify-center relative"
+          className="min-w-0 w-full shrink-0 bg-card border-t border-border flex justify-center relative"
         >
           {isDraggingOver && (
             <div className="absolute inset-0 bg-info-soft/80 border-2 border-dashed border-info rounded-panel m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">

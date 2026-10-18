@@ -59,7 +59,7 @@ export function MeetingParticipantTile({
     <article
       data-meeting-participant-id={trackRef.participant.identity}
       className={cn(
-        "relative flex min-h-[220px] overflow-hidden rounded-panel border border-border bg-media-background text-media-foreground transition-colors duration-200",
+        "relative flex min-h-0 min-w-0 h-full overflow-hidden rounded-panel border border-border bg-media-background text-media-foreground transition-colors duration-200",
         shouldShowSpeakingHighlight
           ? "border-success/70 ring-2 ring-success/45"
           : "",

@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
@@ -157,7 +159,7 @@ export function VersionManagementModal({
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-2xl border-border bg-card p-6 text-foreground rounded-dialog">
+      <DialogContent className={`${dialogLayout.surface} max-w-2xl border-border bg-card p-6 text-foreground rounded-dialog`}>
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info ring-1 ring-ring">
             <History className="h-5 w-5" />
@@ -172,7 +174,7 @@ export function VersionManagementModal({
           </div>
         </DialogHeader>
 
-        <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+        <div className={`${dialogLayout.body} mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1`}>
           {item.userRole !== DocumentRole.VIEWER ? (
             <VersionUploader
               uploadState={uploadState}

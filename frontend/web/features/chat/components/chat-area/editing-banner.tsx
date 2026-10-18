@@ -16,7 +16,7 @@ export default function EditingBanner({
   onCancelEdit,
 }: EditingBannerProps) {
   return (
-    <div className="bg-warning-soft border-t border-border p-2 px-4 flex items-center justify-between">
+    <div className="bg-warning-soft border-t border-border p-2 px-4 flex min-w-0 shrink-0 items-center justify-between gap-2">
       <div className="flex flex-col min-w-0 flex-1 border-l border-warning pl-3">
         <span className="text-xs font-semibold text-warning">
           Edit Message

@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState } from "react";
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
@@ -39,7 +41,7 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/50 p-4">
-      <div className="bg-card rounded-panel w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className={`${dialogLayout.surface} bg-card rounded-panel w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200`}>
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h2 className="text-section-title font-semibold text-foreground">
             Reactions
@@ -71,7 +73,7 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
           ))}
         </div>
 
-        <div className="p-2 max-h-[300px] overflow-y-auto">
+        <div className={`${dialogLayout.body} p-2 max-h-[300px] overflow-y-auto`}>
           {displayReactions.map((reaction, idx) => (
             <div
               key={idx}

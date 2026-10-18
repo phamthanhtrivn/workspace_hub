@@ -58,7 +58,7 @@ export function PomodoroSessionHistoryItem({ session, showDates = false }: Pomod
     >
       <summary
         aria-label={`View session details for ${taskTitle} at ${startTime}${showDates ? ` on ${new Date(session.startedAt).toLocaleDateString(POMODORO_DISPLAY_LOCALE)}` : ""}`}
-        className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-panel p-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
+        className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 rounded-panel p-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
       >
         <div className="flex items-center gap-3 min-w-0 pr-2">
           <div

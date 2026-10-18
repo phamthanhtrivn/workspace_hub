@@ -37,7 +37,7 @@ const NoteMessage = React.memo(function NoteMessage({
 
   return (
     <div className="flex flex-col items-center my-4 w-full">
-      <div className="bg-warning-soft border border-border rounded-panel p-5 max-w-md w-full relative overflow-hidden transition-all duration-200">
+      <div className="bg-warning-soft border border-border rounded-panel p-5 max-w-md min-w-0 w-full [overflow-wrap:anywhere] relative overflow-hidden transition-all duration-200">
         {/* Decorative corner fold */}
         <div className="absolute top-0 right-0 w-8 h-8 bg-card rounded-bl-2xl border-b border-l border-border" />
 

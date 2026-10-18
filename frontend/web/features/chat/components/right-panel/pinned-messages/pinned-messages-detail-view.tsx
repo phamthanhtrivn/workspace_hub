@@ -176,8 +176,8 @@ export default function PinnedMessagesDetailView({
   };
 
   return (
-    <div className="w-full h-full bg-card border-l border-border flex flex-col">
-      <div className="h-16 px-4 border-b border-border flex items-center gap-3">
+    <div className="w-full h-full min-h-0 min-w-0 bg-card border-l border-border flex flex-col">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center gap-3">
         <button aria-label="Back"
           onClick={onBack}
           className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"

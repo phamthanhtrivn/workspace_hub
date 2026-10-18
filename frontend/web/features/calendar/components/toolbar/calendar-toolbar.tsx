@@ -27,8 +27,8 @@ export function CalendarToolbar({
 
 
   return (
-    <div className="flex min-h-14 items-center justify-between gap-3 border-b border-border bg-card px-3 py-2 sm:px-5">
-      <div className="flex min-w-0 items-center gap-1 sm:gap-2">
+    <div className="flex min-h-14 min-w-0 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 @min-[640px]/calendar-canvas:px-5">
+      <div className="flex min-w-0 max-w-full flex-1 flex-wrap items-center gap-1 @min-[640px]/calendar-canvas:gap-2">
         <Button
           type="button"
           variant="ghost"
@@ -44,7 +44,7 @@ export function CalendarToolbar({
           type="button"
           variant="outline"
           onClick={() => onNavigate("today")}
-          className="hidden cursor-pointer rounded-control border border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-foreground transition hover:border-input hover:bg-background sm:block"
+          className="cursor-pointer rounded-control border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-input hover:bg-background"
         >
           Today
         </Button>
@@ -70,7 +70,7 @@ export function CalendarToolbar({
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <h2 className="truncate px-2 text-section-title font-semibold capitalize tracking-tight text-foreground sm:text-section-title">
+        <h2 className="min-w-0 break-words px-2 text-section-title font-semibold capitalize tracking-tight text-foreground">
           {title || "Calendar"}
         </h2>
       </div>

@@ -97,7 +97,8 @@ function DocumentsView() {
 
   return (
     <DownloadQueueProvider>
-      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-background text-foreground xl:flex-row">
+      <div className="@container/documents h-full min-h-0 min-w-0 w-full overflow-hidden bg-background text-foreground">
+      <div className="flex h-full min-h-0 min-w-0 flex-col @min-[960px]/documents:flex-row">
         {/* Navigation Sidebar */}
         <DocumentsSidebar
           activeView={activeView}
@@ -105,8 +106,8 @@ function DocumentsView() {
         />
 
         {/* Document Explorer Main Canvas */}
-        <section className="flex min-w-0 flex-1 flex-col min-h-0 h-full overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
-          <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col min-h-0 h-full rounded-lg border border-border bg-card p-6 overflow-hidden">
+        <section className="flex min-w-0 flex-1 flex-col min-h-0 overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 w-full flex-1 flex-col min-h-0 rounded-lg border border-border bg-card overflow-hidden">
             <DocumentExplorer
               currentFolderId={currentFolderId}
               onNavigate={handleNavigate}
@@ -116,6 +117,7 @@ function DocumentsView() {
             />
           </div>
         </section>
+      </div>
       </div>
     </DownloadQueueProvider>
   );

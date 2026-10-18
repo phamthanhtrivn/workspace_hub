@@ -1,5 +1,7 @@
 "use client";
 
+import { createPortal } from "react-dom";
+
 import {
   AlignLeft,
   Bell,
@@ -145,7 +147,7 @@ export function EventDetailModal({
 
   const cleanedDescription = cleanTaskDescription(event.description);
 
-  return (
+  return typeof document === "undefined" ? null : createPortal((
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/40 p-4"
       onWheelCapture={(event) => {
@@ -174,10 +176,10 @@ export function EventDetailModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="calendar-event-detail-heading"
-        className="relative w-full max-w-[460px] overflow-hidden rounded-dialog border border-border bg-card transition-all"
+        className="relative flex max-h-[calc(100dvh-2rem)] min-w-0 w-full max-w-[460px] flex-col overflow-hidden rounded-dialog border border-border bg-card transition-all"
       >
         {/* Top Header Action Toolbar (Google Calendar style) */}
-        <div className="flex h-12 items-center justify-end gap-1 px-3 pt-2 text-muted-foreground">
+        <div className="flex h-12 shrink-0 items-center justify-end gap-1 px-3 pt-2 text-muted-foreground">
           {event.permissions?.canManage && (
             <>
               <Button
@@ -221,7 +223,7 @@ export function EventDetailModal({
         </div>
 
         {/* Modal Body with Left Icon Column and Right Aligned Content */}
-        <div className="space-y-4 px-6 pb-6 pt-1">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pb-5 pt-1 sm:px-6">
           {/* Row 1: Title and Date/Time */}
           <div className="flex items-start gap-4">
             <div className="mt-1 flex w-5 shrink-0 justify-center">
@@ -396,7 +398,7 @@ export function EventDetailModal({
 
         {/* Guest RSVP Footer Bar */}
         {event.permissions?.canRespond && !event.permissions.canManage && (
-          <div className="flex items-center justify-between border-t border-border bg-background px-6 py-3.5">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-6 py-3.5">
             <span className="text-xs font-semibold text-muted-foreground">Going?</span>
             <div className="inline-flex rounded-full bg-accent/80 p-1">
               <Button
@@ -485,5 +487,5 @@ export function EventDetailModal({
         )}
       </div>
     </div>
-  );
+  ), document.body);
 }

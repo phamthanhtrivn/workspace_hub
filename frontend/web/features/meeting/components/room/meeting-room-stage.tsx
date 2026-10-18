@@ -31,7 +31,7 @@ export function MeetingRoomStage({
   if (activeScreenShareTrack) {
     return (
       <div className="flex min-h-full flex-col justify-center gap-4">
-        <div className="mx-auto aspect-video w-full max-w-6xl min-h-[18rem] overflow-hidden rounded-lg bg-overlay ring-1 ring-border/10">
+        <div className="mx-auto aspect-video min-w-0 w-full max-h-full overflow-hidden rounded-lg bg-overlay ring-1 ring-border/10">
           <MeetingParticipantTile
             trackRef={activeScreenShareTrack}
             isMainTile
@@ -53,7 +53,7 @@ export function MeetingRoomStage({
             onTogglePin={onToggleParticipantPin}
           />
         </div>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(10rem,14rem))] justify-center gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),14rem))] justify-center gap-3">
           {visibleCameraTracks.map((trackRef) => (
             <div
               key={`${trackRef.participant.identity}-${trackRef.source}`}

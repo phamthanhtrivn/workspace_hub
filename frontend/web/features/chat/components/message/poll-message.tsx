@@ -101,7 +101,7 @@ const PollMessage = React.memo(function PollMessage({
 
   return (
     <div className="flex flex-col items-center my-4 w-full">
-      <div className="bg-card border border-border rounded-panel p-5 max-w-md w-full relative overflow-hidden transition-all duration-200">
+      <div className="bg-card border border-border rounded-panel p-5 max-w-md min-w-0 w-full [overflow-wrap:anywhere] relative overflow-hidden transition-all duration-200">
         <div className="flex items-start gap-3.5 mb-4 justify-between">
           <div className="flex items-start gap-3">
             <div className="bg-info-soft p-2.5 rounded-panel text-info mt-1 border border-border">

@@ -12,7 +12,7 @@ export function MeetingAccessDenied({ onBack }: MeetingAccessDeniedProps) {
   const router = useRouter();
 
   return (
-    <div className="fixed inset-0 z-[90] grid min-h-[100dvh] place-items-center bg-card px-4 text-foreground">
+    <div className="fixed inset-0 z-[90] grid h-dvh min-h-0 overflow-y-auto py-4 [place-items:safe_center] bg-card px-4 text-foreground">
       <div className="w-full max-w-md rounded-panel border border-border bg-accent p-8 text-center">
         <span className="mx-auto grid h-16 w-16 place-items-center rounded-panel bg-destructive/15 text-destructive ring-1 ring-destructive/30">
           <ShieldAlert className="h-8 w-8" />

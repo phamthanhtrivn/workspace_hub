@@ -21,7 +21,7 @@ export function MeetingWaitingApproval({
 
   return (
     <MeetingFullscreenPortal>
-      <div className="fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-card px-4 text-foreground">
+      <div className="fixed inset-0 z-[100] flex h-dvh min-h-0 overflow-y-auto py-4 [align-items:safe_center] justify-center bg-card px-4 text-foreground">
         <section className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center">
           <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-accent text-info ring-1 ring-border/12">
             {isRejected ? (

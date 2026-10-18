@@ -236,7 +236,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "files") {
     return (
-      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <MediaDetailView
           conversationId={activeChannel.id}
           isDirect={false}
@@ -248,7 +248,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "polls") {
     return (
-      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PollDetailView
           conversationId={activeChannel.id}
           onBack={() => setDetailView(null)}
@@ -259,7 +259,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "notes") {
     return (
-      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <NoteDetailView
           conversationId={activeChannel.id}
           onBack={() => setDetailView(null)}
@@ -270,7 +270,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "pinned") {
     return (
-      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PinnedMessagesDetailView
           conversationId={activeChannel.id}
           isDirect={false}
@@ -283,7 +283,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "search") {
     return (
-      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <SearchMessagesSection
           conversationId={activeChannel.id}
           onBack={() => setDetailView(null)}
@@ -294,7 +294,7 @@ export default function ChannelRightPanel({
 
   if (detailView === "threads") {
     return (
-      <div className="w-full border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <ThreadsListView
           conversationId={activeChannel.id}
           isDirect={false}
@@ -310,9 +310,9 @@ export default function ChannelRightPanel({
   const displayDescription = `${memberCount} ${memberCount === 1 ? "member" : "members"}`;
 
   return (
-    <div className="w-full h-full bg-card border-l border-border flex flex-col">
+    <div className="w-full h-full min-h-0 min-w-0 bg-card border-l border-border flex flex-col">
       {/* Header */}
-      <div className="h-16 px-4 border-b border-border flex items-center justify-between">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center justify-between">
         <h2 className="font-semibold text-foreground">Channel Details</h2>
         <button aria-label="Close"
           onClick={onClose}

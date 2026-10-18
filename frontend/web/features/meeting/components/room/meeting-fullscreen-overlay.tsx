@@ -19,7 +19,7 @@ export function MeetingFullscreenPortal({
 export function MeetingCreatingOverlay() {
   return (
     <MeetingFullscreenPortal>
-      <div className="fixed inset-0 z-[100] grid min-h-[100dvh] place-items-center bg-card px-4 text-foreground">
+      <div className="fixed inset-0 z-[100] grid h-dvh min-h-0 overflow-y-auto py-4 [place-items:safe_center] bg-card px-4 text-foreground">
         <div className="flex w-full max-w-sm flex-col items-center rounded-lg border border-border bg-accent px-6 py-8 text-center">
           <span className="relative grid h-16 w-16 place-items-center rounded-full bg-primary">
             <Video className="h-7 w-7" />

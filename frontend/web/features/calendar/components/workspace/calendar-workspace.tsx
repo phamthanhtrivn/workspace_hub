@@ -66,6 +66,7 @@ export function CalendarWorkspace() {
   );
   const tasksQuery = useCalendarTasks();
   const createCalendar = useCreateCalendar();
+  const workspaceRef = useRef<HTMLElement>(null);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [tasksDrawerOpen, setTasksDrawerOpen] = useState(false);
@@ -159,7 +160,7 @@ export function CalendarWorkspace() {
   }, []);
 
   const handleToggleSidebar = useCallback(() => {
-    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+    if ((workspaceRef.current?.clientWidth ?? 0) >= 960) {
       setDesktopSidebarOpen((prev) => {
         const next = !prev;
         try {
@@ -259,12 +260,12 @@ export function CalendarWorkspace() {
   }, [tasksData, calendarEvents, projectCalendarIds]);
 
   return (
-    <section className="relative h-full w-full overflow-hidden bg-card">
+    <section ref={workspaceRef} className="@container/calendar-workspace relative h-full min-h-0 min-w-0 w-full overflow-hidden bg-card">
       {mobileSidebarOpen && (
         <Button
           type="button"
           variant="ghost"
-          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-overlay/30 p-0 lg:hidden"
+          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-overlay/30 p-0 @min-[960px]/calendar-workspace:hidden"
           onClick={() => setMobileSidebarOpen(false)}
           aria-label="Close"
         />
@@ -273,13 +274,13 @@ export function CalendarWorkspace() {
         <div
           className={cn(
             "z-50 shrink-0 transform transition-transform duration-200 ease-out",
-            "fixed inset-y-0 left-0 w-64 lg:static lg:inset-auto",
+            "fixed inset-y-0 left-0 w-64 @min-[960px]/calendar-workspace:static @min-[960px]/calendar-workspace:inset-auto",
             mobileSidebarOpen
               ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0",
+              : "-translate-x-full @min-[960px]/calendar-workspace:translate-x-0",
             desktopSidebarOpen
-              ? "lg:w-64 lg:opacity-100"
-              : "lg:w-0 lg:overflow-hidden lg:opacity-0 lg:border-none",
+              ? "@min-[960px]/calendar-workspace:w-64 @min-[960px]/calendar-workspace:opacity-100"
+              : "@min-[960px]/calendar-workspace:w-0 @min-[960px]/calendar-workspace:overflow-hidden @min-[960px]/calendar-workspace:opacity-0 @min-[960px]/calendar-workspace:border-none",
           )}
         >
           <div className="h-full w-64">
@@ -315,6 +316,7 @@ export function CalendarWorkspace() {
           </div>
         </div>
 
+        <div className="@container/calendar-canvas relative flex min-h-0 min-w-0 flex-1">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
           <CalendarToolbar
             title={calendar.title}
@@ -374,6 +376,7 @@ export function CalendarWorkspace() {
             }
           }}
         />
+        </div>
       </div>
 
       {(calendar.draft || calendar.editingEvent) && (

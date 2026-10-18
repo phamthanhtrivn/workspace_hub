@@ -44,7 +44,7 @@ const DocumentMessage = React.memo(function DocumentMessage({
   if (isLoading) {
     return (
       <div className="flex flex-col items-center my-3 w-full">
-        <div className="bg-background border border-border rounded-panel p-4 max-w-sm w-full animate-pulse flex items-center gap-4">
+        <div className="bg-background border border-border rounded-panel p-4 max-w-sm min-w-0 w-full [overflow-wrap:anywhere] animate-pulse flex items-center gap-4">
           <div className="w-10 h-10 bg-accent rounded-panel" />
           <div className="flex-1 space-y-2">
             <div className="h-4 bg-accent rounded-sm w-3/4" />
@@ -58,7 +58,7 @@ const DocumentMessage = React.memo(function DocumentMessage({
   if (isError || !metadata) {
     return (
       <div className="flex flex-col items-center my-3 w-full">
-        <div className="bg-destructive-soft border border-border rounded-panel p-4 max-w-sm w-full flex items-center gap-3 text-destructive">
+        <div className="bg-destructive-soft border border-border rounded-panel p-4 max-w-sm min-w-0 w-full [overflow-wrap:anywhere] flex items-center gap-3 text-destructive">
           <Lock size={20} className="shrink-0 text-destructive" />
           <div className="text-xs font-semibold">
             Document unavailable or removed
@@ -120,7 +120,7 @@ const DocumentMessage = React.memo(function DocumentMessage({
 
   return (
     <div
-      className={`border rounded-panel p-4 max-w-sm w-full transition-all duration-200 ${themeClasses}`}
+      className={`border rounded-panel p-4 max-w-sm min-w-0 w-full [overflow-wrap:anywhere] transition-all duration-200 ${themeClasses}`}
     >
       <div className="flex items-start gap-3">
         {/* File/Folder Icon */}

@@ -218,7 +218,7 @@ const ChatMessage = React.memo(function ChatMessage({
     <div
       id={`msg-${msg.id}`}
       className={cn(
-        "w-full flex flex-col mb-1.5 group transition-all duration-200 rounded-panel",
+        "min-w-0 w-full flex flex-col mb-1.5 [overflow-wrap:anywhere] [&_img]:max-w-full [&_video]:max-w-full [&_pre]:max-w-full [&_pre]:overflow-x-auto group transition-all duration-200 rounded-panel",
         msg.threadReplyCount &&
           msg.threadReplyCount > 0 &&
           "bg-info-soft/50 border border-border py-2.5 px-4",
@@ -237,7 +237,7 @@ const ChatMessage = React.memo(function ChatMessage({
           onClick={openSenderProfile}
         />
 
-        <div className="max-w-[70%] flex flex-col gap-1 relative group/bubble items-start">
+        <div className="min-w-0 max-w-[calc(100%-3rem)] @min-[720px]/messages:max-w-[70%] flex flex-col gap-1 relative group/bubble items-start">
           {showSenderName && (
             <div className="flex items-baseline gap-2 px-1 mt-0.5 mb-0.5 min-w-0">
               <button

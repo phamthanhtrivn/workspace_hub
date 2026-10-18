@@ -25,9 +25,9 @@ export function MeetingSidebar({
   onItemSelect,
 }: MeetingSidebarProps) {
   return (
-    <aside className="flex shrink-0 flex-col gap-5 border-b border-border bg-card px-4 py-4 xl:w-80 xl:border-b-0 xl:border-r xl:py-6">
+    <aside className="flex shrink-0 flex-col gap-5 border-b border-border bg-card px-4 py-4 @min-[1120px]/meetings:w-80 @min-[1120px]/meetings:border-b-0 @min-[1120px]/meetings:border-r @min-[1120px]/meetings:py-6">
       <nav
-        className="flex gap-2 overflow-x-auto xl:flex-col xl:overflow-visible"
+        className="flex gap-2 overflow-x-auto @min-[1120px]/meetings:flex-col @min-[1120px]/meetings:overflow-visible"
         aria-label="Meeting dashboard"
       >
         {meetingDashboardNavItems.map((item) => {

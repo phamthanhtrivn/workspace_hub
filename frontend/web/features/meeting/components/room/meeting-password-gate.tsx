@@ -38,7 +38,7 @@ export function MeetingPasswordGate({
 
   return (
     <MeetingFullscreenPortal>
-      <div className="fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-card px-4 text-foreground">
+      <div className="fixed inset-0 z-[100] flex h-dvh min-h-0 overflow-y-auto py-4 [align-items:safe_center] justify-center bg-card px-4 text-foreground">
         <form
           onSubmit={handleSubmit}
           className="w-full max-w-md rounded-lg border border-border bg-card p-6"

@@ -33,8 +33,8 @@ export function MeetingRoomMobilePanelHeader({
   if (activePanel === MeetingRoomPanel.NONE) return null;
 
   return (
-    <div className="max-h-[45dvh] overflow-y-auto border-t border-border bg-card p-3 lg:hidden">
-      <div className="flex items-center justify-between rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-muted-foreground ring-1 ring-border/8">
+    <div className="absolute inset-0 z-50 flex min-h-0 min-w-0 flex-col overflow-hidden bg-card p-3 @min-[1060px]/meeting-room:hidden">
+      <div className="flex shrink-0 items-center justify-between gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-muted-foreground ring-1 ring-border/8">
         <span>{getPanelTitle(activePanel)}</span>
         <div className="flex shrink-0 items-center gap-2">
           {activePanel === MeetingRoomPanel.CHAT ? (

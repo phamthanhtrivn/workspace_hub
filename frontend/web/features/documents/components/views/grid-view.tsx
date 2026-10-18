@@ -53,7 +53,7 @@ function GridView({
   isProjectDocuments = false,
 }: GridViewProps) {
   return (
-    <div className={`grid gap-4 animate-in fade-in duration-200 ${isProjectDocuments ? "min-w-0 grid-cols-1 @min-[480px]/project-documents:grid-cols-2 @min-[760px]/project-documents:grid-cols-3 @min-[1040px]/project-documents:grid-cols-4" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}`}>
+    <div className="grid min-w-0 grid-cols-1 gap-4 animate-in fade-in duration-200 @min-[480px]/document-items:grid-cols-2 @min-[760px]/document-items:grid-cols-3 @min-[1040px]/document-items:grid-cols-4">
       {items.map((item) => (
         <GridViewCard
           key={item.id}

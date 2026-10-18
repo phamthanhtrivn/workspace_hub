@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, User, Phone, Calendar, Info } from "lucide-react";
@@ -103,7 +105,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
 
   const modalContent = (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-overlay/40 px-4 transition-opacity duration-200">
-      <div className="bg-card rounded-panel w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col border border-border animate-in fade-in zoom-in-95 duration-200">
+      <div className={`${dialogLayout.surface} bg-card rounded-panel w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col border border-border animate-in fade-in zoom-in-95 duration-200`}>
         <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-card sticky top-0 z-10">
           <h2 className="text-section-title font-semibold text-foreground tracking-tight">
             User Profile
@@ -116,7 +118,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1 bg-card">
+        <div className={`${dialogLayout.body} p-6 overflow-y-auto flex-1 bg-card`}>
           {loading ? (
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <div className="w-8 h-8 border-4 border-border border-t-info rounded-full animate-spin"></div>

@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React from "react";
 import { createPortal } from "react-dom";
 import { Video, Loader2 } from "lucide-react";
@@ -34,7 +36,7 @@ export function StartMeetingConfirmModal({
         }
       }}
     >
-      <div className="w-full max-w-md rounded-panel border border-border bg-card p-6 transition-all animate-in zoom-in-95 duration-150">
+      <div className={`${dialogLayout.surface} w-full max-w-md rounded-panel border border-border bg-card p-6 transition-all animate-in zoom-in-95 duration-150`}>
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-panel bg-info-soft text-info border border-border">
             <Video className="h-6 w-6" />

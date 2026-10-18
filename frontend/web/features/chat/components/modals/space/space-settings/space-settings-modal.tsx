@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { Settings, X } from "lucide-react";
@@ -231,7 +233,7 @@ export default function SpaceSettingsModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40">
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-panel border border-border bg-card flex flex-col">
+      <div className={`${dialogLayout.surface} w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-panel border border-border bg-card flex flex-col`}>
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="min-w-0">
             <h2 className="text-section-title font-semibold text-foreground truncate">
@@ -248,8 +250,8 @@ export default function SpaceSettingsModal({
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1">
-          <div className="w-44 shrink-0 border-r border-border bg-background p-2 flex flex-col gap-2">
+        <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+          <div className="w-full shrink-0 border-b border-border bg-background p-2 flex flex-wrap gap-2 sm:w-44 sm:flex-col sm:border-b-0 sm:border-r">
             {visibleTabs.map((tab) => (
               <button
                 key={tab.id}
@@ -354,7 +356,7 @@ export default function SpaceSettingsModal({
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-border bg-background flex items-center justify-between">
+        <div className="px-5 py-3 border-t border-border bg-background flex shrink-0 flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Settings size={14} />
             {settings.isAdmin

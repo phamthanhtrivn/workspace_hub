@@ -109,6 +109,7 @@ export const CalendarGrid = memo(function CalendarGrid({
       if (isMonthTimedEvent) {
         return (
           <div
+            title={`${arg.event.title}\n${arg.timeText}`}
             className={`flex min-w-0 items-center gap-1.5 px-1 py-0.5 text-foreground ${
               isDeclined ? "opacity-60" : ""
             }`}
@@ -121,7 +122,7 @@ export const CalendarGrid = memo(function CalendarGrid({
               }}
             />
             <p
-              className={`min-w-0 truncate text-xs leading-5 ${
+              className={`calendar-event-title min-w-0 text-xs leading-5 ${
                 isDeclined ? "line-through text-muted-foreground" : ""
               }`}
             >
@@ -136,7 +137,8 @@ export const CalendarGrid = memo(function CalendarGrid({
 
       return (
         <div
-          className={`relative min-h-full min-w-0 overflow-hidden rounded px-1.5 py-1 text-primary-foreground ${
+          title={`${arg.event.title}\n${arg.timeText}`}
+          className={`calendar-event-content relative min-h-full min-w-0 overflow-hidden rounded px-1.5 py-1 text-primary-foreground ${
             isTask ? "calendar-task-event-content" : ""
           } ${isDeclined ? "opacity-60" : ""}`}
           style={{
@@ -151,53 +153,57 @@ export const CalendarGrid = memo(function CalendarGrid({
             />
           )}
           <div
-            className={`flex min-w-0 items-start gap-1 ${
+            className={`min-w-0 ${
               hasCustomEventColor && !isTask ? "pl-1" : ""
             }`}
           >
-            {canToggleTask ? (
-              <Checkbox
-                checked={isCompletedTask}
-                aria-label={taskToggleLabel}
-                disabled={taskCompletionBusy}
-                title={taskToggleLabel}
-                data-task-completion-toggle
-                onPointerDown={(event) => event.stopPropagation()}
-                onClick={(event) => {
-                  event.stopPropagation();
-                }}
-                onCheckedChange={() => {
-                  if (taskEvent) onTaskCompletionToggle(taskEvent);
-                }}
-                className={`group/task-toggle relative mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full outline-none ring-border/90 focus-visible:ring-2 ${
-                  taskCompletionBusy
-                    ? "cursor-wait opacity-70"
-                    : "cursor-pointer"
-                }`}
-              />
-            ) : isTask && isCompletedTask ? (
-              <CircleCheck className="mt-px h-3.5 w-3.5 shrink-0" />
-            ) : isTask ? (
-              <Circle className="mt-px h-3.5 w-3.5 shrink-0" />
-            ) : null}
-            <div className="min-w-0 flex-1">
+            <p
+              className={`calendar-event-title text-xs font-semibold leading-[1.25] ${
+                isCompletedTask || isDeclined ? "line-through" : ""
+              }`}
+            >
+              {canToggleTask ? (
+                <Checkbox
+                  checked={isCompletedTask}
+                  aria-label={taskToggleLabel}
+                  disabled={taskCompletionBusy}
+                  title={taskToggleLabel}
+                  data-task-completion-toggle
+                  onPointerDown={(event) => event.stopPropagation()}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                  }}
+                  onCheckedChange={() => {
+                    if (taskEvent) onTaskCompletionToggle(taskEvent);
+                  }}
+                  className={`group/task-toggle relative mr-1 inline-grid h-4 w-4 place-items-center rounded-full align-text-bottom outline-none ring-border/90 focus-visible:ring-2 ${
+                    taskCompletionBusy
+                      ? "cursor-wait opacity-70"
+                      : "cursor-pointer"
+                  }`}
+                />
+              ) : isTask && isCompletedTask ? (
+                <CircleCheck
+                  aria-hidden="true"
+                  className="calendar-event-status mr-1 inline-block h-3.5 w-3.5 align-text-bottom"
+                />
+              ) : isTask ? (
+                <Circle
+                  aria-hidden="true"
+                  className="calendar-event-status mr-1 inline-block h-3.5 w-3.5 align-text-bottom"
+                />
+              ) : null}
+              {arg.event.title}
+            </p>
+            {!arg.event.allDay && (
               <p
-                className={`truncate text-xs font-semibold leading-[1.25] ${
+                className={`mt-0.5 whitespace-nowrap text-xs font-medium leading-[1.2] opacity-95 tabular-nums ${
                   isCompletedTask || isDeclined ? "line-through" : ""
                 }`}
               >
-                {arg.event.title}
+                {arg.timeText}
               </p>
-              {!arg.event.allDay && (
-                <p
-                  className={`mt-0.5 truncate text-xs font-medium leading-[1.2] opacity-95 tabular-nums ${
-                    isCompletedTask || isDeclined ? "line-through" : ""
-                  }`}
-                >
-                  {arg.timeText}
-                </p>
-              )}
-            </div>
+            )}
           </div>
         </div>
       );
@@ -217,7 +223,7 @@ export const CalendarGrid = memo(function CalendarGrid({
   return (
     <div
       ref={containerRef}
-      className="calendar-shell relative min-h-0 flex-1 bg-card"
+      className="calendar-shell relative min-h-0 min-w-0 flex-1 overflow-auto bg-card"
     >
       {loading && (
         <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-info shadow-panel">
@@ -243,7 +249,13 @@ export const CalendarGrid = memo(function CalendarGrid({
         moreLinkText={renderMoreLinkText}
         moreLinkClick="popover"
         slotEventOverlap={false}
-        views={{ timeGridWeek: { eventMaxStack: 2 } }}
+        views={{
+          timeGrid: {
+            displayEventEnd: false,
+            eventTimeFormat: { hour: "numeric", minute: "2-digit", hour12: false },
+          },
+          timeGridWeek: { eventMaxStack: 2 },
+        }}
         expandRows
         navLinks
         navLinkDayClick="timeGridDay"

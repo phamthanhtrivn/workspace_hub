@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
@@ -33,7 +35,7 @@ export default function ViewNoteModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-overlay/50 p-4">
-      <div className="bg-card rounded-panel w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div className={`${dialogLayout.surface} bg-card rounded-panel w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200`}>
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h2 className="text-section-title font-semibold text-foreground">
             Note Details
@@ -45,7 +47,7 @@ export default function ViewNoteModal({
             <X size={20} />
           </button>
         </div>
-        <div className="p-2 max-h-[70vh] overflow-y-auto">
+        <div className={`${dialogLayout.body} p-2 max-h-[70vh] overflow-y-auto`}>
           <NoteMessage
             note={note}
             onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}

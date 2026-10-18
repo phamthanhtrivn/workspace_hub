@@ -23,11 +23,11 @@ export function DocumentsLoadingState({
         {items.map((_, index) => (
           <div
             key={index}
-            className="flex items-center gap-4 rounded-panel border border-border bg-card p-3.5"
+            className="flex min-w-0 flex-wrap items-center gap-4 rounded-panel border border-border bg-card p-3.5"
           >
             <Skeleton className="h-9 w-9 rounded-panel bg-muted" />
-            <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-4 w-48 bg-muted" />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-48 max-w-full bg-muted" />
               <Skeleton className="h-3 w-24 bg-muted" />
             </div>
             <Skeleton className="h-4 w-20 bg-muted" />
@@ -40,7 +40,7 @@ export function DocumentsLoadingState({
   }
 
   return (
-    <div className={cn("grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4", className)}>
+    <div className={cn("grid grid-cols-[repeat(auto-fill,minmax(min(100%,220px),1fr))] gap-4", className)}>
       {items.map((_, index) => (
         <div
           key={index}
