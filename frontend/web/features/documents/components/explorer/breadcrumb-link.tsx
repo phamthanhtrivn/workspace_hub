@@ -5,6 +5,8 @@ import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import { DND_ROOT_ID } from "../../types/documents.constants";
 import { NavigationLabel } from "../../types/documents.enums";
+import { Button } from "@/components/ui/button";
+
 
 export interface BreadcrumbLinkProps {
   name: string;
@@ -28,17 +30,17 @@ export function BreadcrumbLink({ name, folderId, isActive, onClick }: Breadcrumb
   const displayName = navigationLabels[name as NavigationLabel | "Folder"] || name;
 
   return (
-    <button
+    <Button variant="unstyled"
       ref={setNodeRef}
       onClick={onClick}
       className={cn(
-        "font-bold text-xs px-2 py-1 rounded-md transition-all cursor-pointer",
-        isActive ? "text-[#172B4D]" : "text-slate-400 hover:text-[#0052CC] hover:bg-slate-100",
-        isOver && "bg-blue-50 text-[#0052CC] ring-2 ring-dashed ring-blue-400 scale-105 shadow-xs"
+        "font-semibold text-xs px-2 py-1 rounded-md transition-all cursor-pointer",
+        isActive ? "text-foreground" : "text-muted-foreground hover:text-info-content hover:bg-muted",
+        isOver && "bg-info-soft text-info-content ring-2 ring-dashed ring-ring scale-105"
       )}
     >
       {displayName}
-    </button>
+    </Button>
   );
 }
 

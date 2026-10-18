@@ -1,5 +1,7 @@
 # WorkSpaceHub - Intelligent All-in-One Management Platform
 
+Product and interface references: [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md), and [design tokens](docs/design-tokens.md).
+
 WorkSpaceHub is an intelligent, all-in-one management platform designed to unify task tracking, real-time communication, scheduling, shared documentation, and productivity techniques (such as the Pomodoro method) into a cohesive ecosystem.
 
 ---

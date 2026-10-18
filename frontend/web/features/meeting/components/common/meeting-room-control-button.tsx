@@ -8,6 +8,8 @@ import {
   MIN_VISIBLE_BADGE_COUNT,
   OVERFLOW_BADGE_LABEL,
 } from "../../types/meeting.constants";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingRoomControlButtonProps {
   label: string;
@@ -33,26 +35,27 @@ export function MeetingRoomControlButton({
     badgeCount > MAX_BADGE_COUNT ? OVERFLOW_BADGE_LABEL : String(badgeCount);
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={onClick}
       disabled={disabled}
+      aria-pressed={danger ? undefined : active}
       className={cn(
-        "cursor-pointer relative flex h-[68px] w-[76px] shrink-0 flex-col items-center justify-center gap-1.5 overflow-visible rounded-lg text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50",
+        "cursor-pointer relative flex h-12 w-14 sm:h-[68px] sm:w-[76px] shrink-0 flex-col items-center justify-center gap-1.5 overflow-visible rounded-control text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
         danger
-          ? "bg-red-600 text-white hover:bg-red-500"
+          ? "bg-destructive text-destructive-foreground hover:bg-destructive"
           : active
-            ? "bg-white text-[#172B4D] shadow-lg"
-            : "bg-white/10 text-slate-200 ring-1 ring-white/10 hover:bg-white/16",
+            ? "bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft"
+            : "bg-secondary text-secondary-foreground hover:bg-accent",
       )}
     >
       {shouldShowBadge ? (
-        <span className="absolute right-3.5 top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black leading-none text-white shadow-[0_8px_18px_rgba(220,38,38,0.35)] ring-1 ring-white/30">
+        <span className="absolute right-3.5 top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-xs font-semibold leading-none text-destructive-foreground ring-1 ring-border/30">
           <span>{badgeLabel}</span>
         </span>
       ) : null}
       <Icon className="h-5 w-5" />
       <span className="max-w-full truncate px-1">{label}</span>
-    </button>
+    </Button>
   );
 }

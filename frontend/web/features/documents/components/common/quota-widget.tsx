@@ -1,3 +1,4 @@
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
@@ -6,7 +7,7 @@ import { calculateQuotaStats } from "../../utils/documents.utils";
 import { cn } from "@/lib/utils";
 
 function QuotaWidget() {
-  const { data: quota, isLoading } = useQuery({
+  const { data: quota, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ["document-quota"],
     queryFn: documentsApi.getQuota,
   });
@@ -21,37 +22,37 @@ function QuotaWidget() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-4">
-        <Loader2 className="animate-spin text-slate-400" size={16} />
+        <Loader2 className="animate-spin text-muted-foreground" size={16} />
       </div>
     );
   }
 
-  if (!quota) return null;
+  if (!quota) return <QueryFeedback label="storage usage" error={isError} retrying={isFetching} onRetry={() => refetch()} />;
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
-      <div className="flex items-center gap-2 text-slate-600 mb-2">
-        <HardDrive size={18} className="text-slate-400" />
+    <div className="rounded-panel border border-border bg-background p-4">
+      <div className="flex items-center gap-2 text-muted-foreground mb-2">
+        <HardDrive size={18} className="text-muted-foreground" />
         <span className="text-xs font-semibold uppercase tracking-wider">
           STORAGE USED
         </span>
       </div>
 
-      <div className="w-full bg-slate-200 rounded-full h-2 mb-2 overflow-hidden">
+      <div className="w-full bg-accent rounded-full h-2 mb-2 overflow-hidden">
         <div
           className={cn(
-            "h-full rounded-full transition-all duration-500",
+            "h-full rounded-full transition-all duration-200",
             percentage > 90
-              ? "bg-red-500"
+              ? "bg-destructive-content"
               : percentage > 75
-                ? "bg-amber-500"
-                : "bg-[#0052CC]",
+                ? "bg-warning-content"
+                : "bg-link",
           )}
           style={{ width: `${percentage}%` }}
         />
       </div>
 
-      <div className="flex justify-between text-xs font-semibold text-slate-500">
+      <div className="flex justify-between text-xs font-semibold text-muted-foreground">
         <span>
           {usedMB} MB of {maxGB} GB
         </span>

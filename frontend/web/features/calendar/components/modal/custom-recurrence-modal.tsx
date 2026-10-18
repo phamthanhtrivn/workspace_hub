@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import { useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +14,7 @@ import {
   CALENDAR_FORM_WEEKDAY_INITIALS,
   CALENDAR_FORM_LOCALE,
 } from "../../constants/calendar-form-copy";
-import { useModalDialog } from "../../hooks/use-modal-dialog";
+
 import {
   CALENDAR_RECURRENCE_FREQUENCY_OPTIONS,
   CALENDAR_RECURRENCE_WEEKDAY_OPTIONS,
@@ -25,6 +27,9 @@ import {
   CalendarRecurrenceWeekday,
 } from "../../types/calendar.types";
 import { getWeekdayNameByCode } from "../../utils/calendar-recurrence.utils";
+import { NativeRadio } from "@/components/ui/radio-group";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 export function CustomRecurrenceModal({
   open,
@@ -46,7 +51,7 @@ export function CustomRecurrenceModal({
     count: value.count || 1,
   }));
   const [error, setError] = useState<string | null>(null);
-  useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
+
 
   if (!open) return null;
 
@@ -88,9 +93,9 @@ export function CustomRecurrenceModal({
     });
   };
 
-  return (
+  return typeof document === "undefined" ? null : <DialogSurface onClose={onClose}>{(
     <div
-      className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-overlay/60 p-4"
       onWheelCapture={(event) => {
         if (
           event.target instanceof Node &&
@@ -114,15 +119,15 @@ export function CustomRecurrenceModal({
     >
       <div
         ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
+
+
         aria-labelledby="calendar-custom-recurrence-heading"
-        className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl"
+        className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-panel border border-border bg-card"
       >
         <div className="flex items-center justify-between px-6 pb-2 pt-5">
           <h3
             id="calendar-custom-recurrence-heading"
-            className="text-lg font-black text-[var(--color-primary-dark)]"
+            className="text-section-title font-semibold text-foreground"
           >
             {copy.customRecurrence}
           </h3>
@@ -132,7 +137,7 @@ export function CustomRecurrenceModal({
             size="icon"
             onClick={onClose}
             aria-label={copy.close}
-            className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-control text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -142,7 +147,7 @@ export function CustomRecurrenceModal({
           <div className="flex flex-wrap items-center gap-3">
             <label
               htmlFor="calendar-recurrence-interval"
-              className="text-sm font-bold text-slate-500"
+              className="text-sm font-semibold text-muted-foreground"
             >
               {copy.recurrenceRepeatEvery}
             </label>
@@ -160,7 +165,7 @@ export function CustomRecurrenceModal({
                   interval: Number(event.target.value),
                 }))
               }
-              className="h-11 w-20 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-700 shadow-none outline-none focus-visible:border-[var(--color-secondary)] focus-visible:ring-4 focus-visible:ring-blue-100"
+              className="h-11 w-20 rounded-control border border-input px-3 text-sm font-semibold text-foreground shadow-none outline-none focus-visible:border-primary-soft focus-visible:ring-4 focus-visible:ring-ring"
             />
             <CustomSelect
               value={draft.frequency}
@@ -176,14 +181,14 @@ export function CustomRecurrenceModal({
                 label: CALENDAR_FORM_RECURRENCE_UNITS[option.value],
               }))}
               className="min-w-32"
-              triggerClassName="h-11 rounded-lg border-slate-200 px-3 text-sm font-bold text-slate-700 shadow-none"
-              contentClassName="rounded-lg border-slate-200"
+              triggerClassName="h-11 rounded-lg border-input px-3 text-sm font-semibold text-foreground shadow-none"
+              contentClassName="rounded-lg border-border"
             />
           </div>
 
           {draft.frequency === "WEEKLY" && (
             <div className="space-y-3">
-              <span className="text-sm font-bold text-slate-500">
+              <span className="text-sm font-semibold text-muted-foreground">
                 {copy.recurrenceRepeatOn}
               </span>
               <div className="flex flex-wrap gap-1 sm:gap-2">
@@ -199,10 +204,10 @@ export function CustomRecurrenceModal({
                       onClick={() => toggleWeekday(weekday.value)}
                       aria-pressed={selected}
                       aria-label={getWeekdayNameByCode(weekday.value, CALENDAR_FORM_LOCALE)}
-                      className={`grid h-7 w-7 cursor-pointer place-items-center rounded-full text-xs font-black transition sm:h-9 sm:w-9 ${
+                      className={`grid h-7 w-7 cursor-pointer place-items-center rounded-full text-xs font-semibold transition sm:h-9 sm:w-9 ${
                         selected
-                          ? "bg-[var(--color-secondary)] text-white"
-                          : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                          ? "bg-primary-soft text-primary-soft-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-accent"
                       }`}
                     >
                       {CALENDAR_FORM_WEEKDAY_INITIALS[weekday.value]}
@@ -214,7 +219,7 @@ export function CustomRecurrenceModal({
           )}
 
           <div className="space-y-3">
-            <span className="text-sm font-bold text-slate-500">
+            <span className="text-sm font-semibold text-muted-foreground">
               {copy.recurrenceEnds}
             </span>
             <div
@@ -226,18 +231,18 @@ export function CustomRecurrenceModal({
                 (endType) => (
                   <div
                     key={endType}
-                    className="grid min-h-11 grid-cols-[7rem_minmax(0,1fr)] items-center gap-3 sm:grid-cols-[8rem_minmax(0,1fr)]"
+                    className="grid min-h-11 grid-cols-1 items-center gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]"
                   >
-                    <label className="flex cursor-pointer items-center gap-3 text-sm font-bold text-slate-700">
-                      <input
-                        type="radio"
+                    <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold text-foreground">
+                      <NativeRadio
+
                         name="recurrenceEndType"
                         value={endType}
                         checked={draft.endType === endType}
                         onChange={() =>
                           setDraft((current) => ({ ...current, endType }))
                         }
-                        className="h-4 w-4 shrink-0 accent-[var(--color-secondary)]"
+                        className="h-4 w-4 shrink-0 accent-link"
                       />
                       {CALENDAR_FORM_RECURRENCE_END_LABELS[endType]}
                     </label>
@@ -254,7 +259,7 @@ export function CustomRecurrenceModal({
                             until: event.target.value,
                           }))
                         }
-                        className="h-11 min-w-0 rounded-lg border-slate-200 px-3 text-sm font-bold text-slate-700 shadow-none disabled:bg-slate-100"
+                        className="h-11 min-w-0 rounded-control border-input px-3 text-sm font-semibold text-foreground shadow-none disabled:bg-muted"
                       />
                     )}
                     {endType === "after" && (
@@ -275,9 +280,9 @@ export function CustomRecurrenceModal({
                               count: Number(event.target.value),
                             }))
                           }
-                          className="h-11 w-20 shrink-0 rounded-lg border-slate-200 px-3 text-sm font-bold text-slate-700 shadow-none disabled:bg-slate-100"
+                          className="h-11 w-20 shrink-0 rounded-control border-input px-3 text-sm font-semibold text-foreground shadow-none disabled:bg-muted"
                         />
-                        <span className="text-xs font-semibold text-slate-500">
+                        <span className="text-xs font-semibold text-muted-foreground">
                           {copy.recurrenceOccurrences}
                         </span>
                       </div>
@@ -287,7 +292,7 @@ export function CustomRecurrenceModal({
               )}
             </div>
             {error && (
-              <p role="alert" className="text-sm text-red-600">
+              <p role="alert" className="text-sm text-destructive-content">
                 {error}
               </p>
             )}
@@ -299,19 +304,19 @@ export function CustomRecurrenceModal({
             type="button"
             variant="outline"
             onClick={onClose}
-            className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
+            className="cursor-pointer rounded-control border border-border px-4 py-2 text-sm font-semibold text-muted-foreground hover:bg-background"
           >
             {copy.cancel}
           </Button>
           <Button
             type="button"
             onClick={handleSave}
-            className="cursor-pointer rounded-lg bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-primary)]"
+            className="cursor-pointer rounded-control bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary"
           >
             {copy.done}
           </Button>
         </div>
       </div>
     </div>
-  );
+  )}</DialogSurface>;
 }

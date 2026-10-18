@@ -85,7 +85,7 @@ export default function MessageList({
 }: MessageListProps) {
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-full text-gray-400">
+      <div className="flex justify-center items-center h-full text-muted-foreground">
         Loading...
       </div>
     );
@@ -93,7 +93,7 @@ export default function MessageList({
 
   if (messages.length === 0) {
     return (
-      <div className="flex justify-center items-center h-full text-gray-400">
+      <div className="flex justify-center items-center h-full text-muted-foreground">
         No messages yet
       </div>
     );
@@ -254,7 +254,7 @@ export default function MessageList({
         className="h-6 w-full flex justify-center items-center my-2"
       >
         {isFetchingNextPage && (
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-muted-foreground">
             Loading more messages...
           </span>
         )}
@@ -269,7 +269,7 @@ export default function MessageList({
         className="h-6 w-full flex justify-center items-center my-2 shrink-0"
       >
         {isFetchingPreviousPage && (
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-muted-foreground">
             Loading new messages...
           </span>
         )}

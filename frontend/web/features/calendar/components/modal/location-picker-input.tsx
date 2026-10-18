@@ -2,11 +2,12 @@
 
 import { MapPin, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
+import { Combobox, ComboboxInput, ComboboxContent, ComboboxList, ComboboxItem } from "@/components/ui/combobox";
 import {
   LocationSuggestion,
   searchLocationSuggestions,
 } from "../../api/calendar-location.api";
+
 
 interface LocationPickerInputProps {
   value: string;
@@ -33,18 +34,7 @@ export function LocationPickerInput({
     setQuery(value || "");
   }, [value]);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -86,10 +76,19 @@ export function LocationPickerInput({
   };
 
   return (
+    <Combobox<LocationSuggestion>
+      items={suggestions}
+      filter={null}
+      value={null}
+      inputValue={query}
+      onInputValueChange={setQuery}
+      itemToStringLabel={(suggestion) => suggestion?.display_name ?? ""}
+      open={isOpen && suggestions.length > 0}
+      onOpenChange={setIsOpen}
+    >
     <div ref={containerRef} className="relative w-full">
       <div className="relative">
-        <Input
-          value={query}
+        <ComboboxInput
           aria-label={ariaLabel}
           placeholder={placeholder}
           onChange={handleInputChange}
@@ -98,36 +97,39 @@ export function LocationPickerInput({
           }}
           className={
             className ||
-            "h-auto w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-2xs outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100"
+            "h-auto w-full rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground hover:border-input focus-visible:border-info-outline focus-visible:ring-2 focus-visible:ring-ring"
           }
         />
         {loading && (
-          <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-slate-400" />
+          <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
         )}
       </div>
 
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+        <ComboboxContent aria-label="Location suggestions" className="max-h-56 rounded-panel border-border bg-card px-0 py-1 shadow-panel w-[var(--anchor-width)]">
+          <ComboboxList>
           {suggestions.map((item) => (
-            <button
+            <ComboboxItem
               key={item.place_id}
-              type="button"
+              value={item}
               onClick={() => handleSelect(item)}
-              className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition hover:bg-slate-50"
+              className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition hover:bg-background"
             >
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-info-content" />
               <div className="min-w-0 flex-1">
-                <p className="break-words text-xs font-semibold text-slate-800">
+                <p className="break-words text-xs font-semibold text-foreground">
                   {item.name || item.display_name.split(",")[0]}
                 </p>
-                <p className="line-clamp-2 text-[11px] text-slate-500">
+                <p className="line-clamp-2 text-xs text-muted-foreground">
                   {item.display_name}
                 </p>
               </div>
-            </button>
+            </ComboboxItem>
           ))}
-        </div>
+          </ComboboxList>
+        </ComboboxContent>
       )}
     </div>
+    </Combobox>
   );
 }

@@ -1,14 +1,16 @@
 "use client";
 
 import { Loader2, VideoOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 
 export function MeetingRoomLoading({ joinToken }: { joinToken: string }) {
   return (
-    <div className="fixed inset-0 z-[90] grid min-h-[100dvh] place-items-center bg-[#070b12] px-4 text-white">
-      <div className="flex w-full max-w-sm flex-col items-center rounded-lg border border-white/10 bg-white/8 px-6 py-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
-        <Loader2 className="h-9 w-9 animate-spin text-blue-200" />
-        <h1 className="mt-4 text-lg font-black">Joining meeting</h1>
-        <p className="mt-2 text-sm font-semibold text-slate-300">
+    <div className="fixed inset-0 z-[90] grid h-dvh min-h-0 overflow-y-auto py-4 [place-items:safe_center] bg-card px-4 text-foreground">
+      <div className="flex w-full max-w-sm flex-col items-center rounded-lg border border-border bg-accent px-6 py-8 text-center">
+        <Loader2 className="h-9 w-9 animate-spin text-info-content" />
+        <h1 className="mt-4 text-lg font-semibold">Joining meeting</h1>
+        <p className="mt-2 text-sm font-semibold text-muted-foreground">
           {joinToken}
         </p>
       </div>
@@ -18,24 +20,24 @@ export function MeetingRoomLoading({ joinToken }: { joinToken: string }) {
 
 export function MeetingRoomError({ onBack }: { onBack: () => void }) {
   return (
-    <div className="fixed inset-0 z-[90] grid min-h-[100dvh] place-items-center bg-[#070b12] px-4 text-white">
-      <div className="w-full max-w-sm rounded-lg border border-white/10 bg-white/8 px-6 py-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-red-500/16 text-red-200 ring-1 ring-red-300/20">
+    <div className="fixed inset-0 z-[90] grid h-dvh min-h-0 overflow-y-auto py-4 [place-items:safe_center] bg-card px-4 text-foreground">
+      <div className="w-full max-w-sm rounded-lg border border-border bg-accent px-6 py-8 text-center">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-destructive-soft text-destructive-content ring-1 ring-destructive-outline/20">
           <VideoOff className="h-7 w-7" />
         </span>
-        <h1 className="mt-4 text-lg font-black">
+        <h1 className="mt-4 text-lg font-semibold">
           Could not join meeting
         </h1>
-        <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+        <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">
           Check the meeting link and try again.
         </p>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={onBack}
-          className="mt-5 h-11 cursor-pointer rounded-lg bg-white px-5 text-sm font-black text-[#172B4D] transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          className="mt-5 h-11 cursor-pointer rounded-control bg-card px-5 text-sm font-semibold text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Back to meetings
-        </button>
+        </Button>
       </div>
     </div>
   );

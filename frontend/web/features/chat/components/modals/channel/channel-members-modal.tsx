@@ -1,12 +1,18 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { Loader2, Search, X } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import ChannelMembersList from "./channel-members-list";
 import { useChannelMembersSearch } from "@/features/chat/hooks/useChannelMembersSearch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface ChannelMembersModalProps {
   channelId: string;
@@ -59,46 +65,45 @@ export default function ChannelMembersModal({
 
   if (!isOpen || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-gray-900/40 px-4 py-6 backdrop-blur-sm transition-opacity duration-300">
-      <div className="flex h-[680px] max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white text-gray-800 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white/80 px-6 py-4 backdrop-blur-md">
-          <h2 className="text-xl font-bold tracking-tight text-gray-800">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-[9998] flex items-center justify-center bg-overlay/40 px-4 py-6 transition-opacity duration-200">
+      <div className={`${dialogLayout.surface} flex h-[680px] max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-panel border border-border bg-card text-foreground animate-in fade-in zoom-in-95 duration-200`}>
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
+          <h2 className="text-section-title font-semibold tracking-tight text-foreground">
             {modalTitle}
           </h2>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="cursor-pointer rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             aria-label="Close channel members"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
-        <div className="flex-shrink-0 border-b border-gray-100 bg-gray-50/50 px-6 py-5">
+        <div className="flex-shrink-0 border-b border-border bg-background px-6 py-5">
           <label className="group relative block">
             <Search
               size={20}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-blue-500"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-info-content"
             />
-            <input
+            <Input unstyled
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search members by name..."
-              className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm font-medium text-gray-700 shadow-sm outline-none transition-all placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-control border border-input bg-card py-3 pl-11 pr-4 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-info-outline focus:ring-4 focus:ring-ring"
             />
           </label>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-white px-4 py-4 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300">
+        <div className={`${dialogLayout.body} min-h-0 flex-1 overflow-y-auto bg-card px-4 py-4 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border`}>
           {isLoading ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-sm font-medium text-gray-500">
-              <Loader2 size={24} className="animate-spin text-blue-500" />
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-sm font-medium text-muted-foreground">
+              <Loader2 size={24} className="animate-spin text-info-content" />
               <span>Loading members...</span>
             </div>
           ) : isError ? (
-            <div className="flex h-full items-center justify-center text-sm font-medium text-gray-500">
+            <div className="flex h-full items-center justify-center text-sm font-medium text-muted-foreground">
               Failed to load channel members
             </div>
           ) : hasMembers ? (
@@ -110,20 +115,18 @@ export default function ChannelMembersModal({
               />
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm font-medium text-gray-500">
+            <div className="flex h-full items-center justify-center text-sm font-medium text-muted-foreground">
               No members found
             </div>
           )}
         </div>
 
         {isFetching && !isLoading ? (
-          <div className="border-t border-gray-100 bg-white px-6 py-2 text-xs font-medium text-gray-400">
+          <div className="border-t border-border bg-card px-6 py-2 text-xs font-medium text-muted-foreground">
             Loading members...
           </div>
         ) : null}
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 

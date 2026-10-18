@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import React from "react";
 import { Star } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
@@ -14,6 +15,7 @@ import {
 import { DocumentIcon } from "../common/document-icon";
 import { DocumentsStatusBadge } from "../ui/documents-status-badge";
 import { cn } from "@/lib/utils";
+import { TableRow, TableCell } from "@/components/ui/table";
 
 export interface ListViewRowProps {
   item: DocumentItem;
@@ -98,7 +100,7 @@ export function ListViewRow({
   };
 
   return (
-    <tr
+    <TableRow unstyled
       ref={setCombinedRef}
       style={style}
       {...attributes}
@@ -116,30 +118,28 @@ export function ListViewRow({
         }
       }}
       className={cn(
-        "hover:bg-slate-50/50 cursor-pointer select-none transition-colors border-b border-slate-100/60",
-        isSelected && "bg-blue-50/40",
-        isOver && "bg-blue-100/50 border-y-2 border-dashed border-blue-400"
+        "hover:bg-background cursor-pointer select-none transition-colors border-b border-border",
+        isSelected && "bg-info-soft/40",
+        isOver && "bg-info-soft/50 border-y-2 border-dashed border-info-outline"
       )}
     >
-      <td className="p-4 flex items-center gap-3 min-w-0">
-        <DocumentIcon item={item} iconSize={18} className="p-2 rounded-xl" />
-        <span className="font-bold text-slate-700 truncate max-w-xs">
-          {item.name}
-        </span>
+      <TableCell unstyled className="p-4 flex items-center gap-3 min-w-0">
+        <DocumentIcon item={item} iconSize={18} className="p-2 rounded-panel" />
+        <Button variant="unstyled" type="button" className="min-w-0 truncate text-left font-semibold text-foreground max-w-xs" onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); if (isFolder) onFolderClick(item); else onPreview?.(item); }}>{item.name}</Button>
         {!isProjectDocuments && item.isStarred ? (
-          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0 ml-1" />
+          <Star className="h-3.5 w-3.5 fill-warning-content text-warning-content shrink-0 ml-1" />
         ) : null}
-      </td>
-      <td className="p-4 hidden sm:table-cell">
+      </TableCell>
+      <TableCell unstyled className="p-4 hidden sm:table-cell">
         <DocumentsStatusBadge type="itemType" itemType={item.type} />
-      </td>
-      <td className="p-4 text-slate-500 font-semibold hidden md:table-cell">
+      </TableCell>
+      <TableCell unstyled className="p-4 text-muted-foreground font-semibold hidden md:table-cell">
         {formatDateShort(item.updatedAt)}
-      </td>
-      <td className="p-4 text-slate-500 font-semibold hidden lg:table-cell">
+      </TableCell>
+      <TableCell unstyled className="p-4 text-muted-foreground font-semibold hidden lg:table-cell">
         {isFolder ? "—" : formatBytes(getDocumentDisplaySize(item))}
-      </td>
-      <td className="p-4 text-right">
+      </TableCell>
+      <TableCell unstyled className="p-4 text-right">
         <div className="flex items-center justify-end gap-2">
           <ItemActionsMenu
             item={item}
@@ -161,8 +161,8 @@ export function ListViewRow({
             isProjectDocuments={isProjectDocuments}
           />
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 

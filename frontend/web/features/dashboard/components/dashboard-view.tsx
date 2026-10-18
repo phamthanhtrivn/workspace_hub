@@ -87,7 +87,10 @@ function PersonalDashboard() {
       icon: AlertCircle,
       href: "#my-tasks",
       danger: true,
-      theme: "text-[var(--color-destructive)]",
+      theme: "text-destructive-content",
+      queries: [personal, project],
+      errorHref: "#my-tasks",
+      errorDetail: "Could not load all tasks. View retry options.",
     },
     {
       label: "Due today",
@@ -101,7 +104,10 @@ function PersonalDashboard() {
       icon: ListChecks,
       href: "#my-tasks",
       danger: false,
-      theme: "text-[var(--color-primary)]",
+      theme: "text-link",
+      queries: [personal, project],
+      errorHref: "#my-tasks",
+      errorDetail: "Could not load all tasks. View retry options.",
     },
     {
       label: "Focus today",
@@ -111,7 +117,10 @@ function PersonalDashboard() {
       icon: Clock3,
       href: "/pomodoro",
       danger: false,
-      theme: "text-[var(--color-primary-dark)]",
+      theme: "text-foreground",
+      queries: [focus],
+      errorHref: "#focus-report",
+      errorDetail: "Could not load focus time. View retry options.",
     },
     {
       label: "Next meeting",
@@ -122,20 +131,23 @@ function PersonalDashboard() {
         ? `/meetings/${encodeURIComponent(next.joinToken)}`
         : "/meetings",
       danger: false,
-      theme: "text-[var(--color-primary-dark)]",
+      theme: "text-foreground",
+      queries: [meetings],
+      errorHref: "#upcoming-meetings",
+      errorDetail: "Could not load meetings. View retry options.",
     },
   ];
   return (
-    <div className="min-h-full bg-[var(--color-background)] text-[var(--color-primary-dark)]">
-      <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-full min-w-0 w-full bg-background text-foreground">
+      <div className="min-w-0 w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <header className="flex flex-wrap items-end justify-between gap-5">
-          <div className="flex min-w-0 items-center gap-4 sm:gap-6">
+          <div className="flex min-w-0 max-w-full items-center gap-4 sm:gap-6">
             <DashboardSun now={now} zone={zone} />
             <div className="min-w-0">
-              <p className="mb-2 text-xs text-[var(--muted-foreground)]">
+              <p className="mb-2 break-words text-xs text-muted-foreground">
                 {greeting}, {auth.fullName?.split(" ")[0] || "there"}
               </p>
-              <h1 className="font-sans text-2xl font-semibold tracking-tight">
+              <h1 className="break-words font-sans text-page-title font-semibold tracking-tight">
                 {now
                   ? new Intl.DateTimeFormat("en", {
                       timeZone: zone,
@@ -144,43 +156,61 @@ function PersonalDashboard() {
                   : "Your workday"}
                 {now &&
                   `, ${new Intl.DateTimeFormat("en", { timeZone: zone, day: "2-digit" }).format(new Date(now))}`}
-                <span className="text-[var(--color-primary)]">.</span>
+                <span className="text-link">.</span>
               </h1>
-              <p className="mt-3 text-xs text-[var(--muted-foreground)]">
+              <p className="mt-3 text-xs text-muted-foreground">
                 Your schedule, priorities and a little room to focus.
               </p>
             </div>
           </div>
           <DashboardQuickActions />
         </header>
-        <div className="grid grid-cols-2 border-y border-[var(--border)] xl:grid-cols-4">
-          {stats.map((stat) => (
-            <Link
-              key={stat.label}
-              href={stat.href}
-              onClick={() => {
-                if (stat.label === "Overdue")
-                  dashboard.setTaskFilter("Overdue");
-                if (stat.label === "Due today")
-                  dashboard.setTaskFilter("Today");
-              }}
-              className={`min-w-0 border-b border-[var(--border)] px-3 py-4 transition-colors hover:bg-[var(--muted)] sm:px-5 xl:border-b-0 [&:nth-child(even)]:border-l xl:[&:not(:first-child)]:border-l ${stat.theme}`}
-            >
-              <div className="flex items-center gap-2 text-xs font-medium text-[var(--muted-foreground)]">
-                <span>{stat.label}</span>
-                <stat.icon size={13} />
-              </div>
-              <p className="mt-2 truncate text-3xl font-medium tracking-tight tabular-nums">
-                {stat.value}
-              </p>
-              <p className="mt-1 truncate text-[11px] text-[var(--muted-foreground)]">
-                {stat.detail}
-              </p>
-            </Link>
-          ))}
+        <div className="grid min-w-0 grid-cols-1 border-y border-border sm:grid-cols-2 xl:grid-cols-4">
+          {stats.map((stat) => {
+            const hasError = stat.queries.some((query) => query.isError);
+            const isPending =
+              !hasError && stat.queries.some((query) => query.isPending);
+            return (
+              <Link
+                key={stat.label}
+                href={hasError ? stat.errorHref : stat.href}
+                onClick={() => {
+                  if (stat.label === "Overdue")
+                    dashboard.setTaskFilter("Overdue");
+                  if (stat.label === "Due today")
+                    dashboard.setTaskFilter("Today");
+                }}
+                className={`min-w-0 cursor-pointer border-border px-3 py-4 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&:not(:last-child)]:border-b sm:px-5 sm:[&:nth-child(even)]:border-l sm:[&:nth-last-child(-n+2)]:border-b-0 xl:[&:not(:last-child)]:border-b-0 xl:[&:not(:first-child)]:border-l ${stat.theme}`}
+              >
+                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  <span>{stat.label}</span>
+                  <stat.icon aria-hidden size={13} />
+                </div>
+                <p
+                  role="status"
+                  aria-busy={isPending}
+                  className={`mt-2 break-words font-medium tracking-tight tabular-nums ${hasError ? "text-lg text-muted-foreground" : "text-3xl"}`}
+                >
+                  <span className="sr-only">{stat.label}: </span>
+                  {hasError ? "Unavailable" : isPending ? (
+                    <>
+                      <span aria-hidden>…</span>
+                      <span className="sr-only">Loading</span>
+                    </>
+                  ) : stat.value}
+                </p>
+                <p
+                  title={hasError ? undefined : stat.detail}
+                  className={`mt-1 text-xs text-muted-foreground ${hasError ? "break-words" : "truncate"}`}
+                >
+                  {hasError ? stat.errorDetail : stat.detail}
+                </p>
+              </Link>
+            );
+          })}
         </div>
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] lg:gap-10">
-          <div className="space-y-6">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] xl:gap-10">
+          <div className="min-w-0 space-y-6">
             <DashboardPanel
               title="My day"
               href="/calendar"
@@ -201,17 +231,17 @@ function PersonalDashboard() {
                     No events or deadlines today. Make room for focused work.
                   </EmptyState>
                 )}
-              <ul className="border-l border-[var(--border)] pl-3">
+              <ul className="border-l border-border pl-3">
                 {dayItems.map((item) => (
                   <li key={item.key}>
                     <Link
                       href={item.href}
-                      className="relative flex items-center gap-3 border-b border-[var(--border)] py-4 pr-2 hover:bg-[var(--muted)] before:absolute before:-left-[17px] before:h-2 before:w-2 before:rounded-full before:bg-[var(--color-primary)]"
+                      className="relative flex min-w-0 cursor-pointer items-center gap-3 border-b border-border py-4 pr-2 hover:bg-muted before:absolute before:-left-[17px] before:h-2 before:w-2 before:rounded-full before:bg-link"
                     >
-                      <time className="w-16 shrink-0 text-xs font-medium tabular-nums text-slate-500">
+                      <time className="w-16 shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
                         {item.allDay ? "All day" : formatTime(item.at, zone)}
                       </time>
-                      <span className="grid h-7 w-7 shrink-0 place-items-center text-[var(--muted-foreground)]">
+                      <span className="grid h-7 w-7 shrink-0 place-items-center text-muted-foreground">
                         {item.kind === "Meeting" ? (
                           <Video size={15} />
                         ) : item.kind === "Task" ? (
@@ -220,11 +250,11 @@ function PersonalDashboard() {
                           <CalendarDays size={15} />
                         )}
                       </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-slate-800">
+                      <span className="min-w-0 flex-1">
+                        <span className="line-clamp-2 break-words text-sm font-medium text-foreground [overflow-wrap:anywhere]">
                           {item.title}
                         </span>
-                        <span className="mt-1 block text-xs text-slate-500">
+                        <span className="mt-1 block text-xs text-muted-foreground">
                           {item.kind}
                           {item.kind === "Task" ? " · Due today" : ""}
                         </span>
@@ -238,13 +268,17 @@ function PersonalDashboard() {
               <DashboardTasks dashboard={dashboard} />
             </div>
           </div>
-          <div className="space-y-8 lg:border-l lg:border-[var(--border)] lg:pl-8">
-            <DashboardProductivity dashboard={dashboard} />
+          <div className="min-w-0 space-y-8 xl:pl-8">
+            <div id="focus-report" className="scroll-mt-6">
+              <DashboardProductivity dashboard={dashboard} />
+            </div>
             <DashboardFocus
               query={focus}
               today={focus.isSuccess ? todayFocus : undefined}
             />
-            <DashboardMeetings dashboard={dashboard} />
+            <div id="upcoming-meetings" className="scroll-mt-6">
+              <DashboardMeetings dashboard={dashboard} />
+            </div>
           </div>
         </div>
         <DashboardExtras dashboard={dashboard} />
@@ -260,9 +294,9 @@ export function DashboardView() {
       <div
         role="status"
         aria-label="Loading your dashboard"
-        className="space-y-5"
+        className="min-w-0 w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8"
       >
-        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-10 w-64 max-w-full" />
         <Skeleton className="h-28 w-full" />
         <Skeleton className="h-96 w-full" />
       </div>

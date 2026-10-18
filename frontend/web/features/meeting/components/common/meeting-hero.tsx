@@ -1,51 +1,33 @@
 "use client";
 
 import { Clock3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingHeroProps {
   dateLabel: string;
   timeLabel: string;
-  upcomingMeetingCount: number;
+  upcomingMeetingCount?: number;
   onUpcomingClick: () => void;
 }
 
-export function MeetingHero({
-  dateLabel,
-  timeLabel,
-  upcomingMeetingCount,
-  onUpcomingClick,
-}: MeetingHeroProps) {
+export function MeetingHero({ dateLabel, timeLabel, upcomingMeetingCount, onUpcomingClick }: MeetingHeroProps) {
   return (
-    <section className="relative min-h-[230px] overflow-hidden rounded-lg bg-[#172B4D] px-6 py-6 text-white shadow-[0_18px_48px_rgba(23,43,77,0.18)] sm:px-8">
-      <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_70%_15%,rgba(255,255,255,0.24),transparent_28%),linear-gradient(135deg,rgba(0,82,204,0.25),rgba(255,171,0,0.16))] lg:block" />
-      <div className="absolute right-8 top-8 hidden h-32 w-48 rotate-3 rounded-lg border border-white/15 bg-white/10 shadow-2xl backdrop-blur-sm lg:block" />
-      <div className="absolute bottom-8 right-24 hidden h-24 w-36 -rotate-6 rounded-lg border border-white/12 bg-slate-900/30 shadow-2xl lg:block" />
-
-      <div className="relative z-10 flex h-full max-w-2xl flex-col justify-between gap-12">
-        <button
-          type="button"
-          onClick={onUpcomingClick}
-          className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-md bg-white/14 px-3 py-2 text-sm font-bold text-blue-50 ring-1 ring-white/18 transition hover:bg-white/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-        >
-          <Clock3 className="h-4 w-4" />
-          <span>
-            {upcomingMeetingCount} upcoming{" "}
-            {upcomingMeetingCount === 1 ? "meeting" : "meetings"}
-          </span>
-        </button>
-
-        <div>
-          <p className="text-sm font-bold text-blue-100">
-            Workspace meeting center
-          </p>
-          <h1 className="mt-2 text-5xl font-black leading-none tracking-normal sm:text-6xl">
-            {timeLabel}
-          </h1>
-          <p className="mt-3 text-lg font-bold text-slate-200 sm:text-xl">
-            {dateLabel}
-          </p>
-        </div>
+    <section className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
+      <div>
+        <h1 className="text-page-title font-semibold text-foreground">Meetings</h1>
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+          <span>{dateLabel}</span>
+          <span aria-hidden>·</span>
+          <span className="font-medium tabular-nums text-foreground">{timeLabel}</span>
+        </p>
       </div>
+      <Button variant="unstyled" type="button" onClick={onUpcomingClick} className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+        <Clock3 className="size-4" aria-hidden />
+        {upcomingMeetingCount === undefined
+          ? "View upcoming meetings"
+          : `${upcomingMeetingCount} upcoming ${upcomingMeetingCount === 1 ? "meeting" : "meetings"}`}
+      </Button>
     </section>
   );
 }

@@ -6,6 +6,8 @@ import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
 import StartMeetingConfirmModal from "../modals/start-meeting-confirm-modal";
+import { Button } from "@/components/ui/button";
+
 
 interface DirectConversationHeaderProps {
   onToggleRightPanel: () => void;
@@ -52,18 +54,18 @@ export default function DirectConversationHeader({
   };
 
   return (
-    <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">
+    <div className="min-h-16 min-w-0 shrink-0 px-3 py-2 border-b border-border flex flex-wrap items-center justify-between gap-2 bg-card z-10">
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
         {onBack && (
-          <button
-            className="md:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full transition"
+          <Button variant="unstyled" aria-label="Back"
+            className="@min-[720px]/messages:hidden shrink-0 p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition"
             onClick={onBack}
           >
             <ArrowLeft size={20} />
-          </button>
+          </Button>
         )}
 
-        <button
+        <Button variant="unstyled"
           type="button"
           className="relative cursor-pointer shrink-0"
           onClick={() => {
@@ -72,9 +74,9 @@ export default function DirectConversationHeader({
             }
           }}
         >
-          <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold overflow-hidden">
+          <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center font-semibold overflow-hidden">
             {isLoadingProfile ? (
-              <div className="h-full w-full animate-pulse rounded-full bg-gray-200" />
+              <div className="h-full w-full animate-pulse rounded-full bg-accent" />
             ) : displayAvatarUrl ? (
               <Image
                 src={displayAvatarUrl}
@@ -84,23 +86,23 @@ export default function DirectConversationHeader({
                 className="rounded-full"
               />
             ) : (
-              <User size={20} className="text-gray-400" />
+              <User size={20} className="text-muted-foreground" />
             )}
           </div>
-        </button>
+        </Button>
 
         <div className="min-w-0">
           {isLoadingProfile ? (
             <>
-              <div className="mb-1 h-4 w-32 animate-pulse rounded bg-gray-200" />
-              <div className="h-3 w-24 animate-pulse rounded bg-gray-100" />
+              <div className="mb-1 h-4 w-32 animate-pulse rounded bg-accent" />
+              <div className="h-3 w-24 animate-pulse rounded bg-muted" />
             </>
           ) : (
             <>
-              <h2 className="font-semibold text-gray-800 truncate">
+              <h2 className="font-semibold text-foreground truncate">
                 {displayName}
               </h2>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Direct Message
               </p>
             </>
@@ -108,30 +110,30 @@ export default function DirectConversationHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-1 text-gray-500">
-        <button
-          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
+      <div className="flex shrink-0 flex-wrap items-center gap-1 text-muted-foreground">
+        <Button variant="unstyled"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition"
           onClick={onOpenSearch}
           title="Search"
         >
           <Search size={20} />
-        </button>
-        <button
-          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition disabled:opacity-50"
+        </Button>
+        <Button variant="unstyled"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition disabled:opacity-50"
           onClick={() => setIsConfirmModalOpen(true)}
           disabled={isCreating || !activeConversation?.id}
           title="Start instant meeting"
         >
           <Video size={20} />
-        </button>
-        <div className="w-px h-6 bg-gray-200 mx-1" />
-        <button
-          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
+        </Button>
+        <div className="w-px h-6 bg-accent mx-1" />
+        <Button variant="unstyled"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition"
           onClick={onToggleRightPanel}
           title="Conversation info"
         >
           <Info size={20} />
-        </button>
+        </Button>
       </div>
 
       <StartMeetingConfirmModal

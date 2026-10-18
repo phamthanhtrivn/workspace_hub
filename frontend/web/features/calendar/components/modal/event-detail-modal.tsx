@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import {
   AlignLeft,
   Bell,
@@ -22,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/store/store";
 import { useAttendeeProfiles } from "../../hooks/use-calendar-users";
 import { useCalendarEvent } from "../../hooks/use-calendar-queries";
-import { useModalDialog } from "../../hooks/use-modal-dialog";
+
 import { CalendarDocumentsSection } from "./calendar-documents-section";
 import {
   AttendeeResponseStatus,
@@ -42,6 +44,7 @@ import { CalendarRadioGroup } from "../ui/calendar-radio-group";
 import { EventAttendeeList } from "./event-attendee-list";
 import { CalendarTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
 import { TaskFocusHistory } from "@/features/pomodoro/components/task-focus-history";
+import { DialogSurface } from "@/components/ui/dialog";
 
 export function EventDetailModal({
   event: initialEvent,
@@ -71,7 +74,7 @@ export function EventDetailModal({
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dialogRef = useRef<HTMLDivElement>(null);
   const resolvedProfiles = useAttendeeProfiles(event, open);
-  useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
+
 
   const [copiedMeeting, setCopiedMeeting] = useState(false);
   const [showDeleteScopeModal, setShowDeleteScopeModal] = useState(false);
@@ -141,13 +144,13 @@ export function EventDetailModal({
     (isTask ? tasksColor : undefined) ||
     event.color ||
     event.calendar?.color ||
-    "#ea580c";
+    "var(--warning)";
 
   const cleanedDescription = cleanTaskDescription(event.description);
 
-  return (
+  return typeof document === "undefined" ? null : <DialogSurface onClose={onClose}>{(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/40 p-4"
       onWheelCapture={(event) => {
         if (
           event.target instanceof Node &&
@@ -171,13 +174,13 @@ export function EventDetailModal({
     >
       <div
         ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
+
+
         aria-labelledby="calendar-event-detail-heading"
-        className="relative w-full max-w-[460px] overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] transition-all"
+        className="relative flex max-h-[calc(100dvh-2rem)] min-w-0 w-full max-w-[460px] flex-col overflow-hidden rounded-dialog border border-border bg-card transition-all"
       >
         {/* Top Header Action Toolbar (Google Calendar style) */}
-        <div className="flex h-12 items-center justify-end gap-1 px-3 pt-2 text-slate-500">
+        <div className="flex h-12 shrink-0 items-center justify-end gap-1 px-3 pt-2 text-muted-foreground">
           {event.permissions?.canManage && (
             <>
               <Button
@@ -187,7 +190,7 @@ export function EventDetailModal({
                 onClick={onEdit}
                 aria-label="Edit event"
                 title="Edit event"
-                className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <Pencil className="h-4 w-4" />
               </Button>
@@ -200,7 +203,7 @@ export function EventDetailModal({
                 disabled={busy}
                 aria-label="Cancel event"
                 title="Cancel event"
-                className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+                className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-destructive-content disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -214,32 +217,32 @@ export function EventDetailModal({
             onClick={onClose}
             aria-label="Close"
             title="Close"
-            className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Modal Body with Left Icon Column and Right Aligned Content */}
-        <div className="space-y-4 px-6 pb-6 pt-1">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 pb-5 pt-1 sm:px-6">
           {/* Row 1: Title and Date/Time */}
           <div className="flex items-start gap-4">
             <div className="mt-1 flex w-5 shrink-0 justify-center">
               <span
-                className="h-4 w-4 shrink-0 rounded-md shadow-xs"
+                className="h-4 w-4 shrink-0 rounded-md"
                 style={{ backgroundColor: eventColor }}
               />
             </div>
             <div className="min-w-0 flex-1">
               <h2
                 id="calendar-event-detail-heading"
-                className={`text-2xl font-normal leading-tight text-slate-900 break-words ${
-                  isCompletedTask ? "line-through opacity-60" : ""
+                className={`text-2xl font-normal leading-tight text-foreground break-words ${
+                  isCompletedTask ? "line-through" : ""
                 }`}
               >
                 {event.title}
               </h2>
-              <p className="mt-1 text-sm font-normal text-slate-600">
+              <p className="mt-1 text-sm font-normal text-muted-foreground">
                 {formatCalendarEventRange(event, "en")}
               </p>
             </div>
@@ -255,9 +258,9 @@ export function EventDetailModal({
           {/* Row 2: Reminders (Bell icon) */}
           <div className="flex items-start gap-4">
             <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-              <Bell className="h-4 w-4 text-slate-500" />
+              <Bell className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="min-w-0 flex-1 text-sm text-slate-700">
+            <div className="min-w-0 flex-1 text-sm text-foreground">
               {reminderText}
             </div>
           </div>
@@ -267,14 +270,13 @@ export function EventDetailModal({
             <div className="mt-0.5 flex w-5 shrink-0 justify-center">
               {isTask ? (
                 <ListTodo
-                  className="h-4 w-4"
-                  style={{ color: tasksColor || "#f59e0b" }}
+                  className="h-4 w-4 text-info-content"
                 />
               ) : (
-                <Calendar className="h-4 w-4 text-slate-500" />
+                <Calendar className="h-4 w-4 text-muted-foreground" />
               )}
             </div>
-            <div className="min-w-0 flex-1 text-sm text-slate-700">
+            <div className="min-w-0 flex-1 text-sm text-foreground">
               {isTask ? "Tasks" : calendarName}
             </div>
           </div>
@@ -283,7 +285,7 @@ export function EventDetailModal({
           {hasMeeting && (
             <div className="flex items-start gap-4">
               <div className="mt-1 flex w-5 shrink-0 justify-center">
-                <Video className="h-4 w-4 text-blue-600" />
+                <Video className="h-4 w-4 text-info-content" />
               </div>
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -291,7 +293,7 @@ export function EventDetailModal({
                     href={event.location!}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-blue-700 active:scale-[0.98]"
+                    className="inline-flex items-center gap-2 rounded-panel bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary"
                   >
                     <span>
                       {event.location!.includes("meet.google.com")
@@ -307,17 +309,17 @@ export function EventDetailModal({
                     variant="ghost"
                     size="icon"
                     onClick={() => handleCopyMeeting(event.location!)}
-                    className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+                    className="grid h-8 w-8 cursor-pointer place-items-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     title="Copy meeting link"
                   >
                     {copiedMeeting ? (
-                      <Check className="h-4 w-4 text-emerald-600" />
+                      <Check className="h-4 w-4 text-success-content" />
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
                   </Button>
                 </div>
-                <p className="truncate text-xs font-mono text-slate-500">
+                <p className="truncate text-xs font-mono text-muted-foreground">
                   {event.location!.replace(/^https?:\/\//, "")}
                 </p>
               </div>
@@ -328,7 +330,7 @@ export function EventDetailModal({
           {hasPhysicalLocation && (
             <div className="flex items-start gap-4">
               <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-                <MapPin className="h-4 w-4 text-slate-500" />
+                <MapPin className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="min-w-0 flex-1">
                 <a
@@ -337,13 +339,13 @@ export function EventDetailModal({
                   )}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="group flex items-start gap-1.5 text-sm font-medium text-slate-700 transition hover:text-blue-600"
+                  className="group flex items-start gap-1.5 text-sm font-medium text-foreground transition hover:text-info-content"
                   title="Open in Google Maps"
                 >
                   <span className="break-words whitespace-normal leading-relaxed group-hover:underline">
                     {event.location}
                   </span>
-                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400 transition group-hover:text-blue-600" />
+                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition group-hover:text-info-content" />
                 </a>
               </div>
             </div>
@@ -353,9 +355,9 @@ export function EventDetailModal({
           {cleanedDescription && (
             <div className="flex items-start gap-4">
               <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-                <AlignLeft className="h-4 w-4 text-slate-500" />
+                <AlignLeft className="h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="min-w-0 flex-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+              <div className="min-w-0 flex-1 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
                 {cleanedDescription}
               </div>
             </div>
@@ -365,7 +367,7 @@ export function EventDetailModal({
           {guestAttendees.length > 0 && (
             <div className="flex items-start gap-4">
               <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-                <Users className="h-4 w-4 text-slate-500" />
+                <Users className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="min-w-0 flex-1">
                 <EventAttendeeList
@@ -381,7 +383,7 @@ export function EventDetailModal({
           {event.documentIds.length > 0 && (
             <div className="flex items-start gap-4">
               <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-                <Paperclip className="h-4 w-4 text-slate-500" />
+                <Paperclip className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="min-w-0 flex-1">
                 <CalendarDocumentsSection
@@ -396,18 +398,18 @@ export function EventDetailModal({
 
         {/* Guest RSVP Footer Bar */}
         {event.permissions?.canRespond && !event.permissions.canManage && (
-          <div className="flex items-center justify-between border-t border-slate-200/80 bg-slate-50 px-6 py-3.5">
-            <span className="text-xs font-semibold text-slate-600">Going?</span>
-            <div className="inline-flex rounded-full bg-slate-200/80 p-1">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-6 py-3.5">
+            <span className="text-xs font-semibold text-muted-foreground">Going?</span>
+            <div className="inline-flex rounded-full bg-accent/80 p-1">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => onRespond(AttendeeResponseStatus.ACCEPTED)}
                 disabled={busy}
-                className={`inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                className={`inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
                   myResponseStatus === AttendeeResponseStatus.ACCEPTED
-                    ? "bg-emerald-600 text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/40"
+                    ? "bg-success text-success-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-border/40"
                 }`}
               >
                 {myResponseStatus === AttendeeResponseStatus.ACCEPTED && (
@@ -420,10 +422,10 @@ export function EventDetailModal({
                 variant="ghost"
                 onClick={() => onRespond(AttendeeResponseStatus.DECLINED)}
                 disabled={busy}
-                className={`inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                className={`inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
                   myResponseStatus === AttendeeResponseStatus.DECLINED
-                    ? "bg-rose-600 text-white shadow-xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/40"
+                    ? "bg-destructive text-destructive-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-border/40"
                 }`}
               >
                 {myResponseStatus === AttendeeResponseStatus.DECLINED && (
@@ -436,12 +438,12 @@ export function EventDetailModal({
         )}
 
         {isTask && event.permissions?.canManage && (
-          <div className="flex justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">
+          <div className="flex justify-end border-t border-border bg-background px-6 py-4">
             <Button
               type="button"
               onClick={onTaskCompletionChange}
               disabled={busy}
-              className="cursor-pointer rounded-full bg-blue-100 px-5 py-2.5 text-sm font-semibold text-blue-800 transition-colors hover:bg-blue-200 disabled:cursor-wait disabled:opacity-60"
+              className="cursor-pointer rounded-full bg-info-soft px-5 py-2.5 text-sm font-semibold text-info-content transition-colors hover:bg-info-soft disabled:cursor-wait disabled:opacity-60"
             >
               {isCompletedTask ? "Mark as incomplete" : "Mark as completed"}
             </Button>
@@ -485,5 +487,5 @@ export function EventDetailModal({
         )}
       </div>
     </div>
-  );
+  )}</DialogSurface>;
 }

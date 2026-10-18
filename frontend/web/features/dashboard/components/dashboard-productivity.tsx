@@ -8,7 +8,11 @@ const ProductivityChart = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-48 animate-pulse rounded-lg bg-slate-50" />
+      <div
+        role="status"
+        aria-label="Loading focus chart"
+        className="h-60 animate-pulse rounded-control bg-muted"
+      />
     ),
   },
 );
@@ -27,20 +31,22 @@ export function DashboardProductivity({
       <QueryFeedback query={dashboard.focus} label="focus report" />
       {dashboard.focus.isSuccess && (
         <>
-          <p className="mb-5 text-3xl font-medium tracking-tight text-[var(--color-primary-dark)]">
+          <p className="mb-5 break-words text-3xl font-medium tracking-tight text-foreground">
             {formatMinutes(
               dashboard.daily.reduce((sum, day) => sum + day.minutes, 0),
             )}
-            <span className="ml-2 text-xs font-normal text-slate-500">
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
               recorded focus
             </span>
           </p>
           <ProductivityChart days={dashboard.daily} />
-          <details className="mt-3 text-xs text-slate-500">
-            <summary className="cursor-pointer">Daily totals</summary>
-            <ul className="mt-2 grid grid-cols-2 gap-2">
+          <details className="mt-3 text-xs text-muted-foreground">
+            <summary className="min-h-11 cursor-pointer content-center rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
+              Daily totals
+            </summary>
+            <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {dashboard.daily.map((day) => (
-                <li key={day.date}>
+                <li key={day.date} className="min-w-0 break-words">
                   {day.date}: {formatMinutes(day.minutes)}
                 </li>
               ))}

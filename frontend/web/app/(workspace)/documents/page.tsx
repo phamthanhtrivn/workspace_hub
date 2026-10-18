@@ -1,11 +1,7 @@
 import DocumentsView from "@/features/documents/components/documents-view";
-import { Metadata } from "next";
+import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Documents | WorkspaceHub",
-  description:
-    "Quản lý lưu trữ tài liệu, tập tin và chia sẻ tài nguyên dự án trực tuyến.",
-};
+export const metadata = createPageMetadata("/documents");
 
 export default function DocumentsPage() {
   return <DocumentsView />;

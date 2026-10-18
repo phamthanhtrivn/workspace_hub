@@ -23,15 +23,18 @@ export function useUpcomingMeetings({
   page = 1,
   limit = upcomingMeetingsPageSize,
   enabled = true,
+  refetchOnWindowFocus = false,
 }: {
   page?: number;
   limit?: number;
   enabled?: boolean;
+  refetchOnWindowFocus?: boolean;
 }) {
   return useQuery({
     queryKey: meetingKeys.upcoming(page, limit),
     queryFn: () => getUpcomingMeetings({ page, limit }),
     enabled,
+    refetchOnWindowFocus,
   });
 }
 

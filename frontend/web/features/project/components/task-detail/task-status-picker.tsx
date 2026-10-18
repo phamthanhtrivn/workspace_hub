@@ -1,11 +1,14 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { TaskStatus } from "@/features/project/types/project";
 import { TASK_DRAWER_STATUS_OPTIONS } from "@/features/project/constants/task.constants";
 
 import { Button } from "@/components/ui/button";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface TaskStatusPickerProps {
   status: TaskStatus;
@@ -18,21 +21,11 @@ export default function TaskStatusPicker({
   onChange,
   disabled = false,
 }: TaskStatusPickerProps) {
+  const controlledPopupId = useControlledPopupId();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   const currentOption =
     TASK_DRAWER_STATUS_OPTIONS.find((opt) => opt.value === status) ||
@@ -40,14 +33,14 @@ export default function TaskStatusPicker({
 
   return (
     <div className="relative inline-block" ref={containerRef}>
-      <Button
+      <Button aria-expanded={isOpen} aria-controls={`${controlledPopupId}-isOpen`} aria-haspopup="menu"
         type="button"
         variant="ghost"
         size="sm"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={[
-          "flex h-7 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition border border-transparent shadow-2xs hover:opacity-90",
+          "flex h-7 items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-semibold transition border border-transparent hover:opacity-90",
           currentOption.color,
           disabled ? "cursor-default opacity-80" : "cursor-pointer",
         ].join(" ")}
@@ -57,28 +50,28 @@ export default function TaskStatusPicker({
       </Button>
 
       {isOpen && !disabled && (
-        <div className="absolute left-0 mt-1 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl z-20">
+        <AnchoredMenu id={`${controlledPopupId}-isOpen`} onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task status" className="w-40 overflow-hidden rounded-panel border border-border bg-card py-1 z-20 shadow-panel">
           {TASK_DRAWER_STATUS_OPTIONS.map((opt) => (
-            <Button
+            <DropdownMenuItem closeOnClick={false}
               key={opt.value}
-              type="button"
-              variant="ghost"
-              size="sm"
+
+
+
               onClick={() => {
                 setIsOpen(false);
                 void onChange(opt.value);
               }}
               className={[
-                "flex w-full justify-start rounded-none cursor-pointer items-center px-3 py-2 h-auto text-left text-xs font-bold transition hover:bg-slate-100",
+                "flex w-full justify-start rounded-none cursor-pointer items-center px-3 py-2 h-auto text-left text-xs font-semibold transition hover:bg-muted",
                 opt.value === status
-                  ? "text-[#0052CC] bg-blue-50/50 hover:bg-blue-50/80 hover:text-[#0052CC]"
-                  : "text-slate-700",
+                  ? "text-info-content bg-info-soft/50 hover:bg-info-soft/80 hover:text-info-content"
+                  : "text-foreground",
               ].join(" ")}
             >
               {opt.label}
-            </Button>
+            </DropdownMenuItem>
           ))}
-        </div>
+        </AnchoredMenu>
       )}
     </div>
   );

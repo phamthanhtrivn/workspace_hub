@@ -1,11 +1,14 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import { Check, MoreVertical, Plus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { readableTextOnColor } from "@/lib/color";
 import { CALENDAR_COLOR_CHOICES } from "../../types/calendar.constants";
+import { AnchoredPopover } from "@/components/ui/anchored-popup";
 
 export function CalendarColorPopover({
   value,
@@ -20,26 +23,11 @@ export function CalendarColorPopover({
   triggerClassName?: string;
   onChange: (color: string) => void | Promise<void>;
 }) {
+  const controlledPopupId = useControlledPopupId();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
 
-    const closeOnOutsidePress = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-
-    document.addEventListener("pointerdown", closeOnOutsidePress);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePress);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [open]);
 
   const selectColor = (color: string) => {
     void Promise.resolve(onChange(color)).finally(() => setOpen(false));
@@ -47,15 +35,15 @@ export function CalendarColorPopover({
 
   return (
     <div ref={rootRef} className="relative">
-      <Button
+      <Button aria-controls={`${controlledPopupId}-open`}
         type="button"
         variant="ghost"
         size="icon"
         onClick={() => setOpen((current) => !current)}
         className={cn(
-          "grid h-6 w-6 cursor-pointer place-items-center rounded-md text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
+          "grid h-6 w-6 cursor-pointer place-items-center rounded-md text-muted-foreground transition hover:bg-accent/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           triggerClassName,
-          open && "!opacity-100 bg-slate-100 text-slate-700",
+          open && "!opacity-100 bg-muted text-foreground",
         )}
         aria-expanded={open}
         aria-haspopup="dialog"
@@ -65,10 +53,10 @@ export function CalendarColorPopover({
       </Button>
 
       {open && (
-        <div
+        <AnchoredPopover id={`${controlledPopupId}-open`} onClose={() => setOpen(false)} side="bottom" align="end"
           role="dialog"
           aria-label={label}
-          className="absolute right-0 top-[calc(100%+0.1rem)] z-30 w-[12.5rem] rounded-lg border border-slate-200 bg-white p-3 shadow-[0_6px_18px_rgba(15,23,42,0.2)]"
+          className="z-30 w-[12.5rem] max-w-[calc(100vw-1.5rem)] rounded-lg border border-border bg-card p-3 shadow-panel"
         >
           <div className="grid grid-cols-6 gap-2">
             {CALENDAR_COLOR_CHOICES.map((color) => (
@@ -79,16 +67,16 @@ export function CalendarColorPopover({
                 size="icon"
                 disabled={pending}
                 onClick={() => selectColor(color)}
-                className="grid h-6 w-6 cursor-pointer place-items-center rounded-full ring-1 ring-black/5 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-wait disabled:opacity-60"
-                style={{ backgroundColor: color }}
+                className="grid h-6 w-6 cursor-pointer place-items-center rounded-full ring-1 ring-input transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60"
+                style={{ backgroundColor: color, color: readableTextOnColor(color) }}
                 aria-label={color}
               >
                 {value.toLowerCase() === color.toLowerCase() && (
-                  <Check className="h-3.5 w-3.5 text-white" />
+                  <Check className="h-3.5 w-3.5" />
                 )}
               </Button>
             ))}
-            <label className="relative grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-slate-100 text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-200 focus-within:ring-2 focus-within:ring-blue-500">
+            <label className="relative grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-muted text-muted-foreground ring-1 ring-ring transition hover:bg-accent focus-within:ring-2 focus-within:ring-ring">
               <Plus className="h-3.5 w-3.5" />
               <Input
                 type="color"
@@ -100,7 +88,7 @@ export function CalendarColorPopover({
               />
             </label>
           </div>
-        </div>
+        </AnchoredPopover>
       )}
     </div>
   );

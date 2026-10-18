@@ -67,13 +67,13 @@ export default function CreateProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && onClose()}>
-      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white text-slate-800 shadow-2xl sm:rounded-2xl">
+      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card text-foreground sm:rounded-dialog">
         <form onSubmit={handleSubmit} className="flex flex-col">
-          <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-slate-100">
-            <DialogTitle className="text-xl font-bold tracking-tight text-[#172B4D]">
+          <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-border">
+            <DialogTitle className="text-section-title font-semibold tracking-tight text-foreground">
               Create Project
             </DialogTitle>
-            <DialogDescription className="mt-1 text-sm text-[#42526E]">
+            <DialogDescription className="mt-1 text-sm text-muted-foreground">
               Set up a new workspace project to manage tasks and collaborate with your team.
             </DialogDescription>
           </DialogHeader>
@@ -90,9 +90,9 @@ export default function CreateProjectDialog({
             <div>
               <label
                 htmlFor="project-name"
-                className="block text-xs font-bold uppercase tracking-wider text-[#42526E]"
+                className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
-                Project Name <span className="text-red-500">*</span>
+                Project Name <span className="text-destructive-content">*</span>
               </label>
               <Input
                 id="project-name"
@@ -102,16 +102,16 @@ export default function CreateProjectDialog({
                 placeholder="Enter project name..."
                 autoFocus
                 required
-                className="mt-2 h-11 w-full rounded-xl border-slate-300 bg-white px-3 text-sm font-semibold text-[#172B4D] placeholder:font-normal placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+                className="mt-2 h-11 w-full rounded-control border-input bg-card px-3 text-sm font-semibold text-foreground placeholder:font-normal placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
             <div>
               <label
                 htmlFor="project-description"
-                className="block text-xs font-bold uppercase tracking-wider text-[#42526E]"
+                className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
-                Description <span className="font-semibold normal-case text-slate-400">(Optional)</span>
+                Description <span className="font-semibold normal-case text-muted-foreground">(Optional)</span>
               </label>
               <Textarea
                 id="project-description"
@@ -120,7 +120,7 @@ export default function CreateProjectDialog({
                 maxLength={2000}
                 rows={3}
                 placeholder="Describe the project goals or scope..."
-                className="mt-2 min-h-24 resize-none rounded-xl border-slate-300 bg-white text-sm text-[#172B4D] placeholder:font-normal placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+                className="mt-2 min-h-24 resize-none rounded-control border-input bg-card text-sm text-foreground placeholder:font-normal placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
               />
             </div>
 
@@ -128,35 +128,35 @@ export default function CreateProjectDialog({
               <div className="grid gap-3 sm:grid-cols-2">
                 <label
                   htmlFor="project-start-date"
-                  className="block text-xs font-bold uppercase tracking-wider text-[#42526E]"
+                  className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 >
-                  Start Date <span className="font-semibold normal-case text-slate-400">(Optional)</span>
+                  Start Date <span className="font-semibold normal-case text-muted-foreground">(Optional)</span>
                   <Input
                     id="project-start-date"
                     type="date"
                     value={startDate}
                     onChange={(event) => setStartDate(event.target.value)}
                     max={dueDate || undefined}
-                    className="mt-2 h-11 rounded-xl border-slate-300 bg-white text-sm font-semibold text-[#172B4D] focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+                    className="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                   />
                 </label>
                 <label
                   htmlFor="project-due-date"
-                  className="block text-xs font-bold uppercase tracking-wider text-[#42526E]"
+                  className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 >
-                  End Date <span className="font-semibold normal-case text-slate-400">(Optional)</span>
+                  End Date <span className="font-semibold normal-case text-muted-foreground">(Optional)</span>
                   <Input
                     id="project-due-date"
                     type="date"
                     value={dueDate}
                     onChange={(event) => setDueDate(event.target.value)}
                     min={startDate || undefined}
-                    className="mt-2 h-11 rounded-xl border-slate-300 bg-white text-sm font-semibold text-[#172B4D] focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+                    className="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                   />
                 </label>
               </div>
               {startDate && dueDate && startDate > dueDate ? (
-                <p className="mt-2 text-xs font-semibold text-red-600">
+                <p className="mt-2 text-xs font-semibold text-destructive-content">
                   Start date cannot be after end date.
                 </p>
               ) : null}
@@ -164,7 +164,7 @@ export default function CreateProjectDialog({
 
             {/* Icon Picker */}
             <fieldset>
-              <legend className="block text-xs font-bold uppercase tracking-wider text-[#42526E]">
+              <legend className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Project Icon
               </legend>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -181,10 +181,10 @@ export default function CreateProjectDialog({
                       aria-pressed={selected}
                       onClick={() => setSelectedIcon(icon)}
                       className={cn(
-                        "h-9 w-9 cursor-pointer rounded-xl border text-base transition duration-150 p-0",
+                        "h-9 w-9 cursor-pointer rounded-control border text-base transition duration-150 p-0",
                         selected
-                          ? "border-[#0052CC] bg-[#E8F0FE] shadow-sm ring-1 ring-[#0052CC]/20 hover:bg-[#E8F0FE]"
-                          : "border-transparent bg-slate-100 hover:border-slate-300 hover:bg-slate-200"
+                          ? "border-primary bg-primary-soft ring-1 ring-primary/20 hover:bg-primary-soft"
+                          : "border-transparent bg-muted hover:border-input hover:bg-accent"
                       )}
                     >
                       {icon}
@@ -196,7 +196,7 @@ export default function CreateProjectDialog({
 
             {/* Color Picker */}
             <fieldset>
-              <legend className="block text-xs font-bold uppercase tracking-wider text-[#42526E]">
+              <legend className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Theme Color
               </legend>
               <div className="mt-2 flex flex-wrap gap-2.5">
@@ -213,15 +213,15 @@ export default function CreateProjectDialog({
                       aria-pressed={selected}
                       onClick={() => setSelectedColor(color)}
                       className={cn(
-                        "h-8 w-8 cursor-pointer rounded-full border-2 border-white shadow-sm transition duration-150 p-0",
+                        "h-8 w-8 cursor-pointer rounded-full border-2 border-border transition duration-150 p-0",
                         selected
-                          ? "scale-110 hover:scale-110"
-                          : "hover:scale-105 hover:shadow-md"
+                          ? "scale-110"
+                          : ""
                       )}
                       style={{
                         backgroundColor: color,
                         boxShadow: selected
-                          ? `0 0 0 2px #ffffff, 0 0 0 4px ${color}`
+                          ? `0 0 0 2px var(--card), 0 0 0 4px var(--ring)`
                           : undefined,
                       }}
                     />
@@ -232,13 +232,13 @@ export default function CreateProjectDialog({
 
           </div>
 
-          <DialogFooter className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/80 px-6 py-4">
+          <DialogFooter className="flex items-center justify-end gap-2 border-t border-border bg-background px-6 py-4">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
-              className="cursor-pointer rounded-xl border-slate-200 font-bold text-[#42526E] hover:bg-slate-100"
+              className="cursor-pointer rounded-control border-border font-semibold text-muted-foreground hover:bg-muted"
             >
               Cancel
             </Button>
@@ -249,7 +249,7 @@ export default function CreateProjectDialog({
                 isSubmitting ||
                 Boolean(startDate && dueDate && startDate > dueDate)
               }
-              className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50"
+              className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
             >
               {isSubmitting ? "Creating..." : "Create Project"}
             </Button>

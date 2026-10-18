@@ -12,18 +12,23 @@ export const meetingHistoryPageSize = 9;
 export function useMeetingHistory({
   page,
   enabled,
+  limit = meetingHistoryPageSize,
+  refetchOnWindowFocus = false,
 }: {
   page: number;
   enabled: boolean;
+  limit?: number;
+  refetchOnWindowFocus?: boolean;
 }) {
   return useQuery({
-    queryKey: meetingKeys.history(page, meetingHistoryPageSize),
+    queryKey: meetingKeys.history(page, limit),
     queryFn: () =>
       getMeetingHistory({
         page,
-        limit: meetingHistoryPageSize,
+        limit,
       }),
     enabled,
+    refetchOnWindowFocus,
   });
 }
 

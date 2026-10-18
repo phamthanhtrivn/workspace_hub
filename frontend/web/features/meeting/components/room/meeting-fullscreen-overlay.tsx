@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { DialogPortal } from "@/components/ui/dialog";
 import { Loader2, Video } from "lucide-react";
 
 interface MeetingFullscreenPortalProps {
@@ -13,22 +13,22 @@ export function MeetingFullscreenPortal({
 }: MeetingFullscreenPortalProps) {
   if (typeof document === "undefined") return null;
 
-  return createPortal(children, document.body);
+  return <DialogPortal>{children}</DialogPortal>;
 }
 
 export function MeetingCreatingOverlay() {
   return (
     <MeetingFullscreenPortal>
-      <div className="fixed inset-0 z-[100] grid min-h-[100dvh] place-items-center bg-[#07111f] px-4 text-white">
-        <div className="flex w-full max-w-sm flex-col items-center rounded-lg border border-white/10 bg-white/8 px-6 py-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur">
-          <span className="relative grid h-16 w-16 place-items-center rounded-full bg-[#0052CC] shadow-[0_18px_40px_rgba(0,82,204,0.34)]">
+      <div className="fixed inset-0 z-[100] grid h-dvh min-h-0 overflow-y-auto py-4 [place-items:safe_center] bg-card px-4 text-foreground">
+        <div className="flex w-full max-w-sm flex-col items-center rounded-lg border border-border bg-accent px-6 py-8 text-center">
+          <span className="relative grid h-16 w-16 place-items-center rounded-full bg-secondary text-secondary-foreground">
             <Video className="h-7 w-7" />
-            <Loader2 className="absolute -right-1 -top-1 h-6 w-6 animate-spin rounded-full bg-white p-1 text-[#0052CC]" />
+            <Loader2 className="absolute -right-1 -top-1 h-6 w-6 animate-spin rounded-full bg-card p-1 text-info-content" />
           </span>
-          <h2 className="mt-5 text-xl font-black">
+          <h2 className="mt-5 text-section-title font-semibold">
             Creating meeting room
           </h2>
-          <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+          <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">
             Preparing your room and device settings.
           </p>
         </div>

@@ -44,6 +44,8 @@ export const GANTT_ZOOM_CONFIG: Record<
 };
 
 export const GANTT_LABEL_WIDTH = 280;
+const GANTT_MIN_LABEL_WIDTH = 120;
+const GANTT_LABEL_WIDTH_RATIO = 0.35;
 
 export interface GanttMonthColumn {
   isoKey: string;
@@ -160,17 +162,17 @@ export function taskEnd(task: Task): Date | undefined {
 export function getGanttBarColor(status: TaskStatus): string {
   switch (status) {
     case TaskStatus.TODO:
-      return "bg-slate-500 hover:bg-slate-600 border-slate-600 text-white";
+      return "bg-muted hover:bg-accent border-input text-muted-foreground";
     case TaskStatus.IN_PROGRESS:
-      return "bg-[#0052CC] hover:bg-[#0747A6] border-[#0747A6] text-white";
+      return "bg-primary-soft hover:bg-primary-soft border-info-outline text-primary-soft-foreground";
     case TaskStatus.IN_REVIEW:
-      return "bg-amber-500 hover:bg-amber-600 border-amber-600 text-white";
+      return "bg-warning-soft hover:bg-warning-soft border-warning-outline text-warning-content";
     case TaskStatus.DONE:
-      return "bg-emerald-600 hover:bg-emerald-700 border-emerald-700 text-white";
+      return "bg-success-soft hover:bg-success-soft border-success-outline text-success-content";
     case TaskStatus.CANCELLED:
-      return "bg-red-500 hover:bg-red-600 border-red-600 text-white";
+      return "bg-destructive-soft hover:bg-destructive-soft border-destructive-outline text-destructive-content";
     default:
-      return "bg-slate-500 text-white";
+      return "bg-muted text-muted-foreground";
   }
 }
 
@@ -184,8 +186,14 @@ export function useGanttTimeline({
   const [zoomMode, setZoomMode] = useState<GanttZoomMode>(initialZoom);
   const [offsetDays, setOffsetDays] = useState<number>(0);
 
+  const labelWidth = containerWidth
+    ? Math.min(
+        GANTT_LABEL_WIDTH,
+        Math.max(GANTT_MIN_LABEL_WIDTH, Math.floor(containerWidth * GANTT_LABEL_WIDTH_RATIO)),
+      )
+    : GANTT_LABEL_WIDTH;
   const availableWidth = containerWidth
-    ? Math.max(0, containerWidth - GANTT_LABEL_WIDTH)
+    ? Math.max(0, containerWidth - labelWidth)
     : 0;
 
   const dayWidth = explicitDayWidth
@@ -532,7 +540,7 @@ export function useGanttTimeline({
     dayWidth,
     weekWidth,
     monthWidth,
-    labelWidth: GANTT_LABEL_WIDTH,
+    labelWidth,
     getBarColor: getGanttBarColor,
     zoomMode,
     setZoomMode,

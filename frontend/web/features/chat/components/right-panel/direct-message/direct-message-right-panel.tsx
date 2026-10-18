@@ -1,5 +1,6 @@
 "use client";
 
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState, useEffect, useRef } from "react";
 import { socketService } from "../../../api/chat-socket.service";
 import { ChatEvent } from "../../../api/chat.events";
@@ -28,10 +29,12 @@ import {
 } from "@/store/chat/chat-slice";
 import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { ChatQueryKey } from "../../../types/chat.constant";
-import { ChatContextType } from "../../../types/chat.types";
+
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { logApiError } from "@/lib/interceptors";
 import MediaDetailView from "../files/media-detail-view";
+import { Button } from "@/components/ui/button";
+
 
 interface DirectMessageRightPanelProps {
   onClose: () => void;
@@ -55,6 +58,9 @@ export default function DirectMessageRightPanel({
   const [detailView, setDetailView] = useState<
     "files" | "polls" | "search" | "threads" | "pinned" | null
   >(initialDetailView || null);
+  const [mediaError, setMediaError] = useState(false);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaRetry, setMediaRetry] = useState(0);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const lastFetchedChatId = useRef<string | null>(null);
@@ -220,6 +226,7 @@ export default function DirectMessageRightPanel({
       expandedSection === "files" &&
       lastFetchedChatId.current !== activeConversation.id
     ) {
+      setMediaLoading(true); setMediaError(false);
       getDirectConversationMedia(activeConversation.id)
         .then((res: any) => {
           if (res.data && res.data.medias) {
@@ -227,11 +234,9 @@ export default function DirectMessageRightPanel({
             lastFetchedChatId.current = activeConversation.id;
           }
         })
-        .catch((err: unknown) =>
-          logApiError(err, "Failed to fetch direct message media"),
-        );
+        .catch((err: unknown) => { setMediaError(true); logApiError(err, "Could not load conversation files"); }).finally(() => setMediaLoading(false));
     }
-  }, [activeConversation?.id, expandedSection]);
+  }, [activeConversation?.id, expandedSection, mediaRetry]);
 
   useEffect(() => {
     if (
@@ -263,7 +268,7 @@ export default function DirectMessageRightPanel({
 
   if (detailView === "files") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <MediaDetailView
           conversationId={activeConversation!.id}
           isDirect={true}
@@ -275,7 +280,7 @@ export default function DirectMessageRightPanel({
 
   if (detailView === "pinned") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PinnedMessagesDetailView
           conversationId={activeConversation!.id}
           isDirect={true}
@@ -288,7 +293,7 @@ export default function DirectMessageRightPanel({
 
   if (detailView === "search") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <SearchMessagesSection
           conversationId={activeConversation!.id}
           onBack={() => setDetailView(null)}
@@ -299,7 +304,7 @@ export default function DirectMessageRightPanel({
 
   if (detailView === "threads") {
     return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full min-h-0 min-w-0 border-l border-border bg-card flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <ThreadsListView
           conversationId={activeConversation!.id}
           isDirect={true}
@@ -310,24 +315,24 @@ export default function DirectMessageRightPanel({
   }
 
   return (
-    <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
+    <div className="w-full h-full min-h-0 min-w-0 bg-card border-l border-border flex flex-col">
       {/* Header */}
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center justify-between">
+        <h2 className="font-semibold text-foreground">
           Details
         </h2>
-        <button
+        <Button variant="unstyled" aria-label="Close"
           onClick={onClose}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <X size={20} />
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="p-6 flex flex-col items-center border-b border-gray-100">
-          <div
-            className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold text-3xl mb-3 shadow-sm overflow-hidden cursor-pointer"
+        <div className="p-6 flex flex-col items-center border-b border-border">
+          <Button variant="unstyled" type="button"
+            className="w-full text-left w-20 h-20 bg-muted rounded-full flex items-center justify-center font-semibold text-3xl mb-3 overflow-hidden cursor-pointer"
             onClick={() => {
               if (otherMemberId) {
                 dispatch(setSelectedProfileUserId(otherMemberId));
@@ -343,39 +348,39 @@ export default function DirectMessageRightPanel({
                 className="rounded-full"
               />
             ) : (
-              <User size={40} className="text-gray-400" />
+              <User size={40} className="text-muted-foreground" />
             )}
-          </div>
-          <h3 className="font-bold text-gray-900 text-lg">{displayName}</h3>
-          <p className="text-sm text-gray-500 mb-4">{displayDescription}</p>
+          </Button>
+          <h3 className="font-semibold text-foreground text-section-title">{displayName}</h3>
+          <p className="text-sm text-muted-foreground mb-4">{displayDescription}</p>
 
           <div className="flex gap-4">
-            <button
+            <Button variant="unstyled"
               onClick={handleTogglePin}
-              className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition"
             >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                 <Pin
                   size={18}
-                  className={isPinned ? "fill-blue-600 text-blue-600" : ""}
+                  className={isPinned ? "fill-info-content text-info-content" : ""}
                 />
               </div>
               <span className="text-xs font-medium">
                 {isPinned ? "Unpin" : "Pin"}
               </span>
-            </button>
+            </Button>
 
-            <button
+            <Button variant="unstyled"
               onClick={handleToggleMute}
-              className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition"
             >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                 {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
               </div>
               <span className="text-xs font-medium">
                 {isMuted ? "Unmute" : "Mute"}
               </span>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -399,10 +404,13 @@ export default function DirectMessageRightPanel({
             onOpenThread={handleOpenThread}
           />
 
+          {expandedSection === "files" && <QueryFeedback label="conversation files" pending={mediaLoading} error={mediaError} retrying={mediaLoading} onRetry={() => setMediaRetry(value => value + 1)} />}
           <FilesSection
             isExpanded={expandedSection === "files"}
             onToggle={() => toggleSection("files")}
             files={mediaItems}
+            loading={mediaLoading}
+            error={mediaError}
             onOpenPreview={(mediaId) => {
               const visualItems = mediaItems.filter(
                 (m) =>

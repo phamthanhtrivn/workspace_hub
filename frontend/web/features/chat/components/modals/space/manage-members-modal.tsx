@@ -1,7 +1,9 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+
 import {
   FiX,
   FiSearch,
@@ -33,6 +35,10 @@ import {
   leaveChannel,
   updateMemberRole,
 } from "@/features/chat/api/channel.api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (
@@ -274,38 +280,37 @@ export default function ManageMembersModal({
 
   if (!mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] border border-gray-100">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
-          <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/50 transition-all duration-200">
+      <div className={`${dialogLayout.surface} bg-card rounded-dialog w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] border border-border`}>
+        <div className="flex items-center justify-between p-6 border-b border-border bg-card">
+          <h2 className="text-section-title font-semibold text-foreground tracking-tight">
             Manage Members
           </h2>
-          <button
+          <Button variant="unstyled" aria-label="Close"
             onClick={onClose}
-            className="p-2.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+            className="p-2.5 text-muted-foreground hover:text-muted-foreground rounded-full hover:bg-muted transition-colors cursor-pointer"
           >
             <FiX size={20} />
-          </button>
+          </Button>
         </div>
 
-        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+        <div className="p-4 border-b border-border bg-background">
           <div className="relative group">
             <FiSearch
               size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-info-content transition-colors"
             />
-            <input
+            <Input aria-label="Search members" unstyled
               type="text"
               placeholder="Search members..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm placeholder:text-gray-400"
+              className="w-full pl-11 pr-4 py-3 bg-card border border-input rounded-control text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-info-outline transition-all placeholder:text-muted-foreground"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
+        <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar`}>
           {filteredMembers?.map((member: ConversationMember) => {
             const profile = memberProfiles?.[member.userId];
             const name =
@@ -323,11 +328,11 @@ export default function ManageMembersModal({
             return (
               <div
                 key={member.userId}
-                className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition"
+                className="flex items-center justify-between p-2 hover:bg-background rounded-lg transition"
               >
                 <div className="flex items-center gap-3">
                   <div className="relative w-10 h-10 shrink-0">
-                    <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center text-gray-600 overflow-hidden">
+                    <div className="w-full h-full bg-accent rounded-full flex items-center justify-center text-muted-foreground overflow-hidden">
                       {profile?.avatarUrl ? (
                         <Image
                           src={profile.avatarUrl}
@@ -337,21 +342,21 @@ export default function ManageMembersModal({
                           className="rounded-full"
                         />
                       ) : (
-                        <span className="font-bold text-sm">
+                        <span className="font-semibold text-sm">
                           {name.charAt(0).toUpperCase()}
                         </span>
                       )}
                     </div>
                     {isCreator ? (
                       <span
-                        className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-500 border border-white text-white shadow-sm"
+                        className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-warning border border-border text-warning-foreground"
                         title="Owner"
                       >
                         <FaKey size={8} />
                       </span>
                     ) : member.role === SpaceRole.ADMIN ? (
                       <span
-                        className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-slate-400 border border-white text-white shadow-sm"
+                        className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-muted border border-border text-muted-foreground"
                         title="Admin"
                       >
                         <FaKey size={8} />
@@ -360,22 +365,22 @@ export default function ManageMembersModal({
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-800">
+                      <span className="text-sm font-medium text-foreground">
                         {displayName}
                       </span>
                       {isCreator ? (
-                        <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-bold flex items-center gap-1 border border-amber-100">
-                          <FaKey size={10} className="text-amber-500" />{" "}
+                        <span className="text-xs bg-warning-soft text-warning-content px-1.5 py-0.5 rounded font-semibold flex items-center gap-1 border border-border">
+                          <FaKey size={10} className="text-warning-content" />{" "}
                           Owner
                         </span>
                       ) : member.role === SpaceRole.ADMIN ? (
-                        <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold flex items-center gap-1 border border-blue-100">
-                          <FiShield size={10} className="text-blue-500" />{" "}
+                        <span className="text-xs bg-info-soft text-info-content px-1.5 py-0.5 rounded font-semibold flex items-center gap-1 border border-border">
+                          <FiShield size={10} className="text-info-content" />{" "}
                           Admin
                         </span>
                       ) : null}
                     </div>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {profile?.email}
                     </span>
                   </div>
@@ -386,45 +391,45 @@ export default function ManageMembersModal({
                     {isCurrentUserOwner && (
                       <>
                         {member.role === SpaceRole.MEMBER && (
-                          <button
+                          <Button variant="unstyled"
                             onClick={() =>
                               handleUpdateRole(member.userId, SpaceRole.ADMIN)
                             }
                             title="Promote to Admin"
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            className="p-2 text-muted-foreground hover:text-info-content hover:bg-info-soft rounded-control transition-colors cursor-pointer"
                           >
                             <FiShield size={18} />
-                          </button>
+                          </Button>
                         )}
                         {member.role === SpaceRole.ADMIN && !isCreator && (
-                            <button
+                            <Button variant="unstyled"
                               onClick={() =>
                                 handleUpdateRole(member.userId, SpaceRole.MEMBER)
                               }
                               title="Demote to Member"
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                              className="p-2 text-info-content hover:bg-info-soft rounded-control transition-colors cursor-pointer"
                             >
                               <FiShieldOff size={18} />
-                            </button>
+                            </Button>
                           )}
-                        <button
+                        <Button variant="unstyled"
                           onClick={() => handleTransferOwnership(member.userId)}
                           title="Transfer Ownership"
-                          className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                          className="p-2 text-muted-foreground hover:text-warning-content hover:bg-warning-soft rounded-control transition-colors cursor-pointer"
                         >
-                          <FaKey size={16} className="text-amber-500" />
-                        </button>
+                          <FaKey size={16} className="text-warning-content" />
+                        </Button>
                       </>
                     )}
 
                     {canCurrentUserRemove && (
-                      <button
+                      <Button variant="unstyled"
                         onClick={() => handleKickMember(member.userId)}
                         title="Remove from Space"
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-2 text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft rounded-control transition-colors cursor-pointer"
                       >
                         <FiTrash2 size={18} />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -433,31 +438,29 @@ export default function ManageMembersModal({
           })}
         </div>
 
-        <div className="p-5 border-t border-gray-100 bg-gray-50 flex gap-3">
-          <button
+        <div className="p-5 border-t border-border bg-background flex gap-3">
+          <Button variant="unstyled"
             onClick={handleLeaveSpace}
             disabled={isProcessing}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-destructive-content bg-card border border-border hover:bg-destructive-soft hover:border-destructive-outline rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FiLogOut size={18} />
             {leaveLabel}
-          </button>
+          </Button>
 
           {currentUserRole === SpaceRole.ADMIN && (
-            <button
+            <Button variant="unstyled"
               onClick={handleDisbandChannel}
               disabled={isProcessing}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-200"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-destructive-foreground bg-destructive hover:bg-destructive rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FiTrash2 size={18} />
               Disband Channel
-            </button>
+            </Button>
           )}
         </div>
       </div>
       <ChatConfirmDialog {...confirmDialogProps} />
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 

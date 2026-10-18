@@ -20,8 +20,6 @@ export function DashboardSun({
   const daylight = time >= 6 && time < 18;
   const progress = Math.min(1, Math.max(0, (time - 6) / 12));
   const height = Math.sin(progress * Math.PI) * 26;
-  const warmth = Math.sin(progress * Math.PI);
-  const hue = 22 + warmth * 22;
   const label = daylight
     ? time < 8
       ? "Sunrise"
@@ -41,11 +39,10 @@ export function DashboardSun({
         <Sun
           aria-hidden
           size={36}
-          className="absolute transition-[transform,color] duration-1000 motion-reduce:transition-none"
+          className="absolute text-link transition-[transform,color] duration-200 motion-reduce:transition-none"
           style={{
             left: `calc(8px + ${progress} * (100% - 52px))`,
             bottom: "4px",
-            color: `hsl(${hue} 90% 45%)`,
             transform: `translateY(-${height}px)`,
           }}
         />
@@ -53,7 +50,7 @@ export function DashboardSun({
         <Moon
           aria-hidden
           size={34}
-          className="absolute bottom-7 left-1/2 -translate-x-1/2 text-indigo-500"
+          className="absolute bottom-7 left-1/2 -translate-x-1/2 text-info-content"
         />
       )}
       <svg

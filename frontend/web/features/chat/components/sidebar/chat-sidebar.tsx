@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
@@ -86,6 +87,11 @@ import { canMembersCreateChannels } from "../../utils/space-setting-utils";
 import FollowedThreadsModal, {
   fetchFollowedThreads,
 } from "./followed-threads-modal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 interface ChatSidebarProps {
   onSelectChat?: () => void;
@@ -93,7 +99,7 @@ interface ChatSidebarProps {
 
 function ProjectSpaceBadge() {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold normal-case leading-none text-blue-600">
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-info-soft px-1.5 py-0.5 text-xs font-semibold normal-case leading-none text-info-content">
       <FolderKanban size={11} strokeWidth={2.5} />
       Project
     </span>
@@ -101,6 +107,7 @@ function ProjectSpaceBadge() {
 }
 
 export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
+  const controlledPopupId = useControlledPopupId();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCreateSpaceModalOpen, setIsCreateSpaceModalOpen] = useState(false);
@@ -132,24 +139,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const { confirm: confirmAction, confirmDialogProps } = useChatConfirmDialog();
 
   // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsSpaceDropdownOpen(false);
-      }
-      if (
-        channelsDropdownRef.current &&
-        !channelsDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsChannelsDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   const { data: spacesData, refetch: refetchSpaces } =
     useSpacesQuery(currentUserId);
@@ -690,24 +680,23 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   );
 
   return (
-    <div className="w-full h-full bg-white border-r border-slate-200/60 flex flex-col select-none">
+    <div className="w-full h-full bg-card border-r border-border flex flex-col select-none">
       {/* Header with Space Selector Dropdown */}
-      <div className="p-3 border-b border-slate-100 relative" ref={dropdownRef}>
+      <div className="p-3 border-b border-border relative" ref={dropdownRef}>
         <div
-          onClick={() => setIsSpaceDropdownOpen((prev) => !prev)}
-          className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-200/40 hover:bg-slate-100 hover:border-slate-200/80 rounded-xl cursor-pointer transition-all duration-200 select-none group"
+          className="flex items-center justify-between px-3 py-2 bg-background border border-border hover:bg-muted hover:border-border rounded-panel cursor-pointer transition-all duration-200 select-none group"
         >
           <div className="flex min-w-0 flex-1 flex-col pr-2">
-            <h2 className="flex min-w-0 items-start gap-1.5 text-sm font-bold leading-tight text-slate-800 mb-2">
+            <h2 className="mb-2"><Button aria-controls={`${controlledPopupId}-isSpaceDropdownOpen`} variant="unstyled" type="button" aria-haspopup="menu" aria-expanded={isSpaceDropdownOpen} onClick={() => setIsSpaceDropdownOpen(prev => !prev)} className="flex w-full min-w-0 items-start gap-1.5 text-left text-sm font-semibold leading-tight text-foreground">
               <span className="min-w-0 break-words">
                 {activeSpace ? activeSpace.name : "Select Space"}
               </span>
               <ChevronDown
                 size={14}
-                className="mt-0.5 shrink-0 text-slate-400 transition group-hover:text-slate-600"
+                className="mt-0.5 shrink-0 text-muted-foreground transition group-hover:text-muted-foreground"
               />
-            </h2>
-            <span className="flex flex-wrap items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-slate-400 select-none">
+            </Button></h2>
+            <span className="flex flex-wrap items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground select-none">
               <span>Space</span>
               {activeSpace?.projectId && <ProjectSpaceBadge />}
               {activeSpace &&
@@ -715,7 +704,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 activeSpace.creatorProfile?.fullName && (
                   <>
                     <span>&bull;</span>
-                    <span
+                    <Button variant="unstyled" type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         dispatch(
@@ -724,68 +713,67 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                           ),
                         );
                       }}
-                      className="hover:text-blue-600 hover:underline cursor-pointer normal-case"
+                      className="hover:text-info-content hover:underline cursor-pointer normal-case"
                     >
                       {activeSpace.creatorProfile.fullName}
-                    </span>
+                    </Button>
                   </>
                 )}
             </span>
           </div>
-          <button
+          <Button variant="unstyled"
             onClick={() => setIsFollowedThreadsModalOpen(true)}
-            className="flex items-center justify-between px-3 py-2 mx-1 rounded-xl cursor-pointer transition-all duration-200 select-none group bg-slate-600 text-white hover:bg-slate-900 shadow-sm"
+            className="flex items-center justify-between px-3 py-2 mx-1 rounded-control cursor-pointer transition-all duration-200 select-none group bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft"
           >
             <span className="flex items-center min-w-0 gap-2.5">
               <MessageSquareText
                 size={15}
-                className="shrink-0 text-slate-100"
+                className="shrink-0 text-primary-soft-foreground"
               />
-              <span className="text-[13px] font-bold truncate">
+              <span className="text-[13px] font-semibold truncate">
                 {ChatSidebarSection.THREADS}
               </span>
             </span>
             {followedThreadsUnreadCount > 0 && (
-              <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0 ml-2.5">
+              <span className="bg-destructive text-destructive-foreground text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0 ml-2.5">
                 {followedThreadsUnreadCount > MAX_UNREAD_COUNT
                   ? "99+"
                   : followedThreadsUnreadCount}
               </span>
             )}
-          </button>
+          </Button>
         </div>
 
         {/* Dropdown Menu */}
         {isSpaceDropdownOpen && (
-          <div className="absolute left-3 right-3 top-[64px] z-50 bg-white/95 backdrop-blur-md rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] border border-slate-100 py-1.5 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-100">
-            <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          <AnchoredMenu id={`${controlledPopupId}-isSpaceDropdownOpen`} onClose={() => setIsSpaceDropdownOpen(false)} side="bottom" align="end" aria-label="Workspace actions" className="z-50 bg-card rounded-panel border border-border py-1.5 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-100 shadow-panel">
+            <div className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Spaces
             </div>
-            <div className="max-h-[min(18rem,55vh)] overflow-y-auto flex flex-col gap-0.5 px-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+            <div className="max-h-[min(18rem,55vh)] overflow-y-auto flex flex-col gap-0.5 px-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-thumb]:rounded-full">
               {spaces.map((space) => {
                 const hasCollision = spaceNameCounts[space.name] > 1;
                 return (
                   <div
                     key={space.id}
-                    onClick={() => handleSelectSpace(space.id)}
                     className={cn(
                       "px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-colors flex items-center justify-between gap-2",
                       space.id === activeSpaceId
-                        ? "bg-blue-50 text-blue-700 font-bold"
-                        : "text-slate-600 hover:bg-slate-50",
+                        ? "bg-info-soft text-info-content font-semibold"
+                        : "text-muted-foreground hover:bg-background",
                     )}
                   >
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="truncate">{space.name}</span>
+                        <DropdownMenuItem closeOnClick={false} onClick={() => handleSelectSpace(space.id)} className="min-w-0 flex-1 px-0 py-1 text-left"><span className="truncate">{space.name}</span></DropdownMenuItem>
                         {space.projectId && <ProjectSpaceBadge />}
                       </div>
                       {hasCollision && space.creatorProfile?.fullName && (
-                        <div className="flex min-w-0 gap-1 truncate text-[10px] font-normal text-slate-400">
+                        <div className="flex min-w-0 gap-1 truncate text-xs font-normal text-muted-foreground">
                           <span>
                             Created by
                           </span>
-                          <span
+                          <Button variant="unstyled" type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               setIsSpaceDropdownOpen(false);
@@ -795,10 +783,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                                 ),
                               );
                             }}
-                            className="hover:text-blue-600 hover:underline cursor-pointer"
+                            className="hover:text-info-content hover:underline cursor-pointer"
                           >
                             {space.creatorProfile.email}
-                          </span>
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -806,25 +794,25 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 );
               })}
               {spaces.length === 0 && (
-                <div className="px-3 py-2 text-xs text-slate-400 italic">
+                <div className="px-3 py-2 text-xs text-muted-foreground italic">
                   No spaces joined
                 </div>
               )}
             </div>
-            <div className="h-[1px] bg-slate-100 my-1" />
+            <div className="h-[1px] bg-muted my-1" />
             <div className="px-1 flex flex-col gap-0.5">
-              <button
+              <DropdownMenuItem closeOnClick={false}
                 onClick={() => {
                   setIsCreateSpaceModalOpen(true);
                   setIsSpaceDropdownOpen(false);
                 }}
-                className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2 cursor-pointer transition"
+                className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-background rounded-control flex items-center gap-2 cursor-pointer transition"
               >
-                <PlusCircle size={14} className="text-slate-400" />
+                <PlusCircle size={14} className="text-muted-foreground" />
                 Create new space
-              </button>
+              </DropdownMenuItem>
               {isActiveSpaceAdmin && (
-                <button
+                <DropdownMenuItem closeOnClick={false}
                   onClick={() => {
                     if (activeSpaceId) {
                       setIsSpaceSettingsModalOpen(true);
@@ -832,42 +820,42 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                     setIsSpaceDropdownOpen(false);
                   }}
                   disabled={!activeSpaceId}
-                  className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg flex items-center gap-2 cursor-pointer transition"
+                  className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-background disabled:opacity-50 disabled:pointer-events-none rounded-control flex items-center gap-2 cursor-pointer transition"
                 >
-                  <Settings size={14} className="text-slate-400" />
+                  <Settings size={14} className="text-muted-foreground" />
                   Space settings
-                </button>
+                </DropdownMenuItem>
               )}
             </div>
-          </div>
+          </AnchoredMenu>
         )}
       </div>
 
       {/* Search Filter */}
-      <div className="p-3 border-b border-slate-100">
+      <div className="p-3 border-b border-border">
         <div className="relative">
           <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={14}
           />
-          <input
+          <Input aria-label="Search channels, conversations" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search channels, conversations..."
-            className="w-full pl-9 pr-4 py-2 text-xs bg-slate-100/70 border border-transparent focus:border-blue-500/20 focus:ring-4 focus:ring-blue-500/5 rounded-xl outline-none transition-all duration-200"
+            className="w-full pl-9 pr-4 py-2 text-xs bg-muted border border-transparent focus:border-info-outline/20 focus:ring-4 focus:ring-ring rounded-control outline-none transition-all duration-200"
           />
         </div>
       </div>
 
       {/* Main Items Scrollable List */}
-      <div className="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+      <div className="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-thumb]:rounded-full">
         {/* Channels Section */}
         <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between px-3 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none">
-            <button
+          <div className="flex items-center justify-between px-3 mb-1 text-xs font-semibold text-muted-foreground uppercase tracking-widest select-none">
+            <Button variant="unstyled"
               onClick={() => setIsChannelsExpanded(!isChannelsExpanded)}
-              className="flex items-center gap-1 hover:text-slate-600 transition cursor-pointer text-left"
+              className="flex items-center gap-1 hover:text-muted-foreground transition cursor-pointer text-left"
             >
               {isChannelsExpanded ? (
                 <ChevronDown size={12} />
@@ -875,43 +863,43 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 <ChevronRight size={12} />
               )}
               <span>CHANNELS</span>
-            </button>
+            </Button>
             {activeSpaceId && (
               <div className="relative" ref={channelsDropdownRef}>
-                <button
+                <Button aria-expanded={isChannelsDropdownOpen} aria-controls={`${controlledPopupId}-isChannelsDropdownOpen`} aria-haspopup="menu" variant="unstyled"
                   onClick={() =>
                     setIsChannelsDropdownOpen(!isChannelsDropdownOpen)
                   }
-                  className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                  className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-muted-foreground transition cursor-pointer"
                   title="Channel options"
                 >
                   <Plus size={14} />
-                </button>
+                </Button>
                 {isChannelsDropdownOpen && (
-                  <div className="absolute right-0 mt-1 w-44 bg-white border border-slate-150 rounded-xl shadow-lg z-50 py-1 text-slate-700 font-normal normal-case">
-                    <button
+                  <AnchoredMenu id={`${controlledPopupId}-isChannelsDropdownOpen`} onClose={() => setIsChannelsDropdownOpen(false)} side="bottom" align="end" aria-label="Channel actions" className="w-44 bg-card border border-border rounded-panel z-50 py-1 text-foreground font-normal normal-case shadow-panel">
+                    <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setIsBrowseChannelsModalOpen(true);
                         setIsChannelsDropdownOpen(false);
                       }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 transition cursor-pointer"
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-background flex items-center gap-2 transition cursor-pointer"
                     >
-                      <Globe size={14} className="text-slate-400" />
+                      <Globe size={14} className="text-muted-foreground" />
                       Browse channels
-                    </button>
+                    </DropdownMenuItem>
                     {canCreateChannelInActiveSpace && (
-                      <button
+                      <DropdownMenuItem closeOnClick={false}
                         onClick={() => {
                           setIsCreateChannelModalOpen(true);
                           setIsChannelsDropdownOpen(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 transition cursor-pointer"
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-background flex items-center gap-2 transition cursor-pointer"
                       >
-                        <Plus size={14} className="text-slate-400" />
+                        <Plus size={14} className="text-muted-foreground" />
                         Create new channel
-                      </button>
+                      </DropdownMenuItem>
                     )}
-                  </div>
+                  </AnchoredMenu>
                 )}
               </div>
             )}
@@ -919,12 +907,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           {isChannelsExpanded && (
             <div
               className={cn(
-                "pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full",
+                "pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-thumb]:rounded-full",
                 joinedChannels.length > 10 && "max-h-80 overflow-y-auto",
               )}
             >
               {loadingChannels ? (
-                <div className="text-[11px] text-slate-400 italic px-3 py-1">
+                <div className="text-xs text-muted-foreground italic px-3 py-1">
                   Loading channels...
                 </div>
               ) : joinedChannels.length > 0 ? (
@@ -972,7 +960,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   );
                 })
               ) : (
-                <div className="text-[11px] text-slate-400 italic px-3 py-1">
+                <div className="text-xs text-muted-foreground italic px-3 py-1">
                   {isSearchingSidebar
                     ? "No channels found"
                     : activeSpaceId

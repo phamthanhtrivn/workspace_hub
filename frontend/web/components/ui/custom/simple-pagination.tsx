@@ -58,7 +58,7 @@ export function SimplePagination({
       >
         <ChevronLeft />
       </PaginationButton>
-      <span className="mx-1 inline-flex h-7 min-w-12 items-center justify-center rounded-full bg-white px-2 text-[11px] font-black text-slate-700 ring-1 ring-slate-200">
+      <span className="mx-1 inline-flex h-7 min-w-12 items-center justify-center rounded-full bg-card px-2 text-xs font-semibold text-foreground ring-1 ring-ring">
         {currentPage}/{safeTotalPages}
       </span>
       <PaginationButton
@@ -99,7 +99,7 @@ function PaginationButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="h-7 w-7 rounded-md text-[var(--color-primary)] hover:bg-blue-50 disabled:text-slate-300 disabled:hover:bg-transparent"
+      className="h-7 w-7 rounded-control text-link hover:bg-info-soft disabled:text-muted-foreground disabled:hover:bg-transparent"
     >
       {children}
     </Button>

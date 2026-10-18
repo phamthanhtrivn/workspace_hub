@@ -19,7 +19,7 @@ import {
 import type { PomodoroSessionRecord } from "../types/pomodoro";
 
 const EMPTY_SESSIONS: PomodoroSessionRecord[] = [];
-const INPUT_CLASS = "mt-1 inline-block h-auto w-full min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs text-slate-700 shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
+const INPUT_CLASS = "mt-1 inline-block h-auto w-full min-w-0 rounded-lg border border-input bg-card px-2 py-2 text-xs text-foreground shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 const PRESETS: [PomodoroReportPreset, string][] = [["today", "Today"], ["week", "This week"], ["month", "This month"]];
 
 export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
@@ -71,9 +71,9 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
 
   return (
     <section className="space-y-4" aria-label="Pomodoro history and reports">
-      <Card className="block text-inherit rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
+      <Card className="block text-inherit rounded-panel border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-extrabold text-slate-900">History & reports</h3>
+          <h3 className="text-sm font-semibold text-foreground">History & reports</h3>
           <Button type="button" variant="outline" size="sm" disabled={!ready || query.isFetching} onClick={exportReport}>
             <Download aria-hidden="true" className="mr-1.5 size-3.5" /> Export JSON
           </Button>
@@ -85,16 +85,16 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
             return <Button key={preset} type="button" size="sm" variant={selected ? "default" : "outline"} aria-pressed={selected} onClick={() => changeRange(value)}>{label}</Button>;
           })}
         </div>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <label htmlFor={`${id}-start`} className="min-w-0 text-xs font-semibold text-slate-600">
+        <div className="mt-3 grid grid-cols-1 gap-3 @min-[480px]/pomodoro:grid-cols-2 @min-[960px]/pomodoro:grid-cols-4">
+          <label htmlFor={`${id}-start`} className="min-w-0 text-xs font-semibold text-muted-foreground">
             From date
             <Input id={`${id}-start`} type="date" value={range.startDate} onChange={(event) => changeRange({ ...range, startDate: event.target.value })} className={INPUT_CLASS} />
           </label>
-          <label htmlFor={`${id}-end`} className="min-w-0 text-xs font-semibold text-slate-600">
+          <label htmlFor={`${id}-end`} className="min-w-0 text-xs font-semibold text-muted-foreground">
             To date
             <Input id={`${id}-end`} type="date" value={range.endDate} onChange={(event) => changeRange({ ...range, endDate: event.target.value })} className={INPUT_CLASS} />
           </label>
-          <label htmlFor={`${id}-project`} className="min-w-0 text-xs font-semibold text-slate-600">
+          <label htmlFor={`${id}-project`} className="min-w-0 text-xs font-semibold text-muted-foreground">
             Project
             <CustomSelect
               id={`${id}-project`} value={filters.project} disabled={!ready} ariaLabel="Project"
@@ -103,7 +103,7 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
               onChange={(project) => { setFilters({ project, task: "" }); resetPages(); }}
             />
           </label>
-          <label htmlFor={`${id}-task`} className="min-w-0 text-xs font-semibold text-slate-600">
+          <label htmlFor={`${id}-task`} className="min-w-0 text-xs font-semibold text-muted-foreground">
             Task
             <CustomSelect
               id={`${id}-task`} value={filters.task} disabled={!ready} ariaLabel="Task"
@@ -113,19 +113,19 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
             />
           </label>
         </div>
-        <p className="mt-2 text-[11px] text-slate-500">Up to 93 days. Sessions are counted by their start date in local time.</p>
-        {query.validationError ? <p role="alert" className="mt-3 text-xs text-rose-600">{query.validationError}</p>
-          : query.isError ? <div role="alert" className="mt-3 text-xs text-rose-600">Unable to load the report. <Button variant="ghost" type="button" className="underline" onClick={() => void query.refetch()}>Retry</Button></div>
-          : query.isPending ? <p role="status" className="mt-3 text-xs text-slate-500">Loading history...</p> : null}
+        <p className="mt-2 text-xs text-muted-foreground">Up to 93 days. Sessions are counted by their start date in local time.</p>
+        {query.validationError ? <p role="alert" className="mt-3 text-xs text-destructive-content">{query.validationError}</p>
+          : query.isError ? <div role="alert" className="mt-3 text-xs text-destructive-content">Unable to load the report. <Button variant="ghost" type="button" className="underline" onClick={() => void query.refetch()}>Retry</Button></div>
+          : query.isPending ? <p role="status" className="mt-3 text-xs text-muted-foreground">Loading history...</p> : null}
         {ready && report && (
           <>
-            <dl className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <dl className="mt-4 grid grid-cols-1 gap-3 @min-[400px]/pomodoro:grid-cols-2 @min-[960px]/pomodoro:grid-cols-4">
               {[
                 ["Focus time", formatFocusTime(report.summary.focusSeconds)],
                 ["Completed focus sessions", report.summary.completedFocusSessions],
                 ["Stopped focus sessions", report.summary.stoppedFocusSessions],
                 ["Total sessions", report.summary.totalSessions],
-              ].map(([label, value]) => <div key={label} className="rounded-xl bg-slate-50 p-3"><dt className="text-xs text-slate-500">{label}</dt><dd className="mt-1 text-sm font-bold text-slate-900">{value}</dd></div>)}
+              ].map(([label, value]) => <div key={label} className="rounded-panel bg-background p-3"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-semibold text-foreground">{value}</dd></div>)}
             </dl>
             <PomodoroDailyStats
               days={report.daily.slice(dailyPagination.startIndex, dailyPagination.endIndex)}

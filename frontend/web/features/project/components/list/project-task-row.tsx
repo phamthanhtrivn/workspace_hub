@@ -7,7 +7,7 @@ import {
   type Task,
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
-import { TASK_PRIORITY_LABELS } from "@/features/project/constants/task.constants";
+import { BACKLOG_LAYOUT, TASK_PRIORITY_LABELS } from "@/features/project/constants/task.constants";
 import { TaskStatusBadge } from "../ui/status-badge";
 import TaskLabelBadges from "../ui/task-label-badges";
 import { Avatar } from "../ui/avatar-stack";
@@ -63,7 +63,7 @@ export default function ProjectTaskRow({
   const subtaskActionVisibility =
     isExpanded || isCreatingSubtask
       ? "opacity-100"
-      : "opacity-0 group-hover:opacity-100";
+      : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100";
 
   const formattedDueDate = task.dueDate
     ? new Date(task.dueDate).toLocaleDateString(undefined, {
@@ -92,12 +92,13 @@ export default function ProjectTaskRow({
       }}
       onClick={() => onTaskClick?.(task)}
       onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.target !== event.currentTarget) return;
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           onTaskClick?.(task);
         }
       }}
-      className="group relative grid min-w-[980px] grid-cols-[minmax(360px,1fr)_120px_110px_72px_72px_96px] items-center border-b border-slate-200 bg-white px-4 py-[7px] text-left transition-colors hover:z-20 hover:bg-slate-50 focus-within:z-20 focus-visible:bg-blue-50/50 focus-visible:outline-hidden cursor-pointer"
+      className={`group relative grid ${BACKLOG_LAYOUT.minWidth} ${BACKLOG_LAYOUT.columns} items-center border-b border-border bg-card px-4 py-[7px] text-left transition-colors hover:z-20 hover:bg-background focus-within:z-20 focus-visible:bg-info-soft/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring cursor-pointer`}
     >
       <div
         className="flex min-w-0 items-center gap-2"
@@ -114,7 +115,7 @@ export default function ProjectTaskRow({
                 event.stopPropagation();
                 onToggleExpanded?.();
               }}
-              className="h-6 w-6 rounded-md text-slate-500 hover:bg-slate-100 hover:text-[#0052CC]"
+              className="h-6 w-6 rounded-control text-muted-foreground hover:bg-muted hover:text-info-content"
             >
               {isExpanded ? (
                 <ChevronDown className="h-3.5 w-3.5" />
@@ -127,13 +128,13 @@ export default function ProjectTaskRow({
           )}
         </div>
         <div className="shrink-0">{issueIcon}</div>
-        <span className="w-[72px] shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-500 hover:text-[#0052CC]">
+        <span className="w-[72px] shrink-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-info-content">
           {issueKey}
         </span>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <span
-            className={`truncate text-sm font-medium group-hover:text-[#0052CC] ${
-              level > 0 ? "text-slate-700" : "text-[#172B4D]"
+            className={`truncate text-sm font-medium group-hover:text-info-content ${
+              level > 0 ? "text-foreground" : "text-foreground"
             }`}
           >
             {task.title}
@@ -149,17 +150,17 @@ export default function ProjectTaskRow({
       <div className="text-right">
         {task.dueDate ? (
           <span
-            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${
+            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold ${
               overdue
-                ? "bg-red-50 text-red-600"
-                : "bg-slate-100 text-slate-600"
+                ? "bg-destructive-soft text-destructive-content"
+                : "bg-muted text-muted-foreground"
             }`}
           >
             <Calendar className="h-3 w-3" />
             {formattedDueDate}
           </span>
         ) : (
-          <span className="text-xs text-slate-300">-</span>
+          <span className="text-xs text-muted-foreground">-</span>
         )}
       </div>
 
@@ -181,7 +182,7 @@ export default function ProjectTaskRow({
             size="xs"
           />
         ) : (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-slate-300 bg-slate-50 text-[10px] font-bold text-slate-400">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-input bg-background text-xs font-semibold text-muted-foreground">
             ?
           </span>
         )}
@@ -199,7 +200,7 @@ export default function ProjectTaskRow({
               event.stopPropagation();
               onStartCreateSubtask?.();
             }}
-            className={`h-7 rounded-md px-2 text-[11px] font-semibold text-slate-500 transition hover:bg-blue-50 hover:text-[#0052CC] focus-visible:opacity-100 ${subtaskActionVisibility}`}
+            className={`h-7 rounded-md px-2 text-xs font-semibold text-muted-foreground transition hover:bg-info-soft hover:text-info-content focus-visible:opacity-100 ${subtaskActionVisibility}`}
           >
             <Plus className="mr-1 h-3.5 w-3.5" />
             Subtask

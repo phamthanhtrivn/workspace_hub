@@ -19,6 +19,8 @@ import {
   getAuthErrorMessage,
   getAuthValidationErrors,
 } from "../utils/auth-error";
+import { Button } from "@/components/ui/button";
+
 
 const RegisterForm = React.memo(function RegisterForm() {
   const router = useRouter();
@@ -56,6 +58,7 @@ const RegisterForm = React.memo(function RegisterForm() {
       setErrors({
         confirmPassword: "Passwords do not match",
       });
+      requestAnimationFrame(() => document.getElementById("confirmPassword")?.focus());
       return;
     }
 
@@ -84,6 +87,7 @@ const RegisterForm = React.memo(function RegisterForm() {
           const validationErrors = getAuthValidationErrors(error);
           if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);
+            requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
             return;
           }
 
@@ -102,11 +106,12 @@ const RegisterForm = React.memo(function RegisterForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700">
-            Full Name <span className="text-red-500">*</span>
+          <label htmlFor="fullName" className="text-sm font-semibold text-foreground">
+            Full Name <span className="text-destructive-content">*</span>
           </label>
 
-          <InputField
+          <InputField autoComplete="name" required
+            variant="auth"
             id="fullName"
             type="text"
             icon={User}
@@ -118,11 +123,12 @@ const RegisterForm = React.memo(function RegisterForm() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-slate-700">
-            Date of Birth <span className="text-red-500">*</span>
+          <label htmlFor="dob" className="text-sm font-semibold text-foreground">
+            Date of Birth <span className="text-destructive-content">*</span>
           </label>
 
-          <InputField
+          <InputField autoComplete="bday" required
+            variant="auth"
             id="dob"
             type="date"
             icon={Calendar}
@@ -135,11 +141,12 @@ const RegisterForm = React.memo(function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-semibold text-slate-700">
-          Email <span className="text-red-500">*</span>
+        <label htmlFor="email" className="text-sm font-semibold text-foreground">
+          Email <span className="text-destructive-content">*</span>
         </label>
 
-        <InputField
+        <InputField autoComplete="email" required
+          variant="auth"
           id="email"
           type="email"
           icon={Mail}
@@ -151,11 +158,12 @@ const RegisterForm = React.memo(function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-semibold text-slate-700">
-          Password <span className="text-red-500">*</span>
+        <label htmlFor="password" className="text-sm font-semibold text-foreground">
+          Password <span className="text-destructive-content">*</span>
         </label>
 
-        <InputField
+        <InputField autoComplete="new-password" required
+          variant="auth"
           id="password"
           type={showPassword ? "text" : "password"}
           icon={Lock}
@@ -175,11 +183,12 @@ const RegisterForm = React.memo(function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-semibold text-slate-700">
-          Confirm Password <span className="text-red-500">*</span>
+        <label htmlFor="confirmPassword" className="text-sm font-semibold text-foreground">
+          Confirm Password <span className="text-destructive-content">*</span>
         </label>
 
-        <InputField
+        <InputField autoComplete="new-password" required
+          variant="auth"
           id="confirmPassword"
           type={showConfirmPassword ? "text" : "password"}
           icon={Lock}
@@ -198,14 +207,14 @@ const RegisterForm = React.memo(function RegisterForm() {
         />
       </div>
 
-      <button
+      <Button variant="unstyled"
         type="submit"
         disabled={registerMutation.isPending}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-[0_16px_32px_rgba(15,40,84,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] disabled:opacity-70"
+        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-[0_16px_32px_color-mix(in_srgb,var(--primary)_22%,transparent)] transition hover:-translate-y-0.5 hover:bg-primary disabled:opacity-70"
       >
         <UserPlus className="h-4 w-4" />
         {registerMutation.isPending ? "Creating account..." : "Register"}
-      </button>
+      </Button>
     </form>
   );
 });

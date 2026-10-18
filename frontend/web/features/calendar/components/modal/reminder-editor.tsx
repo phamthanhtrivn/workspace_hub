@@ -51,7 +51,7 @@ function ReminderRow({
       name={`reminders.${index}.minutesBefore`}
       render={({ field, fieldState }) => (
         <div className="space-y-2">
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2">
             <Controller
               control={control}
               name={`reminders.${index}.method`}
@@ -64,8 +64,8 @@ function ReminderRow({
                     value: method,
                     label: method,
                   }))}
-                  triggerClassName="h-8 rounded-xl border-slate-200/80 bg-white px-3 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-50"
-                  contentClassName="rounded-lg border-slate-200"
+                  triggerClassName="h-8 rounded-panel border-input bg-card px-3 text-xs font-semibold text-foreground shadow-none hover:bg-background"
+                  contentClassName="rounded-lg border-border"
                 />
               )}
             />
@@ -91,15 +91,15 @@ function ReminderRow({
                 })),
                 { value: CUSTOM_VALUE, label: copy.reminderCustom },
               ]}
-              triggerClassName="h-8 rounded-xl border-slate-200/80 bg-white px-3 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-50"
-              contentClassName="rounded-lg border-slate-200"
+              triggerClassName="h-8 rounded-panel border-input bg-card px-3 text-xs font-semibold text-foreground shadow-none hover:bg-background"
+              contentClassName="rounded-lg border-border"
             />
             <Button
               type="button"
               variant="ghost"
               size="icon"
               onClick={onRemove}
-              className="grid h-8 w-8 cursor-pointer place-items-center rounded-xl text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600"
+              className="grid h-8 w-8 cursor-pointer place-items-center rounded-control text-muted-foreground transition-colors hover:bg-destructive-soft hover:text-destructive-content"
               aria-label={copy.delete}
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -124,7 +124,7 @@ function ReminderRow({
                 onBlur={field.onBlur}
                 aria-label={copy.reminderAmount}
                 aria-invalid={Boolean(fieldState.error)}
-                className="h-8 rounded-xl border-slate-200/80 bg-white px-3 text-xs shadow-none"
+                className="h-8 rounded-control border-input bg-card px-3 text-xs shadow-none"
               />
               <CustomSelect
                 value={unit}
@@ -136,13 +136,13 @@ function ReminderRow({
                 ariaLabel={copy.reminderUnit}
                 options={REMINDER_UNIT_OPTIONS}
                 invalid={Boolean(fieldState.error)}
-                triggerClassName="h-8 rounded-xl border-slate-200/80 bg-white px-2 text-xs font-semibold text-slate-700 shadow-none hover:bg-slate-50"
-                contentClassName="rounded-lg border-slate-200"
+                triggerClassName="h-8 rounded-panel border-input bg-card px-2 text-xs font-semibold text-foreground shadow-none hover:bg-background"
+                contentClassName="rounded-lg border-border"
               />
             </div>
           )}
           {fieldState.error?.message && (
-            <p className="text-xs text-red-600" role="alert">
+            <p className="text-xs text-destructive-content" role="alert">
               {fieldState.error.message}
             </p>
           )}
@@ -163,9 +163,9 @@ export function ReminderEditor({
   });
 
   return (
-    <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-slate-50/80 p-3">
+    <div className="space-y-3 rounded-panel border border-border bg-background p-3">
       <div className="flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
           <Bell className="h-3.5 w-3.5" />
           {copy.reminders}
         </span>
@@ -176,7 +176,7 @@ export function ReminderEditor({
           onClick={() =>
             append({ minutesBefore: 10, method: ReminderMethod.ALERT })
           }
-          className="h-auto cursor-pointer gap-1 p-0 text-xs font-medium text-blue-600 hover:bg-transparent hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+          className="h-auto cursor-pointer gap-1 p-0 text-xs font-medium text-info-content hover:bg-transparent hover:text-info-content disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Plus className="h-3.5 w-3.5" />
           {copy.add}

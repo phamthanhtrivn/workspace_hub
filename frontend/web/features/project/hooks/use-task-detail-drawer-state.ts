@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   type ProjectMember,
@@ -38,7 +38,6 @@ export function useTaskDetailDrawerState({
   task,
   tasks = [],
   members = [],
-  onClose,
   onUpdateTask,
   onToggleLabel,
   onCreateDependency,
@@ -76,22 +75,7 @@ export function useTaskDetailDrawerState({
       )
     : [];
 
-  useEffect(() => {
-    if (!task) return;
 
-    const previousOverflow = document.body.style.overflow;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    document.body.style.overflow = "hidden";
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onClose, task]);
 
   const { memberDisplayName } = createTaskActivityPresenter(members, tasks);
 

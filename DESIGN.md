@@ -1,166 +1,147 @@
 ---
-version: 1.0.0
-name: Workspace Hub
-description: Shared Workspace Hub design direction with Calendar-specific interaction and visual tokens.
+name: WorkspaceHub
+description: A compact, connected workspace for study, projects, and focused collaboration.
 colors:
-  primary: "#1C4D8D"
-  primary-strong: "#0F2854"
-  primary-soft: "#E8F0FE"
-  canvas: "#FFFFFF"
-  surface: "#F8FAFC"
-  surface-hover: "#F1F5F9"
-  gridline: "#E2E8F0"
-  text: "#0F172A"
-  text-secondary: "#475569"
-  text-muted: "#64748B"
-  on-primary: "#FFFFFF"
-  today: "#DCEBFA"
-  now: "#D93025"
-  success: "#15803D"
-  warning: "#B45309"
-  error: "#B91C1C"
+  brand-ice: "#E6EDF8"
+  brand-midnight: "#010736"
+  brand-blue: "#22396F"
+  brand-navy: "#0D1C42"
+  background: "#FFFFFF"
+  foreground: "#3B3B3B"
+  card: "#FFFFFF"
+  primary: "#22396F"
+  primary-foreground: "#FFFFFF"
+  primary-hover: "#0D1C42"
+  secondary: "#F3F3F3"
+  secondary-foreground: "#3B3B3B"
+  muted: "#F3F3F3"
+  muted-foreground: "#616161"
+  border: "#E5E5E5"
+  input: "#808080"
+  success: "#2E6F43"
+  warning: "#795718"
+  destructive: "#B42332"
+  dark-background: "#1F1F1F"
+  dark-card: "#252526"
+  dark-primary: "#0D1C42"
+  destructive-content: "#B42332"
+  success-content: "#24633E"
+  warning-content: "#795418"
+  info-content: "#22396F"
 typography:
-  title-lg: { fontFamily: "Inter, sans-serif", fontSize: 22px, fontWeight: 500, lineHeight: 1.25, letterSpacing: -0.01em }
-  title-md: { fontFamily: "Inter, sans-serif", fontSize: 18px, fontWeight: 600, lineHeight: 1.3, letterSpacing: -0.01em }
-  body-md: { fontFamily: "Inter, sans-serif", fontSize: 14px, fontWeight: 400, lineHeight: 1.5, letterSpacing: 0em }
-  body-sm: { fontFamily: "Inter, sans-serif", fontSize: 12px, fontWeight: 400, lineHeight: 1.4, letterSpacing: 0em }
-  label-md: { fontFamily: "Inter, sans-serif", fontSize: 14px, fontWeight: 500, lineHeight: 1.2, letterSpacing: 0em }
-  label-sm: { fontFamily: "Inter, sans-serif", fontSize: 11px, fontWeight: 600, lineHeight: 1.2, letterSpacing: 0.01em }
+  title: { fontFamily: "Inter, sans-serif", fontSize: "22px", fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.01em" }
+  section: { fontFamily: "Inter, sans-serif", fontSize: "18px", fontWeight: 600, lineHeight: 1.3, letterSpacing: "-0.01em" }
+  body: { fontFamily: "Inter, sans-serif", fontSize: "14px", fontWeight: 400, lineHeight: 1.5, letterSpacing: "normal" }
+  compact: { fontFamily: "Inter, sans-serif", fontSize: "13px", fontWeight: 400, lineHeight: 1.5, letterSpacing: "normal" }
+  caption: { fontFamily: "Inter, sans-serif", fontSize: "12px", fontWeight: 400, lineHeight: 1.4, letterSpacing: "normal" }
+  label: { fontFamily: "Inter, sans-serif", fontSize: "14px", fontWeight: 600, lineHeight: 1.2, letterSpacing: "normal" }
 rounded:
-  xs: 4px
-  sm: 6px
-  md: 8px
-  lg: 12px
-  full: 9999px
+  control: "8px"
+  panel: "14px"
+  dialog: "16px"
+  full: "9999px"
 spacing:
-  xs: 4px
-  sm: 8px
-  md: 12px
-  lg: 16px
-  xl: 24px
-  xxl: 32px
+  xs: "4px"
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  xl: "24px"
+  xxl: "32px"
 components:
-  toolbar:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.text}"
-    height: 64px
-    padding: 12px 16px
-  sidebar:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.text-secondary}"
-    width: 256px
-    padding: 16px
-  button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.label-md}"
-    rounded: "{rounded.full}"
-    height: 40px
-    padding: 10px 18px
-  button-secondary:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.text-secondary}"
-    typography: "{typography.label-md}"
-    rounded: "{rounded.full}"
-    height: 40px
-    padding: 10px 16px
-  input:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.text}"
-    typography: "{typography.body-md}"
-    rounded: "{rounded.sm}"
-    height: 40px
-    padding: 8px 12px
-  dialog:
-    backgroundColor: "{colors.canvas}"
-    textColor: "{colors.text}"
-    rounded: "{rounded.lg}"
-    padding: 24px
+  button-primary: { backgroundColor: "{colors.primary}", textColor: "{colors.primary-foreground}", typography: "{typography.label}", rounded: "{rounded.control}", height: "36px", padding: "8px 16px" }
+  button-secondary: { backgroundColor: "{colors.secondary}", textColor: "{colors.secondary-foreground}", rounded: "{rounded.control}", height: "36px", padding: "8px 16px" }
+  input: { backgroundColor: "{colors.background}", textColor: "{colors.foreground}", rounded: "{rounded.control}", height: "36px", padding: "4px 12px" }
+  card: { backgroundColor: "{colors.card}", textColor: "{colors.foreground}", rounded: "{rounded.panel}", padding: "16px" }
+  navigation: { backgroundColor: "{colors.card}", textColor: "{colors.foreground}", padding: "12px" }
+  chip: { backgroundColor: "{colors.muted}", textColor: "{colors.muted-foreground}", rounded: "{rounded.full}", padding: "2px 8px" }
 ---
 
-# Workspace Hub Calendar
-
-## Dashboard direction
-
-The personal dashboard uses the shared application tokens in frontend/web/app/globals.css: background/card for surfaces, border for separators, primary navy for actions and today, primary-dark for headings, muted-foreground for metadata and destructive for overdue work. Inherit the application sans font. Use shared radius utilities and the existing Button component so controls match the rest of the product. Keep the compact metric row, timeline and task list with 16px panel padding and 24px page spacing. The Focus panel uses primary at 5% opacity. Chart colors reference primary/secondary; user-selected project colors remain dynamic. Do not add dashboard-only palettes or fonts.
+# Design System: WorkspaceHub
 
 ## Overview
 
-The Calendar is a dense daily-work surface for Workspace Hub members. It follows familiar Google Calendar interaction patterns: persistent navigation, compact controls, direct manipulation, quick event creation and progressive disclosure for advanced fields. It remains visually part of Workspace Hub through the existing navy-blue identity.
+**Creative North Star: "A clear desk for connected work"**
+
+WorkspaceHub is a compact working environment. Preserve the existing layouts and familiar interactions while giving every feature one coherent palette. Structure comes from typography, spacing, borders, and tonal surfaces. The interface should make work easy to scan without competing with conversations, tasks, schedules, or documents.
+
+**Key Characteristics:**
+- White/gray light surfaces, charcoal text, and restrained navy actions.
+- Dark mode layers charcoal surfaces with soft gray text and deep navy actions; avoid near-white control fills.
+- Compact task controls, contextual details, and predictable states.
+- Existing user content, permissions, and selected colors remain meaningful.
 
 ## Colors
 
-- Use `primary` for the create action, focus states and selected controls.
-- Use `primary-soft` and `today` for contextual selection without overpowering event colors.
-- Keep the calendar canvas white and separate structure with `gridline`, not shadows.
-- Preserve user-selected calendar colors for events. Do not introduce extra decorative accents.
+### Primary
+
+Navy marks primary actions: #22396F in Light and deeper #0D1C42 in Dark, with white text on filled actions. Dark filled actions have a subtle inset edge; links and data marks use a separate readable blue-gray. Links use link, while ordinary selections use primary-soft with primary-soft-foreground. Informational icon tiles use neutral secondary surfaces.
+
+### Neutral
+
+Light uses white canvases/cards, gray sidebars, and neutral hover surfaces. Dark uses #181818 sidebars, a #1F1F1F canvas, #252526 cards/popovers, and #313131 grouped/hover surfaces. Soft blue is reserved for selection. Brand primitives remain for logos and the existing auth brand panel.
+
+**The Paired Colors Rule.** Use `primary` with `primary-foreground`, `card` with `card-foreground`, and each status fill with its matching foreground. Use status-content for status text/icons on neutral or status-soft surfaces; status tokens are filled backgrounds, not text colors. Use primary-soft-foreground for soft selection and link for links.
+
+Success, warning, and destructive colors communicate functional state with muted soft surfaces. Mic/Camera off stays soft red on hover; Leave/delete confirmations keep solid destructive fills. Charts and status dots use content colors, not the darker button fills. Keep labels/icons alongside them. User-selected project, calendar, and label colors are content: preserve the stored fill and choose readable text against it. Video and document contents keep their intrinsic colors.
+
+The runtime source of truth is `frontend/web/app/globals.css`. Frontmatter records representative values; [design tokens](docs/design-tokens.md) documents both themes, additional semantic roles, utilities, and integration rules. Use named utilities such as `bg-primary text-primary-foreground` and `bg-background text-foreground`. They follow the theme automatically; `dark:bg-primary` is redundant. Use explicit `dark:` variants only when the semantic role changes. Keep direct CSS variables for chart, gradient, SVG attribute, and third-party API properties when utilities cannot apply.
 
 ## Typography
 
-Use Inter throughout because it is already the product font and works well for dense scheduling interfaces. Titles use medium or semibold weights. Time labels and event metadata use compact sizes with tabular numerals where available.
+Use Inter from `next/font` through the shared sans token. Application page titles use `text-page-title font-semibold` (22px/600); sections use `text-section-title font-semibold` (18px/600). Body and controls use 14px, metadata uses 12px, and dense task/chat content may use `text-compact` (13px). Reserve heavier weights for the brand mark and intentional document/message formatting. Public/auth display headings and the functional timer readout retain their larger scale. Use tabular numerals for durations and measured data.
 
 ## Layout
 
-Desktop uses a 256px sidebar, a 64px toolbar and a fluid calendar grid. Tablet collapses the sidebar behind a control. Mobile prioritizes day and list views with touch targets of at least 40px. The 4px spacing base keeps controls compact without crowding.
+Keep the existing responsive workspace shell, collapsible navigation, toolbars, and feature-specific panels. The spacing vocabulary follows a 4px rhythm. Dashboard panels use 16px internal padding and 24px page spacing, with two columns on desktop and one on mobile. Preserve the compact summary row, today's timeline, task list, and focus panel.
+
+Calendar remains a fluid grid with a sidebar and compact toolbar. Preserve its Monday-first views, selection, manageable-event dragging/resizing, and progressive disclosure. Collapse navigation on small screens; prioritize day/list interaction where appropriate. Project data keeps board, list, calendar, Gantt, and summary layouts.
+
+Task detail drawers overlay the workspace to preserve canvas width. Anchor them to the right, use the established 560px desktop width constrained by the viewport, and fill small screens. Keep independent scrolling, a backdrop, close control, Escape handling, focus management, and body-scroll restoration.
 
 ## Elevation & Depth
 
-The grid is flat. Hairline borders and tonal surfaces communicate hierarchy. Dialogs and floating quick-create surfaces may use one restrained shadow. Events rely on color contrast, not deep shadows.
+Persistent panels use an opaque card surface and a border without a shadow. Floating menus use `shadow-panel`; dialogs use `shadow-dialog`. Keep these shared elevations in `globals.css`. Remove custom glows, stacked shadows, decorative gradients, and translucent application surfaces. Media overlays may retain dark translucency to keep controls readable over content.
+
+Use 130–200ms color/opacity feedback and necessary drawer transitions. Avoid button lifting, decorative scaling, and bouncing indicators. Under reduced motion, loading, typing, recording, playback, and reaction information remains visible with static labels/icons. The Pomodoro ring is functional elapsed-time feedback and remains.
 
 ## Shapes
 
-Controls use pill shapes only for primary navigation actions and segmented selections. Inputs use 6px corners, dialogs use 12px corners and event blocks use 4px corners.
+Use `rounded-control` (8px) for controls, `rounded-panel` (14px) for panels, and `rounded-dialog` (16px) for dialogs. Pills are for badges, avatars, and appropriate segmented controls. Calendar events retain compact 4–6px corners for dense grids; chart geometry, color swatches, media, and user-authored content keep their functional shapes.
 
 ## Components
 
-- Toolbar: today, previous/next, current range, view selector and overflow actions.
-- Sidebar: create action, mini calendar and visible calendar filters.
-- Event editor: title-first layout with progressive disclosure for attendees, recurrence, reminders and attachments.
-- Event detail: readable summary with management actions hidden when permissions do not allow them.
-- Calendar grid: Monday-first, current-time indicator, selectable ranges, drag and resize only for manageable events.
+### Shared UI ownership
+
+- Application controls use the owned `components/ui` primitives directly or through domain wrappers. Vendor primitives, portals, popup positioning and modal focus/scroll handling belong in that layer. Do not regenerate the customized library from upstream templates.
+- Keep domain state, permissions, data fetching and action callbacks in their existing modules. SearchInput and IconButton compose the existing primitives; meaningful feature wrappers retain their public contracts.
+- The `unstyled` compatibility options retain existing layout, typography, SVG dimensions and native attributes while sharing interaction behavior. NativeSelect, NativeCheckbox and NativeRadio preserve native ChangeEvent/ref/peer contracts; styled Select, Checkbox and RadioGroup remain the standard compositional alternatives.
+- True panels use Tabs; filter/view-mode groups use pressed buttons. CustomTabs retains its compatibility name/API for filters. Native markup remains appropriate for semantic layout/content, hidden file pickers, OTP cells, editor/media internals and library-generated DOM. The local ESLint rule and current inventory in the component audit document these boundaries.
+
+### Component conventions
+
+- **Dialogs:** Use the shared modal-focus helper for initial focus, Tab containment, nested popup handling, Escape, scroll locking, and focus restoration. Name each dialog and its close control. Calendar retains its previous helper import as a compatibility re-export. Mobile calendar navigation sits above its dismissing backdrop and below dialogs.
+- **Empty states:** Use a restrained icon, a useful explanation, and a relevant action. Avoid nested decorative containers or icon tiles.
+- **Buttons:** Reuse the shared Button and feature wrappers. Primary actions use paired action tokens; secondary, outline, ghost, and destructive variants keep their APIs. Hover, focus, disabled, and pending states remain distinct.
+- **Inputs and forms:** Use readable text/placeholders, an input-boundary token, and a visible focus ring. Keep validation and pending feedback beside the relevant fields.
+- **Navigation:** Keep ordinary navigation on card surfaces; selected states use a semantic accent without decorative sidebar stripes.
+- **Responsive filters:** Stack project search, status, priority, and assignee controls on narrow screens; preserve selections and reset behavior. Long labels truncate inside controls without overlapping adjacent controls.
+- **Navigation states:** Separate default, hover, and selected states. Selected labels and icons inherit the foreground paired with their fill. Preserve accessible names and mobile controls.
+- **Cards, tables, and lists:** Use surface/text pairs and semantic borders. Keep existing density and responsive overflow behavior.
+- **Calendar:** Use FullCalendar interactions and accessibility primitives. Theme both main and mini-calendar styling, today, time labels, popovers, overflow links, and the current-time indicator. Preserve user colors and permission-aware event actions.
+- **Dashboard and charts:** Reuse shared application tokens and the existing Pomodoro provider. Theme chart axes, grids, series, cursor, and tooltip surfaces; preserve source identifiers and contextual states.
+- **Feature emphasis:** Meetings keeps a compact time/date header and makes New meeting its primary action. Pomodoro keeps its working timer, task association, audio, modes, and history with flat statistics and one dominant start action. Documents keeps grid/list, previews, sharing, and file actions with restrained storage statistics.
+- **Chat, documents, and meetings:** Theme message surfaces, previews, dialogs, controls, notifications, emoji pickers, and third-party popups. Media canvases may remain dark for content legibility; surrounding controls follow the selected theme.
+- **Home and authentication:** At the user's request, preserve the original centered home hero and decorated split auth layout, display typography, labels, control geometry, and interactions. These surfaces are intentional exceptions to the workspace simplification rules; their colors still come from the semantic light/dark tokens. Auth fields use a local style override so workspace forms retain their shared styling. The standalone AI page remains unavailable; Tasks directs visitors to Projects, Calendar, and Dashboard.
+- **Theme preference:** Preferences offers Light and Dark. Save Settings applies the confirmed account preference; unsaved changes and failed saves leave the appearance unchanged. Restore the saved account theme after login and persist the applied browser theme across reloads and logout.
 
 ## Do's and Don'ts
 
-- Do use FullCalendar interactions and accessibility primitives before custom event handling.
-- Do use schema validation and library-backed recurrence parsing.
-- Do preserve keyboard focus and visible focus rings.
-- Do provide loading, empty and error states in context.
-- Don't duplicate backend occurrence expansion in the browser.
-- Don't copy Google branding, logos or exact colors.
-- Don't mix Material Web components into the existing Tailwind system.
+- Do use semantic color pairs instead of fixed component colors.
+- Do preserve layouts, keyboard behavior, permissions, and user-selected colors.
+- Do keep normal text at 4.5:1 contrast and meaningful control boundaries at 3:1.
+- Do check light and dark themes, desktop and mobile, and loading/empty/error states.
+- Don't introduce feature-specific palettes or fonts, decorative bounce, unsupported capability claims, or competing primary actions.
+- Don't recolor uploaded content, video, or saved project/calendar/label colors.
+- Don't duplicate backend rules or replace functional behavior during styling work.
 
-## Project workspace direction
-
-## Direction
-
-Workspace Hub uses a compact, Jira-inspired workspace UI. Dense project data stays readable through clear hierarchy, restrained decoration, and predictable interaction states. Detail surfaces should overlay the workspace when preserving canvas width is more important than showing both surfaces side by side.
-
-## Tokens
-
-- Primary action: `#0052CC`
-- Primary hover: `#0747A6`
-- Heading/strong text: `#172B4D`
-- Body text: `#42526E`
-- Surface: `#FFFFFF`
-- Subtle surface: Slate 50
-- Border: Slate 200
-- Destructive: Red 600/700
-- Radius: small, generally 4–8px
-- Spacing: compact 4px-based rhythm
-- Motion: 200ms entrance and interaction transitions; respect reduced-motion preferences
-
-## Components
-
-### Right drawer
-
-- Overlay the workspace instead of reducing its width.
-- Anchor to the right edge and use the full viewport height.
-- Use a 560px desktop width, constrained by the viewport; use full width on small screens.
-- Provide a dimmed backdrop, close button, Escape handling, and body-scroll lock.
-- Keep the drawer content independently scrollable.
-
-## Accessibility
-
-- Interactive controls need accessible names and visible focus states.
-- Modal drawers use dialog semantics and restore normal page scrolling when closed.
-- Motion must be disabled when `prefers-reduced-motion` is enabled.
+Coverage, retained content exceptions, and verification limits are recorded in [the component audit](docs/ui-audit.md). The semantic message blockquote keeps its content-formatting border.

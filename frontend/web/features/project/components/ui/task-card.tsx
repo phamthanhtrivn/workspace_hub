@@ -41,20 +41,20 @@ export function getIssueKey(task: Task): string {
 }
 
 export function getIssueIcon(): React.ReactNode {
-  return <CheckSquare2 className="h-3.5 w-3.5 text-[#0052CC] fill-[#DEEBFF]" />;
+  return <CheckSquare2 className="h-3.5 w-3.5 text-info-content fill-primary-soft" />;
 }
 
 export function getPriorityIcon(priority: TaskPriority): React.ReactNode {
   switch (priority) {
     case TaskPriority.URGENT:
-      return <ChevronsUp className="h-4 w-4 text-[#DE350B]" />;
+      return <ChevronsUp className="h-4 w-4 text-destructive-content" />;
     case TaskPriority.HIGH:
-      return <ChevronUp className="h-4 w-4 text-[#FF8B00]" />;
+      return <ChevronUp className="h-4 w-4 text-warning-content" />;
     case TaskPriority.MEDIUM:
-      return <Equal className="h-4 w-4 text-[#42526E]" />;
+      return <Equal className="h-4 w-4 text-muted-foreground" />;
     case TaskPriority.LOW:
     default:
-      return <ChevronDown className="h-4 w-4 text-[#0052CC]" />;
+      return <ChevronDown className="h-4 w-4 text-info-content" />;
   }
 }
 
@@ -109,12 +109,13 @@ export default function TaskCard({
       onDragStart={handleDragStart}
       onClick={onClick}
       onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           onClick?.();
         }
       }}
-      className={`group relative w-full overflow-visible rounded-xl border border-slate-200 bg-white text-left shadow-2xs transition duration-150 hover:z-20 hover:border-slate-300 hover:bg-slate-50/70 focus-within:z-20 focus-visible:outline-hidden ${
+      className={`group relative min-w-0 w-full shrink-0 overflow-visible rounded-panel border border-border bg-card text-left transition duration-150 hover:z-20 hover:border-input hover:bg-background focus-within:z-20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring ${
         isCompact ? "p-2.5" : "p-3"
       } ${
         isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"
@@ -122,7 +123,7 @@ export default function TaskCard({
     >
       {/* Title */}
       <p
-        className={`font-semibold leading-snug text-[#172B4D] group-hover:text-[#0052CC] break-words ${
+        className={`font-semibold leading-snug text-foreground group-hover:text-info-content break-words ${
           isCompact ? "text-[13px]" : "text-sm"
         }`}
       >
@@ -137,7 +138,7 @@ export default function TaskCard({
         checklistTotal > 0 ||
         task.comments.length > 0) && (
         <div
-          className={`flex flex-wrap items-center gap-y-1 text-[11px] font-semibold text-slate-500 ${
+          className={`flex flex-wrap items-center gap-y-1 text-xs font-semibold text-muted-foreground ${
             isCompact ? "mt-2 gap-x-2" : "mt-2.5 gap-x-2.5"
           }`}
         >
@@ -145,7 +146,7 @@ export default function TaskCard({
           {task.dueDate && (
             <span
               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${
-                overdue ? "bg-red-50 text-red-600" : "bg-slate-100"
+                overdue ? "bg-destructive-soft text-destructive-content" : "bg-muted"
               }`}
             >
               <Calendar className="h-3 w-3" />
@@ -158,8 +159,8 @@ export default function TaskCard({
             <span
               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${
                 checklistDone === checklistTotal
-                  ? "bg-emerald-50 text-emerald-600"
-                  : "bg-slate-100"
+                  ? "bg-success-soft text-success-content"
+                  : "bg-muted"
               }`}
             >
               <CheckSquare className="h-3 w-3" />
@@ -169,7 +170,7 @@ export default function TaskCard({
 
           {/* Comments */}
           {task.comments.length > 0 && (
-            <span className="inline-flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded-md">
+            <span className="inline-flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded-md">
               <MessageSquare className="h-3 w-3" />
               {task.comments.length}
             </span>
@@ -180,18 +181,18 @@ export default function TaskCard({
 
       {/* Bottom row: Issue Key / Type & Priority / Assignees */}
       <div
-        className={`border-t border-slate-100 flex items-center justify-between ${
+        className={`border-t border-border flex flex-wrap items-center justify-between gap-x-2 gap-y-2 ${
           isCompact ? "mt-2 pt-2" : "mt-3 pt-2.5"
         }`}
       >
-        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium select-none">
+        <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground font-medium select-none [&>svg]:shrink-0">
           {issueIcon}
-          <span className="hover:underline font-semibold text-[11px] uppercase tracking-wide">
+          <span className="break-all hover:underline font-semibold text-xs uppercase tracking-wide">
             {issueKey}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex max-w-full flex-wrap items-center gap-2">
           <ProjectTaskFocusButton task={task} compact />
           <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
           {onPriorityChange && !isTerminalTaskStatus(task.status) ? (
@@ -201,7 +202,7 @@ export default function TaskCard({
             />
           ) : (
             <div
-              className="grid place-items-center h-5 w-5 rounded-md hover:bg-slate-200 transition"
+              className="grid place-items-center h-5 w-5 rounded-md hover:bg-accent transition"
               title={TASK_PRIORITY_LABELS[task.priority]}
             >
               {priorityIcon}
@@ -246,6 +247,7 @@ function TaskPrioritySelect({
 
   return (
     <div
+      data-ui-interaction-exception="Propagation boundary; the contained Select owns activation."
       data-card-interactive="true"
       onClick={stopCardInteraction}
       onPointerDown={stopCardInteraction}
@@ -255,7 +257,7 @@ function TaskPrioritySelect({
         <SelectTrigger
           aria-label={`Change priority for ${issueKey}`}
           title={TASK_PRIORITY_LABELS[task.priority]}
-          className="grid h-6 w-6 place-items-center rounded-md border-0 bg-transparent p-0 text-slate-500 shadow-none transition hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-[#0052CC]/30 [&>svg:last-child]:hidden"
+          className="grid h-6 w-6 place-items-center rounded-control border-0 bg-transparent p-0 text-muted-foreground shadow-none transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring [&>svg:last-child]:hidden"
         >
           <SelectValue>
             <span className="grid h-5 w-5 place-items-center">
@@ -265,7 +267,7 @@ function TaskPrioritySelect({
         </SelectTrigger>
         <SelectContent
           align="end"
-          className="min-w-36 rounded-xl border-slate-200 shadow-lg"
+          className="min-w-36 rounded-panel border-border"
           onClick={stopCardInteraction}
         >
           {TASK_PRIORITY_OPTIONS.map((option) => (

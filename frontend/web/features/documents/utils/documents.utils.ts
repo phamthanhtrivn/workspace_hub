@@ -157,16 +157,16 @@ export const getDocumentRoleMetadata = (
   userRole: DocumentRole | "NONE",
 ): DocumentRoleMetadata => {
   let badgeText = "Viewer";
-  let badgeColor = "text-blue-600 bg-blue-50 border-blue-100/50";
+  let badgeColor = "text-info-content bg-info-soft border-border";
   let Icon = Eye;
 
   if (userRole === DocumentRole.OWNER) {
     badgeText = PERMISSION_ROLE_LABELS["OWNER"];
-    badgeColor = "text-purple-600 bg-purple-50 border-purple-100/50";
+    badgeColor = "text-info-content bg-info-soft border-border";
     Icon = ShieldCheck;
   } else if (userRole === DocumentRole.EDITOR) {
     badgeText = "Editor";
-    badgeColor = "text-green-600 bg-green-50 border-green-100/50";
+    badgeColor = "text-success-content bg-success-soft border-border";
     Icon = Edit;
   }
 

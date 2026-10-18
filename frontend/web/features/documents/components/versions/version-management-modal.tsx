@@ -1,9 +1,12 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
 import { DocumentItem } from "../../types/documents.types";
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { History } from "lucide-react";
 import {
   DocumentItemType,
@@ -47,7 +50,7 @@ export function VersionManagementModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingFileName, setUploadingFileName] = useState("");
 
-  const { data: versions = [], isLoading } = useQuery({
+  const versionsQuery = useQuery({
     queryKey: ["document-versions", item?.id],
     queryFn: () => {
       if (!item) return Promise.resolve([]);
@@ -58,6 +61,7 @@ export function VersionManagementModal({
     enabled: isModalOpen && !!item && item.type !== DocumentItemType.FOLDER,
   });
 
+  const { data: versions = [], isLoading } = versionsQuery;
   const handleDownload = useCallback(
     async (versionId: string) => {
       if (!item) return;
@@ -157,22 +161,22 @@ export function VersionManagementModal({
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-2xl border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl">
+      <DialogContent className={`${dialogLayout.surface} max-w-2xl border-border bg-card p-6 text-foreground rounded-dialog`}>
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info-content ring-1 ring-ring">
             <History className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <DialogTitle className="text-base font-black text-slate-800">
+            <DialogTitle className="text-base font-semibold text-foreground">
               Version management
             </DialogTitle>
-            <p className="mt-0.5 truncate text-xs text-slate-400 font-bold max-w-md">
+            <p className="mt-0.5 truncate text-xs text-muted-foreground font-semibold max-w-md">
               {item.name}
             </p>
           </div>
         </DialogHeader>
 
-        <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+        <div className={`${dialogLayout.body} mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1`}>
           {item.userRole !== DocumentRole.VIEWER ? (
             <VersionUploader
               uploadState={uploadState}
@@ -184,13 +188,14 @@ export function VersionManagementModal({
             />
           ) : null}
 
-          <VersionHistoryTable
+          {versionsQuery.isError && <QueryFeedback label="version history" error retrying={versionsQuery.isFetching} onRetry={() => versionsQuery.refetch()} />}
+        {(!versionsQuery.isError || versions.length > 0) && <VersionHistoryTable
             versions={versions}
             isLoading={isLoading}
             item={item}
             onPreviewVersion={onPreviewVersion}
             onDownload={handleDownload}
-          />
+          />}
         </div>
       </DialogContent>
     </Dialog>

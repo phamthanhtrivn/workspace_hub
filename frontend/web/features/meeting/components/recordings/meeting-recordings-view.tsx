@@ -17,6 +17,8 @@ import { MeetingAlertDialog } from "../common/meeting-alert-dialog";
 import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
 import { MeetingRecordingPlayer } from "./meeting-recording-player";
 import { MeetingRecordingShareDialog } from "./meeting-recording-share-dialog";
+import { NativeSelect } from "@/components/ui/native-select";
+
 
 export function MeetingRecordingsView() {
   const [params, setParams] = useState<RecordingQuery>({
@@ -61,8 +63,8 @@ export function MeetingRecordingsView() {
   return (
     <section aria-label="Meeting recordings" className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">Recordings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="text-page-title font-semibold">Recordings</h1>
+        <p className="mt-1 text-sm tabular-nums text-muted-foreground">
           Your recordings and videos shared with you.
         </p>
       </div>
@@ -78,11 +80,11 @@ export function MeetingRecordingsView() {
               search: event.target.value,
             }))
           }
-          className="max-w-sm bg-white"
+          className="max-w-sm bg-card"
         />
-        <select
+        <NativeSelect unstyled
           aria-label="Recording access filter"
-          className="h-10 rounded-md border bg-white px-3 text-sm"
+          className="h-10 cursor-pointer rounded-control border border-input bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={params.scope}
           onChange={(event) =>
             setParams((current) => ({
@@ -95,7 +97,7 @@ export function MeetingRecordingsView() {
           <option value="all">All accessible</option>
           <option value="owned">Owned by me</option>
           <option value="shared">Shared with me</option>
-        </select>
+        </NativeSelect>
         <MeetingButton tone="outline" onClick={refresh}>
           Refresh
         </MeetingButton>
@@ -103,14 +105,14 @@ export function MeetingRecordingsView() {
       {query.isLoading ? (
         <p className="py-12 text-center">Loading recordings…</p>
       ) : query.isError ? (
-        <div role="alert" className="rounded-lg border bg-white p-6">
+        <div role="alert" className="rounded-panel border border-border bg-card p-6 text-card-foreground">
           <p>Could not load recordings.</p>
           <MeetingButton className="mt-3" onClick={refresh}>
             Try again
           </MeetingButton>
         </div>
       ) : !query.data?.items.length ? (
-        <div className="rounded-lg border bg-white px-6 py-12 text-center">
+        <div className="rounded-panel border border-border bg-card px-6 py-12 text-center text-card-foreground">
           <Radio className="mx-auto mb-3 size-8 text-muted-foreground" />
           <p className="font-semibold">No recordings yet</p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -118,15 +120,15 @@ export function MeetingRecordingsView() {
           </p>
         </div>
       ) : (
-        <div className="divide-y rounded-lg border bg-white">
+        <div className="divide-y divide-border rounded-panel border border-border bg-card text-card-foreground">
           {query.data.items.map((recording) => (
             <article
               key={recording.id}
               className="flex flex-wrap items-center justify-between gap-4 p-5"
             >
               <div className="min-w-0 flex-1">
-                <h2 className="truncate font-semibold">{recording.title}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <h2 className="line-clamp-2 break-words font-semibold leading-6">{recording.title}</h2>
+                <p className="mt-1 text-sm tabular-nums text-muted-foreground">
                   {new Date(recording.requestedAt).toLocaleString()} ·{" "}
                   {recording.status === "RECORDING"
                     ? "Recording"
@@ -145,7 +147,7 @@ export function MeetingRecordingsView() {
                     : ""}
                 </p>
                 {recording.failureCode && (
-                  <p className="mt-1 text-xs text-destructive">
+                  <p className="mt-1 text-xs text-destructive-content">
                     {recording.failureCode === "UPLOAD_BACKUP_REQUIRES_RECOVERY"
                       ? "Upload failed. Contact the meeting administrator to recover the saved video."
                       : recording.status === "FAILED"
@@ -211,7 +213,7 @@ export function MeetingRecordingsView() {
         </div>
       )}
       {query.data && query.data.totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <MeetingButton
             tone="outline"
             disabled={(params.page ?? 1) <= 1}

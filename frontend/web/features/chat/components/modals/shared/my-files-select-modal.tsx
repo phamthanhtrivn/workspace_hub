@@ -1,14 +1,19 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Folder, FileText, X, ChevronRight, Check } from "lucide-react";
-import { createPortal } from "react-dom";
+
 import { DocumentItem } from "@/features/documents/types/documents.types";
 import { chatKeys } from "@/features/chat/types/chat.constant";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
 import { formatFileSize } from "@/lib/format-file-size";
+import { Button } from "@/components/ui/button";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface MyFilesSelectModalProps {
   isOpen: boolean;
@@ -111,52 +116,51 @@ export default function MyFilesSelectModal({
 
   if (!isOpen) return null;
 
-  return createPortal(
-    <div
+  return <DialogSurface onClose={onClose}>{<div
       className={`fixed inset-0 ${overlayClassName} flex items-center justify-center p-4 animate-in fade-in duration-200 ${
         isDarkTone
-          ? "bg-black/70 backdrop-blur-sm"
-          : "bg-slate-900/50 backdrop-blur-xs"
+          ? "bg-overlay/70"
+          : "bg-overlay/50"
       }`}
     >
       <div
-        className={`w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200 flex flex-col max-h-[500px] ${
+        className={`${dialogLayout.surface} w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[500px] ${
           isDarkTone
-            ? "rounded-lg border border-white/10 bg-[#0d1420] text-slate-100"
-            : "rounded-3xl bg-white"
+            ? "rounded-lg border border-border bg-card text-muted-foreground"
+            : "rounded-dialog bg-card"
         }`}
       >
         {/* Header */}
         <div
           className={`flex justify-between items-center px-6 py-4 border-b ${
-            isDarkTone ? "border-white/10" : "border-gray-100"
+            isDarkTone ? "border-border/10" : "border-border"
           }`}
         >
           <h2
-            className={`text-lg font-black ${
-              isDarkTone ? "text-slate-100" : "text-gray-800"
+            className={`text-lg font-semibold ${
+              isDarkTone ? "text-muted-foreground" : "text-foreground"
             }`}
           >
             Select from My Files
           </h2>
-          <button
+          <Button variant="unstyled" aria-label="Close"
             onClick={handleCloseModal}
             className={`cursor-pointer p-2 rounded-full transition-colors ${
               isDarkTone
-                ? "text-slate-400 hover:bg-white/10 hover:text-slate-100"
-                : "text-gray-500 hover:bg-gray-100"
+                ? "text-muted-foreground hover:bg-accent hover:text-muted-foreground"
+                : "text-muted-foreground hover:bg-muted"
             }`}
           >
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         {/* Breadcrumbs Navigation */}
         <div
           className={`flex items-center gap-1.5 px-6 py-3 border-b overflow-x-auto scrollbar-none ${
             isDarkTone
-              ? "border-white/10 bg-white/5"
-              : "border-gray-50 bg-gray-50/50"
+              ? "border-border bg-accent"
+              : "border-border bg-background"
           }`}
         >
           {folderHistory.map((history, idx) => (
@@ -165,41 +169,41 @@ export default function MyFilesSelectModal({
                 <ChevronRight
                   size={14}
                   className={`shrink-0 ${
-                    isDarkTone ? "text-slate-500" : "text-gray-400"
+                    isDarkTone ? "text-muted-foreground" : "text-muted-foreground"
                   }`}
                 />
               )}
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => handleNavigateToFolder(history.id, history.name)}
-                className={`cursor-pointer text-xs font-bold whitespace-nowrap transition-colors ${
+                className={`cursor-pointer text-xs font-semibold whitespace-nowrap transition-colors ${
                   isDarkTone
-                    ? "hover:text-sky-300"
-                    : "hover:text-blue-600"
+                    ? "hover:text-info-content"
+                    : "hover:text-info-content"
                 } ${
                   idx === folderHistory.length - 1
                     ? isDarkTone
-                      ? "text-slate-100 font-extrabold"
-                      : "text-gray-800 font-extrabold"
+                      ? "text-muted-foreground font-semibold"
+                      : "text-foreground font-semibold"
                     : isDarkTone
-                      ? "text-slate-500"
-                      : "text-gray-400"
+                      ? "text-muted-foreground"
+                      : "text-muted-foreground"
                 }`}
               >
                 {history.id === null
                   ? "My Files"
                   : history.name}
-              </button>
+              </Button>
             </React.Fragment>
           ))}
         </div>
 
         {/* Content List Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-1.5 min-h-[220px]">
+        <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-4 space-y-1.5 min-h-[220px]`}>
           {isLoading ? (
             <div
               className={`flex items-center justify-center h-full text-xs font-semibold ${
-                isDarkTone ? "text-slate-400" : "text-gray-400"
+                isDarkTone ? "text-muted-foreground" : "text-muted-foreground"
               }`}
             >
               Loading files...
@@ -207,12 +211,12 @@ export default function MyFilesSelectModal({
           ) : items.length === 0 ? (
             <div
               className={`flex flex-col items-center justify-center h-full text-xs font-semibold space-y-2 py-8 ${
-                isDarkTone ? "text-slate-400" : "text-gray-400"
+                isDarkTone ? "text-muted-foreground" : "text-muted-foreground"
               }`}
             >
               <Folder
                 size={32}
-                className={isDarkTone ? "text-slate-600" : "text-gray-300"}
+                className={isDarkTone ? "text-muted-foreground" : "text-muted-foreground"}
               />
               <span>This folder is empty</span>
             </div>
@@ -224,14 +228,14 @@ export default function MyFilesSelectModal({
 
               if (isFolder) {
                 return (
-                  <button
+                  <Button variant="unstyled"
                     key={item.id}
                     type="button"
                     onClick={() => handleNavigateToFolder(item.id, item.name)}
-                    className={`cursor-pointer w-full flex items-center justify-between p-3 rounded-xl border border-transparent transition-all text-left ${
+                    className={`cursor-pointer w-full flex items-center justify-between p-3 rounded-control border border-transparent transition-all text-left ${
                       isDarkTone
-                        ? "hover:border-white/10 hover:bg-white/8"
-                        : "hover:border-slate-100 hover:bg-slate-50"
+                        ? "hover:border-border hover:bg-accent"
+                        : "hover:border-border hover:bg-background"
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -239,13 +243,13 @@ export default function MyFilesSelectModal({
                         size={18}
                         className={`shrink-0 ${
                           isDarkTone
-                            ? "fill-sky-500/10 text-sky-300"
-                            : "fill-blue-50 text-blue-500"
+                            ? "fill-info-content/10 text-info-content"
+                            : "fill-info-content text-info-content"
                         }`}
                       />
                       <span
-                        className={`text-xs font-bold truncate pr-4 ${
-                          isDarkTone ? "text-slate-100" : "text-gray-700"
+                        className={`text-xs font-semibold truncate pr-4 ${
+                          isDarkTone ? "text-muted-foreground" : "text-foreground"
                         }`}
                       >
                         {item.name}
@@ -254,27 +258,27 @@ export default function MyFilesSelectModal({
                     <ChevronRight
                       size={14}
                       className={`shrink-0 ${
-                        isDarkTone ? "text-slate-500" : "text-gray-400"
+                        isDarkTone ? "text-muted-foreground" : "text-muted-foreground"
                       }`}
                     />
-                  </button>
+                  </Button>
                 );
               }
 
               if (isFile) {
                 return (
-                  <button
+                  <Button variant="unstyled"
                     key={item.id}
                     type="button"
                     onClick={() => handleToggleSelectFile(item)}
-                    className={`cursor-pointer w-full flex items-center justify-between p-3 rounded-xl border transition-all text-left ${
+                    className={`cursor-pointer w-full flex items-center justify-between p-3 rounded-control border transition-all text-left ${
                       isDarkTone
                         ? isSelected
-                          ? "border-sky-300/40 bg-sky-500/15"
-                          : "border-white/10 bg-white/5 hover:bg-white/8"
+                          ? "border-info-outline/40 bg-primary/15"
+                          : "border-border bg-accent hover:bg-accent"
                         : isSelected
-                          ? "bg-blue-50/50 border-blue-200"
-                          : "bg-white border-slate-100 hover:bg-slate-50"
+                          ? "bg-info-soft/50 border-border"
+                          : "bg-card border-border hover:bg-background"
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -282,11 +286,11 @@ export default function MyFilesSelectModal({
                         className={`w-5 h-5 rounded-md flex items-center justify-center transition border ${
                           isDarkTone
                             ? isSelected
-                              ? "border-sky-400 bg-sky-500 text-white"
-                              : "border-white/20 bg-black/20"
+                              ? "border-info-outline bg-primary text-primary-foreground"
+                              : "border-border bg-overlay/20"
                             : isSelected
-                              ? "bg-blue-600 border-blue-600 text-white"
-                              : "border-slate-300 bg-white"
+                              ? "bg-primary border-info-outline text-primary-foreground"
+                              : "border-input bg-card"
                         }`}
                       >
                         {isSelected && <Check size={12} strokeWidth={3} />}
@@ -294,27 +298,27 @@ export default function MyFilesSelectModal({
                       <FileText
                         size={18}
                         className={`shrink-0 ${
-                          isDarkTone ? "text-slate-300" : "text-slate-500"
+                          isDarkTone ? "text-muted-foreground" : "text-muted-foreground"
                         }`}
                       />
                       <div className="flex flex-col min-w-0">
                         <span
-                          className={`text-xs font-bold truncate pr-4 ${
-                            isDarkTone ? "text-slate-100" : "text-gray-700"
+                          className={`text-xs font-semibold truncate pr-4 ${
+                            isDarkTone ? "text-muted-foreground" : "text-foreground"
                           }`}
                         >
                           {item.name}
                         </span>
                         <span
-                          className={`text-[10px] font-medium ${
-                            isDarkTone ? "text-slate-400" : "text-gray-400"
+                          className={`text-xs font-medium ${
+                            isDarkTone ? "text-muted-foreground" : "text-muted-foreground"
                           }`}
                         >
                           {formatFileSize(item.sizeBytes)}
                         </span>
                       </div>
                     </div>
-                  </button>
+                  </Button>
                 );
               }
 
@@ -327,38 +331,36 @@ export default function MyFilesSelectModal({
         <div
           className={`flex justify-end gap-3 px-6 py-4 border-t ${
             isDarkTone
-              ? "border-white/10 bg-white/5"
-              : "border-gray-100 bg-gray-50/50"
+              ? "border-border bg-accent"
+              : "border-border bg-background"
           }`}
         >
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={handleCloseModal}
-            className={`cursor-pointer px-4 py-2 text-xs font-bold rounded-xl transition ${
+            className={`cursor-pointer px-4 py-2 text-xs font-semibold rounded-control transition ${
               isDarkTone
-                ? "text-slate-300 hover:bg-white/10 hover:text-slate-100"
-                : "text-gray-500 hover:bg-gray-100"
+                ? "text-muted-foreground hover:bg-accent hover:text-muted-foreground"
+                : "text-muted-foreground hover:bg-muted"
             }`}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={handleAttachSelected}
             disabled={selectedFiles.size === 0}
-            className={`cursor-pointer px-5 py-2 text-xs font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition shadow-md hover:shadow-lg disabled:shadow-none ${
+            className={`cursor-pointer px-5 py-2 text-xs font-semibold text-foreground disabled:opacity-50 disabled:cursor-not-allowed rounded-control transition disabled:shadow-none ${
               isDarkTone
-                ? "bg-sky-500 hover:bg-sky-400"
-                : "bg-blue-600 hover:bg-blue-700"
+                ? "bg-primary hover:bg-primary"
+                : "bg-primary hover:bg-primary"
             }`}
           >
             {`Attach Selected (${selectedFiles.size})`}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 
 

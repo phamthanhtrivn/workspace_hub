@@ -49,7 +49,7 @@ export function MeetingMessageList({
 
   if (isLoading) {
     return (
-      <div className="grid flex-1 place-items-center text-sm font-bold text-slate-500">
+      <div className="grid flex-1 place-items-center text-sm font-semibold text-muted-foreground">
         Loading...
       </div>
     );
@@ -57,7 +57,7 @@ export function MeetingMessageList({
 
   if (messages.length === 0) {
     return (
-      <div className="grid flex-1 place-items-center px-6 text-center text-sm font-bold leading-6 text-slate-500 mt-6">
+      <div className="grid flex-1 place-items-center px-6 text-center text-sm font-semibold leading-6 text-muted-foreground mt-6">
         No meeting messages yet. Say hello when you are ready.
       </div>
     );
@@ -68,7 +68,7 @@ export function MeetingMessageList({
       {hasNextPage && (
         <div
           ref={loadOlderRef}
-          className="grid h-8 place-items-center text-xs font-bold text-slate-500"
+          className="grid h-8 place-items-center text-xs font-semibold text-muted-foreground"
         >
           {isFetchingNextPage
             ? "Loading older messages..."

@@ -41,20 +41,20 @@ export function TaskDetailsFields({
   ];
 
   return (
-    <section className="border-t border-slate-100 pt-5">
+    <section className="border-t border-border pt-5">
       <div className="mb-4 flex items-center gap-2">
-        <span className="text-sm font-bold text-slate-900">
+        <span className="text-sm font-semibold text-foreground">
           Task Details
         </span>
-        <span className="text-xs text-slate-400">
+        <span className="text-xs text-muted-foreground">
           (Priority and hierarchical grouping)
         </span>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold text-slate-600">
-            <Flag className="h-3.5 w-3.5 text-slate-400" strokeWidth={2} />
+          <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <Flag className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
             Priority
           </span>
           <ProjectSelect
@@ -67,8 +67,8 @@ export function TaskDetailsFields({
         </div>
 
         <div>
-          <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold text-slate-600">
-            <Layers className="h-3.5 w-3.5 text-slate-400" strokeWidth={2} />
+          <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <Layers className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={2} />
             Parent Task
           </span>
           <ProjectSelect
@@ -78,7 +78,7 @@ export function TaskDetailsFields({
             ariaLabel="Select parent task"
             className="w-full h-11"
           />
-          <span className="mt-1 block text-[11px] text-slate-400">
+          <span className="mt-1 block text-xs text-muted-foreground">
             Attach this task as a subtask under an existing parent task.
           </span>
         </div>

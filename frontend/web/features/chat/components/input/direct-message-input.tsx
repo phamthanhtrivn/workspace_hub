@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import React, {
   forwardRef,
@@ -8,22 +9,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  FileText,
-  Image as ImageIcon,
-  Loader2,
-  Mic,
-  Paperclip,
-  Send,
-  Smile,
-  Trash2,
-  Type,
-  Voicemail,
-  X,
-  UploadCloud,
-  Plus,
-  Folder,
-} from "lucide-react";
+import { FileText, Image as ImageIcon, Loader2, Mic, Paperclip, Send, Smile, Trash2, Type, Voicemail, X, UploadCloud, Folder } from "lucide-react";
 import { toast } from "sonner";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import EmojiPickerPopover from "./emoji-picker-popover";
@@ -35,6 +21,11 @@ import {
   claimVoiceSession,
   releaseVoiceSession,
 } from "../../utils/voice-session-coordinator";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 export interface DirectMessageInputProps {
   onSendMessage?: (content: string, media?: any[]) => void;
@@ -81,6 +72,7 @@ const DirectMessageInput = React.memo(
       },
       ref,
     ) {
+  const controlledPopupId = useControlledPopupId();
       const { activeChatId: activeConversationId, activeChatType } =
         useActiveChat();
       const resolvedPlaceholder = placeholder ?? "Type a message...";
@@ -104,20 +96,7 @@ const DirectMessageInput = React.memo(
       const isTypingRef = useRef(false);
 
       // Close DM options on click outside
-      useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-          if (
-            dmOptionsRef.current &&
-            !dmOptionsRef.current.contains(event.target as Node)
-          ) {
-            setShowDMOptions(false);
-          }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-          document.removeEventListener("mousedown", handleClickOutside);
-        };
-      }, []);
+
       const voiceSessionIdRef = useRef(
         `direct-input-${Math.random().toString(36).slice(2)}`,
       );
@@ -224,20 +203,7 @@ const DirectMessageInput = React.memo(
         }
       }, [isRecording, recordingSessionId]);
 
-      useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-          if (
-            micOptionsRef.current &&
-            !micOptionsRef.current.contains(event.target as Node)
-          ) {
-            setShowMicOptions(false);
-          }
-        };
 
-        document.addEventListener("mousedown", handleClickOutside);
-        return () =>
-          document.removeEventListener("mousedown", handleClickOutside);
-      }, []);
 
       useImperativeHandle(ref, () => ({
         focus: () => textareaRef.current?.focus(),
@@ -560,15 +526,15 @@ const DirectMessageInput = React.memo(
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className="w-full bg-white border-t border-gray-200 flex justify-center relative"
+          className="min-w-0 w-full shrink-0 bg-card border-t border-border flex justify-center relative"
         >
           {isDraggingOver && (
-            <div className="absolute inset-0 bg-blue-50/80 backdrop-blur-xs border-2 border-dashed border-blue-500 rounded-2xl m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
+            <div className="absolute inset-0 bg-info-soft/80 border-2 border-dashed border-info-outline rounded-panel m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
               <UploadCloud
-                className="text-blue-500 animate-bounce mb-2"
+                className="text-info-content mb-2"
                 size={28}
               />
-              <p className="text-xs font-black text-blue-600">
+              <p className="text-xs font-semibold text-info-content">
                 Drop files here
               </p>
             </div>
@@ -581,51 +547,51 @@ const DirectMessageInput = React.memo(
                     key={media.id}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg max-w-[220px] ${
                       media.status === "error"
-                        ? "bg-red-50 border border-red-200"
-                        : "bg-gray-100"
+                        ? "bg-destructive-soft border border-border"
+                        : "bg-muted"
                     }`}
                   >
                     {media.mimeType.startsWith("image/") ? (
                       <ImageIcon
                         size={16}
-                        className="text-blue-500 flex-shrink-0"
+                        className="text-info-content flex-shrink-0"
                       />
                     ) : (
                       <FileText
                         size={16}
-                        className="text-gray-500 flex-shrink-0"
+                        className="text-muted-foreground flex-shrink-0"
                       />
                     )}
                     <div className="flex flex-col flex-1 min-w-0">
-                      <span className="text-xs truncate text-gray-700">
+                      <span className="text-xs truncate text-foreground">
                         {media.name}
                       </span>
-                      <span className="text-[10px] text-gray-400">
+                      <span className="text-xs text-muted-foreground">
                         {formatFileSize(media.sizeBytes)}
                       </span>
                     </div>
                     {media.status === "uploading" && (
                       <Loader2
                         size={14}
-                        className="text-blue-500 animate-spin ml-1 flex-shrink-0"
+                        className="text-info-content animate-spin ml-1 flex-shrink-0"
                       />
                     )}
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => removeFile(media.id)}
-                      className="text-gray-500 hover:text-red-500 transition ml-1 flex-shrink-0 cursor-pointer"
+                      className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
                       title="Remove file"
                     >
                       <X size={14} />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
             )}
 
             <div
-              className={`flex bg-gray-50 border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all relative items-center ${
-                compact ? "rounded-xl p-1.5 gap-1.5" : "rounded-2xl p-2 gap-2"
+              className={`flex bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative items-center ${
+                compact ? "rounded-panel p-1.5 gap-1.5" : "rounded-panel p-2 gap-2"
               }`}
             >
               <input
@@ -640,47 +606,47 @@ const DirectMessageInput = React.memo(
 
               {/* Actions Trigger Dropdown */}
               <div ref={dmOptionsRef} className="relative flex-shrink-0">
-                <button
+                <Button aria-expanded={showDMOptions} aria-controls={`${controlledPopupId}-showDMOptions`} aria-haspopup="menu" variant="unstyled"
                   type="button"
                   onClick={() => setShowDMOptions(!showDMOptions)}
                   disabled={isUploading}
-                  className={`cursor-pointer rounded-full transition-colors text-gray-500 hover:bg-gray-200 disabled:opacity-50 ${
+                  className={`cursor-pointer rounded-full transition-colors text-muted-foreground hover:bg-accent disabled:opacity-50 ${
                     compact ? "p-1.5" : "p-2"
                   }`}
                   title="Attach options"
                 >
                   <Paperclip size={compact ? 18 : 20} />
-                </button>
+                </Button>
 
                 {showDMOptions && (
-                  <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50">
-                    <button
+                  <AnchoredMenu id={`${controlledPopupId}-showDMOptions`} onClose={() => setShowDMOptions(false)} side="top" align="start" aria-label="Message attachments" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                    <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setShowDMOptions(false);
                         fileInputRef.current?.click();
                       }}
                       disabled={isUploading}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
-                      <Paperclip size={16} className="text-gray-500" />
+                      <Paperclip size={16} className="text-muted-foreground" />
                       Files
-                    </button>
-                    <button
+                    </DropdownMenuItem>
+                    <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setShowDMOptions(false);
                         setIsMyFilesModalOpen(true);
                       }}
                       disabled={isUploading}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
-                      <Folder size={16} className="text-blue-500" />
+                      <Folder size={16} className="text-info-content" />
                       My Files
-                    </button>
-                  </div>
+                    </DropdownMenuItem>
+                  </AnchoredMenu>
                 )}
               </div>
 
-              <textarea
+              <Textarea unstyled aria-label="Direct message"
                 ref={textareaRef}
                 value={
                   message +
@@ -692,7 +658,7 @@ const DirectMessageInput = React.memo(
                 onPaste={handlePaste}
                 placeholder={resolvedPlaceholder}
                 disabled={isUploading}
-                className={`flex-1 min-w-0 bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto ${
+                className={`flex-1 min-w-0 bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto ${
                   compact
                     ? "px-1 py-1 text-xs min-h-[24px]"
                     : "px-2 py-2 text-sm min-h-[36px]"
@@ -708,44 +674,44 @@ const DirectMessageInput = React.memo(
 
               {isRecording ? (
                 <div className="flex items-center gap-2.5 px-1 animate-in fade-in">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-red-500 font-medium text-xs">
+                  <div className="w-2 h-2 rounded-full bg-destructive-content animate-pulse" />
+                  <span className="text-destructive-content font-medium text-xs">
                     {formatRecordingTime(recordingTime)}
                   </span>
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={handleCancelRecording}
-                    className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition cursor-pointer"
+                    className="p-1.5 text-muted-foreground hover:text-destructive-content hover:bg-accent rounded-full transition cursor-pointer"
                     title="Cancel recording"
                   >
                     <Trash2 size={compact ? 14 : 16} />
-                  </button>
-                  <button
+                  </Button>
+                  <Button variant="unstyled"
                     type="button"
                     onClick={handleStopRecording}
-                    className="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer"
+                    className="p-1.5 text-primary-foreground bg-primary hover:bg-primary rounded-full transition cursor-pointer"
                     title="Send voice message"
                   >
                     <Send size={compact ? 14 : 16} />
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <>
                   <div className="relative flex-shrink-0">
-                    <button
+                    <Button variant="unstyled"
                       ref={emojiButtonRef}
                       type="button"
                       onClick={() => setShowEmojiPicker((value) => !value)}
                       disabled={isUploading}
                       className={`cursor-pointer rounded-full transition-colors disabled:opacity-50 ${
                         showEmojiPicker
-                          ? "bg-blue-100 text-blue-600"
-                          : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
+                          ? "bg-info-soft text-info-content"
+                          : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                       } ${compact ? "p-1.5" : "p-2"}`}
                       title="Insert emoji"
                     >
                       <Smile size={compact ? 18 : 20} />
-                    </button>
+                    </Button>
                     <EmojiPickerPopover
                       isOpen={showEmojiPicker}
                       onClose={() => setShowEmojiPicker(false)}
@@ -755,7 +721,7 @@ const DirectMessageInput = React.memo(
                   </div>
 
                   <div ref={micOptionsRef} className="relative flex-shrink-0">
-                    <button
+                    <Button aria-expanded={showMicOptions} aria-controls={`${controlledPopupId}-showMicOptions`} aria-haspopup="menu" variant="unstyled"
                       type="button"
                       onClick={() => {
                         if (isDictating) {
@@ -767,59 +733,59 @@ const DirectMessageInput = React.memo(
                       disabled={isUploading}
                       className={`cursor-pointer rounded-full transition-colors disabled:opacity-50 ${
                         isDictating
-                          ? "bg-red-100 text-red-600 animate-pulse"
+                          ? "bg-destructive-soft text-destructive-content animate-pulse"
                           : showMicOptions
-                            ? "bg-blue-100 text-blue-600"
-                            : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
+                            ? "bg-info-soft text-info-content"
+                            : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                       } ${compact ? "p-1.5" : "p-2"}`}
                       title="Voice options"
                     >
                       <Mic size={compact ? 18 : 20} />
-                    </button>
+                    </Button>
 
                     {showMicOptions && !isDictating && (
-                      <div className="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50">
-                        <button
-                          type="button"
+                      <AnchoredMenu id={`${controlledPopupId}-showMicOptions`} onClose={() => setShowMicOptions(false)} side="top" align="end" aria-label="Microphone options" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                        <DropdownMenuItem closeOnClick={false}
+
                           onClick={() => {
                             setShowMicOptions(false);
                             void handleStartRecording();
                           }}
-                          className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition text-left cursor-pointer"
                         >
-                          <Voicemail size={16} className="text-blue-500" />
+                          <Voicemail size={16} className="text-info-content" />
                           Send voice message
-                        </button>
-                        <button
-                          type="button"
+                        </DropdownMenuItem>
+                        <DropdownMenuItem closeOnClick={false}
+
                           onClick={() => {
                             setShowMicOptions(false);
                             handleStartDictation();
                           }}
-                          className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition text-left cursor-pointer"
                         >
-                          <Type size={16} className="text-green-500" />
+                          <Type size={16} className="text-success-content" />
                           Speech to text
-                        </button>
-                      </div>
+                        </DropdownMenuItem>
+                      </AnchoredMenu>
                     )}
                   </div>
 
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     className={`rounded-full transition-colors flex items-center justify-center ${
                       compact ? "p-1.5" : "p-2"
                     } ${
                       canSend
-                        ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
-                        : "bg-gray-200 text-gray-400"
+                        ? "bg-primary text-primary-foreground hover:bg-primary cursor-pointer"
+                        : "bg-accent text-muted-foreground"
                     }`}
                     disabled={!canSend}
                     onClick={handleSend}
                     title="Send"
                   >
                     <Send size={compact ? 15 : 18} />
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

@@ -65,8 +65,8 @@ export function CustomSelect<TValue extends string = string>({
           aria-label={ariaLabel}
           aria-invalid={invalid || undefined}
           className={cn(
-            "h-9 cursor-pointer rounded-lg border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 data-[state=open]:border-blue-300 data-[state=open]:ring-2 data-[state=open]:ring-blue-500/15",
-            invalid && "border-red-300 ring-2 ring-red-500/15",
+            "h-9 cursor-pointer rounded-control border-input bg-card px-3 text-sm font-semibold text-foreground hover:bg-background data-[state=open]:border-info-outline data-[state=open]:ring-2 data-[state=open]:ring-ring/15",
+            invalid && "border-destructive-outline ring-2 ring-destructive-outline/15",
             triggerClassName,
           )}
         >
@@ -74,7 +74,7 @@ export function CustomSelect<TValue extends string = string>({
             {selectedOption ? <OptionLabel option={selectedOption} /> : placeholder}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent className={cn("rounded-lg border-slate-200", contentClassName)}>
+        <SelectContent className={cn("rounded-control border-border", contentClassName)}>
           {options.map((option) => {
             const itemValue = option.value === "" ? INTERNAL_EMPTY_VALUE : option.value;
             return (
@@ -102,13 +102,13 @@ function OptionLabel<TValue extends string>({
   return (
     <span className="flex min-w-0 items-center gap-2">
       {option.icon ? (
-        <span className="grid size-4 shrink-0 place-items-center text-slate-500">
+        <span className="grid size-4 shrink-0 place-items-center text-muted-foreground">
           {option.icon}
         </span>
       ) : null}
       <span className="truncate">{option.label}</span>
       {typeof option.count === "number" && option.count > 0 ? (
-        <span className="ml-auto inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-slate-100 px-1 text-[10px] font-black text-slate-600">
+        <span className="ml-auto inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-muted px-1 text-xs font-semibold text-muted-foreground">
           {option.count > 99 ? "99+" : option.count}
         </span>
       ) : null}

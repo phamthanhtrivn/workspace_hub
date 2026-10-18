@@ -1,4 +1,5 @@
 import { EventInput } from "@fullcalendar/core";
+import { readableTextOnColor } from "@/lib/color";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
@@ -116,15 +117,15 @@ export function mapCalendarEventToFullCalendar(
       ? getExclusiveAllDayEndDateKey(event.endAt, event.startAt)
       : event.endAt,
     allDay,
-    backgroundColor: isDeclined ? "#94a3b8" : eventColor,
-    borderColor: isDeclined ? "#94a3b8" : eventColor,
-    textColor: "#ffffff",
+    backgroundColor: isDeclined ? "var(--muted-foreground)" : eventColor,
+    borderColor: isDeclined ? "var(--muted-foreground)" : eventColor,
+    textColor: isDeclined ? "var(--background)" : readableTextOnColor(eventColor),
     classNames: [
       isTask ? "calendar-task-event" : "calendar-user-event",
       ...(isTask && event.completedAt
         ? ["calendar-task-event-completed"]
         : []),
-      ...(isDeclined ? ["calendar-event-declined opacity-60"] : []),
+      ...(isDeclined ? ["calendar-event-declined"] : []),
     ],
     editable: event.permissions?.canManage ?? false,
     durationEditable: event.permissions?.canManage ?? false,

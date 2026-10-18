@@ -41,20 +41,29 @@ export default function DashboardProductivityChart({
             dataKey="label"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
           />
           <Tooltip
+            contentStyle={{
+              background: "var(--popover)",
+              border: "1px solid var(--border)",
+              color: "var(--popover-foreground)",
+              borderRadius: "var(--radius)",
+            }}
+            labelStyle={{ color: "var(--popover-foreground)" }}
+            itemStyle={{ color: "var(--popover-foreground)" }}
+            cursor={{ fill: "var(--accent)" }}
             labelFormatter={(_, payload) => payload?.[0]?.payload.date ?? ""}
           />
           <Bar
             dataKey="minutes"
             name="Focus minutes"
-            fill="var(--color-secondary)"
+            fill="var(--chart-2)"
             radius={[0, 0, 0, 0]}
             maxBarSize={24}
             isAnimationActive={false}
@@ -64,8 +73,8 @@ export default function DashboardProductivityChart({
                 key={day.date}
                 fill={
                   index === data.length - 1
-                    ? "var(--color-primary)"
-                    : "var(--color-secondary)"
+                    ? "var(--chart-1)"
+                    : "var(--chart-2)"
                 }
               />
             ))}

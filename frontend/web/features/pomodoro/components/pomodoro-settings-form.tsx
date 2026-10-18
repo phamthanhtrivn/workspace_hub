@@ -11,6 +11,8 @@ import { POMODORO_NUMBER_FIELDS, POMODORO_SETTINGS_MESSAGES, POMODORO_SOUND_OPTI
 import type { PomodoroConfig } from "../types/pomodoro";
 import type { PomodoroConfigSyncStatus } from "../utils/pomodoro-config-sync";
 import { fromPomodoroSettingsForm, pomodoroSettingsSchema, toPomodoroSettingsForm, type PomodoroSettingsFormValues } from "../utils/pomodoro-settings-validation";
+import { useSettingsDraft } from "@/features/user-setting/hooks/use-settings-draft";
+import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { playPomodoroSound } from "../utils/sound";
 
 interface PomodoroSettingsFormProps {
@@ -34,34 +36,39 @@ export function PomodoroSettingsForm({ config, syncStatus, onSave }: PomodoroSet
     if (!isDirty && !isSubmitting) reset(toPomodoroSettingsForm(config));
   }, [config, isDirty, isSubmitting, reset]);
 
-  const submit = handleSubmit(async (values) => {
+  const saveDraft = async () => {
+    let savedSuccessfully = false;
+    await handleSubmit(async (values) => {
     clearErrors("root");
     try {
       const saved = await onSave(fromPomodoroSettingsForm(values));
       reset(toPomodoroSettingsForm(saved));
       toast.success(POMODORO_SETTINGS_MESSAGES.saved);
+      savedSuccessfully = true;
     } catch {
       setError("root.server", { message: POMODORO_SETTINGS_MESSAGES.pending });
     }
-  });
+    })();
+    return savedSuccessfully;
+  };
+  useSettingsDraft(UserSettingTab.POMODORO, { dirty: isDirty, pending: disabled, save: saveDraft, discard: () => reset(toPomodoroSettingsForm(config)) });
 
   return (
-    <form onSubmit={submit} noValidate className="space-y-6">
+    <form onSubmit={event => { event.preventDefault(); void saveDraft(); }} noValidate className="space-y-6">
       <fieldset disabled={disabled} className="min-w-0 space-y-4">
-        <legend className="mb-4 text-lg font-bold text-slate-800">Duration & goals</legend>
+        <legend className="mb-4 text-lg font-semibold text-foreground">Duration & goals</legend>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {POMODORO_NUMBER_FIELDS.map((field) => (
             <div key={field.name} className="min-w-0">
-              <SettingInput label={field.label} type="number" min={field.min} max={field.max} step={1}
+              <SettingInput label={field.label} description={"description" in field ? field.description : undefined} type="number" min={field.min} max={field.max} step={1}
                 {...register(field.name, { valueAsNumber: true })} error={errors[field.name]?.message} />
-              {"description" in field && <p className="mt-1 text-xs text-slate-500">{field.description}</p>}
             </div>
           ))}
         </div>
       </fieldset>
 
-      <fieldset disabled={disabled} className="min-w-0 space-y-4 border-t border-slate-200 pt-4">
-        <legend className="text-lg font-bold text-slate-800">Sound & notifications</legend>
+      <fieldset disabled={disabled} className="min-w-0 space-y-4 border-t border-border pt-4">
+        <legend className="text-lg font-semibold text-foreground">Sound & notifications</legend>
         <Controller name="soundEnabled" control={control} render={({ field }) => (
           <SettingSwitchCard title="Alarm sound" description="Play a sound when a session ends."
             checked={field.value} onCheckedChange={field.onChange} disabled={disabled} />
@@ -73,7 +80,7 @@ export function PomodoroSettingsForm({ config, syncStatus, onSave }: PomodoroSet
                 value={field.value} onChange={field.onChange} disabled={disabled || !soundEnabled} className="min-w-0 flex-1" />
             )} />
             <Button type="button" variant="outline" disabled={disabled || !soundEnabled || !Number.isFinite(soundVolumePercent) || soundVolumePercent < 0 || soundVolumePercent > 100}
-              onClick={() => playPomodoroSound(soundType, soundVolumePercent / 100)} className="h-10 rounded-xl">
+              onClick={() => playPomodoroSound(soundType, soundVolumePercent / 100)} className="h-10 rounded-control">
               <Volume2 aria-hidden="true" /> Preview sound
             </Button>
           </div>
@@ -89,8 +96,8 @@ export function PomodoroSettingsForm({ config, syncStatus, onSave }: PomodoroSet
         )} />
       </fieldset>
 
-      <fieldset disabled={disabled} className="min-w-0 space-y-4 border-t border-slate-200 pt-4">
-        <legend className="text-lg font-bold text-slate-800">Automation</legend>
+      <fieldset disabled={disabled} className="min-w-0 space-y-4 border-t border-border pt-4">
+        <legend className="text-lg font-semibold text-foreground">Automation</legend>
         <Controller name="autoStartBreak" control={control} render={({ field }) => (
           <SettingSwitchCard title="Auto-start breaks" description="Automatically start a break when a focus session ends."
             checked={field.value} onCheckedChange={field.onChange} disabled={disabled} />
@@ -100,9 +107,9 @@ export function PomodoroSettingsForm({ config, syncStatus, onSave }: PomodoroSet
             checked={field.value} onCheckedChange={field.onChange} disabled={disabled} />
         )} />
       </fieldset>
-      {syncStatus === "error" && <p role="alert" className="text-xs text-amber-700">{errors.root?.server?.message ?? POMODORO_SETTINGS_MESSAGES.pending}</p>}
+      {syncStatus === "error" && <p role="alert" className="text-xs text-warning-content">{errors.root?.server?.message ?? POMODORO_SETTINGS_MESSAGES.pending}</p>}
       <Button type="submit" disabled={disabled}
-        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-dark)] text-sm font-bold text-white shadow-md transition hover:bg-[var(--color-primary)]">
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary">
         {disabled ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
         {disabled ? "Saving settings..." : "Save settings"}
       </Button>

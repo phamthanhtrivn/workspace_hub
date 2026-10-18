@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProjectConfirmDialog } from "../ui/project-confirm-dialog";
 import { useProjectConfirmDialog } from "@/features/project/hooks/use-project-confirm-dialog";
 import { cn } from "@/lib/utils";
+import { readableTextOnColor } from "@/lib/color";
 
 interface LabelDraft {
   name: string;
@@ -56,17 +57,17 @@ function LabelColorSwatches({
             disabled={disabled}
             onClick={() => onChange(color)}
             className={cn(
-              "h-7 w-7 cursor-pointer rounded-lg border-2 p-0 transition duration-150 active:scale-95 disabled:cursor-default disabled:opacity-60",
+              "h-7 w-7 cursor-pointer rounded-control border-2 p-0 transition duration-150 disabled:cursor-default disabled:opacity-60",
               isSelected
-                ? "border-white ring-2 ring-[#0052CC] ring-offset-1 hover:border-white"
-                : "border-white ring-1 ring-slate-300 hover:scale-105",
+                ? "border-border ring-2 ring-primary ring-offset-1 hover:border-border"
+                : "border-border ring-1 ring-ring",
             )}
-            style={{ backgroundColor: color }}
+            style={{ backgroundColor: color, color: readableTextOnColor(color) }}
           >
             {isSelected ? (
               <Check
                 aria-hidden="true"
-                className="h-3.5 w-3.5 text-white drop-shadow-sm"
+                className="h-3.5 w-3.5"
                 strokeWidth={3}
               />
             ) : null}
@@ -169,10 +170,10 @@ export function ProjectLabelManager({
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <div className="rounded-panel border border-border bg-background p-4">
       <div>
-        <p className="text-xs font-bold text-slate-700">Project Labels</p>
-        <p className="mt-1 text-[11px] font-medium text-slate-400">
+        <p className="text-xs font-semibold text-foreground">Project Labels</p>
+        <p className="mt-1 text-xs font-medium text-muted-foreground">
           Create reusable task labels for this project.
         </p>
       </div>
@@ -186,12 +187,12 @@ export function ProjectLabelManager({
           return (
             <div
               key={label.id}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2"
+              className="rounded-lg border border-border bg-card px-3 py-2"
             >
               {isEditing ? (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Input
+                    <Input aria-label="Label name"
                       value={editingLabel.name}
                       onChange={(event) =>
                         setEditingLabel((current) => ({
@@ -206,7 +207,7 @@ export function ProjectLabelManager({
                       }}
                       maxLength={PROJECT_SETTINGS_LABELS.LABEL_MAX_LENGTH}
                       disabled={isBusy}
-                      className="h-8 min-w-0 flex-1 rounded-lg border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+                      className="h-8 min-w-0 flex-1 rounded-control border-input bg-card px-2.5 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                     />
                     <Button
                       type="button"
@@ -214,7 +215,7 @@ export function ProjectLabelManager({
                       size="icon"
                       disabled={updateDisabled || isBusy}
                       onClick={() => void handleUpdateLabel(label.id)}
-                      className="h-8 w-8 cursor-pointer rounded-lg text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 disabled:cursor-default disabled:opacity-50"
+                      className="h-8 w-8 cursor-pointer rounded-control text-success-content hover:bg-success-soft hover:text-success-content disabled:cursor-default disabled:opacity-50"
                       aria-label={`Save label ${label.name}`}
                     >
                       <Check className="h-4 w-4" />
@@ -225,7 +226,7 @@ export function ProjectLabelManager({
                       size="icon"
                       disabled={isBusy}
                       onClick={cancelEdit}
-                      className="h-8 w-8 cursor-pointer rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-default disabled:opacity-50"
+                      className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-50"
                       aria-label="Cancel label edit"
                     >
                       <X className="h-4 w-4" />
@@ -244,8 +245,8 @@ export function ProjectLabelManager({
                 <div className="flex items-center justify-between gap-2">
                   <Badge
                     variant="outline"
-                    className="inline-flex min-w-0 max-w-[12rem] items-center gap-1.5 truncate rounded-full border-transparent px-2.5 py-0.5 text-[11px] font-bold text-white shadow-2xs"
-                    style={{ backgroundColor: label.color }}
+                    className="inline-flex min-w-0 max-w-[12rem] items-center gap-1.5 truncate rounded-full border-transparent px-2.5 py-0.5 text-xs font-semibold text-primary-foreground"
+                    style={{ backgroundColor: label.color, color: readableTextOnColor(label.color) }}
                     title={label.name}
                   >
                     <span className="truncate">{label.name}</span>
@@ -259,7 +260,7 @@ export function ProjectLabelManager({
                           size="icon"
                           disabled={isBusy}
                           onClick={() => startEdit(label)}
-                          className="h-7 w-7 cursor-pointer rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-default disabled:opacity-50"
+                          className="h-7 w-7 cursor-pointer rounded-control text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-default disabled:opacity-50"
                           aria-label={`Edit label ${label.name}`}
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -272,7 +273,7 @@ export function ProjectLabelManager({
                           size="icon"
                           disabled={isBusy}
                           onClick={() => handleDeleteClick(label)}
-                          className="h-7 w-7 cursor-pointer rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 disabled:cursor-default disabled:opacity-50"
+                          className="h-7 w-7 cursor-pointer rounded-control text-muted-foreground hover:bg-destructive-soft hover:text-destructive-content disabled:cursor-default disabled:opacity-50"
                           aria-label={`Delete label ${label.name}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -286,16 +287,16 @@ export function ProjectLabelManager({
           );
         })}
         {labels.length === 0 ? (
-          <span className="block text-xs font-medium text-slate-400">
+          <span className="block text-xs font-medium text-muted-foreground">
             No custom labels created yet.
           </span>
         ) : null}
       </div>
 
       {onCreateLabel ? (
-        <div className="mt-4 border-t border-slate-200 pt-4">
+        <div className="mt-4 border-t border-border pt-4">
           <div className="flex items-center gap-2">
-            <Input
+            <Input aria-label="Label name"
               value={newLabel.name}
               onChange={(event) =>
                 setNewLabel((current) => ({
@@ -311,13 +312,13 @@ export function ProjectLabelManager({
               placeholder="Label name..."
               maxLength={PROJECT_SETTINGS_LABELS.LABEL_MAX_LENGTH}
               disabled={isBusy}
-              className="h-9 min-w-0 flex-1 rounded-xl border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+              className="h-9 min-w-0 flex-1 rounded-control border-input bg-card px-3 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
             />
             <Button
               type="button"
               onClick={() => void handleCreateLabel()}
               disabled={!newLabel.name.trim() || isBusy}
-              className="h-9 cursor-pointer rounded-xl bg-[#0052CC] px-4 text-xs font-bold text-white hover:bg-[#0747A6] disabled:cursor-default disabled:opacity-50"
+              className="h-9 cursor-pointer rounded-control bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary-hover disabled:cursor-default disabled:opacity-50"
             >
               Add
             </Button>

@@ -12,7 +12,6 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 import { useMeetingConfirmDialog } from "../../hooks/useMeetingConfirmDialog";
@@ -136,21 +135,21 @@ export function UpcomingMeetingCard({
     <>
       <article
         data-meeting-join-token={meeting.joinToken}
-        className={`flex min-h-48 flex-col justify-between rounded-lg border bg-white p-4 shadow-sm transition ${
+        className={`flex min-h-48 min-w-0 flex-col justify-between rounded-panel border bg-card p-4 text-card-foreground transition-colors duration-150 ${
           isHighlighted
-            ? "border-blue-300 ring-4 ring-blue-100"
-            : "border-slate-200"
+            ? "border-info-outline ring-2 ring-ring"
+            : "border-border"
         }`}
       >
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="truncate text-base font-black text-[#172B4D]">
+            <div className="min-w-0 flex-1">
+              <h3 className="line-clamp-2 break-words text-base font-semibold leading-6 text-foreground">
                 {meeting.title}
               </h3>
-              <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-slate-500">
-                <CalendarClock className="h-4 w-4 shrink-0 text-[#0052CC]" />
-                <span className="truncate">
+              <p className="mt-1 flex items-start gap-2 text-xs leading-5 tabular-nums text-muted-foreground">
+                <CalendarClock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <span className="min-w-0">
                   {formatMeetingRange(
                     meeting.scheduledStartAt,
                     meeting.scheduledEndAt,
@@ -166,10 +165,10 @@ export function UpcomingMeetingCard({
           {/* Host & Avatar Stack */}
           <div className="flex items-center justify-between gap-3 pt-0.5">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              <p className="text-xs text-muted-foreground">
                 Host
               </p>
-              <p className="truncate text-xs font-extrabold text-slate-700">
+              <p className="mt-0.5 truncate text-xs font-medium text-foreground">
                 {meeting.hostProfile?.fullName ||
                   meeting.hostProfile?.email ||
                   meeting.hostUserId}
@@ -183,14 +182,14 @@ export function UpcomingMeetingCard({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center gap-2 pt-3">
+        <div className="mt-4 flex items-center gap-2 border-t border-border pt-3">
           {isCalendarEvent ? (
             <MeetingButton
               type="button"
               tone="primary"
               controlSize="md"
               onClick={handleNavigateToCalendar}
-              className="h-9 flex-1 cursor-pointer rounded-xl font-bold shadow-sm shadow-blue-600/20 active:scale-[0.98]"
+              className="h-9 flex-1 cursor-pointer rounded-control font-semibold"
             >
               <Calendar className="mr-1.5 h-4 w-4 shrink-0" />
               View Event
@@ -200,7 +199,7 @@ export function UpcomingMeetingCard({
               type="button"
               disabled={!canStart && !canJoin}
               onClick={() => router.push(MEETING_ROUTES.room(meeting.joinToken))}
-              className="h-9 flex-1 cursor-pointer rounded-xl font-bold shadow-sm shadow-blue-600/20 active:scale-[0.98] disabled:bg-slate-100 disabled:text-slate-400 disabled:shadow-none"
+              className="h-9 flex-1 cursor-pointer rounded-control font-semibold disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
             >
               {canStart ? (
                 <Play className="h-4 w-4" />
@@ -219,7 +218,7 @@ export function UpcomingMeetingCard({
               tone="outline"
               controlSize="md"
               onClick={() => onEdit?.(meeting)}
-              className="h-9 w-9 rounded-xl"
+              className="h-9 w-9 rounded-control"
             />
           ) : null}
           <MeetingIconButton
@@ -228,7 +227,7 @@ export function UpcomingMeetingCard({
             tone="outline"
             controlSize="md"
             onClick={copyLink}
-            className="h-9 w-9 rounded-xl"
+            className="h-9 w-9 rounded-control"
           />
           {canManage ? (
             <MeetingIconButton
@@ -238,7 +237,7 @@ export function UpcomingMeetingCard({
               controlSize="md"
               disabled={cancelMeeting.isPending}
               onClick={cancelScheduledMeeting}
-              className={`h-9 w-9 rounded-xl ${
+              className={`h-9 w-9 rounded-control ${
                 cancelMeeting.isPending ? "[&_svg]:animate-spin" : ""
               }`}
             />

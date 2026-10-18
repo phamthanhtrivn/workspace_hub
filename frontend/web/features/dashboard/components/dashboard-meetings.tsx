@@ -13,11 +13,18 @@ function MeetingItem({
   zone: string;
 }) {
   return (
-    <li className="border-b border-[var(--border)] pb-4">
-      <p className="truncate text-sm font-semibold text-slate-800">
-        {meeting.title}
-      </p>
-      <p className="mt-1 text-xs text-slate-500">
+    <li className="border-b border-border pb-4">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <p className="min-w-0 flex-1 basis-32 line-clamp-2 break-words text-sm font-semibold text-foreground [overflow-wrap:anywhere]">
+          {meeting.title}
+        </p>
+        {meeting.status === "LIVE" && (
+          <span className="shrink-0 rounded-control bg-success-soft px-2 py-1 text-xs font-medium text-success-content">
+            Live now
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">
         {meeting.scheduledStartAt
           ? new Intl.DateTimeFormat("en", {
               timeZone: zone,
@@ -31,13 +38,14 @@ function MeetingItem({
           ` – ${formatTime(meeting.scheduledEndAt, zone)}`}
       </p>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <span className="flex items-center gap-1 text-xs text-slate-500">
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
           <Users size={13} />
           {meeting.participantCount} participants
         </span>
         <Link
           href={`/meetings/${encodeURIComponent(meeting.joinToken)}`}
-          className="flex items-center gap-1 rounded-md bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary"
+          aria-label={`View meeting: ${meeting.title}`}
+          className="flex min-h-11 cursor-pointer items-center gap-1 rounded-control bg-secondary px-3 py-1.5 text-xs font-medium text-link hover:bg-accent sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
         >
           <Video size={13} />
           View meeting

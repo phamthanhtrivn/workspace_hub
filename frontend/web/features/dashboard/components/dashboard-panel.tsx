@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+
 
 export function DashboardPanel({
   title,
@@ -18,13 +20,13 @@ export function DashboardPanel({
 }) {
   return (
     <section
-      className={`min-w-0 overflow-hidden rounded-lg border border-border ${tone === "focus" ? "bg-primary/5" : "bg-card"}`}
+      className={`min-w-0 overflow-hidden rounded-panel border border-border ${tone === "focus" ? "bg-secondary" : "bg-card"}`}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-4">
-        <div>
-          <h2 className="text-base font-semibold text-primary-dark">{title}</h2>
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-border px-4 py-4">
+        <div className="min-w-0 flex-1 basis-40 break-words">
+          <h2 className="text-section-title font-semibold text-foreground">{title}</h2>
           {description && (
-            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+            <p className="mt-1 text-xs text-muted-foreground">
               {description}
             </p>
           )}
@@ -32,13 +34,14 @@ export function DashboardPanel({
         {href && (
           <Link
             href={href}
-            className="flex min-h-6 shrink-0 items-center gap-1 text-xs font-medium text-[var(--muted-foreground)] underline decoration-[var(--border)] underline-offset-4 hover:text-[var(--color-primary)]"
+            aria-label={`View all: ${title}`}
+            className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1 text-xs font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11"
           >
             View all <ArrowUpRight size={14} />
           </Link>
         )}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="min-w-0 p-4">{children}</div>
     </section>
   );
 }
@@ -54,16 +57,16 @@ export function QueryFeedback({
     return (
       <div
         role="status"
-        className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-red-50 p-3 text-xs text-red-800"
+        className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-destructive-soft p-3 text-xs text-destructive-content"
       >
-        <span>Could not load {label}.</span>
-        <button
+        <span className="min-w-0 break-words">Could not load {label}.</span>
+        <Button variant="unstyled"
           type="button"
           onClick={() => void query.refetch()}
-          className="flex items-center gap-1 rounded px-2 py-1 font-semibold hover:bg-red-100"
+          className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1 rounded-control px-2 py-1 font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
         >
           <RefreshCw size={13} /> Retry
-        </button>
+        </Button>
       </div>
     );
   if (query.isPending)
@@ -81,5 +84,5 @@ export function QueryFeedback({
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
-  return <p className="py-6 text-center text-sm text-slate-500">{children}</p>;
+  return <p className="break-words py-6 text-center text-sm text-muted-foreground">{children}</p>;
 }

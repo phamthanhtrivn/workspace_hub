@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
+import { DialogSurface } from "@/components/ui/dialog";
 import { saveAs } from "file-saver";
 import {
   X,
@@ -12,6 +12,8 @@ import {
   RotateCcw,
   Download,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 interface MediaItem {
   id: string;
   fileUrl: string;
@@ -48,7 +50,7 @@ export default function MediaLightbox({
   // Close on Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+
       if (e.key === "ArrowLeft") handlePrev();
       if (e.key === "ArrowRight") handleNext();
     };
@@ -144,45 +146,45 @@ export default function MediaLightbox({
   };
 
   const content = (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm select-none"
+    <div data-ui-interaction-exception="Backdrop dismissal; close button and Escape are available."
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/95 text-media-foreground [&_button:focus-visible]:outline-media-foreground backdrop-blur-sm select-none"
       onClick={onClose}
     >
       {/* Top Bar */}
-      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-gradient-to-b from-black/50 to-transparent">
-        <span className="text-white text-sm">{currentMedia.name}</span>
+      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-media-surface">
+        <span className="text-media-foreground text-sm">{currentMedia.name}</span>
         <div className="flex items-center gap-2">
-          <button
+          <Button variant="unstyled"
             onClick={handleDownload}
-            className="cursor-pointer p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground bg-media-surface hover:bg-overlay rounded-full transition"
             title="Download"
           >
             <Download size={24} />
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             onClick={(e) => {
               e.stopPropagation();
               onClose();
             }}
-            className="cursor-pointer p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground bg-media-surface hover:bg-overlay rounded-full transition"
             title="Close"
           >
             <X size={24} />
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Navigation Prev */}
       {currentIndex > 0 && (
-        <button
+        <Button variant="unstyled" aria-label="Previous media"
           onClick={(e) => {
             e.stopPropagation();
             handlePrev();
           }}
-          className="cursor-pointer absolute left-4 p-3 text-white/70 hover:text-white bg-black/20 hover:bg-black/60 rounded-full z-10 transition"
+          className="cursor-pointer absolute left-4 p-3 text-media-foreground hover:text-media-foreground bg-media-surface hover:bg-overlay rounded-full z-10 transition"
         >
           <ChevronLeft size={32} />
-        </button>
+        </Button>
       )}
 
       {/* Image / Video Container */}
@@ -208,7 +210,7 @@ export default function MediaLightbox({
             style={{ maxHeight: "80vh", maxWidth: "80vw" }}
           />
         ) : (
-          <img
+          <img data-ui-interaction-exception="Media drag surface; click only prevents backdrop dismissal."
             ref={imgRef}
             src={currentMedia.fileUrl}
             alt={currentMedia.name}
@@ -226,59 +228,59 @@ export default function MediaLightbox({
 
       {/* Navigation Next */}
       {currentIndex < medias.length - 1 && (
-        <button
+        <Button variant="unstyled" aria-label="Next media"
           onClick={(e) => {
             e.stopPropagation();
             handleNext();
           }}
-          className="cursor-pointer absolute right-4 p-3 text-white/70 hover:text-white bg-black/20 hover:bg-black/60 rounded-full z-10 transition"
+          className="cursor-pointer absolute right-4 p-3 text-media-foreground hover:text-media-foreground bg-media-surface hover:bg-overlay rounded-full z-10 transition"
         >
           <ChevronRight size={32} />
-        </button>
+        </Button>
       )}
 
       {/* Zoom Controls */}
       {currentMedia.type !== "VIDEO" && (
-        <div
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/50 px-6 py-3 rounded-full backdrop-blur-md z-10"
+        <div data-ui-interaction-exception="Propagation boundary; no action."
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 flex max-w-[calc(100vw-1.5rem)] items-center gap-2 overflow-x-auto bg-media-surface px-3 py-2 rounded-full backdrop-blur-md z-10"
           onClick={(e) => e.stopPropagation()}
         >
-          <button
+          <Button variant="unstyled"
             onClick={handleZoomOut}
-            className="cursor-pointer p-2 text-white/80 hover:text-white transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground transition"
             title="Zoom Out"
           >
             <ZoomOut size={20} />
-          </button>
-          <span className="cursor-pointer text-white text-sm font-medium w-12 text-center">
+          </Button>
+          <span className="cursor-pointer text-media-foreground text-sm font-medium w-12 text-center">
             {Math.round(scale * 100)}%
           </span>
-          <button
+          <Button variant="unstyled"
             onClick={handleZoomIn}
-            className="cursor-pointer p-2 text-white/80 hover:text-white transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground transition"
             title="Zoom In"
           >
             <ZoomIn size={20} />
-          </button>
-          <div className="w-[1px] h-6 bg-white/20 mx-2"></div>
-          <button
+          </Button>
+          <div className="w-[1px] h-6 bg-media-foreground/30 mx-2"></div>
+          <Button variant="unstyled"
             onClick={handleRotate}
-            className="cursor-pointer p-2 text-white/80 hover:text-white transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground transition"
             title="Rotate"
           >
             <RotateCcw size={18} style={{ transform: "scaleX(-1)" }} />
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             onClick={handleReset}
-            className="cursor-pointer p-2 text-white/80 hover:text-white transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground transition"
             title="Reset View"
           >
             <RotateCcw size={18} />
-          </button>
+          </Button>
         </div>
       )}
     </div>
   );
 
-  return createPortal(content, document.body);
+  return <DialogSurface onClose={onClose} aria-label="Media preview">{content}</DialogSurface>;
 }

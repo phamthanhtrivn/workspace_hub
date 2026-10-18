@@ -19,6 +19,8 @@ import {
   getAuthErrorMessage,
   getAuthValidationErrors,
 } from "../utils/auth-error";
+import { Button } from "@/components/ui/button";
+
 
 const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
   const sendResetOtpMutation = useSendResetOtpMutation();
@@ -47,6 +49,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
     const validationErrors = getAuthValidationErrors(error);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
       return;
     }
 
@@ -99,6 +102,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
       setErrors({
         confirmPassword: "Passwords do not match",
       });
+      requestAnimationFrame(() => document.getElementById("confirmPassword")?.focus());
       return;
     }
 
@@ -139,8 +143,9 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
 
   return (
     <div className="space-y-6">
+      <ol aria-label="Password recovery progress" className="flex flex-wrap gap-3 text-xs text-muted-foreground">{[[ForgotPasswordStep.EMAIL, "Email"], [ForgotPasswordStep.OTP, "Verify code"], [ForgotPasswordStep.PASSWORD, "New password"]].map(([value, label]) => <li key={value} aria-current={step === value ? "step" : undefined} className={step === value ? "font-semibold text-foreground" : undefined}>{label}</li>)}</ol>
       {step !== ForgotPasswordStep.EMAIL && (
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => {
             if (step === ForgotPasswordStep.OTP) {
@@ -150,11 +155,11 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               setStep(ForgotPasswordStep.OTP);
             }
           }}
-          className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition cursor-pointer"
+          className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Back
-        </button>
+        </Button>
       )}
 
       {step === ForgotPasswordStep.EMAIL && (
@@ -165,11 +170,12 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
           <div className="space-y-2">
             <label
               htmlFor="email"
-              className="text-sm font-semibold text-slate-700"
+              className="text-sm font-semibold text-foreground"
             >
-              Email <span className="text-red-500">*</span>
+              Email <span className="text-destructive-content">*</span>
             </label>
-            <InputField
+            <InputField autoComplete="email" required
+              variant="auth"
               id="email"
               type="email"
               icon={Mail}
@@ -179,13 +185,13 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               onChange={handleEmailChange}
             />
           </div>
-          <button
+          <Button variant="unstyled"
             type="submit"
             disabled={isLoading}
-            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
             {sendResetOtpMutation.isPending ? "Sending..." : "Send reset code"}
-          </button>
+          </Button>
         </form>
       )}
 
@@ -196,21 +202,21 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
         >
           <div className="space-y-4">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-4">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-link mb-4">
                 <KeyRound className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-slate-800">
+              <h3 className="text-lg font-bold text-foreground">
                 Enter verification code
               </h3>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 We sent a verification code to:
                 <br />
-                <span className="font-semibold text-slate-800">{email}</span>
+                <span className="font-semibold text-foreground">{email}</span>
               </p>
             </div>
 
             <div className="flex flex-col items-center gap-2">
-              <OtpInput
+              <OtpInput error={errors.otp}
                 length={6}
                 value={otp}
                 onChange={(value) => {
@@ -218,32 +224,30 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
                   if (errors.otp) setErrors((prev) => ({ ...prev, otp: "" }));
                 }}
               />
-              {errors.otp && (
-                <p className="text-xs text-red-500 mt-2">{errors.otp}</p>
-              )}
+
             </div>
 
             <div className="text-center text-sm">
-              <span className="text-slate-500">
+              <span className="text-muted-foreground">
                 Didn't receive code?{" "}
               </span>
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => handleSendEmail()}
-                className="font-bold text-[var(--color-primary)] transition hover:text-[var(--color-primary-dark)] cursor-pointer"
+                className="font-bold text-link transition hover:text-foreground cursor-pointer"
                 disabled={isLoading}
               >
                 Resend code
-              </button>
+              </Button>
             </div>
           </div>
-          <button
+          <Button variant="unstyled"
             type="submit"
             disabled={isLoading || otp.length < 6}
-            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
             {verifyResetOtpMutation.isPending ? "Verifying..." : "Verify code"}
-          </button>
+          </Button>
         </form>
       )}
 
@@ -255,11 +259,12 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
           <div className="space-y-2">
             <label
               htmlFor="newPassword"
-              className="text-sm font-semibold text-slate-700"
+              className="text-sm font-semibold text-foreground"
             >
-              New Password <span className="text-red-500">*</span>
+              New Password <span className="text-destructive-content">*</span>
             </label>
-            <InputField
+            <InputField autoComplete="new-password" required
+              variant="auth"
               id="newPassword"
               type={showPassword ? "text" : "password"}
               icon={Lock}
@@ -281,11 +286,12 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
           <div className="space-y-2">
             <label
               htmlFor="confirmPassword"
-              className="text-sm font-semibold text-slate-700"
+              className="text-sm font-semibold text-foreground"
             >
-              Confirm Password <span className="text-red-500">*</span>
+              Confirm Password <span className="text-destructive-content">*</span>
             </label>
-            <InputField
+            <InputField autoComplete="new-password" required
+              variant="auth"
               id="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}
               icon={Lock}
@@ -303,22 +309,22 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               onRightClick={() => setShowConfirmPassword((prev) => !prev)}
             />
           </div>
-          <button
+          <Button variant="unstyled"
             type="submit"
             disabled={isLoading}
-            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
             {resetPasswordMutation.isPending ? "Updating..." : "Update password"}
-          </button>
+          </Button>
         </form>
       )}
 
       {step === ForgotPasswordStep.EMAIL && (
-        <p className="mt-8 text-center text-sm text-slate-500">
+        <p className="mt-8 text-center text-sm text-muted-foreground">
           Remembered your password?{" "}
           <Link
             href={AuthRouteTarget.LOGIN}
-            className="font-bold text-[var(--color-primary)] transition hover:text-[var(--color-primary-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] underline"
+            className="font-bold text-link transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring underline"
           >
             Back to Sign In
           </Link>

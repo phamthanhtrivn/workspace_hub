@@ -163,7 +163,7 @@ export function DocumentIcon({
   return (
     <div
       className={cn(
-        "shrink-0 flex items-center justify-center transition-all duration-300",
+        "shrink-0 flex items-center justify-center transition-all duration-200",
         isSelected
           ? config.bgSelectedClass
           : `${config.bgClass} ${config.colorClass}`,

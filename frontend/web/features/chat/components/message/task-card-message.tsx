@@ -12,18 +12,18 @@ interface TaskCardMessageProps {
 }
 
 const statusBadgeStyles: Record<string, string> = {
-  TODO: "bg-slate-100 text-slate-700 border-slate-200",
-  IN_PROGRESS: "bg-blue-50 text-blue-700 border-blue-200",
-  IN_REVIEW: "bg-purple-50 text-purple-700 border-purple-200",
-  DONE: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  CANCELLED: "bg-rose-50 text-rose-700 border-rose-200",
+  TODO: "bg-muted text-foreground border-border",
+  IN_PROGRESS: "bg-info-soft text-info-content border-border",
+  IN_REVIEW: "bg-info-soft text-info-content border-border",
+  DONE: "bg-success-soft text-success-content border-border",
+  CANCELLED: "bg-destructive-soft text-destructive-content border-border",
 };
 
 const priorityBadgeStyles: Record<string, string> = {
-  URGENT: "bg-rose-100 text-rose-800 font-bold",
-  HIGH: "bg-amber-100 text-amber-800 font-bold",
-  MEDIUM: "bg-blue-100 text-blue-800 font-medium",
-  LOW: "bg-slate-100 text-slate-600 font-medium",
+  URGENT: "bg-destructive-soft text-destructive-content font-semibold",
+  HIGH: "bg-warning-soft text-warning-content font-semibold",
+  MEDIUM: "bg-info-soft text-info-content font-medium",
+  LOW: "bg-muted text-muted-foreground font-medium",
 };
 
 export default function TaskCardMessage({
@@ -92,34 +92,34 @@ export default function TaskCardMessage({
 
   return (
     <div
-      className={`w-full max-w-md rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/90 via-teal-50/30 to-white p-4 shadow-[0_4px_16px_-4px_rgba(16,185,129,0.12)] transition-all ${className}`}
+      className={`w-full max-w-md rounded-panel border border-border bg-success-soft p-4 transition-all ${className}`}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-emerald-100/70 pb-2.5">
+      <div className="flex items-center justify-between gap-2 border-b border-border/70 pb-2.5">
         <div className="flex items-center gap-1.5">
-          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs">
+          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-success text-success-foreground">
             <CheckSquare size={13} />
           </div>
-          <span className="text-[11px] font-bold tracking-wider text-emerald-700 uppercase">
+          <span className="text-xs font-semibold tracking-wider text-success-content uppercase">
             Task Card
           </span>
         </div>
         {parsed.tag && (
-          <span className="rounded-full bg-emerald-100/80 px-2.5 py-0.5 text-[10px] font-mono font-semibold text-emerald-800">
+          <span className="rounded-full bg-success-soft/80 px-2.5 py-0.5 text-xs font-mono font-semibold text-success-content">
             {parsed.tag}
           </span>
         )}
       </div>
 
       <div className="mt-3 space-y-2">
-        <h4 className="text-sm font-bold text-slate-900 leading-snug">
+        <h4 className="text-sm font-semibold text-foreground leading-snug">
           {parsed.title}
         </h4>
 
         <div className="flex flex-wrap items-center gap-2">
           {parsed.status && (
             <span
-              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold border ${
-                statusBadgeStyles[parsed.status] || "bg-slate-100 text-slate-700 border-slate-200"
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold border ${
+                statusBadgeStyles[parsed.status] || "bg-muted text-foreground border-border"
               }`}
             >
               {parsed.status.replace("_", " ")}
@@ -128,8 +128,8 @@ export default function TaskCardMessage({
 
           {parsed.priority && (
             <span
-              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] uppercase ${
-                priorityBadgeStyles[parsed.priority] || "bg-slate-100 text-slate-600"
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs uppercase ${
+                priorityBadgeStyles[parsed.priority] || "bg-muted text-muted-foreground"
               }`}
             >
               <AlertCircle size={11} />
@@ -138,8 +138,8 @@ export default function TaskCardMessage({
           )}
 
           {parsed.dueDate && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-slate-500 font-medium">
-              <Clock size={12} className="text-slate-400" />
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground font-medium">
+              <Clock size={12} className="text-muted-foreground" />
               <span>Due: {formatDateTime(parsed.dueDate)}</span>
             </span>
           )}
@@ -147,14 +147,14 @@ export default function TaskCardMessage({
       </div>
 
       {targetUrl && (
-        <div className="mt-3.5 flex items-center justify-between gap-2 pt-2.5 border-t border-emerald-100/70">
-          <span className="flex items-center gap-1 text-[11px] text-slate-500 font-medium">
-            <FolderGit2 size={12} className="text-emerald-600" />
+        <div className="mt-3.5 flex items-center justify-between gap-2 pt-2.5 border-t border-border/70">
+          <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium">
+            <FolderGit2 size={12} className="text-success-content" />
             <span>Project Task</span>
           </span>
           <Link
             href={targetUrl}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-panel bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground hover:bg-success transition-colors cursor-pointer"
           >
             <span>View Task Detail</span>
             <ExternalLink size={12} />

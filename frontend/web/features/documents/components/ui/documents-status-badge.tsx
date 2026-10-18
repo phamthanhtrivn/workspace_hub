@@ -24,11 +24,11 @@ export function DocumentsStatusBadge({
       <Badge
         variant="outline"
         className={cn(
-          "gap-1 border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-600 rounded-lg",
+          "gap-1 border-border bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning-content rounded-lg",
           className
         )}
       >
-        <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
+        <Star className="h-3 w-3 fill-warning-content text-warning-content" />
         <span>Starred</span>
       </Badge>
     );
@@ -40,18 +40,18 @@ export function DocumentsStatusBadge({
       <Badge
         variant="outline"
         className={cn(
-          "gap-1 border-slate-200/60 bg-slate-50 px-2 py-0.5 text-[11px] font-bold text-slate-500 rounded-lg",
+          "gap-1 border-border bg-background px-2 py-0.5 text-xs font-semibold text-muted-foreground rounded-lg",
           className
         )}
       >
         {isFolder ? (
           <>
-            <Folder className="h-3 w-3 text-amber-500" />
+            <Folder className="h-3 w-3 text-warning-content" />
             <span>Folder</span>
           </>
         ) : (
           <>
-            <FileText className="h-3 w-3 text-blue-500" />
+            <FileText className="h-3 w-3 text-info-content" />
             <span>File</span>
           </>
         )}
@@ -66,7 +66,7 @@ export function DocumentsStatusBadge({
       <Badge
         variant="outline"
         className={cn(
-          "gap-1 border-purple-200 bg-purple-50 px-2 py-0.5 text-[11px] font-bold text-purple-600 rounded-lg",
+          "gap-1 border-border bg-info-soft px-2 py-0.5 text-xs font-semibold text-info-content rounded-lg",
           className
         )}
       >
@@ -81,7 +81,7 @@ export function DocumentsStatusBadge({
       <Badge
         variant="outline"
         className={cn(
-          "gap-1 border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-600 rounded-lg",
+          "gap-1 border-border bg-success-soft px-2 py-0.5 text-xs font-semibold text-success-content rounded-lg",
           className
         )}
       >
@@ -95,7 +95,7 @@ export function DocumentsStatusBadge({
     <Badge
       variant="outline"
       className={cn(
-        "gap-1 border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-600 rounded-lg",
+        "gap-1 border-border bg-info-soft px-2 py-0.5 text-xs font-semibold text-info-content rounded-lg",
         className
       )}
     >

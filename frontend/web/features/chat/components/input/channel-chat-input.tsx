@@ -1,4 +1,5 @@
 "use client";
+import { useId as useControlledPopupId } from "react";
 
 import React, {
   useState,
@@ -60,6 +61,11 @@ import TaskFormDialog, {
 import { createTask } from "@/features/project/api/task.api";
 import { getSpaceDetails } from "@/features/chat/api/space.api";
 import { chatKeys } from "@/features/chat/types/chat.constant";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 interface ChannelChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -96,6 +102,7 @@ const ChannelChatInput = React.memo(
       },
       ref,
     ) {
+  const controlledPopupId = useControlledPopupId();
       const [message, setMessage] = useState("");
       const [showOptions, setShowOptions] = useState(false);
       const [showFormatting, setShowFormatting] = useState(true);
@@ -137,7 +144,8 @@ const ChannelChatInput = React.memo(
       const [selectedIndex, setSelectedIndex] = useState(0);
       const [mentions, setMentions] = useState<string[]>([]);
 
-      const textareaRef = useRef<HTMLTextAreaElement>(null);
+      const mentionListId = React.useId();
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
       const fileInputRef = useRef<HTMLInputElement>(null);
       const emojiButtonRef = useRef<HTMLButtonElement>(null);
       const mainOptionsRef = useRef<HTMLDivElement>(null);
@@ -192,20 +200,7 @@ const ChannelChatInput = React.memo(
           setIsSubmittingTask(false);
         }
       };
-      useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-          if (
-            mainOptionsRef.current &&
-            !mainOptionsRef.current.contains(event.target as Node)
-          ) {
-            setShowOptions(false);
-          }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-          document.removeEventListener("mousedown", handleClickOutside);
-        };
-      }, []);
+
 
       // 1. Text Formatting Hook
       const { applyFormatting, handleListKeyDown } = useTextFormatting({
@@ -704,8 +699,8 @@ const ChannelChatInput = React.memo(
 
       if (!allowSendMessage) {
         return (
-          <div className="p-4 bg-white border-t border-gray-200">
-            <div className="flex items-center justify-center p-3 bg-gray-50 rounded-2xl border border-gray-200 text-gray-500 text-sm">
+          <div className="p-4 bg-card border-t border-border">
+            <div className="flex items-center justify-center p-3 bg-background rounded-panel border border-border text-muted-foreground text-sm">
               Only admins can send messages
             </div>
           </div>
@@ -718,15 +713,15 @@ const ChannelChatInput = React.memo(
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className="w-full bg-white border-t border-gray-200 flex justify-center relative"
+          className="min-w-0 w-full shrink-0 bg-card border-t border-border flex justify-center relative"
         >
           {isDraggingOver && (
-            <div className="absolute inset-0 bg-blue-50/80 backdrop-blur-xs border-2 border-dashed border-blue-500 rounded-2xl m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
+            <div className="absolute inset-0 bg-info-soft/80 border-2 border-dashed border-info-outline rounded-panel m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
               <UploadCloud
-                className="text-blue-500 animate-bounce mb-2"
+                className="text-info-content mb-2"
                 size={28}
               />
-              <p className="text-xs font-black text-blue-600">
+              <p className="text-xs font-semibold text-info-content">
                 Drop files here
               </p>
             </div>
@@ -740,8 +735,8 @@ const ChannelChatInput = React.memo(
                     key={media.id}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-lg max-w-[220px] ${
                       media.status === "error"
-                        ? "bg-red-50 border border-red-200"
-                        : "bg-gray-100"
+                        ? "bg-destructive-soft border border-border"
+                        : "bg-muted"
                     }`}
                   >
                     {media.mimeType.startsWith("image/") ? (
@@ -749,8 +744,8 @@ const ChannelChatInput = React.memo(
                         size={16}
                         className={`${
                           media.status === "error"
-                            ? "text-red-500"
-                            : "text-blue-500"
+                            ? "text-destructive-content"
+                            : "text-info-content"
                         } flex-shrink-0`}
                       />
                     ) : (
@@ -758,8 +753,8 @@ const ChannelChatInput = React.memo(
                         size={16}
                         className={`${
                           media.status === "error"
-                            ? "text-red-500"
-                            : "text-gray-500"
+                            ? "text-destructive-content"
+                            : "text-muted-foreground"
                         } flex-shrink-0`}
                       />
                     )}
@@ -767,17 +762,17 @@ const ChannelChatInput = React.memo(
                       <span
                         className={`text-xs truncate ${
                           media.status === "error"
-                            ? "text-red-700"
-                            : "text-gray-700"
+                            ? "text-destructive-content"
+                            : "text-foreground"
                         }`}
                       >
                         {media.name}
                       </span>
                       <span
-                        className={`text-[10px] ${
+                        className={`text-xs ${
                           media.status === "error"
-                            ? "text-red-400"
-                            : "text-gray-400"
+                            ? "text-destructive-content"
+                            : "text-muted-foreground"
                         }`}
                       >
                         {formatFileSize(media.sizeBytes)}
@@ -787,14 +782,14 @@ const ChannelChatInput = React.memo(
                     {media.status === "uploading" && (
                       <Loader2
                         size={14}
-                        className="text-blue-500 animate-spin ml-1 flex-shrink-0"
+                        className="text-info-content animate-spin ml-1 flex-shrink-0"
                       />
                     )}
 
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => removeFile(media.id)}
-                      className="text-gray-500 hover:text-red-500 transition ml-1 flex-shrink-0 cursor-pointer"
+                      className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
                       title={
                         media.status === "uploading"
                           ? "Remove uploading file"
@@ -802,13 +797,13 @@ const ChannelChatInput = React.memo(
                       }
                     >
                       <X size={14} />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="flex bg-gray-50 border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all relative rounded-2xl p-2 gap-2 items-center">
+            <div className="flex bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative rounded-panel p-2 gap-2 items-center">
               {/* Hidden Inputs */}
               <input
                 type="file"
@@ -822,97 +817,97 @@ const ChannelChatInput = React.memo(
 
               {/* Actions Trigger */}
               <div className="relative flex-shrink-0" ref={mainOptionsRef}>
-                <button
+                <Button aria-expanded={showOptions} aria-controls={`${controlledPopupId}-showOptions`} aria-haspopup="menu" variant="unstyled" aria-label="Message options"
                   type="button"
                   onClick={() => setShowOptions(!showOptions)}
                   disabled={isUploading}
                   className={`cursor-pointer p-2 rounded-full transition-colors ${
                     showOptions
-                      ? "bg-blue-100 text-blue-600"
-                      : "text-gray-500 hover:bg-gray-200"
+                      ? "bg-info-soft text-info-content"
+                      : "text-muted-foreground hover:bg-accent"
                   }`}
                 >
                   <Plus
                     size={20}
                     className={`transition-transform ${showOptions ? "rotate-45" : ""}`}
                   />
-                </button>
+                </Button>
 
                 {showOptions && (
-                  <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50">
-                    <button
+                  <AnchoredMenu id={`${controlledPopupId}-showOptions`} onClose={() => setShowOptions(false)} side="top" align="start" aria-label="Message attachments" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                    <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setShowOptions(false);
                         fileInputRef.current?.click();
                       }}
                       disabled={isUploading}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
-                      <Paperclip size={16} className="text-gray-500" />
+                      <Paperclip size={16} className="text-muted-foreground" />
                       Files
-                    </button>
+                    </DropdownMenuItem>
 
-                    <button
+                    <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setShowOptions(false);
                         setIsMyFilesModalOpen(true);
                       }}
                       disabled={isUploading}
-                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
-                      <Folder size={16} className="text-blue-500" />
+                      <Folder size={16} className="text-info-content" />
                       My Files
-                    </button>
+                    </DropdownMenuItem>
 
-                    <div className="h-px bg-gray-100 my-1"></div>
+                    <div className="h-px bg-muted my-1"></div>
 
                     {spaceDetail?.projectId && allowCreateTask && (
-                      <button
+                      <DropdownMenuItem closeOnClick={false}
                         onClick={() => {
                           setShowOptions(false);
                           setIsTaskModalOpen(true);
                         }}
                         disabled={isUploading}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50"
+                        className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors text-left cursor-pointer disabled:opacity-50"
                       >
-                        <CheckSquare size={16} className="text-green-500" />
+                        <CheckSquare size={16} className="text-success-content" />
                         Task
-                      </button>
+                      </DropdownMenuItem>
                     )}
 
                     {allowCreatePoll && (
-                      <button
+                      <DropdownMenuItem closeOnClick={false}
                         onClick={() => {
                           setShowOptions(false);
                           onCreatePoll?.();
                         }}
                         disabled={isUploading}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                        className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                       >
-                        <BarChart2 size={16} className="text-purple-500" />
+                        <BarChart2 size={16} className="text-info-content" />
                         Poll
-                      </button>
+                      </DropdownMenuItem>
                     )}
 
                     {allowCreateNote && (
-                      <button
+                      <DropdownMenuItem closeOnClick={false}
                         onClick={() => {
                           setShowOptions(false);
                           onCreateNote?.();
                         }}
                         disabled={isUploading}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                        className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                       >
-                        <FileText size={16} className="text-yellow-500" />
+                        <FileText size={16} className="text-warning-content" />
                         Note
-                      </button>
+                      </DropdownMenuItem>
                     )}
-                  </div>
+                  </AnchoredMenu>
                 )}
               </div>
 
               {/* Mention Dropdown */}
-              <MentionDropdown
+              <MentionDropdown id={mentionListId}
                 query={mentionQuery}
                 members={filteredMembers}
                 selectedIndex={selectedIndex}
@@ -923,87 +918,87 @@ const ChannelChatInput = React.memo(
               <div className="flex-1 flex flex-col min-w-0">
                 {/* Formatting Toolbar */}
                 {showFormatting && (
-                  <div className="flex items-center gap-0.5 pb-1.5 mb-1 border-b border-gray-200/60 overflow-x-auto scrollbar-none">
-                    <button
+                  <div className="flex items-center gap-0.5 pb-1.5 mb-1 border-b border-border/60 overflow-x-auto scrollbar-none">
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("bold")}
-                      className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
+                      className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Bold"
                     >
                       <Bold size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("italic")}
-                      className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
+                      className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Italic"
                     >
                       <Italic size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("strikethrough")}
-                      className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
+                      className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Strikethrough"
                     >
                       <Strikethrough size={15} />
-                    </button>
+                    </Button>
 
-                    <div className="w-px bg-gray-200 mx-1 h-4"></div>
+                    <div className="w-px bg-accent mx-1 h-4"></div>
 
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("heading")}
-                      className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
+                      className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Heading"
                     >
                       <Heading size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("link")}
-                      className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
+                      className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Link"
                     >
                       <Link size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("code")}
-                      className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
+                      className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Code Block"
                     >
                       <Code size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("quote")}
-                      className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
+                      className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Quote"
                     >
                       <Quote size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("bullet")}
-                      className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
+                      className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Bulleted List"
                     >
                       <List size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("number")}
-                      className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
+                      className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Numbered List"
                     >
                       <ListOrdered size={15} />
-                    </button>
+                    </Button>
                   </div>
                 )}
 
                 {/* Textarea Input */}
-                <textarea
+                <Textarea unstyled role="combobox" aria-label="Message channel" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
                   id="chat-input-textarea"
                   ref={textareaRef}
                   onPaste={handlePaste}
@@ -1032,7 +1027,7 @@ const ChannelChatInput = React.memo(
                       : "Type @ to mention, message " + activeChannel?.name
                   }
                   disabled={isUploading}
-                  className="w-full bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px]"
+                  className="w-full bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px]"
                   rows={1}
                   onKeyDown={(e) => {
                     if (mentionQuery !== null && filteredMembers.length > 0) {
@@ -1077,57 +1072,57 @@ const ChannelChatInput = React.memo(
               <div className="flex items-center gap-1.5 flex-shrink-0 relative pb-1">
                 {isRecording ? (
                   <div className="flex items-center gap-2.5 px-1 animate-in fade-in">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                    <span className="text-red-500 font-medium text-xs">
+                    <div className="w-2 h-2 rounded-full bg-destructive-content animate-pulse"></div>
+                    <span className="text-destructive-content font-medium text-xs">
                       {formatTime(recordingTime)}
                     </span>
-                    <button
+                    <Button variant="unstyled"
                       onClick={handleCancelRecording}
-                      className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition cursor-pointer"
+                      className="p-1.5 text-muted-foreground hover:text-destructive-content hover:bg-accent rounded-full transition cursor-pointer"
                       title="Cancel recording"
                     >
                       <Trash2 size={16} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       onClick={handleStopRecording}
-                      className="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer"
+                      className="p-1.5 text-primary-foreground bg-primary hover:bg-primary rounded-full transition cursor-pointer"
                       title="Send"
                     >
                       <Send size={14} />
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <>
                     {/* Text Formatting Toggle Button */}
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => setShowFormatting(!showFormatting)}
                       className={`cursor-pointer p-2 rounded-full transition-colors ${
                         showFormatting
-                          ? "bg-blue-100 text-blue-600"
-                          : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
+                          ? "bg-info-soft text-info-content"
+                          : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                       }`}
                       title="Text formatting"
                       disabled={isUploading}
                     >
                       <Type size={20} />
-                    </button>
+                    </Button>
 
                     {/* Emoji Picker Popover Trigger */}
                     <div className="relative">
-                      <button
+                      <Button variant="unstyled"
                         ref={emojiButtonRef}
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         className={`cursor-pointer p-2 rounded-full transition-colors ${
                           showEmojiPicker
-                            ? "bg-blue-100 text-blue-600"
-                            : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
+                            ? "bg-info-soft text-info-content"
+                            : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                         }`}
                         disabled={isUploading}
                         title="Insert emoji"
                       >
                         <Smile size={20} />
-                      </button>
+                      </Button>
                       <EmojiPickerPopover
                         isOpen={showEmojiPicker}
                         onClose={() => setShowEmojiPicker(false)}
@@ -1138,7 +1133,7 @@ const ChannelChatInput = React.memo(
 
                     {/* Mic Dictation Trigger */}
                     <div className="relative">
-                      <button
+                      <Button aria-expanded={showMicOptions} aria-controls={`${controlledPopupId}-showMicOptions`} aria-haspopup="menu" variant="unstyled"
                         onClick={() => {
                           if (isDictating) {
                             stopDictation();
@@ -1148,52 +1143,52 @@ const ChannelChatInput = React.memo(
                         }}
                         className={`cursor-pointer p-2 rounded-full transition-colors ${
                           isDictating
-                            ? "bg-red-100 text-red-600 animate-pulse"
+                            ? "bg-destructive-soft text-destructive-content animate-pulse"
                             : showMicOptions
-                              ? "bg-blue-100 text-blue-600"
-                              : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
+                              ? "bg-info-soft text-info-content"
+                              : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                         }`}
                         title="Voice options"
                         disabled={isUploading}
                       >
                         <Mic size={20} />
-                      </button>
+                      </Button>
 
                       {showMicOptions && !isDictating && (
-                        <div className="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50">
-                          <button
+                        <AnchoredMenu id={`${controlledPopupId}-showMicOptions`} onClose={() => setShowMicOptions(false)} side="top" align="end" aria-label="Microphone options" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                          <DropdownMenuItem closeOnClick={false}
                             onClick={() => {
                               setShowMicOptions(false);
                               void handleStartRecording();
                             }}
-                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition text-left cursor-pointer"
                           >
-                            <Voicemail size={16} className="text-blue-500" />{" "}
+                            <Voicemail size={16} className="text-info-content" />{" "}
                             Send voice message
-                          </button>
-                          <button
+                          </DropdownMenuItem>
+                          <DropdownMenuItem closeOnClick={false}
                             onClick={() => {
                               setShowMicOptions(false);
                               handleStartDictation();
                             }}
-                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition text-left cursor-pointer"
                           >
-                            <Type size={16} className="text-green-500" />
+                            <Type size={16} className="text-success-content" />
                             Speech to text
-                          </button>
-                        </div>
+                          </DropdownMenuItem>
+                        </AnchoredMenu>
                       )}
                     </div>
 
                     {/* Send Message Button */}
-                    <button
+                    <Button variant="unstyled" aria-label="Send message"
                       className={`p-2 rounded-full transition-colors flex items-center justify-center ${
                         (message.trim() ||
                           interimMessage.trim() ||
                           uploadingMedia.some((m) => m.status === "success")) &&
                         !isUploading
-                          ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
-                          : "bg-gray-200 text-gray-400"
+                          ? "bg-primary text-primary-foreground hover:bg-primary cursor-pointer"
+                          : "bg-accent text-muted-foreground"
                       }`}
                       disabled={
                         (!message.trim() &&
@@ -1204,7 +1199,7 @@ const ChannelChatInput = React.memo(
                       onClick={handleSend}
                     >
                       <Send size={18} className="mr-0.5" />
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

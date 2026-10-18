@@ -20,14 +20,14 @@ interface CustomTagProps {
 
 const tagVariantClass: Record<CustomTagVariant, string> = {
   default:
-    "bg-white text-slate-600 ring-slate-200 hover:bg-slate-50 hover:text-slate-900",
+    "bg-card text-muted-foreground ring-ring hover:bg-background hover:text-foreground",
   active:
-    "bg-[var(--color-primary)] text-white ring-[var(--color-primary)] shadow-sm shadow-blue-900/10 hover:bg-[var(--color-primary)]",
+    "bg-primary-soft text-primary-soft-foreground ring-ring/30 hover:bg-primary-soft",
   muted:
-    "bg-slate-50 text-slate-500 ring-slate-200 hover:bg-slate-100 hover:text-slate-700",
+    "bg-background text-muted-foreground ring-ring hover:bg-muted hover:text-foreground",
   success:
-    "bg-emerald-50 text-emerald-700 ring-emerald-200 hover:bg-emerald-100",
-  danger: "bg-red-50 text-red-700 ring-red-200 hover:bg-red-100",
+    "bg-success-soft text-success-content ring-success-outline hover:bg-success-soft",
+  danger: "bg-destructive-soft text-destructive-content ring-destructive-outline hover:bg-destructive-soft",
 };
 
 export function CustomTag({
@@ -49,7 +49,7 @@ export function CustomTag({
       disabled={onClick ? disabled : undefined}
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-black ring-1 transition active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold ring-1 transition disabled:cursor-not-allowed disabled:opacity-50",
         onClick && "cursor-pointer",
         tagVariantClass[resolvedVariant],
         className,
@@ -60,7 +60,7 @@ export function CustomTag({
       {typeof count === "number" && count > 0 ? (
       <Badge
         className={cn(
-            "ml-0.5 h-5 min-w-5 rounded-full border-2 border-white bg-red-500 px-1.5 text-[11px] font-bold leading-none text-white shadow-sm tabular-nums",
+            "ml-0.5 h-5 min-w-5 rounded-full border-2 border-border bg-destructive px-1.5 text-xs font-semibold leading-none text-destructive-foreground tabular-nums",
         )}
       >
           {count > 99 ? "99+" : count}

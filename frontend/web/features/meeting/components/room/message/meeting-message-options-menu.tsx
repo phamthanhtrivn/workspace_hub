@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+
+
+import { useRef } from "react";
 import { Edit2, Trash2 } from "lucide-react";
+
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 interface MeetingMessageOptionsMenuProps {
   isOpen: boolean;
+  id?: string;
   buttonRect: DOMRect | null;
   onClose: () => void;
   onEdit: () => void;
@@ -15,6 +22,7 @@ interface MeetingMessageOptionsMenuProps {
 
 export function MeetingMessageOptionsMenu({
   isOpen,
+  id,
   buttonRect,
   onClose,
   onEdit,
@@ -24,63 +32,38 @@ export function MeetingMessageOptionsMenu({
 }: MeetingMessageOptionsMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
 
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, onClose]);
 
   if (!isOpen || !buttonRect || (!canEdit && !canRecall)) return null;
 
-  const style: React.CSSProperties = {
-    right: Math.max(12, window.innerWidth - buttonRect.right),
-  };
 
-  if (buttonRect.bottom > window.innerHeight / 2) {
-    style.bottom = window.innerHeight - buttonRect.top + 8;
-  } else {
-    style.top = buttonRect.bottom + 8;
-  }
 
-  return (
-    <div
-      ref={menuRef}
-      style={style}
-      className="fixed z-[100] min-w-40 rounded-lg border border-white/10 bg-[#111827] py-1 text-sm text-slate-200 shadow-2xl"
-    >
+
+
+  return typeof document === "undefined" ? null : <AnchoredMenu id={id} aria-label="Meeting message options" ref={menuRef} onClose={onClose} anchorRect={buttonRect} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="end"  className="z-[100] min-w-40 rounded-lg border border-border bg-card py-1 text-sm text-muted-foreground shadow-panel">
       {canEdit && (
-        <button
-          type="button"
+        <DropdownMenuItem closeOnClick={false}
           onClick={() => {
             onEdit();
             onClose();
           }}
-          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-white/8"
+          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-accent"
         >
           <Edit2 className="h-4 w-4" />
           <span>Edit message</span>
-        </button>
+        </DropdownMenuItem>
       )}
       {canRecall && (
-        <button
-          type="button"
+        <DropdownMenuItem closeOnClick={false}
           onClick={() => {
             onRecall();
             onClose();
           }}
-          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-red-300 transition hover:bg-red-500/10"
+          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-destructive-content transition hover:bg-destructive-soft"
         >
           <Trash2 className="h-4 w-4" />
           <span>Recall message</span>
-        </button>
+        </DropdownMenuItem>
       )}
-    </div>
-  );
+    </AnchoredMenu>;
 }

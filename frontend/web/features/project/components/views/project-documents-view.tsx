@@ -51,7 +51,7 @@ export default function ProjectDocumentsView({
 
   if (documentsQuery.isLoading) {
     return (
-      <div className="h-full min-h-0 rounded-lg border border-slate-100 bg-white p-6 shadow-xs">
+      <div className="h-full min-h-0 rounded-lg border border-border bg-card p-6">
         <DocumentsLoadingState view="grid" />
       </div>
     );
@@ -59,7 +59,7 @@ export default function ProjectDocumentsView({
 
   if (documentsQuery.isError || !documentsQuery.data) {
     return (
-      <div className="h-full min-h-0 rounded-lg border border-slate-100 bg-white p-6 shadow-xs">
+      <div className="h-full min-h-0 rounded-lg border border-border bg-card p-6">
         <DocumentsEmptyState
           title="Unable to open project documents"
           description="Project documents are not available right now"
@@ -70,7 +70,7 @@ export default function ProjectDocumentsView({
 
   return (
     <DownloadQueueProvider>
-      <div className="h-full min-h-0 overflow-hidden rounded-lg border border-slate-100 bg-white shadow-xs">
+      <div className="h-full min-h-0 min-w-0 overflow-hidden rounded-lg border border-border bg-card">
         <DocumentExplorer
           currentFolderId={currentFolderId}
           onNavigate={handleNavigate}

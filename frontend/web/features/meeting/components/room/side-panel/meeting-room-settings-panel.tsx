@@ -52,7 +52,7 @@ export function MeetingRoomSettingsPanel({
   };
 
   return (
-    <div className="mt-4 flex h-screen flex-col justify-between">
+    <div className="mt-3 flex min-h-0 flex-1 flex-col justify-between gap-4 overflow-y-auto">
       {canManageSettings && (
         <div className="flex flex-col gap-3">
           <MeetingAutoAdmitToggle

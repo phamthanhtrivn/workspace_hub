@@ -5,6 +5,9 @@ import { DocumentItem, DocumentVersion } from "../../types/documents.types";
 import { formatBytes, formatDateShort } from "../../utils/documents.utils";
 import { ORIGINAL_VERSION_ID } from "../../types/documents.constants";
 import { Eye, Download, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+
 
 interface VersionHistoryTableProps {
   versions: DocumentVersion[];
@@ -24,64 +27,64 @@ export function VersionHistoryTable({
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-10">
-        <Loader2 className="text-slate-400 animate-spin" size={24} />
+        <Loader2 className="text-muted-foreground animate-spin" size={24} />
       </div>
     );
   }
 
   if (versions.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-400 font-semibold text-sm">
+      <div className="text-center py-8 text-muted-foreground font-semibold text-sm">
         No version history available
       </div>
     );
   }
 
   return (
-    <div className="border border-slate-100 rounded-2xl overflow-hidden">
-      <table className="w-full text-left border-collapse text-xs">
-        <thead>
-          <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider">
-            <th className="px-5 py-3">Version</th>
-            <th className="px-5 py-3">Date</th>
-            <th className="px-5 py-3">Size</th>
-            <th className="px-5 py-3">Uploaded By</th>
-            <th className="px-5 py-3 text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
+    <div className="border border-border rounded-panel overflow-x-auto">
+      <Table unstyled className="w-full text-left border-collapse text-xs">
+        <TableHeader unstyled>
+          <TableRow unstyled className="bg-background border-b border-border text-muted-foreground font-semibold uppercase tracking-wider">
+            <TableHead unstyled className="px-5 py-3">Version</TableHead>
+            <TableHead unstyled className="px-5 py-3">Date</TableHead>
+            <TableHead unstyled className="px-5 py-3">Size</TableHead>
+            <TableHead unstyled className="px-5 py-3">Uploaded By</TableHead>
+            <TableHead unstyled className="px-5 py-3 text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody unstyled className="divide-y divide-border font-semibold text-foreground">
           {versions.map((version, index) => {
             const isLatest = index === 0;
             return (
-              <tr
+              <TableRow unstyled
                 key={version.id}
-                className={`hover:bg-slate-50/50 transition-colors ${
-                  isLatest ? "bg-blue-50/10 font-bold" : ""
+                className={`hover:bg-background transition-colors ${
+                  isLatest ? "bg-info-soft/10 font-semibold" : ""
                 }`}
               >
-                <td className="px-5 py-4 flex items-center gap-2">
+                <TableCell unstyled className="px-5 py-4 flex items-center gap-2">
                   <span>v{version.versionNumber}</span>
                   {isLatest && (
-                    <span className="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold border border-blue-100">
+                    <span className="bg-info-soft text-info-content text-xs px-2 py-0.5 rounded-full font-semibold border border-border">
                       Current
                     </span>
                   )}
-                </td>
-                <td className="px-5 py-4 text-slate-500">
+                </TableCell>
+                <TableCell unstyled className="px-5 py-4 text-muted-foreground">
                   {formatDateShort(version.createdAt)}
-                </td>
-                <td className="px-5 py-4 text-slate-500">
+                </TableCell>
+                <TableCell unstyled className="px-5 py-4 text-muted-foreground">
                   {formatBytes(Number(version.sizeBytes))}
-                </td>
-                <td
-                  className="px-5 py-4 text-slate-600 truncate max-w-[120px]"
+                </TableCell>
+                <TableCell unstyled
+                  className="px-5 py-4 text-muted-foreground truncate max-w-[120px]"
                   title={version.uploadedByEmail}
                 >
                   {version.uploadedByEmail}
-                </td>
-                <td className="px-5 py-4 text-right">
+                </TableCell>
+                <TableCell unstyled className="px-5 py-4 text-right">
                   <div className="flex items-center justify-end gap-1.5">
-                    <button
+                    <Button variant="unstyled"
                       onClick={() =>
                         onPreviewVersion(
                           item,
@@ -89,24 +92,24 @@ export function VersionHistoryTable({
                         )
                       }
                       title="Preview version"
-                      className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-blue-500 rounded-lg cursor-pointer transition-colors"
+                      className="p-1.5 hover:bg-muted text-muted-foreground hover:text-info-content rounded-control cursor-pointer transition-colors"
                     >
                       <Eye size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       onClick={() => onDownload(version.id)}
                       title="Download version"
-                      className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-blue-500 rounded-lg cursor-pointer transition-colors"
+                      className="p-1.5 hover:bg-muted text-muted-foreground hover:text-info-content rounded-control cursor-pointer transition-colors"
                     >
                       <Download size={15} />
-                    </button>
+                    </Button>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

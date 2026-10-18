@@ -35,14 +35,14 @@ const ROLE_CONFIG: Record<
 > = {
   [ProjectRole.ADMIN]: {
     label: "Project Owner",
-    color: "text-amber-600",
-    bg: "bg-amber-50",
+    color: "text-warning-content",
+    bg: "bg-warning-soft",
     icon: Star,
   },
   [ProjectRole.MEMBER]: {
     label: "Member",
-    color: "text-slate-500",
-    bg: "bg-slate-100",
+    color: "text-muted-foreground",
+    bg: "bg-muted",
     icon: User,
   },
 };
@@ -123,14 +123,14 @@ export default function ProjectMembersPanel({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
+    <div className="rounded-panel border border-border bg-card p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-bold text-slate-800">
+          <h3 className="text-sm font-semibold text-foreground">
             Project Members ({members.length})
           </h3>
           {pendingInvitations.length > 0 && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-700">
+            <span className="rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning-content">
               {pendingInvitations.length} pending
             </span>
           )}
@@ -141,7 +141,7 @@ export default function ProjectMembersPanel({
             variant="ghost"
             size="sm"
             onClick={() => setShowInviteDialog(true)}
-            className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-bold text-[#0052CC] transition hover:bg-blue-50 hover:text-[#0052CC] cursor-pointer"
+            className="inline-flex h-7 items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-semibold text-info-content transition hover:bg-info-soft hover:text-info-content cursor-pointer"
           >
             <UserPlus className="h-3 w-3" strokeWidth={2.5} />
             Invite
@@ -156,7 +156,7 @@ export default function ProjectMembersPanel({
           return (
             <div
               key={member.id}
-              className="group flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-slate-50"
+              className="group flex items-center gap-3 rounded-panel px-2 py-2 transition hover:bg-background"
             >
               <Avatar
                 user={{
@@ -167,11 +167,11 @@ export default function ProjectMembersPanel({
                 size="sm"
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-slate-800">
+                <p className="truncate text-sm font-semibold text-foreground">
                   {member.displayName}
                 </p>
                 <span
-                  className={`inline-flex items-center gap-1 text-[10px] font-bold ${roleCfg.color}`}
+                  className={`inline-flex items-center gap-1 text-xs font-semibold ${roleCfg.color}`}
                 >
                   <RoleIcon className="h-2.5 w-2.5" strokeWidth={2.5} />
                   {roleCfg.label}
@@ -185,7 +185,7 @@ export default function ProjectMembersPanel({
                       variant="ghost"
                       size="icon"
                       onClick={() => setPermissionMember(member)}
-                      className="h-8 w-8 cursor-pointer rounded-lg text-slate-300 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
+                      className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
                       aria-label={`Manage permissions for ${member.displayName}`}
                       title="Manage permissions"
                     >
@@ -199,7 +199,7 @@ export default function ProjectMembersPanel({
                       size="icon"
                       onClick={() => handleRemoveMember(member)}
                       disabled={removeMemberMutation.isPending}
-                      className="h-8 w-8 cursor-pointer rounded-lg text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:opacity-40"
+                      className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground opacity-0 transition hover:bg-destructive-soft hover:text-destructive-content group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 disabled:opacity-40"
                       aria-label={`Remove member ${member.displayName}`}
                       title="Remove member"
                     >
@@ -214,11 +214,11 @@ export default function ProjectMembersPanel({
       </div>
       {pendingInvitationsQuery.isLoading && canInvite && (
         <div
-          className="mt-4 space-y-2 border-t border-slate-100 pt-4"
+          className="mt-4 space-y-2 border-t border-border pt-4"
           aria-label="Loading invitations"
         >
-          <div className="h-3 w-28 animate-pulse rounded bg-slate-100" />
-          <div className="h-14 animate-pulse rounded-xl bg-slate-50" />
+          <div className="h-3 w-28 animate-pulse rounded bg-muted" />
+          <div className="h-14 animate-pulse rounded-panel bg-background" />
         </div>
       )}
       <PendingInvitationsList
@@ -230,10 +230,10 @@ export default function ProjectMembersPanel({
           type="button"
           variant="outline"
           onClick={onViewAll}
-          className="mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
+          className="mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-control border border-border bg-background py-2 text-xs font-semibold text-foreground transition hover:bg-muted hover:text-foreground"
         >
           <span>View all members</span>
-          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
         </Button>
       )}
       {canInvite && (

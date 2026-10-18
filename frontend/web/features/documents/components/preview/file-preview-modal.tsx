@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
@@ -8,6 +10,8 @@ import { PreviewFileType } from "../../types/documents.enums";
 import { getPreviewFileType, formatBytes } from "../../utils/documents.utils";
 import { MAX_TEXT_PREVIEW_SIZE } from "../../types/documents.constants";
 import { PreviewContent, PreviewIcon } from "./preview-content";
+import { toast } from "sonner";
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { Download } from "lucide-react";
 import {
   Dialog,
@@ -42,7 +46,7 @@ export function FilePreviewModal({
   const {
     data: previewUrl,
     isLoading: isUrlLoading,
-    error,
+    error, refetch, isFetching,
   } = useQuery({
     queryKey: ["document-preview", item?.id, versionId],
     queryFn: () =>
@@ -109,6 +113,7 @@ export function FilePreviewModal({
         document.body.removeChild(link);
       } catch (err) {
         console.error("Failed to generate download URL", err);
+        toast.error("Could not download this file. Please try again.");
       }
     }
   }, [item, versionId, onDownload]);
@@ -117,17 +122,17 @@ export function FilePreviewModal({
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-4xl border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl">
-        <DialogHeader className="flex flex-row items-center justify-between space-y-0 text-left pr-6">
+      <DialogContent className={`${dialogLayout.surface} max-w-4xl border-border bg-card p-6 text-foreground rounded-dialog`}>
+        <DialogHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 text-left pr-6">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-50 text-blue-600 border border-slate-100">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-background text-info-content border border-border">
               <PreviewIcon previewType={previewType} />
             </div>
             <div className="min-w-0">
-              <DialogTitle className="text-base font-black text-slate-800 truncate max-w-lg">
+              <DialogTitle className="text-base font-semibold text-foreground truncate max-w-lg">
                 {item.name}
               </DialogTitle>
-              <p className="mt-0.5 text-xs text-slate-400 font-bold">
+              <p className="mt-0.5 text-xs text-muted-foreground font-semibold">
                 {formatBytes(item.sizeBytes)}
               </p>
             </div>
@@ -141,8 +146,9 @@ export function FilePreviewModal({
           ) : null}
         </DialogHeader>
 
-        <div className="mt-4 max-h-[75vh] overflow-auto rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
-          <PreviewContent
+        <div className={`${dialogLayout.body} mt-4 h-[min(65dvh,640px)] overflow-auto rounded-panel bg-background p-4 border border-border`}>
+          {error && <QueryFeedback label="document preview" error retrying={isFetching} onRetry={() => refetch()} />}
+        <PreviewContent fitToContainer
             item={item}
             previewType={previewType}
             previewUrl={previewUrl}

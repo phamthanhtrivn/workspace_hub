@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MeetingButton } from "../ui/meeting-form-controls";
 import { getMeetingHistoryPageNumbers } from "../../utils/meeting-history.utils";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingPaginationProps {
   page: number;
@@ -28,8 +30,8 @@ export function MeetingPagination({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-xs font-semibold text-slate-500">
+    <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <span className="text-xs tabular-nums text-muted-foreground">
         Showing {start}-{end} of {total}
       </span>
 
@@ -48,24 +50,24 @@ export function MeetingPagination({
         </MeetingButton>
         {pageNumbers.map((pageNumber) =>
           typeof pageNumber === "number" ? (
-            <button
+            <Button variant="unstyled"
               key={pageNumber}
               type="button"
               onClick={() => onPageChange(pageNumber)}
               className={cn(
-                "h-9 min-w-9 cursor-pointer rounded-lg px-3 text-xs font-black transition",
+                "h-9 min-w-9 cursor-pointer rounded-control px-3 text-xs font-medium tabular-nums transition-colors duration-150",
                 pageNumber === safePage
-                  ? "bg-[#0052CC] text-white shadow-sm"
-                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                  ? "bg-primary-soft text-primary-soft-foreground"
+                  : "border border-input bg-card text-foreground hover:bg-accent",
               )}
               aria-current={pageNumber === safePage ? "page" : undefined}
             >
               {pageNumber}
-            </button>
+            </Button>
           ) : (
             <span
               key={pageNumber}
-              className="grid h-9 min-w-9 place-items-center px-1 text-xs font-black text-slate-400"
+              className="grid h-9 min-w-9 place-items-center px-1 text-xs tabular-nums text-muted-foreground"
               aria-hidden="true"
             >
               ...

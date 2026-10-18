@@ -5,6 +5,8 @@ import { Notification } from "../types/notification.types";
 import { getNotificationRenderer } from "./notification-registry";
 import { DefaultListItemRenderer } from "./renderers/default-renderer";
 import { Loader2, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 
 interface NotificationItemProps {
   notification: Notification;
@@ -32,7 +34,7 @@ const NotificationItem = React.memo(function NotificationItem({
         onClick={() => onClick(notification)}
       />
       {onDelete ? (
-        <button
+        <Button variant="unstyled"
           type="button"
           aria-label={deleteLabel}
           title={deleteLabel}
@@ -42,14 +44,14 @@ const NotificationItem = React.memo(function NotificationItem({
             event.stopPropagation();
             onDelete(notification.id);
           }}
-          className="absolute right-3 top-3 grid h-7 w-7 cursor-pointer place-items-center rounded-full border border-transparent bg-white/90 text-slate-400 shadow-sm ring-1 ring-slate-200/70 transition hover:border-rose-100 hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+          className="absolute right-3 top-3 grid h-7 w-7 cursor-pointer place-items-center rounded-full border border-transparent bg-card text-muted-foreground ring-1 ring-ring/70 transition hover:border-border hover:bg-destructive-soft hover:text-destructive-content hover:ring-destructive-outline disabled:cursor-not-allowed disabled:opacity-60 shadow-panel"
         >
           {isDeleting ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
             <Trash2 className="h-3.5 w-3.5" />
           )}
-        </button>
+        </Button>
       ) : null}
     </div>
   );

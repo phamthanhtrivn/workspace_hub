@@ -117,8 +117,8 @@ export default function MemberPermissionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isSaving && onClose()}>
-      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-2xl sm:rounded-2xl">
-        <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-slate-100">
+      <DialogContent className="flex max-w-xl flex-col p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
+        <DialogHeader className="shrink-0 px-5 pt-5 pb-4 pr-12 text-left border-b border-border">
           <div className="flex items-center gap-3">
             <Avatar
               user={{
@@ -130,38 +130,38 @@ export default function MemberPermissionsDialog({
             />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 shrink-0 text-[#0052CC]" />
-                <DialogTitle className="truncate text-lg font-bold text-slate-900">
+                <ShieldCheck className="h-4 w-4 shrink-0 text-info-content" />
+                <DialogTitle className="truncate text-section-title font-semibold text-foreground">
                   Permissions: {member.displayName}
                 </DialogTitle>
               </div>
-              <DialogDescription className="mt-1 text-xs text-slate-500">
+              <DialogDescription className="mt-1 text-xs text-muted-foreground">
                 Configure member access privileges for this project.
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="overflow-y-auto px-6 py-5 max-h-[calc(100dvh-16rem)] space-y-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 space-y-4">
           <section
             aria-labelledby="default-member-rights"
-            className="rounded-xl border border-blue-100 bg-blue-50/70 p-4"
+            className="rounded-panel border border-border bg-info-soft/70 p-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3
                   id="default-member-rights"
-                  className="text-xs font-bold text-[#172B4D]"
+                  className="text-xs font-semibold text-foreground"
                 >
                   Standard Member Access
                 </h3>
-                <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                   Included for all project members automatically.
                 </p>
               </div>
               <Badge
                 variant="outline"
-                className="border-blue-200 bg-blue-100/70 text-[10px] font-bold text-blue-700"
+                className="border-border bg-info-soft/70 text-xs font-semibold text-info-content"
               >
                 Included
               </Badge>
@@ -170,12 +170,12 @@ export default function MemberPermissionsDialog({
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {DEFAULT_CAPABILITIES.map((capability) => (
                 <div key={capability.title} className="flex items-start gap-2.5">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#0052CC]" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-info-content" />
                   <div>
-                    <p className="text-xs font-bold text-slate-700">
+                    <p className="text-xs font-semibold text-foreground">
                       {capability.title}
                     </p>
-                    <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                       {capability.description}
                     </p>
                   </div>
@@ -186,14 +186,14 @@ export default function MemberPermissionsDialog({
 
           <div className="flex items-end justify-between gap-4 pt-1">
             <div>
-              <h3 className="text-xs font-bold text-[#172B4D]">
+              <h3 className="text-xs font-semibold text-foreground">
                 Additional Permissions
               </h3>
-              <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
+              <p className="mt-0.5 text-xs leading-4 text-muted-foreground">
                 Grant specific write and management capabilities.
               </p>
             </div>
-            <span className="shrink-0 text-[11px] font-bold text-slate-500">
+            <span className="shrink-0 text-xs font-semibold text-muted-foreground">
               {enabledCount} of 6 active
             </span>
           </div>
@@ -225,22 +225,22 @@ export default function MemberPermissionsDialog({
             return (
               <fieldset
                 key={group.id}
-                className="overflow-hidden rounded-xl border border-slate-200"
+                className="overflow-hidden rounded-panel border border-border"
               >
                 <legend className="sr-only">{group.title}</legend>
-                <div className="flex items-start gap-2.5 bg-slate-50 px-4 py-2.5">
-                  <GroupIcon className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
+                <div className="flex items-start gap-2.5 bg-background px-4 py-2.5">
+                  <GroupIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                   <div>
-                    <p className="text-xs font-bold text-slate-700">
+                    <p className="text-xs font-semibold text-foreground">
                       {group.title}
                     </p>
-                    <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
+                    <p className="mt-0.5 text-xs leading-4 text-muted-foreground">
                       {group.description}
                     </p>
                   </div>
                 </div>
 
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-border">
                   {group.options.map((option) => (
                     <CustomCheckbox
                       key={option.key}
@@ -257,8 +257,8 @@ export default function MemberPermissionsDialog({
                       }
                       label={option.label}
                       description={option.description}
-                      className="bg-white px-4 py-3 transition hover:bg-blue-50/40"
-                      checkboxClassName="mt-0.5 cursor-pointer data-[state=checked]:bg-[#0052CC] data-[state=checked]:border-[#0052CC]"
+                      className="bg-card px-4 py-3 transition hover:bg-info-soft/40"
+                      checkboxClassName="mt-0.5 cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                     />
                   ))}
                 </div>
@@ -266,21 +266,21 @@ export default function MemberPermissionsDialog({
             );
           })}
 
-          <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900 border border-amber-200/60">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-            <p className="text-[11px] leading-relaxed">
+          <div className="flex items-start gap-2 rounded-panel bg-warning-soft px-3.5 py-2.5 text-xs text-warning-content border border-border">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning-content" />
+            <p className="text-xs leading-relaxed">
               Task creators always retain permission to edit tasks they originally created.
             </p>
           </div>
         </div>
 
-        <DialogFooter className="flex justify-end gap-2 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
+        <DialogFooter className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-border bg-background px-5 py-4">
           <Button
             type="button"
             variant="outline"
             onClick={onClose}
             disabled={isSaving}
-            className="cursor-pointer rounded-xl font-bold text-slate-600 hover:bg-slate-100"
+            className="cursor-pointer rounded-control font-semibold text-muted-foreground hover:bg-muted"
           >
             Cancel
           </Button>
@@ -288,7 +288,7 @@ export default function MemberPermissionsDialog({
             type="button"
             onClick={() => void onSave(permissions)}
             disabled={isSaving}
-            className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50"
+            className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
           >
             {isSaving ? "Saving..." : "Save Permissions"}
           </Button>

@@ -7,6 +7,8 @@ import {
   meetingNavIconById,
 } from "../types/meeting.constants";
 import { MeetingSidebarStatsPanel } from "./meeting-sidebar-stats-panel";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingSidebarProps {
   activeItemId: MeetingDashboardNavItemId;
@@ -25,9 +27,9 @@ export function MeetingSidebar({
   onItemSelect,
 }: MeetingSidebarProps) {
   return (
-    <aside className="flex shrink-0 flex-col gap-5 border-b border-slate-200 bg-white/90 px-4 py-4 shadow-[0_12px_32px_rgba(15,40,84,0.06)] xl:w-80 xl:border-b-0 xl:border-r xl:py-6">
+    <aside className="flex shrink-0 flex-col gap-5 border-b border-border bg-sidebar px-4 py-4 @min-[1120px]/meetings:w-80 @min-[1120px]/meetings:border-b-0 @min-[1120px]/meetings:border-r @min-[1120px]/meetings:py-6">
       <nav
-        className="flex gap-2 overflow-x-auto xl:flex-col xl:overflow-visible"
+        className="flex gap-2 overflow-x-auto @min-[1120px]/meetings:flex-col @min-[1120px]/meetings:overflow-visible"
         aria-label="Meeting dashboard"
       >
         {meetingDashboardNavItems.map((item) => {
@@ -36,31 +38,31 @@ export function MeetingSidebar({
           const isEnabled = enabledMeetingNavItems.has(item.id);
 
           return (
-            <button
+            <Button variant="unstyled"
               key={item.id}
               type="button"
               disabled={!isEnabled}
               onClick={() => onItemSelect(item.id)}
               className={cn(
-                "cursor-pointer flex h-12 shrink-0 items-center gap-3 rounded-md px-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]",
+                "cursor-pointer flex h-12 shrink-0 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                 isActive
-                  ? "bg-[#0052CC] text-white shadow-[0_12px_28px_rgba(0,82,204,0.22)]"
-                  : "text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70",
+                  ? "bg-primary-soft text-primary-soft-foreground"
+                  : "text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-70",
               )}
               aria-current={isActive ? "page" : undefined}
             >
               <span
                 className={cn(
-                  "grid h-8 w-8 shrink-0 place-items-center rounded-md",
-                  isActive ? "bg-white/16" : "bg-slate-50 text-slate-500",
+                  "grid h-8 w-8 shrink-0 place-items-center",
+                  isActive ? "text-primary-soft-foreground" : "text-muted-foreground",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" aria-hidden />
               </span>
               <span className="whitespace-nowrap">
                 {item.label}
               </span>
-            </button>
+            </Button>
           );
         })}
       </nav>

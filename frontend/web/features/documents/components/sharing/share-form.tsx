@@ -9,6 +9,10 @@ import { documentsApi } from "../../api/documents.api";
 import { searchUserByEmail } from "@/features/chat/api/chat.api";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 import { ShareSuggestionsDropdown } from "./share-suggestions-dropdown";
+import { Combobox, ComboboxInput } from "@/components/ui/combobox";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Button } from "@/components/ui/button";
+
 
 interface ShareModalFormProps {
   documentItemId: string;
@@ -32,20 +36,6 @@ export function ShareModalForm({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const ignoreSearchRef = useRef(false);
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   // Debounced search for email input
   useEffect(() => {
@@ -160,34 +150,42 @@ export function ShareModalForm({
 
   return (
     <form onSubmit={handleAddShare} className="space-y-2">
-      <label className="text-xs font-black text-slate-400 uppercase tracking-wider block">
+      <label htmlFor={`share-email-${documentItemId}`} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
         Share with others
       </label>
-      <div className="flex items-center gap-2">
-        <div ref={containerRef} className="relative flex-1">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div ref={containerRef} className="relative min-w-0 flex-1">
+          <Combobox<UserSearchResponse>
+            items={searchResults}
+            filter={null}
+            value={null}
+            inputValue={emailInput}
+            onInputValueChange={setEmailInput}
+            itemToStringLabel={(user) => user?.email ?? ""}
+            open={showSuggestions && searchResults.length > 0}
+            onOpenChange={setShowSuggestions}
+          >
           {isSearching ? (
             <Loader2
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 animate-spin"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin"
             />
           ) : (
             <Mail
               size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
           )}
-          <input
+          <ComboboxInput unstyled id={`share-email-${documentItemId}`}
             type="text"
             placeholder="Enter email address..."
             required
-            value={emailInput}
-            onChange={(e) => setEmailInput(e.target.value)}
             onFocus={() => {
               if (searchResults.length > 0) {
                 setShowSuggestions(true);
               }
             }}
-            className="w-full bg-slate-50/50 border border-slate-100 hover:border-slate-200 focus:border-blue-500 rounded-2xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-700 outline-hidden transition-all placeholder:text-slate-400"
+            className="w-full bg-background border border-input hover:border-input focus:border-info-outline rounded-control py-2.5 pl-10 pr-4 text-xs font-semibold text-foreground outline-hidden transition-all placeholder:text-muted-foreground"
           />
 
           <ShareSuggestionsDropdown
@@ -195,28 +193,29 @@ export function ShareModalForm({
             results={searchResults}
             onSelect={handleSelectSuggestion}
           />
+          </Combobox>
         </div>
-        <select
+        <NativeSelect unstyled aria-label="Share permission"
           value={permissionInput}
           onChange={(e) =>
             setPermissionInput(e.target.value as SharePermission)
           }
-          className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl py-2.5 px-3 text-xs font-black text-slate-700 outline-hidden transition-all cursor-pointer"
+          className="bg-card border border-input hover:border-input rounded-panel py-2.5 px-3 text-xs font-semibold text-foreground outline-hidden transition-all cursor-pointer"
         >
           <option value={SharePermission.VIEWER}>Can view</option>
           <option value={SharePermission.EDITOR}>Can edit</option>
-        </select>
-        <button
+        </NativeSelect>
+        <Button variant="unstyled"
           type="submit"
           disabled={addShareMutation.isPending}
-          className="flex items-center justify-center p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+          className="flex items-center justify-center p-2.5 bg-primary hover:bg-primary text-primary-foreground rounded-control transition-all disabled:opacity-50 cursor-pointer"
         >
           {addShareMutation.isPending ? (
             <Loader2 size={16} className="animate-spin" />
           ) : (
             <Plus size={16} />
           )}
-        </button>
+        </Button>
       </div>
     </form>
   );

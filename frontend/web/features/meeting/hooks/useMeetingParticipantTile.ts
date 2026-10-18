@@ -62,7 +62,7 @@ export function useMeetingParticipantTile({
       : MicOff;
   const audioStatusIconClassName =
     isAudioMutedForMe || !participant.isMicrophoneEnabled
-      ? "h-4 w-4 text-red-300"
+      ? "h-4 w-4 text-media-destructive"
       : "h-4 w-4";
   const shouldShowSpeakingHighlight = isSpeaking && !isAudioMutedForMe;
   const pinnedLabel = "Pinned";
