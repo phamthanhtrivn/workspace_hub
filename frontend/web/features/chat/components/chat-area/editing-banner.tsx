@@ -2,6 +2,8 @@
 
 import { X } from "lucide-react";
 import { ChatMessageResponse } from "../../types/chat.types";
+import { Button } from "@/components/ui/button";
+
 
 interface EditingBannerProps {
   editingMessage: ChatMessageResponse;
@@ -25,13 +27,13 @@ export default function EditingBanner({
           {editingMessage.content}
         </span>
       </div>
-      <button
+      <Button variant="unstyled"
         onClick={onCancelEdit}
         aria-label="Cancel"
         className="p-1 text-muted-foreground hover:text-muted-foreground hover:bg-warning-soft rounded-full cursor-pointer ml-2 transition-colors"
       >
         <X size={16} />
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { X } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
@@ -10,6 +10,9 @@ import {
   editChannelPoll,
   voteChannelPoll,
 } from "@/features/chat/api/chat.api";
+import { Button } from "@/components/ui/button";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface ViewPollModalProps {
   isOpen: boolean;
@@ -33,15 +36,14 @@ export default function ViewPollModal({
 
   if (!isOpen || !poll || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-overlay/50 p-4">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-[60] flex items-center justify-center bg-overlay/50 p-4">
       <div className="relative w-full max-w-md">
-        <button aria-label="Close"
+        <Button variant="unstyled" aria-label="Close"
           onClick={onClose}
           className="absolute -top-10 right-0 rounded-control bg-media-surface text-media-foreground hover:bg-media-background focus-visible:outline-media-foreground p-2 transition cursor-pointer"
         >
           <X size={24} />
-        </button>
+        </Button>
         <div className="max-h-[85vh] overflow-y-auto no-scrollbar rounded-panel">
           <PollMessage
             poll={poll}
@@ -70,7 +72,5 @@ export default function ViewPollModal({
           />
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }

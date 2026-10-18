@@ -1,6 +1,6 @@
 "use client";
 
-import { createPortal } from "react-dom";
+
 
 import {
   AlignLeft,
@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/store/store";
 import { useAttendeeProfiles } from "../../hooks/use-calendar-users";
 import { useCalendarEvent } from "../../hooks/use-calendar-queries";
-import { useModalDialog } from "../../hooks/use-modal-dialog";
+
 import { CalendarDocumentsSection } from "./calendar-documents-section";
 import {
   AttendeeResponseStatus,
@@ -44,6 +44,7 @@ import { CalendarRadioGroup } from "../ui/calendar-radio-group";
 import { EventAttendeeList } from "./event-attendee-list";
 import { CalendarTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
 import { TaskFocusHistory } from "@/features/pomodoro/components/task-focus-history";
+import { DialogSurface } from "@/components/ui/dialog";
 
 export function EventDetailModal({
   event: initialEvent,
@@ -73,7 +74,7 @@ export function EventDetailModal({
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dialogRef = useRef<HTMLDivElement>(null);
   const resolvedProfiles = useAttendeeProfiles(event, open);
-  useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
+
 
   const [copiedMeeting, setCopiedMeeting] = useState(false);
   const [showDeleteScopeModal, setShowDeleteScopeModal] = useState(false);
@@ -147,7 +148,7 @@ export function EventDetailModal({
 
   const cleanedDescription = cleanTaskDescription(event.description);
 
-  return typeof document === "undefined" ? null : createPortal((
+  return typeof document === "undefined" ? null : <DialogSurface onClose={onClose}>{(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/40 p-4"
       onWheelCapture={(event) => {
@@ -173,8 +174,8 @@ export function EventDetailModal({
     >
       <div
         ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
+
+
         aria-labelledby="calendar-event-detail-heading"
         className="relative flex max-h-[calc(100dvh-2rem)] min-w-0 w-full max-w-[460px] flex-col overflow-hidden rounded-dialog border border-border bg-card transition-all"
       >
@@ -486,5 +487,5 @@ export function EventDetailModal({
         )}
       </div>
     </div>
-  ), document.body);
+  )}</DialogSurface>;
 }

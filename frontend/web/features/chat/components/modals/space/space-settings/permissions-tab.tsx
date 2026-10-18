@@ -1,5 +1,7 @@
 import { SpaceSettingResponse } from "@/features/chat/types/chat.types";
 import { normalizeSpaceSetting } from "@/features/chat/utils/space-setting-utils";
+import { NativeCheckbox } from "@/components/ui/checkbox";
+
 
 interface PermissionsTabProps {
   isSaving: boolean;
@@ -36,14 +38,14 @@ export function PermissionsTab({
           <span className="text-sm font-semibold text-foreground">
             Allow members to create channels
           </span>
-          <input
-            type="checkbox"
+          <NativeCheckbox
+
             checked={allowMemberCreateChannel}
             disabled={isSaving}
             onChange={(event) =>
               onAllowMemberCreateChannelChange(event.target.checked)
             }
-            className="h-4 w-4 cursor-pointer accent-info disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-4 w-4 cursor-pointer accent-link disabled:cursor-not-allowed disabled:opacity-50"
           />
         </label>
 
@@ -51,14 +53,14 @@ export function PermissionsTab({
           <span className="text-sm font-semibold text-foreground">
             Allow members to delete channels they created
           </span>
-          <input
-            type="checkbox"
+          <NativeCheckbox
+
             checked={allowMemberDeleteOwnChannel}
             disabled={isSaving}
             onChange={(event) =>
               onAllowMemberDeleteOwnChannelChange(event.target.checked)
             }
-            className="h-4 w-4 cursor-pointer accent-info disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-4 w-4 cursor-pointer accent-link disabled:cursor-not-allowed disabled:opacity-50"
           />
         </label>
       </div>

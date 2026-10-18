@@ -7,6 +7,8 @@ import {
   meetingNavIconById,
 } from "../types/meeting.constants";
 import { MeetingSidebarStatsPanel } from "./meeting-sidebar-stats-panel";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingSidebarProps {
   activeItemId: MeetingDashboardNavItemId;
@@ -36,7 +38,7 @@ export function MeetingSidebar({
           const isEnabled = enabledMeetingNavItems.has(item.id);
 
           return (
-            <button
+            <Button variant="unstyled"
               key={item.id}
               type="button"
               disabled={!isEnabled}
@@ -60,7 +62,7 @@ export function MeetingSidebar({
               <span className="whitespace-nowrap">
                 {item.label}
               </span>
-            </button>
+            </Button>
           );
         })}
       </nav>

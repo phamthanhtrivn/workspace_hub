@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import { DocumentItem } from "../../types/documents.types";
 import {
   DocumentItemType,
@@ -24,6 +24,10 @@ import {
   FaTrash,
   FaPaperPlane,
 } from "react-icons/fa";
+
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 interface ItemActionsMenuProps {
   item: DocumentItem;
@@ -74,20 +78,7 @@ export function ItemActionsMenu({
 
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setActiveMenuId(null);
-      }
-    };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, setActiveMenuId]);
 
   return (
     <div className="relative" ref={menuRef}>
@@ -103,12 +94,12 @@ export function ItemActionsMenu({
       />
 
       {isOpen ? (
-        <div className="absolute right-0 z-50 mt-1.5 w-48 rounded-panel border border-border bg-card p-2 text-xs font-semibold text-foreground animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel">
+        <AnchoredMenu onClose={() => setActiveMenuId(null)} side="bottom" align="end" aria-label="Document actions" className="z-50 w-48 rounded-panel border border-border bg-card p-2 text-xs font-semibold text-foreground animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel">
           {activeView !== DocumentViewType.TRASH ? (
             <>
               {!isFolder && onPreview ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -118,12 +109,12 @@ export function ItemActionsMenu({
                 >
                   <FaEye className="h-3.5 w-3.5" />
                   <span>Preview</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
 
               {!isFolder && onDownload ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -133,12 +124,12 @@ export function ItemActionsMenu({
                 >
                   <FaDownload className="h-3.5 w-3.5 text-success-content" />
                   <span>Download</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
 
               {isFolder && onDownloadFolder ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -148,12 +139,12 @@ export function ItemActionsMenu({
                 >
                   <FaDownload className="h-3.5 w-3.5 text-success-content" />
                   <span>Download ZIP</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
 
               {!isFolder && (isOwner || isEditor) && onManageVersions ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -163,12 +154,12 @@ export function ItemActionsMenu({
                 >
                   <FaHistory className="h-3.5 w-3.5 text-info-content" />
                   <span>Manage versions</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
 
               {!isProjectDocuments && canEdit && onShare ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -178,12 +169,12 @@ export function ItemActionsMenu({
                 >
                   <FaShareAlt className="h-3.5 w-3.5 text-info-content" />
                   <span>Share</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
 
               {((isProjectDocuments && userRole !== DocumentRole.NONE) || isOwner) && onShareToChat ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -193,11 +184,11 @@ export function ItemActionsMenu({
                 >
                   <FaPaperPlane className="h-3.5 w-3.5 text-info-content" />
                   <span>Share to chat</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
 
-              <button
-                type="button"
+              <DropdownMenuItem closeOnClick={false}
+
                 onClick={(e) => {
                   e.stopPropagation();
                   setActiveMenuId(null);
@@ -207,11 +198,11 @@ export function ItemActionsMenu({
               >
                 <FaInfoCircle className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Details</span>
-              </button>
+              </DropdownMenuItem>
 
               {canEdit ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -221,12 +212,12 @@ export function ItemActionsMenu({
                 >
                   <FaEdit className="h-3.5 w-3.5 text-warning-content" />
                   <span>Rename</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
 
               {canMove ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -236,12 +227,12 @@ export function ItemActionsMenu({
                 >
                   <FaFolderOpen className="h-3.5 w-3.5 text-success-content" />
                   <span>Move</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
 
               {!isProjectDocuments && onToggleStar ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -255,12 +246,12 @@ export function ItemActionsMenu({
                     <FaRegStar className="h-3.5 w-3.5 text-warning-content" />
                   )}
                   <span>{item.isStarred ? "Unstar" : "Star"}</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
 
               {!isProjectDocuments && isOwner ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -270,12 +261,12 @@ export function ItemActionsMenu({
                 >
                   <FaTrashAlt className="h-3.5 w-3.5 text-destructive-content" />
                   <span>Move to trash</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
 
               {isProjectDocuments && canEdit && onDeletePermanently ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -285,14 +276,14 @@ export function ItemActionsMenu({
                 >
                   <FaTrash className="h-3.5 w-3.5 text-destructive-content" />
                   <span>Delete permanently</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
             </>
           ) : (
             <>
               {isOwner ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -302,12 +293,12 @@ export function ItemActionsMenu({
                 >
                   <FaUndo className="h-3.5 w-3.5 text-success-content" />
                   <span>Restore</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
 
               {isOwner && onDeletePermanently ? (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
@@ -317,11 +308,11 @@ export function ItemActionsMenu({
                 >
                   <FaTrash className="h-3.5 w-3.5 text-destructive-content" />
                   <span>Delete permanently</span>
-                </button>
+                </DropdownMenuItem>
               ) : null}
             </>
           )}
-        </div>
+        </AnchoredMenu>
       ) : null}
     </div>
   );

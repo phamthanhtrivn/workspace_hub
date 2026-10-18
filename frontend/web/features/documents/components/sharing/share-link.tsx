@@ -7,6 +7,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { LinkAccess } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Button } from "@/components/ui/button";
+
 
 interface ShareModalLinkProps {
   documentItemId: string;
@@ -101,7 +104,7 @@ export function ShareModalLink({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             {isOwner ? (
-              <select
+              <NativeSelect unstyled aria-label="Link access"
                 value={linkAccess}
                 onChange={(e) =>
                   void handleLinkAccessChange(e.target.value as LinkAccess)
@@ -113,7 +116,7 @@ export function ShareModalLink({
                     {label}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             ) : (
               <span className="text-sm font-semibold text-foreground py-0.5 px-1.5 block -ml-1.5">
                 {LINK_ACCESS_LABELS[linkAccess]}
@@ -127,7 +130,7 @@ export function ShareModalLink({
       </div>
 
       {/* Copy Link Button */}
-      <button
+      <Button variant="unstyled"
         onClick={handleCopyLink}
         className="flex items-center justify-center gap-2 w-full rounded-control bg-background hover:bg-muted border border-border hover:border-border text-foreground px-4 py-3 text-xs font-semibold transition-all cursor-pointer"
       >
@@ -142,7 +145,7 @@ export function ShareModalLink({
             <span>Copy share link</span>
           </>
         )}
-      </button>
+      </Button>
     </div>
   );
 }

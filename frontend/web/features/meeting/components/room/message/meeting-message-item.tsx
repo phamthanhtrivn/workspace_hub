@@ -16,6 +16,8 @@ import { MeetingMessageReadReceipts } from "./meeting-message-read-receipts";
 import { MeetingMessageReactions } from "./meeting-message-reactions";
 import { MESSAGE_ACTION_WINDOW_MS, QUICK_REACTIONS } from "@/features/meeting/types/meeting.constants";
 import { MeetingIconButton } from "../../ui/meeting-icon-button";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingMessageItemProps {
   message: MeetingMessageResponse;
@@ -77,7 +79,7 @@ export function MeetingMessageItem({
       {!isMe && (
         <div className="w-8 shrink-0">
           {showAvatar && (
-            <button
+            <Button variant="unstyled"
               type="button"
               className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-muted-foreground ring-1 ring-border/10"
               title={senderName}
@@ -96,7 +98,7 @@ export function MeetingMessageItem({
                   iconClassName="h-4 w-4 text-muted-foreground"
                 />
               )}
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -192,14 +194,14 @@ export function MeetingMessageItem({
                   )}
                 >
                   {QUICK_REACTIONS.map((emoji) => (
-                    <button
+                    <Button variant="unstyled"
                       key={emoji}
                       type="button"
                       onClick={() => handleQuickReaction(emoji)}
                       className="grid h-7 w-7 cursor-pointer place-items-center rounded-full text-base transition hover:bg-accent"
                     >
                       {emoji}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}

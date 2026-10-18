@@ -1,8 +1,11 @@
-import { createPortal } from "react-dom";
-import React, { useEffect, useRef } from "react";
+
+import React, { useRef } from "react";
 import { Edit2, Pin, Trash2 } from "lucide-react";
 
-const MENU_WIDTH_PX = 180;
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
+
 const VIEWPORT_GAP_PX = 12;
 
 interface MessageOptionsDropdownProps {
@@ -32,55 +35,15 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, onClose]);
 
   if (!isOpen || !buttonRect) return null;
 
-  const getStyle = (): React.CSSProperties => {
-    const style: React.CSSProperties = {
-      left: Math.max(
-        VIEWPORT_GAP_PX,
-        Math.min(
-          isMe ? buttonRect.right + VIEWPORT_GAP_PX : buttonRect.left,
-          window.innerWidth - MENU_WIDTH_PX - VIEWPORT_GAP_PX,
-        ),
-      ),
-      transform: "none",
-    };
 
-    if (buttonRect.bottom > window.innerHeight / 2) {
-      // Open upwards
-      style.bottom = window.innerHeight - buttonRect.top + VIEWPORT_GAP_PX;
-      style.maxHeight = Math.max(0, buttonRect.top - VIEWPORT_GAP_PX * 2);
-    } else {
-      // Open downwards
-      style.top = buttonRect.bottom + VIEWPORT_GAP_PX;
-      style.maxHeight = Math.max(0, window.innerHeight - buttonRect.bottom - VIEWPORT_GAP_PX * 2);
-    }
-    return style;
-  };
 
-  return typeof document === "undefined" ? null : createPortal((
-    <div
-      ref={menuRef}
-      className="fixed z-50 w-[180px] max-w-[calc(100vw-1.5rem)] overflow-y-auto bg-card border border-border rounded-panel py-1 text-sm text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel"
-      style={getStyle()}
-    >
+  return typeof document === "undefined" ? null : <AnchoredMenu ref={menuRef} onClose={onClose} anchorRect={buttonRect} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="start" alignOffset={isMe ? buttonRect.width + VIEWPORT_GAP_PX : 0} className="z-50 w-[180px] max-w-[calc(100vw-1.5rem)] overflow-y-auto bg-card border border-border rounded-panel py-1 text-sm text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel">
       {isMe && canEdit && (
-        <button
+        <DropdownMenuItem closeOnClick={false}
           onClick={() => {
             onEdit?.();
             onClose();
@@ -89,10 +52,10 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
         >
           <Edit2 size={16} />
           <span>Edit message</span>
-        </button>
+        </DropdownMenuItem>
       )}
 
-      <button
+      <DropdownMenuItem closeOnClick={false}
         onClick={() => {
           onPin?.();
           onClose();
@@ -103,12 +66,12 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
         <span>
           {isPinned ? "Unpin message" : "Pin message"}
         </span>
-      </button>
+      </DropdownMenuItem>
 
       {isMe && canRecall && (
         <>
           <div className="h-px bg-muted my-1 mx-2" />
-          <button
+          <DropdownMenuItem closeOnClick={false}
             onClick={() => {
               onRecall?.();
               onClose();
@@ -117,9 +80,8 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
           >
             <Trash2 size={16} />
             <span>Recall message</span>
-          </button>
+          </DropdownMenuItem>
         </>
       )}
-    </div>
-  ), document.body);
+    </AnchoredMenu>;
 };

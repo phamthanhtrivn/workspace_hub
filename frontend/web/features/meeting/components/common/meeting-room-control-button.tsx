@@ -8,6 +8,8 @@ import {
   MIN_VISIBLE_BADGE_COUNT,
   OVERFLOW_BADGE_LABEL,
 } from "../../types/meeting.constants";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingRoomControlButtonProps {
   label: string;
@@ -33,7 +35,7 @@ export function MeetingRoomControlButton({
     badgeCount > MAX_BADGE_COUNT ? OVERFLOW_BADGE_LABEL : String(badgeCount);
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={onClick}
       disabled={disabled}
@@ -53,6 +55,6 @@ export function MeetingRoomControlButton({
       ) : null}
       <Icon className="h-5 w-5" />
       <span className="max-w-full truncate px-1">{label}</span>
-    </button>
+    </Button>
   );
 }

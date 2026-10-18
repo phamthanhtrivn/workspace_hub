@@ -4,6 +4,487 @@ Updated 2026-10-18. This records the approved targeted simplification. Inter, wo
 
 The original inventory contains **417 TSX files** across **687 source files**. Every TSX file is listed below: **328 change**, **70 keep**, and **19 functional/content exception**. An exception may include changes to surrounding interface styling. Shared focus logic is listed separately. The added tests, temporary scripts, Playwright setup, and generated test reports were subsequently removed at the user's request; the verification results below are historical.
 
+<!-- shared-base-ui:start -->
+## Shared base UI consolidation - 2026-10-18
+
+Preserves the approved layout, navy/neutral themes, native form/ref/event contracts, custom colors, permissions and feature state. Scope includes workspace modules, shared navigation, authentication and public document pages.
+
+- Migration baseline: 415 TSX sources, including 25 owned UI files. Replaced 363 native buttons, 26 ordinary inputs, 11 checkboxes, one radio, four textareas and eight selects outside the shared layer. Four application tables and their row/cell renderers now compose the owned Table family. Native adapters retain browser ChangeEvent/ref/peer semantics; the styled Radix controls remain available.
+- Compatibility styling: Button variant=unstyled and the unstyled Input/Textarea/Table/TabsTrigger options retain existing feature classes and SVG dimensions while centralizing interaction semantics. Domain wrappers remain where they add meaning; repeated search and document icon-button implementations compose SearchInput/IconButton.
+- Added owned DropdownMenu, ContextMenu, Combobox, RadioGroup, Sheet/SheetPanel, Avatar, Progress, IconButton, SearchInput and NativeSelect. Controlled row/editor menus use AnchoredMenu/AnchoredPopover adapters backed by existing dependencies. Remote share and location suggestions use Combobox without changing lookup/debounce/submission logic. No dependency or package manifest changes.
+- DialogSurface owns portals and the modal lifecycle for existing custom compositions; normal dialogs use DialogContent. Removed duplicate feature modal hooks. AlertDialog has alertdialog semantics. Tooltip uses the installed primitive for trigger association, focus/hover and portal positioning. Dialog focus trapping recognizes menu/combobox/popover portals and avoids restoring focus over a newly opened modal.
+- Project task details use Sheet. Calendar's hybrid drawer uses SheetPanel: container-query positioning stays in-flow, while a ResizeObserver on the actual calendar canvas enables modal focus/scroll handling below 1040px. True detail/list panels use Tabs; project/notification filters and view-mode/form-kind switches remain button groups. CustomTabs keeps its existing API/name as a filter-group compatibility wrapper.
+- The local ESLint shared-ui rule blocks native base controls, direct vendor-primitive imports and createPortal imports outside the owned UI layer. Exceptions are nine hidden file inputs and the OTP cell input. Semantic labels, links, layout/content, browser media, rich-text/mention behavior, the functional timer ring, drag/virtualized structures, and library-generated FullCalendar/Recharts/LiveKit/emoji DOM are not replaced with decorative wrappers.
+- Validation: TypeScript passed with noEmit and incremental disabled after resolving adapter integration errors. ESLint checked 198 changed/new TS/TSX/MJS files: 151 existing errors and 51 existing warnings, zero added diagnostics against HEAD after normalizing diagnostic locations; zero shared-ui boundary violations. A focused scan of shared components returned no detector findings; in-memory policy checks confirmed raw buttons are rejected and hidden file inputs are allowed. Source inventory found zero unclassified native base controls or feature createPortal imports.
+- Browser inventory returned no apps/browsers. Runtime desktop/mobile, theme, keyboard, touch, drag-and-drop, upload and device checks could not run. Source coverage is not rendered-state certification. No test suite, packages, server, temporary test files or cache setup were added.
+
+### Current source coverage
+
+All 426 current TSX files are classified below: 36 owned UI, 263 direct consumers, 73 consumers through composition, and 54 content/layout/provider sources. Import-graph classification documents ownership; it does not assert every branch was rendered. The 10 allowed native inputs are listed separately.
+
+| Module | TSX files | Owned UI | Direct | Composed | Content/layout/provider |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| app | 27 | 0 | 3 | 15 | 9 |
+| components | 43 | 36 | 5 | 0 | 2 |
+| auth | 4 | 0 | 4 | 0 | 0 |
+| calendar | 35 | 0 | 30 | 4 | 1 |
+| chat | 90 | 0 | 72 | 9 | 9 |
+| dashboard | 12 | 0 | 6 | 4 | 2 |
+| documents | 39 | 0 | 27 | 5 | 7 |
+| meeting | 71 | 0 | 34 | 29 | 8 |
+| notification | 16 | 0 | 10 | 0 | 6 |
+| pomodoro | 28 | 0 | 26 | 0 | 2 |
+| project | 51 | 0 | 37 | 7 | 7 |
+| user-setting | 10 | 0 | 9 | 0 | 1 |
+
+### Explicit native-input exceptions
+
+| Source | Reason |
+| --- | --- |
+| [features/calendar/components/modal/calendar-documents-section.tsx:123](../frontend/web/features/calendar/components/modal/calendar-documents-section.tsx#L123) | Hidden native file picker |
+| [features/chat/components/input/channel-chat-input.tsx:805](../frontend/web/features/chat/components/input/channel-chat-input.tsx#L805) | Hidden native file picker |
+| [features/chat/components/input/direct-message-input.tsx:595](../frontend/web/features/chat/components/input/direct-message-input.tsx#L595) | Hidden native file picker |
+| [features/chat/components/input/thread-chat-input.tsx:659](../frontend/web/features/chat/components/input/thread-chat-input.tsx#L659) | Hidden native file picker |
+| [features/documents/components/explorer/explorer-toolbar.tsx:152](../frontend/web/features/documents/components/explorer/explorer-toolbar.tsx#L152) | Hidden native file picker |
+| [features/documents/components/versions/version-uploader.tsx:35](../frontend/web/features/documents/components/versions/version-uploader.tsx#L35) | Hidden native file picker |
+| [features/meeting/components/room/message/meeting-message-input.tsx:289](../frontend/web/features/meeting/components/room/message/meeting-message-input.tsx#L289) | Hidden native file picker |
+| [features/project/components/task-detail/task-documents-section.tsx:156](../frontend/web/features/project/components/task-detail/task-documents-section.tsx#L156) | Hidden native file picker |
+| [features/user-setting/components/profile-tab.tsx:154](../frontend/web/features/user-setting/components/profile-tab.tsx#L154) | Hidden native file picker |
+| [components/common/otp-input.tsx:86](../frontend/web/components/common/otp-input.tsx#L86) | OTP cell selection/paste/focus contract |
+
+### Component inventory
+
+| Source | Ownership | Disposition |
+| --- | --- | --- |
+| [app/(auth)/forgot-password/page.tsx](../frontend/web/app/(auth)/forgot-password/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(auth)/layout.tsx](../frontend/web/app/(auth)/layout.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [app/(auth)/login/page.tsx](../frontend/web/app/(auth)/login/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(auth)/register/page.tsx](../frontend/web/app/(auth)/register/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(public)/documents/shared/[id]/components/shared-denied.tsx](../frontend/web/app/(public)/documents/shared/[id]/components/shared-denied.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [app/(public)/documents/shared/[id]/components/shared-details.tsx](../frontend/web/app/(public)/documents/shared/[id]/components/shared-details.tsx) | direct | Imports shared UI |
+| [app/(public)/documents/shared/[id]/components/shared-folder-browser.tsx](../frontend/web/app/(public)/documents/shared/[id]/components/shared-folder-browser.tsx) | direct | Imports shared UI |
+| [app/(public)/documents/shared/[id]/components/shared-header.tsx](../frontend/web/app/(public)/documents/shared/[id]/components/shared-header.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [app/(public)/documents/shared/[id]/components/shared-preview.tsx](../frontend/web/app/(public)/documents/shared/[id]/components/shared-preview.tsx) | composed | Composes a shared-UI consumer |
+| [app/(public)/documents/shared/[id]/page.tsx](../frontend/web/app/(public)/documents/shared/[id]/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(public)/layout.tsx](../frontend/web/app/(public)/layout.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [app/(public)/page.tsx](../frontend/web/app/(public)/page.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [app/(workspace)/ai/page.tsx](../frontend/web/app/(workspace)/ai/page.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [app/(workspace)/calendar/page.tsx](../frontend/web/app/(workspace)/calendar/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(workspace)/chat/page.tsx](../frontend/web/app/(workspace)/chat/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(workspace)/dashboard/page.tsx](../frontend/web/app/(workspace)/dashboard/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(workspace)/documents/page.tsx](../frontend/web/app/(workspace)/documents/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(workspace)/layout.tsx](../frontend/web/app/(workspace)/layout.tsx) | composed | Composes a shared-UI consumer |
+| [app/(workspace)/meetings/[joinToken]/page.tsx](../frontend/web/app/(workspace)/meetings/[joinToken]/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(workspace)/meetings/page.tsx](../frontend/web/app/(workspace)/meetings/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(workspace)/pomodoro/page.tsx](../frontend/web/app/(workspace)/pomodoro/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(workspace)/projects/[id]/page.tsx](../frontend/web/app/(workspace)/projects/[id]/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(workspace)/projects/invitations/page.tsx](../frontend/web/app/(workspace)/projects/invitations/page.tsx) | composed | Composes a shared-UI consumer |
+| [app/(workspace)/projects/layout.tsx](../frontend/web/app/(workspace)/projects/layout.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [app/(workspace)/projects/page.tsx](../frontend/web/app/(workspace)/projects/page.tsx) | direct | Imports shared UI |
+| [app/(workspace)/tasks/page.tsx](../frontend/web/app/(workspace)/tasks/page.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [app/layout.tsx](../frontend/web/app/layout.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [components/common/input-field.tsx](../frontend/web/components/common/input-field.tsx) | direct | Imports shared UI |
+| [components/common/notification-dropdown.tsx](../frontend/web/components/common/notification-dropdown.tsx) | direct | Imports shared UI |
+| [components/common/otp-input.tsx](../frontend/web/components/common/otp-input.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls; OTP cell selection/paste/focus contract |
+| [components/common/theme-provider.tsx](../frontend/web/components/common/theme-provider.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [components/common/user-profile-dropdown.tsx](../frontend/web/components/common/user-profile-dropdown.tsx) | direct | Imports shared UI |
+| [components/layout/workspace-header.tsx](../frontend/web/components/layout/workspace-header.tsx) | direct | Imports shared UI |
+| [components/layout/workspace-shell.tsx](../frontend/web/components/layout/workspace-shell.tsx) | direct | Imports shared UI |
+| [components/ui/alert-dialog.tsx](../frontend/web/components/ui/alert-dialog.tsx) | core | Owned primitive/adapter |
+| [components/ui/anchored-popup.tsx](../frontend/web/components/ui/anchored-popup.tsx) | core | Owned primitive/adapter |
+| [components/ui/avatar.tsx](../frontend/web/components/ui/avatar.tsx) | core | Owned primitive/adapter |
+| [components/ui/badge.tsx](../frontend/web/components/ui/badge.tsx) | core | Owned primitive/adapter |
+| [components/ui/breadcrumb.tsx](../frontend/web/components/ui/breadcrumb.tsx) | core | Owned primitive/adapter |
+| [components/ui/button.tsx](../frontend/web/components/ui/button.tsx) | core | Owned primitive/adapter |
+| [components/ui/card.tsx](../frontend/web/components/ui/card.tsx) | core | Owned primitive/adapter |
+| [components/ui/checkbox.tsx](../frontend/web/components/ui/checkbox.tsx) | core | Owned primitive/adapter |
+| [components/ui/combobox.tsx](../frontend/web/components/ui/combobox.tsx) | core | Owned primitive/adapter |
+| [components/ui/context-menu.tsx](../frontend/web/components/ui/context-menu.tsx) | core | Owned primitive/adapter |
+| [components/ui/custom/custom-badge.tsx](../frontend/web/components/ui/custom/custom-badge.tsx) | core | Owned primitive/adapter |
+| [components/ui/custom/custom-checkbox.tsx](../frontend/web/components/ui/custom/custom-checkbox.tsx) | core | Owned primitive/adapter |
+| [components/ui/custom/custom-date-range.tsx](../frontend/web/components/ui/custom/custom-date-range.tsx) | core | Owned primitive/adapter |
+| [components/ui/custom/custom-select.tsx](../frontend/web/components/ui/custom/custom-select.tsx) | core | Owned primitive/adapter |
+| [components/ui/custom/custom-tabs.tsx](../frontend/web/components/ui/custom/custom-tabs.tsx) | core | Owned primitive/adapter |
+| [components/ui/custom/custom-tag.tsx](../frontend/web/components/ui/custom/custom-tag.tsx) | core | Owned primitive/adapter |
+| [components/ui/custom/simple-pagination.tsx](../frontend/web/components/ui/custom/simple-pagination.tsx) | core | Owned primitive/adapter |
+| [components/ui/dialog.tsx](../frontend/web/components/ui/dialog.tsx) | core | Owned primitive/adapter |
+| [components/ui/dropdown-menu.tsx](../frontend/web/components/ui/dropdown-menu.tsx) | core | Owned primitive/adapter |
+| [components/ui/icon-button.tsx](../frontend/web/components/ui/icon-button.tsx) | core | Owned primitive/adapter |
+| [components/ui/input.tsx](../frontend/web/components/ui/input.tsx) | core | Owned primitive/adapter |
+| [components/ui/native-select.tsx](../frontend/web/components/ui/native-select.tsx) | core | Owned primitive/adapter |
+| [components/ui/popover.tsx](../frontend/web/components/ui/popover.tsx) | core | Owned primitive/adapter |
+| [components/ui/progress.tsx](../frontend/web/components/ui/progress.tsx) | core | Owned primitive/adapter |
+| [components/ui/radio-group.tsx](../frontend/web/components/ui/radio-group.tsx) | core | Owned primitive/adapter |
+| [components/ui/search-input.tsx](../frontend/web/components/ui/search-input.tsx) | core | Owned primitive/adapter |
+| [components/ui/select.tsx](../frontend/web/components/ui/select.tsx) | core | Owned primitive/adapter |
+| [components/ui/separator.tsx](../frontend/web/components/ui/separator.tsx) | core | Owned primitive/adapter |
+| [components/ui/sheet.tsx](../frontend/web/components/ui/sheet.tsx) | core | Owned primitive/adapter |
+| [components/ui/skeleton.tsx](../frontend/web/components/ui/skeleton.tsx) | core | Owned primitive/adapter |
+| [components/ui/slider.tsx](../frontend/web/components/ui/slider.tsx) | core | Owned primitive/adapter |
+| [components/ui/switch.tsx](../frontend/web/components/ui/switch.tsx) | core | Owned primitive/adapter |
+| [components/ui/table.tsx](../frontend/web/components/ui/table.tsx) | core | Owned primitive/adapter |
+| [components/ui/tabs.tsx](../frontend/web/components/ui/tabs.tsx) | core | Owned primitive/adapter |
+| [components/ui/textarea.tsx](../frontend/web/components/ui/textarea.tsx) | core | Owned primitive/adapter |
+| [components/ui/tooltip.tsx](../frontend/web/components/ui/tooltip.tsx) | core | Owned primitive/adapter |
+| [features/auth/components/forgot-password-form.tsx](../frontend/web/features/auth/components/forgot-password-form.tsx) | direct | Imports shared UI |
+| [features/auth/components/login-form.tsx](../frontend/web/features/auth/components/login-form.tsx) | direct | Imports shared UI |
+| [features/auth/components/register-form.tsx](../frontend/web/features/auth/components/register-form.tsx) | direct | Imports shared UI |
+| [features/auth/components/social-login-buttons.tsx](../frontend/web/features/auth/components/social-login-buttons.tsx) | direct | Imports shared UI |
+| [features/calendar/components/drawer/calendar-task-list.tsx](../frontend/web/features/calendar/components/drawer/calendar-task-list.tsx) | direct | Imports shared UI |
+| [features/calendar/components/drawer/calendar-tasks-drawer.tsx](../frontend/web/features/calendar/components/drawer/calendar-tasks-drawer.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/attachment-editor.tsx](../frontend/web/features/calendar/components/modal/attachment-editor.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/calendar-conference-card.tsx](../frontend/web/features/calendar/components/modal/calendar-conference-card.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/calendar-document-picker-dialog.tsx](../frontend/web/features/calendar/components/modal/calendar-document-picker-dialog.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/calendar-documents-section.tsx](../frontend/web/features/calendar/components/modal/calendar-documents-section.tsx) | direct | Imports shared UI; Hidden native file picker |
+| [features/calendar/components/modal/calendar-modal.tsx](../frontend/web/features/calendar/components/modal/calendar-modal.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/calendar-select.tsx](../frontend/web/features/calendar/components/modal/calendar-select.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/calendar-task-deadline-fields.tsx](../frontend/web/features/calendar/components/modal/calendar-task-deadline-fields.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/calendar-time-fields.tsx](../frontend/web/features/calendar/components/modal/calendar-time-fields.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/custom-recurrence-modal.tsx](../frontend/web/features/calendar/components/modal/custom-recurrence-modal.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/delete-calendar-modal.tsx](../frontend/web/features/calendar/components/modal/delete-calendar-modal.tsx) | composed | Composes a shared-UI consumer |
+| [features/calendar/components/modal/event-attendee-list.tsx](../frontend/web/features/calendar/components/modal/event-attendee-list.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/calendar/components/modal/event-detail-modal.tsx](../frontend/web/features/calendar/components/modal/event-detail-modal.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/event-form-modal.tsx](../frontend/web/features/calendar/components/modal/event-form-modal.tsx) | composed | Composes a shared-UI consumer |
+| [features/calendar/components/modal/location-picker-input.tsx](../frontend/web/features/calendar/components/modal/location-picker-input.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/project-task-detail-modal.tsx](../frontend/web/features/calendar/components/modal/project-task-detail-modal.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/quick-create-event-fields.tsx](../frontend/web/features/calendar/components/modal/quick-create-event-fields.tsx) | composed | Composes a shared-UI consumer |
+| [features/calendar/components/modal/quick-create-modal.tsx](../frontend/web/features/calendar/components/modal/quick-create-modal.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/quick-create-time-section.tsx](../frontend/web/features/calendar/components/modal/quick-create-time-section.tsx) | composed | Composes a shared-UI consumer |
+| [features/calendar/components/modal/recurrence-scope-modal.tsx](../frontend/web/features/calendar/components/modal/recurrence-scope-modal.tsx) | direct | Imports shared UI |
+| [features/calendar/components/modal/reminder-editor.tsx](../frontend/web/features/calendar/components/modal/reminder-editor.tsx) | direct | Imports shared UI |
+| [features/calendar/components/sidebar/calendar-color-popover.tsx](../frontend/web/features/calendar/components/sidebar/calendar-color-popover.tsx) | direct | Imports shared UI |
+| [features/calendar/components/sidebar/calendar-list-item.tsx](../frontend/web/features/calendar/components/sidebar/calendar-list-item.tsx) | direct | Imports shared UI |
+| [features/calendar/components/sidebar/calendar-sidebar.tsx](../frontend/web/features/calendar/components/sidebar/calendar-sidebar.tsx) | direct | Imports shared UI |
+| [features/calendar/components/sidebar/calendar-style-fields.tsx](../frontend/web/features/calendar/components/sidebar/calendar-style-fields.tsx) | direct | Imports shared UI |
+| [features/calendar/components/sidebar/mini-calendar.tsx](../frontend/web/features/calendar/components/sidebar/mini-calendar.tsx) | direct | Imports shared UI |
+| [features/calendar/components/sidebar/project-calendars-section.tsx](../frontend/web/features/calendar/components/sidebar/project-calendars-section.tsx) | direct | Imports shared UI |
+| [features/calendar/components/sidebar/tasks-calendar-list-item.tsx](../frontend/web/features/calendar/components/sidebar/tasks-calendar-list-item.tsx) | direct | Imports shared UI |
+| [features/calendar/components/toolbar/calendar-toolbar.tsx](../frontend/web/features/calendar/components/toolbar/calendar-toolbar.tsx) | direct | Imports shared UI |
+| [features/calendar/components/ui/calendar-confirm-dialog.tsx](../frontend/web/features/calendar/components/ui/calendar-confirm-dialog.tsx) | direct | Imports shared UI |
+| [features/calendar/components/ui/calendar-radio-group.tsx](../frontend/web/features/calendar/components/ui/calendar-radio-group.tsx) | direct | Imports shared UI |
+| [features/calendar/components/workspace/attendee-picker.tsx](../frontend/web/features/calendar/components/workspace/attendee-picker.tsx) | direct | Imports shared UI |
+| [features/calendar/components/workspace/calendar-grid.tsx](../frontend/web/features/calendar/components/workspace/calendar-grid.tsx) | direct | Imports shared UI |
+| [features/calendar/components/workspace/calendar-workspace.tsx](../frontend/web/features/calendar/components/workspace/calendar-workspace.tsx) | direct | Imports shared UI |
+| [features/chat/components/chat-area/chat-area.tsx](../frontend/web/features/chat/components/chat-area/chat-area.tsx) | composed | Composes a shared-UI consumer |
+| [features/chat/components/chat-area/editing-banner.tsx](../frontend/web/features/chat/components/chat-area/editing-banner.tsx) | direct | Imports shared UI |
+| [features/chat/components/chat-area/jump-to-recent-banner.tsx](../frontend/web/features/chat/components/chat-area/jump-to-recent-banner.tsx) | direct | Imports shared UI |
+| [features/chat/components/chat-layout.tsx](../frontend/web/features/chat/components/chat-layout.tsx) | composed | Composes a shared-UI consumer |
+| [features/chat/components/header/channel-chat-header.tsx](../frontend/web/features/chat/components/header/channel-chat-header.tsx) | direct | Imports shared UI |
+| [features/chat/components/header/chat-header.tsx](../frontend/web/features/chat/components/header/chat-header.tsx) | composed | Composes a shared-UI consumer |
+| [features/chat/components/header/direct-conversation-header.tsx](../frontend/web/features/chat/components/header/direct-conversation-header.tsx) | direct | Imports shared UI |
+| [features/chat/components/input/channel-chat-input.tsx](../frontend/web/features/chat/components/input/channel-chat-input.tsx) | direct | Imports shared UI; Hidden native file picker |
+| [features/chat/components/input/direct-message-input.tsx](../frontend/web/features/chat/components/input/direct-message-input.tsx) | direct | Imports shared UI; Hidden native file picker |
+| [features/chat/components/input/emoji-picker-popover.tsx](../frontend/web/features/chat/components/input/emoji-picker-popover.tsx) | direct | Imports shared UI |
+| [features/chat/components/input/mention-dropdown.tsx](../frontend/web/features/chat/components/input/mention-dropdown.tsx) | direct | Imports shared UI |
+| [features/chat/components/input/rich-text-textarea.tsx](../frontend/web/features/chat/components/input/rich-text-textarea.tsx) | direct | Imports shared UI |
+| [features/chat/components/input/thread-chat-input.tsx](../frontend/web/features/chat/components/input/thread-chat-input.tsx) | direct | Imports shared UI; Hidden native file picker |
+| [features/chat/components/message/chat-message.tsx](../frontend/web/features/chat/components/message/chat-message.tsx) | direct | Imports shared UI |
+| [features/chat/components/message/document-message.tsx](../frontend/web/features/chat/components/message/document-message.tsx) | direct | Imports shared UI |
+| [features/chat/components/message/media-lightbox.tsx](../frontend/web/features/chat/components/message/media-lightbox.tsx) | direct | Imports shared UI |
+| [features/chat/components/message/meeting-card-message.tsx](../frontend/web/features/chat/components/message/meeting-card-message.tsx) | direct | Imports shared UI |
+| [features/chat/components/message/message-attachments.tsx](../frontend/web/features/chat/components/message/message-attachments.tsx) | direct | Imports shared UI |
+| [features/chat/components/message/message-avatar.tsx](../frontend/web/features/chat/components/message/message-avatar.tsx) | direct | Imports shared UI |
+| [features/chat/components/message/message-list.tsx](../frontend/web/features/chat/components/message/message-list.tsx) | composed | Composes a shared-UI consumer |
+| [features/chat/components/message/message-options-dropdown.tsx](../frontend/web/features/chat/components/message/message-options-dropdown.tsx) | direct | Imports shared UI |
+| [features/chat/components/message/message-reactions.tsx](../frontend/web/features/chat/components/message/message-reactions.tsx) | direct | Imports shared UI |
+| [features/chat/components/message/message-read-receipts.tsx](../frontend/web/features/chat/components/message/message-read-receipts.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/chat/components/message/note-message.tsx](../frontend/web/features/chat/components/message/note-message.tsx) | direct | Imports shared UI |
+| [features/chat/components/message/poll-message.tsx](../frontend/web/features/chat/components/message/poll-message.tsx) | direct | Imports shared UI |
+| [features/chat/components/message/task-card-message.tsx](../frontend/web/features/chat/components/message/task-card-message.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/chat/components/message/time-divider.tsx](../frontend/web/features/chat/components/message/time-divider.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/chat/components/message/typing-indicator.tsx](../frontend/web/features/chat/components/message/typing-indicator.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/chat/components/modals/channel/browse-channels-modal.tsx](../frontend/web/features/chat/components/modals/channel/browse-channels-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/channel/channel-member-row.tsx](../frontend/web/features/chat/components/modals/channel/channel-member-row.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/channel/channel-members-list.tsx](../frontend/web/features/chat/components/modals/channel/channel-members-list.tsx) | composed | Composes a shared-UI consumer |
+| [features/chat/components/modals/channel/channel-members-modal.tsx](../frontend/web/features/chat/components/modals/channel/channel-members-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/channel/channel-settings-modal.tsx](../frontend/web/features/chat/components/modals/channel/channel-settings-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/channel/create-channel-modal.tsx](../frontend/web/features/chat/components/modals/channel/create-channel-modal.tsx) | composed | Composes a shared-UI consumer |
+| [features/chat/components/modals/message/create-note-modal.tsx](../frontend/web/features/chat/components/modals/message/create-note-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/message/create-poll-modal.tsx](../frontend/web/features/chat/components/modals/message/create-poll-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/message/edit-note-modal.tsx](../frontend/web/features/chat/components/modals/message/edit-note-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/message/edit-poll-modal.tsx](../frontend/web/features/chat/components/modals/message/edit-poll-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/message/poll-voters-modal.tsx](../frontend/web/features/chat/components/modals/message/poll-voters-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/message/reaction-detail-modal.tsx](../frontend/web/features/chat/components/modals/message/reaction-detail-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/message/view-note-modal.tsx](../frontend/web/features/chat/components/modals/message/view-note-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/message/view-poll-modal.tsx](../frontend/web/features/chat/components/modals/message/view-poll-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/shared/my-files-select-modal.tsx](../frontend/web/features/chat/components/modals/shared/my-files-select-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/shared/search-user-modal.tsx](../frontend/web/features/chat/components/modals/shared/search-user-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/shared/user-profile-modal.tsx](../frontend/web/features/chat/components/modals/shared/user-profile-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/space/create-space-modal.tsx](../frontend/web/features/chat/components/modals/space/create-space-modal.tsx) | composed | Composes a shared-UI consumer |
+| [features/chat/components/modals/space/invite-space-members-modal.tsx](../frontend/web/features/chat/components/modals/space/invite-space-members-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/space/manage-members-modal.tsx](../frontend/web/features/chat/components/modals/space/manage-members-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/space/space-settings-modal.tsx](../frontend/web/features/chat/components/modals/space/space-settings-modal.tsx) | composed | Composes a shared-UI consumer |
+| [features/chat/components/modals/space/space-settings/danger-zone-tab.tsx](../frontend/web/features/chat/components/modals/space/space-settings/danger-zone-tab.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/space/space-settings/invitations-tab.tsx](../frontend/web/features/chat/components/modals/space/space-settings/invitations-tab.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/space/space-settings/members-tab.tsx](../frontend/web/features/chat/components/modals/space/space-settings/members-tab.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/space/space-settings/overview-tab.tsx](../frontend/web/features/chat/components/modals/space/space-settings/overview-tab.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/space/space-settings/permissions-tab.tsx](../frontend/web/features/chat/components/modals/space/space-settings/permissions-tab.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/space/space-settings/space-settings-modal.tsx](../frontend/web/features/chat/components/modals/space/space-settings/space-settings-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/modals/start-meeting-confirm-modal.tsx](../frontend/web/features/chat/components/modals/start-meeting-confirm-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/channel/channel-actions-section.tsx](../frontend/web/features/chat/components/right-panel/channel/channel-actions-section.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/channel/channel-right-panel.tsx](../frontend/web/features/chat/components/right-panel/channel/channel-right-panel.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/channel/channel-settings-section.tsx](../frontend/web/features/chat/components/right-panel/channel/channel-settings-section.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/chat-right-panel.tsx](../frontend/web/features/chat/components/right-panel/chat-right-panel.tsx) | composed | Composes a shared-UI consumer |
+| [features/chat/components/right-panel/direct-message/direct-message-right-panel.tsx](../frontend/web/features/chat/components/right-panel/direct-message/direct-message-right-panel.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/files/files-section.tsx](../frontend/web/features/chat/components/right-panel/files/files-section.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/files/media-detail-view.tsx](../frontend/web/features/chat/components/right-panel/files/media-detail-view.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/notes/note-detail-view.tsx](../frontend/web/features/chat/components/right-panel/notes/note-detail-view.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/notes/notes-section.tsx](../frontend/web/features/chat/components/right-panel/notes/notes-section.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/pinned-messages/pinned-messages-detail-view.tsx](../frontend/web/features/chat/components/right-panel/pinned-messages/pinned-messages-detail-view.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/pinned-messages/pinned-messages-section.tsx](../frontend/web/features/chat/components/right-panel/pinned-messages/pinned-messages-section.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/polls/poll-detail-view.tsx](../frontend/web/features/chat/components/right-panel/polls/poll-detail-view.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/polls/polls-section.tsx](../frontend/web/features/chat/components/right-panel/polls/polls-section.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/search/search-messages-section.tsx](../frontend/web/features/chat/components/right-panel/search/search-messages-section.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/search/search-result-item.tsx](../frontend/web/features/chat/components/right-panel/search/search-result-item.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/chat/components/right-panel/see-all-button.tsx](../frontend/web/features/chat/components/right-panel/see-all-button.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/thread/thread-detail-view.tsx](../frontend/web/features/chat/components/right-panel/thread/thread-detail-view.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/thread/thread-side-panel.tsx](../frontend/web/features/chat/components/right-panel/thread/thread-side-panel.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/thread/thread-snippet-preview.tsx](../frontend/web/features/chat/components/right-panel/thread/thread-snippet-preview.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/chat/components/right-panel/thread/threads-list-view.tsx](../frontend/web/features/chat/components/right-panel/thread/threads-list-view.tsx) | direct | Imports shared UI |
+| [features/chat/components/right-panel/thread/threads-section.tsx](../frontend/web/features/chat/components/right-panel/thread/threads-section.tsx) | direct | Imports shared UI |
+| [features/chat/components/sidebar/channel-item.tsx](../frontend/web/features/chat/components/sidebar/channel-item.tsx) | direct | Imports shared UI |
+| [features/chat/components/sidebar/chat-sidebar.tsx](../frontend/web/features/chat/components/sidebar/chat-sidebar.tsx) | direct | Imports shared UI |
+| [features/chat/components/sidebar/direct-conversation-item.tsx](../frontend/web/features/chat/components/sidebar/direct-conversation-item.tsx) | direct | Imports shared UI |
+| [features/chat/components/sidebar/direct-conversations-section.tsx](../frontend/web/features/chat/components/sidebar/direct-conversations-section.tsx) | direct | Imports shared UI |
+| [features/chat/components/sidebar/followed-threads-modal.tsx](../frontend/web/features/chat/components/sidebar/followed-threads-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/ui/chat-confirm-dialog.tsx](../frontend/web/features/chat/components/ui/chat-confirm-dialog.tsx) | direct | Imports shared UI |
+| [features/chat/components/ui/chat-empty-state.tsx](../frontend/web/features/chat/components/ui/chat-empty-state.tsx) | direct | Imports shared UI |
+| [features/chat/components/ui/chat-form-controls.tsx](../frontend/web/features/chat/components/ui/chat-form-controls.tsx) | direct | Imports shared UI |
+| [features/chat/components/ui/chat-input-modal.tsx](../frontend/web/features/chat/components/ui/chat-input-modal.tsx) | direct | Imports shared UI |
+| [features/chat/components/ui/chat-loading-state.tsx](../frontend/web/features/chat/components/ui/chat-loading-state.tsx) | direct | Imports shared UI |
+| [features/chat/utils/document-utils.tsx](../frontend/web/features/chat/utils/document-utils.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/chat/utils/media-utils.tsx](../frontend/web/features/chat/utils/media-utils.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/chat/utils/message-formatter.tsx](../frontend/web/features/chat/utils/message-formatter.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/dashboard/components/dashboard-extras.tsx](../frontend/web/features/dashboard/components/dashboard-extras.tsx) | direct | Imports shared UI |
+| [features/dashboard/components/dashboard-focus.tsx](../frontend/web/features/dashboard/components/dashboard-focus.tsx) | composed | Composes a shared-UI consumer |
+| [features/dashboard/components/dashboard-meetings.tsx](../frontend/web/features/dashboard/components/dashboard-meetings.tsx) | composed | Composes a shared-UI consumer |
+| [features/dashboard/components/dashboard-notification-dialog.tsx](../frontend/web/features/dashboard/components/dashboard-notification-dialog.tsx) | direct | Imports shared UI |
+| [features/dashboard/components/dashboard-panel.tsx](../frontend/web/features/dashboard/components/dashboard-panel.tsx) | direct | Imports shared UI |
+| [features/dashboard/components/dashboard-productivity-chart.tsx](../frontend/web/features/dashboard/components/dashboard-productivity-chart.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/dashboard/components/dashboard-productivity.tsx](../frontend/web/features/dashboard/components/dashboard-productivity.tsx) | composed | Composes a shared-UI consumer |
+| [features/dashboard/components/dashboard-project-activity.tsx](../frontend/web/features/dashboard/components/dashboard-project-activity.tsx) | composed | Composes a shared-UI consumer |
+| [features/dashboard/components/dashboard-quick-actions.tsx](../frontend/web/features/dashboard/components/dashboard-quick-actions.tsx) | direct | Imports shared UI |
+| [features/dashboard/components/dashboard-sun.tsx](../frontend/web/features/dashboard/components/dashboard-sun.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/dashboard/components/dashboard-tasks.tsx](../frontend/web/features/dashboard/components/dashboard-tasks.tsx) | direct | Imports shared UI |
+| [features/dashboard/components/dashboard-view.tsx](../frontend/web/features/dashboard/components/dashboard-view.tsx) | direct | Imports shared UI |
+| [features/documents/components/common/document-icon.tsx](../frontend/web/features/documents/components/common/document-icon.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/documents/components/common/folder-picker-modal.tsx](../frontend/web/features/documents/components/common/folder-picker-modal.tsx) | direct | Imports shared UI |
+| [features/documents/components/common/quota-widget.tsx](../frontend/web/features/documents/components/common/quota-widget.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/documents/components/common/shimmer-loader.tsx](../frontend/web/features/documents/components/common/shimmer-loader.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/documents/components/common/upload-progress.tsx](../frontend/web/features/documents/components/common/upload-progress.tsx) | direct | Imports shared UI |
+| [features/documents/components/document-explorer.tsx](../frontend/web/features/documents/components/document-explorer.tsx) | composed | Composes a shared-UI consumer |
+| [features/documents/components/documents-view.tsx](../frontend/web/features/documents/components/documents-view.tsx) | composed | Composes a shared-UI consumer |
+| [features/documents/components/download/download-queue-provider.tsx](../frontend/web/features/documents/components/download/download-queue-provider.tsx) | direct | Imports shared UI |
+| [features/documents/components/explorer/breadcrumb-link.tsx](../frontend/web/features/documents/components/explorer/breadcrumb-link.tsx) | direct | Imports shared UI |
+| [features/documents/components/explorer/details-panel.tsx](../frontend/web/features/documents/components/explorer/details-panel.tsx) | composed | Composes a shared-UI consumer |
+| [features/documents/components/explorer/documents-sidebar-storage-panel.tsx](../frontend/web/features/documents/components/explorer/documents-sidebar-storage-panel.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/documents/components/explorer/documents-sidebar.tsx](../frontend/web/features/documents/components/explorer/documents-sidebar.tsx) | direct | Imports shared UI |
+| [features/documents/components/explorer/explorer-breadcrumbs.tsx](../frontend/web/features/documents/components/explorer/explorer-breadcrumbs.tsx) | direct | Imports shared UI |
+| [features/documents/components/explorer/explorer-toolbar.tsx](../frontend/web/features/documents/components/explorer/explorer-toolbar.tsx) | direct | Imports shared UI; Hidden native file picker |
+| [features/documents/components/explorer/item-actions-menu.tsx](../frontend/web/features/documents/components/explorer/item-actions-menu.tsx) | direct | Imports shared UI |
+| [features/documents/components/preview/file-preview-modal.tsx](../frontend/web/features/documents/components/preview/file-preview-modal.tsx) | direct | Imports shared UI |
+| [features/documents/components/preview/preview-content.tsx](../frontend/web/features/documents/components/preview/preview-content.tsx) | direct | Imports shared UI |
+| [features/documents/components/sharing/share-form.tsx](../frontend/web/features/documents/components/sharing/share-form.tsx) | direct | Imports shared UI |
+| [features/documents/components/sharing/share-link.tsx](../frontend/web/features/documents/components/sharing/share-link.tsx) | direct | Imports shared UI |
+| [features/documents/components/sharing/share-list.tsx](../frontend/web/features/documents/components/sharing/share-list.tsx) | direct | Imports shared UI |
+| [features/documents/components/sharing/share-modal.tsx](../frontend/web/features/documents/components/sharing/share-modal.tsx) | direct | Imports shared UI |
+| [features/documents/components/sharing/share-suggestions-dropdown.tsx](../frontend/web/features/documents/components/sharing/share-suggestions-dropdown.tsx) | direct | Imports shared UI |
+| [features/documents/components/sharing/share-to-chat-modal.tsx](../frontend/web/features/documents/components/sharing/share-to-chat-modal.tsx) | direct | Imports shared UI |
+| [features/documents/components/ui/documents-card.tsx](../frontend/web/features/documents/components/ui/documents-card.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/documents/components/ui/documents-confirm-dialog.tsx](../frontend/web/features/documents/components/ui/documents-confirm-dialog.tsx) | direct | Imports shared UI |
+| [features/documents/components/ui/documents-empty-state.tsx](../frontend/web/features/documents/components/ui/documents-empty-state.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/documents/components/ui/documents-form-controls.tsx](../frontend/web/features/documents/components/ui/documents-form-controls.tsx) | direct | Imports shared UI |
+| [features/documents/components/ui/documents-icon-button.tsx](../frontend/web/features/documents/components/ui/documents-icon-button.tsx) | direct | Imports shared UI |
+| [features/documents/components/ui/documents-input-modal.tsx](../frontend/web/features/documents/components/ui/documents-input-modal.tsx) | direct | Imports shared UI |
+| [features/documents/components/ui/documents-loading-state.tsx](../frontend/web/features/documents/components/ui/documents-loading-state.tsx) | direct | Imports shared UI |
+| [features/documents/components/ui/documents-pagination.tsx](../frontend/web/features/documents/components/ui/documents-pagination.tsx) | direct | Imports shared UI |
+| [features/documents/components/ui/documents-status-badge.tsx](../frontend/web/features/documents/components/ui/documents-status-badge.tsx) | direct | Imports shared UI |
+| [features/documents/components/versions/version-history-table.tsx](../frontend/web/features/documents/components/versions/version-history-table.tsx) | direct | Imports shared UI |
+| [features/documents/components/versions/version-management-modal.tsx](../frontend/web/features/documents/components/versions/version-management-modal.tsx) | direct | Imports shared UI |
+| [features/documents/components/versions/version-uploader.tsx](../frontend/web/features/documents/components/versions/version-uploader.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls; Hidden native file picker |
+| [features/documents/components/views/grid-view-card.tsx](../frontend/web/features/documents/components/views/grid-view-card.tsx) | composed | Composes a shared-UI consumer |
+| [features/documents/components/views/grid-view.tsx](../frontend/web/features/documents/components/views/grid-view.tsx) | composed | Composes a shared-UI consumer |
+| [features/documents/components/views/list-view-row.tsx](../frontend/web/features/documents/components/views/list-view-row.tsx) | direct | Imports shared UI |
+| [features/documents/components/views/list-view.tsx](../frontend/web/features/documents/components/views/list-view.tsx) | direct | Imports shared UI |
+| [features/meeting/components/common/avatar-fallback.tsx](../frontend/web/features/meeting/components/common/avatar-fallback.tsx) | direct | Imports shared UI |
+| [features/meeting/components/common/meeting-action-tile.tsx](../frontend/web/features/meeting/components/common/meeting-action-tile.tsx) | direct | Imports shared UI |
+| [features/meeting/components/common/meeting-alert-dialog.tsx](../frontend/web/features/meeting/components/common/meeting-alert-dialog.tsx) | direct | Imports shared UI |
+| [features/meeting/components/common/meeting-auto-admit-toggle.tsx](../frontend/web/features/meeting/components/common/meeting-auto-admit-toggle.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/common/meeting-device-select.tsx](../frontend/web/features/meeting/components/common/meeting-device-select.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/common/meeting-hero.tsx](../frontend/web/features/meeting/components/common/meeting-hero.tsx) | direct | Imports shared UI |
+| [features/meeting/components/common/meeting-icon-dropdown.tsx](../frontend/web/features/meeting/components/common/meeting-icon-dropdown.tsx) | direct | Imports shared UI |
+| [features/meeting/components/common/meeting-join-link-modal.tsx](../frontend/web/features/meeting/components/common/meeting-join-link-modal.tsx) | direct | Imports shared UI |
+| [features/meeting/components/common/meeting-pagination.tsx](../frontend/web/features/meeting/components/common/meeting-pagination.tsx) | direct | Imports shared UI |
+| [features/meeting/components/common/meeting-participant-chat-toggle.tsx](../frontend/web/features/meeting/components/common/meeting-participant-chat-toggle.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/common/meeting-participant-list-item.tsx](../frontend/web/features/meeting/components/common/meeting-participant-list-item.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/common/meeting-room-control-button.tsx](../frontend/web/features/meeting/components/common/meeting-room-control-button.tsx) | direct | Imports shared UI |
+| [features/meeting/components/common/meeting-screen-share-toggle.tsx](../frontend/web/features/meeting/components/common/meeting-screen-share-toggle.tsx) | direct | Imports shared UI |
+| [features/meeting/components/common/meeting-status-tag.tsx](../frontend/web/features/meeting/components/common/meeting-status-tag.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/meeting/components/history/meeting-history-avatar-stack.tsx](../frontend/web/features/meeting/components/history/meeting-history-avatar-stack.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/history/meeting-history-card.tsx](../frontend/web/features/meeting/components/history/meeting-history-card.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/history/meeting-history-list-row.tsx](../frontend/web/features/meeting/components/history/meeting-history-list-row.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/history/meeting-join-token-copy-button.tsx](../frontend/web/features/meeting/components/history/meeting-join-token-copy-button.tsx) | direct | Imports shared UI |
+| [features/meeting/components/history/meeting-previous-view.tsx](../frontend/web/features/meeting/components/history/meeting-previous-view.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/meeting-layout.tsx](../frontend/web/features/meeting/components/meeting-layout.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/meeting-sidebar-stats-panel.tsx](../frontend/web/features/meeting/components/meeting-sidebar-stats-panel.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/meeting/components/meeting-sidebar.tsx](../frontend/web/features/meeting/components/meeting-sidebar.tsx) | direct | Imports shared UI |
+| [features/meeting/components/recordings/meeting-recording-player.tsx](../frontend/web/features/meeting/components/recordings/meeting-recording-player.tsx) | direct | Imports shared UI |
+| [features/meeting/components/recordings/meeting-recording-share-dialog.tsx](../frontend/web/features/meeting/components/recordings/meeting-recording-share-dialog.tsx) | direct | Imports shared UI |
+| [features/meeting/components/recordings/meeting-recordings-view.tsx](../frontend/web/features/meeting/components/recordings/meeting-recordings-view.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/meeting-access-denied.tsx](../frontend/web/features/meeting/components/room/meeting-access-denied.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/meeting-fullscreen-overlay.tsx](../frontend/web/features/meeting/components/room/meeting-fullscreen-overlay.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/meeting-participant-tile.tsx](../frontend/web/features/meeting/components/room/meeting-participant-tile.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/meeting-password-gate.tsx](../frontend/web/features/meeting/components/room/meeting-password-gate.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/meeting-prejoin.tsx](../frontend/web/features/meeting/components/room/meeting-prejoin.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/meeting-recording-banner.tsx](../frontend/web/features/meeting/components/room/meeting-recording-banner.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/meeting/components/room/meeting-recording-controls.tsx](../frontend/web/features/meeting/components/room/meeting-recording-controls.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/meeting-room-audio-renderer.tsx](../frontend/web/features/meeting/components/room/meeting-room-audio-renderer.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/meeting/components/room/meeting-room-content.tsx](../frontend/web/features/meeting/components/room/meeting-room-content.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/meeting-room-footer.tsx](../frontend/web/features/meeting/components/room/meeting-room-footer.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/meeting-room-reaction-overlay.tsx](../frontend/web/features/meeting/components/room/meeting-room-reaction-overlay.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/meeting/components/room/meeting-room-reaction-picker.tsx](../frontend/web/features/meeting/components/room/meeting-room-reaction-picker.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/meeting-room-shell.tsx](../frontend/web/features/meeting/components/room/meeting-room-shell.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/meeting-room-stage.tsx](../frontend/web/features/meeting/components/room/meeting-room-stage.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/meeting-room-state.tsx](../frontend/web/features/meeting/components/room/meeting-room-state.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/meeting-waiting-approval.tsx](../frontend/web/features/meeting/components/room/meeting-waiting-approval.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/meeting-waiting-host.tsx](../frontend/web/features/meeting/components/room/meeting-waiting-host.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/message/meeting-message-attachments.tsx](../frontend/web/features/meeting/components/room/message/meeting-message-attachments.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/message/meeting-message-editing-banner.tsx](../frontend/web/features/meeting/components/room/message/meeting-message-editing-banner.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/message/meeting-message-input.tsx](../frontend/web/features/meeting/components/room/message/meeting-message-input.tsx) | direct | Imports shared UI; Hidden native file picker |
+| [features/meeting/components/room/message/meeting-message-item.tsx](../frontend/web/features/meeting/components/room/message/meeting-message-item.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/message/meeting-message-list.tsx](../frontend/web/features/meeting/components/room/message/meeting-message-list.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/message/meeting-message-options-menu.tsx](../frontend/web/features/meeting/components/room/message/meeting-message-options-menu.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/message/meeting-message-reactions.tsx](../frontend/web/features/meeting/components/room/message/meeting-message-reactions.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/message/meeting-message-read-receipts.tsx](../frontend/web/features/meeting/components/room/message/meeting-message-read-receipts.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/message/meeting-message-time-divider.tsx](../frontend/web/features/meeting/components/room/message/meeting-message-time-divider.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/meeting/components/room/side-panel/meeting-chat-notification-toggle-button.tsx](../frontend/web/features/meeting/components/room/side-panel/meeting-chat-notification-toggle-button.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/side-panel/meeting-participants-panel.tsx](../frontend/web/features/meeting/components/room/side-panel/meeting-participants-panel.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/side-panel/meeting-room-admission-panel.tsx](../frontend/web/features/meeting/components/room/side-panel/meeting-room-admission-panel.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/side-panel/meeting-room-chat-panel.tsx](../frontend/web/features/meeting/components/room/side-panel/meeting-room-chat-panel.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/side-panel/meeting-room-desktop-side-panel.tsx](../frontend/web/features/meeting/components/room/side-panel/meeting-room-desktop-side-panel.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/side-panel/meeting-room-mobile-panel.tsx](../frontend/web/features/meeting/components/room/side-panel/meeting-room-mobile-panel.tsx) | direct | Imports shared UI |
+| [features/meeting/components/room/side-panel/meeting-room-panel-content.tsx](../frontend/web/features/meeting/components/room/side-panel/meeting-room-panel-content.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/side-panel/meeting-room-settings-panel.tsx](../frontend/web/features/meeting/components/room/side-panel/meeting-room-settings-panel.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/room/side-panel/meeting-room-share-link.tsx](../frontend/web/features/meeting/components/room/side-panel/meeting-room-share-link.tsx) | direct | Imports shared UI |
+| [features/meeting/components/schedule/schedule-meeting-modal.tsx](../frontend/web/features/meeting/components/schedule/schedule-meeting-modal.tsx) | direct | Imports shared UI |
+| [features/meeting/components/schedule/upcoming-meeting-card.tsx](../frontend/web/features/meeting/components/schedule/upcoming-meeting-card.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/schedule/upcoming-meetings-view.tsx](../frontend/web/features/meeting/components/schedule/upcoming-meetings-view.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/ui/meeting-card.tsx](../frontend/web/features/meeting/components/ui/meeting-card.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/meeting/components/ui/meeting-empty-state.tsx](../frontend/web/features/meeting/components/ui/meeting-empty-state.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/ui/meeting-field.tsx](../frontend/web/features/meeting/components/ui/meeting-field.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/meeting/components/ui/meeting-form-controls.tsx](../frontend/web/features/meeting/components/ui/meeting-form-controls.tsx) | direct | Imports shared UI |
+| [features/meeting/components/ui/meeting-icon-button.tsx](../frontend/web/features/meeting/components/ui/meeting-icon-button.tsx) | composed | Composes a shared-UI consumer |
+| [features/meeting/components/ui/meeting-loading-state.tsx](../frontend/web/features/meeting/components/ui/meeting-loading-state.tsx) | direct | Imports shared UI |
+| [features/meeting/components/ui/meeting-status-badge.tsx](../frontend/web/features/meeting/components/ui/meeting-status-badge.tsx) | direct | Imports shared UI |
+| [features/meeting/components/ui/meeting-toggle.tsx](../frontend/web/features/meeting/components/ui/meeting-toggle.tsx) | direct | Imports shared UI |
+| [features/notification/components/chat-message-alert-manager.tsx](../frontend/web/features/notification/components/chat-message-alert-manager.tsx) | content | Provider/composition or types; no standalone base UI |
+| [features/notification/components/notification-category-icon.tsx](../frontend/web/features/notification/components/notification-category-icon.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/notification/components/notification-detail-modal.tsx](../frontend/web/features/notification/components/notification-detail-modal.tsx) | direct | Imports shared UI |
+| [features/notification/components/notification-item.tsx](../frontend/web/features/notification/components/notification-item.tsx) | direct | Imports shared UI |
+| [features/notification/components/notification-list.tsx](../frontend/web/features/notification/components/notification-list.tsx) | direct | Imports shared UI |
+| [features/notification/components/notification-managers.tsx](../frontend/web/features/notification/components/notification-managers.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/notification/components/push-subscription-manager.tsx](../frontend/web/features/notification/components/push-subscription-manager.tsx) | content | Provider/composition or types; no standalone base UI |
+| [features/notification/components/renderers/calendar-reminder-renderer.tsx](../frontend/web/features/notification/components/renderers/calendar-reminder-renderer.tsx) | direct | Imports shared UI |
+| [features/notification/components/renderers/default-renderer.tsx](../frontend/web/features/notification/components/renderers/default-renderer.tsx) | direct | Imports shared UI |
+| [features/notification/components/renderers/invitation-accepted-renderer.tsx](../frontend/web/features/notification/components/renderers/invitation-accepted-renderer.tsx) | direct | Imports shared UI |
+| [features/notification/components/renderers/invitation-declined-renderer.tsx](../frontend/web/features/notification/components/renderers/invitation-declined-renderer.tsx) | direct | Imports shared UI |
+| [features/notification/components/renderers/invitation-renderer.tsx](../frontend/web/features/notification/components/renderers/invitation-renderer.tsx) | direct | Imports shared UI |
+| [features/notification/components/renderers/meeting-invitation-renderer.tsx](../frontend/web/features/notification/components/renderers/meeting-invitation-renderer.tsx) | direct | Imports shared UI |
+| [features/notification/components/renderers/project-invitation-renderer.tsx](../frontend/web/features/notification/components/renderers/project-invitation-renderer.tsx) | direct | Imports shared UI |
+| [features/notification/components/service-worker-navigation-listener.tsx](../frontend/web/features/notification/components/service-worker-navigation-listener.tsx) | content | Provider/composition or types; no standalone base UI |
+| [features/notification/components/space-notification-alert-manager.tsx](../frontend/web/features/notification/components/space-notification-alert-manager.tsx) | content | Provider/composition or types; no standalone base UI |
+| [features/pomodoro/components/pomodoro-active-task.tsx](../frontend/web/features/pomodoro/components/pomodoro-active-task.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-ambient-player.tsx](../frontend/web/features/pomodoro/components/pomodoro-ambient-player.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-audio-icon.tsx](../frontend/web/features/pomodoro/components/pomodoro-audio-icon.tsx) | content | Provider/composition or types; no standalone base UI |
+| [features/pomodoro/components/pomodoro-audio-track-list.tsx](../frontend/web/features/pomodoro/components/pomodoro-audio-track-list.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-calendar-task-form.tsx](../frontend/web/features/pomodoro/components/pomodoro-calendar-task-form.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-calendar-task-list.tsx](../frontend/web/features/pomodoro/components/pomodoro-calendar-task-list.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-calendar-task-panel.tsx](../frontend/web/features/pomodoro/components/pomodoro-calendar-task-panel.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-config-provider.tsx](../frontend/web/features/pomodoro/components/pomodoro-config-provider.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/pomodoro/components/pomodoro-controls.tsx](../frontend/web/features/pomodoro/components/pomodoro-controls.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-daily-stats.tsx](../frontend/web/features/pomodoro/components/pomodoro-daily-stats.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-focus-dialog.tsx](../frontend/web/features/pomodoro/components/pomodoro-focus-dialog.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-focus-switch-confirmation.tsx](../frontend/web/features/pomodoro/components/pomodoro-focus-switch-confirmation.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-mini-timer.tsx](../frontend/web/features/pomodoro/components/pomodoro-mini-timer.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-project-task-panel.tsx](../frontend/web/features/pomodoro/components/pomodoro-project-task-panel.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-report.tsx](../frontend/web/features/pomodoro/components/pomodoro-report.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-session-history-item.tsx](../frontend/web/features/pomodoro/components/pomodoro-session-history-item.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-session-history.tsx](../frontend/web/features/pomodoro/components/pomodoro-session-history.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-session-provider.tsx](../frontend/web/features/pomodoro/components/pomodoro-session-provider.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-settings-form.tsx](../frontend/web/features/pomodoro/components/pomodoro-settings-form.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-stats-card.tsx](../frontend/web/features/pomodoro/components/pomodoro-stats-card.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-task-actions.tsx](../frontend/web/features/pomodoro/components/pomodoro-task-actions.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-task-editor.tsx](../frontend/web/features/pomodoro/components/pomodoro-task-editor.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-task-filters.tsx](../frontend/web/features/pomodoro/components/pomodoro-task-filters.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-task-picker.tsx](../frontend/web/features/pomodoro/components/pomodoro-task-picker.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-timer-display.tsx](../frontend/web/features/pomodoro/components/pomodoro-timer-display.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/pomodoro-view.tsx](../frontend/web/features/pomodoro/components/pomodoro-view.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/task-focus-button.tsx](../frontend/web/features/pomodoro/components/task-focus-button.tsx) | direct | Imports shared UI |
+| [features/pomodoro/components/task-focus-history.tsx](../frontend/web/features/pomodoro/components/task-focus-history.tsx) | direct | Imports shared UI |
+| [features/project/components/dialogs/create-project-dialog.tsx](../frontend/web/features/project/components/dialogs/create-project-dialog.tsx) | direct | Imports shared UI |
+| [features/project/components/dialogs/invite-member-dialog.tsx](../frontend/web/features/project/components/dialogs/invite-member-dialog.tsx) | direct | Imports shared UI |
+| [features/project/components/dialogs/member-permissions-dialog.tsx](../frontend/web/features/project/components/dialogs/member-permissions-dialog.tsx) | direct | Imports shared UI |
+| [features/project/components/dialogs/project-settings-dialog.tsx](../frontend/web/features/project/components/dialogs/project-settings-dialog.tsx) | direct | Imports shared UI |
+| [features/project/components/dialogs/select-task-channel-dialog.tsx](../frontend/web/features/project/components/dialogs/select-task-channel-dialog.tsx) | direct | Imports shared UI |
+| [features/project/components/dialogs/task-chat-dialog.tsx](../frontend/web/features/project/components/dialogs/task-chat-dialog.tsx) | direct | Imports shared UI |
+| [features/project/components/dialogs/task-form-dialog.tsx](../frontend/web/features/project/components/dialogs/task-form-dialog.tsx) | direct | Imports shared UI |
+| [features/project/components/forms/project-label-manager.tsx](../frontend/web/features/project/components/forms/project-label-manager.tsx) | direct | Imports shared UI |
+| [features/project/components/forms/task-date-range-fields.tsx](../frontend/web/features/project/components/forms/task-date-range-fields.tsx) | direct | Imports shared UI |
+| [features/project/components/forms/task-details-fields.tsx](../frontend/web/features/project/components/forms/task-details-fields.tsx) | composed | Composes a shared-UI consumer |
+| [features/project/components/layout/project-detail-content.tsx](../frontend/web/features/project/components/layout/project-detail-content.tsx) | composed | Composes a shared-UI consumer |
+| [features/project/components/layout/project-detail-fallback.tsx](../frontend/web/features/project/components/layout/project-detail-fallback.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/project/components/layout/project-detail-sidebar.tsx](../frontend/web/features/project/components/layout/project-detail-sidebar.tsx) | direct | Imports shared UI |
+| [features/project/components/layout/project-detail-toolbar.tsx](../frontend/web/features/project/components/layout/project-detail-toolbar.tsx) | direct | Imports shared UI |
+| [features/project/components/list/project-task-row.tsx](../frontend/web/features/project/components/list/project-task-row.tsx) | direct | Imports shared UI |
+| [features/project/components/list/task-inline-creator.tsx](../frontend/web/features/project/components/list/task-inline-creator.tsx) | direct | Imports shared UI |
+| [features/project/components/members/pending-invitations-list.tsx](../frontend/web/features/project/components/members/pending-invitations-list.tsx) | direct | Imports shared UI |
+| [features/project/components/members/project-members-panel.tsx](../frontend/web/features/project/components/members/project-members-panel.tsx) | direct | Imports shared UI |
+| [features/project/components/project-realtime-manager.tsx](../frontend/web/features/project/components/project-realtime-manager.tsx) | content | Provider/composition or types; no standalone base UI |
+| [features/project/components/summary/member-workload-list.tsx](../frontend/web/features/project/components/summary/member-workload-list.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/project/components/summary/priority-distribution-bar.tsx](../frontend/web/features/project/components/summary/priority-distribution-bar.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/project/components/summary/project-metric-card.tsx](../frontend/web/features/project/components/summary/project-metric-card.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/project/components/summary/project-summary-panel.tsx](../frontend/web/features/project/components/summary/project-summary-panel.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/project/components/task-detail/task-activity-panel.tsx](../frontend/web/features/project/components/task-detail/task-activity-panel.tsx) | direct | Imports shared UI |
+| [features/project/components/task-detail/task-checklist-section.tsx](../frontend/web/features/project/components/task-detail/task-checklist-section.tsx) | direct | Imports shared UI |
+| [features/project/components/task-detail/task-comments-section.tsx](../frontend/web/features/project/components/task-detail/task-comments-section.tsx) | direct | Imports shared UI |
+| [features/project/components/task-detail/task-dependencies-section.tsx](../frontend/web/features/project/components/task-detail/task-dependencies-section.tsx) | direct | Imports shared UI |
+| [features/project/components/task-detail/task-detail-drawer.tsx](../frontend/web/features/project/components/task-detail/task-detail-drawer.tsx) | direct | Imports shared UI |
+| [features/project/components/task-detail/task-documents-section.tsx](../frontend/web/features/project/components/task-detail/task-documents-section.tsx) | direct | Imports shared UI; Hidden native file picker |
+| [features/project/components/task-detail/task-labels-picker.tsx](../frontend/web/features/project/components/task-detail/task-labels-picker.tsx) | direct | Imports shared UI |
+| [features/project/components/task-detail/task-properties-panel.tsx](../frontend/web/features/project/components/task-detail/task-properties-panel.tsx) | direct | Imports shared UI |
+| [features/project/components/task-detail/task-status-picker.tsx](../frontend/web/features/project/components/task-detail/task-status-picker.tsx) | direct | Imports shared UI |
+| [features/project/components/task-detail/task-subtasks-section.tsx](../frontend/web/features/project/components/task-detail/task-subtasks-section.tsx) | direct | Imports shared UI |
+| [features/project/components/ui/avatar-stack.tsx](../frontend/web/features/project/components/ui/avatar-stack.tsx) | direct | Imports shared UI |
+| [features/project/components/ui/project-confirm-dialog.tsx](../frontend/web/features/project/components/ui/project-confirm-dialog.tsx) | direct | Imports shared UI |
+| [features/project/components/ui/project-form-controls.tsx](../frontend/web/features/project/components/ui/project-form-controls.tsx) | direct | Imports shared UI |
+| [features/project/components/ui/project-preview-card.tsx](../frontend/web/features/project/components/ui/project-preview-card.tsx) | content | Semantic content/layout or specialized rendering; no raw base controls |
+| [features/project/components/ui/status-badge.tsx](../frontend/web/features/project/components/ui/status-badge.tsx) | direct | Imports shared UI |
+| [features/project/components/ui/task-card.tsx](../frontend/web/features/project/components/ui/task-card.tsx) | direct | Imports shared UI |
+| [features/project/components/ui/task-chat-button.tsx](../frontend/web/features/project/components/ui/task-chat-button.tsx) | direct | Imports shared UI |
+| [features/project/components/ui/task-label-badges.tsx](../frontend/web/features/project/components/ui/task-label-badges.tsx) | direct | Imports shared UI |
+| [features/project/components/ui/task-quick-filters.tsx](../frontend/web/features/project/components/ui/task-quick-filters.tsx) | composed | Composes a shared-UI consumer |
+| [features/project/components/views/board-view.tsx](../frontend/web/features/project/components/views/board-view.tsx) | direct | Imports shared UI |
+| [features/project/components/views/calendar-view.tsx](../frontend/web/features/project/components/views/calendar-view.tsx) | direct | Imports shared UI |
+| [features/project/components/views/gantt-view.tsx](../frontend/web/features/project/components/views/gantt-view.tsx) | direct | Imports shared UI |
+| [features/project/components/views/list-view.tsx](../frontend/web/features/project/components/views/list-view.tsx) | composed | Composes a shared-UI consumer |
+| [features/project/components/views/project-documents-view.tsx](../frontend/web/features/project/components/views/project-documents-view.tsx) | composed | Composes a shared-UI consumer |
+| [features/project/components/views/project-members-view.tsx](../frontend/web/features/project/components/views/project-members-view.tsx) | direct | Imports shared UI |
+| [features/project/components/views/summary-view.tsx](../frontend/web/features/project/components/views/summary-view.tsx) | composed | Composes a shared-UI consumer |
+| [features/project/screens/project-detail-screen.tsx](../frontend/web/features/project/screens/project-detail-screen.tsx) | composed | Composes a shared-UI consumer |
+| [features/project/screens/project-invitations-screen.tsx](../frontend/web/features/project/screens/project-invitations-screen.tsx) | direct | Imports shared UI |
+| [features/user-setting/components/account-theme-sync.tsx](../frontend/web/features/user-setting/components/account-theme-sync.tsx) | content | Provider/composition or types; no standalone base UI |
+| [features/user-setting/components/password-input.tsx](../frontend/web/features/user-setting/components/password-input.tsx) | direct | Imports shared UI |
+| [features/user-setting/components/password-tab.tsx](../frontend/web/features/user-setting/components/password-tab.tsx) | direct | Imports shared UI |
+| [features/user-setting/components/pomodoro-tab.tsx](../frontend/web/features/user-setting/components/pomodoro-tab.tsx) | direct | Imports shared UI |
+| [features/user-setting/components/profile-tab.tsx](../frontend/web/features/user-setting/components/profile-tab.tsx) | direct | Imports shared UI; Hidden native file picker |
+| [features/user-setting/components/revoke-session-modal.tsx](../frontend/web/features/user-setting/components/revoke-session-modal.tsx) | direct | Imports shared UI |
+| [features/user-setting/components/sessions-tab.tsx](../frontend/web/features/user-setting/components/sessions-tab.tsx) | direct | Imports shared UI |
+| [features/user-setting/components/settings-tab.tsx](../frontend/web/features/user-setting/components/settings-tab.tsx) | direct | Imports shared UI |
+| [features/user-setting/components/ui/setting-form-controls.tsx](../frontend/web/features/user-setting/components/ui/setting-form-controls.tsx) | direct | Imports shared UI |
+| [features/user-setting/components/user-settings-modal.tsx](../frontend/web/features/user-setting/components/user-settings-modal.tsx) | direct | Imports shared UI |
+
+<!-- shared-base-ui:end -->
+
 ## Dashboard polish and resilience - 2026-10-18
 
 - Reviewed all 12 Dashboard components and their existing hooks, source-specific links, shared modal controls, and theme roles. Scope is limited to Dashboard; no API, permissions, stored colors, global theme, or other-page layout changes.

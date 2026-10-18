@@ -110,6 +110,15 @@ Use `rounded-control` (8px) for controls, `rounded-panel` (14px) for panels, and
 
 ## Components
 
+### Shared UI ownership
+
+- Application controls use the owned `components/ui` primitives directly or through domain wrappers. Vendor primitives, portals, popup positioning and modal focus/scroll handling belong in that layer. Do not regenerate the customized library from upstream templates.
+- Keep domain state, permissions, data fetching and action callbacks in their existing modules. SearchInput and IconButton compose the existing primitives; meaningful feature wrappers retain their public contracts.
+- The `unstyled` compatibility options retain existing layout, typography, SVG dimensions and native attributes while sharing interaction behavior. NativeSelect, NativeCheckbox and NativeRadio preserve native ChangeEvent/ref/peer contracts; styled Select, Checkbox and RadioGroup remain the standard compositional alternatives.
+- True panels use Tabs; filter/view-mode groups use pressed buttons. CustomTabs retains its compatibility name/API for filters. Native markup remains appropriate for semantic layout/content, hidden file pickers, OTP cells, editor/media internals and library-generated DOM. The local ESLint rule and current inventory in the component audit document these boundaries.
+
+### Component conventions
+
 - **Dialogs:** Use the shared modal-focus helper for initial focus, Tab containment, nested popup handling, Escape, scroll locking, and focus restoration. Name each dialog and its close control. Calendar retains its previous helper import as a compatibility re-export. Mobile calendar navigation sits above its dismissing backdrop and below dialogs.
 - **Empty states:** Use a restrained icon, a useful explanation, and a relevant action. Avoid nested decorative containers or icon tiles.
 - **Buttons:** Reuse the shared Button and feature wrappers. Primary actions use paired action tokens; secondary, outline, ghost, and destructive variants keep their APIs. Hover, focus, disabled, and pending states remain distinct.

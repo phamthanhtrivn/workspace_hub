@@ -32,6 +32,7 @@ import { useProjectConfirmDialog } from "@/features/project/hooks/use-project-co
 import { ProjectConfirmDialog } from "../ui/project-confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 
 interface ProjectMembersViewProps {
   projectId: string;
@@ -334,30 +335,30 @@ export default function ProjectMembersView({
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] table-fixed border-collapse text-left [&_td]:break-words">
-                <thead>
-                  <tr className="border-b border-border bg-background text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <th className="px-6 py-3.5">Member</th>
-                    <th className="px-4 py-3.5">Role</th>
-                    <th className="px-4 py-3.5">Tasks</th>
-                    <th className="px-4 py-3.5">Joined</th>
-                    <th className="px-4 py-3.5">Permissions</th>
-                    <th className="px-6 py-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border text-xs">
+              <Table unstyled className="w-full min-w-[760px] table-fixed border-collapse text-left [&_td]:break-words">
+                <TableHeader unstyled>
+                  <TableRow unstyled className="border-b border-border bg-background text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <TableHead unstyled className="px-6 py-3.5">Member</TableHead>
+                    <TableHead unstyled className="px-4 py-3.5">Role</TableHead>
+                    <TableHead unstyled className="px-4 py-3.5">Tasks</TableHead>
+                    <TableHead unstyled className="px-4 py-3.5">Joined</TableHead>
+                    <TableHead unstyled className="px-4 py-3.5">Permissions</TableHead>
+                    <TableHead unstyled className="px-6 py-3.5 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody unstyled className="divide-y divide-border text-xs">
                   {filteredMembers.map((member) => {
                     const isOwner = member.role === ProjectRole.ADMIN;
                     const isCurrent = member.userId === currentUserId;
                     const assignedCount = tasksByMember.get(member.userId) ?? 0;
 
                     return (
-                      <tr
+                      <TableRow unstyled
                         key={member.id}
                         className="transition hover:bg-background"
                       >
                         {/* Member Name & Avatar */}
-                        <td className="px-6 py-4">
+                        <TableCell unstyled className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <Avatar
                               user={{
@@ -380,10 +381,10 @@ export default function ProjectMembersView({
                               </div>
                             </div>
                           </div>
-                        </td>
+                        </TableCell>
 
                         {/* Role Badge */}
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <TableCell unstyled className="px-4 py-4 whitespace-nowrap">
                           {isOwner ? (
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-warning-soft px-2.5 py-1 text-xs font-semibold text-warning-content">
                               <Star className="h-3 w-3 fill-warning-content text-warning-content" />
@@ -395,10 +396,10 @@ export default function ProjectMembersView({
                               Member
                             </span>
                           )}
-                        </td>
+                        </TableCell>
 
                         {/* Tasks Assigned */}
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <TableCell unstyled className="px-4 py-4 whitespace-nowrap">
                           {assignedCount > 0 ? (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 font-semibold text-foreground">
                               <Briefcase className="h-3 w-3 text-info-content" />
@@ -409,18 +410,18 @@ export default function ProjectMembersView({
                               No tasks assigned
                             </span>
                           )}
-                        </td>
+                        </TableCell>
 
                         {/* Joined Date */}
-                        <td className="px-4 py-4 whitespace-nowrap text-muted-foreground font-medium">
+                        <TableCell unstyled className="px-4 py-4 whitespace-nowrap text-muted-foreground font-medium">
                           <span className="inline-flex items-center gap-1.5">
                             <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                             {formatJoinDate(member.joinedAt)}
                           </span>
-                        </td>
+                        </TableCell>
 
                         {/* Permissions Summary */}
-                        <td className="px-4 py-4">
+                        <TableCell unstyled className="px-4 py-4">
                           {isOwner ? (
                             <span className="inline-flex items-center gap-1 rounded border border-border bg-success-soft px-2 py-0.5 text-xs font-semibold text-success-content">
                               <ShieldCheck className="h-3 w-3 text-success-content" />
@@ -452,10 +453,10 @@ export default function ProjectMembersView({
                                 )}
                             </div>
                           )}
-                        </td>
+                        </TableCell>
 
                         {/* Actions */}
-                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                        <TableCell unstyled className="px-6 py-4 text-right whitespace-nowrap">
                           {isOwner ? (
                             <span className="text-xs font-semibold text-muted-foreground">
                               Owner
@@ -492,12 +493,12 @@ export default function ProjectMembersView({
                               )}
                             </div>
                           )}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>

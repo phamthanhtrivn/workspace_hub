@@ -28,10 +28,12 @@ import {
 } from "@/store/chat/chat-slice";
 import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { ChatQueryKey } from "../../../types/chat.constant";
-import { ChatContextType } from "../../../types/chat.types";
+
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { logApiError } from "@/lib/interceptors";
 import MediaDetailView from "../files/media-detail-view";
+import { Button } from "@/components/ui/button";
+
 
 interface DirectMessageRightPanelProps {
   onClose: () => void;
@@ -316,12 +318,12 @@ export default function DirectMessageRightPanel({
         <h2 className="font-semibold text-foreground">
           Details
         </h2>
-        <button aria-label="Close"
+        <Button variant="unstyled" aria-label="Close"
           onClick={onClose}
           className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <X size={20} />
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -350,7 +352,7 @@ export default function DirectMessageRightPanel({
           <p className="text-sm text-muted-foreground mb-4">{displayDescription}</p>
 
           <div className="flex gap-4">
-            <button
+            <Button variant="unstyled"
               onClick={handleTogglePin}
               className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition"
             >
@@ -363,9 +365,9 @@ export default function DirectMessageRightPanel({
               <span className="text-xs font-medium">
                 {isPinned ? "Unpin" : "Pin"}
               </span>
-            </button>
+            </Button>
 
-            <button
+            <Button variant="unstyled"
               onClick={handleToggleMute}
               className="cursor-pointer flex flex-col items-center gap-1 text-muted-foreground hover:text-foreground transition"
             >
@@ -375,7 +377,7 @@ export default function DirectMessageRightPanel({
               <span className="text-xs font-medium">
                 {isMuted ? "Unmute" : "Mute"}
               </span>
-            </button>
+            </Button>
           </div>
         </div>
 

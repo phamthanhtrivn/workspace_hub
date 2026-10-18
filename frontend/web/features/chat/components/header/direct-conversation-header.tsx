@@ -6,6 +6,8 @@ import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
 import StartMeetingConfirmModal from "../modals/start-meeting-confirm-modal";
+import { Button } from "@/components/ui/button";
+
 
 interface DirectConversationHeaderProps {
   onToggleRightPanel: () => void;
@@ -55,15 +57,15 @@ export default function DirectConversationHeader({
     <div className="min-h-16 min-w-0 shrink-0 px-3 py-2 border-b border-border flex flex-wrap items-center justify-between gap-2 bg-card z-10">
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
         {onBack && (
-          <button aria-label="Back"
+          <Button variant="unstyled" aria-label="Back"
             className="@min-[720px]/messages:hidden shrink-0 p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition"
             onClick={onBack}
           >
             <ArrowLeft size={20} />
-          </button>
+          </Button>
         )}
 
-        <button
+        <Button variant="unstyled"
           type="button"
           className="relative cursor-pointer shrink-0"
           onClick={() => {
@@ -87,7 +89,7 @@ export default function DirectConversationHeader({
               <User size={20} className="text-muted-foreground" />
             )}
           </div>
-        </button>
+        </Button>
 
         <div className="min-w-0">
           {isLoadingProfile ? (
@@ -109,29 +111,29 @@ export default function DirectConversationHeader({
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-1 text-muted-foreground">
-        <button
+        <Button variant="unstyled"
           className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition"
           onClick={onOpenSearch}
           title="Search"
         >
           <Search size={20} />
-        </button>
-        <button
+        </Button>
+        <Button variant="unstyled"
           className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition disabled:opacity-50"
           onClick={() => setIsConfirmModalOpen(true)}
           disabled={isCreating || !activeConversation?.id}
           title="Start instant meeting"
         >
           <Video size={20} />
-        </button>
+        </Button>
         <div className="w-px h-6 bg-accent mx-1" />
-        <button
+        <Button variant="unstyled"
           className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition"
           onClick={onToggleRightPanel}
           title="Conversation info"
         >
           <Info size={20} />
-        </button>
+        </Button>
       </div>
 
       <StartMeetingConfirmModal

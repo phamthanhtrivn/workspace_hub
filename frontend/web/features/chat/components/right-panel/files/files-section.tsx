@@ -12,6 +12,8 @@ import { saveAs } from "file-saver";
 import { formatFileSize } from "@/lib/file";
 import { formatDateTime } from "@/lib/date";
 import SeeAllButton from "../see-all-button";
+import { Button } from "@/components/ui/button";
+
 
 interface FilesSectionProps {
   isExpanded: boolean;
@@ -81,7 +83,7 @@ export default function FilesSection({
 
   return (
     <div>
-      <button
+      <Button variant="unstyled"
         onClick={onToggle}
         className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
@@ -94,7 +96,7 @@ export default function FilesSection({
         ) : (
           <ChevronRight size={16} className="text-muted-foreground" />
         )}
-      </button>
+      </Button>
 
       {isExpanded && (
         <div className="px-4 pb-4">
@@ -106,7 +108,7 @@ export default function FilesSection({
             <>
               <div className="flex flex-col gap-2">
                 {displayItems.map((item, idx) => (
-                  <button
+                  <Button variant="unstyled"
                     key={item.id || idx}
                     onClick={() => {
                       if (isVisualFile(item)) {
@@ -146,7 +148,7 @@ export default function FilesSection({
                         <Download size={15} />
                       </span>
                     )}
-                  </button>
+                  </Button>
                 ))}
               </div>
               {hasMore && (

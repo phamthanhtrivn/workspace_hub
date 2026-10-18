@@ -17,6 +17,8 @@ import {
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { DownloadStatus } from "@/features/documents/types/documents.enums";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
+import { Button } from "@/components/ui/button";
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -169,7 +171,7 @@ export function DownloadQueueProvider({
                 t.status === DownloadStatus.DONE ||
                 t.status === DownloadStatus.ERROR,
             ) && (
-              <button
+              <Button variant="unstyled"
                 onClick={(e) => {
                   e.stopPropagation();
                   clearDone();
@@ -177,9 +179,9 @@ export function DownloadQueueProvider({
                 className="text-xs font-semibold text-muted-foreground hover:text-foreground px-2 py-0.5 rounded hover:bg-muted transition-colors cursor-pointer"
               >
                 Clear all
-              </button>
+              </Button>
             )}
-            <button
+            <Button variant="unstyled"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsCollapsed((c) => !c);
@@ -187,7 +189,7 @@ export function DownloadQueueProvider({
               className="w-6 h-6 flex items-center justify-center rounded-control hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-xs font-semibold cursor-pointer"
             >
               {isCollapsed ? <FaAngleUp /> : <FaAngleDown />}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -237,13 +239,13 @@ function DownloadTaskRow({
           )}
           {(task.status === DownloadStatus.DONE ||
             task.status === DownloadStatus.ERROR) && (
-            <button
+            <Button variant="unstyled"
               onClick={() => onRemove(task.id)}
               aria-label="Remove download"
               className="text-muted-foreground hover:text-muted-foreground transition-colors"
             >
               <X size={13} />
-            </button>
+            </Button>
           )}
         </div>
       </div>

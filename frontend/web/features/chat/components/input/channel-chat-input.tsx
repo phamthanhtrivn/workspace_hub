@@ -60,6 +60,11 @@ import TaskFormDialog, {
 import { createTask } from "@/features/project/api/task.api";
 import { getSpaceDetails } from "@/features/chat/api/space.api";
 import { chatKeys } from "@/features/chat/types/chat.constant";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 interface ChannelChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -192,20 +197,7 @@ const ChannelChatInput = React.memo(
           setIsSubmittingTask(false);
         }
       };
-      useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-          if (
-            mainOptionsRef.current &&
-            !mainOptionsRef.current.contains(event.target as Node)
-          ) {
-            setShowOptions(false);
-          }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-          document.removeEventListener("mousedown", handleClickOutside);
-        };
-      }, []);
+
 
       // 1. Text Formatting Hook
       const { applyFormatting, handleListKeyDown } = useTextFormatting({
@@ -791,7 +783,7 @@ const ChannelChatInput = React.memo(
                       />
                     )}
 
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => removeFile(media.id)}
                       className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
@@ -802,7 +794,7 @@ const ChannelChatInput = React.memo(
                       }
                     >
                       <X size={14} />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -822,7 +814,7 @@ const ChannelChatInput = React.memo(
 
               {/* Actions Trigger */}
               <div className="relative flex-shrink-0" ref={mainOptionsRef}>
-                <button aria-label="Message options"
+                <Button variant="unstyled" aria-label="Message options"
                   type="button"
                   onClick={() => setShowOptions(!showOptions)}
                   disabled={isUploading}
@@ -836,11 +828,11 @@ const ChannelChatInput = React.memo(
                     size={20}
                     className={`transition-transform ${showOptions ? "rotate-45" : ""}`}
                   />
-                </button>
+                </Button>
 
                 {showOptions && (
-                  <div className="absolute bottom-full left-0 mb-2 bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
-                    <button
+                  <AnchoredMenu onClose={() => setShowOptions(false)} side="top" align="start" aria-label="Message attachments" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                    <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setShowOptions(false);
                         fileInputRef.current?.click();
@@ -850,9 +842,9 @@ const ChannelChatInput = React.memo(
                     >
                       <Paperclip size={16} className="text-muted-foreground" />
                       Files
-                    </button>
+                    </DropdownMenuItem>
 
-                    <button
+                    <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setShowOptions(false);
                         setIsMyFilesModalOpen(true);
@@ -862,12 +854,12 @@ const ChannelChatInput = React.memo(
                     >
                       <Folder size={16} className="text-info-content" />
                       My Files
-                    </button>
+                    </DropdownMenuItem>
 
                     <div className="h-px bg-muted my-1"></div>
 
                     {spaceDetail?.projectId && allowCreateTask && (
-                      <button
+                      <DropdownMenuItem closeOnClick={false}
                         onClick={() => {
                           setShowOptions(false);
                           setIsTaskModalOpen(true);
@@ -877,11 +869,11 @@ const ChannelChatInput = React.memo(
                       >
                         <CheckSquare size={16} className="text-success-content" />
                         Task
-                      </button>
+                      </DropdownMenuItem>
                     )}
 
                     {allowCreatePoll && (
-                      <button
+                      <DropdownMenuItem closeOnClick={false}
                         onClick={() => {
                           setShowOptions(false);
                           onCreatePoll?.();
@@ -891,11 +883,11 @@ const ChannelChatInput = React.memo(
                       >
                         <BarChart2 size={16} className="text-info-content" />
                         Poll
-                      </button>
+                      </DropdownMenuItem>
                     )}
 
                     {allowCreateNote && (
-                      <button
+                      <DropdownMenuItem closeOnClick={false}
                         onClick={() => {
                           setShowOptions(false);
                           onCreateNote?.();
@@ -905,9 +897,9 @@ const ChannelChatInput = React.memo(
                       >
                         <FileText size={16} className="text-warning-content" />
                         Note
-                      </button>
+                      </DropdownMenuItem>
                     )}
-                  </div>
+                  </AnchoredMenu>
                 )}
               </div>
 
@@ -924,86 +916,86 @@ const ChannelChatInput = React.memo(
                 {/* Formatting Toolbar */}
                 {showFormatting && (
                   <div className="flex items-center gap-0.5 pb-1.5 mb-1 border-b border-border/60 overflow-x-auto scrollbar-none">
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("bold")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Bold"
                     >
                       <Bold size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("italic")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Italic"
                     >
                       <Italic size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("strikethrough")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Strikethrough"
                     >
                       <Strikethrough size={15} />
-                    </button>
+                    </Button>
 
                     <div className="w-px bg-accent mx-1 h-4"></div>
 
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("heading")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Heading"
                     >
                       <Heading size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("link")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Link"
                     >
                       <Link size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("code")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Code Block"
                     >
                       <Code size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("quote")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Quote"
                     >
                       <Quote size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("bullet")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Bulleted List"
                     >
                       <List size={15} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => applyFormatting("number")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Numbered List"
                     >
                       <ListOrdered size={15} />
-                    </button>
+                    </Button>
                   </div>
                 )}
 
                 {/* Textarea Input */}
-                <textarea
+                <Textarea unstyled
                   id="chat-input-textarea"
                   ref={textareaRef}
                   onPaste={handlePaste}
@@ -1081,25 +1073,25 @@ const ChannelChatInput = React.memo(
                     <span className="text-destructive-content font-medium text-xs">
                       {formatTime(recordingTime)}
                     </span>
-                    <button
+                    <Button variant="unstyled"
                       onClick={handleCancelRecording}
                       className="p-1.5 text-muted-foreground hover:text-destructive-content hover:bg-accent rounded-full transition cursor-pointer"
                       title="Cancel recording"
                     >
                       <Trash2 size={16} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="unstyled"
                       onClick={handleStopRecording}
                       className="p-1.5 text-primary-foreground bg-primary hover:bg-primary rounded-full transition cursor-pointer"
                       title="Send"
                     >
                       <Send size={14} />
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <>
                     {/* Text Formatting Toggle Button */}
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => setShowFormatting(!showFormatting)}
                       className={`cursor-pointer p-2 rounded-full transition-colors ${
@@ -1111,11 +1103,11 @@ const ChannelChatInput = React.memo(
                       disabled={isUploading}
                     >
                       <Type size={20} />
-                    </button>
+                    </Button>
 
                     {/* Emoji Picker Popover Trigger */}
                     <div className="relative">
-                      <button
+                      <Button variant="unstyled"
                         ref={emojiButtonRef}
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         className={`cursor-pointer p-2 rounded-full transition-colors ${
@@ -1127,7 +1119,7 @@ const ChannelChatInput = React.memo(
                         title="Insert emoji"
                       >
                         <Smile size={20} />
-                      </button>
+                      </Button>
                       <EmojiPickerPopover
                         isOpen={showEmojiPicker}
                         onClose={() => setShowEmojiPicker(false)}
@@ -1138,7 +1130,7 @@ const ChannelChatInput = React.memo(
 
                     {/* Mic Dictation Trigger */}
                     <div className="relative">
-                      <button
+                      <Button variant="unstyled"
                         onClick={() => {
                           if (isDictating) {
                             stopDictation();
@@ -1157,11 +1149,11 @@ const ChannelChatInput = React.memo(
                         disabled={isUploading}
                       >
                         <Mic size={20} />
-                      </button>
+                      </Button>
 
                       {showMicOptions && !isDictating && (
-                        <div className="absolute bottom-full right-0 mb-2 bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
-                          <button
+                        <AnchoredMenu onClose={() => setShowMicOptions(false)} side="top" align="end" aria-label="Microphone options" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                          <DropdownMenuItem closeOnClick={false}
                             onClick={() => {
                               setShowMicOptions(false);
                               void handleStartRecording();
@@ -1170,8 +1162,8 @@ const ChannelChatInput = React.memo(
                           >
                             <Voicemail size={16} className="text-info-content" />{" "}
                             Send voice message
-                          </button>
-                          <button
+                          </DropdownMenuItem>
+                          <DropdownMenuItem closeOnClick={false}
                             onClick={() => {
                               setShowMicOptions(false);
                               handleStartDictation();
@@ -1180,13 +1172,13 @@ const ChannelChatInput = React.memo(
                           >
                             <Type size={16} className="text-success-content" />
                             Speech to text
-                          </button>
-                        </div>
+                          </DropdownMenuItem>
+                        </AnchoredMenu>
                       )}
                     </div>
 
                     {/* Send Message Button */}
-                    <button aria-label="Send message"
+                    <Button variant="unstyled" aria-label="Send message"
                       className={`p-2 rounded-full transition-colors flex items-center justify-center ${
                         (message.trim() ||
                           interimMessage.trim() ||
@@ -1204,7 +1196,7 @@ const ChannelChatInput = React.memo(
                       onClick={handleSend}
                     >
                       <Send size={18} className="mr-0.5" />
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

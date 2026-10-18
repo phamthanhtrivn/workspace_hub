@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { cn } from "@/lib/utils";
+
 
 export interface ChatSearchInputProps {
   value: string;
@@ -20,24 +20,15 @@ export function ChatSearchInput({
   className,
 }: ChatSearchInputProps) {
   return (
-    <div className={cn("relative flex-1 min-w-[180px]", className)}>
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-9 rounded-control border border-input bg-background pl-9 pr-8 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden transition-all"
-      />
-      {value ? (
-        <button aria-label="Clear search"
-          type="button"
-          onClick={() => onChange("")}
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground cursor-pointer"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      ) : null}
-    </div>
+    <SearchInput
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      onClear={() => onChange("")}
+      placeholder={placeholder}
+      aria-label={placeholder}
+      containerClassName={cn("relative flex-1 min-w-[180px]", className)}
+      className="h-9 rounded-control border border-input bg-background pl-9 pr-8 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden transition-all"
+    />
   );
 }
 

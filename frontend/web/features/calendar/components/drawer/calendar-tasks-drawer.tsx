@@ -7,7 +7,7 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 
@@ -21,6 +21,8 @@ import {
   TaskTimeFilter,
 } from "../../utils/calendar-tasks.utils";
 import { CalendarTaskList } from "./calendar-task-list";
+import { SheetPanel } from "@/components/ui/sheet";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface CalendarTasksDrawerProps {
   open: boolean;
@@ -99,15 +101,7 @@ export function CalendarTasksDrawer({
     [displayedTasks, timeFilter, effectiveStatusFilter],
   );
 
-  useEffect(() => {
-    if (!open) return;
 
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [open, onClose]);
 
   const tabs = [
     {
@@ -135,7 +129,7 @@ export function CalendarTasksDrawer({
         />
       )}
 
-      <aside
+      <SheetPanel open={open} onClose={onClose} modalBelow={1040} modalContainerSelector="[data-calendar-canvas]"
         className={cn(
           "z-50 flex min-h-0 min-w-0 flex-col border-l border-border bg-card transition-all duration-200 ease-in-out @min-[1040px]/calendar-canvas:static @min-[1040px]/calendar-canvas:z-auto @min-[1040px]/calendar-canvas:h-full @min-[1040px]/calendar-canvas:shadow-none",
           // Mobile: fixed overlay from right
@@ -146,11 +140,11 @@ export function CalendarTasksDrawer({
             ? "@min-[1040px]/calendar-canvas:w-[400px] @min-[1040px]/calendar-canvas:opacity-100"
             : "@min-[1040px]/calendar-canvas:w-0 @min-[1040px]/calendar-canvas:overflow-hidden @min-[1040px]/calendar-canvas:opacity-0 @min-[1040px]/calendar-canvas:border-none pointer-events-none",
         )}
-        role="dialog"
+
         aria-label="Tasks"
         aria-hidden={!open}
       >
-        <div className="flex h-full min-h-0 min-w-0 w-full flex-col">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TasksDrawerTab)} className="flex h-full min-h-0 min-w-0 w-full flex-col gap-0">
           <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/80 px-3 sm:px-4">
             <h2 className="sr-only">Tasks</h2>
 
@@ -228,19 +222,19 @@ export function CalendarTasksDrawer({
             </Button>
           </header>
 
-          <div
-            className="grid shrink-0 grid-cols-2 gap-1 border-b border-border bg-background p-1.5"
-            role="tablist"
+          <TabsList
+            className="h-auto w-full justify-start rounded-none bg-transparent p-0 grid shrink-0 grid-cols-2 gap-1 border-b border-border bg-background p-1.5"
+
             aria-label="Tasks"
           >
             {tabs.map((tab) => (
-              <Button
+              <TabsTrigger unstyled value={tab.value}
                 key={tab.value}
-                type="button"
-                variant="ghost"
-                role="tab"
-                aria-selected={activeTab === tab.value}
-                onClick={() => setActiveTab(tab.value)}
+
+
+
+
+
                 className={cn(
                   "flex h-9 min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeTab === tab.value
@@ -249,11 +243,11 @@ export function CalendarTasksDrawer({
                 )}
               >
                 <span className="truncate">{tab.label}</span>
-              </Button>
+              </TabsTrigger>
             ))}
-          </div>
+          </TabsList>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+          <TabsContent value={activeTab} className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
             {activeTab === "project" && projects.length > 0 && (
               <div className="mb-3 flex items-center justify-between gap-2 rounded-panel border border-border bg-background px-3 py-2">
                 <div className="flex min-w-0 items-center gap-2">
@@ -322,9 +316,9 @@ export function CalendarTasksDrawer({
                 />
               </div>
             )}
-          </div>
-        </div>
-      </aside>
+          </TabsContent>
+        </Tabs>
+      </SheetPanel>
     </>
   );
 }

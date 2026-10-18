@@ -1,15 +1,9 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import { SmilePlus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MEETING_ROOM_REACTIONS } from "../../types/meeting.constants";
 import type { MeetingRoomReactionEmoji } from "../../types/meeting.constants";
 
@@ -19,138 +13,21 @@ interface MeetingRoomReactionPickerProps {
   onSendReaction: (emoji: MeetingRoomReactionEmoji) => void;
 }
 
-interface PickerPosition {
-  left: number;
-  top: number;
-}
-
-const PICKER_WIDTH_PX = 148;
-const PICKER_HEIGHT_PX = 102;
-const VIEWPORT_GAP_PX = 8;
-
-function clampPickerLeft(left: number) {
-  const maxLeft = window.innerWidth - PICKER_WIDTH_PX - VIEWPORT_GAP_PX;
-  return Math.max(VIEWPORT_GAP_PX, Math.min(left, maxLeft));
-}
-
-export function MeetingRoomReactionPicker({
-  label,
-  disabled = false,
-  onSendReaction,
-}: MeetingRoomReactionPickerProps) {
+export function MeetingRoomReactionPicker({ label, disabled = false, onSendReaction }: MeetingRoomReactionPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const isPickerOpen = isOpen && !disabled;
-  const [pickerPosition, setPickerPosition] = useState<PickerPosition | null>(
-    null,
-  );
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const updatePickerPosition = useCallback(() => {
-    const button = buttonRef.current;
-    if (!button) return;
-
-    const buttonRect = button.getBoundingClientRect();
-    const preferredTop =
-      buttonRect.top - PICKER_HEIGHT_PX - VIEWPORT_GAP_PX;
-    const fallbackTop = buttonRect.bottom + VIEWPORT_GAP_PX;
-    const top = preferredTop >= VIEWPORT_GAP_PX ? preferredTop : fallbackTop;
-
-    setPickerPosition({
-      left: clampPickerLeft(
-        buttonRect.left + buttonRect.width / 2 - PICKER_WIDTH_PX / 2,
-      ),
-      top: Math.max(VIEWPORT_GAP_PX, top),
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!isPickerOpen) return;
-
-    updatePickerPosition();
-  }, [isPickerOpen, updatePickerPosition]);
-
-  useEffect(() => {
-    if (!isPickerOpen) return;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (
-        buttonRef.current?.contains(target) ||
-        menuRef.current?.contains(target)
-      ) {
-        return;
-      }
-
-      setIsOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("resize", updatePickerPosition);
-    window.addEventListener("scroll", updatePickerPosition, true);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("resize", updatePickerPosition);
-      window.removeEventListener("scroll", updatePickerPosition, true);
-    };
-  }, [isPickerOpen, updatePickerPosition]);
-
-  return (
+  return <DropdownMenu open={isOpen && !disabled} onOpenChange={setIsOpen}>
     <div className="relative shrink-0">
-      <button
-        ref={buttonRef}
-        type="button"
-        disabled={disabled}
-        aria-label={label}
-        aria-expanded={isPickerOpen}
-        aria-haspopup="menu"
-        onClick={() => setIsOpen((current) => !current)}
-        className={cn(
-          "relative flex h-12 w-14 sm:h-[68px] sm:w-[76px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 overflow-visible rounded-control bg-accent text-xs font-semibold text-muted-foreground ring-1 ring-border/10 transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-        )}
-      >
-        <SmilePlus className="h-5 w-5" />
-        <span className="max-w-full truncate px-1">{label}</span>
-      </button>
-
-      {isPickerOpen && typeof document !== "undefined"
-        ? createPortal(
-            <div
-              ref={menuRef}
-              role="menu"
-              className="fixed z-[120] grid w-[148px] grid-cols-3 gap-1.5 rounded-lg bg-card p-2 ring-1 ring-border/10 shadow-panel"
-              style={{
-                left: pickerPosition?.left ?? VIEWPORT_GAP_PX,
-                top: pickerPosition?.top ?? VIEWPORT_GAP_PX,
-              }}
-            >
-              {MEETING_ROOM_REACTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  role="menuitem"
-                  className="grid h-10 w-10 cursor-pointer place-items-center rounded-control text-2xl transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={`${label} ${emoji}`}
-                  onClick={() => {
-                    onSendReaction(emoji);
-                    setIsOpen(false);
-                  }}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>,
-            document.body,
-          )
-        : null}
+      <DropdownMenuTrigger asChild disabled={disabled}>
+        <Button variant="unstyled" type="button" disabled={disabled} aria-label={label}
+          className="relative flex h-12 w-14 sm:h-[68px] sm:w-[76px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 overflow-visible rounded-control bg-accent text-xs font-semibold text-muted-foreground ring-1 ring-border/10 transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+          <SmilePlus className="h-5 w-5" /><span className="max-w-full truncate px-1">{label}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="center" sideOffset={8} aria-label={label} className="grid w-[148px] min-w-0 grid-cols-3 gap-1.5 rounded-lg bg-card p-2 ring-1 ring-border/10">
+        {MEETING_ROOM_REACTIONS.map((emoji) => <DropdownMenuItem key={emoji} aria-label={label + " " + emoji}
+          className="grid h-10 w-10 cursor-pointer place-items-center rounded-control px-0 py-0 text-2xl transition hover:bg-accent"
+          onClick={() => { onSendReaction(emoji); setIsOpen(false); }}>{emoji}</DropdownMenuItem>)}
+      </DropdownMenuContent>
     </div>
-  );
+  </DropdownMenu>;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { createPortal } from "react-dom";
+
 
 import {
   AlignLeft,
@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
 import { CalendarEventFormController } from "../../hooks/use-calendar-event-form";
-import { useModalDialog } from "../../hooks/use-modal-dialog";
+
 import {
   CalendarEvent,
   CalendarTaskDeadline,
@@ -41,6 +41,7 @@ import {
 import { CalendarTaskDeadlineFields } from "./calendar-task-deadline-fields";
 import { ReminderEditor } from "./reminder-editor";
 import { formatReminderSummary } from "../../utils/calendar-reminder.utils";
+import { DialogSurface } from "@/components/ui/dialog";
 
 export type { QuickCreateKind } from "./quick-create-time-section";
 
@@ -88,7 +89,7 @@ export function QuickCreateModal({
   const selectedCalendar =
     calendars.find((calendar) => calendar.id === calendarId) ?? calendars[0];
   const locationValue = useWatch({ control, name: "location" }) ?? "";
-  useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
+
 
   // Expand "More options" downwards
   const [showMoreOptions, setShowMoreOptions] = useState<boolean>(() => {
@@ -133,7 +134,7 @@ export function QuickCreateModal({
     controller.submit(submitEvent);
   };
 
-  return typeof document === "undefined" ? null : createPortal((
+  return typeof document === "undefined" ? null : <DialogSurface onClose={onClose}>{(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/30 p-2 sm:p-5"
       onWheelCapture={(event) => {
@@ -160,8 +161,8 @@ export function QuickCreateModal({
       <form
         ref={dialogRef}
         onSubmit={handleSubmit}
-        role="dialog"
-        aria-modal="true"
+
+
         aria-labelledby="calendar-quick-create-heading"
         className="flex max-h-[92dvh] w-full max-w-[35rem] flex-col overflow-hidden rounded-dialog border border-border bg-card ring-1 ring-border/70 transition-all duration-200 ease-out"
       >
@@ -208,15 +209,15 @@ export function QuickCreateModal({
           {!isEditing && (
             <div
               className="ml-12 mt-4 inline-flex rounded-panel bg-muted p-1"
-              role="tablist"
+              role="group" aria-label="Event or task"
             >
               {QUICK_CREATE_TABS.map((tab) => (
                 <Button
                   key={tab.value}
                   type="button"
                   variant="ghost"
-                  role="tab"
-                  aria-selected={kind === tab.value}
+
+                  aria-pressed={kind === tab.value}
                   onClick={() => onKindChange(tab.value)}
                   className={cn(
                     "h-8 cursor-pointer rounded-control px-4 text-sm font-semibold transition hover:bg-card",
@@ -399,5 +400,5 @@ export function QuickCreateModal({
         </div>
       </form>
     </div>
-  ), document.body);
+  )}</DialogSurface>;
 }

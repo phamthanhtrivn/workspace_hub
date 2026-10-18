@@ -139,7 +139,7 @@ const ProfileTab = React.memo(function ProfileTab() {
               <User size={30} className="text-foreground" />
             )}
           </div>
-          <button
+          <Button variant="unstyled"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadAvatarMutation.isPending}
             className="absolute inset-0 bg-overlay/80 text-media-foreground opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer disabled:opacity-50"
@@ -150,7 +150,7 @@ const ProfileTab = React.memo(function ProfileTab() {
             ) : (
               <Camera className="h-6 w-6" />
             )}
-          </button>
+          </Button>
           <input
             type="file"
             ref={fileInputRef}

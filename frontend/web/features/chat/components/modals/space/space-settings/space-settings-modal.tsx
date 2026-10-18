@@ -3,7 +3,7 @@
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { Settings, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DangerZoneTab } from "./danger-zone-tab";
@@ -28,6 +28,9 @@ import ChatConfirmDialog, {
 import {
   getSpaceMemberName,
 } from "@/features/chat/types/space-settings/space-settings.types";
+import { Button } from "@/components/ui/button";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 const TAB_LABELS: Record<SpaceSettingsTab, string> = {
   [SpaceSettingsTab.OVERVIEW]: "Overview",
@@ -231,8 +234,7 @@ export default function SpaceSettingsModal({
 
   if (!isOpen || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40">
       <div className={`${dialogLayout.surface} w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-panel border border-border bg-card flex flex-col`}>
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="min-w-0">
@@ -241,19 +243,19 @@ export default function SpaceSettingsModal({
             </h2>
             <p className="text-xs text-muted-foreground truncate">{space.name}</p>
           </div>
-          <button aria-label="Close"
+          <Button variant="unstyled" aria-label="Close"
             type="button"
             onClick={onClose}
             className="p-2 rounded-control text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
           >
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
           <div className="w-full shrink-0 border-b border-border bg-background p-2 flex flex-wrap gap-2 sm:w-44 sm:flex-col sm:border-b-0 sm:border-r">
             {visibleTabs.map((tab) => (
-              <button
+              <Button variant="unstyled"
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
@@ -265,7 +267,7 @@ export default function SpaceSettingsModal({
                 )}
               >
                 {TAB_LABELS[tab.id] || tab.id}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -363,13 +365,13 @@ export default function SpaceSettingsModal({
               ? "Admin Settings"
               : "Member Settings"}
           </div>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             className="px-4 py-2 rounded-control bg-accent text-sm font-semibold text-foreground hover:bg-border transition cursor-pointer"
           >
             Close
-          </button>
+          </Button>
         </div>
 
         {settings.isAdmin && !isProjectSpace && (
@@ -399,8 +401,6 @@ export default function SpaceSettingsModal({
           onCancel={closeConfirm}
         />
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 

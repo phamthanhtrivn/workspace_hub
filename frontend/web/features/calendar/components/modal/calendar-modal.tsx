@@ -4,16 +4,17 @@ import { readableTextOnColor } from "@/lib/color";
 
 import { Trash2, X } from "lucide-react";
 import { FormEvent, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useModalDialog } from "../../hooks/use-modal-dialog";
+
 import { CALENDAR_DEFAULT_EVENT_COLOR } from "../../types/calendar.constants";
 import {
   CalendarColorPicker,
   CalendarIconPicker,
 } from "../sidebar/calendar-style-fields";
+import { DialogSurface } from "@/components/ui/dialog";
 
 export interface CalendarModalValues {
   name: string;
@@ -60,7 +61,7 @@ export function CalendarModal(props: CalendarModalProps) {
   const headingId = `calendar-${props.mode}-heading`;
   const previewName = name.trim() || "Calendar name";
 
-  useModalDialog({ dialogRef, onClose: props.onClose, lockDocumentScroll: false });
+
 
   if (typeof document === "undefined") return null;
 
@@ -87,8 +88,7 @@ export function CalendarModal(props: CalendarModalProps) {
     props.onRequestDelete?.();
   };
 
-  return createPortal(
-    <div
+  return <DialogSurface onClose={props.onClose}>{<div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/40 p-4"
       onWheelCapture={(event) => {
         if (
@@ -113,8 +113,8 @@ export function CalendarModal(props: CalendarModalProps) {
     >
       <form
         ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
+
+
         aria-labelledby={headingId}
         onSubmit={handleSubmit}
         className="flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-panel border border-border bg-card"
@@ -231,7 +231,5 @@ export function CalendarModal(props: CalendarModalProps) {
           </div>
         </div>
       </form>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }

@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { TaskStatus } from "@/features/project/types/project";
 import { TASK_DRAWER_STATUS_OPTIONS } from "@/features/project/constants/task.constants";
 
 import { Button } from "@/components/ui/button";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface TaskStatusPickerProps {
   status: TaskStatus;
@@ -21,18 +23,7 @@ export default function TaskStatusPicker({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   const currentOption =
     TASK_DRAWER_STATUS_OPTIONS.find((opt) => opt.value === status) ||
@@ -57,13 +48,13 @@ export default function TaskStatusPicker({
       </Button>
 
       {isOpen && !disabled && (
-        <div className="absolute left-0 mt-1 w-40 overflow-hidden rounded-panel border border-border bg-card py-1 z-20 shadow-panel">
+        <AnchoredMenu onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task status" className="w-40 overflow-hidden rounded-panel border border-border bg-card py-1 z-20 shadow-panel">
           {TASK_DRAWER_STATUS_OPTIONS.map((opt) => (
-            <Button
+            <DropdownMenuItem closeOnClick={false}
               key={opt.value}
-              type="button"
-              variant="ghost"
-              size="sm"
+
+
+
               onClick={() => {
                 setIsOpen(false);
                 void onChange(opt.value);
@@ -76,9 +67,9 @@ export default function TaskStatusPicker({
               ].join(" ")}
             >
               {opt.label}
-            </Button>
+            </DropdownMenuItem>
           ))}
-        </div>
+        </AnchoredMenu>
       )}
     </div>
   );

@@ -1,9 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Bell, BellOff, MoreVertical, Pin, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
 import { DirectConversationResponse } from "../../types/chat.types";
+import { Button } from "@/components/ui/button";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 type DirectConversationListItem = DirectConversationResponse & {
   unreadCount?: number;
@@ -59,18 +63,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
   const isPinned = currentMember?.pinned || false;
   const unreadCount = conversation.unreadCount ?? 0;
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
 
-    if (isMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isMenuOpen]);
 
   return (
     <div
@@ -143,7 +136,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
         ) : null}
 
         <div ref={menuRef} className="relative">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={(event) => {
               event.stopPropagation();
@@ -153,15 +146,15 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
             title="Conversation options"
           >
             <MoreVertical size={14} />
-          </button>
+          </Button>
 
           {isMenuOpen && (
-            <div
-              className="absolute right-0 top-full z-30 mt-1 min-w-[150px] rounded-panel border border-border bg-card py-1 text-xs text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel"
+            <AnchoredMenu onClose={() => setIsMenuOpen(false)} side="bottom" align="end" aria-label="Conversation actions"
+              className="z-30 min-w-[150px] rounded-panel border border-border bg-card py-1 text-xs text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel"
               onClick={(event) => event.stopPropagation()}
             >
-              <button
-                type="button"
+              <DropdownMenuItem closeOnClick={false}
+
                 onClick={() => {
                   onTogglePin?.(conversation, !isPinned);
                   setIsMenuOpen(false);
@@ -173,9 +166,9 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
                   className={isPinned ? "fill-info-content text-info-content" : ""}
                 />
                 <span>{isPinned ? "Unpin" : "Pin"}</span>
-              </button>
-              <button
-                type="button"
+              </DropdownMenuItem>
+              <DropdownMenuItem closeOnClick={false}
+
                 onClick={() => {
                   onToggleMute?.(conversation, !isMuted);
                   setIsMenuOpen(false);
@@ -184,8 +177,8 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
               >
                 {isMuted ? <Bell size={14} /> : <BellOff size={14} />}
                 <span>{isMuted ? "Unmute" : "Mute"}</span>
-              </button>
-            </div>
+              </DropdownMenuItem>
+            </AnchoredMenu>
           )}
         </div>
       </div>

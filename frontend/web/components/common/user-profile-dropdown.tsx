@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { LogOut, Settings, User } from "lucide-react";
@@ -16,6 +16,10 @@ import { socketService } from "@/features/chat/api/chat-socket.service";
 import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
 import { useUserProfileQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
+import { Button } from "@/components/ui/button";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 interface UserProfileDropdownProps {
   onOpenSettings: (tab: UserSettingTab) => void;
@@ -71,25 +75,11 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
     });
   };
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsUserDropdownOpen(false);
-      }
-    }
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
+      <Button variant="unstyled"
         ref={triggerRef}
         type="button"
         onClick={() => setIsUserDropdownOpen((prev) => !prev)}
@@ -107,10 +97,10 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
         ) : (
           <User size={22} className="text-foreground rounded-full" />
         )}
-      </button>
+      </Button>
 
       {isUserDropdownOpen && (
-        <div className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-panel border border-border bg-card p-2 ring-1 ring-foreground/5 focus:outline-none animate-in fade-in slide-in-from-top-2 shadow-panel">
+        <AnchoredMenu onClose={() => setIsUserDropdownOpen(false)} side="bottom" align="end" aria-label="User menu" className="z-50 w-56 rounded-panel border border-border bg-card p-2 ring-1 ring-foreground/5 focus:outline-none animate-in fade-in slide-in-from-top-2 shadow-panel">
           <div className="px-3 py-2 border-b border-border mb-1">
             <p className="truncate text-sm font-semibold text-foreground">
               {fullName || "Workspace User"}
@@ -121,7 +111,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
           </div>
 
           <div className="flex flex-col gap-1">
-            <button
+            <DropdownMenuItem closeOnClick={false}
               onClick={() => {
                 setIsUserDropdownOpen(false);
                 triggerRef.current?.focus();
@@ -131,8 +121,8 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
             >
               <User className="h-4 w-4" />
               Profile
-            </button>
-            <button
+            </DropdownMenuItem>
+            <DropdownMenuItem closeOnClick={false}
               onClick={() => {
                 setIsUserDropdownOpen(false);
                 triggerRef.current?.focus();
@@ -142,17 +132,17 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
             >
               <Settings className="h-4 w-4" />
               Settings
-            </button>
-            <button
+            </DropdownMenuItem>
+            <DropdownMenuItem closeOnClick={false}
               onClick={handleLogout}
               disabled={logoutMutation.isPending}
               className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold text-destructive-content hover:bg-destructive-soft transition cursor-pointer mt-1 disabled:opacity-50"
             >
               <LogOut className="h-4 w-4" />
               {logoutMutation.isPending ? "Signing out..." : "Sign Out"}
-            </button>
+            </DropdownMenuItem>
           </div>
-        </div>
+        </AnchoredMenu>
       )}
     </div>
   );

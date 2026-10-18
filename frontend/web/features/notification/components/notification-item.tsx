@@ -5,6 +5,8 @@ import { Notification } from "../types/notification.types";
 import { getNotificationRenderer } from "./notification-registry";
 import { DefaultListItemRenderer } from "./renderers/default-renderer";
 import { Loader2, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 
 interface NotificationItemProps {
   notification: Notification;
@@ -32,7 +34,7 @@ const NotificationItem = React.memo(function NotificationItem({
         onClick={() => onClick(notification)}
       />
       {onDelete ? (
-        <button
+        <Button variant="unstyled"
           type="button"
           aria-label={deleteLabel}
           title={deleteLabel}
@@ -49,7 +51,7 @@ const NotificationItem = React.memo(function NotificationItem({
           ) : (
             <Trash2 className="h-3.5 w-3.5" />
           )}
-        </button>
+        </Button>
       ) : null}
     </div>
   );

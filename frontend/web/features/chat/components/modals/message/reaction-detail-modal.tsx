@@ -4,7 +4,10 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState } from "react";
 import { X } from "lucide-react";
-import { createPortal } from "react-dom";
+
+import { Button } from "@/components/ui/button";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface ReactionDetailModalProps {
   isOpen: boolean;
@@ -39,37 +42,36 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
   const displayReactions =
     activeTab === "all" ? reactions : groupedReactions[activeTab] || [];
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/50 p-4">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/50 p-4">
       <div className={`${dialogLayout.surface} bg-card rounded-panel w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200`}>
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h2 className="text-section-title font-semibold text-foreground">
             Reactions
           </h2>
-          <button aria-label="Close"
+          <Button variant="unstyled" aria-label="Close"
             onClick={onClose}
             className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground cursor-pointer"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         <div className="flex border-b border-border overflow-x-auto scrollbar-hide">
-          <button
+          <Button variant="unstyled"
             onClick={() => setActiveTab("all")}
             className={`cursor-pointer px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === "all" ? "text-info-content border-b-2 border-info-outline" : "text-muted-foreground hover:text-foreground hover:bg-background"}`}
           >
             {`All (${reactions.length})`}
-          </button>
+          </Button>
           {emojis.map((emoji) => (
-            <button
+            <Button variant="unstyled"
               key={emoji}
               onClick={() => setActiveTab(emoji)}
               className={`cursor-pointer px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1 ${activeTab === emoji ? "text-info-content border-b-2 border-info-outline" : "text-muted-foreground hover:text-foreground hover:bg-background"}`}
             >
               <span>{emoji}</span>
               <span>{groupedReactions[emoji].length}</span>
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -109,9 +111,7 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
           ))}
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 };
 
 export default ReactionDetailModal;

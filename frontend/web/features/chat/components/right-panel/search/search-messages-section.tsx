@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   ArrowLeft,
   Search,
@@ -18,6 +18,10 @@ import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { ChatContextType } from "../../../types/chat.types";
 import { logApiError } from "@/lib/interceptors";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AnchoredPopover } from "@/components/ui/anchored-popup";
+
 
 interface SearchMessagesSectionProps {
   conversationId: string;
@@ -42,18 +46,7 @@ export default function SearchMessagesSection({
   const [senderSearch, setSenderSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
-        setIsSenderDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   const filteredMembers = useMemo(() => {
     const term = senderSearch.toLowerCase();
@@ -112,12 +105,12 @@ export default function SearchMessagesSection({
     <div className="flex flex-col h-full bg-card">
       {/* Header */}
       <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center gap-3">
-        <button aria-label="Back"
+        <Button variant="unstyled" aria-label="Back"
           onClick={onBack}
           className="p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition cursor-pointer"
         >
           <ArrowLeft size={20} />
-        </button>
+        </Button>
         <h2 className="font-semibold text-foreground">
           Search Messages
         </h2>
@@ -131,7 +124,7 @@ export default function SearchMessagesSection({
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={16}
             />
-            <input
+            <Input unstyled
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -142,19 +135,19 @@ export default function SearchMessagesSection({
         </div>
 
         <div className="relative" ref={dropdownRef}>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => setIsSenderDropdownOpen(!isSenderDropdownOpen)}
             className="w-full flex items-center justify-between text-sm bg-muted p-2 rounded-control outline-none cursor-pointer hover:bg-accent transition"
           >
             <span className="truncate">{getSelectedSenderName()}</span>
             <ChevronDown size={14} className="text-muted-foreground shrink-0" />
-          </button>
+          </Button>
 
           {isSenderDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg z-20 max-h-64 flex flex-col overflow-hidden shadow-panel">
+            <AnchoredPopover onClose={() => setIsSenderDropdownOpen(false)} side="bottom" align="end" aria-label="Search senders" className="bg-card border border-border rounded-lg z-20 max-h-64 flex flex-col overflow-hidden shadow-panel w-[var(--radix-popover-trigger-width)]">
               <div className="p-2 border-b border-border bg-background">
-                <input
+                <Input unstyled
                   type="text"
                   value={senderSearch}
                   onChange={(e) => setSenderSearch(e.target.value)}
@@ -222,7 +215,7 @@ export default function SearchMessagesSection({
                   </div>
                 )}
               </div>
-            </div>
+            </AnchoredPopover>
           )}
         </div>
       </div>

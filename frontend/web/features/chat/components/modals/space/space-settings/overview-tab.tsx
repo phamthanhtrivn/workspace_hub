@@ -1,4 +1,7 @@
 import { SpaceResponse } from "@/features/chat/types/chat.types";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
 
 interface OverviewTabProps {
   detail: SpaceResponse;
@@ -48,7 +51,7 @@ export function OverviewTab({
           Space Name
         </label>
         <div className="flex gap-2">
-          <input
+          <Input unstyled
             type="text"
             value={spaceName}
             disabled={!isOwner || isSaving}
@@ -57,7 +60,7 @@ export function OverviewTab({
             maxLength={50}
           />
           {isOwner && (
-            <button
+            <Button variant="unstyled"
               type="button"
               disabled={
                 isSaving ||
@@ -68,7 +71,7 @@ export function OverviewTab({
               className="px-4 py-2 rounded-control bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSaving ? "Saving..." : "Save"}
-            </button>
+            </Button>
           )}
         </div>
       </div>

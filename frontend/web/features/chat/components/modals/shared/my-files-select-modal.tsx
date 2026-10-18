@@ -5,12 +5,15 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Folder, FileText, X, ChevronRight, Check } from "lucide-react";
-import { createPortal } from "react-dom";
+
 import { DocumentItem } from "@/features/documents/types/documents.types";
 import { chatKeys } from "@/features/chat/types/chat.constant";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
 import { formatFileSize } from "@/lib/format-file-size";
+import { Button } from "@/components/ui/button";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface MyFilesSelectModalProps {
   isOpen: boolean;
@@ -113,8 +116,7 @@ export default function MyFilesSelectModal({
 
   if (!isOpen) return null;
 
-  return createPortal(
-    <div
+  return <DialogSurface onClose={onClose}>{<div
       className={`fixed inset-0 ${overlayClassName} flex items-center justify-center p-4 animate-in fade-in duration-200 ${
         isDarkTone
           ? "bg-overlay/70"
@@ -141,7 +143,7 @@ export default function MyFilesSelectModal({
           >
             Select from My Files
           </h2>
-          <button aria-label="Close"
+          <Button variant="unstyled" aria-label="Close"
             onClick={handleCloseModal}
             className={`cursor-pointer p-2 rounded-full transition-colors ${
               isDarkTone
@@ -150,7 +152,7 @@ export default function MyFilesSelectModal({
             }`}
           >
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         {/* Breadcrumbs Navigation */}
@@ -171,7 +173,7 @@ export default function MyFilesSelectModal({
                   }`}
                 />
               )}
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => handleNavigateToFolder(history.id, history.name)}
                 className={`cursor-pointer text-xs font-semibold whitespace-nowrap transition-colors ${
@@ -191,7 +193,7 @@ export default function MyFilesSelectModal({
                 {history.id === null
                   ? "My Files"
                   : history.name}
-              </button>
+              </Button>
             </React.Fragment>
           ))}
         </div>
@@ -226,7 +228,7 @@ export default function MyFilesSelectModal({
 
               if (isFolder) {
                 return (
-                  <button
+                  <Button variant="unstyled"
                     key={item.id}
                     type="button"
                     onClick={() => handleNavigateToFolder(item.id, item.name)}
@@ -259,13 +261,13 @@ export default function MyFilesSelectModal({
                         isDarkTone ? "text-muted-foreground" : "text-muted-foreground"
                       }`}
                     />
-                  </button>
+                  </Button>
                 );
               }
 
               if (isFile) {
                 return (
-                  <button
+                  <Button variant="unstyled"
                     key={item.id}
                     type="button"
                     onClick={() => handleToggleSelectFile(item)}
@@ -316,7 +318,7 @@ export default function MyFilesSelectModal({
                         </span>
                       </div>
                     </div>
-                  </button>
+                  </Button>
                 );
               }
 
@@ -333,7 +335,7 @@ export default function MyFilesSelectModal({
               : "border-border bg-background"
           }`}
         >
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={handleCloseModal}
             className={`cursor-pointer px-4 py-2 text-xs font-semibold rounded-control transition ${
@@ -343,8 +345,8 @@ export default function MyFilesSelectModal({
             }`}
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={handleAttachSelected}
             disabled={selectedFiles.size === 0}
@@ -355,12 +357,10 @@ export default function MyFilesSelectModal({
             }`}
           >
             {`Attach Selected (${selectedFiles.size})`}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 
 

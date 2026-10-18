@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
 export interface CalendarRadioOption<TValue extends string = string> {
@@ -33,8 +33,11 @@ export function CalendarRadioGroup<TValue extends string = string>({
   onChange,
 }: CalendarRadioGroupProps<TValue>) {
   return (
-    <div
-      role="radiogroup"
+    <RadioGroup
+      value={value}
+      onValueChange={(next) => onChange(next as TValue)}
+      name={name}
+      disabled={disabled}
       aria-label={ariaLabel}
       aria-disabled={disabled || undefined}
       className={cn("space-y-2", className)}
@@ -44,16 +47,11 @@ export function CalendarRadioGroup<TValue extends string = string>({
         const optionDisabled = disabled || option.disabled;
 
         return (
-          <Button
+          <RadioGroupItem
             key={option.value}
-            type="button"
-            variant="ghost"
-            role="radio"
-            aria-checked={selected}
+            value={option.value}
             aria-label={String(option.label)}
-            name={name}
             disabled={optionDisabled}
-            onClick={() => onChange(option.value)}
             className={cn(
               "flex h-auto w-full cursor-pointer items-center justify-start gap-2.5 rounded-control border p-2.5 text-left text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
               selected
@@ -74,10 +72,10 @@ export function CalendarRadioGroup<TValue extends string = string>({
               {selected ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : null}
             </span>
             <span>{option.label}</span>
-          </Button>
+          </RadioGroupItem>
         );
       })}
-    </div>
+    </RadioGroup>
   );
 }
 

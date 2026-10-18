@@ -9,6 +9,8 @@ import { useDirectMessageActions } from "../../../hooks/useDirectMessageActions"
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import SeeAllButton from "../see-all-button";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+
 
 interface PinnedMessagesSectionProps {
   conversationId: string;
@@ -113,7 +115,7 @@ export default function PinnedMessagesSection({
 
   return (
     <div>
-      <button
+      <Button variant="unstyled"
         onClick={onToggle}
         className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
@@ -126,7 +128,7 @@ export default function PinnedMessagesSection({
         ) : (
           <ChevronRight size={16} className="text-muted-foreground" />
         )}
-      </button>
+      </Button>
 
       {isExpanded && (
         <div className="px-4 pb-3">
@@ -141,7 +143,7 @@ export default function PinnedMessagesSection({
           ) : (
             <div className="space-y-1">
               {pinnedMessages.map((message: any) => (
-                <button
+                <Button variant="unstyled"
                   key={message.id}
                   onClick={() => onJumpToMessage(message.id)}
                   className="w-full cursor-pointer flex items-start gap-2 rounded-control p-2 text-left hover:bg-muted transition"
@@ -177,7 +179,7 @@ export default function PinnedMessagesSection({
                   >
                     <Pin size={13} className="mt-1 shrink-0 text-info-content" />
                   </span>
-                </button>
+                </Button>
               ))}
               {data?.nextCursor && (
                 <SeeAllButton onClick={onSeeAll} className="mt-2">

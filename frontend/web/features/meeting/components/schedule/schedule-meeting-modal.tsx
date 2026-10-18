@@ -51,6 +51,8 @@ import type {
   MeetingParticipantResponse,
   UpcomingMeetingItem,
 } from "../../types/meeting.types";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingTimeOption {
   value: string;
@@ -514,7 +516,7 @@ export function ScheduleMeetingModal({
                   inviteeResults
                     .filter((user) => user.id !== currentUserId)
                     .map((user) => (
-                      <button
+                      <Button variant="unstyled"
                         key={user.id}
                         type="button"
                         disabled={selectedUserIds.has(user.id)}
@@ -530,7 +532,7 @@ export function ScheduleMeetingModal({
                             {user.email}
                           </span>
                         </span>
-                      </button>
+                      </Button>
                     ))
                 )}
               </div>
@@ -546,14 +548,14 @@ export function ScheduleMeetingModal({
                     <span className="max-w-36 truncate">
                       {user.fullName || user.email}
                     </span>
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => removeInvitee(user.id)}
                       className="cursor-pointer text-muted-foreground hover:text-foreground"
                       aria-label="Delete"
                     >
                       <X className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   </span>
                 ))}
               </div>
@@ -568,7 +570,7 @@ export function ScheduleMeetingModal({
           />
 
           <section className="space-y-3">
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => setOptionsOpen((current) => !current)}
               className="flex w-full cursor-pointer items-center justify-between rounded-control px-1 py-2 text-sm font-semibold text-muted-foreground"
@@ -577,7 +579,7 @@ export function ScheduleMeetingModal({
               <ChevronDown
                 className={`h-4 w-4 transition ${optionsOpen ? "rotate-180" : ""}`}
               />
-            </button>
+            </Button>
             {optionsOpen ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-3 rounded-lg border border-border bg-background p-3">

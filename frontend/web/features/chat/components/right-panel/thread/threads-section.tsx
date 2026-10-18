@@ -17,6 +17,8 @@ import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import SeeAllButton from "../see-all-button";
 import { logApiError } from "@/lib/interceptors";
 import ThreadSnippetPreview from "./thread-snippet-preview";
+import { Button } from "@/components/ui/button";
+
 
 interface ThreadsSectionProps {
   conversationId: string;
@@ -78,7 +80,7 @@ export default function ThreadsSection({
 
   return (
     <div>
-      <button
+      <Button variant="unstyled"
         onClick={onToggle}
         className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
@@ -91,7 +93,7 @@ export default function ThreadsSection({
         ) : (
           <ChevronRight size={16} className="text-muted-foreground" />
         )}
-      </button>
+      </Button>
 
       {isExpanded && (
         <div className="px-4 pb-3">
@@ -115,7 +117,7 @@ export default function ThreadsSection({
                   : null;
 
                 return (
-                  <button
+                  <Button variant="unstyled"
                     key={message.id}
                     onClick={() => onOpenThread(message)}
                     className="w-full cursor-pointer flex items-start gap-2 rounded-control p-2 text-left hover:bg-muted transition"
@@ -148,7 +150,7 @@ export default function ThreadsSection({
                         )}
                       </span>
                     </span>
-                  </button>
+                  </Button>
                 );
               })}
               {hasMore && (

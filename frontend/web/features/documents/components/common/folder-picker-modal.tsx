@@ -130,7 +130,7 @@ export function FolderPickerModal({
           {path.map((p, idx) => (
             <React.Fragment key={p.id ?? "root"}>
               {idx > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => handlePathClick(idx)}
                 className={cn(
@@ -139,7 +139,7 @@ export function FolderPickerModal({
                 )}
               >
                 {p.name === NavigationLabel.ROOT ? "My files" : p.name}
-              </button>
+              </Button>
             </React.Fragment>
           ))}
         </div>
@@ -162,7 +162,7 @@ export function FolderPickerModal({
             </div>
           ) : (
             folders.map((folder: DocumentItem) => (
-              <button
+              <Button variant="unstyled"
                 key={folder.id}
                 type="button"
                 onClick={() => handleNavigate(folder.id, folder.name)}
@@ -170,7 +170,7 @@ export function FolderPickerModal({
               >
                 <Folder className="h-4 w-4 text-warning-content shrink-0" />
                 <span className="truncate">{folder.name}</span>
-              </button>
+              </Button>
             ))
           )}
         </div>

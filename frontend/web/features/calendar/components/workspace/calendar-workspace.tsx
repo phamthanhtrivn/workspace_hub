@@ -316,7 +316,7 @@ export function CalendarWorkspace() {
           </div>
         </div>
 
-        <div className="@container/calendar-canvas relative flex min-h-0 min-w-0 flex-1">
+        <div data-calendar-canvas className="@container/calendar-canvas relative flex min-h-0 min-w-0 flex-1">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
           <CalendarToolbar
             title={calendar.title}

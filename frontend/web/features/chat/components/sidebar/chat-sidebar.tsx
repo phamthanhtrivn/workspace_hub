@@ -86,6 +86,11 @@ import { canMembersCreateChannels } from "../../utils/space-setting-utils";
 import FollowedThreadsModal, {
   fetchFollowedThreads,
 } from "./followed-threads-modal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 interface ChatSidebarProps {
   onSelectChat?: () => void;
@@ -132,24 +137,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const { confirm: confirmAction, confirmDialogProps } = useChatConfirmDialog();
 
   // Close dropdown on click outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsSpaceDropdownOpen(false);
-      }
-      if (
-        channelsDropdownRef.current &&
-        !channelsDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsChannelsDropdownOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   const { data: spacesData, refetch: refetchSpaces } =
     useSpacesQuery(currentUserId);
@@ -732,7 +720,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 )}
             </span>
           </div>
-          <button
+          <Button variant="unstyled"
             onClick={() => setIsFollowedThreadsModalOpen(true)}
             className="flex items-center justify-between px-3 py-2 mx-1 rounded-control cursor-pointer transition-all duration-200 select-none group bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft"
           >
@@ -752,12 +740,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   : followedThreadsUnreadCount}
               </span>
             )}
-          </button>
+          </Button>
         </div>
 
         {/* Dropdown Menu */}
         {isSpaceDropdownOpen && (
-          <div className="absolute left-3 right-3 top-[64px] z-50 bg-card rounded-panel border border-border py-1.5 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-100 shadow-panel">
+          <AnchoredMenu onClose={() => setIsSpaceDropdownOpen(false)} side="bottom" align="end" aria-label="Workspace actions" className="z-50 bg-card rounded-panel border border-border py-1.5 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-100 shadow-panel">
             <div className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Spaces
             </div>
@@ -813,7 +801,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             </div>
             <div className="h-[1px] bg-muted my-1" />
             <div className="px-1 flex flex-col gap-0.5">
-              <button
+              <DropdownMenuItem closeOnClick={false}
                 onClick={() => {
                   setIsCreateSpaceModalOpen(true);
                   setIsSpaceDropdownOpen(false);
@@ -822,9 +810,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
               >
                 <PlusCircle size={14} className="text-muted-foreground" />
                 Create new space
-              </button>
+              </DropdownMenuItem>
               {isActiveSpaceAdmin && (
-                <button
+                <DropdownMenuItem closeOnClick={false}
                   onClick={() => {
                     if (activeSpaceId) {
                       setIsSpaceSettingsModalOpen(true);
@@ -836,10 +824,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 >
                   <Settings size={14} className="text-muted-foreground" />
                   Space settings
-                </button>
+                </DropdownMenuItem>
               )}
             </div>
-          </div>
+          </AnchoredMenu>
         )}
       </div>
 
@@ -850,7 +838,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={14}
           />
-          <input
+          <Input unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -865,7 +853,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         {/* Channels Section */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between px-3 mb-1 text-xs font-semibold text-muted-foreground uppercase tracking-widest select-none">
-            <button
+            <Button variant="unstyled"
               onClick={() => setIsChannelsExpanded(!isChannelsExpanded)}
               className="flex items-center gap-1 hover:text-muted-foreground transition cursor-pointer text-left"
             >
@@ -875,10 +863,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 <ChevronRight size={12} />
               )}
               <span>CHANNELS</span>
-            </button>
+            </Button>
             {activeSpaceId && (
               <div className="relative" ref={channelsDropdownRef}>
-                <button
+                <Button variant="unstyled"
                   onClick={() =>
                     setIsChannelsDropdownOpen(!isChannelsDropdownOpen)
                   }
@@ -886,10 +874,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   title="Channel options"
                 >
                   <Plus size={14} />
-                </button>
+                </Button>
                 {isChannelsDropdownOpen && (
-                  <div className="absolute right-0 mt-1 w-44 bg-card border border-border rounded-panel z-50 py-1 text-foreground font-normal normal-case shadow-panel">
-                    <button
+                  <AnchoredMenu onClose={() => setIsChannelsDropdownOpen(false)} side="bottom" align="end" aria-label="Channel actions" className="w-44 bg-card border border-border rounded-panel z-50 py-1 text-foreground font-normal normal-case shadow-panel">
+                    <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setIsBrowseChannelsModalOpen(true);
                         setIsChannelsDropdownOpen(false);
@@ -898,9 +886,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                     >
                       <Globe size={14} className="text-muted-foreground" />
                       Browse channels
-                    </button>
+                    </DropdownMenuItem>
                     {canCreateChannelInActiveSpace && (
-                      <button
+                      <DropdownMenuItem closeOnClick={false}
                         onClick={() => {
                           setIsCreateChannelModalOpen(true);
                           setIsChannelsDropdownOpen(false);
@@ -909,9 +897,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                       >
                         <Plus size={14} className="text-muted-foreground" />
                         Create new channel
-                      </button>
+                      </DropdownMenuItem>
                     )}
-                  </div>
+                  </AnchoredMenu>
                 )}
               </div>
             )}

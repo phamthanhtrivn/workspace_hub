@@ -12,6 +12,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
 
 export type ChatConfirmVariant = "danger" | "warning" | "info" | "question";
 
@@ -107,7 +110,7 @@ export function ChatConfirmDialog({
                 <label className="text-xs font-semibold uppercase text-muted-foreground">
                   {confirmationLabel ?? `Type "${confirmationText}" to confirm`}
                 </label>
-                <input
+                <Input unstyled
                   type="text"
                   value={confirmationValue}
                   disabled={isLoading}
@@ -123,15 +126,15 @@ export function ChatConfirmDialog({
         </div>
 
         <AlertDialogFooter className="mt-6 flex items-center justify-end gap-3 border-t-0 p-0">
-          <button
+          <Button variant="unstyled"
             type="button"
             disabled={isLoading}
             onClick={onCancel}
             className="h-10 cursor-pointer rounded-control border border-border bg-card px-5 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             disabled={isConfirmDisabled}
             onClick={onConfirm}
@@ -141,7 +144,7 @@ export function ChatConfirmDialog({
             )}
           >
             {isLoading ? "..." : confirmLabel}
-          </button>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

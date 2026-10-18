@@ -31,6 +31,8 @@ import {
   getSpaceInvitationInitials,
 } from "../../utils/notification-display.utils";
 import { NotificationCategoryIcon } from "../notification-category-icon";
+import { Button } from "@/components/ui/button";
+
 
 function SenderAvatar({
   notification,
@@ -68,7 +70,7 @@ export const InvitationListItemRenderer: React.FC<{
   const spaceName = metadata?.spaceName || metadata?.conversationName || "space";
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={onClick}
       className={`group flex w-full cursor-pointer gap-3 border-b border-border p-3 text-left transition last:border-0 hover:bg-info-soft/45 ${
@@ -103,7 +105,7 @@ export const InvitationListItemRenderer: React.FC<{
       {!notification.isRead && (
         <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
       )}
-    </button>
+    </Button>
   );
 };
 
@@ -237,15 +239,15 @@ export const InvitationModalRenderer: React.FC<{
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            <button
+            <Button variant="unstyled"
               onClick={() => handleResponse("decline")}
               disabled={isProcessing}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-foreground transition hover:border-border hover:bg-destructive-soft hover:text-destructive-content disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
               <XCircle size={16} />
               Decline
-            </button>
-            <button
+            </Button>
+            <Button variant="unstyled"
               onClick={() => handleResponse("accept")}
               disabled={isProcessing}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
@@ -256,16 +258,16 @@ export const InvitationModalRenderer: React.FC<{
                 <CheckCircle2 size={16} />
               )}
               Join
-            </button>
+            </Button>
           </div>
         )}
 
-        <button
+        <Button variant="unstyled"
           onClick={onClose}
           className="w-full rounded-control py-2 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-muted-foreground cursor-pointer"
         >
           Close
-        </button>
+        </Button>
       </div>
     </div>
   );

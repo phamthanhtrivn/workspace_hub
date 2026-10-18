@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
 
 export default function TaskChatDialog({
   task,
@@ -59,7 +61,7 @@ export default function TaskChatDialog({
             </DialogDescription>
           </div>
           {(onOpenTaskThread || onOpenTaskChannel) && (
-            <button
+            <Button variant="unstyled"
               type="button"
               disabled={isOpeningChannel}
               onClick={handleChatClick}
@@ -69,7 +71,7 @@ export default function TaskChatDialog({
               <MessageSquare size={13} />
               <span>{isOpeningChannel ? "Opening..." : "Thread in Space"}</span>
               <ExternalLink size={12} className="opacity-70" />
-            </button>
+            </Button>
           )}
         </DialogHeader>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">

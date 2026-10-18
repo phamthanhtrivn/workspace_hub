@@ -1,16 +1,15 @@
 "use client";
 
 import React from "react";
-import { FileText, Globe, Download, ExternalLink, History, Edit3 } from "lucide-react";
+import { FileText, Globe, Download, History, Edit3 } from "lucide-react";
 import { DocumentItem } from "@/features/documents/types/documents.types";
-import {
-  LinkAccess,
-  DocumentRole,
-} from "@/features/documents/types/documents.enums";
+import { DocumentRole } from "@/features/documents/types/documents.enums";
 import {
   formatBytes,
   getDocumentRoleMetadata,
 } from "@/features/documents/utils/documents.utils";
+import { Button } from "@/components/ui/button";
+
 
 interface SharedDetailsProps {
   item: DocumentItem;
@@ -44,13 +43,13 @@ export function SharedDetails({
           <h1 className="text-base font-semibold text-foreground truncate max-w-xs md:max-w-md leading-tight flex items-center gap-1.5">
             <span>{item.name}</span>
             {onRename && (
-              <button
+              <Button variant="unstyled"
                 onClick={onRename}
                 title="Đổi tên tài liệu"
                 className="p-1 text-muted-foreground hover:text-muted-foreground hover:bg-background rounded-control transition-all cursor-pointer shrink-0"
               >
                 <Edit3 size={14} />
-              </button>
+              </Button>
             )}
           </h1>
           <div className="flex items-center gap-3 text-xs text-muted-foreground font-semibold mt-1.5 flex-wrap">
@@ -82,22 +81,22 @@ export function SharedDetails({
 
       <div className="flex items-center gap-2 w-full md:w-auto shrink-0 border-t md:border-t-0 border-border pt-4 md:pt-0">
         {onViewVersions && (
-          <button
+          <Button variant="unstyled"
             onClick={onViewVersions}
             className="flex items-center justify-center gap-1.5 rounded-control border border-border hover:bg-background text-muted-foreground px-4 py-3 text-xs font-semibold transition-all cursor-pointer w-full md:w-auto"
           >
             <History size={14} />
             <span>Lịch sử phiên bản</span>
-          </button>
+          </Button>
         )}
         {onDownload && (
-          <button
+          <Button variant="unstyled"
             onClick={onDownload}
             className="flex items-center justify-center gap-2 rounded-control bg-primary hover:bg-primary text-primary-foreground px-5 py-3 text-xs font-semibold cursor-pointer transition-all w-full md:w-auto"
           >
             <Download size={14} />
             <span>Tải xuống tệp</span>
-          </button>
+          </Button>
         )}
       </div>
     </div>

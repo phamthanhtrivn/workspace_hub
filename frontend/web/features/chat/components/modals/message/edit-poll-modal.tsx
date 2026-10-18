@@ -3,8 +3,13 @@
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeCheckbox } from "@/components/ui/checkbox";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface EditPollModalProps {
   isOpen: boolean;
@@ -69,19 +74,18 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
 
   if (!mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-70 flex items-center justify-center bg-overlay/50 p-4">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-70 flex items-center justify-center bg-overlay/50 p-4">
       <div className={`${dialogLayout.surface} bg-card rounded-panel w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200`}>
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h2 className="text-section-title font-semibold text-foreground">
             Edit Poll
           </h2>
-          <button aria-label="Close"
+          <Button variant="unstyled" aria-label="Close"
             onClick={onClose}
             className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className={`${dialogLayout.body} p-6 space-y-5`}>
@@ -89,7 +93,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
             <label className="block text-sm font-medium text-foreground mb-1">
               Poll Question
             </label>
-            <input
+            <Input unstyled
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -101,8 +105,8 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
 
           <div className="space-y-3 pt-4 border-t border-border">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
+              <NativeCheckbox
+
                 checked={multipleChoice}
                 onChange={(e) => setMultipleChoice(e.target.checked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring"
@@ -112,8 +116,8 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
+              <NativeCheckbox
+
                 checked={allowAddOptions}
                 onChange={(e) => setAllowAddOptions(e.target.checked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring cursor-pointer"
@@ -123,8 +127,8 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
+              <NativeCheckbox
+
                 checked={anonymous}
                 onChange={(e) => setAnonymous(e.target.checked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring cursor-pointer"
@@ -134,8 +138,8 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
+              <NativeCheckbox
+
                 checked={isLocked}
                 onChange={(e) => setIsLocked(e.target.checked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring cursor-pointer"
@@ -147,19 +151,17 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
           </div>
 
           <div className="pt-2">
-            <button
+            <Button variant="unstyled"
               type="submit"
               disabled={!title.trim()}
               className="flex-1 w-full py-2 px-4 bg-primary text-primary-foreground rounded-control font-medium hover:bg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Save Changes
-            </button>
+            </Button>
           </div>
         </form>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 };
 
 export default EditPollModal;

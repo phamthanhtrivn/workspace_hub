@@ -1,9 +1,13 @@
 "use client";
 
-import { createPortal } from "react-dom";
 
-import { useEffect, useRef } from "react";
+
+import { useRef } from "react";
 import { Edit2, Trash2 } from "lucide-react";
+
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 interface MeetingMessageOptionsMenuProps {
   isOpen: boolean;
@@ -26,40 +30,17 @@ export function MeetingMessageOptionsMenu({
 }: MeetingMessageOptionsMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!isOpen) return;
 
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!menuRef.current?.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, onClose]);
 
   if (!isOpen || !buttonRect || (!canEdit && !canRecall)) return null;
 
-  const style: React.CSSProperties = {
-    right: Math.max(12, window.innerWidth - buttonRect.right),
-  };
 
-  if (buttonRect.bottom > window.innerHeight / 2) {
-    style.bottom = window.innerHeight - buttonRect.top + 8;
-  } else {
-    style.top = buttonRect.bottom + 8;
-  }
 
-  return typeof document === "undefined" ? null : createPortal((
-    <div
-      ref={menuRef}
-      style={style}
-      className="fixed z-[100] min-w-40 rounded-lg border border-border bg-card py-1 text-sm text-muted-foreground shadow-panel"
-    >
+
+
+  return typeof document === "undefined" ? null : <AnchoredMenu ref={menuRef} onClose={onClose} anchorRect={buttonRect} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="end"  className="z-[100] min-w-40 rounded-lg border border-border bg-card py-1 text-sm text-muted-foreground shadow-panel">
       {canEdit && (
-        <button
-          type="button"
+        <DropdownMenuItem closeOnClick={false}
           onClick={() => {
             onEdit();
             onClose();
@@ -68,11 +49,10 @@ export function MeetingMessageOptionsMenu({
         >
           <Edit2 className="h-4 w-4" />
           <span>Edit message</span>
-        </button>
+        </DropdownMenuItem>
       )}
       {canRecall && (
-        <button
-          type="button"
+        <DropdownMenuItem closeOnClick={false}
           onClick={() => {
             onRecall();
             onClose();
@@ -81,8 +61,7 @@ export function MeetingMessageOptionsMenu({
         >
           <Trash2 className="h-4 w-4" />
           <span>Recall message</span>
-        </button>
+        </DropdownMenuItem>
       )}
-    </div>
-  ), document.body);
+    </AnchoredMenu>;
 }

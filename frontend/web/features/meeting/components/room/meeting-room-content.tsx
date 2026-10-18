@@ -32,6 +32,8 @@ import { MeetingRoomReactionOverlay } from "./meeting-room-reaction-overlay";
 import { MeetingRoomStage } from "./meeting-room-stage";
 import { MeetingRoomDesktopSidePanel } from "./side-panel/meeting-room-desktop-side-panel";
 import { MeetingRoomMobilePanelHeader } from "./side-panel/meeting-room-mobile-panel";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingRoomContentProps {
   meetingId: string;
@@ -254,7 +256,7 @@ export function MeetingRoomContent({
             {showParticipantPagination ? (
               <div className="mt-6 shrink-0">
                 <div className="mx-auto flex w-fit items-center justify-center gap-2 rounded-md bg-muted px-2 py-1.5 text-xs font-semibold text-muted-foreground ring-1 ring-border/8">
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     disabled={!canGoPrevious}
                     onClick={goToPreviousParticipantPage}
@@ -265,13 +267,13 @@ export function MeetingRoomContent({
                     <span className="hidden sm:inline">
                       Previous
                     </span>
-                  </button>
+                  </Button>
 
                   <span className="min-w-14 rounded-md bg-accent px-2.5 py-1.5 text-center text-muted-foreground ring-1 ring-border/6">
                     {currentParticipantPage} / {totalParticipantPages}
                   </span>
 
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     disabled={!canGoNext}
                     onClick={goToNextParticipantPage}
@@ -282,7 +284,7 @@ export function MeetingRoomContent({
                       Next
                     </span>
                     <ChevronRight className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : null}

@@ -1,8 +1,7 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { IconButton } from "@/components/ui/icon-button";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,9 +18,11 @@ export const DocumentsIconButton = React.forwardRef<
   HTMLButtonElement,
   DocumentsIconButtonProps
 >(({ icon: Icon, label, showTooltip = true, active = false, className, size = "icon", variant = "ghost", ...props }, ref) => {
-  const button = (
-    <Button
+  return (
+    <IconButton
       ref={ref}
+      label={label}
+      showTooltip={showTooltip}
       variant={variant}
       size={size}
       aria-label={label}
@@ -33,18 +34,7 @@ export const DocumentsIconButton = React.forwardRef<
       {...props}
     >
       <Icon className="h-4 w-4" />
-    </Button>
-  );
-
-  if (!showTooltip) return button;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent className="border-border bg-card text-foreground font-semibold">
-        {label}
-      </TooltipContent>
-    </Tooltip>
+    </IconButton>
   );
 });
 

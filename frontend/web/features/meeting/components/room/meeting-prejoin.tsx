@@ -9,13 +9,13 @@ import {
   VideoOff,
   X,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import { MeetingPreJoinMode } from "../../types/meeting.types";
 import type {
   MeetingDeviceOption,
   MeetingPreJoinSettings,
 } from "../../types/meeting.types";
-import { MeetingFullscreenPortal } from "./meeting-fullscreen-overlay";
+import { DialogSurface } from "@/components/ui/dialog";
 import { MeetingAutoAdmitToggle } from "../common/meeting-auto-admit-toggle";
 import { MeetingDeviceSelect } from "../common/meeting-device-select";
 import { MeetingParticipantChatToggle } from "../common/meeting-participant-chat-toggle";
@@ -59,27 +59,9 @@ export function MeetingPreJoin({
     video.srcObject = previewStream;
   }, [previewStream]);
 
-  useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+  useEffect(() => () => stopPreview(), [stopPreview]);
 
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      stopPreview();
-    };
-  }, [stopPreview]);
 
-  useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") onCancel();
-    }
-
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [onCancel]);
 
   const updateSettings = (nextSettings: Partial<MeetingPreJoinSettings>) => {
     onSettingsChange({
@@ -89,7 +71,7 @@ export function MeetingPreJoin({
   };
 
   return (
-    <MeetingFullscreenPortal>
+    <DialogSurface onClose={onCancel} aria-label="Meeting device preview">
       <div className="fixed inset-0 z-[100] flex h-dvh min-h-0 flex-col overflow-y-auto bg-card text-foreground">
         <header className="flex shrink-0 items-center justify-between border-b border-border/10 px-4 py-3 sm:px-6">
           <div className="min-w-0">
@@ -258,6 +240,6 @@ export function MeetingPreJoin({
           </aside>
         </main>
       </div>
-    </MeetingFullscreenPortal>
+    </DialogSurface>
   );
 }

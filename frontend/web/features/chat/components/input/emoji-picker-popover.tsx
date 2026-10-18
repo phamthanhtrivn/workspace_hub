@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import EmojiPicker, { Theme, EmojiStyle } from "emoji-picker-react";
 import { useTheme } from "next-themes";
+import { AnchoredPopover } from "@/components/ui/anchored-popup";
 
 interface EmojiPickerPopoverProps {
   onEmojiSelect: (emoji: string) => void;
@@ -18,31 +19,14 @@ const EmojiPickerPopover: React.FC<EmojiPickerPopoverProps> = ({
   const popoverRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        isOpen &&
-        popoverRef.current &&
-        !popoverRef.current.contains(event.target as Node) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(event.target as Node)
-      ) {
-        onClose();
-      }
-    };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, onClose, triggerRef]);
 
   if (!isOpen) return null;
 
   return (
-    <div
+    <AnchoredPopover onClose={onClose} anchorElementRef={triggerRef} side="top" align="end" aria-label="Message emoji"
       ref={popoverRef}
-      className="absolute max-h-[min(420px,60dvh)] max-w-[calc(100vw-1.5rem)] overflow-y-auto bottom-[110%] right-0 z-50 animate-in fade-in zoom-in-95 duration-200 rounded-panel overflow-hidden border border-border bg-card shadow-panel"
+      className="max-h-[min(420px,60dvh)] max-w-[calc(100vw-1.5rem)] overflow-y-auto z-50 animate-in fade-in zoom-in-95 duration-200 rounded-panel overflow-hidden border border-border bg-card shadow-panel"
     >
       <EmojiPicker
         onEmojiClick={(emojiData) => onEmojiSelect(emojiData.emoji)}
@@ -53,7 +37,7 @@ const EmojiPickerPopover: React.FC<EmojiPickerPopoverProps> = ({
         lazyLoadEmojis={true}
         searchPlaceHolder="Search emoji..."
       />
-    </div>
+    </AnchoredPopover>
   );
 };
 

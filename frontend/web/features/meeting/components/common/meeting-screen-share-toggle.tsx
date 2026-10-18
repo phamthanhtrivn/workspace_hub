@@ -3,6 +3,8 @@
 import { Check, MonitorUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MeetingAutoAdmitToggleVariant } from "./meeting-auto-admit-toggle";
+import { NativeCheckbox } from "@/components/ui/checkbox";
+
 
 interface MeetingScreenShareToggleProps {
   checked: boolean;
@@ -29,8 +31,8 @@ export function MeetingScreenShareToggle({
           : "border border-input bg-background hover:border-input hover:bg-info-soft/70",
       )}
     >
-      <input
-        type="checkbox"
+      <NativeCheckbox
+
         checked={checked}
         disabled={disabled}
         onChange={(event) => onCheckedChange(event.target.checked)}

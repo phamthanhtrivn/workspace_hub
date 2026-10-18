@@ -8,13 +8,14 @@ const FOCUSABLE_SELECTOR = [
   '[tabindex]:not([tabindex="-1"])',
 ].join(",");
 const MODAL_SELECTOR = '[role="dialog"][aria-modal="true"], [role="alertdialog"][aria-modal="true"]';
-const POPUP_SELECTOR = '[data-slot="select-content"], [data-slot="popover-content"], .EmojiPickerReact';
+const POPUP_SELECTOR = '[data-slot="select-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"], [data-slot="combobox-content"], [data-slot="tooltip-content"], .EmojiPickerReact';
 
 interface UseModalDialogOptions {
   dialogRef: RefObject<HTMLElement | null>;
   onClose: () => void;
   lockDocumentScroll?: boolean;
   enabled?: boolean;
+  trapFocus?: boolean;
 }
 
 let scrollLockCount = 0;
@@ -55,7 +56,7 @@ function unlockScroll() {
 }
 
 /** Shared by application dialogs and calendar overlays, including nested dialogs. */
-export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, enabled = true }: UseModalDialogOptions) {
+export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, enabled = true, trapFocus = true }: UseModalDialogOptions) {
   const closeRef = useRef(onClose);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   useEffect(() => { closeRef.current = onClose; }, [onClose]);
@@ -93,9 +94,9 @@ export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, 
       focusableElements(dialog)[0] ?? dialog;
     const isTopmost = () => {
       const dialogs = document.querySelectorAll(MODAL_SELECTOR);
-      return dialogs[dialogs.length - 1] === dialog;
+      return trapFocus ? dialogs[dialogs.length - 1] === dialog : dialogs.length === 0;
     };
-    focusWithoutScroll(firstFocus());
+    if (trapFocus) focusWithoutScroll(firstFocus());
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isTopmost() || event.defaultPrevented ||
@@ -105,7 +106,7 @@ export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, 
         closeRef.current();
         return;
       }
-      if (event.key !== "Tab") return;
+      if (!trapFocus || event.key !== "Tab") return;
       const elements = focusableElements(dialog);
       if (!elements.length) {
         event.preventDefault();
@@ -122,7 +123,7 @@ export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, 
       }
     };
     const handleFocusIn = (event: FocusEvent) => {
-      if (isTopmost() && event.target instanceof Element &&
+      if (trapFocus && isTopmost() && event.target instanceof Element &&
         !dialog.contains(event.target) && !event.target.closest(POPUP_SELECTOR)) {
         focusWithoutScroll(firstFocus());
       }
@@ -135,10 +136,14 @@ export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, 
       if (lockDocumentScroll) unlockScroll();
       // Wait for portal removal and any nested popup's own focus cleanup.
       requestAnimationFrame(() => {
-        if (!dialog.isConnected && previouslyFocused?.isConnected) focusWithoutScroll(previouslyFocused);
+        const modals = document.querySelectorAll(MODAL_SELECTOR);
+        const activeModal = modals[modals.length - 1];
+        const closed = !dialog.isConnected || dialog.getAttribute("aria-hidden") === "true";
+        if (trapFocus && closed && previouslyFocused?.isConnected &&
+          (!activeModal || activeModal.contains(previouslyFocused))) focusWithoutScroll(previouslyFocused);
       });
     };
-  }, [dialogRef, lockDocumentScroll, enabled]);
+  }, [dialogRef, lockDocumentScroll, enabled, trapFocus]);
 
   // A freshly keyed dialog has no closed-state effect history. React's focus
   // event still carries the opener when an autoFocus child mounts in its portal.

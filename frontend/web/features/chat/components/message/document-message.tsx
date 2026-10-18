@@ -14,6 +14,8 @@ import {
   METADATA_QUERY_KEY,
   METADATA_STALE_TIME,
 } from "../../types/document.constants";
+import { Button } from "@/components/ui/button";
+
 interface DocumentMessageProps {
   msg: ChatMessageResponse;
   isMe: boolean;
@@ -155,37 +157,37 @@ const DocumentMessage = React.memo(function DocumentMessage({
           <>
             {metadata.type === DocumentItemType.FOLDER ? (
               <>
-                <button
+                <Button variant="unstyled"
                   onClick={handleOpenFolder}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground bg-card border border-border hover:bg-background rounded-control transition-all"
                 >
                   <FolderOpen size={14} className="text-muted-foreground" />
                   <span>Open Folder</span>
-                </button>
-                <button
+                </Button>
+                <Button variant="unstyled"
                   onClick={handleDownload}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-warning-content bg-warning-soft hover:bg-warning-soft/80 rounded-control transition-all"
                 >
                   <Download size={14} className="text-warning-content" />
                   <span>Download Zip</span>
-                </button>
+                </Button>
               </>
             ) : (
               <>
-                <button
+                <Button variant="unstyled"
                   onClick={handlePreview}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground bg-card border border-border hover:bg-background rounded-control transition-all"
                 >
                   <Eye size={14} className="text-muted-foreground" />
                   <span>Preview</span>
-                </button>
-                <button
+                </Button>
+                <Button variant="unstyled"
                   onClick={handleDownload}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-info-content bg-info-soft hover:bg-info-soft/80 rounded-control transition-all"
                 >
                   <Download size={14} className="text-info-content" />
                   <span>Download</span>
-                </button>
+                </Button>
               </>
             )}
           </>

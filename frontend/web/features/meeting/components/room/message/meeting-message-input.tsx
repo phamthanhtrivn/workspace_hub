@@ -25,6 +25,10 @@ import type {
 import { MeetingTextarea } from "../../ui/meeting-form-controls";
 import { MeetingIconButton } from "../../ui/meeting-icon-button";
 
+import { AnchoredPopover, AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
+
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 interface UploadingMeetingMedia extends MeetingMessageMediaPayload {
@@ -108,24 +112,7 @@ export const MeetingMessageInput = forwardRef<
     textarea.style.height = `${Math.min(textarea.scrollHeight, 132)}px`;
   }, [message]);
 
-  useEffect(() => {
-    if (!isEmojiOpen) return;
 
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        emojiPickerRef.current?.contains(target) ||
-        emojiButtonRef.current?.contains(target)
-      ) {
-        return;
-      }
-
-      setIsEmojiOpen(false);
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isEmojiOpen]);
 
   const uploadFiles = useCallback(
     async (files: File[]) => {
@@ -277,9 +264,9 @@ export const MeetingMessageInput = forwardRef<
       )}
 
       {isEmojiOpen && (
-        <div
+        <AnchoredPopover onClose={() => setIsEmojiOpen(false)} side="top" align="end" aria-label="Message emoji"
           ref={emojiPickerRef}
-          className="absolute bottom-full left-3 right-3 z-[90] mb-2 overflow-hidden rounded-lg border border-border bg-card shadow-panel"
+          className="z-[90] overflow-hidden rounded-lg border border-border bg-card shadow-panel"
         >
           <EmojiPicker
             onEmojiClick={(emojiData) => {
@@ -295,7 +282,7 @@ export const MeetingMessageInput = forwardRef<
             searchPlaceHolder="Search emoji..."
             previewConfig={{ showPreview: false }}
           />
-        </div>
+        </AnchoredPopover>
       )}
 
       <div className="flex items-end gap-2 rounded-panel border border-input bg-background p-2">
@@ -323,9 +310,9 @@ export const MeetingMessageInput = forwardRef<
             />
 
             {isAttachOptionsOpen && (
-              <div className="absolute bottom-full left-0 z-[95] mb-2 flex min-w-40 flex-col gap-1 rounded-panel border border-border bg-card p-2 shadow-panel">
-                <button
-                  type="button"
+              <AnchoredMenu onClose={() => setIsAttachOptionsOpen(false)} side="top" align="start" aria-label="Message attachments" className="z-[95] flex min-w-40 flex-col gap-1 rounded-panel border border-border bg-card p-2 shadow-panel">
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={() => {
                     setIsAttachOptionsOpen(false);
                     fileInputRef.current?.click();
@@ -335,9 +322,9 @@ export const MeetingMessageInput = forwardRef<
                 >
                   <Paperclip className="h-4 w-4 text-muted-foreground" />
                   Files
-                </button>
-                <button
-                  type="button"
+                </DropdownMenuItem>
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={() => {
                     setIsAttachOptionsOpen(false);
                     setIsMyFilesModalOpen(true);
@@ -347,8 +334,8 @@ export const MeetingMessageInput = forwardRef<
                 >
                   <Folder className="h-4 w-4 text-info-content" />
                   My files
-                </button>
-              </div>
+                </DropdownMenuItem>
+              </AnchoredMenu>
             )}
           </div>
         )}

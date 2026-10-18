@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { Search, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { cn } from "@/lib/utils";
+
 
 export interface DocumentsSearchInputProps {
   value: string;
@@ -20,25 +20,17 @@ export function DocumentsSearchInput({
   className,
 }: DocumentsSearchInputProps) {
   return (
-    <div className={cn("relative flex-1 min-w-[200px]", className)}>
-      <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-10 rounded-control border border-input bg-background pl-10 pr-8 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden transition-all"
-      />
-      {value ? (
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          aria-label="Clear document search"
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground cursor-pointer"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      ) : null}
-    </div>
+    <SearchInput
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      onClear={() => onChange("")}
+      placeholder={placeholder}
+      aria-label={placeholder}
+      containerClassName={cn("relative flex-1 min-w-[200px]", className)}
+      iconClassName="left-3.5"
+      clearLabel="Clear document search"
+      className="h-10 rounded-control border border-input bg-background pl-10 pr-8 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden transition-all"
+    />
   );
 }
 

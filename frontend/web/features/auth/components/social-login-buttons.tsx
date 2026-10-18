@@ -15,6 +15,8 @@ import {
   getAuthenticatedHomePath,
   getReturnToFromSearch,
 } from "../utils/auth-redirect";
+import { Button } from "@/components/ui/button";
+
 
 const SocialLoginButtons = React.memo(function SocialLoginButtons() {
   const dispatch = useDispatch<AppDispatch>();
@@ -68,7 +70,7 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
 
   return (
     <div className="flex justify-between items-center gap-2 ">
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => login()}
         disabled={socialLoginMutation.isPending}
@@ -81,7 +83,7 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
           height={20}
         />
         Google
-      </button>
+      </Button>
     </div>
   );
 });

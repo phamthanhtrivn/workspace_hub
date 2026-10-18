@@ -10,6 +10,8 @@ import {
   DocumentsSelect,
 } from "../ui/documents-form-controls";
 import { Button } from "@/components/ui/button";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface ExplorerToolbarProps {
   searchQuery: string;
@@ -70,7 +72,7 @@ export function ExplorerToolbar({
 
         {/* View Switcher */}
         <div className="flex items-center rounded-md border border-border bg-muted p-1">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => onViewLayoutChange(ViewLayout.GRID)}
             className={cn(
@@ -82,8 +84,8 @@ export function ExplorerToolbar({
             title="Grid View"
           >
             <Grid className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={() => onViewLayoutChange(ViewLayout.LIST)}
             className={cn(
@@ -95,7 +97,7 @@ export function ExplorerToolbar({
             title="List View"
           >
             <List className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         {/* Create/Upload Dropdown */}
@@ -116,9 +118,9 @@ export function ExplorerToolbar({
                   className="fixed inset-0 z-30"
                   onClick={() => setIsNewMenuOpen(false)}
                 />
-                <div className="absolute right-0 mt-2 z-40 w-48 rounded-panel border border-border bg-card p-1.5 animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel">
-                  <button
-                    type="button"
+                <AnchoredMenu onClose={() => setIsNewMenuOpen(false)} side="bottom" align="end" aria-label="Create document" className="z-40 w-48 rounded-panel border border-border bg-card p-1.5 animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel">
+                  <DropdownMenuItem closeOnClick={false}
+
                     onClick={() => {
                       setIsNewMenuOpen(false);
                       onCreateFolder();
@@ -127,9 +129,9 @@ export function ExplorerToolbar({
                   >
                     <FolderPlus className="h-4 w-4 text-warning-content" />
                     <span>New folder</span>
-                  </button>
-                  <button
-                    type="button"
+                  </DropdownMenuItem>
+                  <DropdownMenuItem closeOnClick={false}
+
                     onClick={() => {
                       setIsNewMenuOpen(false);
                       fileInputRef.current?.click();
@@ -138,8 +140,8 @@ export function ExplorerToolbar({
                   >
                     <UploadCloud className="h-4 w-4 text-info-content" />
                     <span>Upload file</span>
-                  </button>
-                </div>
+                  </DropdownMenuItem>
+                </AnchoredMenu>
               </>
             ) : null}
           </div>

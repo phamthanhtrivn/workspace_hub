@@ -3,7 +3,7 @@
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { X, User, Phone, Calendar, Info } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
@@ -13,6 +13,9 @@ import {
   createDirectConversation,
   getPublicProfile,
 } from "@/features/chat/api/chat.api";
+import { Button } from "@/components/ui/button";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 const UserProfileModal = React.memo(function UserProfileModal() {
   const dispatch = useAppDispatch();
@@ -110,12 +113,12 @@ const UserProfileModal = React.memo(function UserProfileModal() {
           <h2 className="text-section-title font-semibold text-foreground tracking-tight">
             User Profile
           </h2>
-          <button aria-label="Close"
+          <Button variant="unstyled" aria-label="Close"
             onClick={handleClose}
             className="p-2 text-muted-foreground hover:text-muted-foreground hover:bg-muted rounded-full cursor-pointer transition-colors"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         <div className={`${dialogLayout.body} p-6 overflow-y-auto flex-1 bg-card`}>
@@ -172,12 +175,12 @@ const UserProfileModal = React.memo(function UserProfileModal() {
               </div>
 
               {currentUserId !== selectedProfileUserId && (
-                <button
+                <Button variant="unstyled"
                   onClick={handleMessage}
                   className="cursor-pointer w-full bg-primary text-primary-foreground font-semibold py-3 rounded-control transform transition-all duration-200"
                 >
                   Send Message
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -186,7 +189,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
     </div>
   );
 
-  return createPortal(modalContent, document.body);
+  return <DialogSurface onClose={handleClose}>{modalContent}</DialogSurface>;
 });
 
 export default UserProfileModal;

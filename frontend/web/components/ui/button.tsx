@@ -9,6 +9,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        unstyled: "",
         default:
           "bg-primary text-primary-foreground hover:bg-primary-hover",
         destructive:
@@ -50,7 +51,12 @@ function Button({
   return (
     <Comp
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={cn(
+        variant === "unstyled"
+          ? "cursor-pointer disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          : buttonVariants({ variant, size }),
+        className,
+      )}
       {...props}
     />
   );

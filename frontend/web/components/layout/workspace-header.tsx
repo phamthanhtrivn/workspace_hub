@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
-import { Menu, Search } from "lucide-react";
+import { Menu } from "lucide-react";
 import NotificationDropdown from "@/components/common/notification-dropdown";
 import UserProfileDropdown from "../common/user-profile-dropdown";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { useNotificationSocket } from "@/features/notification/hooks/useNotificationSocket";
+import { Button } from "@/components/ui/button";
+
 
 interface WorkspaceHeaderProps {
   currentTitle: string;
@@ -25,12 +27,12 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
       <div className="flex w-full items-center justify-between gap-4">
         {/* Left: Breadcrumbs & Mobile Menu */}
         <div className="flex min-w-0 items-center gap-3">
-          <button aria-label="Open navigation"
+          <Button variant="unstyled" aria-label="Open navigation"
             onClick={onMenuClick}
             className="-ml-2 rounded-control p-2 text-muted-foreground hover:bg-muted lg:hidden cursor-pointer"
           >
             <Menu className="h-6 w-6" />
-          </button>
+          </Button>
           <div className="min-w-0">
             <div className="hidden sm:flex items-center text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               <span>Workspace</span>

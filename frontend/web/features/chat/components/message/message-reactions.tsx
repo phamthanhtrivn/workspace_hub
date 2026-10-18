@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
 import { MessageReaction } from "./chat-message.types";
+import { Button } from "@/components/ui/button";
+
 
 interface MessageReactionsProps {
   reactions?: MessageReaction[];
@@ -33,7 +35,7 @@ export default function MessageReactions({
         );
 
         return (
-          <button
+          <Button variant="unstyled"
             key={emoji}
             onClick={() => onReactionClick(emoji)}
             className={cn(
@@ -45,15 +47,15 @@ export default function MessageReactions({
           >
             <span>{emoji}</span>
             <span>{emojiReactions.length}</span>
-          </button>
+          </Button>
         );
       })}
-      <button
+      <Button variant="unstyled"
         onClick={onOpenDetails}
         className="cursor-pointer text-xs text-muted-foreground hover:text-muted-foreground hover:underline px-2 py-0.5 transition"
       >
         Details
-      </button>
+      </Button>
     </div>
   );
 }

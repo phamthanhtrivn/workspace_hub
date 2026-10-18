@@ -6,6 +6,9 @@ import {
   SpaceRole,
 } from "@/features/chat/types/chat.types";
 import { getSpaceMemberName } from "@/features/chat/types/space-settings/space-settings.types";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
 
 interface MembersTabProps {
   currentUserId: string | null;
@@ -45,7 +48,7 @@ export function MembersTab({
           size={15}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
         />
-        <input
+        <Input unstyled
           type="text"
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
@@ -175,7 +178,7 @@ function MemberRow({
           {canCurrentUserUpdateRole && (
             <>
               {member.role === SpaceRole.MEMBER && (
-                <button
+                <Button variant="unstyled"
                   type="button"
                   title="Promote to Admin"
                   disabled={disabled}
@@ -183,10 +186,10 @@ function MemberRow({
                   className="p-2 rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft disabled:opacity-50 cursor-pointer transition-colors"
                 >
                   <Shield size={16} />
-                </button>
+                </Button>
               )}
               {member.role === SpaceRole.ADMIN && (
-                <button
+                <Button variant="unstyled"
                   type="button"
                   title="Demote to Member"
                   disabled={disabled}
@@ -194,13 +197,13 @@ function MemberRow({
                   className="p-2 rounded-control text-muted-foreground hover:text-muted-foreground hover:bg-background disabled:opacity-50 cursor-pointer transition-colors"
                 >
                   <ShieldOff size={16} />
-                </button>
+                </Button>
               )}
             </>
           )}
           {isCurrentUserCreator && !isCreator && onTransferOwnership && (
             <>
-              <button
+              <Button variant="unstyled"
                 type="button"
                 title="Transfer Ownership"
                 disabled={disabled}
@@ -208,11 +211,11 @@ function MemberRow({
                 className="p-2 rounded-control text-muted-foreground hover:text-warning-content hover:bg-warning-soft disabled:opacity-50 cursor-pointer transition-colors"
               >
                 <Crown size={16} className="fill-warning-content text-warning-content" />
-              </button>
+              </Button>
             </>
           )}
           {canCurrentUserRemove && onRemove && (
-            <button
+            <Button variant="unstyled"
               type="button"
               title="Remove from Space"
               disabled={disabled}
@@ -220,7 +223,7 @@ function MemberRow({
               className="p-2 rounded-control text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft disabled:opacity-50 cursor-pointer transition-colors"
             >
               <Trash2 size={16} />
-            </button>
+            </Button>
           )}
         </div>
       )}

@@ -12,6 +12,9 @@ interface DialogContextValue {
   open: boolean;
   onOpenChange?: (open: boolean) => void;
   titleId: string;
+  modalRole: "dialog" | "alertdialog";
+  closeOnEscape: boolean;
+  closeOnOutsideClick: boolean;
 }
 
 const DialogContext = React.createContext<DialogContextValue | null>(null);
@@ -20,14 +23,20 @@ function Dialog({
   open = false,
   onOpenChange,
   children,
+  modalRole = "dialog",
+  closeOnEscape = true,
+  closeOnOutsideClick = true,
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   children: React.ReactNode;
+  modalRole?: "dialog" | "alertdialog";
+  closeOnEscape?: boolean;
+  closeOnOutsideClick?: boolean;
 }) {
   const titleId = React.useId();
   return (
-    <DialogContext.Provider value={{ open, onOpenChange, titleId }}>
+    <DialogContext.Provider value={{ open, onOpenChange, titleId, modalRole, closeOnEscape, closeOnOutsideClick }}>
       {children}
     </DialogContext.Provider>
   );
@@ -77,13 +86,13 @@ function DialogPortal({ children }: { children: React.ReactNode }) {
 }
 
 function DialogOverlay({ className }: { className?: string }) {
-  const { onOpenChange } = useDialogContext();
+  const { onOpenChange, closeOnOutsideClick } = useDialogContext();
   return (
     <div
       data-slot="dialog-overlay"
       className={cn("fixed inset-0 z-[100] bg-overlay/55", className)}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onOpenChange?.(false);
+        if (closeOnOutsideClick && event.target === event.currentTarget) onOpenChange?.(false);
       }}
     />
   );
@@ -93,27 +102,28 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  overlayClassName,
   onFocusCapture,
   ref,
   ...props
-}: React.ComponentProps<"div"> & { showCloseButton?: boolean }) {
-  const { open, onOpenChange, titleId } = useDialogContext();
+}: React.ComponentProps<"div"> & { showCloseButton?: boolean; overlayClassName?: string }) {
+  const { open, onOpenChange, titleId, modalRole, closeOnEscape } = useDialogContext();
   const contentRef = React.useRef<HTMLDivElement>(null);
 
-  const { captureOpener } = useModalDialog({ dialogRef: contentRef, onClose: () => onOpenChange?.(false), enabled: open });
+  const { captureOpener } = useModalDialog({ dialogRef: contentRef, onClose: () => { if (closeOnEscape) onOpenChange?.(false); }, enabled: open });
 
   if (!open) return null;
 
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
       <div
         ref={(node) => {
           contentRef.current = node;
           if (typeof ref === "function") ref(node);
           else if (ref) ref.current = node;
         }}
-        role="dialog"
+        role={modalRole}
         aria-modal="true"
         aria-labelledby={props["aria-label"] ? undefined : titleId}
         tabIndex={-1}
@@ -142,6 +152,35 @@ function DialogContent({
       </div>
     </DialogPortal>
   );
+}
+
+/** Composition adapter for existing layouts; the shared layer owns the portal
+ * and modal lifecycle without imposing new visual styles on feature content. */
+function DialogSurface({ children, onClose, open = true, ref, onFocusCapture, className, ...props }: React.ComponentProps<"div"> & { onClose: () => void; open?: boolean }) {
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const titleId = React.useId();
+  const ariaLabel = props["aria-label"];
+  const ariaLabelledBy = props["aria-labelledby"];
+  const { captureOpener } = useModalDialog({ dialogRef: contentRef, onClose, enabled: open });
+  React.useEffect(() => {
+    const node = contentRef.current;
+    if (!node || ariaLabel || ariaLabelledBy) return;
+    const heading = node.querySelector<HTMLElement>("h1,h2,h3,h4,h5,h6,[data-dialog-title]");
+    if (heading) {
+      if (!heading.id) heading.id = titleId;
+      node.setAttribute("aria-labelledby", heading.id);
+    } else {
+      node.setAttribute("aria-label", "Dialog");
+    }
+  }, [open, titleId, ariaLabel, ariaLabelledBy]);
+  if (!open) return null;
+  return <DialogPortal><div
+    ref={(node) => { contentRef.current = node; if (typeof ref === "function") ref(node); else if (ref) ref.current = node; }}
+    role="dialog" aria-modal="true" tabIndex={-1} data-slot="dialog-surface"
+    className={cn("relative z-[110]", className)}
+    onFocusCapture={(event) => { captureOpener(event); onFocusCapture?.(event); }}
+    {...props}
+  >{children}</div></DialogPortal>;
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
@@ -196,4 +235,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  DialogSurface,
 };

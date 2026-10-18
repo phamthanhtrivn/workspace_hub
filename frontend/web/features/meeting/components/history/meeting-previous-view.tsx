@@ -53,7 +53,7 @@ export function MeetingPreviousView() {
 
         <div
           className="flex w-fit rounded-lg border border-border bg-muted p-1"
-          role="tablist"
+          role="group"
           aria-label="Meeting history layout"
         >
           {historyViewModeItems.map((item) => {
@@ -63,6 +63,7 @@ export function MeetingPreviousView() {
               <MeetingIconButton
                 key={item.id}
                 label={item.label}
+                aria-pressed={isActive}
                 icon={item.icon}
                 onClick={() => setViewMode(item.id)}
                 className={cn(

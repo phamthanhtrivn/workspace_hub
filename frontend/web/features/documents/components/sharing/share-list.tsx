@@ -9,6 +9,9 @@ import { DocumentShare } from "../../types/documents.types";
 import { SharePermission } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
 import { useBulkUserProfilesByEmailsQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Button } from "@/components/ui/button";
+
 
 interface ShareModalListProps {
   documentItemId: string;
@@ -198,7 +201,7 @@ export function ShareModalList({
                 <div className="flex items-center gap-1 shrink-0">
                   {isOwner ? (
                     <>
-                      <select
+                      <NativeSelect unstyled aria-label="Share permission"
                         value={share.permission}
                         onChange={(e) =>
                           void handleUpdateSharePermission(
@@ -213,15 +216,15 @@ export function ShareModalList({
                             {permissionLabel(value)}
                           </option>
                         ))}
-                      </select>
-                      <button aria-label="Remove sharing access"
+                      </NativeSelect>
+                      <Button variant="unstyled" aria-label="Remove sharing access"
                         onClick={() =>
                           handleRemoveShare(share.id, share.shareWithEmail)
                         }
                         className="p-1.5 text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft/50 rounded-control transition-colors cursor-pointer"
                       >
                         <Trash2 size={14} />
-                      </button>
+                      </Button>
                     </>
                   ) : (
                     <span className="text-xs font-semibold text-muted-foreground bg-muted rounded-lg px-2.5 py-1 uppercase tracking-wide">

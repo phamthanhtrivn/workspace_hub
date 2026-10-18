@@ -3,6 +3,8 @@ import { User } from "lucide-react";
 import { FaKey } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { UserProfileSnapshotResponse } from "../../types/chat.types";
+import { Button } from "@/components/ui/button";
+
 interface MessageAvatarProps {
   showAvatar: boolean;
   senderName: string;
@@ -24,7 +26,7 @@ export default function MessageAvatar({
     senderProfile?.userId && senderProfile.userId === spaceCreatorId;
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={showAvatar ? onClick : undefined}
       className={cn(
@@ -67,6 +69,6 @@ export default function MessageAvatar({
           ) : null}
         </span>
       ) : null}
-    </button>
+    </Button>
   );
 }

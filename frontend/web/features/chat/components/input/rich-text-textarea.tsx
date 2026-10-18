@@ -16,6 +16,9 @@ import {
   FormattingType,
   useTextFormatting,
 } from "../../hooks/input/useTextFormatting";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+
 
 interface RichTextTextareaProps {
   value: string;
@@ -63,7 +66,7 @@ export default function RichTextTextarea({
         {FORMAT_BUTTONS.map(({ type, label, icon: Icon }, index) => (
           <React.Fragment key={type}>
             {index === 3 ? <div className="mx-1 h-4 w-px bg-accent" /> : null}
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={() => applyFormatting(type)}
               className="cursor-pointer rounded-control p-1.5 text-muted-foreground transition hover:bg-card hover:text-foreground"
@@ -71,11 +74,11 @@ export default function RichTextTextarea({
               aria-label={label}
             >
               <Icon size={15} />
-            </button>
+            </Button>
           </React.Fragment>
         ))}
       </div>
-      <textarea
+      <Textarea unstyled
         ref={textareaRef}
         value={value}
         onChange={(event) => setValue(event.target.value)}

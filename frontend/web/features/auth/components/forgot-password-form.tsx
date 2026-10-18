@@ -19,6 +19,8 @@ import {
   getAuthErrorMessage,
   getAuthValidationErrors,
 } from "../utils/auth-error";
+import { Button } from "@/components/ui/button";
+
 
 const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
   const sendResetOtpMutation = useSendResetOtpMutation();
@@ -140,7 +142,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
   return (
     <div className="space-y-6">
       {step !== ForgotPasswordStep.EMAIL && (
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => {
             if (step === ForgotPasswordStep.OTP) {
@@ -154,7 +156,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
         >
           <ArrowLeft className="w-4 h-4" />
           Back
-        </button>
+        </Button>
       )}
 
       {step === ForgotPasswordStep.EMAIL && (
@@ -180,13 +182,13 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               onChange={handleEmailChange}
             />
           </div>
-          <button
+          <Button variant="unstyled"
             type="submit"
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
             {sendResetOtpMutation.isPending ? "Sending..." : "Send reset code"}
-          </button>
+          </Button>
         </form>
       )}
 
@@ -228,23 +230,23 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               <span className="text-muted-foreground">
                 Didn't receive code?{" "}
               </span>
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => handleSendEmail()}
                 className="font-bold text-link transition hover:text-foreground cursor-pointer"
                 disabled={isLoading}
               >
                 Resend code
-              </button>
+              </Button>
             </div>
           </div>
-          <button
+          <Button variant="unstyled"
             type="submit"
             disabled={isLoading || otp.length < 6}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
             {verifyResetOtpMutation.isPending ? "Verifying..." : "Verify code"}
-          </button>
+          </Button>
         </form>
       )}
 
@@ -306,13 +308,13 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               onRightClick={() => setShowConfirmPassword((prev) => !prev)}
             />
           </div>
-          <button
+          <Button variant="unstyled"
             type="submit"
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
             {resetPasswordMutation.isPending ? "Updating..." : "Update password"}
-          </button>
+          </Button>
         </form>
       )}
 

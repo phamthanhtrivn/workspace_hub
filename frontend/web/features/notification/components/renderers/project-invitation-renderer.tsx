@@ -29,6 +29,8 @@ import type {
   Notification,
   ProjectInvitationNotificationStatus,
 } from "../../types/notification.types";
+import { Button } from "@/components/ui/button";
+
 
 const statusClasses: Record<ProjectInvitationNotificationStatus, string> = {
   PENDING: "bg-warning-soft text-warning-content ring-warning-outline",
@@ -53,7 +55,7 @@ export function ProjectInvitationListItemRenderer({
   const projectColor = getProjectColor(metadata.projectColor);
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={onClick}
       className={`group flex w-full cursor-pointer items-start gap-3 border-b border-border p-3 text-left transition last:border-0 hover:bg-info-soft/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
@@ -106,7 +108,7 @@ export function ProjectInvitationListItemRenderer({
       {!notification.isRead && (
         <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -248,7 +250,7 @@ export function ProjectInvitationModalRenderer({
 
       {isPending ? (
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => void respond("decline")}
             disabled={action !== null}
@@ -260,8 +262,8 @@ export function ProjectInvitationModalRenderer({
               <XCircle className="h-4 w-4" />
             )}
             Decline
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={() => void respond("accept")}
             disabled={action !== null}
@@ -273,10 +275,10 @@ export function ProjectInvitationModalRenderer({
               <CheckCircle2 className="h-4 w-4" />
             )}
             Join
-          </button>
+          </Button>
         </div>
       ) : status === "ACCEPTED" ? (
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => {
             onClose();
@@ -286,16 +288,16 @@ export function ProjectInvitationModalRenderer({
         >
           <CheckCircle2 className="h-4 w-4" />
           Open project
-        </button>
+        </Button>
       ) : null}
 
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={onClose}
         className="mt-3 w-full cursor-pointer rounded-control py-2 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         Close
-      </button>
+      </Button>
     </div>
   );
 }

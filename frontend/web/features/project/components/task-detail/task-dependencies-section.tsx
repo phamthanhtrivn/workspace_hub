@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link2 } from "lucide-react";
 import type { Task, TaskDependency } from "@/features/project/types/project";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AnchoredPopover } from "@/components/ui/anchored-popup";
 
 interface TaskDependenciesSectionProps {
   task: Task;
@@ -54,18 +55,7 @@ export default function TaskDependenciesSection({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   const taskDependencies = dependencies.filter(
     (item) => item.successorTaskId === task.id,
@@ -100,7 +90,7 @@ export default function TaskDependenciesSection({
             Blocked by ({taskDependencies.length})
           </Button>
           {isOpen && (
-            <div className="absolute left-0 top-full z-30 mt-1 max-h-60 w-64 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
+            <AnchoredPopover onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task dependencies" className="z-30 max-h-60 w-64 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
               {dependencyCandidates.length === 0 ? (
                 <p className="px-3 py-2.5 text-xs text-muted-foreground">
                   No available tasks can block this task.
@@ -122,7 +112,7 @@ export default function TaskDependenciesSection({
                   </Button>
                 ))
               )}
-            </div>
+            </AnchoredPopover>
           )}
         </div>
       )}

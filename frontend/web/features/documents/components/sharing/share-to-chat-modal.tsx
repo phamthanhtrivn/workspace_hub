@@ -123,7 +123,7 @@ export function ShareToChatModal({
 
           {!isProjectDocuments ? (
             <div className="mt-3 flex items-center border-b border-border gap-6">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => setActiveTab(ShareTabType.CHANNEL)}
                 className={`flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
@@ -134,8 +134,8 @@ export function ShareToChatModal({
               >
                 <Users className="h-4 w-4" />
                 <span>Channels</span>
-              </button>
-              <button
+              </Button>
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => setActiveTab(ShareTabType.DM)}
                 className={`flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
@@ -146,7 +146,7 @@ export function ShareToChatModal({
               >
                 <MessageSquare className="h-4 w-4" />
                 <span>Direct messages</span>
-              </button>
+              </Button>
             </div>
           ) : null}
 

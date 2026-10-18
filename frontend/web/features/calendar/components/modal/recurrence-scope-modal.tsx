@@ -1,12 +1,13 @@
 "use client";
 
-import { createPortal } from "react-dom";
+
 
 import { Repeat2, X } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { useModalDialog } from "../../hooks/use-modal-dialog";
+
 import { RecurrenceScope } from "../../types/calendar.types";
+import { DialogSurface } from "@/components/ui/dialog";
 
 const SCOPE_LABELS: Record<RecurrenceScope, string> = {
   [RecurrenceScope.THIS]: "This event",
@@ -28,15 +29,15 @@ export function RecurrenceScopeModal({
   allowSingleOccurrence?: boolean;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
-  useModalDialog({ dialogRef, onClose });
+
   if (!open) return null;
 
-  return typeof document === "undefined" ? null : createPortal((
+  return typeof document === "undefined" ? null : <DialogSurface onClose={onClose}>{(
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-overlay/40 p-4">
       <div
         ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
+
+
         aria-labelledby="calendar-recurrence-scope-title"
         className="max-h-[calc(100dvh-2rem)] min-w-0 w-full max-w-md overflow-y-auto rounded-panel bg-card"
       >
@@ -94,5 +95,5 @@ export function RecurrenceScopeModal({
         </div>
       </div>
     </div>
-  ), document.body);
+  )}</DialogSurface>;
 }

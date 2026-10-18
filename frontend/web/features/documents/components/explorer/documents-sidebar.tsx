@@ -5,6 +5,8 @@ import { Folder, Share2, Star, Trash2 } from "lucide-react";
 import { DocumentViewType } from "../../types/documents.enums";
 import { DocumentsSidebarStoragePanel } from "./documents-sidebar-storage-panel";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
 
 export interface DocumentsSidebarProps {
   activeView: DocumentViewType;
@@ -46,7 +48,7 @@ export function DocumentsSidebar({ activeView, onViewChange }: DocumentsSidebarP
           const isActive = activeView === item.id;
 
           return (
-            <button
+            <Button variant="unstyled"
               key={item.id}
               type="button"
               onClick={() => onViewChange(item.id)}
@@ -67,7 +69,7 @@ export function DocumentsSidebar({ activeView, onViewChange }: DocumentsSidebarP
                 <Icon className="h-4 w-4" />
               </span>
               <span className="whitespace-nowrap">{item.label}</span>
-            </button>
+            </Button>
           );
         })}
       </nav>

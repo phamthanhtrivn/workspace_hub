@@ -1,4 +1,6 @@
 import { LogOut, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 
 interface DangerZoneTabProps {
   isAdmin: boolean;
@@ -56,7 +58,7 @@ export function DangerZoneTab({
                 </p>
               ) : null}
             </div>
-            <button
+            <Button variant="unstyled"
               type="button"
               disabled={isLeaving || isLastAdmin || isOwner}
               onClick={onLeave}
@@ -64,7 +66,7 @@ export function DangerZoneTab({
             >
               <LogOut size={15} />
               Leave
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -80,7 +82,7 @@ export function DangerZoneTab({
                 Permanently delete this space and all its channels, messages, and files. This action cannot be undone.
               </p>
             </div>
-            <button
+            <Button variant="unstyled"
               type="button"
               disabled={isDeleting}
               onClick={onDelete}
@@ -88,7 +90,7 @@ export function DangerZoneTab({
             >
               <Trash2 size={15} />
               Delete
-            </button>
+            </Button>
           </div>
         </div>
       )}

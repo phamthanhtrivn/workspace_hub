@@ -1,6 +1,8 @@
 "use client";
 
 import { Clock3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingHeroProps {
   dateLabel: string;
@@ -16,9 +18,9 @@ export function MeetingHero({ dateLabel, timeLabel, upcomingMeetingCount, onUpco
         <h1 className="text-page-title font-semibold text-foreground">Meetings</h1>
         <p className="mt-2 text-sm text-muted-foreground">{dateLabel} <span aria-hidden>·</span> {timeLabel}</p>
       </div>
-      <button type="button" onClick={onUpcomingClick} className="inline-flex min-h-9 items-center gap-2 rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <Button variant="unstyled" type="button" onClick={onUpcomingClick} className="inline-flex min-h-9 items-center gap-2 rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <Clock3 className="size-4" aria-hidden />{upcomingMeetingCount} upcoming {upcomingMeetingCount === 1 ? "meeting" : "meetings"}
-      </button>
+      </Button>
     </section>
   );
 }

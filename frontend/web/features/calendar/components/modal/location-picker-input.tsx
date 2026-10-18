@@ -2,11 +2,12 @@
 
 import { MapPin, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Input } from "@/components/ui/input";
+import { Combobox, ComboboxInput, ComboboxContent, ComboboxList, ComboboxItem } from "@/components/ui/combobox";
 import {
   LocationSuggestion,
   searchLocationSuggestions,
 } from "../../api/calendar-location.api";
+
 
 interface LocationPickerInputProps {
   value: string;
@@ -33,18 +34,7 @@ export function LocationPickerInput({
     setQuery(value || "");
   }, [value]);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -86,10 +76,19 @@ export function LocationPickerInput({
   };
 
   return (
+    <Combobox<LocationSuggestion>
+      items={suggestions}
+      filter={null}
+      value={null}
+      inputValue={query}
+      onInputValueChange={setQuery}
+      itemToStringLabel={(suggestion) => suggestion?.display_name ?? ""}
+      open={isOpen && suggestions.length > 0}
+      onOpenChange={setIsOpen}
+    >
     <div ref={containerRef} className="relative w-full">
       <div className="relative">
-        <Input
-          value={query}
+        <ComboboxInput
           aria-label={ariaLabel}
           placeholder={placeholder}
           onChange={handleInputChange}
@@ -107,11 +106,12 @@ export function LocationPickerInput({
       </div>
 
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-y-auto rounded-panel border border-border bg-card py-1 shadow-panel">
+        <ComboboxContent aria-label="Location suggestions" className="max-h-56 rounded-panel border-border bg-card px-0 py-1 shadow-panel w-[var(--anchor-width)]">
+          <ComboboxList>
           {suggestions.map((item) => (
-            <button
+            <ComboboxItem
               key={item.place_id}
-              type="button"
+              value={item}
               onClick={() => handleSelect(item)}
               className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition hover:bg-background"
             >
@@ -124,10 +124,12 @@ export function LocationPickerInput({
                   {item.display_name}
                 </p>
               </div>
-            </button>
+            </ComboboxItem>
           ))}
-        </div>
+          </ComboboxList>
+        </ComboboxContent>
       )}
     </div>
+    </Combobox>
   );
 }

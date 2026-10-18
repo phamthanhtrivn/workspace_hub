@@ -16,6 +16,8 @@ import {
   Loader2,
   ExternalLink,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 
 interface PreviewContentProps {
   item: DocumentItem;
@@ -68,13 +70,13 @@ export const PreviewContent = React.memo(function PreviewContent({
             This file type cannot be previewed directly in the browser.
           </p>
         </div>
-        <button
+        <Button variant="unstyled"
           onClick={handleDownload}
           className="flex items-center gap-2 rounded-control bg-primary hover:opacity-90 px-4 py-2.5 text-xs font-semibold text-primary-foreground cursor-pointer transition-opacity"
         >
           <Download size={14} />
           <span>Download file</span>
-        </button>
+        </Button>
       </div>
     );
   }
@@ -183,13 +185,13 @@ export const PreviewContent = React.memo(function PreviewContent({
           <p className="text-xs text-muted-foreground font-semibold mb-6 max-w-sm">
             No preview available for this file type
           </p>
-          <button
+          <Button variant="unstyled"
             onClick={handleDownload}
             className="flex items-center gap-2 rounded-control bg-primary hover:opacity-90 px-5 py-3 text-xs font-semibold text-primary-foreground cursor-pointer transition-opacity"
           >
             <Download size={14} />
             <span>Download to device</span>
-          </button>
+          </Button>
         </div>
       );
   }

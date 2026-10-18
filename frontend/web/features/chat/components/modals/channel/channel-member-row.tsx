@@ -6,6 +6,8 @@ import {
 } from "@/features/chat/types/chat.types";
 import { User } from "lucide-react";
 import { FaKey } from "react-icons/fa";
+import { Button } from "@/components/ui/button";
+
 
 interface ChannelMemberRowProps {
   member: ChannelMemberListItem;
@@ -37,7 +39,7 @@ export default function ChannelMemberRow({
   const isCreator = member.userId === spaceCreatorId;
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={() => onOpenProfile(member.userId)}
       className="flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-control border border-transparent p-3 text-left transition-all duration-200 hover:border-border hover:bg-info-soft/50 focus:outline-none focus:ring-4 focus:ring-ring"
@@ -86,7 +88,7 @@ export default function ChannelMemberRow({
           {member.profile?.email}
         </span>
       </span>
-    </button>
+    </Button>
   );
 }
 

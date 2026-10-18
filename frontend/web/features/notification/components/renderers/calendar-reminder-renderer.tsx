@@ -6,6 +6,8 @@ import { formatTimeAgo } from "@/lib/date";
 import type { Notification } from "../../types/notification.types";
 import { getCalendarReminderTitle } from "../../utils/notification-display.utils";
 import { NotificationCategoryIcon } from "../notification-category-icon";
+import { Button } from "@/components/ui/button";
+
 
 export function CalendarReminderListItemRenderer({
   notification,
@@ -15,7 +17,7 @@ export function CalendarReminderListItemRenderer({
   onClick: () => void;
 }) {
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={onClick}
       className={`flex w-full cursor-pointer items-start gap-3 border-b border-border p-3 text-left transition last:border-0 hover:bg-info-soft/50 ${
@@ -39,7 +41,7 @@ export function CalendarReminderListItemRenderer({
       {!notification.isRead && (
         <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -76,7 +78,7 @@ export function CalendarReminderModalRenderer({
       </div>
 
       {canOpenCalendar ? (
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => {
             onClose();
@@ -88,16 +90,16 @@ export function CalendarReminderModalRenderer({
         >
           <CalendarClock className="h-4 w-4" />
           Open in Calendar
-        </button>
+        </Button>
       ) : null}
 
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={onClose}
         className="mt-3 w-full cursor-pointer rounded-control py-2 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-muted-foreground"
       >
         Close
-      </button>
+      </Button>
     </div>
   );
 }

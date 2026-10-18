@@ -14,6 +14,7 @@ import {
 import { DocumentIcon } from "../common/document-icon";
 import { DocumentsStatusBadge } from "../ui/documents-status-badge";
 import { cn } from "@/lib/utils";
+import { TableRow, TableCell } from "@/components/ui/table";
 
 export interface ListViewRowProps {
   item: DocumentItem;
@@ -98,7 +99,7 @@ export function ListViewRow({
   };
 
   return (
-    <tr
+    <TableRow unstyled
       ref={setCombinedRef}
       style={style}
       {...attributes}
@@ -121,7 +122,7 @@ export function ListViewRow({
         isOver && "bg-info-soft/50 border-y-2 border-dashed border-info-outline"
       )}
     >
-      <td className="p-4 flex items-center gap-3 min-w-0">
+      <TableCell unstyled className="p-4 flex items-center gap-3 min-w-0">
         <DocumentIcon item={item} iconSize={18} className="p-2 rounded-panel" />
         <span className="font-semibold text-foreground truncate max-w-xs">
           {item.name}
@@ -129,17 +130,17 @@ export function ListViewRow({
         {!isProjectDocuments && item.isStarred ? (
           <Star className="h-3.5 w-3.5 fill-warning-content text-warning-content shrink-0 ml-1" />
         ) : null}
-      </td>
-      <td className="p-4 hidden sm:table-cell">
+      </TableCell>
+      <TableCell unstyled className="p-4 hidden sm:table-cell">
         <DocumentsStatusBadge type="itemType" itemType={item.type} />
-      </td>
-      <td className="p-4 text-muted-foreground font-semibold hidden md:table-cell">
+      </TableCell>
+      <TableCell unstyled className="p-4 text-muted-foreground font-semibold hidden md:table-cell">
         {formatDateShort(item.updatedAt)}
-      </td>
-      <td className="p-4 text-muted-foreground font-semibold hidden lg:table-cell">
+      </TableCell>
+      <TableCell unstyled className="p-4 text-muted-foreground font-semibold hidden lg:table-cell">
         {isFolder ? "—" : formatBytes(getDocumentDisplaySize(item))}
-      </td>
-      <td className="p-4 text-right">
+      </TableCell>
+      <TableCell unstyled className="p-4 text-right">
         <div className="flex items-center justify-end gap-2">
           <ItemActionsMenu
             item={item}
@@ -161,8 +162,8 @@ export function ListViewRow({
             isProjectDocuments={isProjectDocuments}
           />
         </div>
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 

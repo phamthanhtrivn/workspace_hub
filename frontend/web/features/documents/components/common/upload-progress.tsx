@@ -1,6 +1,7 @@
 import React from "react";
 import { UploadState } from "../../types/documents.enums";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
 
 interface UploadProgressProps {
   uploadState: UploadState;
@@ -49,7 +50,7 @@ function UploadProgress({
         {uploadingFileName}
       </div>
 
-      <div className="w-full bg-muted rounded-full h-2 overflow-hidden border border-border">
+      <Progress value={uploadProgress} className="w-full bg-muted rounded-full h-2 overflow-hidden border border-border">
         <div
           className={cn(
             "h-full rounded-full transition-all duration-200",
@@ -61,7 +62,7 @@ function UploadProgress({
           )}
           style={{ width: `${uploadProgress}%` }}
         />
-      </div>
+      </Progress>
     </div>
   );
 }

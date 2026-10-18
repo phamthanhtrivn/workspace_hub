@@ -9,6 +9,8 @@ import { CheckCircle2, User } from "lucide-react";
 import Image from "next/image";
 import { formatTimeAgo } from "@/lib/date";
 import { NotificationCategoryIcon } from "../notification-category-icon";
+import { Button } from "@/components/ui/button";
+
 
 export const InvitationAcceptedListItemRenderer: React.FC<{
   notification: Notification;
@@ -94,12 +96,12 @@ export const InvitationAcceptedModalRenderer: React.FC<{
       </div>
 
       <div className="flex justify-end gap-3 border-t border-border pt-4 mt-2">
-        <button
+        <Button variant="unstyled"
           onClick={onClose}
           className="px-4 py-2 bg-muted hover:bg-accent text-foreground rounded-control text-sm font-semibold transition cursor-pointer"
         >
           Close
-        </button>
+        </Button>
       </div>
     </div>
   );

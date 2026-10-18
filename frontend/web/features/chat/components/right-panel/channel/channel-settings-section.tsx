@@ -3,6 +3,8 @@ import { ChannelResponse } from "../../../types/chat.types";
 import { useQuery } from "@tanstack/react-query";
 import { getSpaceDetails } from "../../../api/chat.api";
 import { chatKeys } from "../../../types/chat.constant";
+import { Button } from "@/components/ui/button";
+
 
 interface ChannelSettingsSectionProps {
   activeChannel: ChannelResponse;
@@ -33,7 +35,7 @@ export default function ChannelSettingsSection({
 
   return canOpenSettings ? (
     <div>
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={onOpenSettings}
         className="w-full px-4 py-3 flex items-center justify-between transition cursor-pointer hover:bg-background"
@@ -42,7 +44,7 @@ export default function ChannelSettingsSection({
           <Settings size={18} className="text-muted-foreground" />
           Channel Settings
         </div>
-      </button>
+      </Button>
       <div className="h-px bg-muted mx-4 my-1" />
     </div>
   ) : null;

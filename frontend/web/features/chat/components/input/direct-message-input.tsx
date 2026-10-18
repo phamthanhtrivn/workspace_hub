@@ -8,22 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  FileText,
-  Image as ImageIcon,
-  Loader2,
-  Mic,
-  Paperclip,
-  Send,
-  Smile,
-  Trash2,
-  Type,
-  Voicemail,
-  X,
-  UploadCloud,
-  Plus,
-  Folder,
-} from "lucide-react";
+import { FileText, Image as ImageIcon, Loader2, Mic, Paperclip, Send, Smile, Trash2, Type, Voicemail, X, UploadCloud, Folder } from "lucide-react";
 import { toast } from "sonner";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import EmojiPickerPopover from "./emoji-picker-popover";
@@ -35,6 +20,11 @@ import {
   claimVoiceSession,
   releaseVoiceSession,
 } from "../../utils/voice-session-coordinator";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 export interface DirectMessageInputProps {
   onSendMessage?: (content: string, media?: any[]) => void;
@@ -104,20 +94,7 @@ const DirectMessageInput = React.memo(
       const isTypingRef = useRef(false);
 
       // Close DM options on click outside
-      useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-          if (
-            dmOptionsRef.current &&
-            !dmOptionsRef.current.contains(event.target as Node)
-          ) {
-            setShowDMOptions(false);
-          }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-          document.removeEventListener("mousedown", handleClickOutside);
-        };
-      }, []);
+
       const voiceSessionIdRef = useRef(
         `direct-input-${Math.random().toString(36).slice(2)}`,
       );
@@ -224,20 +201,7 @@ const DirectMessageInput = React.memo(
         }
       }, [isRecording, recordingSessionId]);
 
-      useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-          if (
-            micOptionsRef.current &&
-            !micOptionsRef.current.contains(event.target as Node)
-          ) {
-            setShowMicOptions(false);
-          }
-        };
 
-        document.addEventListener("mousedown", handleClickOutside);
-        return () =>
-          document.removeEventListener("mousedown", handleClickOutside);
-      }, []);
 
       useImperativeHandle(ref, () => ({
         focus: () => textareaRef.current?.focus(),
@@ -610,14 +574,14 @@ const DirectMessageInput = React.memo(
                         className="text-info-content animate-spin ml-1 flex-shrink-0"
                       />
                     )}
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => removeFile(media.id)}
                       className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
                       title="Remove file"
                     >
                       <X size={14} />
-                    </button>
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -640,7 +604,7 @@ const DirectMessageInput = React.memo(
 
               {/* Actions Trigger Dropdown */}
               <div ref={dmOptionsRef} className="relative flex-shrink-0">
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={() => setShowDMOptions(!showDMOptions)}
                   disabled={isUploading}
@@ -650,11 +614,11 @@ const DirectMessageInput = React.memo(
                   title="Attach options"
                 >
                   <Paperclip size={compact ? 18 : 20} />
-                </button>
+                </Button>
 
                 {showDMOptions && (
-                  <div className="absolute bottom-full left-0 mb-2 bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
-                    <button
+                  <AnchoredMenu onClose={() => setShowDMOptions(false)} side="top" align="start" aria-label="Message attachments" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                    <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setShowDMOptions(false);
                         fileInputRef.current?.click();
@@ -664,8 +628,8 @@ const DirectMessageInput = React.memo(
                     >
                       <Paperclip size={16} className="text-muted-foreground" />
                       Files
-                    </button>
-                    <button
+                    </DropdownMenuItem>
+                    <DropdownMenuItem closeOnClick={false}
                       onClick={() => {
                         setShowDMOptions(false);
                         setIsMyFilesModalOpen(true);
@@ -675,12 +639,12 @@ const DirectMessageInput = React.memo(
                     >
                       <Folder size={16} className="text-info-content" />
                       My Files
-                    </button>
-                  </div>
+                    </DropdownMenuItem>
+                  </AnchoredMenu>
                 )}
               </div>
 
-              <textarea
+              <Textarea unstyled
                 ref={textareaRef}
                 value={
                   message +
@@ -712,27 +676,27 @@ const DirectMessageInput = React.memo(
                   <span className="text-destructive-content font-medium text-xs">
                     {formatRecordingTime(recordingTime)}
                   </span>
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={handleCancelRecording}
                     className="p-1.5 text-muted-foreground hover:text-destructive-content hover:bg-accent rounded-full transition cursor-pointer"
                     title="Cancel recording"
                   >
                     <Trash2 size={compact ? 14 : 16} />
-                  </button>
-                  <button
+                  </Button>
+                  <Button variant="unstyled"
                     type="button"
                     onClick={handleStopRecording}
                     className="p-1.5 text-primary-foreground bg-primary hover:bg-primary rounded-full transition cursor-pointer"
                     title="Send voice message"
                   >
                     <Send size={compact ? 14 : 16} />
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <>
                   <div className="relative flex-shrink-0">
-                    <button
+                    <Button variant="unstyled"
                       ref={emojiButtonRef}
                       type="button"
                       onClick={() => setShowEmojiPicker((value) => !value)}
@@ -745,7 +709,7 @@ const DirectMessageInput = React.memo(
                       title="Insert emoji"
                     >
                       <Smile size={compact ? 18 : 20} />
-                    </button>
+                    </Button>
                     <EmojiPickerPopover
                       isOpen={showEmojiPicker}
                       onClose={() => setShowEmojiPicker(false)}
@@ -755,7 +719,7 @@ const DirectMessageInput = React.memo(
                   </div>
 
                   <div ref={micOptionsRef} className="relative flex-shrink-0">
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={() => {
                         if (isDictating) {
@@ -775,12 +739,12 @@ const DirectMessageInput = React.memo(
                       title="Voice options"
                     >
                       <Mic size={compact ? 18 : 20} />
-                    </button>
+                    </Button>
 
                     {showMicOptions && !isDictating && (
-                      <div className="absolute bottom-full right-0 mb-2 bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
-                        <button
-                          type="button"
+                      <AnchoredMenu onClose={() => setShowMicOptions(false)} side="top" align="end" aria-label="Microphone options" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                        <DropdownMenuItem closeOnClick={false}
+
                           onClick={() => {
                             setShowMicOptions(false);
                             void handleStartRecording();
@@ -789,9 +753,9 @@ const DirectMessageInput = React.memo(
                         >
                           <Voicemail size={16} className="text-info-content" />
                           Send voice message
-                        </button>
-                        <button
-                          type="button"
+                        </DropdownMenuItem>
+                        <DropdownMenuItem closeOnClick={false}
+
                           onClick={() => {
                             setShowMicOptions(false);
                             handleStartDictation();
@@ -800,12 +764,12 @@ const DirectMessageInput = React.memo(
                         >
                           <Type size={16} className="text-success-content" />
                           Speech to text
-                        </button>
-                      </div>
+                        </DropdownMenuItem>
+                      </AnchoredMenu>
                     )}
                   </div>
 
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     className={`rounded-full transition-colors flex items-center justify-center ${
                       compact ? "p-1.5" : "p-2"
@@ -819,7 +783,7 @@ const DirectMessageInput = React.memo(
                     title="Send"
                   >
                     <Send size={compact ? 15 : 18} />
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

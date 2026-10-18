@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useModalDialog } from "@/features/calendar/hooks/use-modal-dialog";
+
 import type { Notification } from "@/features/notification/types/notification.types";
 
 export function DashboardNotificationDialog({
@@ -19,7 +19,7 @@ export function DashboardNotificationDialog({
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
-  useModalDialog({ dialogRef, onClose });
+
   const safeLink =
     notification.link?.startsWith("/") &&
     !notification.link.startsWith("//") &&

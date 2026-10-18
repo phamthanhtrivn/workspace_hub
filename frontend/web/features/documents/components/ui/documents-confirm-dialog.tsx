@@ -12,6 +12,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
 
 export type DocumentsConfirmVariant = "danger" | "warning" | "info";
 
@@ -82,15 +84,15 @@ export function DocumentsConfirmDialog({
         </div>
 
         <AlertDialogFooter className="mt-6 flex items-center justify-end gap-3 border-t-0 p-0">
-          <button
+          <Button variant="unstyled"
             type="button"
             disabled={isLoading}
             onClick={onCancel}
             className="h-10 cursor-pointer rounded-control border border-border bg-card px-5 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             disabled={isLoading}
             onClick={onConfirm}
@@ -100,7 +102,7 @@ export function DocumentsConfirmDialog({
             )}
           >
             {isLoading ? "..." : confirmLabel}
-          </button>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

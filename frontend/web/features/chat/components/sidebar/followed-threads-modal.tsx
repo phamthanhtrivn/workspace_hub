@@ -2,8 +2,8 @@
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useMemo, useState } from "react";
+
 import {
   Loader2,
   MessageSquare,
@@ -31,6 +31,10 @@ import {
 import ThreadSnippetPreview, {
   formatThreadSnippet,
 } from "../right-panel/thread/thread-snippet-preview";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 const EMPTY_THREADS: FollowedThreadResponse[] = [];
 
@@ -99,18 +103,7 @@ export default function FollowedThreadsModal({
     onClose();
   }, [onClose]);
 
-  useEffect(() => {
-    if (!isOpen) return;
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        handleClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [handleClose, isOpen]);
 
   const filteredThreads = useMemo(() => {
     const trimmedQuery = searchQuery.trim().toLowerCase();
@@ -141,8 +134,7 @@ export default function FollowedThreadsModal({
 
   if (!isOpen || typeof document === "undefined") return null;
 
-  return createPortal(
-    <div
+  return <DialogSurface onClose={handleClose}>{<div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-overlay/45 p-4 animate-in fade-in duration-150"
       onClick={handleClose}
     >
@@ -164,13 +156,13 @@ export default function FollowedThreadsModal({
               </p>
             </div>
           </div>
-          <button
+          <Button variant="unstyled"
             onClick={handleClose}
             className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition cursor-pointer"
             title="Close"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         <div className="px-5 py-4 border-b border-border bg-background">
@@ -179,7 +171,7 @@ export default function FollowedThreadsModal({
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
-            <input
+            <Input unstyled
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search followed threads..."
@@ -201,12 +193,12 @@ export default function FollowedThreadsModal({
               <p className="text-sm font-semibold text-foreground">
                 Failed to load followed threads
               </p>
-              <button
+              <Button variant="unstyled"
                 onClick={() => refetch()}
                 className="px-4 py-2 text-xs font-semibold text-info-content bg-info-soft hover:bg-info-soft rounded-control transition cursor-pointer"
               >
                 Try Again
-              </button>
+              </Button>
             </div>
           ) : filteredThreads.length > 0 ? (
             <div className="flex flex-col gap-1">
@@ -218,7 +210,7 @@ export default function FollowedThreadsModal({
                   : null;
 
                 return (
-                  <button
+                  <Button variant="unstyled"
                     key={`${thread.chatType}-${thread.rootMessage.id}`}
                     onClick={() => handleSelectThread(thread)}
                     className="w-full cursor-pointer rounded-control border border-border p-3 text-left hover:border-border hover:bg-info-soft/20 transition flex flex-col gap-2"
@@ -264,7 +256,7 @@ export default function FollowedThreadsModal({
                         </span>
                       )}
                     </span>
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -280,8 +272,6 @@ export default function FollowedThreadsModal({
           )}
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 

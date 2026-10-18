@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { CustomTabs } from "@/components/ui/custom/custom-tabs";
 import { ProjectSearchInput } from "@/features/project/components/ui/project-form-controls";
 import { DocumentsPagination } from "@/features/documents/components/ui/documents-pagination";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 
 const PROJECT_FILTER_OPTIONS = PROJECT_FILTER_TABS.map((tab) => ({
   value: tab.key,
@@ -216,7 +217,7 @@ export default function ProjectsPage() {
           <>
             <div role="region" aria-label="Projects table" tabIndex={0}
               className="overflow-x-auto rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
-            <table className="w-full min-w-[760px] table-fixed border-collapse text-left text-sm">
+            <Table unstyled className="w-full min-w-[760px] table-fixed border-collapse text-left text-sm">
               <colgroup>
                 <col />
                 <col className="w-[26%]" />
@@ -224,16 +225,16 @@ export default function ProjectsPage() {
                 <col className="w-[18%]" />
                 <col className="w-20" />
               </colgroup>
-              <thead>
-                <tr className="border-b border-border bg-background text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  <th className="px-6 py-3 font-semibold">Name</th>
-                  <th className="px-6 py-3 font-semibold">Owner</th>
-                  <th className="px-6 py-3 font-semibold">Status</th>
-                  <th className="px-6 py-3 font-semibold">Progress</th>
-                  <th className="px-6 py-3 text-right"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
+              <TableHeader unstyled>
+                <TableRow unstyled className="border-b border-border bg-background text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <TableHead unstyled className="px-6 py-3 font-semibold">Name</TableHead>
+                  <TableHead unstyled className="px-6 py-3 font-semibold">Owner</TableHead>
+                  <TableHead unstyled className="px-6 py-3 font-semibold">Status</TableHead>
+                  <TableHead unstyled className="px-6 py-3 font-semibold">Progress</TableHead>
+                  <TableHead unstyled className="px-6 py-3 text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody unstyled className="divide-y divide-border">
                 {projects.map((project) => {
                   const owner =
                     project.members.find((m) => m.role === ProjectRole.ADMIN) ||
@@ -247,7 +248,7 @@ export default function ProjectsPage() {
                   const projectIdSuffix = getProjectIdSuffix(project.id);
 
                   return (
-                    <tr
+                    <TableRow unstyled
                       key={project.id}
                       role="link"
                       tabIndex={0}
@@ -264,7 +265,7 @@ export default function ProjectsPage() {
                       }}
                       className="group cursor-pointer transition duration-150 hover:bg-background focus-visible:bg-info-soft/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
-                      <td className="px-6 py-3.5">
+                      <TableCell unstyled className="px-6 py-3.5">
                         <div className="flex min-w-0 items-center gap-3">
                           <span
                             className="grid h-10 w-10 shrink-0 place-items-center rounded-panel text-xl border border-border font-semibold"
@@ -291,8 +292,8 @@ export default function ProjectsPage() {
                             ) : null}
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-3.5">
+                      </TableCell>
+                      <TableCell unstyled className="px-6 py-3.5">
                         <div className="flex min-w-0 items-center gap-2">
                           {owner ? (
                             <>
@@ -312,11 +313,11 @@ export default function ProjectsPage() {
                             <span className="text-muted-foreground font-medium">—</span>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-3.5">
+                      </TableCell>
+                      <TableCell unstyled className="px-6 py-3.5">
                         <ProjectStatusBadge status={project.status} />
-                      </td>
-                      <td className="px-6 py-3.5">
+                      </TableCell>
+                      <TableCell unstyled className="px-6 py-3.5">
                         <div className="flex flex-col gap-1">
                           <div className="flex justify-between text-xs font-semibold text-muted-foreground">
                             <span>{progress}%</span>
@@ -334,8 +335,8 @@ export default function ProjectsPage() {
                             />
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-3.5 text-right">
+                      </TableCell>
+                      <TableCell unstyled className="px-6 py-3.5 text-right">
                         {project.ownerId === currentUserId ? (
                           <Button
                             type="button"
@@ -352,12 +353,12 @@ export default function ProjectsPage() {
                             <Settings className="h-4 w-4" />
                           </Button>
                         ) : null}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             </div>
             <DocumentsPagination
               currentPage={paginationMeta?.page ?? currentPage}

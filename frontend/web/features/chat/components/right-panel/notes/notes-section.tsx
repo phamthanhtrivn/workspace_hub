@@ -6,6 +6,8 @@ import { useState } from "react";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { NoteResponse } from "../../../types/chat.types";
 import SeeAllButton from "../see-all-button";
+import { Button } from "@/components/ui/button";
+
 
 interface NotesSectionProps {
   isExpanded: boolean;
@@ -31,7 +33,7 @@ export default function NotesSection({
 
   return (
     <div>
-      <button
+      <Button variant="unstyled"
         onClick={onToggle}
         className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
@@ -44,7 +46,7 @@ export default function NotesSection({
         ) : (
           <ChevronRight size={16} className="text-muted-foreground" />
         )}
-      </button>
+      </Button>
       {isExpanded && (
         <div className="px-4 pb-4">
           {loading ? (

@@ -5,6 +5,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { copyTextFallback } from "../../utils/meeting-history.utils";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingJoinTokenCopyButtonProps {
   joinToken: string;
@@ -38,7 +40,7 @@ export function MeetingJoinTokenCopyButton({
   const copyLabel = `Copy join token ${joinToken}`;
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={handleCopy}
       className={cn(
@@ -58,6 +60,6 @@ export function MeetingJoinTokenCopyButton({
         />
       )}
       <span className="truncate font-mono">{joinToken}</span>
-    </button>
+    </Button>
   );
 }

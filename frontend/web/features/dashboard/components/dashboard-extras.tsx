@@ -15,6 +15,9 @@ import { DashboardPanel, EmptyState, QueryFeedback } from "./dashboard-panel";
 import type { useDashboard } from "../hooks/use-dashboard";
 import { DashboardNotificationDialog } from "./dashboard-notification-dialog";
 import { DashboardProjectActivity } from "./dashboard-project-activity";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+
 
 export function DashboardExtras({
   dashboard,
@@ -108,12 +111,12 @@ export function DashboardExtras({
                       </span>
                       <span>{progress}%</span>
                     </div>
-                    <div
-                      role="progressbar"
+                    <Progress value={progress}
+
                       aria-label={`${project.name} completion`}
-                      aria-valuenow={progress}
-                      aria-valuemin={0}
-                      aria-valuemax={100}
+
+
+
                       className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
                     >
                       <div
@@ -124,7 +127,7 @@ export function DashboardExtras({
                             project.color || "var(--chart-1)",
                         }}
                       />
-                    </div>
+                    </Progress>
                     <p className="mt-2 text-xs text-muted-foreground">
                       {counts.IN_PROGRESS} in progress · {counts.IN_REVIEW} in
                       review
@@ -149,7 +152,7 @@ export function DashboardExtras({
           <ul className="space-y-1">
             {extras.notifications.data?.data.map((item) => (
               <li key={item.id}>
-                <button
+                <Button variant="unstyled"
                   type="button"
                   onClick={() => openNotification(item)}
                   className={`flex w-full min-w-0 cursor-pointer flex-wrap items-start gap-3 rounded-control p-3 text-left hover:bg-muted ${item.isRead ? "" : "bg-info-soft"}`}
@@ -173,7 +176,7 @@ export function DashboardExtras({
                       day: "numeric",
                     }).format(new Date(item.createdAt))}
                   </time>
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

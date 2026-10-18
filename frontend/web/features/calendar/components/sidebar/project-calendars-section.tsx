@@ -72,14 +72,14 @@ export function ProjectCalendarsSection({
                     className="h-4.5 w-4.5 cursor-pointer rounded-[5px] border"
                     style={{ borderColor: "var(--input)", backgroundColor: selected ? project.color : "var(--card)", color: readableTextOnColor(project.color) }}
                   />
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={() => onToggleProject(project.id)}
                     className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 text-left focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <span className="shrink-0 text-sm leading-none" aria-hidden="true">{project.icon}</span>
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{project.name}</span>
-                  </button>
+                  </Button>
                 </div>
               );
             })}

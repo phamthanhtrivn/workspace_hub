@@ -18,6 +18,8 @@ import { ChannelResponse, SpaceRole } from "../../../types/chat.types";
 import { getErrorMessage } from "../../../types/space-settings/space-settings.types";
 import ChatConfirmDialog from "@/features/chat/components/ui/chat-confirm-dialog";
 import { useChatConfirmDialog } from "@/features/chat/hooks/useChatConfirmDialog";
+import { Button } from "@/components/ui/button";
+
 
 interface ChannelActionsSectionProps {
   activeChannel: ChannelResponse;
@@ -148,7 +150,7 @@ export default function ChannelActionsSection({
         {canDeleteChannel ? (
           <div className="flex flex-col gap-2">
             {canLeaveChannel && (
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={confirmLeaveChannel}
                 disabled={leaveMutation.isPending || deleteMutation.isPending}
@@ -156,9 +158,9 @@ export default function ChannelActionsSection({
               >
                 <LogOut size={15} />
                 Leave Channel
-              </button>
+              </Button>
             )}
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={confirmDeleteChannel}
               disabled={deleteMutation.isPending || leaveMutation.isPending}
@@ -166,10 +168,10 @@ export default function ChannelActionsSection({
             >
               <Trash2 size={15} />
               Delete Channel
-            </button>
+            </Button>
           </div>
         ) : (
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={confirmLeaveChannel}
             disabled={leaveMutation.isPending}
@@ -177,7 +179,7 @@ export default function ChannelActionsSection({
           >
             <LogOut size={15} />
             {actionLabel}
-          </button>
+          </Button>
         )}
       </div>
       <ChatConfirmDialog {...confirmDialogProps} />

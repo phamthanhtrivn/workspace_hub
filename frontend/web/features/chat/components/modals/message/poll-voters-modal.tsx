@@ -3,7 +3,7 @@
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { X, User } from "lucide-react";
 import {
   PollOptionResponse,
@@ -11,6 +11,9 @@ import {
   PollVoteResponse,
   UserProfileSnapshotResponse,
 } from "@/features/chat/types/chat.types";
+import { Button } from "@/components/ui/button";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface PollVotersModalProps {
   isOpen: boolean;
@@ -79,8 +82,7 @@ export default function PollVotersModal({
 
   if (!isOpen || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-overlay/40 px-4 py-6">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-[70] flex items-center justify-center bg-overlay/40 px-4 py-6">
       <div className={`${dialogLayout.surface} flex h-[720px] max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-panel border border-border bg-card text-foreground animate-in fade-in zoom-in-95 duration-200`}>
         <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-border bg-card px-6 py-4">
           <div>
@@ -91,14 +93,14 @@ export default function PollVotersModal({
               {`${totalUniqueVoters} total voters`}
             </p>
           </div>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             className="cursor-pointer rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             aria-label="Close poll voters"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         <div className={`${dialogLayout.body} min-h-0 flex-1 overflow-y-auto bg-card px-4 py-4 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border`}>
@@ -131,7 +133,7 @@ export default function PollVotersModal({
                       const canOpenProfile = Boolean(onUserClick);
 
                       return (
-                        <button
+                        <Button variant="unstyled"
                           key={`${section.optionId}-${voter.userId}`}
                           type="button"
                           onClick={() => onUserClick?.(voter.userId)}
@@ -152,7 +154,7 @@ export default function PollVotersModal({
                           <span className="min-w-0 truncate text-sm font-semibold text-foreground">
                             {displayName}
                           </span>
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -162,8 +164,6 @@ export default function PollVotersModal({
           </div>
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 

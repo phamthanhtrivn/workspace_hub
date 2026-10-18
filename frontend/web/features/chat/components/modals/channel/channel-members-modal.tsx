@@ -3,12 +3,16 @@
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { Loader2, Search, X } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import ChannelMembersList from "./channel-members-list";
 import { useChannelMembersSearch } from "@/features/chat/hooks/useChannelMembersSearch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface ChannelMembersModalProps {
   channelId: string;
@@ -61,21 +65,20 @@ export default function ChannelMembersModal({
 
   if (!isOpen || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-overlay/40 px-4 py-6 transition-opacity duration-200">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-[9998] flex items-center justify-center bg-overlay/40 px-4 py-6 transition-opacity duration-200">
       <div className={`${dialogLayout.surface} flex h-[680px] max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-panel border border-border bg-card text-foreground animate-in fade-in zoom-in-95 duration-200`}>
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-6 py-4">
           <h2 className="text-section-title font-semibold tracking-tight text-foreground">
             {modalTitle}
           </h2>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             className="cursor-pointer rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             aria-label="Close channel members"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         <div className="flex-shrink-0 border-b border-border bg-background px-6 py-5">
@@ -84,7 +87,7 @@ export default function ChannelMembersModal({
               size={20}
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-info-content"
             />
-            <input
+            <Input unstyled
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search members by name..."
@@ -124,8 +127,6 @@ export default function ChannelMembersModal({
           </div>
         ) : null}
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 

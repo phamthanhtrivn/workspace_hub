@@ -17,6 +17,9 @@ import { useActiveChat } from "../../../hooks/useChatQueries";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import { logApiError } from "@/lib/interceptors";
 import ThreadSnippetPreview from "./thread-snippet-preview";
+import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
+
 
 interface ThreadsListViewProps {
   conversationId: string;
@@ -121,12 +124,12 @@ export default function ThreadsListView({
             Threads
           </h3>
         </div>
-        <button aria-label="Close"
+        <Button variant="unstyled" aria-label="Close"
           onClick={onClose}
           className="p-1 hover:bg-muted rounded-control text-muted-foreground hover:text-muted-foreground transition cursor-pointer"
         >
           <X size={18} />
-        </button>
+        </Button>
       </div>
 
       {isDirect && (
@@ -135,7 +138,7 @@ export default function ThreadsListView({
             <Filter size={13} />
             Sender
           </label>
-          <select
+          <NativeSelect unstyled aria-label="Filter by sender"
             value={senderId}
             onChange={(event) => setSenderId(event.target.value)}
             className="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info-outline focus:ring-1 focus:ring-ring cursor-pointer"
@@ -148,7 +151,7 @@ export default function ThreadsListView({
                 {sender.label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       )}
 

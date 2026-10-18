@@ -17,6 +17,8 @@ import { MeetingAlertDialog } from "../common/meeting-alert-dialog";
 import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
 import { MeetingRecordingPlayer } from "./meeting-recording-player";
 import { MeetingRecordingShareDialog } from "./meeting-recording-share-dialog";
+import { NativeSelect } from "@/components/ui/native-select";
+
 
 export function MeetingRecordingsView() {
   const [params, setParams] = useState<RecordingQuery>({
@@ -80,7 +82,7 @@ export function MeetingRecordingsView() {
           }
           className="max-w-sm bg-card"
         />
-        <select
+        <NativeSelect unstyled
           aria-label="Recording access filter"
           className="h-10 rounded-md border bg-card px-3 text-sm"
           value={params.scope}
@@ -95,7 +97,7 @@ export function MeetingRecordingsView() {
           <option value="all">All accessible</option>
           <option value="owned">Owned by me</option>
           <option value="shared">Shared with me</option>
-        </select>
+        </NativeSelect>
         <MeetingButton tone="outline" onClick={refresh}>
           Refresh
         </MeetingButton>

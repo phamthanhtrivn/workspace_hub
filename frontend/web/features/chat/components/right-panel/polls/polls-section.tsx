@@ -5,6 +5,8 @@ import { formatDateTime } from "@/lib/date";
 import { usePolls } from "../../../hooks/usePolls";
 import SeeAllButton from "../see-all-button";
 import { useActiveChat } from "../../../hooks/useChatQueries";
+import { Button } from "@/components/ui/button";
+
 
 interface PollsSectionProps {
   isExpanded: boolean;
@@ -30,7 +32,7 @@ export default function PollsSection({
 
   return (
     <div>
-      <button
+      <Button variant="unstyled"
         onClick={onToggle}
         className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
@@ -43,7 +45,7 @@ export default function PollsSection({
         ) : (
           <ChevronRight size={16} className="text-muted-foreground" />
         )}
-      </button>
+      </Button>
       {isExpanded && (
         <div className="px-4 pb-4">
           {loading ? (

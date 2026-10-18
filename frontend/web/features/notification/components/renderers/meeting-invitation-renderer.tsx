@@ -29,6 +29,8 @@ import type {
   Notification,
 } from "../../types/notification.types";
 import { NotificationType } from "../../types/notification.types";
+import { Button } from "@/components/ui/button";
+
 
 const statusLabels: Record<MeetingInvitationNotificationStatus, string> = {
   PENDING: "Waiting for response",
@@ -58,7 +60,7 @@ export function MeetingInvitationListItemRenderer({
     notification.type !== NotificationType.MEETING_UPDATED || metadata.status;
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={onClick}
       className={`flex w-full cursor-pointer items-start gap-3 border-b border-border p-3 text-left transition last:border-0 hover:bg-info-soft/50 ${
@@ -92,7 +94,7 @@ export function MeetingInvitationListItemRenderer({
       {!notification.isRead && (
         <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -209,7 +211,7 @@ export function MeetingInvitationModalRenderer({
 
       {isPending ? (
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => void respond("decline")}
             disabled={action !== null}
@@ -221,8 +223,8 @@ export function MeetingInvitationModalRenderer({
               <XCircle className="h-4 w-4" />
             )}
             Decline
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={() => void respond("accept")}
             disabled={action !== null}
@@ -234,26 +236,26 @@ export function MeetingInvitationModalRenderer({
               <CheckCircle2 className="h-4 w-4" />
             )}
             Accept
-          </button>
+          </Button>
         </div>
       ) : canOpenMeeting ? (
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={openMeeting}
           className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-control bg-success text-sm font-semibold text-success-foreground transition hover:bg-success"
         >
           <CheckCircle2 className="h-4 w-4" />
           Open scheduled meeting
-        </button>
+        </Button>
       ) : null}
 
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={onClose}
         className="mt-3 w-full cursor-pointer rounded-control py-2 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-muted-foreground"
       >
         Close
-      </button>
+      </Button>
     </div>
   );
 }

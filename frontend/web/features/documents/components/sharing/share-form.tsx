@@ -9,6 +9,10 @@ import { documentsApi } from "../../api/documents.api";
 import { searchUserByEmail } from "@/features/chat/api/chat.api";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 import { ShareSuggestionsDropdown } from "./share-suggestions-dropdown";
+import { Combobox, ComboboxInput } from "@/components/ui/combobox";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Button } from "@/components/ui/button";
+
 
 interface ShareModalFormProps {
   documentItemId: string;
@@ -32,20 +36,6 @@ export function ShareModalForm({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const ignoreSearchRef = useRef(false);
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   // Debounced search for email input
   useEffect(() => {
@@ -160,11 +150,21 @@ export function ShareModalForm({
 
   return (
     <form onSubmit={handleAddShare} className="space-y-2">
-      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+      <label htmlFor={`share-email-${documentItemId}`} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
         Share with others
       </label>
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <div ref={containerRef} className="relative min-w-0 flex-1">
+          <Combobox<UserSearchResponse>
+            items={searchResults}
+            filter={null}
+            value={null}
+            inputValue={emailInput}
+            onInputValueChange={setEmailInput}
+            itemToStringLabel={(user) => user?.email ?? ""}
+            open={showSuggestions && searchResults.length > 0}
+            onOpenChange={setShowSuggestions}
+          >
           {isSearching ? (
             <Loader2
               size={16}
@@ -176,12 +176,10 @@ export function ShareModalForm({
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
           )}
-          <input
+          <ComboboxInput unstyled id={`share-email-${documentItemId}`}
             type="text"
             placeholder="Enter email address..."
             required
-            value={emailInput}
-            onChange={(e) => setEmailInput(e.target.value)}
             onFocus={() => {
               if (searchResults.length > 0) {
                 setShowSuggestions(true);
@@ -195,8 +193,9 @@ export function ShareModalForm({
             results={searchResults}
             onSelect={handleSelectSuggestion}
           />
+          </Combobox>
         </div>
-        <select
+        <NativeSelect unstyled aria-label="Share permission"
           value={permissionInput}
           onChange={(e) =>
             setPermissionInput(e.target.value as SharePermission)
@@ -205,8 +204,8 @@ export function ShareModalForm({
         >
           <option value={SharePermission.VIEWER}>Can view</option>
           <option value={SharePermission.EDITOR}>Can edit</option>
-        </select>
-        <button
+        </NativeSelect>
+        <Button variant="unstyled"
           type="submit"
           disabled={addShareMutation.isPending}
           className="flex items-center justify-center p-2.5 bg-primary hover:bg-primary text-primary-foreground rounded-control transition-all disabled:opacity-50 cursor-pointer"
@@ -216,7 +215,7 @@ export function ShareModalForm({
           ) : (
             <Plus size={16} />
           )}
-        </button>
+        </Button>
       </div>
     </form>
   );

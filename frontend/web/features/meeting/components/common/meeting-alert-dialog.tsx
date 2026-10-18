@@ -10,6 +10,8 @@ import {
   AlertDialogFooter,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+
 
 export type MeetingAlertDialogVariant = "danger" | "warning";
 
@@ -71,20 +73,20 @@ export function MeetingAlertDialog({
         </div>
 
         <AlertDialogFooter className="mt-6 flex items-center justify-end gap-2 border-t-0 p-0 sm:flex-row">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onCancel}
             className="h-9 cursor-pointer rounded-full border border-input bg-card px-4 text-xs font-semibold text-foreground transition hover:bg-muted hover:text-foreground"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             onClick={onConfirm}
             className={`h-9 cursor-pointer rounded-full px-4 text-xs font-semibold transition ${confirmButtonClassByVariant[variant]}`}
           >
             {confirmLabel}
-          </button>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

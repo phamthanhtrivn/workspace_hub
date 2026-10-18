@@ -106,7 +106,7 @@ export function CalendarDocumentPickerDialog({
               files.map((item) => {
                 const selected = selectedIds.includes(item.id);
                 return (
-                  <button
+                  <Button variant="unstyled"
                     key={item.id}
                     type="button"
                     onClick={() => toggleSelected(item)}
@@ -134,7 +134,7 @@ export function CalendarDocumentPickerDialog({
                         {formatBytes(item.sizeBytes)}
                       </span>
                     </span>
-                  </button>
+                  </Button>
                 );
               })
             )}

@@ -5,7 +5,7 @@ import React, {
   useState,
   useMemo,
 } from "react";
-import { X, User, FileText, Download, Bell, Play } from "lucide-react";
+import { X, FileText, Download, Bell, Play } from "lucide-react";
 import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -48,6 +48,8 @@ import MediaLightbox from "../../message/media-lightbox";
 import MessageAvatar from "../../message/message-avatar";
 import { upsertMessageById } from "../../../utils/message-state-utils";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+
 
 interface ThreadDetailViewProps {
   rootMessage: ChatMessageResponse;
@@ -433,7 +435,7 @@ export default function ThreadDetailView({
             {visualMedias.map((media: any, index: number) => {
               if (media.type === "IMAGE") {
                 return (
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     key={media.id}
                     onClick={() => {
@@ -447,11 +449,11 @@ export default function ThreadDetailView({
                       alt={media.name}
                       className="w-full max-h-[160px] object-cover hover:opacity-90 transition"
                     />
-                  </button>
+                  </Button>
                 );
               } else {
                 return (
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     key={media.id}
                     onClick={() => {
@@ -473,7 +475,7 @@ export default function ThreadDetailView({
                         />
                       </span>
                     </span>
-                  </button>
+                  </Button>
                 );
               }
             })}
@@ -540,7 +542,7 @@ export default function ThreadDetailView({
           Thread Discussion
         </h2>
         <div className="flex items-center gap-2">
-          <button
+          <Button variant="unstyled"
             onClick={handleToggleFollow}
             className="p-2 hover:bg-muted rounded-full transition cursor-pointer"
             title={
@@ -555,13 +557,13 @@ export default function ThreadDetailView({
                 isFollowing ? "fill-info-content text-info-content" : "text-muted-foreground"
               }
             />
-          </button>
-          <button aria-label="Close"
+          </Button>
+          <Button variant="unstyled" aria-label="Close"
             onClick={onBack}
             className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition animate-fade-in"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
       </div>
 

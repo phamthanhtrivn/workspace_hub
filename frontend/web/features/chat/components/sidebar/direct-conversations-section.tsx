@@ -16,6 +16,8 @@ import {
   DirectMessagesQueryData,
   useDirectMessagesQuery,
 } from "../../hooks/useChatQueries";
+import { Button } from "@/components/ui/button";
+
 
 const EMPTY_DIRECT_MESSAGES: DirectMessage[] = [];
 
@@ -149,7 +151,7 @@ export default function DirectConversationsSection({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between px-3 mb-1 text-xs font-semibold text-muted-foreground uppercase tracking-widest select-none">
-        <button
+        <Button variant="unstyled"
           onClick={() => setIsDmExpanded(!isDmExpanded)}
           className="flex items-center gap-1 hover:text-muted-foreground transition cursor-pointer text-left"
         >
@@ -159,14 +161,14 @@ export default function DirectConversationsSection({
             <ChevronRight size={12} />
           )}
           <span>{ChatSidebarSection.DIRECT_MESSAGES}</span>
-        </button>
-        <button
+        </Button>
+        <Button variant="unstyled"
           onClick={onCreateDirectConversation}
           className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-muted-foreground transition cursor-pointer"
           title="Find new chat"
         >
           <Plus size={14} />
-        </button>
+        </Button>
       </div>
       {isDmExpanded && (
         <div

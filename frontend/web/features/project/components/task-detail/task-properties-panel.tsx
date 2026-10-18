@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { CalendarDays, ChevronDown, Layers } from "lucide-react";
 import {
   type ProjectMember,
@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CustomCheckbox } from "@/components/ui/custom/custom-checkbox";
 import { ProjectSelect } from "../ui/project-form-controls";
+import { AnchoredPopover, AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface TaskPropertiesPanelProps {
   task: Task;
@@ -88,24 +90,7 @@ export default function TaskPropertiesPanel({
     ? taskDateKey(task.dueDate, true)
     : toDateTimeInput(task.dueDate);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        assigneeDropdownRef.current &&
-        !assigneeDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowAssigneeDropdown(false);
-      }
-      if (
-        priorityDropdownRef.current &&
-        !priorityDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowPriorityDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   const taskAssignee = task.assignees[0];
   const assignedMember = taskAssignee
@@ -189,7 +174,7 @@ export default function TaskPropertiesPanel({
             </div>
 
             {showAssigneeDropdown && !isReadOnly && (
-              <div className="absolute left-0 z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-panel border border-border bg-card py-1 shadow-panel">
+              <AnchoredPopover onClose={() => setShowAssigneeDropdown(false)} side="bottom" align="start" aria-label="Task assignee" className="z-20 max-h-48 w-full overflow-y-auto rounded-panel border border-border bg-card py-1 shadow-panel">
                 <Button
                   type="button"
                   variant="ghost"
@@ -225,7 +210,7 @@ export default function TaskPropertiesPanel({
                     <span>{member.displayName}</span>
                   </Button>
                 ))}
-              </div>
+              </AnchoredPopover>
             )}
           </div>
         </div>
@@ -263,13 +248,13 @@ export default function TaskPropertiesPanel({
             </div>
 
             {showPriorityDropdown && !isReadOnly && (
-              <div className="absolute left-0 z-20 mt-1 w-full overflow-hidden rounded-panel border border-border bg-card py-1 shadow-panel">
+              <AnchoredMenu onClose={() => setShowPriorityDropdown(false)} side="bottom" align="start" aria-label="Task priority" className="z-20 w-full overflow-hidden rounded-panel border border-border bg-card py-1 shadow-panel">
                 {TASK_DRAWER_PRIORITY_OPTIONS.map((opt) => (
-                  <Button
+                  <DropdownMenuItem closeOnClick={false}
                     key={opt.value}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
+
+
+
                     onClick={() => {
                       setShowPriorityDropdown(false);
                       void onPriorityChange(opt.value);
@@ -278,9 +263,9 @@ export default function TaskPropertiesPanel({
                   >
                     {getPriorityIcon(opt.value)}
                     <span>{opt.label}</span>
-                  </Button>
+                  </DropdownMenuItem>
                 ))}
-              </div>
+              </AnchoredMenu>
             )}
           </div>
         </div>

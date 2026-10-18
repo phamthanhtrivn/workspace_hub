@@ -6,6 +6,8 @@ import {
   MeetingDashboardActionId,
   MeetingDashboardTone,
 } from "../../types/meeting.constants";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingActionTileProps {
   actionId: MeetingDashboardActionId;
@@ -27,7 +29,7 @@ export function MeetingActionTile({
   const isPrimary = actionId === MeetingDashboardActionId.NEW_MEETING;
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={onClick}
       disabled={!enabled}
@@ -56,6 +58,6 @@ export function MeetingActionTile({
           </span>
         ) : null}
       </span>
-    </button>
+    </Button>
   );
 }

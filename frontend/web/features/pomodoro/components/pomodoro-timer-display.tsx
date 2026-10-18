@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Target, StickyNote } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { POMODORO_MODES, POMODORO_MODE_THEMES } from "../constants/pomodoro-mode-theme";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface PomodoroTimerDisplayProps {
   mode: PomodoroMode;
@@ -182,7 +183,7 @@ export function PomodoroTimerDisplay({
                       cleanedTaskNote.includes("\n") ||
                       cleanedTaskNote.length > 24;
                     return (
-                      <div
+                      <Tooltip disabled={!isNoteTruncated}><TooltipTrigger asChild><div
                         tabIndex={isNoteTruncated ? 0 : undefined}
                         className="group/note-pill relative mt-1 flex max-w-full items-center justify-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none"
                       >
@@ -194,18 +195,8 @@ export function PomodoroTimerDisplay({
                           {cleanedTaskNote}
                         </span>
 
-                        {isNoteTruncated && (
-                          <div
-                            role="tooltip"
-                            className="pointer-events-none invisible absolute top-full left-1/2 z-30 mt-2 w-max max-w-[240px] -translate-x-1/2 translate-y-1 rounded-panel border border-border bg-card px-3 py-2 text-left text-xs leading-relaxed text-foreground opacity-0 transition-all duration-150 ease-out group-hover/note-pill:visible group-hover/note-pill:translate-y-0 group-hover/note-pill:opacity-100 group-focus-visible/note-pill:visible group-focus-visible/note-pill:translate-y-0 group-focus-visible/note-pill:opacity-100 shadow-panel"
-                          >
-                            <div className="absolute -top-1 left-1/2 size-2 -translate-x-1/2 rotate-45 border-l border-t border-border bg-card" />
-                            <p className="whitespace-pre-wrap break-words">
-                              {cleanedTaskNote}
-                            </p>
-                          </div>
-                        )}
-                      </div>
+
+                      </div></TooltipTrigger><TooltipContent className="max-w-[240px] text-left leading-relaxed"><p className="whitespace-pre-wrap break-words">{cleanedTaskNote}</p></TooltipContent></Tooltip>
                     );
                   })()}
               </div>

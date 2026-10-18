@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MEETING_ROUTES } from "../../../types/meeting.constants";
 import { MeetingIconButton } from "../../ui/meeting-icon-button";
+import { Input } from "@/components/ui/input";
+
 
 interface MeetingRoomShareLinkProps {
   joinToken: string;
@@ -65,7 +67,7 @@ export function MeetingRoomShareLink({ joinToken }: MeetingRoomShareLinkProps) {
       <div className="mt-3 flex min-w-0 items-center gap-2">
         <div className="flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-input bg-background px-3 transition focus-within:border-input focus-within:ring-1 focus-within:ring-ring">
           <LinkIcon className="size-4 shrink-0 text-muted-foreground" />
-          <input
+          <Input unstyled
             readOnly
             value={inviteLink}
             aria-label="Meeting invite link"

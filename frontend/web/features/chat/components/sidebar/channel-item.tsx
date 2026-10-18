@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   Bell,
   BellOff,
@@ -12,6 +12,10 @@ import {
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
 import { ChannelResponse } from "../../types/chat.types";
+import { Button } from "@/components/ui/button";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 interface ChannelItemProps {
   channel: ChannelResponse;
@@ -49,18 +53,7 @@ const ChannelItem = React.memo(function ChannelItem({
   const name = channel.name || "Channel";
   const unreadCount = channel.unreadCount ?? 0;
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
 
-    if (isMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isMenuOpen]);
 
   return (
     <div
@@ -126,7 +119,7 @@ const ChannelItem = React.memo(function ChannelItem({
         ) : null}
 
         <div ref={menuRef} className="relative">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={(event) => {
               event.stopPropagation();
@@ -136,15 +129,15 @@ const ChannelItem = React.memo(function ChannelItem({
             title="Channel options"
           >
             <MoreVertical size={14} />
-          </button>
+          </Button>
 
           {isMenuOpen && (
-            <div
-              className="absolute right-0 top-full z-30 mt-1 min-w-[150px] rounded-panel border border-border bg-card py-1 text-xs text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel"
+            <AnchoredMenu onClose={() => setIsMenuOpen(false)} side="bottom" align="end" aria-label="Channel actions"
+              className="z-30 min-w-[150px] rounded-panel border border-border bg-card py-1 text-xs text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel"
               onClick={(event) => event.stopPropagation()}
             >
-              <button
-                type="button"
+              <DropdownMenuItem closeOnClick={false}
+
                 onClick={() => {
                   onTogglePin?.(channel, !isPinned);
                   setIsMenuOpen(false);
@@ -156,9 +149,9 @@ const ChannelItem = React.memo(function ChannelItem({
                   className={isPinned ? "fill-info-content text-info-content" : ""}
                 />
                 <span>{isPinned ? "Unpin" : "Pin"}</span>
-              </button>
-              <button
-                type="button"
+              </DropdownMenuItem>
+              <DropdownMenuItem closeOnClick={false}
+
                 onClick={() => {
                   onToggleMute?.(channel, !isMuted);
                   setIsMenuOpen(false);
@@ -167,13 +160,13 @@ const ChannelItem = React.memo(function ChannelItem({
               >
                 {isMuted ? <Bell size={14} /> : <BellOff size={14} />}
                 <span>{isMuted ? "Unmute" : "Mute"}</span>
-              </button>
+              </DropdownMenuItem>
               {(canLeave || canDelete) && (
                 <div className="h-[1px] bg-muted my-1" />
               )}
               {canLeave && (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={() => {
                     onLeave?.(channel);
                     setIsMenuOpen(false);
@@ -182,11 +175,11 @@ const ChannelItem = React.memo(function ChannelItem({
                 >
                   <LogOut size={14} />
                   <span>Leave</span>
-                </button>
+                </DropdownMenuItem>
               )}
               {canDelete && (
-                <button
-                  type="button"
+                <DropdownMenuItem closeOnClick={false}
+
                   onClick={() => {
                     onDelete?.(channel);
                     setIsMenuOpen(false);
@@ -195,9 +188,9 @@ const ChannelItem = React.memo(function ChannelItem({
                 >
                   <Trash2 size={14} />
                   <span>Delete</span>
-                </button>
+                </DropdownMenuItem>
               )}
-            </div>
+            </AnchoredMenu>
           )}
         </div>
       </div>

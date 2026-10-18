@@ -22,6 +22,10 @@ import { logApiError } from "@/lib/interceptors";
 import { getDirectConversationMedia } from "@/features/chat/api/direct-message.api";
 import { getChannelMedia } from "@/features/chat/api/channel.api";
 import MediaLightbox from "../../message/media-lightbox";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { NativeSelect } from "@/components/ui/native-select";
+
 
 const FILE_FILTERS = [
   { value: undefined, label: "All" },
@@ -244,12 +248,12 @@ export default function MediaDetailView({
   return (
     <div className="w-full h-full min-h-0 min-w-0 flex flex-col bg-card">
       <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center gap-3">
-        <button aria-label="Back"
+        <Button variant="unstyled" aria-label="Back"
           onClick={onBack}
           className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <ArrowLeft size={20} />
-        </button>
+        </Button>
         <h2 className="font-semibold text-foreground">
           Files
         </h2>
@@ -261,7 +265,7 @@ export default function MediaDetailView({
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={16}
           />
-          <input
+          <Input unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -274,7 +278,7 @@ export default function MediaDetailView({
           <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
             File Type
           </label>
-          <select
+          <NativeSelect unstyled aria-label="File filter"
             value={activeFilter || ""}
             onChange={(event) =>
               setActiveFilter((event.target.value || undefined) as FileFilter)
@@ -286,7 +290,7 @@ export default function MediaDetailView({
                 {filter.label}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
 
@@ -305,7 +309,7 @@ export default function MediaDetailView({
               const kind = getMediaKind(item);
 
               return (
-                <button
+                <Button variant="unstyled"
                   key={item.id}
                   onClick={() => openItem(item)}
                   className="group flex w-full cursor-pointer items-center gap-3 rounded-control border border-border bg-card p-2 text-left transition hover:bg-background"
@@ -347,7 +351,7 @@ export default function MediaDetailView({
                       <Download size={16} />
                     </span>
                   )}
-                </button>
+                </Button>
               );
             })}
             <div

@@ -396,7 +396,7 @@ function TaskDocumentPickerDialog({
               files.map((item) => {
                 const selected = selectedIds.includes(item.id);
                 return (
-                  <button
+                  <Button variant="unstyled"
                     key={item.id}
                     type="button"
                     onClick={() => toggleSelected(item)}
@@ -424,7 +424,7 @@ function TaskDocumentPickerDialog({
                         {formatBytes(item.sizeBytes)}
                       </span>
                     </span>
-                  </button>
+                  </Button>
                 );
               })
             )}

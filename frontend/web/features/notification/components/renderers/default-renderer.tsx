@@ -6,6 +6,8 @@ import { Bell } from "lucide-react";
 import Image from "next/image";
 import { formatTimeAgo } from "@/lib/date";
 import { NotificationCategoryIcon } from "../notification-category-icon";
+import { Button } from "@/components/ui/button";
+
 
 export const DefaultListItemRenderer: React.FC<{
   notification: Notification;
@@ -70,12 +72,12 @@ export const DefaultModalRenderer: React.FC<{
         {notification.content}
       </div>
       <div className="flex justify-end">
-        <button
+        <Button variant="unstyled"
           onClick={onClose}
           className="px-4 py-2 bg-muted hover:bg-accent text-foreground rounded-control text-sm font-semibold transition cursor-pointer"
         >
           Đóng
-        </button>
+        </Button>
       </div>
     </div>
   );

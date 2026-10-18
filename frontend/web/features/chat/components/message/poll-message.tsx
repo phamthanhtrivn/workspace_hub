@@ -16,6 +16,9 @@ import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { PollResponse } from "../../types/chat.types";
 import EditPollModal from "../modals/message/edit-poll-modal";
 import PollVotersModal from "../modals/message/poll-voters-modal";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 
 interface PollMessageProps {
   poll: PollResponse;
@@ -133,13 +136,13 @@ const PollMessage = React.memo(function PollMessage({
             </div>
           </div>
           {isMe && onEditPoll && !poll.isLocked && (
-            <button
+            <Button variant="unstyled"
               onClick={() => setIsEditModalOpen(true)}
               className="cursor-pointer p-2 text-muted-foreground hover:text-info-content hover:bg-info-soft rounded-control transition-colors flex-shrink-0"
               title="Edit Poll"
             >
               <Edit2 size={16} />
-            </button>
+            </Button>
           )}
         </div>
 
@@ -253,7 +256,7 @@ const PollMessage = React.memo(function PollMessage({
                 onSubmit={handleAddOptionSubmit}
                 className="flex gap-2 animate-in fade-in slide-in-from-top-2"
               >
-                <input
+                <Input unstyled
                   type="text"
                   value={newOptionText}
                   onChange={(e) => setNewOptionText(e.target.value)}
@@ -261,14 +264,14 @@ const PollMessage = React.memo(function PollMessage({
                   className="flex-1 px-3.5 py-2 text-xs border border-input focus:border-info-outline rounded-control outline-none transition"
                   autoFocus
                 />
-                <button
+                <Button variant="unstyled"
                   type="submit"
                   disabled={!newOptionText.trim()}
                   className="px-4 py-2 bg-primary hover:bg-primary text-primary-foreground text-xs font-semibold rounded-control disabled:opacity-50 transition"
                 >
                   Add
-                </button>
-                <button
+                </Button>
+                <Button variant="unstyled"
                   type="button"
                   onClick={() => {
                     setIsAddingOption(false);
@@ -277,16 +280,16 @@ const PollMessage = React.memo(function PollMessage({
                   className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground text-xs font-semibold rounded-control transition"
                 >
                   Cancel
-                </button>
+                </Button>
               </form>
             ) : (
-              <button
+              <Button variant="unstyled"
                 onClick={() => setIsAddingOption(true)}
                 className="flex items-center justify-center gap-1.5 text-xs text-info-content font-semibold py-2.5 px-3 cursor-pointer rounded-control bg-background border border-border hover:bg-info-soft/50 hover:border-border transition-all duration-150 w-full"
               >
                 <Plus size={15} />{" "}
                 Add Poll Option
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -294,7 +297,7 @@ const PollMessage = React.memo(function PollMessage({
         <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3 mt-1.5">
           <div className="flex items-center gap-2">
             {!poll.anonymous && totalUniqueVoters > 0 ? (
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => setIsVotersModalOpen(true)}
                 className="flex cursor-pointer items-center gap-1 rounded-control px-1.5 py-1 font-semibold text-info-content transition hover:bg-info-soft hover:text-info-content"
@@ -306,7 +309,7 @@ const PollMessage = React.memo(function PollMessage({
                     : `${totalUniqueVoters} voters`}
                 </span>
                 <ChevronRight size={13} />
-              </button>
+              </Button>
             ) : (
               <span className="font-semibold text-muted-foreground">
                 {totalVotes === 1 ? "1 vote" : `${totalVotes} votes`}{" "}

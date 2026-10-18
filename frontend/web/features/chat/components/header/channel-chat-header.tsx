@@ -7,6 +7,8 @@ import { chatKeys } from "../../types/chat.constant";
 import ChannelMembersModal from "../modals/channel/channel-members-modal";
 import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
 import StartMeetingConfirmModal from "../modals/start-meeting-confirm-modal";
+import { Button } from "@/components/ui/button";
+
 
 interface ChannelChatHeaderProps {
   onToggleRightPanel: () => void;
@@ -59,12 +61,12 @@ export default function ChannelChatHeader({
     <div className="min-w-0 shrink-0 py-2 px-3 border-b border-border flex flex-wrap items-center justify-between gap-2 bg-card z-10">
       <div className="flex items-center gap-2 md:gap-3 min-w-0">
         {onBack && (
-          <button aria-label="Back"
+          <Button variant="unstyled" aria-label="Back"
             className="@min-[720px]/messages:hidden shrink-0 p-2 -ml-2 text-muted-foreground hover:bg-muted rounded-full transition"
             onClick={onBack}
           >
             <ArrowLeft size={20} />
-          </button>
+          </Button>
         )}
 
         <div className="flex items-center gap-2 min-w-0">
@@ -79,7 +81,7 @@ export default function ChannelChatHeader({
           <h2 className="font-semibold text-foreground truncate">
             {displayName}
           </h2>
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => setIsMembersModalOpen(true)}
             disabled={!activeChannel?.id}
@@ -90,34 +92,34 @@ export default function ChannelChatHeader({
               <User className="w-3 h-3" />
             </span>{" "}
             <span>{memberCount}</span>
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-1 text-muted-foreground">
-        <button
+        <Button variant="unstyled"
           className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition"
           onClick={onOpenSearch}
           title="Search"
         >
           <Search size={20} />
-        </button>
-        <button
+        </Button>
+        <Button variant="unstyled"
           className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition disabled:opacity-50"
           onClick={() => setIsConfirmModalOpen(true)}
           disabled={isCreating || !activeChannel?.id}
           title="Start instant meeting"
         >
           <Video size={20} />
-        </button>
+        </Button>
         <div className="w-px h-6 bg-accent mx-1" />
-        <button
+        <Button variant="unstyled"
           className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition"
           onClick={onToggleRightPanel}
           title="Channel info"
         >
           <Info size={20} />
-        </button>
+        </Button>
       </div>
       {activeChannel?.id ? (
         <ChannelMembersModal

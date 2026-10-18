@@ -23,6 +23,8 @@ import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { cn } from "@/lib/utils";
 import WorkspaceHeader from "./workspace-header";
 import { PomodoroMiniTimer } from "@/features/pomodoro/components/pomodoro-mini-timer";
+import { Button } from "@/components/ui/button";
+
 
 const menuItems = [
   {
@@ -151,7 +153,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
           "w-72 shrink-0",
         )}
       >
-        <button
+        <Button variant="unstyled"
           onClick={toggleSidebar}
           aria-label={isSidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
           className="absolute -right-3 top-8 z-100 hidden h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:text-muted-foreground hover:shadow lg:flex cursor-pointer shadow-panel"
@@ -161,7 +163,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
           ) : (
             <ChevronLeft className="h-4 w-4" />
           )}
-        </button>
+        </Button>
 
         <div className="flex items-center justify-between">
           <Link
@@ -193,12 +195,12 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
             </div>
           </Link>
 
-          <button aria-label="Close"
+          <Button variant="unstyled" aria-label="Close"
             onClick={() => setIsMobileMenuOpen(false)}
             className="shrink-0 p-2 text-muted-foreground hover:text-foreground lg:hidden cursor-pointer"
           >
             <X className="h-6 w-6" />
-          </button>
+          </Button>
         </div>
 
         <nav

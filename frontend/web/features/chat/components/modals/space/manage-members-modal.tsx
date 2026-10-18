@@ -3,7 +3,7 @@
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+
 import {
   FiX,
   FiSearch,
@@ -35,6 +35,10 @@ import {
   leaveChannel,
   updateMemberRole,
 } from "@/features/chat/api/channel.api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (
@@ -276,19 +280,18 @@ export default function ManageMembersModal({
 
   if (!mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/50 transition-all duration-200">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/50 transition-all duration-200">
       <div className={`${dialogLayout.surface} bg-card rounded-dialog w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] border border-border`}>
         <div className="flex items-center justify-between p-6 border-b border-border bg-card">
           <h2 className="text-section-title font-semibold text-foreground tracking-tight">
             Manage Members
           </h2>
-          <button aria-label="Close"
+          <Button variant="unstyled" aria-label="Close"
             onClick={onClose}
             className="p-2.5 text-muted-foreground hover:text-muted-foreground rounded-full hover:bg-muted transition-colors cursor-pointer"
           >
             <FiX size={20} />
-          </button>
+          </Button>
         </div>
 
         <div className="p-4 border-b border-border bg-background">
@@ -297,7 +300,7 @@ export default function ManageMembersModal({
               size={18}
               className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-info-content transition-colors"
             />
-            <input
+            <Input unstyled
               type="text"
               placeholder="Search members..."
               value={searchTerm}
@@ -388,7 +391,7 @@ export default function ManageMembersModal({
                     {isCurrentUserOwner && (
                       <>
                         {member.role === SpaceRole.MEMBER && (
-                          <button
+                          <Button variant="unstyled"
                             onClick={() =>
                               handleUpdateRole(member.userId, SpaceRole.ADMIN)
                             }
@@ -396,10 +399,10 @@ export default function ManageMembersModal({
                             className="p-2 text-muted-foreground hover:text-info-content hover:bg-info-soft rounded-control transition-colors cursor-pointer"
                           >
                             <FiShield size={18} />
-                          </button>
+                          </Button>
                         )}
                         {member.role === SpaceRole.ADMIN && !isCreator && (
-                            <button
+                            <Button variant="unstyled"
                               onClick={() =>
                                 handleUpdateRole(member.userId, SpaceRole.MEMBER)
                               }
@@ -407,26 +410,26 @@ export default function ManageMembersModal({
                               className="p-2 text-info-content hover:bg-info-soft rounded-control transition-colors cursor-pointer"
                             >
                               <FiShieldOff size={18} />
-                            </button>
+                            </Button>
                           )}
-                        <button
+                        <Button variant="unstyled"
                           onClick={() => handleTransferOwnership(member.userId)}
                           title="Transfer Ownership"
                           className="p-2 text-muted-foreground hover:text-warning-content hover:bg-warning-soft rounded-control transition-colors cursor-pointer"
                         >
                           <FaKey size={16} className="text-warning-content" />
-                        </button>
+                        </Button>
                       </>
                     )}
 
                     {canCurrentUserRemove && (
-                      <button
+                      <Button variant="unstyled"
                         onClick={() => handleKickMember(member.userId)}
                         title="Remove from Space"
                         className="p-2 text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft rounded-control transition-colors cursor-pointer"
                       >
                         <FiTrash2 size={18} />
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -436,30 +439,28 @@ export default function ManageMembersModal({
         </div>
 
         <div className="p-5 border-t border-border bg-background flex gap-3">
-          <button
+          <Button variant="unstyled"
             onClick={handleLeaveSpace}
             disabled={isProcessing}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-destructive-content bg-card border border-border hover:bg-destructive-soft hover:border-destructive-outline rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FiLogOut size={18} />
             {leaveLabel}
-          </button>
+          </Button>
 
           {currentUserRole === SpaceRole.ADMIN && (
-            <button
+            <Button variant="unstyled"
               onClick={handleDisbandChannel}
               disabled={isProcessing}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-destructive-foreground bg-destructive hover:bg-destructive rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FiTrash2 size={18} />
               Disband Channel
-            </button>
+            </Button>
           )}
         </div>
       </div>
       <ChatConfirmDialog {...confirmDialogProps} />
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 

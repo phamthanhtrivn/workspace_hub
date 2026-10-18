@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { formatFileSize } from "@/lib/file";
 import { isAudioFile, renderAudioPlayer } from "../../utils/media-utils";
 import { MessageMedia } from "./chat-message.types";
+import { Button } from "@/components/ui/button";
+
 
 interface MessageVisualMediasProps {
   medias: MessageMedia[];
@@ -50,7 +52,7 @@ export function MessageVisualMedias({
     >
       {medias.map((media, mediaIndex) =>
         media.type === "IMAGE" ? (
-          <button
+          <Button variant="unstyled"
             type="button"
             key={media.id}
             className="cursor-pointer overflow-hidden bg-overlay/5 hover:opacity-95 transition-opacity"
@@ -69,9 +71,9 @@ export function MessageVisualMedias({
                   : "aspect-square object-cover",
               )}
             />
-          </button>
+          </Button>
         ) : (
-          <button
+          <Button variant="unstyled"
             type="button"
             key={media.id}
             className={cn(
@@ -94,7 +96,7 @@ export function MessageVisualMedias({
                 <Play size={20} className="ml-1" fill="currentColor" />
               </span>
             </span>
-          </button>
+          </Button>
         ),
       )}
     </div>

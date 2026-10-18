@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { DialogPortal } from "@/components/ui/dialog";
 import { Loader2, Video } from "lucide-react";
 
 interface MeetingFullscreenPortalProps {
@@ -13,7 +13,7 @@ export function MeetingFullscreenPortal({
 }: MeetingFullscreenPortalProps) {
   if (typeof document === "undefined") return null;
 
-  return createPortal(children, document.body);
+  return <DialogPortal>{children}</DialogPortal>;
 }
 
 export function MeetingCreatingOverlay() {

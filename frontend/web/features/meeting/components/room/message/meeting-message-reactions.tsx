@@ -2,6 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import type { MeetingMessageReactionResponse } from "../../../types/meeting.types";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingMessageReactionsProps {
   reactions?: MeetingMessageReactionResponse[];
@@ -32,7 +34,7 @@ export function MeetingMessageReactions({
         );
 
         return (
-          <button
+          <Button variant="unstyled"
             key={emoji}
             type="button"
             onClick={() => onReactionClick(emoji, hasReacted ? "remove" : "add")}
@@ -45,7 +47,7 @@ export function MeetingMessageReactions({
           >
             <span className="shrink-0">{emoji}</span>
             <span className="shrink-0">{emojiReactions.length}</span>
-          </button>
+          </Button>
         );
       })}
     </div>

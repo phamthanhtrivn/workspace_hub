@@ -17,6 +17,8 @@ import { recordingApi } from "../../api/meeting-recording.api";
 import { recordingErrorMessage } from "../../hooks/useMeetingRecording";
 import type { MeetingRecording } from "../../types/meeting-recording.types";
 import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
+import { NativeCheckbox } from "@/components/ui/checkbox";
+
 
 export function MeetingRecordingShareDialog({
   recording,
@@ -63,8 +65,8 @@ export function MeetingRecordingShareDialog({
           Previously issued links expire within five minutes.
         </DialogDescription>
         <label className="mt-4 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+          <NativeCheckbox
+
             checked={canDownload}
             onChange={(event) => setCanDownload(event.target.checked)}
           />

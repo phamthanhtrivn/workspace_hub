@@ -3,7 +3,7 @@
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+
 import { X, Loader2, Search, Hash, Check, Globe, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -14,6 +14,10 @@ import { chatKeys } from "@/features/chat/types/chat.constant";
 import { useSpaceChannelsQuery } from "@/features/chat/hooks/useChatQueries";
 import { disbandChannel, joinChannel } from "@/features/chat/api/channel.api";
 import { removeChannelFromCaches } from "@/features/chat/utils/chat-cache";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface BrowseChannelsModalProps {
   isOpen: boolean;
@@ -135,8 +139,7 @@ export default function BrowseChannelsModal({
 
   if (!isOpen || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40 animate-fade-in">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40 animate-fade-in">
       <div className={`${dialogLayout.surface} w-full max-w-lg bg-card rounded-panel overflow-hidden border border-border flex flex-col h-[600px] max-h-[100vh]`}>
         {/* Header */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
@@ -146,12 +149,12 @@ export default function BrowseChannelsModal({
               Browse Channels
             </h2>
           </div>
-          <button aria-label="Close"
+          <Button variant="unstyled" aria-label="Close"
             onClick={onClose}
             className="p-1 rounded-control text-muted-foreground hover:text-muted-foreground hover:bg-muted transition cursor-pointer"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         {/* Search */}
@@ -161,7 +164,7 @@ export default function BrowseChannelsModal({
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={16}
             />
-            <input
+            <Input unstyled
               type="text"
               placeholder="Search channels by name..."
               value={searchQuery}
@@ -216,7 +219,7 @@ export default function BrowseChannelsModal({
                         Joined
                       </span>
                     ) : (
-                      <button
+                      <Button variant="unstyled"
                         onClick={() => joinMutation.mutate(channel.id)}
                         disabled={joinMutation.isPending}
                         className="px-4 py-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:bg-primary disabled:bg-primary rounded-control transition cursor-pointer flex items-center gap-1"
@@ -226,13 +229,13 @@ export default function BrowseChannelsModal({
                           <Loader2 size={12} className="animate-spin" />
                         ) : null}
                         Join
-                      </button>
+                      </Button>
                     )}
                     {(isSpaceAdmin ||
                       (channel.createdBy === currentUserId &&
                         allowMemberDeleteOwnChannel)) &&
                       !channel.isDefault && (
-                        <button
+                        <Button variant="unstyled"
                           type="button"
                           onClick={() => handleDeleteChannel(channel.id)}
                           disabled={deleteMutation.isPending}
@@ -245,7 +248,7 @@ export default function BrowseChannelsModal({
                           ) : (
                             <Trash2 size={14} />
                           )}
-                        </button>
+                        </Button>
                       )}
                   </div>
                 </div>
@@ -260,17 +263,15 @@ export default function BrowseChannelsModal({
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border bg-background flex justify-end">
-          <button
+          <Button variant="unstyled"
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-card hover:bg-muted border border-border rounded-control transition cursor-pointer"
           >
             Close
-          </button>
+          </Button>
         </div>
       </div>
       <ChatConfirmDialog {...confirmDialogProps} />
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 

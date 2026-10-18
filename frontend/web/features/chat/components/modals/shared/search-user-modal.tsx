@@ -3,7 +3,7 @@
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+
 import {
   Search,
   X,
@@ -24,6 +24,10 @@ import {
   getPublicProfile,
   searchUserByEmail,
 } from "@/features/chat/api/chat.api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface SearchUserModalProps {
   isOpen: boolean;
@@ -149,12 +153,12 @@ const SearchUserModal = React.memo(function SearchUserModal({
         <div className="flex justify-between items-center px-6 py-4 border-b border-border bg-card sticky top-0 z-10">
           <div className="flex items-center gap-3">
             {selectedUser && (
-              <button aria-label="Back"
+              <Button variant="unstyled" aria-label="Back"
                 onClick={() => setSelectedUser(null)}
                 className="p-1 -ml-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors cursor-pointer"
               >
                 <ArrowLeft size={20} />
-              </button>
+              </Button>
             )}
             <h2 className="text-section-title font-semibold text-foreground tracking-tight">
               {selectedUser
@@ -162,19 +166,19 @@ const SearchUserModal = React.memo(function SearchUserModal({
                 : "Add New Connection"}
             </h2>
           </div>
-          <button aria-label="Close"
+          <Button variant="unstyled" aria-label="Close"
             onClick={onClose}
             className="p-2 text-muted-foreground hover:text-muted-foreground hover:bg-muted rounded-full cursor-pointer transition-colors"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         {!selectedUser ? (
           <>
             <div className="px-6 py-5 flex-shrink-0 border-b border-border bg-background">
               <div className="relative group">
-                <input
+                <Input unstyled
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -253,7 +257,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                           </p>
                         </div>
                       </div>
-                      <button
+                      <Button variant="unstyled"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleMessage(user);
@@ -262,7 +266,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                         title="Send Message"
                       >
                         <MessageCircle size={20} />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -329,12 +333,12 @@ const SearchUserModal = React.memo(function SearchUserModal({
                   </div>
                 </div>
 
-                <button
+                <Button variant="unstyled"
                   onClick={() => handleMessage(selectedUser)}
                   className="cursor-pointer w-full bg-primary text-primary-foreground font-semibold py-3 rounded-control transform transition-all duration-200"
                 >
                   Send Message
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -343,7 +347,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
     </div>
   );
 
-  return createPortal(modalContent, document.body);
+  return <DialogSurface onClose={onClose}>{modalContent}</DialogSurface>;
 });
 
 export default SearchUserModal;

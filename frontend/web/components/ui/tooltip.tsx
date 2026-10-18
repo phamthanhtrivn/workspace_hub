@@ -1,15 +1,16 @@
 "use client";
 
 import * as React from "react";
+import { Tooltip as Primitive } from "@base-ui/react/tooltip";
 
 import { cn } from "@/lib/utils";
 
-function TooltipProvider({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+function TooltipProvider(props: React.ComponentProps<typeof Primitive.Provider>) {
+  return <Primitive.Provider {...props} />;
 }
 
-function Tooltip({ children }: { children: React.ReactNode }) {
-  return <span className="group/tooltip relative inline-flex">{children}</span>;
+function Tooltip(props: React.ComponentProps<typeof Primitive.Root>) {
+  return <Primitive.Root {...props} />;
 }
 
 function TooltipTrigger({
@@ -19,8 +20,7 @@ function TooltipTrigger({
   children: React.ReactNode;
   asChild?: boolean;
 }) {
-  if (asChild && React.isValidElement(children)) return children;
-  return <span>{children}</span>;
+  return <Primitive.Trigger render={asChild && React.isValidElement(children) ? children : <span tabIndex={0} />}>{asChild ? undefined : children}</Primitive.Trigger>;
 }
 
 function TooltipContent({
@@ -30,17 +30,9 @@ function TooltipContent({
   className?: string;
   children: React.ReactNode;
 }) {
-  return (
-    <span
-      role="tooltip"
-      className={cn(
-        "pointer-events-none absolute bottom-full left-1/2 z-[130] mb-2 hidden -translate-x-1/2 whitespace-nowrap rounded-md border bg-popover px-2.5 py-1.5 text-xs font-semibold text-popover-foreground group-hover/tooltip:block group-focus-within/tooltip:block shadow-panel",
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
+  return <Primitive.Portal><Primitive.Positioner side="top" sideOffset={8} className="z-[130] max-w-[calc(100vw-1rem)]">
+    <Primitive.Popup data-slot="tooltip-content" className={cn("max-w-72 rounded-control border border-border bg-popover px-2.5 py-1.5 text-xs font-semibold text-popover-foreground shadow-panel", className)}>{children}</Primitive.Popup>
+  </Primitive.Positioner></Primitive.Portal>;
 }
 
 export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };

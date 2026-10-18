@@ -8,6 +8,8 @@ import { useAppSelector } from "@/store/store";
 import { formatDateTime } from "@/lib/date";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { MeetingResponse, ChatMessageResponse } from "../../types/chat.types";
+import { Button } from "@/components/ui/button";
+
 interface MeetingCardMessageProps {
   message: ChatMessageResponse;
   meeting?: MeetingResponse | null;
@@ -113,7 +115,7 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
         {/* Action buttons or Ended status text */}
         {isLive ? (
           <div className="flex items-center gap-2 pt-2.5 border-t border-border">
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={handleJoinInApp}
               disabled={!joinToken}
@@ -121,9 +123,9 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
             >
               <Play size={15} className="fill-current" />
               <span>Join Now</span>
-            </button>
+            </Button>
 
-            <button
+            <Button variant="unstyled"
               type="button"
               onClick={handleOpenNewTab}
               disabled={!joinToken}
@@ -134,7 +136,7 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
               <span className="hidden sm:inline">
                 Open in new tab
               </span>
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="pt-2.5 border-t border-border text-center">

@@ -23,6 +23,9 @@ import MessageReactions from "./message-reactions";
 import MessageReadReceipts from "./message-read-receipts";
 import { MemberProfilesMap, RenderableChatMessage } from "./chat-message.types";
 import ReactionDetailModal from "../modals/message/reaction-detail-modal";
+import { Button } from "@/components/ui/button";
+import { AnchoredPopover } from "@/components/ui/anchored-popup";
+
 
 interface ChatMessageProps {
   msg: RenderableChatMessage;
@@ -240,13 +243,13 @@ const ChatMessage = React.memo(function ChatMessage({
         <div className="min-w-0 max-w-[calc(100%-3rem)] @min-[720px]/messages:max-w-[70%] flex flex-col gap-1 relative group/bubble items-start">
           {showSenderName && (
             <div className="flex items-baseline gap-2 px-1 mt-0.5 mb-0.5 min-w-0">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={openSenderProfile}
                 className="text-[13px] text-foreground font-semibold tracking-tight hover:text-info-content transition-colors cursor-pointer truncate"
               >
                 {senderName}
-              </button>
+              </Button>
               {showTime && (
                 <span className="text-xs text-muted-foreground font-medium shrink-0">
                   {time}
@@ -307,7 +310,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 />
 
                 {msg.threadReplyCount && msg.threadReplyCount > 0 ? (
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     onClick={() => onThreadReply?.(msg)}
                     className="flex items-center gap-2 mt-2 text-xs font-semibold cursor-pointer hover:underline p-1.5 rounded-control w-fit border transition-colors text-info-content bg-info-soft border-border hover:bg-info-soft/70 mr-auto"
@@ -319,7 +322,7 @@ const ChatMessage = React.memo(function ChatMessage({
                         Last: {formatDateTime(msg.threadLastReplyAt)}
                       </span>
                     )}
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             </>
@@ -345,41 +348,41 @@ const ChatMessage = React.memo(function ChatMessage({
 
           {!msg.recalled && (
             <div className="absolute top-1/2 -translate-y-1/2 left-full ml-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
-              <button
+              <Button variant="unstyled"
                 type="button"
                 onClick={() => onThreadReply?.(msg)}
                 title="Reply to thread"
                 className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
               >
                 <MessageSquare size={14} />
-              </button>
+              </Button>
 
               <div className="relative">
-                <button aria-label="Add reaction"
+                <Button variant="unstyled" aria-label="Add reaction"
                   type="button"
                   onClick={() => setShowReactionPicker((prev) => !prev)}
                   className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
                 >
                   <SmilePlus size={14} />
-                </button>
+                </Button>
 
                 {showReactionPicker && (
-                  <div className="absolute top-1/2 -translate-y-1/2 left-full ml-2 bg-card border border-border rounded-full p-1 flex gap-0.5 animate-in fade-in zoom-in-95 duration-100 shadow-panel">
+                  <AnchoredPopover onClose={() => setShowReactionPicker(false)} side="bottom" align="start" aria-label="Message reactions" className="ml-2 bg-card border border-border rounded-full p-1 flex gap-0.5 animate-in fade-in zoom-in-95 duration-100 shadow-panel">
                     {QUICK_EMOJIS.map((emoji) => (
-                      <button
+                      <Button variant="unstyled"
                         type="button"
                         key={emoji}
                         onClick={() => handleReactionClick(emoji)}
                         className="w-7 h-7 flex items-center justify-center text-base hover:bg-muted rounded-full transition-all duration-150 cursor-pointer"
                       >
                         {emoji}
-                      </button>
+                      </Button>
                     ))}
-                  </div>
+                  </AnchoredPopover>
                 )}
               </div>
 
-              <button aria-label="Message options"
+              <Button variant="unstyled" aria-label="Message options"
                 type="button"
                 onClick={(event) => {
                   setOptionsMenuRect(
@@ -390,7 +393,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
               >
                 <MoreHorizontal size={14} />
-              </button>
+              </Button>
             </div>
           )}
         </div>

@@ -1,8 +1,11 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, BarChart2, Loader2, Search } from "lucide-react";
 import ViewPollModal from "../../modals/message/view-poll-modal";
 import { usePolls } from "../../../hooks/usePolls";
 import { PollOptionResponse, PollResponse } from "../../../types/chat.types";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 
 interface PollDetailViewProps {
   conversationId: string;
@@ -37,12 +40,12 @@ export default function PollDetailView({
   return (
     <div className="w-full h-full min-h-0 min-w-0 flex flex-col bg-card">
       <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center gap-3 flex-shrink-0">
-        <button aria-label="Back"
+        <Button variant="unstyled" aria-label="Back"
           onClick={onBack}
           className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <ArrowLeft size={20} />
-        </button>
+        </Button>
         <h2 className="font-semibold text-foreground">
           Polls
         </h2>
@@ -54,7 +57,7 @@ export default function PollDetailView({
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
             size={16}
           />
-          <input
+          <Input unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

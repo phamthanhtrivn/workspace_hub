@@ -3,7 +3,7 @@
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+
 import {
   FiX,
   FiCheck,
@@ -23,6 +23,10 @@ import {
   updateChannelInfo,
   updateChannelSettings,
 } from "@/features/chat/api/channel.api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface ChannelSettingsModalProps {
   channel: ChannelResponse;
@@ -113,19 +117,18 @@ export default function ChannelSettingsModal({
 
   if (!mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/50 transition-all duration-200">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/50 transition-all duration-200">
       <div className={`${dialogLayout.surface} bg-card rounded-dialog w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-border flex flex-col max-h-[85vh]`}>
         <div className="flex items-center justify-between p-6 border-b border-border bg-card shrink-0">
           <h2 className="text-section-title font-semibold text-foreground tracking-tight">
             Channel Settings
           </h2>
-          <button aria-label="Close"
+          <Button variant="unstyled" aria-label="Close"
             onClick={onClose}
             className="cursor-pointer p-2.5 text-muted-foreground hover:text-muted-foreground rounded-full hover:bg-muted transition-colors"
           >
             <FiX size={20} />
-          </button>
+          </Button>
         </div>
 
         {/* Scrollable Modal Content */}
@@ -138,7 +141,7 @@ export default function ChannelSettingsModal({
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">
                     Channel Name
                   </label>
-                  <input
+                  <Input unstyled
                     type="text"
                     value={channelName}
                     onChange={(e) => setChannelName(e.target.value)}
@@ -212,14 +215,14 @@ export default function ChannelSettingsModal({
         </div>
 
         <div className="flex justify-end p-5 border-t border-border gap-3 bg-background shrink-0">
-          <button
+          <Button variant="unstyled"
             onClick={onClose}
             className="px-5 py-2.5 text-sm font-semibold text-foreground bg-card border border-border hover:bg-background rounded-control transition-colors cursor-pointer"
           >
             Cancel
-          </button>
+          </Button>
           {canEditName && (
-            <button
+            <Button variant="unstyled"
               onClick={handleSave}
               disabled={isSaving}
               className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-foreground bg-primary hover:bg-primary rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -232,13 +235,11 @@ export default function ChannelSettingsModal({
                   Save Changes
                 </>
               )}
-            </button>
+            </Button>
           )}
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 
 function SettingItem({
@@ -267,7 +268,7 @@ function SettingItem({
           <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
         </div>
       </div>
-      <button
+      <Button variant="unstyled"
         onClick={onChange}
         disabled={disabled}
         className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
@@ -279,7 +280,7 @@ function SettingItem({
             checked ? "translate-x-5 bg-primary-foreground" : "translate-x-0.5 bg-card"
           }`}
         />
-      </button>
+      </Button>
     </div>
   );
 }

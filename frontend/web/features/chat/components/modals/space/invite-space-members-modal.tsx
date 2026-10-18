@@ -3,7 +3,7 @@
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+
 import { Search, X, Loader2, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
@@ -13,6 +13,10 @@ import {
   inviteSpaceMembers,
   searchUserByEmail,
 } from "@/features/chat/api/chat.api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface InviteSpaceMembersModalProps {
   isOpen: boolean;
@@ -128,20 +132,19 @@ export default function InviteSpaceMembersModal({
 
   if (!isOpen || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40 animate-fade-in">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40 animate-fade-in">
       <div className={`${dialogLayout.surface} w-full max-w-md bg-card rounded-panel border border-border flex flex-col max-h-[90vh]`}>
         {/* Header */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <h2 className="text-section-title font-semibold text-foreground">
             Invite Members to Space
           </h2>
-          <button aria-label="Close"
+          <Button variant="unstyled" aria-label="Close"
             onClick={onClose}
             className="p-1 rounded-control text-muted-foreground hover:text-muted-foreground hover:bg-muted transition cursor-pointer"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -157,13 +160,13 @@ export default function InviteSpaceMembersModal({
                   <span>
                     {user.fullName} ({user.email})
                   </span>
-                  <button aria-label="Remove selected member"
+                  <Button variant="unstyled" aria-label="Remove selected member"
                     type="button"
                     onClick={() => handleRemoveUser(user.id)}
                     className="hover:bg-info-soft rounded text-info-content hover:text-info-content p-0.5 cursor-pointer"
                   >
                     <X size={12} />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -175,7 +178,7 @@ export default function InviteSpaceMembersModal({
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={16}
             />
-            <input
+            <Input unstyled
               type="text"
               placeholder="Enter user email to search..."
               value={email}
@@ -237,26 +240,24 @@ export default function InviteSpaceMembersModal({
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border flex justify-end gap-3 bg-background">
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={onClose}
             disabled={isInviting}
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-accent rounded-control transition cursor-pointer"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             onClick={handleInvite}
             disabled={isInviting || selectedUsers.length === 0}
             className="px-5 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary disabled:bg-primary rounded-control transition flex items-center gap-1.5 cursor-pointer"
           >
             {isInviting && <Loader2 size={16} className="animate-spin" />}
             Send Invitation
-          </button>
+          </Button>
         </div>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 

@@ -8,6 +8,8 @@ import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { NoteResponse } from "../../types/chat.types";
 import { renderMessageContent } from "../../utils/message-formatter";
 import EditNoteModal from "../modals/message/edit-note-modal";
+import { Button } from "@/components/ui/button";
+
 interface NoteMessageProps {
   note: NoteResponse;
   onUserClick?: (userId: string) => void;
@@ -76,13 +78,13 @@ const NoteMessage = React.memo(function NoteMessage({
         </div>
 
         {isMe && onEditNote && (
-          <button
+          <Button variant="unstyled"
             onClick={() => setIsEditModalOpen(true)}
             className="cursor-pointer w-full mt-4 py-2.5 flex items-center justify-center gap-2 text-xs font-semibold text-warning-content bg-warning-soft hover:bg-warning-soft/90 rounded-control transition-all duration-200"
           >
             <Edit2 size={14} />
             Edit Note
-          </button>
+          </Button>
         )}
       </div>
 

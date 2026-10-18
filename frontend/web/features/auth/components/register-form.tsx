@@ -19,6 +19,8 @@ import {
   getAuthErrorMessage,
   getAuthValidationErrors,
 } from "../utils/auth-error";
+import { Button } from "@/components/ui/button";
+
 
 const RegisterForm = React.memo(function RegisterForm() {
   const router = useRouter();
@@ -203,14 +205,14 @@ const RegisterForm = React.memo(function RegisterForm() {
         />
       </div>
 
-      <button
+      <Button variant="unstyled"
         type="submit"
         disabled={registerMutation.isPending}
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-[0_16px_32px_color-mix(in_srgb,var(--primary)_22%,transparent)] transition hover:-translate-y-0.5 hover:bg-primary disabled:opacity-70"
       >
         <UserPlus className="h-4 w-4" />
         {registerMutation.isPending ? "Creating account..." : "Register"}
-      </button>
+      </Button>
     </form>
   );
 });

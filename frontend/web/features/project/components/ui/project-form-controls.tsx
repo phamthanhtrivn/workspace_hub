@@ -1,12 +1,10 @@
 "use client";
 
-import { Search, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   CustomSelect,
   type CustomSelectOption,
 } from "@/components/ui/custom/custom-select";
+import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/utils";
 
 export interface ProjectSearchInputProps {
@@ -25,31 +23,15 @@ export function ProjectSearchInput({
   className,
 }: ProjectSearchInputProps) {
   return (
-    <div className={cn("relative flex-1 min-w-[180px]", className)}>
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        type="text"
-        role="searchbox"
-        enterKeyHint="search"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        aria-label={ariaLabel || placeholder}
-        className="h-9 rounded-control border border-input bg-background pl-9 pr-8 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden transition-all"
-      />
-      {value ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => onChange("")}
-          aria-label="Clear search"
-          className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-muted-foreground hover:bg-transparent cursor-pointer p-0"
-        >
-          <X className="h-3.5 w-3.5" />
-        </Button>
-      ) : null}
-    </div>
+    <SearchInput
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      onClear={() => onChange("")}
+      placeholder={placeholder}
+      aria-label={ariaLabel || placeholder}
+      containerClassName={cn("relative flex-1 min-w-[180px]", className)}
+      className="h-9 rounded-control border border-input bg-background pl-9 pr-8 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden transition-all"
+    />
   );
 }
 

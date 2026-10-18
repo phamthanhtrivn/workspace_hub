@@ -1,6 +1,6 @@
 "use client";
 
-import { createPortal } from "react-dom";
+
 
 import { useRef, useState } from "react";
 import { X } from "lucide-react";
@@ -14,7 +14,7 @@ import {
   CALENDAR_FORM_WEEKDAY_INITIALS,
   CALENDAR_FORM_LOCALE,
 } from "../../constants/calendar-form-copy";
-import { useModalDialog } from "../../hooks/use-modal-dialog";
+
 import {
   CALENDAR_RECURRENCE_FREQUENCY_OPTIONS,
   CALENDAR_RECURRENCE_WEEKDAY_OPTIONS,
@@ -27,6 +27,9 @@ import {
   CalendarRecurrenceWeekday,
 } from "../../types/calendar.types";
 import { getWeekdayNameByCode } from "../../utils/calendar-recurrence.utils";
+import { NativeRadio } from "@/components/ui/radio-group";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 export function CustomRecurrenceModal({
   open,
@@ -48,7 +51,7 @@ export function CustomRecurrenceModal({
     count: value.count || 1,
   }));
   const [error, setError] = useState<string | null>(null);
-  useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
+
 
   if (!open) return null;
 
@@ -90,7 +93,7 @@ export function CustomRecurrenceModal({
     });
   };
 
-  return typeof document === "undefined" ? null : createPortal((
+  return typeof document === "undefined" ? null : <DialogSurface onClose={onClose}>{(
     <div
       className="fixed inset-0 z-[120] flex items-center justify-center bg-overlay/60 p-4"
       onWheelCapture={(event) => {
@@ -116,8 +119,8 @@ export function CustomRecurrenceModal({
     >
       <div
         ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
+
+
         aria-labelledby="calendar-custom-recurrence-heading"
         className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-panel border border-border bg-card"
       >
@@ -231,15 +234,15 @@ export function CustomRecurrenceModal({
                     className="grid min-h-11 grid-cols-1 items-center gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]"
                   >
                     <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold text-foreground">
-                      <input
-                        type="radio"
+                      <NativeRadio
+
                         name="recurrenceEndType"
                         value={endType}
                         checked={draft.endType === endType}
                         onChange={() =>
                           setDraft((current) => ({ ...current, endType }))
                         }
-                        className="h-4 w-4 shrink-0 accent-secondary"
+                        className="h-4 w-4 shrink-0 accent-link"
                       />
                       {CALENDAR_FORM_RECURRENCE_END_LABELS[endType]}
                     </label>
@@ -315,5 +318,5 @@ export function CustomRecurrenceModal({
         </div>
       </div>
     </div>
-  ), document.body);
+  )}</DialogSurface>;
 }

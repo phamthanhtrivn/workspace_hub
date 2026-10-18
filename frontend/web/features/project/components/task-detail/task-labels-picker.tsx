@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronDown, Tag } from "lucide-react";
 import type { TaskLabel } from "@/features/project/types/project";
 import { LabelBadge } from "../ui/status-badge";
 import TaskLabelBadges from "../ui/task-label-badges";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AnchoredPopover } from "@/components/ui/anchored-popup";
 
 interface TaskLabelsPickerProps {
   taskLabels: TaskLabel[];
@@ -26,18 +27,7 @@ export default function TaskLabelsPicker({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   return (
     <div className="flex flex-wrap items-center gap-1.5" ref={containerRef}>
@@ -60,7 +50,7 @@ export default function TaskLabelsPicker({
         </Button>
 
         {isOpen && !disabled && (
-          <div className="absolute left-0 top-full z-30 mt-1 max-h-60 w-56 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
+          <AnchoredPopover onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task labels" className="z-30 max-h-60 w-56 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
             {availableLabels.length === 0 ? (
               <p className="px-3 py-2.5 text-xs text-muted-foreground">
                 No labels configured in project settings.
@@ -95,7 +85,7 @@ export default function TaskLabelsPicker({
                 );
               })
             )}
-          </div>
+          </AnchoredPopover>
         )}
       </div>
 

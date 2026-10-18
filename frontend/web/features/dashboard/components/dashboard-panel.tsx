@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+
 
 export function DashboardPanel({
   title,
@@ -58,13 +60,13 @@ export function QueryFeedback({
         className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-destructive-soft p-3 text-xs text-destructive-content"
       >
         <span className="min-w-0 break-words">Could not load {label}.</span>
-        <button
+        <Button variant="unstyled"
           type="button"
           onClick={() => void query.refetch()}
           className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1 rounded-control px-2 py-1 font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
         >
           <RefreshCw size={13} /> Retry
-        </button>
+        </Button>
       </div>
     );
   if (query.isPending)

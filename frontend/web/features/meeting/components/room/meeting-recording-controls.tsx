@@ -13,6 +13,8 @@ import { useMeetingRecording } from "../../hooks/useMeetingRecording";
 import type { RecordingLayout } from "../../types/meeting-recording.types";
 import { MeetingRoomControlButton } from "../common/meeting-room-control-button";
 import { MeetingButton } from "../ui/meeting-form-controls";
+import { NativeSelect } from "@/components/ui/native-select";
+
 
 export function MeetingRecordingControls({
   joinToken,
@@ -84,7 +86,7 @@ export function MeetingRecordingControls({
           {dialog === "start" && (
             <label className="mt-4 block text-sm">
               Recording layout
-              <select
+              <NativeSelect unstyled aria-label="Recording layout"
                 value={layout}
                 onChange={(event) =>
                   setLayout(event.target.value as RecordingLayout)
@@ -93,7 +95,7 @@ export function MeetingRecordingControls({
               >
                 <option value="speaker">Active speaker + shared screen</option>
                 <option value="grid">Gallery + shared screen</option>
-              </select>
+              </NativeSelect>
             </label>
           )}
           <div className="mt-6 flex justify-end gap-2">

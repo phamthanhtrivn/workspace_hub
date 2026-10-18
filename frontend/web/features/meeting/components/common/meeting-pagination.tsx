@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MeetingButton } from "../ui/meeting-form-controls";
 import { getMeetingHistoryPageNumbers } from "../../utils/meeting-history.utils";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingPaginationProps {
   page: number;
@@ -48,7 +50,7 @@ export function MeetingPagination({
         </MeetingButton>
         {pageNumbers.map((pageNumber) =>
           typeof pageNumber === "number" ? (
-            <button
+            <Button variant="unstyled"
               key={pageNumber}
               type="button"
               onClick={() => onPageChange(pageNumber)}
@@ -61,7 +63,7 @@ export function MeetingPagination({
               aria-current={pageNumber === safePage ? "page" : undefined}
             >
               {pageNumber}
-            </button>
+            </Button>
           ) : (
             <span
               key={pageNumber}

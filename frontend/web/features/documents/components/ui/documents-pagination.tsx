@@ -67,7 +67,7 @@ export function DocumentsPagination({
 
         {pageNumbers.map((pageNumber, index) =>
           typeof pageNumber === "number" ? (
-            <button
+            <Button variant="unstyled"
               key={`${pageNumber}-${index}`}
               type="button"
               disabled={isLoading}
@@ -81,7 +81,7 @@ export function DocumentsPagination({
               aria-current={pageNumber === safePage ? "page" : undefined}
             >
               {pageNumber}
-            </button>
+            </Button>
           ) : (
             <span
               key={`ellipsis-${index}`}

@@ -1,5 +1,7 @@
 "use client";
 
+import { Avatar as SharedAvatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
 interface AvatarItem {
   userId: string;
   displayName: string;
@@ -47,27 +49,14 @@ export function Avatar({
     md: "h-10 w-10 text-xs",
   };
 
-  if (user.avatarUrl) {
-    return (
-      <Image
-        src={user.avatarUrl}
-        alt={user.displayName}
-        title={user.displayName}
-        width={40}
-        height={40}
-        unoptimized
-        className={`${sizeClasses[size]} shrink-0 rounded-full object-cover ring-2 ring-border`}
-      />
-    );
-  }
-
   return (
-    <span
+    <SharedAvatar
       title={user.displayName}
       className={`${sizeClasses[size]} ${colorForUser(user.userId)} inline-grid shrink-0 place-items-center rounded-full font-semibold ring-2 ring-border`}
     >
-      {getInitials(user.displayName)}
-    </span>
+      {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.displayName} render={<Image src={user.avatarUrl} alt={user.displayName} width={40} height={40} unoptimized />} />}
+      <AvatarFallback className={colorForUser(user.userId)}>{getInitials(user.displayName)}</AvatarFallback>
+    </SharedAvatar>
   );
 }
 

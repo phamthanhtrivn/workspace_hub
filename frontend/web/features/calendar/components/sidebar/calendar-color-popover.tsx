@@ -1,12 +1,13 @@
 "use client";
 
 import { Check, MoreVertical, Plus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { readableTextOnColor } from "@/lib/color";
 import { CALENDAR_COLOR_CHOICES } from "../../types/calendar.constants";
+import { AnchoredPopover } from "@/components/ui/anchored-popup";
 
 export function CalendarColorPopover({
   value,
@@ -24,23 +25,7 @@ export function CalendarColorPopover({
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
 
-    const closeOnOutsidePress = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-
-    document.addEventListener("pointerdown", closeOnOutsidePress);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePress);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [open]);
 
   const selectColor = (color: string) => {
     void Promise.resolve(onChange(color)).finally(() => setOpen(false));
@@ -66,10 +51,10 @@ export function CalendarColorPopover({
       </Button>
 
       {open && (
-        <div
+        <AnchoredPopover onClose={() => setOpen(false)} side="bottom" align="end"
           role="dialog"
           aria-label={label}
-          className="absolute right-0 top-[calc(100%+0.1rem)] z-30 w-[12.5rem] max-w-[calc(100vw-1.5rem)] rounded-lg border border-border bg-card p-3 shadow-panel"
+          className="z-30 w-[12.5rem] max-w-[calc(100vw-1.5rem)] rounded-lg border border-border bg-card p-3 shadow-panel"
         >
           <div className="grid grid-cols-6 gap-2">
             {CALENDAR_COLOR_CHOICES.map((color) => (
@@ -101,7 +86,7 @@ export function CalendarColorPopover({
               />
             </label>
           </div>
-        </div>
+        </AnchoredPopover>
       )}
     </div>
   );

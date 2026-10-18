@@ -3,8 +3,11 @@
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React from "react";
-import { createPortal } from "react-dom";
+
 import { Video, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface StartMeetingConfirmModalProps {
   isOpen: boolean;
@@ -25,10 +28,9 @@ export function StartMeetingConfirmModal({
 
   if (!isOpen || !portalRoot) return null;
 
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
+  return <DialogSurface onClose={() => { if (!isCreating) onClose(); }}>{<div
+
+
       className="fixed inset-0 z-[150] grid place-items-center bg-overlay/40 p-4 transition-all duration-200 animate-in fade-in"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && !isCreating) {
@@ -54,15 +56,15 @@ export function StartMeetingConfirmModal({
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-3 pt-2">
-          <button
+          <Button variant="unstyled"
             type="button"
             disabled={isCreating}
             onClick={onClose}
             className="cursor-pointer rounded-control bg-muted px-4 py-2.5 text-xs md:text-sm font-semibold text-foreground hover:bg-accent active:bg-border transition focus-visible:outline-none disabled:opacity-50"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             disabled={isCreating}
             onClick={onConfirm}
@@ -74,12 +76,10 @@ export function StartMeetingConfirmModal({
               <Video className="h-4 w-4" />
             )}
             <span>Start Meeting</span>
-          </button>
+          </Button>
         </div>
       </div>
-    </div>,
-    portalRoot,
-  );
+    </div>}</DialogSurface>;
 }
 
 export default StartMeetingConfirmModal;

@@ -37,7 +37,7 @@ export function DashboardTasks({
       <QueryFeedback query={project} label="project tasks" />
       <div className="mb-3 flex flex-wrap gap-1" aria-label="Filter tasks">
         {(["All", "Overdue", "Today"] as const).map((filter) => (
-          <button
+          <Button variant="unstyled"
             key={filter}
             type="button"
             aria-pressed={filter === taskFilter}
@@ -45,7 +45,7 @@ export function DashboardTasks({
             className={`min-h-11 cursor-pointer border-b-2 px-3 py-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9 [@media(pointer:coarse)]:min-h-11 ${filter === taskFilter ? "border-link text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {filter}
-          </button>
+          </Button>
         ))}
       </div>
       {!visibleTasks.length && personal.isSuccess && project.isSuccess && (

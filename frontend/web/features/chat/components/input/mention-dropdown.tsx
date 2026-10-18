@@ -1,5 +1,7 @@
 import { User, Users } from "lucide-react";
 import React from "react";
+import { Button } from "@/components/ui/button";
+
 
 interface MentionDropdownProps {
   query: string | null;
@@ -19,7 +21,7 @@ export default React.memo(function MentionDropdown({
   return (
     <div className="absolute bottom-full left-0 mb-2 w-64 max-w-full max-h-[min(12rem,40dvh)] overflow-y-auto bg-card border border-border rounded-panel z-50 py-1 animate-in fade-in zoom-in-95 duration-200 shadow-panel">
       {members.map((user, idx) => (
-        <button
+        <Button variant="unstyled"
           key={user.id}
           onClick={(e) => {
             e.preventDefault();
@@ -45,7 +47,7 @@ export default React.memo(function MentionDropdown({
             )}
           </div>
           <span className="truncate">{user.name}</span>
-        </button>
+        </Button>
       ))}
     </div>
   );
