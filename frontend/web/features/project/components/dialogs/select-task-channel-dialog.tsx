@@ -106,8 +106,8 @@ export default function SelectTaskChannelDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-md p-6 rounded-dialog border-border bg-card">
-        <DialogHeader className="text-left pb-2">
+      <DialogContent className="flex max-w-md flex-col p-0 rounded-dialog border-border bg-card">
+        <DialogHeader className="shrink-0 break-words text-left px-4 pt-4 pb-2 pr-12 sm:px-6 sm:pr-12">
           <div className="flex items-center gap-2 text-xs font-semibold text-info">
             <MessageSquare size={16} />
             <span>Task Discussion Thread</span>
@@ -116,12 +116,12 @@ export default function SelectTaskChannelDialog({
             Choose Channel for Discussion Thread
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground mt-1">
-            Select a Space Channel that you have joined. A dedicated Thread for Task <span className="font-semibold text-foreground">"{task.title}"</span> will be created inside it.
+            Select a Space Channel that you have joined. A dedicated Thread for Task <span className="inline-block max-w-full truncate align-bottom font-semibold text-foreground" title={task.title}>"{task.title}"</span> will be created inside it.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          <div className="space-y-1.5">
+        <form onSubmit={handleSubmit} className="flex min-h-0 max-h-[inherit] flex-1 flex-col">
+          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 py-4 sm:px-6">
             <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
               <UserCheck size={14} className="text-info" />
               <span>Target Channel {spaceId ? `(${channels.length} available)` : ""}</span>
@@ -180,7 +180,7 @@ export default function SelectTaskChannelDialog({
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 px-4 py-3 border-t border-border sm:px-6">
             <button
               type="button"
               onClick={onClose}

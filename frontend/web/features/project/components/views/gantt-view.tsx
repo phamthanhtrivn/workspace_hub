@@ -136,7 +136,7 @@ export default function GanttView({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
+    <div className="flex h-full min-h-0 min-w-0 flex-col gap-3 overflow-y-auto">
       <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 rounded-panel border border-border bg-card px-4 py-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="inline-flex items-center rounded-lg border border-border bg-background p-0.5">
@@ -171,7 +171,7 @@ export default function GanttView({
             </Button>
           </div>
 
-          <div className="flex items-baseline gap-2">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-2">
             <span className="text-sm font-semibold text-foreground">
               {currentMonthFormatted}
             </span>
@@ -220,7 +220,7 @@ export default function GanttView({
 
       <div
         ref={containerRef}
-        className="min-h-0 flex-1 overflow-hidden rounded-panel border border-border bg-card"
+        className="min-h-40 min-w-0 flex-1 shrink-0 overflow-hidden rounded-panel border border-border bg-card"
       >
         <div
           ref={timelineScrollRef}
@@ -387,23 +387,24 @@ export default function GanttView({
                       }}
                     >
                       <div
-                        className={`sticky left-0 z-10 flex h-12 min-w-0 items-center justify-between gap-2 border-r border-border px-4 transition-colors ${
+                        title={task.title}
+                        className={`@container/gantt-label sticky left-0 z-10 flex h-12 min-w-0 items-center justify-between gap-2 border-r border-border px-2 transition-colors ${
                           isHovered
                             ? "bg-info-soft"
                             : "bg-card group-hover:bg-background"
                         } ${isSubtask ? "pl-8" : ""}`}
                       >
-                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-0 @min-[240px]/gantt-label:flex-nowrap">
                           <span className="shrink-0">{priorityIcon}</span>
                           <span className="shrink-0 font-mono text-xs font-semibold text-muted-foreground">
                             {issueKey}
                           </span>
-                          <span className="min-w-0 truncate text-xs font-semibold text-foreground group-hover:text-info">
+                          <span className="min-w-0 basis-full truncate text-xs font-semibold text-foreground group-hover:text-info @min-[240px]/gantt-label:basis-auto">
                             {task.title}
                           </span>
                         </div>
 
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="hidden shrink-0 items-center gap-2 @min-[240px]/gantt-label:flex">
                           <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-semibold text-muted-foreground">
                             {durationDays}{" "}
                             {durationDays === 1 ? "day" : "days"}
@@ -542,14 +543,14 @@ export default function GanttView({
             type="button"
             variant="ghost"
             onClick={() => setIsUnscheduledExpanded((prev) => !prev)}
-            className="flex h-auto w-full items-center justify-between rounded-none bg-background px-4 py-3 text-left transition hover:bg-muted font-normal cursor-pointer"
+            className="flex h-auto w-full items-center justify-between gap-2 whitespace-normal rounded-none bg-background px-4 py-3 text-left transition hover:bg-muted font-normal cursor-pointer"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-warning-soft text-warning ring-1 ring-warning/20">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-warning-soft text-warning ring-1 ring-warning/20">
                 <Clock className="h-4 w-4" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold text-foreground">
                     Unscheduled Tasks
                   </span>

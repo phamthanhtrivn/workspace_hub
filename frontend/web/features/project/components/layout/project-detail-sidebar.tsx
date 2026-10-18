@@ -260,8 +260,8 @@ export default function ProjectDetailSidebar({
           </Button>
         </header>
 
-        <nav className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 py-3">
-          <div className="space-y-1">
+        <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-2 py-3">
+          <div className="shrink-0 space-y-1">
             {NAV_ITEMS.map(({ view, label, icon }) => (
               <SidebarNavItem
                 key={view}
@@ -278,7 +278,7 @@ export default function ProjectDetailSidebar({
           <div className="my-3 h-px shrink-0 bg-muted" />
 
           <section
-            className="flex min-h-0 flex-1 flex-col overflow-hidden"
+            className="flex shrink-0 flex-col"
             aria-label="Project members"
           >
             <div
@@ -367,7 +367,7 @@ export default function ProjectDetailSidebar({
 
             <div
               className={cn(
-                "mt-1 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-1 pb-2 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border",
+                "mt-1 space-y-1 px-1 pb-2",
                 isCollapsed && "lg:hidden",
               )}
             >

@@ -70,7 +70,7 @@ export default function ProjectDocumentsView({
 
   return (
     <DownloadQueueProvider>
-      <div className="h-full min-h-0 overflow-hidden rounded-lg border border-border bg-card">
+      <div className="h-full min-h-0 min-w-0 overflow-hidden rounded-lg border border-border bg-card">
         <DocumentExplorer
           currentFolderId={currentFolderId}
           onNavigate={handleNavigate}

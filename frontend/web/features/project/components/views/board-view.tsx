@@ -129,8 +129,8 @@ export default function BoardView({
 
   return (
     <>
-      <div className="h-full min-h-[520px] overflow-x-auto pb-2">
-        <div className="grid h-full min-h-0 grid-cols-1 items-start gap-3.5 sm:grid-cols-2 xl:min-w-[1180px] xl:grid-cols-[repeat(5,minmax(220px,1fr))]">
+      <div className="h-full min-h-0 min-w-0 overflow-x-auto overscroll-x-contain pb-2" role="region" aria-label="Kanban board" tabIndex={0}>
+        <div className="grid h-full min-h-0 grid-cols-[repeat(5,minmax(200px,1fr))] gap-[12px]">
           {COLUMNS.map((col) => {
             const columnTasks = getTasksByStatus(tasks, col.status);
             const canCreateInColumn = col.status === TaskStatus.TODO;
@@ -138,7 +138,7 @@ export default function BoardView({
             return (
               <div
                 key={col.status}
-                className="flex min-h-[380px] max-h-[min(72vh,680px)] flex-col overflow-hidden rounded-panel bg-muted p-2.5 sm:min-h-[460px] xl:h-full xl:min-h-0 xl:max-h-none"
+                className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-panel bg-muted p-2.5"
                 onDragOver={(e) => {
                   if (onTaskMove) e.preventDefault();
                 }}
@@ -148,7 +148,7 @@ export default function BoardView({
                 }}
               >
                 {/* Column header */}
-                <div className="sticky top-0 z-10 -mx-2.5 flex items-center justify-between rounded-t-2xl bg-muted px-4 pb-2.5 pt-1">
+                <div className="z-10 -mx-2.5 flex shrink-0 items-center justify-between gap-2 rounded-t-2xl bg-muted px-3 pb-2.5 pt-1">
                   <div className="flex items-center gap-2">
                     <h3
                       className={`text-xs font-semibold tracking-wider ${col.headerColor}`}
@@ -176,7 +176,7 @@ export default function BoardView({
                 </div>
 
                 {/* Task cards list */}
-                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain pr-1">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain pr-1 [&>div]:shrink-0">
                   {columnTasks.map((task) => (
                     <TaskCard
                       key={task.id}

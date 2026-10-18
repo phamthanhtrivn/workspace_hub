@@ -33,7 +33,7 @@ export default function TaskLabelBadges({
   return (
     <div
       className={cn(
-        "relative z-20 flex flex-wrap items-center gap-1 overflow-visible select-none",
+        "relative z-20 flex min-w-0 flex-wrap items-center gap-1 overflow-visible select-none [&>[data-slot=badge]]:min-w-0 [&>[data-slot=badge]]:max-w-full [&>[data-slot=badge]]:whitespace-normal [&>[data-slot=badge]]:break-all",
         className,
       )}
     >

@@ -69,7 +69,7 @@ function TaskStatusCounts({
     tasks.filter((task) => task.status === status && !task.archived).length;
 
   return (
-    <div className="flex w-fit items-center gap-3 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+    <div className="flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground [&>span:not(:empty)]:whitespace-nowrap">
       <span>{count(TaskStatus.TODO)} To Do</span>
       <span className="h-3 w-px bg-accent" />
       <span className="text-info">{count(TaskStatus.IN_PROGRESS)} In Progress</span>
@@ -119,7 +119,7 @@ export default function ProjectDetailToolbar({
   const isTaskView = !isMembersView && !isDocumentsView;
 
   return (
-    <>
+    <header className="min-w-0 shrink-0">
       <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
         <Button
           type="button"
@@ -132,20 +132,20 @@ export default function ProjectDetailToolbar({
           <Menu className="h-4 w-4" />
         </Button>
         <Breadcrumb className="min-w-0">
-          <BreadcrumbList className="flex-nowrap text-xs font-medium text-muted-foreground">
+          <BreadcrumbList className="flex-wrap gap-y-1 text-xs font-medium text-muted-foreground">
             <BreadcrumbItem className="shrink-0">
               <BreadcrumbLink asChild className="hover:text-info">
                 <Link href="/projects">Projects</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="shrink-0 text-muted-foreground" />
-            <BreadcrumbItem className="min-w-0">
+            <BreadcrumbItem className="min-w-0 max-w-48 @min-[640px]/project-detail:max-w-72">
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => onViewChange?.("overview")}
-                className="h-auto min-w-0 justify-start rounded-control p-0 text-xs font-medium text-muted-foreground shadow-none hover:bg-transparent hover:text-info focus-visible:ring-ring"
+                className="h-auto min-w-0 max-w-full shrink justify-start rounded-control p-0 text-xs font-medium text-muted-foreground shadow-none hover:bg-transparent hover:text-info focus-visible:ring-ring"
               >
                 <span className="truncate">{project.name}</span>
               </Button>
@@ -160,8 +160,8 @@ export default function ProjectDetailToolbar({
         </Breadcrumb>
       </div>
 
-      <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="flex items-center gap-2 text-page-title font-semibold tracking-tight text-foreground">
             {viewTitle}
           </h1>
@@ -177,7 +177,7 @@ export default function ProjectDetailToolbar({
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex max-w-full flex-wrap items-center gap-2">
           {canOpenProjectChat && onOpenProjectChat && (
             <Button
               type="button"
@@ -232,7 +232,7 @@ export default function ProjectDetailToolbar({
               onChange={onSearchChange}
               placeholder="Search tasks..."
               ariaLabel="Search tasks"
-              className="w-full min-w-0 flex-none lg:w-56"
+              className="w-full min-w-0 flex-none @min-[800px]/project-detail:w-52"
             />
 
             <TaskQuickFilters
@@ -245,11 +245,11 @@ export default function ProjectDetailToolbar({
               onAssigneeChange={onAssigneeChange}
             />
 
-            <div className="flex items-center gap-1">
+            <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
               <span className="mr-1 text-xs font-semibold text-muted-foreground">
                 Assignee:
               </span>
-              <div className="flex -space-x-1.5">
+              <div className="flex min-w-0 max-w-full flex-wrap gap-y-2 -space-x-1.5">
                 {members.map((member) => {
                   const isSelected = selectedAssigneeIds.includes(member.userId);
                   return (
@@ -303,6 +303,6 @@ export default function ProjectDetailToolbar({
           </div>
         </>
       )}
-    </>
+    </header>
   );
 }

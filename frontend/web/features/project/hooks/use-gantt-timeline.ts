@@ -44,6 +44,8 @@ export const GANTT_ZOOM_CONFIG: Record<
 };
 
 export const GANTT_LABEL_WIDTH = 280;
+const GANTT_MIN_LABEL_WIDTH = 120;
+const GANTT_LABEL_WIDTH_RATIO = 0.35;
 
 export interface GanttMonthColumn {
   isoKey: string;
@@ -184,8 +186,14 @@ export function useGanttTimeline({
   const [zoomMode, setZoomMode] = useState<GanttZoomMode>(initialZoom);
   const [offsetDays, setOffsetDays] = useState<number>(0);
 
+  const labelWidth = containerWidth
+    ? Math.min(
+        GANTT_LABEL_WIDTH,
+        Math.max(GANTT_MIN_LABEL_WIDTH, Math.floor(containerWidth * GANTT_LABEL_WIDTH_RATIO)),
+      )
+    : GANTT_LABEL_WIDTH;
   const availableWidth = containerWidth
-    ? Math.max(0, containerWidth - GANTT_LABEL_WIDTH)
+    ? Math.max(0, containerWidth - labelWidth)
     : 0;
 
   const dayWidth = explicitDayWidth
@@ -532,7 +540,7 @@ export function useGanttTimeline({
     dayWidth,
     weekWidth,
     monthWidth,
-    labelWidth: GANTT_LABEL_WIDTH,
+    labelWidth,
     getBarColor: getGanttBarColor,
     zoomMode,
     setZoomMode,

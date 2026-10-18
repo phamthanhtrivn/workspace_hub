@@ -1,5 +1,11 @@
 import { TaskPriority, TaskStatus } from "../types/project";
 
+// Header and rows share tracks; the minimum width includes 32px horizontal padding.
+export const BACKLOG_LAYOUT = {
+  columns: "grid-cols-[minmax(240px,1fr)_120px_110px_72px_72px_96px]",
+  minWidth: "min-w-[742px]",
+} as const;
+
 export const TASK_STATUS_OPTIONS = [
   { value: TaskStatus.TODO, label: "To Do" },
   { value: TaskStatus.IN_PROGRESS, label: "In Progress" },

@@ -105,9 +105,9 @@ export default function TaskDetailDrawer({
       />
 
       {/* Drawer */}
-      <div className="relative z-10 flex h-full w-full max-w-xl flex-col border-l border-border bg-card animate-in slide-in-from-right duration-200 sm:max-w-2xl">
+      <div className="relative z-10 flex h-dvh min-h-0 min-w-0 w-full max-w-xl flex-col overflow-hidden border-l border-border bg-card animate-in slide-in-from-right duration-200 sm:max-w-2xl">
         {/* ── Panel Header ── */}
-        <div className="flex items-center justify-between border-b border-border px-5 py-3">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3 sm:px-5">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
             {getIssueIcon()}
             <span className="font-semibold uppercase tracking-wide text-foreground hover:underline">
@@ -133,7 +133,7 @@ export default function TaskDetailDrawer({
 
         {/* ── Tabs bar ── */}
         <div
-          className="flex shrink-0 items-center gap-1 border-b border-border px-5"
+          className="flex shrink-0 flex-wrap items-center gap-1 border-b border-border px-4 sm:px-5"
           role="tablist"
           aria-label="Task content"
         >
@@ -194,7 +194,7 @@ export default function TaskDetailDrawer({
         <div
           role="tabpanel"
           className={[
-            "flex-1 overflow-y-auto px-5 py-4.5 space-y-5.5",
+            "min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4.5 space-y-5.5 sm:px-5",
             activeTab === "details" ? "block" : "hidden",
           ].join(" ")}
         >

@@ -7,7 +7,7 @@ import {
   type Task,
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
-import { TASK_PRIORITY_LABELS } from "@/features/project/constants/task.constants";
+import { BACKLOG_LAYOUT, TASK_PRIORITY_LABELS } from "@/features/project/constants/task.constants";
 import { TaskStatusBadge } from "../ui/status-badge";
 import TaskLabelBadges from "../ui/task-label-badges";
 import { Avatar } from "../ui/avatar-stack";
@@ -97,7 +97,7 @@ export default function ProjectTaskRow({
           onTaskClick?.(task);
         }
       }}
-      className="group relative grid min-w-[980px] grid-cols-[minmax(360px,1fr)_120px_110px_72px_72px_96px] items-center border-b border-border bg-card px-4 py-[7px] text-left transition-colors hover:z-20 hover:bg-background focus-within:z-20 focus-visible:bg-info-soft/50 focus-visible:outline-hidden cursor-pointer"
+      className={`group relative grid ${BACKLOG_LAYOUT.minWidth} ${BACKLOG_LAYOUT.columns} items-center border-b border-border bg-card px-4 py-[7px] text-left transition-colors hover:z-20 hover:bg-background focus-within:z-20 focus-visible:bg-info-soft/50 focus-visible:outline-hidden cursor-pointer`}
     >
       <div
         className="flex min-w-0 items-center gap-2"

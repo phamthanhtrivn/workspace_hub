@@ -104,8 +104,8 @@ export default function InviteMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card">
-        <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-border">
+      <DialogContent className="flex max-w-lg flex-col p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card">
+        <DialogHeader className="shrink-0 px-5 pt-5 pb-4 pr-12 text-left border-b border-border">
           <DialogTitle className="text-section-title font-semibold text-foreground">
             Invite Project Member
           </DialogTitle>
@@ -114,7 +114,7 @@ export default function InviteMemberDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           {successMessage && (
             <div className="mb-4 flex gap-2.5 rounded-panel border border-border bg-success-soft px-3.5 py-3 text-xs font-semibold text-success">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
@@ -259,7 +259,7 @@ export default function InviteMemberDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex items-center justify-between gap-3 border-t border-border bg-background px-6 py-4">
+        <DialogFooter className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-5 py-4">
           <p className="text-xs font-semibold text-muted-foreground">
             {pendingInvitations.length === 1
               ? "1 pending invitation"

@@ -169,9 +169,9 @@ export default function ProjectMembersView({
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="min-w-0 space-y-4 pb-4">
       {/* ── 1. Top Summary Metric Cards ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 @min-[640px]/project-detail:grid-cols-3">
         {/* Total Members */}
         <div className="flex items-center gap-4 rounded-panel border border-border bg-card p-4 transition">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-panel bg-info-soft text-info">
@@ -236,10 +236,10 @@ export default function ProjectMembersView({
       </div>
 
       {/* ── 2. Filters & Action Toolbar ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           {/* Tab buttons */}
-          <div className="inline-flex rounded-lg border border-border bg-background p-1">
+          <div className="inline-flex max-w-full flex-wrap gap-y-1 rounded-lg border border-border bg-background p-1">
             <Button
               type="button"
               variant="ghost"
@@ -300,7 +300,7 @@ export default function ProjectMembersView({
 
         {/* Search box */}
         {activeTab !== "PENDING" && (
-          <div className="relative w-full sm:w-72">
+          <div className="relative min-w-0 w-full @min-[800px]/project-detail:w-64">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
@@ -334,7 +334,7 @@ export default function ProjectMembersView({
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left">
+              <table className="w-full min-w-[760px] table-fixed border-collapse text-left [&_td]:break-words">
                 <thead>
                   <tr className="border-b border-border bg-background text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     <th className="px-6 py-3.5">Member</th>
@@ -461,7 +461,7 @@ export default function ProjectMembersView({
                               Owner
                             </span>
                           ) : (
-                            <div className="inline-flex items-center gap-2">
+                            <div className="inline-flex flex-wrap items-center justify-end gap-2">
                               {canManagePermissions && (
                                 <Button
                                   type="button"

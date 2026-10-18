@@ -20,6 +20,7 @@ interface ExplorerToolbarProps {
   onCreateFolder: () => void;
   onUploadFile?: (files: FileList | File[] | File) => void;
   canEditDocuments?: boolean;
+  isProjectDocuments?: boolean;
   sortBy: DocumentSortBy;
   onSortByChange: (sortBy: DocumentSortBy) => void;
 }
@@ -33,6 +34,7 @@ export function ExplorerToolbar({
   onCreateFolder,
   onUploadFile,
   canEditDocuments = true,
+  isProjectDocuments = false,
   sortBy,
   onSortByChange,
 }: ExplorerToolbarProps) {
@@ -57,10 +59,10 @@ export function ExplorerToolbar({
         value={searchQuery}
         onChange={onSearchQueryChange}
         placeholder="Search documents, folders (Ctrl+K)..."
-        className="max-w-md"
+        className={isProjectDocuments ? "w-full min-w-0 max-w-none flex-none @min-[800px]/project-detail:max-w-md @min-[800px]/project-detail:flex-1" : "max-w-md"}
       />
 
-      <div className="flex items-center gap-3">
+      <div className={cn("flex items-center gap-3", isProjectDocuments && "min-w-0 max-w-full flex-wrap")}>
         {/* Sort Select */}
         <DocumentsSelect
           value={sortBy}

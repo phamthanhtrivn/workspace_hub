@@ -56,8 +56,8 @@ export default function SummaryView({
   } = useProjectSummaryMetrics(tasks, members, { isSoftware: false });
 
   return (
-    <div className="w-full space-y-4 pb-8">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+    <div className="min-w-0 w-full space-y-4 pb-4">
+      <div className="grid grid-cols-1 gap-3 @min-[480px]/project-detail:grid-cols-2 @min-[960px]/project-detail:grid-cols-4 @min-[640px]/project-detail:gap-4">
         <ProjectMetricCard
           icon={ListChecks}
           value={rootTasks.length}
@@ -92,12 +92,12 @@ export default function SummaryView({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 @min-[720px]/project-detail:grid-cols-2 @min-[1200px]/project-detail:grid-cols-3">
         <ProjectSummaryPanel
           title="Work Progress"
           description="Overall completion percentage and status breakdown."
         >
-          <div className="flex flex-col items-center gap-5 sm:flex-row">
+          <div className="flex flex-wrap items-center justify-center gap-5">
             <div
               className="grid h-32 w-32 shrink-0 place-items-center rounded-full"
               style={{
@@ -110,7 +110,7 @@ export default function SummaryView({
                 </strong>
               </div>
             </div>
-            <div className="w-full space-y-2">
+            <div className="min-w-0 flex-1 basis-40 space-y-2">
               {statusItems.map((item) => (
                 <div
                   key={item.label}

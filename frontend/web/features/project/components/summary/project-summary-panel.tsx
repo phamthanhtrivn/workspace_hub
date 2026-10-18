@@ -17,11 +17,11 @@ export function ProjectSummaryPanel({
   icon: Icon,
   className = "",
   contentClassName = "",
-  heightClass = "h-[260px]",
+  heightClass = "h-auto @min-[720px]/project-detail:h-[260px]",
 }: ProjectSummaryPanelProps) {
   return (
     <section
-      className={`flex flex-col rounded-panel border border-border bg-card p-5 transition-all duration-200 ${heightClass} ${className}`}
+      className={`flex min-w-0 flex-col rounded-panel border border-border bg-card p-4 transition-all duration-200 @min-[640px]/project-detail:p-5 ${heightClass} ${className}`}
     >
       <div className="flex items-start justify-between gap-3 shrink-0">
         <div>
@@ -32,7 +32,7 @@ export function ProjectSummaryPanel({
           <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
         </div>
       </div>
-      <div className={`mt-4 flex-1 min-h-0 overflow-y-auto pr-1.5 ${contentClassName}`}>
+      <div className={`mt-4 min-h-0 min-w-0 flex-1 overflow-visible @min-[720px]/project-detail:overflow-y-auto @min-[720px]/project-detail:pr-1.5 ${contentClassName}`}>
         {children}
       </div>
     </section>

@@ -114,7 +114,7 @@ export default function TaskCard({
           onClick?.();
         }
       }}
-      className={`group relative w-full overflow-visible rounded-panel border border-border bg-card text-left transition duration-150 hover:z-20 hover:border-input hover:bg-background focus-within:z-20 focus-visible:outline-hidden ${
+      className={`group relative min-w-0 w-full shrink-0 overflow-visible rounded-panel border border-border bg-card text-left transition duration-150 hover:z-20 hover:border-input hover:bg-background focus-within:z-20 focus-visible:outline-hidden ${
         isCompact ? "p-2.5" : "p-3"
       } ${
         isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"
@@ -180,18 +180,18 @@ export default function TaskCard({
 
       {/* Bottom row: Issue Key / Type & Priority / Assignees */}
       <div
-        className={`border-t border-border flex items-center justify-between ${
+        className={`border-t border-border flex flex-wrap items-center justify-between gap-x-2 gap-y-2 ${
           isCompact ? "mt-2 pt-2" : "mt-3 pt-2.5"
         }`}
       >
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium select-none">
+        <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground font-medium select-none [&>svg]:shrink-0">
           {issueIcon}
-          <span className="hover:underline font-semibold text-xs uppercase tracking-wide">
+          <span className="break-all hover:underline font-semibold text-xs uppercase tracking-wide">
             {issueKey}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex max-w-full flex-wrap items-center gap-2">
           <ProjectTaskFocusButton task={task} compact />
           <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
           {onPriorityChange && !isTerminalTaskStatus(task.status) ? (

@@ -418,15 +418,15 @@ export default function CalendarView({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="flex h-full min-h-[560px] flex-col overflow-hidden rounded-panel border border-border bg-card">
-        <div className="relative shrink-0 flex flex-col gap-2 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-center">
-          <div className="sm:absolute sm:left-4">
+      <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-panel border border-border bg-card">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border px-3 py-3">
+          <div className="min-w-0">
             <p className="text-xs font-semibold text-muted-foreground">
               Click any date or drag tasks to schedule.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
             <Button
               type="button"
               variant="ghost"
@@ -438,13 +438,13 @@ export default function CalendarView({
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <Select
                 value={String(selectedMonth)}
                 onValueChange={handleMonthChange}
               >
                 <SelectTrigger
-                  className="h-8 w-36 rounded-control border-input bg-card text-xs font-semibold text-foreground"
+                  className="h-8 w-28 rounded-control border-input bg-card text-xs font-semibold text-foreground"
                   aria-label="Select calendar month"
                 >
                   <SelectValue />
@@ -485,7 +485,7 @@ export default function CalendarView({
                     event.currentTarget.blur();
                   }
                 }}
-                className="h-8 w-24 rounded-control border-input bg-card text-center text-xs font-semibold text-foreground"
+                className="h-8 w-16 rounded-control border-input bg-card text-center text-xs font-semibold text-foreground"
               />
             </div>
 
@@ -512,7 +512,9 @@ export default function CalendarView({
           </div>
         </div>
 
-        <div className="grid shrink-0 grid-cols-7 border-b border-border bg-background">
+        <div className="min-h-0 flex-1 overflow-auto">
+        <div className="min-w-[420px]">
+        <div className="sticky top-0 z-20 grid grid-cols-7 border-b border-border bg-background">
           {WEEKDAYS.map((weekday) => (
             <div
               key={weekday}
@@ -523,7 +525,7 @@ export default function CalendarView({
           ))}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div>
           {Array.from(
             { length: Math.ceil(days.length / 7) },
             (_, weekIndex) => {
@@ -605,6 +607,8 @@ export default function CalendarView({
           canEditTask={canEditTask}
           onTaskClick={onTaskClick}
         />
+        </div>
+        </div>
       </div>
 
       <DragOverlay dropAnimation={null}>

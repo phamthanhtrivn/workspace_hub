@@ -117,8 +117,8 @@ export default function MemberPermissionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isSaving && onClose()}>
-      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
-        <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-border">
+      <DialogContent className="flex max-w-xl flex-col p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
+        <DialogHeader className="shrink-0 px-5 pt-5 pb-4 pr-12 text-left border-b border-border">
           <div className="flex items-center gap-3">
             <Avatar
               user={{
@@ -142,7 +142,7 @@ export default function MemberPermissionsDialog({
           </div>
         </DialogHeader>
 
-        <div className="overflow-y-auto px-6 py-5 max-h-[calc(100dvh-16rem)] space-y-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 space-y-4">
           <section
             aria-labelledby="default-member-rights"
             className="rounded-panel border border-border bg-info-soft/70 p-4"
@@ -274,7 +274,7 @@ export default function MemberPermissionsDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex justify-end gap-2 border-t border-border bg-background px-6 py-4">
+        <DialogFooter className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-border bg-background px-5 py-4">
           <Button
             type="button"
             variant="outline"

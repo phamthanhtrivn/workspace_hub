@@ -44,9 +44,9 @@ export default function TaskChatDialog({
 
   return (
     <Dialog open={Boolean(task)} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
-        <DialogHeader className="px-6 pt-5 pb-4 text-left border-b border-border flex-row items-center justify-between">
-          <div>
+      <DialogContent className="flex max-w-lg flex-col p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
+        <DialogHeader className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-5 pt-5 pb-4 pr-12 text-left border-b border-border">
+          <div className="min-w-0 max-w-full">
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
               <MessageCircle size={15} className="text-info" />
               <span>Task Discussion</span>
@@ -72,7 +72,7 @@ export default function TaskChatDialog({
             </button>
           )}
         </DialogHeader>
-        <div className="overflow-y-auto px-6 py-4 max-h-[calc(100dvh-16rem)]">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
           <TaskCommentsSection
             key={task.id}
             task={task}

@@ -4,9 +4,7 @@ import { Fragment, useMemo, useState } from "react";
 import { type Task } from "@/features/project/types/project";
 import ProjectTaskRow from "../list/project-task-row";
 import TaskInlineCreator from "../list/task-inline-creator";
-
-const BACKLOG_GRID_COLUMNS =
-  "grid-cols-[minmax(360px,1fr)_120px_110px_72px_72px_96px]";
+import { BACKLOG_LAYOUT } from "../../constants/task.constants";
 
 export default function ListView({
   tasks,
@@ -81,10 +79,10 @@ export default function ListView({
   };
 
   return (
-    <div className="flex h-full min-h-[520px] select-none flex-col overflow-hidden rounded-panel border border-border bg-card">
+    <div className="flex h-full min-h-0 min-w-0 select-none flex-col overflow-hidden rounded-panel border border-border bg-card">
       <div className="min-h-0 flex-1 overflow-auto">
         <div
-          className={`sticky top-0 z-10 grid min-w-[980px] ${BACKLOG_GRID_COLUMNS} border-b border-border bg-background px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
+          className={`sticky top-0 z-10 grid ${BACKLOG_LAYOUT.minWidth} ${BACKLOG_LAYOUT.columns} border-b border-border bg-background px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
         >
           <span>Task</span>
           <span className="text-right">Status</span>
@@ -95,7 +93,7 @@ export default function ListView({
         </div>
 
         {rootTasks.length > 0 ? (
-          <div className="min-w-[980px]">
+          <div className={BACKLOG_LAYOUT.minWidth}>
             {rootTasks.map((task) => {
               const children = childrenByParent.get(task.id) || [];
               const isExpanded = !collapsedTaskIds.has(task.id);
@@ -147,7 +145,7 @@ export default function ListView({
             })}
           </div>
         ) : (
-          <div className="flex min-h-[260px] min-w-[980px] items-center justify-center text-xs font-semibold text-muted-foreground">
+          <div className="flex min-h-32 items-center justify-center p-4 text-center text-xs font-semibold text-muted-foreground">
             No tasks found in this project.
           </div>
         )}

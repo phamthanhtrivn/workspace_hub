@@ -123,10 +123,10 @@ export default function TaskFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && handleClose()}>
-      <DialogContent className="max-w-3xl p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
-        <form onSubmit={(event) => void handleSubmit(event)} className="flex flex-col">
-          <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-border sm:px-7">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <DialogContent className="flex max-w-3xl flex-col p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
+        <form onSubmit={(event) => void handleSubmit(event)} className="flex min-h-0 max-h-[inherit] flex-col">
+          <DialogHeader className="shrink-0 px-4 pt-5 pb-4 pr-12 text-left border-b border-border sm:px-7">
+            <p className="truncate text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {projectName ? `Project: ${projectName}` : "Project"}
             </p>
             <DialogTitle className="mt-1 text-section-title font-semibold tracking-tight text-foreground">
@@ -137,7 +137,7 @@ export default function TaskFormDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 px-6 py-6 sm:px-7 max-h-[calc(100dvh-16rem)] overflow-y-auto">
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-5 sm:px-7">
             <section>
               <label className="block">
                 <span className="mb-1.5 block text-xs font-semibold text-foreground">
@@ -191,7 +191,7 @@ export default function TaskFormDialog({
 
           </div>
 
-          <DialogFooter className="flex items-center justify-between border-t border-border bg-background px-6 py-4 sm:px-7">
+          <DialogFooter className="flex shrink-0 flex-wrap items-center justify-between border-t border-border bg-background px-4 py-4 sm:px-7">
             <p className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
               <Clock3 className="h-3.5 w-3.5" />
               You can always edit this task later from the detail drawer.

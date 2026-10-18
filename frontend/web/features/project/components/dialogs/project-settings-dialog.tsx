@@ -95,9 +95,9 @@ export default function ProjectSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isBusy && onClose()}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
-        <form onSubmit={(event) => void handleSubmit(event)} className="flex flex-col">
-          <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-border">
+      <DialogContent className="flex max-w-lg flex-col p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
+        <form onSubmit={(event) => void handleSubmit(event)} className="flex min-h-0 max-h-[inherit] flex-col">
+          <DialogHeader className="shrink-0 px-5 pt-5 pb-4 pr-12 text-left border-b border-border">
             <DialogTitle className="text-section-title font-semibold text-foreground">
               {canEditProject ? "Project Settings" : "Project Labels"}
             </DialogTitle>
@@ -108,7 +108,7 @@ export default function ProjectSettingsDialog({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 px-6 py-5 max-h-[calc(100dvh-16rem)] overflow-y-auto">
+          <div className="min-h-0 flex-1 space-y-4 px-5 py-5 overflow-y-auto">
             <ProjectPreviewCard
               name={name}
               description={description}
@@ -263,7 +263,7 @@ export default function ProjectSettingsDialog({
             ) : null}
           </div>
 
-          <DialogFooter className="flex items-center justify-between gap-2 border-t border-border bg-background px-6 py-4">
+          <DialogFooter className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border bg-background px-5 py-4">
             {canEditProject ? (
               <Button
                 type="button"
