@@ -27,7 +27,7 @@ export function DashboardProductivity({
       <QueryFeedback query={dashboard.focus} label="focus report" />
       {dashboard.focus.isSuccess && (
         <>
-          <p className="mb-5 text-3xl font-medium tracking-tight text-foreground">
+          <p className="mb-5 break-words text-3xl font-medium tracking-tight text-foreground">
             {formatMinutes(
               dashboard.daily.reduce((sum, day) => sum + day.minutes, 0),
             )}
@@ -37,10 +37,10 @@ export function DashboardProductivity({
           </p>
           <ProductivityChart days={dashboard.daily} />
           <details className="mt-3 text-xs text-muted-foreground">
-            <summary className="cursor-pointer">Daily totals</summary>
-            <ul className="mt-2 grid grid-cols-2 gap-2">
+            <summary className="min-h-11 cursor-pointer content-center sm:min-h-6 [@media(pointer:coarse)]:min-h-11">Daily totals</summary>
+            <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {dashboard.daily.map((day) => (
-                <li key={day.date}>
+                <li key={day.date} className="min-w-0 break-words">
                   {day.date}: {formatMinutes(day.minutes)}
                 </li>
               ))}

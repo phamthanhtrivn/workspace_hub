@@ -37,7 +37,7 @@ function MeetingItem({
         </span>
         <Link
           href={`/meetings/${encodeURIComponent(meeting.joinToken)}`}
-          className="flex items-center gap-1 rounded-md bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary"
+          className="flex min-h-11 items-center gap-1 rounded-md bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
         >
           <Video size={13} />
           View meeting

@@ -22,14 +22,14 @@ export function DashboardTasks({
     >
       <QueryFeedback query={personal} label="personal tasks" />
       <QueryFeedback query={project} label="project tasks" />
-      <div className="mb-3 flex gap-1" aria-label="Filter tasks">
+      <div className="mb-3 flex flex-wrap gap-1" aria-label="Filter tasks">
         {(["All", "Overdue", "Today"] as const).map((filter) => (
           <button
             key={filter}
             type="button"
             aria-pressed={filter === taskFilter}
             onClick={() => setTaskFilter(filter)}
-            className={`min-h-9 border-b-2 px-3 py-1.5 text-xs font-medium ${filter === taskFilter ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            className={`min-h-11 border-b-2 px-3 py-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9 [@media(pointer:coarse)]:min-h-11 ${filter === taskFilter ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {filter}
           </button>
@@ -52,7 +52,7 @@ export function DashboardTasks({
               <Link
                 href={task.href}
                 aria-label={`Open ${task.title}`}
-                className="flex items-center gap-3 border-b border-border py-4 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-b border-border py-4 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex"
               >
                 <div className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-foreground">
@@ -65,7 +65,7 @@ export function DashboardTasks({
                   </p>
                 </div>
                 <span
-                  className={`shrink-0 text-xs font-medium sm:text-xs ${bucket === "Overdue" ? "text-destructive" : bucket === "Today" ? "text-primary" : "text-muted-foreground"}`}
+                  className={`col-start-1 row-start-2 shrink-0 text-xs font-medium ${bucket === "Overdue" ? "text-destructive" : bucket === "Today" ? "text-primary" : "text-muted-foreground"}`}
                   title={taskDate(task, zone)}
                 >
                   {bucket === "Upcoming" ? taskDate(task, zone) : bucket}
@@ -73,7 +73,7 @@ export function DashboardTasks({
                 <ArrowUpRight
                   aria-hidden
                   size={16}
-                  className="shrink-0 text-primary"
+                  className="col-start-2 row-span-2 row-start-1 shrink-0 text-primary"
                 />
               </Link>
             </li>
@@ -85,11 +85,11 @@ export function DashboardTasks({
           Showing 6 of {visibleTasks.length} open tasks
         </p>
       )}
-      <div className="mt-4 flex gap-4 border-t border-border pt-3 text-xs font-medium text-primary">
-        <Link href="/calendar" className="hover:underline">
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-border pt-3 text-xs font-medium text-primary">
+        <Link href="/calendar" className="inline-flex min-h-11 items-center hover:underline sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
           Personal tasks
         </Link>
-        <Link href="/projects" className="hover:underline">
+        <Link href="/projects" className="inline-flex min-h-11 items-center hover:underline sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
           Project tasks
         </Link>
       </div>

@@ -20,8 +20,8 @@ export function DashboardPanel({
     <section
       className={`min-w-0 overflow-hidden rounded-lg border border-border ${tone === "focus" ? "bg-primary/5" : "bg-card"}`}
     >
-      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-4">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-border px-4 py-4">
+        <div className="min-w-0 flex-1 basis-40 break-words">
           <h2 className="text-section-title font-semibold text-foreground">{title}</h2>
           {description && (
             <p className="mt-1 text-xs text-muted-foreground">
@@ -32,13 +32,13 @@ export function DashboardPanel({
         {href && (
           <Link
             href={href}
-            className="flex min-h-6 shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-primary"
+            className="flex min-h-11 shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11"
           >
             View all <ArrowUpRight size={14} />
           </Link>
         )}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="min-w-0 p-4">{children}</div>
     </section>
   );
 }
@@ -56,11 +56,11 @@ export function QueryFeedback({
         role="status"
         className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-destructive-soft p-3 text-xs text-destructive"
       >
-        <span>Could not load {label}.</span>
+        <span className="min-w-0 break-words">Could not load {label}.</span>
         <button
           type="button"
           onClick={() => void query.refetch()}
-          className="flex items-center gap-1 rounded px-2 py-1 font-semibold hover:bg-destructive-soft"
+          className="flex min-h-11 shrink-0 items-center gap-1 rounded px-2 py-1 font-semibold hover:bg-destructive-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
         >
           <RefreshCw size={13} /> Retry
         </button>
@@ -81,5 +81,5 @@ export function QueryFeedback({
 }
 
 export function EmptyState({ children }: { children: ReactNode }) {
-  return <p className="py-6 text-center text-sm text-muted-foreground">{children}</p>;
+  return <p className="break-words py-6 text-center text-sm text-muted-foreground">{children}</p>;
 }

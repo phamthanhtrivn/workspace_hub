@@ -64,10 +64,10 @@ export function DashboardProjectActivity({
             <span className="font-semibold text-foreground">{total}</span>{" "}
             tasks completed
           </p>
-          <div className="flex gap-2">
+          <div className="flex min-w-0 gap-2">
             <div
               aria-hidden
-              className="grid h-32 grid-rows-7 items-center text-xs text-muted-foreground"
+              className="grid h-32 shrink-0 grid-rows-7 items-center text-xs text-muted-foreground"
             >
               <span />
               <span>Mon</span>
@@ -78,7 +78,7 @@ export function DashboardProjectActivity({
               <span />
             </div>
             <div
-              className="grid h-32 w-56 max-w-full grid-flow-col grid-cols-12 grid-rows-7 gap-1"
+              className="grid h-32 min-w-0 w-56 max-w-full grid-flow-col grid-cols-12 grid-rows-7 gap-1"
               aria-label="Daily completed tasks"
             >
               {days.map((day) => (

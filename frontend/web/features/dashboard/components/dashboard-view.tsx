@@ -126,16 +126,16 @@ function PersonalDashboard() {
     },
   ];
   return (
-    <div className="min-h-full bg-background text-foreground">
-      <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-full min-w-0 w-full bg-background text-foreground">
+      <div className="min-w-0 w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <header className="flex flex-wrap items-end justify-between gap-5">
-          <div className="flex min-w-0 items-center gap-4 sm:gap-6">
+          <div className="flex min-w-0 max-w-full items-center gap-4 sm:gap-6">
             <DashboardSun now={now} zone={zone} />
             <div className="min-w-0">
-              <p className="mb-2 text-xs text-muted-foreground">
+              <p className="mb-2 break-words text-xs text-muted-foreground">
                 {greeting}, {auth.fullName?.split(" ")[0] || "there"}
               </p>
-              <h1 className="font-sans text-page-title font-semibold tracking-tight">
+              <h1 className="break-words font-sans text-page-title font-semibold tracking-tight">
                 {now
                   ? new Intl.DateTimeFormat("en", {
                       timeZone: zone,
@@ -153,7 +153,7 @@ function PersonalDashboard() {
           </div>
           <DashboardQuickActions />
         </header>
-        <div className="grid grid-cols-2 border-y border-border xl:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-1 border-y border-border sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => (
             <Link
               key={stat.label}
@@ -164,13 +164,13 @@ function PersonalDashboard() {
                 if (stat.label === "Due today")
                   dashboard.setTaskFilter("Today");
               }}
-              className={`min-w-0 border-b border-border px-3 py-4 transition-colors hover:bg-muted sm:px-5 xl:border-b-0 [&:nth-child(even)]:border-l xl:[&:not(:first-child)]:border-l ${stat.theme}`}
+              className={`min-w-0 border-border px-3 py-4 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&:not(:last-child)]:border-b sm:px-5 sm:[&:nth-child(even)]:border-l sm:[&:nth-last-child(-n+2)]:border-b-0 xl:[&:not(:last-child)]:border-b-0 xl:[&:not(:first-child)]:border-l ${stat.theme}`}
             >
               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <span>{stat.label}</span>
                 <stat.icon size={13} />
               </div>
-              <p className="mt-2 truncate text-3xl font-medium tracking-tight tabular-nums">
+              <p className="mt-2 break-words text-3xl font-medium tracking-tight tabular-nums">
                 {stat.value}
               </p>
               <p className="mt-1 truncate text-xs text-muted-foreground">
@@ -179,8 +179,8 @@ function PersonalDashboard() {
             </Link>
           ))}
         </div>
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] lg:gap-10">
-          <div className="space-y-6">
+        <div className="grid min-w-0 grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] xl:gap-10">
+          <div className="min-w-0 space-y-6">
             <DashboardPanel
               title="My day"
               href="/calendar"
@@ -220,7 +220,7 @@ function PersonalDashboard() {
                           <CalendarDays size={15} />
                         )}
                       </span>
-                      <span className="min-w-0">
+                      <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-foreground">
                           {item.title}
                         </span>
@@ -238,7 +238,7 @@ function PersonalDashboard() {
               <DashboardTasks dashboard={dashboard} />
             </div>
           </div>
-          <div className="space-y-8 lg:border-l lg:border-border lg:pl-8">
+          <div className="min-w-0 space-y-8 xl:border-l xl:border-border xl:pl-8">
             <DashboardProductivity dashboard={dashboard} />
             <DashboardFocus
               query={focus}
@@ -260,9 +260,9 @@ export function DashboardView() {
       <div
         role="status"
         aria-label="Loading your dashboard"
-        className="space-y-5"
+        className="min-w-0 w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8"
       >
-        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-10 w-64 max-w-full" />
         <Skeleton className="h-28 w-full" />
         <Skeleton className="h-96 w-full" />
       </div>

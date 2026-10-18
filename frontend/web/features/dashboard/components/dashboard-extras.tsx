@@ -46,7 +46,7 @@ export function DashboardExtras({
         {extras.projects.isSuccess && !projects.length && (
           <EmptyState>No active projects yet.</EmptyState>
         )}
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-3">
           {projects.map((project, index) => {
             const query = extras.counts[index];
             const counts = query?.data;
@@ -65,7 +65,7 @@ export function DashboardExtras({
               >
                 <Link
                   href={`/projects/${encodeURIComponent(project.id)}`}
-                  className="flex min-w-0 items-center gap-3 text-sm font-semibold text-foreground hover:text-primary"
+                  className="flex min-h-11 min-w-0 items-center gap-3 text-sm font-semibold text-foreground hover:text-primary sm:min-h-10 [@media(pointer:coarse)]:min-h-11"
                 >
                   <span
                     aria-hidden
@@ -91,7 +91,7 @@ export function DashboardExtras({
                 )}
                 {counts && (
                   <>
-                    <div className="mt-4 flex justify-between text-xs text-muted-foreground">
+                    <div className="mt-4 flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground">
                       <span>
                         {counts.DONE} / {total} tasks completed
                       </span>
@@ -125,7 +125,7 @@ export function DashboardExtras({
           })}
         </div>
       </DashboardPanel>
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-2">
         <DashboardPanel
           title="Recent activity"
           description="Your latest notifications"
