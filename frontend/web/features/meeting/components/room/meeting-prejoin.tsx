@@ -72,27 +72,27 @@ export function MeetingPreJoin({
 
   return (
     <DialogSurface onClose={onCancel} aria-label="Meeting device preview">
-      <div className="fixed inset-0 z-[100] flex h-dvh min-h-0 flex-col overflow-y-auto bg-card text-foreground">
-        <header className="flex shrink-0 items-center justify-between border-b border-border/10 px-4 py-3 sm:px-6">
+      <div className="fixed inset-0 z-[100] flex h-dvh min-h-0 flex-col overflow-y-auto bg-background text-foreground">
+        <header className="flex shrink-0 items-center justify-between border-b border-border bg-card px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-info-content">
+            <h2 className="text-section-title font-semibold text-foreground">
               Instant meeting
-            </p>
-            <h2 className="truncate text-section-title font-semibold sm:text-section-title">
-              Check your audio and video
             </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Check your audio and video
+            </p>
           </div>
 
           <MeetingIconButton
             label="Close"
             icon={X}
             onClick={onCancel}
-            className="bg-accent text-muted-foreground hover:bg-accent"
+            className="text-muted-foreground hover:bg-accent hover:text-foreground"
           />
         </header>
 
         <main className="grid min-h-0 flex-1 gap-5 px-4 py-5 lg:grid-cols-[minmax(0,1fr)_390px] lg:px-6">
-          <section className="flex min-h-[min(240px,40dvh)] flex-col overflow-hidden rounded-lg border border-border bg-overlay">
+          <section className="flex min-h-[min(240px,40dvh)] flex-col overflow-hidden rounded-panel border border-border bg-media-background">
             <div className="relative min-h-0 flex-1 bg-media-background text-media-foreground">
               {settings.cameraEnabled && previewStream ? (
                 <video
@@ -103,8 +103,8 @@ export function MeetingPreJoin({
                   className="h-full min-h-[min(240px,40dvh)] w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full min-h-[min(240px,40dvh)] flex-col items-center justify-center gap-4 bg-[radial-gradient(circle_at_top,var(--media-background),transparent_34%),var(--media-background)] px-6 text-center">
-                  <span className="grid h-20 w-20 place-items-center rounded-full bg-accent text-muted-foreground ring-1 ring-border/12">
+                <div className="flex h-full min-h-[min(240px,40dvh)] flex-col items-center justify-center gap-4 bg-media-background px-6 text-center">
+                  <span className="grid h-20 w-20 place-items-center rounded-full bg-media-surface text-media-foreground">
                     {isPreviewLoading ? (
                       <Loader2 className="h-8 w-8 animate-spin" />
                     ) : settings.cameraEnabled ? (
@@ -119,7 +119,7 @@ export function MeetingPreJoin({
                         ? "Preparing your preview"
                         : "Camera is off"}
                     </p>
-                    <p className="mt-1 max-w-sm text-sm font-semibold leading-6 text-media-foreground">
+                    <p className="mt-1 max-w-sm text-sm leading-6 text-media-foreground/80">
                       {permissionError ??
                         "Turn on your camera or microphone to test your setup before joining."}
                     </p>
@@ -127,7 +127,7 @@ export function MeetingPreJoin({
                 </div>
               )}
 
-              <div className="absolute left-4 top-4 rounded-md bg-overlay/90 px-3 py-1.5 text-xs font-semibold text-media-foreground">
+              <div className="absolute left-4 top-4 rounded-control bg-media-surface/90 px-3 py-1.5 text-xs font-medium text-media-foreground">
                 Local preview
               </div>
             </div>
@@ -136,6 +136,7 @@ export function MeetingPreJoin({
               <MeetingButton
                 type="button"
                 tone={settings.microphoneEnabled ? "secondary" : "danger"}
+                aria-pressed={settings.microphoneEnabled}
                 controlSize="lg"
                 onClick={() =>
                   updateSettings({ microphoneEnabled: !settings.microphoneEnabled })
@@ -153,6 +154,7 @@ export function MeetingPreJoin({
               <MeetingButton
                 type="button"
                 tone={settings.cameraEnabled ? "secondary" : "danger"}
+                aria-pressed={settings.cameraEnabled}
                 controlSize="lg"
                 onClick={() =>
                   updateSettings({ cameraEnabled: !settings.cameraEnabled })
@@ -169,12 +171,12 @@ export function MeetingPreJoin({
             </div>
           </section>
 
-          <aside className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 text-foreground">
+          <aside className="flex flex-col gap-4 rounded-panel border border-border bg-card p-4 text-card-foreground">
             <div>
               <h3 className="text-section-title font-semibold">
                 Ready to start?
               </h3>
-              <p className="mt-1 text-sm font-semibold leading-6 text-muted-foreground">
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
                 Choose your devices and room settings before entering.
               </p>
             </div>

@@ -82,7 +82,7 @@ export function MeetingJoinLinkModal({
             </DialogTitle>
             <DialogDescription
               id="meeting-join-link-modal-description"
-              className="mt-1 text-sm font-semibold leading-6 text-muted-foreground"
+              className="mt-1 text-sm leading-6 text-muted-foreground"
             >
               Paste a meeting link or join token to open it in a new tab.
             </DialogDescription>
@@ -101,16 +101,16 @@ export function MeetingJoinLinkModal({
         <form onSubmit={handleSubmit} className="px-5 py-5">
           <label
             htmlFor="meeting-join-link"
-            className="text-xs font-semibold uppercase text-muted-foreground"
+            className="text-sm font-medium text-foreground"
           >
             Meeting link
           </label>
           <div
             className={cn(
-              "mt-2 flex min-w-0 items-center gap-2 rounded-lg border bg-background px-3 py-2.5 transition focus-within:bg-card focus-within:ring-2",
+              "mt-2 flex min-w-0 items-center gap-2 rounded-control border bg-card px-3 py-2.5 transition-colors duration-150 focus-within:ring-2",
               error
                 ? "border-destructive-outline focus-within:ring-ring"
-                : "border-border focus-within:border-primary focus-within:ring-ring",
+                : "border-input focus-within:border-ring focus-within:ring-ring",
             )}
           >
             <LinkIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -124,7 +124,7 @@ export function MeetingJoinLinkModal({
                 if (error) setError(null);
               }}
               placeholder="https://workspacehub.app/meetings/..."
-              className="h-auto min-w-0 flex-1 border-0 bg-transparent px-0 py-0 text-sm font-semibold text-foreground shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0"
+              className="h-auto min-w-0 flex-1 border-0 bg-transparent px-0 py-0 text-sm font-normal text-foreground shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0"
             />
           </div>
           {error ? (

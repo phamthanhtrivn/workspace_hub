@@ -31,7 +31,7 @@ export function MeetingPagination({
 
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-xs font-semibold text-muted-foreground">
+      <span className="text-xs tabular-nums text-muted-foreground">
         Showing {start}-{end} of {total}
       </span>
 
@@ -55,10 +55,10 @@ export function MeetingPagination({
               type="button"
               onClick={() => onPageChange(pageNumber)}
               className={cn(
-                "h-9 min-w-9 cursor-pointer rounded-control px-3 text-xs font-semibold transition",
+                "h-9 min-w-9 cursor-pointer rounded-control px-3 text-xs font-medium tabular-nums transition-colors duration-150",
                 pageNumber === safePage
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border bg-card text-muted-foreground hover:bg-background",
+                  ? "bg-primary-soft text-primary-soft-foreground"
+                  : "border border-input bg-card text-foreground hover:bg-accent",
               )}
               aria-current={pageNumber === safePage ? "page" : undefined}
             >
@@ -67,7 +67,7 @@ export function MeetingPagination({
           ) : (
             <span
               key={pageNumber}
-              className="grid h-9 min-w-9 place-items-center px-1 text-xs font-semibold text-muted-foreground"
+              className="grid h-9 min-w-9 place-items-center px-1 text-xs tabular-nums text-muted-foreground"
               aria-hidden="true"
             >
               ...

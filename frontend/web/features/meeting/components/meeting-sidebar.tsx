@@ -44,7 +44,7 @@ export function MeetingSidebar({
               disabled={!isEnabled}
               onClick={() => onItemSelect(item.id)}
               className={cn(
-                "cursor-pointer flex h-12 shrink-0 items-center gap-3 rounded-md px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "cursor-pointer flex h-12 shrink-0 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
                 isActive
                   ? "bg-primary-soft text-primary-soft-foreground"
                   : "text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-70",
@@ -53,11 +53,11 @@ export function MeetingSidebar({
             >
               <span
                 className={cn(
-                  "grid h-8 w-8 shrink-0 place-items-center rounded-md",
-                  isActive ? "bg-transparent" : "bg-background text-muted-foreground",
+                  "grid h-8 w-8 shrink-0 place-items-center",
+                  isActive ? "text-primary-soft-foreground" : "text-muted-foreground",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4" aria-hidden />
               </span>
               <span className="whitespace-nowrap">
                 {item.label}

@@ -4,10 +4,10 @@ import type { MeetingStatus } from "../../types/meeting.types";
 import { getMeetingStatusLabel } from "../../utils/meeting-labels.utils";
 
 const statusClassName: Record<MeetingStatus, string> = {
-  SCHEDULED: "border-border bg-info-soft text-info-content",
-  LIVE: "border-border bg-success-soft text-success-content",
-  ENDED: "border-border bg-muted text-foreground",
-  CANCELLED: "border-border bg-destructive-soft text-destructive-content",
+  SCHEDULED: "bg-info-soft text-info-content",
+  LIVE: "bg-success-soft text-success-content",
+  ENDED: "bg-muted text-muted-foreground",
+  CANCELLED: "bg-destructive-soft text-destructive-content",
 };
 
 export function MeetingStatusBadge({
@@ -20,8 +20,9 @@ export function MeetingStatusBadge({
   return (
     <Badge
       variant="outline"
-      className={cn("rounded-md px-2.5 py-1 text-xs font-semibold", statusClassName[status], className)}
+      className={cn("gap-1.5 rounded-md border-transparent px-2.5 py-1 text-xs font-medium", statusClassName[status], className)}
     >
+      {status === "LIVE" ? <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" /> : null}
       {getMeetingStatusLabel(status)}
     </Badge>
   );

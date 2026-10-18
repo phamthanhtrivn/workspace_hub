@@ -29,38 +29,23 @@ export function MeetingToggle({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 rounded-lg p-3 transition",
+        "flex items-center justify-between gap-3 rounded-control p-3 transition-colors duration-150",
         isDark
-          ? "bg-muted ring-1 ring-border/8 hover:bg-muted"
-          : "border border-border bg-background hover:border-border hover:bg-info-soft/70",
+          ? "bg-muted"
+          : "border border-border bg-background",
         disabled && "opacity-70",
         className,
       )}
     >
       <div className="flex min-w-0 items-start gap-3">
-        <span
-          className={cn(
-            "grid size-9 shrink-0 place-items-center rounded-md",
-            isDark ? "bg-card text-info-content" : "bg-card text-info-content",
-          )}
-        >
-          <Icon className="size-4" />
+        <span className="grid size-9 shrink-0 place-items-center rounded-control bg-secondary text-secondary-foreground">
+          <Icon className="size-4" aria-hidden />
         </span>
         <span className="min-w-0">
-          <span
-            className={cn(
-              "block text-sm font-semibold",
-              isDark ? "text-muted-foreground" : "text-foreground",
-            )}
-          >
+          <span className="block text-sm font-semibold text-foreground">
             {title}
           </span>
-          <span
-            className={cn(
-              "mt-0.5 block text-xs font-semibold leading-5",
-              isDark ? "text-muted-foreground" : "text-muted-foreground",
-            )}
-          >
+          <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
             {description}
           </span>
         </span>
@@ -68,6 +53,7 @@ export function MeetingToggle({
       <Switch
         checked={checked}
         disabled={disabled}
+        aria-label={title}
         onCheckedChange={onCheckedChange}
       />
     </div>

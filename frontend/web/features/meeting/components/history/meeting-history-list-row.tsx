@@ -15,10 +15,10 @@ interface MeetingHistoryListRowProps {
 
 export function MeetingHistoryListRow({ meeting }: MeetingHistoryListRowProps) {
   return (
-    <article className="grid gap-4 rounded-lg border border-border bg-card p-4 @min-[760px]/meeting-content:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.8fr)_7rem] sm:items-center">
+    <article className="grid min-w-0 gap-4 rounded-panel border border-border bg-card p-4 text-card-foreground @min-[760px]/meeting-content:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.8fr)_7rem] sm:items-center">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary-soft text-info-content">
-          <CalendarClock className="h-5 w-5" />
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-control bg-secondary text-secondary-foreground">
+          <CalendarClock className="h-5 w-5" aria-hidden />
         </span>
         <div className="min-w-0">
           <h3 className="truncate text-sm font-semibold text-foreground">
@@ -32,10 +32,10 @@ export function MeetingHistoryListRow({ meeting }: MeetingHistoryListRowProps) {
         </div>
       </div>
 
-      <div className="grid gap-2 text-xs font-semibold text-muted-foreground">
+      <div className="grid gap-2 text-xs tabular-nums text-muted-foreground">
         <span>{formatMeetingHistoryStartTime(meeting.startedAt)}</span>
         <span className="flex items-center gap-2">
-          <UsersRound className="h-4 w-4 text-info-content" />
+          <UsersRound className="h-4 w-4" aria-hidden />
           {meeting.participantCount}{" "}
           {meeting.participantCount === 1 ? "participant" : "participants"}
         </span>

@@ -41,12 +41,12 @@ export function MeetingRoomControlButton({
       disabled={disabled}
       aria-pressed={danger ? undefined : active}
       className={cn(
-        "cursor-pointer relative flex h-12 w-14 sm:h-[68px] sm:w-[76px] shrink-0 flex-col items-center justify-center gap-1.5 overflow-visible rounded-control text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+        "cursor-pointer relative flex h-12 w-14 sm:h-[68px] sm:w-[76px] shrink-0 flex-col items-center justify-center gap-1.5 overflow-visible rounded-control text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
         danger
           ? "bg-destructive text-destructive-foreground hover:bg-destructive"
           : active
-            ? "bg-card text-foreground"
-            : "bg-accent text-muted-foreground ring-1 ring-border/10 hover:bg-accent",
+            ? "bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft"
+            : "bg-secondary text-secondary-foreground hover:bg-accent",
       )}
     >
       {shouldShowBadge ? (

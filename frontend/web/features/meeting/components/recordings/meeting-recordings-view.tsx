@@ -64,7 +64,7 @@ export function MeetingRecordingsView() {
     <section aria-label="Meeting recordings" className="space-y-5">
       <div>
         <h1 className="text-page-title font-semibold">Recordings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1 text-sm tabular-nums text-muted-foreground">
           Your recordings and videos shared with you.
         </p>
       </div>
@@ -84,7 +84,7 @@ export function MeetingRecordingsView() {
         />
         <NativeSelect unstyled
           aria-label="Recording access filter"
-          className="h-10 rounded-md border bg-card px-3 text-sm"
+          className="h-10 cursor-pointer rounded-control border border-input bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={params.scope}
           onChange={(event) =>
             setParams((current) => ({
@@ -105,14 +105,14 @@ export function MeetingRecordingsView() {
       {query.isLoading ? (
         <p className="py-12 text-center">Loading recordings…</p>
       ) : query.isError ? (
-        <div role="alert" className="rounded-lg border bg-card p-6">
+        <div role="alert" className="rounded-panel border border-border bg-card p-6 text-card-foreground">
           <p>Could not load recordings.</p>
           <MeetingButton className="mt-3" onClick={refresh}>
             Try again
           </MeetingButton>
         </div>
       ) : !query.data?.items.length ? (
-        <div className="rounded-lg border bg-card px-6 py-12 text-center">
+        <div className="rounded-panel border border-border bg-card px-6 py-12 text-center text-card-foreground">
           <Radio className="mx-auto mb-3 size-8 text-muted-foreground" />
           <p className="font-semibold">No recordings yet</p>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -120,15 +120,15 @@ export function MeetingRecordingsView() {
           </p>
         </div>
       ) : (
-        <div className="divide-y rounded-lg border bg-card">
+        <div className="divide-y divide-border rounded-panel border border-border bg-card text-card-foreground">
           {query.data.items.map((recording) => (
             <article
               key={recording.id}
               className="flex flex-wrap items-center justify-between gap-4 p-5"
             >
               <div className="min-w-0 flex-1">
-                <h2 className="truncate font-semibold">{recording.title}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
+                <h2 className="line-clamp-2 break-words font-semibold leading-6">{recording.title}</h2>
+                <p className="mt-1 text-sm tabular-nums text-muted-foreground">
                   {new Date(recording.requestedAt).toLocaleString()} ·{" "}
                   {recording.status === "RECORDING"
                     ? "Recording"

@@ -22,15 +22,15 @@ type MeetingButtonTone =
 
 const meetingButtonToneClass: Record<MeetingButtonTone, string> = {
   primary:
-    "bg-primary text-primary-foreground hover:text-primary-foreground hover:bg-primary",
+    "bg-primary text-primary-foreground hover:text-primary-foreground hover:bg-primary-hover",
   secondary:
     "bg-muted text-foreground hover:text-foreground hover:bg-accent",
   outline:
-    "border border-border bg-card text-muted-foreground hover:border-border hover:bg-info-soft hover:text-info-content",
+    "border border-input bg-card text-foreground hover:bg-accent hover:text-accent-foreground",
   ghost:
     "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
   danger:
-    "border border-destructive-outline bg-destructive-soft text-destructive-content hover:border-destructive-outline hover:bg-destructive-soft hover:text-destructive-content transition-all duration-150",
+    "border border-destructive-outline bg-destructive-soft text-destructive-content hover:border-destructive-content hover:bg-destructive-soft hover:text-destructive-content",
 };
 
 const meetingButtonSizeClass: Record<MeetingControlSize, string> = {
@@ -55,7 +55,7 @@ export function MeetingButton({
     <Button
       variant="ghost"
       className={cn(
-        "cursor-pointer font-semibold transition duration-200 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60",
+        "cursor-pointer font-semibold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60",
         meetingButtonToneClass[tone],
         meetingButtonSizeClass[controlSize],
         className,
@@ -83,7 +83,7 @@ export function MeetingInput({
       <Input
         aria-invalid={invalid || undefined}
         className={cn(
-          "h-10 rounded-control border-input bg-card text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-ring",
+          "h-10 rounded-control border-input bg-card text-sm font-normal text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring",
           invalid && "border-destructive-outline focus-visible:ring-ring",
           className,
         )}
@@ -95,7 +95,7 @@ export function MeetingInput({
   return (
     <span
       className={cn(
-        "flex h-10 min-w-0 items-center gap-2 rounded-control border border-input bg-card px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-ring",
+        "flex h-10 min-w-0 items-center gap-2 rounded-control border border-input bg-card px-3 transition-colors duration-150 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring",
         invalid && "border-destructive-outline focus-within:ring-ring",
         containerClassName,
       )}
@@ -104,7 +104,7 @@ export function MeetingInput({
       <Input
         aria-invalid={invalid || undefined}
         className={cn(
-          "h-auto min-w-0 flex-1 border-0 bg-transparent px-0 py-0 font-semibold shadow-none focus-visible:ring-0",
+          "h-auto min-w-0 flex-1 border-0 bg-transparent px-0 py-0 font-normal shadow-none focus-visible:ring-0",
           className,
         )}
         {...props}
@@ -126,7 +126,7 @@ export function MeetingTextarea({
     <Textarea
       aria-invalid={invalid || undefined}
       className={cn(
-        "min-h-24 rounded-control border-input bg-card text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-ring",
+        "min-h-24 rounded-control border-input bg-card text-sm font-normal text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring",
         invalid && "border-destructive-outline focus-visible:ring-ring",
         className,
       )}
@@ -136,6 +136,7 @@ export function MeetingTextarea({
 }
 
 interface MeetingSelectProps<TValue extends string = string> {
+  id?: string;
   value: TValue;
   options: CustomSelectOption<TValue>[];
   onChange: (value: TValue) => void;
@@ -156,7 +157,7 @@ export function MeetingSelect<TValue extends string = string>({
   return (
     <CustomSelect
       triggerClassName={cn(
-        "h-10 rounded-control border-input bg-card text-sm font-semibold text-foreground hover:border-input hover:bg-info-soft data-[state=open]:border-primary data-[state=open]:ring-primary/15",
+        "h-10 rounded-control border-input bg-card text-sm font-normal text-foreground hover:bg-accent data-[state=open]:border-ring data-[state=open]:ring-ring",
         triggerClassName,
       )}
       contentClassName={cn("rounded-control border-border", contentClassName)}

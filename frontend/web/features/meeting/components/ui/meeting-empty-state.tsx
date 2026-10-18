@@ -28,10 +28,10 @@ export function MeetingEmptyState({
       )}
     >
       <span className="text-muted-foreground">
-        <Icon className="size-5" />
+        <Icon className="size-6" aria-hidden />
       </span>
       <h3 className="mt-4 text-base font-semibold text-foreground">{title}</h3>
-      <p className="mt-1 max-w-sm text-sm font-semibold leading-6 text-muted-foreground">
+      <p className="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
         {description}
       </p>
       {actionLabel && onAction ? (

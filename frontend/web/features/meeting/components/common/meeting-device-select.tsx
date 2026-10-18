@@ -38,23 +38,24 @@ export function MeetingDeviceSelect({
   return (
     <div
       className={cn(
-        "group flex h-[68px] min-w-0 items-center gap-3 rounded-lg border border-border bg-card px-3 transition hover:border-input hover:bg-background focus-within:border-primary focus-within:bg-card focus-within:ring-4 focus-within:ring-ring",
+        "group flex h-[68px] min-w-0 items-center gap-3 rounded-control border border-input bg-card px-3 transition-colors duration-150 hover:bg-accent focus-within:border-ring focus-within:ring-2 focus-within:ring-ring",
         isDisabled && "cursor-not-allowed bg-background opacity-70 hover:bg-background",
       )}
     >
       <span
         className={cn(
-          "grid h-10 w-10 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground transition group-focus-within:bg-info-soft group-focus-within:text-info-content",
+          "grid h-10 w-10 shrink-0 place-items-center rounded-control bg-secondary text-secondary-foreground",
           isDisabled && "text-muted-foreground",
         )}
       >
         <Icon className="h-4 w-4" />
       </span>
       <span className="relative min-w-0 flex-1 pr-7">
-        <span className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="block text-xs font-medium text-muted-foreground">
           {label}
         </span>
         <MeetingSelect
+          id={id}
           value={value}
           options={options}
           disabled={isDisabled}
@@ -62,7 +63,7 @@ export function MeetingDeviceSelect({
           ariaLabel={label}
           placeholder={displayLabel}
           triggerClassName={cn(
-            "mt-1 h-5 border-0 bg-transparent px-0 py-0 text-sm font-semibold shadow-none hover:bg-transparent focus:ring-0 data-[state=open]:ring-0 [&>svg]:right-0",
+            "mt-1 h-5 border-0 bg-transparent px-0 py-0 text-sm font-normal shadow-none hover:bg-transparent focus:ring-0 data-[state=open]:ring-0 [&>svg]:right-0",
             isDisabled && "text-muted-foreground",
           )}
         />

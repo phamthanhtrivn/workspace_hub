@@ -4,6 +4,77 @@ Updated 2026-10-18. This records the approved targeted simplification. Inter, wo
 
 The original inventory contains **417 TSX files** across **687 source files**. Every TSX file is listed below: **328 change**, **70 keep**, and **19 functional/content exception**. An exception may include changes to surrounding interface styling. Shared focus logic is listed separately. The added tests, temporary scripts, Playwright setup, and generated test reports were subsequently removed at the user's request; the verification results below are historical.
 
+<!-- meeting-overview-content:start -->
+## Meetings Overview: next and recent meetings — 2026-10-18
+
+Implements the approved two-section Overview plan beneath the existing four actions.
+The first of three upcoming meetings reuses UpcomingMeetingCard and its existing
+Start/Join, Calendar event, Edit, Copy and Cancel permission checks. The next two
+remain informational rows in API order. View all opens Upcoming; Schedule opens
+the existing modal. Four recent meetings use the existing history title helper,
+status badge, avatar stack and copy-token control; View history opens Previous.
+
+The content grid uses a 3:2 split at 900px of the meeting-content container and
+stacks below it, without fixed panel heights or internal scroll regions. Existing
+neutral/navy theme tokens, sidebar and primary actions remain in place. No recording
+section or room UI changes are part of this pass.
+
+The history hook accepts an optional limit (default remains nine). Overview uses
+three upcoming/four recent records and disables its queries outside Overview or
+while prejoin/creation overlays are open. The global QueryProvider disables window
+focus refetch; optional hook settings enable it only for Overview. Existing socket
+status/start, end, participant, host-transfer and reconnect callbacks invalidate
+upcoming/history query roots, including the existing history summary. No new API,
+backend behavior, polling timer, global query default or permission rule is added.
+
+The existing 30-second clock drives relative labels. Live comes only from server
+status; reaching the scheduled time displays Awaiting start. Each section has
+separate pending/error/Retry/empty feedback. Cached rows survive refresh errors;
+unknown counts do not become zero. Names and avatar colors remain user data.
+
+Verification: ESLint on the eight feature files passed with zero errors/warnings;
+TypeScript passed; nine focused in-memory time-label cases passed; one targeted
+Impeccable detector pass exited successfully. No test/script files, dependency or
+cache configuration were added. Browser inventory remains empty, so the requested
+375px/768px/desktop light/dark visual checks and live Start/Join, Schedule/Edit,
+Copy, focus refetch and socket interaction checks remain unperformed. Routing,
+permission reuse, query gating and cached-content branches were inspected in source.
+<!-- meeting-overview-content:end -->
+
+<!-- meeting-visual-polish:start -->
+## Meetings visual refinement — 2026-10-18
+
+Preserves the current Meetings frame, sidebar, four-action grid, tabs, breakpoints,
+dialogs, room controls and media layout. Refinement follows the existing neutral
+light/charcoal dark tokens and navy primary action; no global theme values change.
+The Google Meet homepage's start/join emphasis and Fluent 2's neutral surface and
+card hierarchy guidance informed this pass:
+https://support.google.com/meet/answer/17302648,
+https://fluent2.microsoft.design/color,
+https://fluent2.microsoft.design/components/web/react/core/card/usage/.
+
+- Overview actions keep one navy primary; secondary icons use neutral surfaces.
+  Selected navigation and pagination use the existing soft-selection pair.
+- History/upcoming cards use consistent panel corners, readable title/date
+  hierarchy and quieter metadata. History removes its decorative blue stripe and
+  nested bordered footer; state badges compose the existing shared Badge adapter.
+- Recordings, device fields, the join dialog, empty/loading states and button
+  wrappers share the same neutral borders, corner scale and restrained hover/focus
+  treatments. Device IDs reach the existing shared select trigger.
+- Prejoin retains its full-screen preview/settings columns, while media placeholders
+  use fixed neutral media tokens in both themes. Mic/camera-off remains soft red;
+  room active states use the paired soft-selection tokens and Leave stays solid red.
+- All API calls, permissions, callbacks, queries, meeting/recording state and
+  user/media content remain unchanged. No tool, dependency or test/script file added.
+
+Verification scope: focused ESLint for the 19 changed TSX files, TypeScript and
+one Impeccable detector pass; 28 contrast calculations across light/dark text,
+status, selection, focus/input and media pairs passed. No browser is connected
+(`apps: [], browsers: []`), so desktop/mobile screenshots, live media/meeting
+interactions and visual verification in both themes remain unperformed. Computed
+token contrast is not a substitute for those browser checks.
+<!-- meeting-visual-polish:end -->
+
 <!-- seo-metadata:start -->
 ## Page metadata and indexing — 2026-10-18
 
