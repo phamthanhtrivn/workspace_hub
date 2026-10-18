@@ -4,6 +4,46 @@ Updated 2026-10-18. This records the approved targeted simplification. Inter, wo
 
 The original inventory contains **417 TSX files** across **687 source files**. Every TSX file is listed below: **328 change**, **70 keep**, and **19 functional/content exception**. An exception may include changes to surrounding interface styling. Shared focus logic is listed separately. The added tests, temporary scripts, Playwright setup, and generated test reports were subsequently removed at the user's request; the verification results below are historical.
 
+<!-- dashboard-activity-calendar:start -->
+## Task activity: GitHub-style six-month calendar — 2026-10-18
+
+Replaces the earlier enlarged 12-week heatmap with the approved rolling six-calendar-
+month range, inclusive of the start and today in the configured user timezone.
+The pure activity helper constrains invalid month days, groups existing completion
+timestamps by local date, adds Sunday/Saturday padding and computes real totals,
+active days and month column positions. Padding never contributes counts, tooltips
+or Daily totals entries. Crowded initial partial-month labels are omitted when the
+next month starts within two week columns; the full date range remains visible.
+
+The owned calendar component keeps 12px square cells, 3px spacing and 2px corners,
+with month headings and Mon/Wed/Fri aligned to the same grid. A CSS module scopes
+the approved five solid levels separately to light/dark without changing global
+palette tokens. Square legend swatches reuse the cell colors; today's marker is a
+thin token-based outline. Only the named, focusable calendar region scrolls
+horizontally. The detailed list grows naturally when expanded.
+
+Shared UI Tooltip/Provider/Trigger/Content render date/count hover details on
+non-actionable spans. Cells have no sequential Tab stops or pointer cursor;
+keyboard and touch users can read all dates and exact counts in Daily totals.
+The query key, fetching, permissions, source deduplication and error/retry behavior
+remain unchanged. Cached data stays visible on refresh errors; initial loading and
+errors do not render a false zero total. No packages or test/script files added.
+
+Reference: https://docs.github.com/en/account-and-profile/how-tos/contribution-settings/viewing-contributions-on-your-profile
+Verification: focused ESLint and one non-incremental TypeScript pass succeeded.
+In-memory helper checks covered inclusive boundaries, constrained month ends,
+leap years, local midnight, invalid completion timestamps, padding, intensity
+levels, month-label spacing and matching daily/summary totals. The October 18,
+2026 fixture spans April 18–October 18 (184 counted days in 28 padded week columns).
+Static rendering of the actual component with existing shared tooltips covered
+pending, initial error, empty, success and cached refresh errors. It confirmed one
+calendar Tab stop, no sequential cell Tab stops, no tooltip on padding, one today
+marker and an exact-count list for every in-range day. CSS parsing confirmed the
+two five-level palettes and fixed cell/gap dimensions. Browser inventory is empty;
+live desktop/mobile layout, theme switching, hover tooltips, keyboard scrolling
+and disclosure interactions remain unperformed. No cache setup or test files added.
+<!-- dashboard-activity-calendar:end -->
+
 <!-- dashboard-context-polish:start -->
 ## Dashboard context and theme polish — 2026-10-18
 
