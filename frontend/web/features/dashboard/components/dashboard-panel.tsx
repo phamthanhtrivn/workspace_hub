@@ -18,7 +18,7 @@ export function DashboardPanel({
 }) {
   return (
     <section
-      className={`min-w-0 overflow-hidden rounded-lg border border-border ${tone === "focus" ? "bg-primary/5" : "bg-card"}`}
+      className={`min-w-0 overflow-hidden rounded-panel border border-border ${tone === "focus" ? "bg-secondary" : "bg-card"}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-border px-4 py-4">
         <div className="min-w-0 flex-1 basis-40 break-words">
@@ -32,7 +32,8 @@ export function DashboardPanel({
         {href && (
           <Link
             href={href}
-            className="flex min-h-11 shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11"
+            aria-label={`View all: ${title}`}
+            className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1 text-xs font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11"
           >
             View all <ArrowUpRight size={14} />
           </Link>
@@ -60,7 +61,7 @@ export function QueryFeedback({
         <button
           type="button"
           onClick={() => void query.refetch()}
-          className="flex min-h-11 shrink-0 items-center gap-1 rounded px-2 py-1 font-semibold hover:bg-destructive-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
+          className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1 rounded-control px-2 py-1 font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
         >
           <RefreshCw size={13} /> Retry
         </button>

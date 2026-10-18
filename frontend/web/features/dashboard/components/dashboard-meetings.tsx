@@ -14,9 +14,16 @@ function MeetingItem({
 }) {
   return (
     <li className="border-b border-border pb-4">
-      <p className="truncate text-sm font-semibold text-foreground">
-        {meeting.title}
-      </p>
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <p className="min-w-0 flex-1 basis-32 line-clamp-2 break-words text-sm font-semibold text-foreground [overflow-wrap:anywhere]">
+          {meeting.title}
+        </p>
+        {meeting.status === "LIVE" && (
+          <span className="shrink-0 rounded-control bg-success-soft px-2 py-1 text-xs font-medium text-success-content">
+            Live now
+          </span>
+        )}
+      </div>
       <p className="mt-1 text-xs text-muted-foreground">
         {meeting.scheduledStartAt
           ? new Intl.DateTimeFormat("en", {
@@ -37,7 +44,8 @@ function MeetingItem({
         </span>
         <Link
           href={`/meetings/${encodeURIComponent(meeting.joinToken)}`}
-          className="flex min-h-11 items-center gap-1 rounded-md bg-primary/5 px-3 py-1.5 text-xs font-medium text-link sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
+          aria-label={`View meeting: ${meeting.title}`}
+          className="flex min-h-11 cursor-pointer items-center gap-1 rounded-control bg-secondary px-3 py-1.5 text-xs font-medium text-link hover:bg-accent sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
         >
           <Video size={13} />
           View meeting

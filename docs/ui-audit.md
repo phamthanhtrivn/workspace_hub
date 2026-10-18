@@ -4,6 +4,15 @@ Updated 2026-10-18. This records the approved targeted simplification. Inter, wo
 
 The original inventory contains **417 TSX files** across **687 source files**. Every TSX file is listed below: **328 change**, **70 keep**, and **19 functional/content exception**. An exception may include changes to surrounding interface styling. Shared focus logic is listed separately. The added tests, temporary scripts, Playwright setup, and generated test reports were subsequently removed at the user's request; the verification results below are historical.
 
+## Dashboard polish and resilience - 2026-10-18
+
+- Reviewed all 12 Dashboard components and their existing hooks, source-specific links, shared modal controls, and theme roles. Scope is limited to Dashboard; no API, permissions, stored colors, global theme, or other-page layout changes.
+- Addressed the five issues from critique `2026-10-18T04-23-09Z__s-dashboard-components-dashboard-view-tsx-409c2db7.md`: selected task filters use the readable link token; task lists reveal six more rows at a time with per-filter limits and a collapse action; summary values distinguish loading from unavailable data and link to the matching retry panel; task activity has keyboard/touch-accessible Daily totals; long notification titles/messages scroll while close/details controls stay outside the message scroll area.
+- Active-filter indicator contrast is 11.15:1 Light and 8.62:1 Dark against the card surface. Chart labels use 12px, and the dynamic chart placeholder reserves the chart's actual height. Panels use the existing radius token and neutral secondary emphasis.
+- Clarified task ordering, panel link accessible names, the project empty state, and live meeting status. Notification read-state failures provide a Retry toast using the existing React Query/Redux synchronization. Interactive links, buttons, filters, and disclosure controls have pointer cursors, inherited from the shared Button where applicable.
+- Verification: ESLint passed for the nine changed Dashboard TSX files; TypeScript passed once with noEmit and incremental disabled; the focused detector returned no findings. No test files, packages, servers, or cache setup were added.
+- Browser inventory again returned no apps/browsers. Source checks and contrast calculations do not replace visual, keyboard, touch, or live API verification; desktop/mobile, zoom, and light/dark rendering remain unverified in a connected browser.
+
 ## Neutral Modern theme - 2026-10-18
 
 This replaces the earlier palette-preserving contrast follow-up. The user approved white/gray Light and charcoal Dark surfaces, navy actions, and muted red/green/amber information states. Logo/auth branding, stored custom colors, content, geometry, workflows, permissions, and saved-theme behavior remain intact.

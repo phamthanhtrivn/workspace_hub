@@ -41,12 +41,12 @@ export default function DashboardProductivityChart({
             dataKey="label"
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+            tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
           />
           <Tooltip
             contentStyle={{

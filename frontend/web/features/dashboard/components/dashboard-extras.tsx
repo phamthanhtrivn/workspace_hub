@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Bell, FolderKanban, Rocket } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { Notification } from "@/features/notification/types/notification.types";
 import { markAsRead } from "@/features/notification/api/notification.api";
 import { useAppDispatch } from "@/store/store";
@@ -24,27 +25,37 @@ export function DashboardExtras({
   const [notification, setNotification] = useState<Notification | null>(null);
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
+  const markReadMutation = useMutation({
+    mutationFn: (notificationId: string) => markAsRead(notificationId),
+    onSuccess: (_, notificationId) => {
+      dispatch(markReadSuccess(notificationId));
+      void queryClient.invalidateQueries({ queryKey: notificationKeys.root });
+    },
+    onError: (_error, notificationId): void => {
+      toast.error("Notification opened, but could not mark it as read.", {
+        action: {
+          label: "Retry",
+          onClick: () => markReadMutation.mutate(notificationId),
+        },
+        actionButtonStyle: { cursor: "pointer" },
+      });
+    },
+  });
   const projects = (extras.projects.data?.data || [])
     .filter((project) => !project.archived)
     .slice(0, 3);
   const openNotification = (item: Notification) => {
     setNotification(item);
-    if (!item.isRead)
-      void markAsRead(item.id)
-        .then(() => {
-          dispatch(markReadSuccess(item.id));
-          void queryClient.invalidateQueries({
-            queryKey: notificationKeys.root,
-          });
-        })
-        .catch(() => undefined);
+    if (!item.isRead) markReadMutation.mutate(item.id);
   };
   return (
     <>
       <DashboardPanel title="Active projects" href="/projects">
         <QueryFeedback query={extras.projects} label="projects" />
         {extras.projects.isSuccess && !projects.length && (
-          <EmptyState>No active projects yet.</EmptyState>
+          <EmptyState>
+            No active projects yet. Open Projects to get started.
+          </EmptyState>
         )}
         <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-3">
           {projects.map((project, index) => {
@@ -65,11 +76,11 @@ export function DashboardExtras({
               >
                 <Link
                   href={`/projects/${encodeURIComponent(project.id)}`}
-                  className="flex min-h-11 min-w-0 items-center gap-3 text-sm font-semibold text-foreground hover:text-link sm:min-h-10 [@media(pointer:coarse)]:min-h-11"
+                  className="flex min-h-11 min-w-0 cursor-pointer items-center gap-3 text-sm font-semibold text-foreground hover:text-link sm:min-h-10 [@media(pointer:coarse)]:min-h-11"
                 >
                   <span
                     aria-hidden
-                    className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/5 text-xl"
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-control bg-secondary text-xl"
                     style={{ color: project.color || "var(--chart-1)" }}
                   >
                     {project.icon &&
@@ -141,10 +152,10 @@ export function DashboardExtras({
                 <button
                   type="button"
                   onClick={() => openNotification(item)}
-                  className={`flex w-full items-start gap-3 rounded-control p-3 text-left hover:bg-background ${item.isRead ? "" : "bg-info-soft/50"}`}
+                  className={`flex w-full min-w-0 cursor-pointer flex-wrap items-start gap-3 rounded-control p-3 text-left hover:bg-muted ${item.isRead ? "" : "bg-info-soft"}`}
                 >
                   <Bell size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1">
+                  <span className="min-w-0 flex-1 basis-24">
                     <span className="block truncate text-sm font-medium text-foreground">
                       {item.title}
                     </span>

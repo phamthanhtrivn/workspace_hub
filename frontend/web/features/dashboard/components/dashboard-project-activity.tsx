@@ -113,8 +113,28 @@ export function DashboardProjectActivity({
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Each square represents a day. Hover to see its total.
+            Each square represents a day. Open Daily totals for exact counts.
           </p>
+          <details className="text-xs text-muted-foreground">
+            <summary className="min-h-11 cursor-pointer content-center rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
+              Daily totals
+            </summary>
+            <div
+              role="region"
+              aria-label="Daily completed task totals"
+              tabIndex={0}
+              className="mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-control p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ul className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
+                {days.filter((day) => !day.future).map((day) => (
+                  <li key={day.date} className="min-w-0 break-words tabular-nums">
+                    <time dateTime={day.date}>{day.date}</time>: {day.count}{" "}
+                    {day.count === 1 ? "task" : "tasks"}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
         </div>
       )}
     </DashboardPanel>
