@@ -4,6 +4,45 @@ Updated 2026-10-18. This records the approved targeted simplification. Inter, wo
 
 The original inventory contains **417 TSX files** across **687 source files**. Every TSX file is listed below: **328 change**, **70 keep**, and **19 functional/content exception**. An exception may include changes to surrounding interface styling. Shared focus logic is listed separately. The added tests, temporary scripts, Playwright setup, and generated test reports were subsequently removed at the user's request; the verification results below are historical.
 
+<!-- seo-metadata:start -->
+## Page metadata and indexing — 2026-10-18
+
+All 17 server pages now declare generic English titles/descriptions through
+`lib/seo.ts` and `lib/page-metadata.ts`. Interactive Projects and shared-document
+rendering remain in client components. Workspace/auth group defaults and the
+shared-document page are `noindex, nofollow`. Homepage can opt into indexing only
+with a validated public HTTPS origin and an explicit production setting.
+
+The user confirmed there is no production domain: indexing stays off, canonical
+and absolute social URLs are omitted, and sitemap contains no URLs. Robots allows
+crawlers to read noindex and advertises no sitemap in this configuration. No
+authenticated fetch or user/project/document names, IDs, query values or meeting
+tokens are used in head metadata. Homepage-only social fields cannot leak its
+canonical into private routes. A generic 1200×630 navy PNG and branded W SVG icon
+replace starter branding. Pomodoro title handling restores the current route's
+title while preserving the running countdown and timer/session logic.
+
+Docker and image-build workflow carry the same optional `SITE_URL` and default-off
+`SITE_INDEXABLE` through build/runtime. Trial image builds force indexing off.
+See `docs/seo-metadata.md` for configuration and immutable image constraints.
+
+Verification: ESLint on 29 changed/new TS/TSX files passed with zero errors and
+warnings; TypeScript passed. Production build passed after a network-enabled retry
+to download the existing Inter font (the initial sandboxed build could not reach
+Google Fonts). Ten focused in-memory configuration/copy checks covered default-off,
+production opt-in, private routes, invalid origins and development restrictions.
+A short-lived standalone server returned correct server HTML metadata for `/`,
+`/login`, `/dashboard` and a shared-document route with a fake ID. Robots, empty
+sitemap, branded icon and PNG content type/dimensions passed HTTP checks; the
+generated social image was visually inspected. The server was stopped afterward.
+
+No browser was connected (`apps: [], browsers: []`), so live client navigation,
+Pomodoro pause/completion title behavior and desktop/mobile browser rendering were
+not exercised. No test suite/script files, packages or cache configuration were
+added; existing build output was used. No deployment or Search Console submission
+was performed.
+<!-- seo-metadata:end -->
+
 <!-- web-ux-hardening:start -->
 ## Cross-module UX hardening — 2026-10-18
 

@@ -1,9 +1,10 @@
-"use client";
-
+import { createPageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import LoginForm from "@/features/auth/components/login-form";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
+
+export const metadata = createPageMetadata("/login");
 
 export default function LoginPage() {
   return (
@@ -36,7 +37,7 @@ export default function LoginPage() {
       <SocialLoginButtons />
 
       <p className="mt-8 text-center text-sm text-muted-foreground">
-        Don't have an account?{" "}
+        Don&apos;t have an account?{" "}
         <Link
           href="/register"
           className="font-bold text-link transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring underline"

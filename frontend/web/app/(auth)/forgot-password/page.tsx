@@ -1,8 +1,9 @@
-"use client";
-
+import { createPageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import ForgotPasswordForm from "@/features/auth/components/forgot-password-form";
+
+export const metadata = createPageMetadata("/forgot-password");
 
 export default function ForgotPasswordPage() {
   return (
@@ -20,7 +21,7 @@ export default function ForgotPasswordPage() {
           Forgot Password?
         </h2>
         <p className="text-sm font-semibold text-muted-foreground mt-2">
-          Enter your email address and we'll send you a code to reset your password.
+          Enter your email address and we&apos;ll send you a code to reset your password.
         </p>
       </div>
 

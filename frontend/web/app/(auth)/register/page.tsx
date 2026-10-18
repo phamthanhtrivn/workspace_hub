@@ -1,9 +1,10 @@
-"use client";
-
+import { createPageMetadata } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import RegisterForm from "@/features/auth/components/register-form";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
+
+export const metadata = createPageMetadata("/register");
 
 export default function RegisterPage() {
   return (

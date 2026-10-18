@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { createRootMetadata } from "@/lib/seo";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider, ThemeToaster } from "@/components/common/theme-provider";
@@ -13,11 +13,7 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-export const metadata: Metadata = {
-  title: "WorkspaceHub",
-  description:
-    "Smart platform for tasks management, files management, learning, scheduling, collaboration and productivity with AI assistance.",
-};
+export const metadata = createRootMetadata();
 
 export default function RootLayout({
   children,

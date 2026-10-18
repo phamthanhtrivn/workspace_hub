@@ -1,7 +1,8 @@
-"use client";
-
+import { PRIVATE_ROBOTS } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowLeft, Sparkles } from "lucide-react";
+
+export const metadata = { robots: PRIVATE_ROBOTS };
 
 export default function AuthLayout({
   children,

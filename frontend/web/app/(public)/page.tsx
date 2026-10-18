@@ -1,8 +1,9 @@
-"use client";
-
+import { createHomeMetadata } from "@/lib/seo";
 import React from "react";
 import Link from "next/link";
 import { LogIn, UserPlus } from "lucide-react";
+
+export const metadata = createHomeMetadata();
 
 export default function PublicPage() {
   return (

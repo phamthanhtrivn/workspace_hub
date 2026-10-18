@@ -1,4 +1,7 @@
+import { createPageMetadata } from "@/lib/seo";
 import Link from "next/link";
+
+export const metadata = createPageMetadata("/ai");
 
 export default function AIPage() {
   return (

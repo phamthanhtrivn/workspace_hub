@@ -1,4 +1,7 @@
+import { createPageMetadata } from "@/lib/seo";
 import Link from "next/link";
+
+export const metadata = createPageMetadata("/tasks");
 
 export default function TasksPage() {
   return (

@@ -1,5 +1,8 @@
+import { createPageMetadata } from "@/lib/seo";
 import { Suspense } from "react";
 import { CalendarWorkspace } from "@/features/calendar/components/workspace/calendar-workspace";
+
+export const metadata = createPageMetadata("/calendar");
 
 export default function CalendarPage() {
   return (

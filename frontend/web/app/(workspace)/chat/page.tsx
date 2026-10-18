@@ -1,4 +1,7 @@
+import { createPageMetadata } from "@/lib/seo";
 import ChatLayout from "@/features/chat/components/chat-layout";
+
+export const metadata = createPageMetadata("/chat");
 
 export default function ChatPage() {
   return (
