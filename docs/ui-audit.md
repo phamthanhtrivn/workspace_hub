@@ -4,6 +4,65 @@ Updated 2026-10-18. This records the approved targeted simplification. Inter, wo
 
 The original inventory contains **417 TSX files** across **687 source files**. Every TSX file is listed below: **328 change**, **70 keep**, and **19 functional/content exception**. An exception may include changes to surrounding interface styling. Shared focus logic is listed separately. The added tests, temporary scripts, Playwright setup, and generated test reports were subsequently removed at the user's request; the verification results below are historical.
 
+<!-- dashboard-stat-weather:start -->
+## Dashboard stat cards and local weather — 2026-10-18
+
+The four summary links now compose the owned Card primitive, with neutral surfaces,
+semantic icon tiles, consistent panel corners and 16px gaps. Existing one/two/four
+column breakpoints, values, task-filter callbacks, error targets and navigation
+remain intact. Dashboard loading uses the matching four-card grid.
+
+The user selected real weather by location. The greeting now shows Open-Meteo
+current Celsius temperature, WMO condition and provider day/night state with colorful
+owned SVG illustrations. Separate sun/moon, mostly clear, partly cloudy, overcast,
+fog/freezing fog, drizzle/freezing drizzle, rain/freezing rain/showers,
+snow/grains/showers and thunder/hail silhouettes replace the eight generic symbols.
+Precipitation density reflects reported intensity; cloud, water, ice and lightning
+use separate light/dark colors with legible outlines. Unknown codes have a neutral
+question-cloud fallback. WMO mapping includes code 97 (heavy thunderstorm) from
+the current provider documentation. The time-based sun/cloud illustration
+also gains color and is used only as fallback, with explicit Use location, loading,
+blocked/unavailable or retry feedback. Provider attribution (Open-Meteo, CC BY 4.0)
+is inside the interactive weather-details popover, without the standalone action
+under the weather icon. The free endpoint is intended for this non-commercial thesis app.
+Provider docs: https://open-meteo.com/en/docs and https://open-meteo.com/en/terms.
+
+The Use location switch defaults off and saves only a browser-local boolean choice.
+Turning it off cancels pending weather requests, clears coordinates/weather cache,
+ignores late position callbacks and restores the clock illustration. Other tabs
+observe preference changes; unavailable storage retains the choice for the current
+page. Reopening the page does not re-enable a saved-off preference even when browser
+permission remains granted. Turning it on explicitly requests location; auto-loading
+requires both a saved-on preference and an existing granted browser permission.
+Coordinates are rounded to two decimals, kept in memory, and
+sent directly to Open-Meteo without app credentials or a referrer. They are not
+saved to the account or local storage. Permission revocation clears the position
+and disables fetching. React Query owns weather data, refreshing every 15 minutes
+while visible and on stale window focus. Requests have timeout/cancellation and
+runtime Zod validation; stale/error data is marked Previous weather. No default
+city, IP geolocation, backend API, package, test/script file or cache setup added.
+
+Verification: focused lint/type checks, in-memory parsing/invalid-coordinate/HTTP
+failure and representative WMO mapping checks passed. A live read-only provider
+request used test coordinates (0,0), not a user's location, and returned valid
+current fields; a request with a test Origin confirmed `Access-Control-Allow-Origin:
+*` for browser fetching. The initial sandbox network request failed, and the
+network-enabled check succeeded. Browser inventory remains empty, so real permission
+grant/denial/revocation and desktop/mobile light/dark visual checks remain unperformed.
+Follow-up verification for the on/off control: focused ESLint and TypeScript passed;
+in-memory default/off/on persistence, storage-unavailable fallback and notification
+checks passed. Static rendering of the actual widget with enabled/disabled fixtures
+confirmed switch state, hiding cached weather when off and no collapsed provider
+action. Live browser toggling, permission dialogs and popover interactions remain
+unperformed; no test/script files or packages were added.
+Icon follow-up: focused ESLint and TypeScript passed. In-memory static rendering
+covered all 29 supported WMO codes in day/night mode plus the unknown fallback.
+A light/dark SVG contact sheet was inspected for silhouette, layer order and
+precipitation clarity using existing rendering dependencies, without writing files.
+This isolated preview does not replace browser layout/theme verification; no browser
+is connected, so live desktop/mobile checks remain unperformed.
+<!-- dashboard-stat-weather:end -->
+
 <!-- meeting-overview-content:start -->
 ## Meetings Overview: next and recent meetings — 2026-10-18
 

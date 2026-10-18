@@ -92,7 +92,7 @@ Use Inter from `next/font` through the shared sans token. Application page title
 
 ## Layout
 
-Keep the existing responsive workspace shell, collapsible navigation, toolbars, and feature-specific panels. The spacing vocabulary follows a 4px rhythm. Dashboard panels use 16px internal padding and 24px page spacing, with two columns on desktop and one on mobile. Preserve the compact summary row, today's timeline, task list, and focus panel.
+Keep the existing responsive workspace shell, collapsible navigation, toolbars, and feature-specific panels. The spacing vocabulary follows a 4px rhythm. Dashboard panels use 16px internal padding and 24px page spacing, with two columns on desktop and one on mobile. Dashboard summary uses four separate neutral cards with 16px gaps, one/two/four columns at the existing responsive breakpoints. Preserve today's timeline, task list, and focus panel. The greeting's small weather illustration is an intentional colorful exception: use amber/orange sun, blue-gray clouds and a blue moon, with real local conditions only after location permission. The clock-based illustration is a clearly labeled fallback, not measured weather.
 
 Calendar remains a fluid grid with a sidebar and compact toolbar. Preserve its Monday-first views, selection, manageable-event dragging/resizing, and progressive disclosure. Collapse navigation on small screens; prioritize day/list interaction where appropriate. Project data keeps board, list, calendar, Gantt, and summary layouts.
 

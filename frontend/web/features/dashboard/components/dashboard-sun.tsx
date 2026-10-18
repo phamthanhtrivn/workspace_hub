@@ -39,7 +39,9 @@ export function DashboardSun({
         <Sun
           aria-hidden
           size={36}
-          className="absolute text-link transition-[transform,color] duration-200 motion-reduce:transition-none"
+          className={`absolute transition-[transform,color] duration-200 motion-reduce:transition-none ${time < 8 || time >= 16
+            ? "fill-orange-300 text-orange-600 dark:fill-orange-400 dark:text-orange-300"
+            : "fill-amber-300 text-amber-600 dark:fill-amber-400 dark:text-amber-300"}`}
           style={{
             left: `calc(8px + ${progress} * (100% - 52px))`,
             bottom: "4px",
@@ -50,7 +52,7 @@ export function DashboardSun({
         <Moon
           aria-hidden
           size={34}
-          className="absolute bottom-7 left-1/2 -translate-x-1/2 text-info-content"
+          className="absolute bottom-7 left-1/2 -translate-x-1/2 fill-sky-200 text-sky-700 dark:fill-sky-300 dark:text-sky-200"
         />
       )}
       <svg
@@ -61,11 +63,11 @@ export function DashboardSun({
       >
         <path
           d="M8 27C4 27 2 24 2 21C2 17 5 14 10 14C12 8 19 6 25 9C28 2 39 1 45 7C51 4 59 8 60 14C66 12 73 15 73 21C73 25 70 27 65 27Z"
-          className="fill-secondary/10"
+          className="fill-sky-50 stroke-sky-200 dark:fill-slate-800 dark:stroke-slate-600"
         />
         <path
           d="M54 30C48 30 44 27 44 23C44 18 48 15 53 15C54 9 61 6 67 9C71 1 84 0 90 8C97 4 107 9 107 16C113 13 122 17 122 23C122 27 118 30 112 30Z"
-          className="fill-background stroke-secondary/25"
+          className="fill-sky-100 stroke-sky-400 dark:fill-slate-700 dark:stroke-slate-500"
           strokeWidth="1.2"
           strokeLinejoin="round"
         />

@@ -22,8 +22,9 @@ import {
   taskBucket,
 } from "../utils/dashboard.utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/ui/card";
 import { DashboardQuickActions } from "./dashboard-quick-actions";
-import { DashboardSun } from "./dashboard-sun";
+import { DashboardWeather } from "./dashboard-weather";
 
 function PersonalDashboard() {
   const dashboard = useDashboard();
@@ -88,6 +89,7 @@ function PersonalDashboard() {
       href: "#my-tasks",
       danger: true,
       theme: "text-destructive-content",
+      iconTheme: "bg-destructive-soft text-destructive-content",
       queries: [personal, project],
       errorHref: "#my-tasks",
       errorDetail: "Could not load all tasks. View retry options.",
@@ -105,6 +107,7 @@ function PersonalDashboard() {
       href: "#my-tasks",
       danger: false,
       theme: "text-link",
+      iconTheme: "bg-primary-soft text-primary-soft-foreground",
       queries: [personal, project],
       errorHref: "#my-tasks",
       errorDetail: "Could not load all tasks. View retry options.",
@@ -118,6 +121,7 @@ function PersonalDashboard() {
       href: "/pomodoro",
       danger: false,
       theme: "text-foreground",
+      iconTheme: "bg-secondary text-secondary-foreground",
       queries: [focus],
       errorHref: "#focus-report",
       errorDetail: "Could not load focus time. View retry options.",
@@ -132,6 +136,7 @@ function PersonalDashboard() {
         : "/meetings",
       danger: false,
       theme: "text-foreground",
+      iconTheme: "bg-secondary text-secondary-foreground",
       queries: [meetings],
       errorHref: "#upcoming-meetings",
       errorDetail: "Could not load meetings. View retry options.",
@@ -142,7 +147,7 @@ function PersonalDashboard() {
       <div className="min-w-0 w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <header className="flex flex-wrap items-end justify-between gap-5">
           <div className="flex min-w-0 max-w-full items-center gap-4 sm:gap-6">
-            <DashboardSun now={now} zone={zone} />
+            <DashboardWeather now={now} zone={zone} />
             <div className="min-w-0">
               <p className="mb-2 break-words text-xs text-muted-foreground">
                 {greeting}, {auth.fullName?.split(" ")[0] || "there"}
@@ -165,14 +170,14 @@ function PersonalDashboard() {
           </div>
           <DashboardQuickActions />
         </header>
-        <div className="grid min-w-0 grid-cols-1 border-y border-border sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => {
             const hasError = stat.queries.some((query) => query.isError);
             const isPending =
               !hasError && stat.queries.some((query) => query.isPending);
             return (
+              <Card key={stat.label} className="min-w-0 gap-0 overflow-hidden p-0">
               <Link
-                key={stat.label}
                 href={hasError ? stat.errorHref : stat.href}
                 onClick={() => {
                   if (stat.label === "Overdue")
@@ -180,16 +185,18 @@ function PersonalDashboard() {
                   if (stat.label === "Due today")
                     dashboard.setTaskFilter("Today");
                 }}
-                className={`min-w-0 cursor-pointer border-border px-3 py-4 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&:not(:last-child)]:border-b sm:px-5 sm:[&:nth-child(even)]:border-l sm:[&:nth-last-child(-n+2)]:border-b-0 xl:[&:not(:last-child)]:border-b-0 xl:[&:not(:first-child)]:border-l ${stat.theme}`}
+                className={`flex min-h-36 min-w-0 flex-1 cursor-pointer flex-col rounded-panel p-4 transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:p-5 ${stat.theme}`}
               >
-                <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <div className="flex min-w-0 items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
                   <span>{stat.label}</span>
-                  <stat.icon aria-hidden size={13} />
+                  <span className={`grid size-8 shrink-0 place-items-center rounded-control ${stat.iconTheme}`}>
+                    <stat.icon aria-hidden size={17} />
+                  </span>
                 </div>
                 <p
                   role="status"
                   aria-busy={isPending}
-                  className={`mt-2 break-words font-medium tracking-tight tabular-nums ${hasError ? "text-lg text-muted-foreground" : "text-3xl"}`}
+                  className={`mt-3 break-words font-medium tracking-tight tabular-nums ${hasError ? "text-lg text-muted-foreground" : "text-3xl"}`}
                 >
                   <span className="sr-only">{stat.label}: </span>
                   {hasError ? "Unavailable" : isPending ? (
@@ -206,6 +213,7 @@ function PersonalDashboard() {
                   {hasError ? stat.errorDetail : stat.detail}
                 </p>
               </Link>
+              </Card>
             );
           })}
         </div>
@@ -297,7 +305,9 @@ export function DashboardView() {
         className="min-w-0 w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8"
       >
         <Skeleton className="h-10 w-64 max-w-full" />
-        <Skeleton className="h-28 w-full" />
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-36 w-full rounded-panel" />)}
+        </div>
         <Skeleton className="h-96 w-full" />
       </div>
     );
