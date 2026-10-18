@@ -77,11 +77,11 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
 
   return (
     <div className="flex flex-col items-center my-3 w-full">
-      <div className="bg-card border border-border rounded-panel p-4 max-w-md min-w-0 w-full [overflow-wrap:anywhere] relative transition-all duration-200 hover:border-info">
+      <div className="bg-card border border-border rounded-panel p-4 max-w-md min-w-0 w-full [overflow-wrap:anywhere] relative transition-all duration-200 hover:border-info-outline">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="bg-info-soft text-info border border-border p-2.5 rounded-panel shrink-0">
+            <div className="bg-info-soft text-info-content border border-border p-2.5 rounded-panel shrink-0">
               <Video size={20} />
             </div>
             <div className="min-w-0">
@@ -98,8 +98,8 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
           {/* Status badge */}
           <div className="shrink-0">
             {isLive ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-soft text-success border border-border">
-                <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-soft text-success-content border border-border">
+                <span className="w-2 h-2 rounded-full bg-success-content animate-pulse" />
                 LIVE
               </span>
             ) : (

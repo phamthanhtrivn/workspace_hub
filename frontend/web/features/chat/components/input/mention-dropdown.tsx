@@ -27,13 +27,13 @@ export default React.memo(function MentionDropdown({
           }}
           className={`w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors ${
             idx === selectedIndex
-              ? "bg-info-soft text-info"
+              ? "bg-info-soft text-info-content"
               : "text-foreground hover:bg-muted"
           }`}
         >
-          <div className="w-6 h-6 rounded-full bg-info-soft flex items-center justify-center text-info font-medium text-xs flex-shrink-0 overflow-hidden">
+          <div className="w-6 h-6 rounded-full bg-info-soft flex items-center justify-center text-info-content font-medium text-xs flex-shrink-0 overflow-hidden">
             {user.id === "all" ? (
-              <Users size={15} className="text-info" />
+              <Users size={15} className="text-info-content" />
             ) : user.avatarUrl ? (
               <img
                 src={user.avatarUrl}

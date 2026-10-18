@@ -82,7 +82,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
       );
     if (props.isError)
       return (
-        <div className="rounded-panel border border-border bg-destructive-soft py-24 text-center text-sm font-semibold text-destructive">
+        <div className="rounded-panel border border-border bg-destructive-soft py-24 text-center text-sm font-semibold text-destructive-content">
           Failed to load tasks. Please try refreshing the page.
         </div>
       );

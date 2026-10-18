@@ -29,7 +29,7 @@ export function ProjectCalendarsSection({
   return (
     <section className="mt-5 flex min-h-24 flex-1 flex-col" aria-labelledby="project-calendars-heading">
       <div className="mb-2 flex shrink-0 items-center gap-2 px-2">
-        <FolderKanban className="h-4 w-4 text-primary" />
+        <FolderKanban className="h-4 w-4 text-link" />
         <h2
           id="project-calendars-heading"
           className="flex-1 text-sm font-semibold text-foreground"
@@ -43,7 +43,7 @@ export function ProjectCalendarsSection({
           Loading projects...
         </p>
       ) : error ? (
-        <div className="px-8 py-1 text-xs text-destructive" role="alert">
+        <div className="px-8 py-1 text-xs text-destructive-content" role="alert">
           <p>Could not load projects</p>
           <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={onRetry}>
             Retry
@@ -70,7 +70,7 @@ export function ProjectCalendarsSection({
                     onCheckedChange={() => onToggleProject(project.id)}
                     aria-label={project.name}
                     className="h-4.5 w-4.5 cursor-pointer rounded-[5px] border"
-                    style={{ borderColor: project.color, backgroundColor: selected ? project.color : "var(--card)", color: readableTextOnColor(project.color) }}
+                    style={{ borderColor: "var(--input)", backgroundColor: selected ? project.color : "var(--card)", color: readableTextOnColor(project.color) }}
                   />
                   <button
                     type="button"
@@ -85,7 +85,7 @@ export function ProjectCalendarsSection({
             })}
           </div>
           {tasksError && (
-            <div className="px-2 text-xs text-destructive" role="alert">
+            <div className="px-2 text-xs text-destructive-content" role="alert">
               <span>Could not load project tasks</span>{" "}
               <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={onRetry}>
                 Retry

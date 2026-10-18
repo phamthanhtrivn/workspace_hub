@@ -200,7 +200,7 @@ export default function PinnedMessagesDetailView({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search pinned messages..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card focus:border-info focus:ring-1 focus:ring-ring outline-none transition"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card focus:border-info-outline focus:ring-1 focus:ring-ring outline-none transition"
           />
         </div>
 
@@ -213,7 +213,7 @@ export default function PinnedMessagesDetailView({
             <select
               value={senderId}
               onChange={(event) => setSenderId(event.target.value)}
-              className="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info focus:ring-1 focus:ring-ring cursor-pointer"
+              className="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info-outline focus:ring-1 focus:ring-ring cursor-pointer"
             >
               <option value="">
                 All Senders
@@ -255,7 +255,7 @@ export default function PinnedMessagesDetailView({
                     className="h-9 w-9 shrink-0 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-info-soft text-sm font-semibold text-info">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-info-soft text-sm font-semibold text-info-content">
                     {getInitial(message.senderProfile?.fullName)}
                   </div>
                 )}
@@ -279,10 +279,10 @@ export default function PinnedMessagesDetailView({
                 </button>
                 <button
                   onClick={() => handleUnpin(message.id)}
-                  className="cursor-pointer rounded-control p-1.5 text-muted-foreground hover:bg-destructive-soft hover:text-destructive transition"
+                  className="cursor-pointer rounded-control p-1.5 text-muted-foreground hover:bg-destructive-soft hover:text-destructive-content transition"
                   title="Unpin"
                 >
-                  <Pin size={15} className="mt-1 shrink-0 text-info" />
+                  <Pin size={15} className="mt-1 shrink-0 text-info-content" />
                 </button>
               </div>
             ))}

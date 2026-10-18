@@ -260,7 +260,7 @@ export default function SpaceSettingsModal({
                 className={cn(
                   "w-full text-left px-3 py-2 rounded-control text-xs font-semibold transition cursor-pointer",
                   activeTab === tab.id
-                    ? "bg-card text-info"
+                    ? "bg-card text-info-content"
                     : "text-muted-foreground hover:bg-card hover:text-foreground",
                 )}
               >

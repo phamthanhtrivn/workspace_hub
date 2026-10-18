@@ -7,23 +7,27 @@ colors:
   brand-blue: "#22396F"
   brand-navy: "#0D1C42"
   background: "#FFFFFF"
-  foreground: "#010736"
+  foreground: "#3B3B3B"
   card: "#FFFFFF"
   primary: "#22396F"
-  primary-foreground: "#E6EDF8"
+  primary-foreground: "#FFFFFF"
   primary-hover: "#0D1C42"
-  secondary: "#E6EDF8"
-  secondary-foreground: "#010736"
-  muted: "#F3F4F7"
-  muted-foreground: "#53617C"
-  border: "#CDD2DD"
-  input: "#78849D"
-  success: "#18633E"
-  warning: "#805313"
+  secondary: "#F3F3F3"
+  secondary-foreground: "#3B3B3B"
+  muted: "#F3F3F3"
+  muted-foreground: "#616161"
+  border: "#E5E5E5"
+  input: "#808080"
+  success: "#2E6F43"
+  warning: "#795718"
   destructive: "#B42332"
-  dark-background: "#010736"
-  dark-card: "#0D1C42"
-  dark-primary: "#E6EDF8"
+  dark-background: "#1F1F1F"
+  dark-card: "#252526"
+  dark-primary: "#0D1C42"
+  destructive-content: "#B42332"
+  success-content: "#24633E"
+  warning-content: "#795418"
+  info-content: "#22396F"
 typography:
   title: { fontFamily: "Inter, sans-serif", fontSize: "22px", fontWeight: 600, lineHeight: 1.25, letterSpacing: "-0.01em" }
   section: { fontFamily: "Inter, sans-serif", fontSize: "18px", fontWeight: 600, lineHeight: 1.3, letterSpacing: "-0.01em" }
@@ -61,8 +65,8 @@ components:
 WorkspaceHub is a compact working environment. Preserve the existing layouts and familiar interactions while giving every feature one coherent palette. Structure comes from typography, spacing, borders, and tonal surfaces. The interface should make work easy to scan without competing with conversations, tasks, schedules, or documents.
 
 **Key Characteristics:**
-- White light-theme surfaces, navy text/actions, and ice blue accents.
-- Dark mode layers midnight, navy, and blue surfaces with ice blue text/actions.
+- White/gray light surfaces, charcoal text, and restrained navy actions.
+- Dark mode layers charcoal surfaces with soft gray text and deep navy actions; avoid near-white control fills.
 - Compact task controls, contextual details, and predictable states.
 - Existing user content, permissions, and selected colors remain meaningful.
 
@@ -70,15 +74,15 @@ WorkspaceHub is a compact working environment. Preserve the existing layouts and
 
 ### Primary
 
-Blue marks primary actions in Light; ice blue marks them in Dark. Use paired foreground tokens for filled controls. Selection uses ice blue in Light and blue in Dark.
+Navy marks primary actions: #22396F in Light and deeper #0D1C42 in Dark, with white text on filled actions. Dark filled actions have a subtle inset edge; links and data marks use a separate readable blue-gray. Links use link, while ordinary selections use primary-soft with primary-soft-foreground. Informational icon tiles use neutral secondary surfaces.
 
 ### Neutral
 
-White is the light canvas and card/popover surface; blue-tinted muted surfaces support grouping, while ice blue marks accents and selection. Dark mode uses midnight for the canvas, navy for cards/popovers, and blue for grouped and selected areas. Secondary text stays readable, including placeholders and metadata.
+Light uses white canvases/cards, gray sidebars, and neutral hover surfaces. Dark uses #181818 sidebars, a #1F1F1F canvas, #252526 cards/popovers, and #313131 grouped/hover surfaces. Soft blue is reserved for selection. Brand primitives remain for logos and the existing auth brand panel.
 
-**The Paired Colors Rule.** Use `primary` with `primary-foreground`, `card` with `card-foreground`, and each status fill with its matching foreground. Use `info` or `primary-soft-foreground` for text on their matching soft surfaces.
+**The Paired Colors Rule.** Use `primary` with `primary-foreground`, `card` with `card-foreground`, and each status fill with its matching foreground. Use status-content for status text/icons on neutral or status-soft surfaces; status tokens are filled backgrounds, not text colors. Use primary-soft-foreground for soft selection and link for links.
 
-Success, warning, and destructive colors communicate functional state. Keep labels/icons alongside them. User-selected project, calendar, and label colors are content: preserve the stored fill and choose readable text against it. Video and document contents keep their intrinsic colors.
+Success, warning, and destructive colors communicate functional state with muted soft surfaces. Mic/Camera off stays soft red on hover; Leave/delete confirmations keep solid destructive fills. Charts and status dots use content colors, not the darker button fills. Keep labels/icons alongside them. User-selected project, calendar, and label colors are content: preserve the stored fill and choose readable text against it. Video and document contents keep their intrinsic colors.
 
 The runtime source of truth is `frontend/web/app/globals.css`. Frontmatter records representative values; [design tokens](docs/design-tokens.md) documents both themes, additional semantic roles, utilities, and integration rules. Use named utilities such as `bg-primary text-primary-foreground` and `bg-background text-foreground`. They follow the theme automatically; `dark:bg-primary` is redundant. Use explicit `dark:` variants only when the semantic role changes. Keep direct CSS variables for chart, gradient, SVG attribute, and third-party API properties when utilities cannot apply.
 

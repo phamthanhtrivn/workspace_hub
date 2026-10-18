@@ -322,8 +322,8 @@ export function DocumentExplorer({
       <div className="@container/explorer relative flex flex-1 flex-col min-h-0 min-w-0 h-full overflow-y-auto bg-card text-foreground">
         {/* Full Window Dropzone Overlay */}
         {isDraggingOver ? (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-primary/10 border-2 border-dashed border-info">
-            <div className="grid h-16 w-16 place-items-center rounded-panel bg-info-soft text-info ring-1 ring-ring">
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-primary/10 border-2 border-dashed border-info-outline">
+            <div className="grid h-16 w-16 place-items-center rounded-panel bg-info-soft text-info-content ring-1 ring-ring">
               <UploadCloud className="h-8 w-8" />
             </div>
             <p className="mt-4 text-base font-semibold text-foreground">
@@ -351,8 +351,8 @@ export function DocumentExplorer({
             canEditDocuments={canEditDocuments}
           />
           {activeView === DocumentViewType.TRASH ? (
-            <div className="flex items-start gap-2 rounded-panel border border-border bg-warning-soft px-3.5 py-3 text-xs font-semibold text-warning">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+            <div className="flex items-start gap-2 rounded-panel border border-border bg-warning-soft px-3.5 py-3 text-xs font-semibold text-warning-content">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning-content" />
               <p>
                 Items in Trash are automatically deleted after 30 days. You can
                 permanently delete them now.

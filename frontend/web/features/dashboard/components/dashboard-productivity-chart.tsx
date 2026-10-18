@@ -73,7 +73,7 @@ export default function DashboardProductivityChart({
                 key={day.date}
                 fill={
                   index === data.length - 1
-                    ? "var(--color-primary)"
+                    ? "var(--chart-1)"
                     : "var(--chart-2)"
                 }
               />

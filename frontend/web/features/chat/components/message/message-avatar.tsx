@@ -59,7 +59,7 @@ export default function MessageAvatar({
             </span>
           ) : memberRole === "ADMIN" ? (
             <span
-              className="absolute -bottom-1 -right-1 bg-muted-foreground text-primary-foreground rounded-full p-0.5 border border-border flex items-center justify-center h-4 w-4"
+              className="absolute -bottom-1 -right-1 bg-muted text-muted-foreground rounded-full p-0.5 border border-border flex items-center justify-center h-4 w-4"
               title="Admin"
             >
               <FaKey size={8} />

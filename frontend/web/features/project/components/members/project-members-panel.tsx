@@ -35,7 +35,7 @@ const ROLE_CONFIG: Record<
 > = {
   [ProjectRole.ADMIN]: {
     label: "Project Owner",
-    color: "text-warning",
+    color: "text-warning-content",
     bg: "bg-warning-soft",
     icon: Star,
   },
@@ -130,7 +130,7 @@ export default function ProjectMembersPanel({
             Project Members ({members.length})
           </h3>
           {pendingInvitations.length > 0 && (
-            <span className="rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning">
+            <span className="rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning-content">
               {pendingInvitations.length} pending
             </span>
           )}
@@ -141,7 +141,7 @@ export default function ProjectMembersPanel({
             variant="ghost"
             size="sm"
             onClick={() => setShowInviteDialog(true)}
-            className="inline-flex h-7 items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-semibold text-info transition hover:bg-info-soft hover:text-info cursor-pointer"
+            className="inline-flex h-7 items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-semibold text-info-content transition hover:bg-info-soft hover:text-info-content cursor-pointer"
           >
             <UserPlus className="h-3 w-3" strokeWidth={2.5} />
             Invite
@@ -185,7 +185,7 @@ export default function ProjectMembersPanel({
                       variant="ghost"
                       size="icon"
                       onClick={() => setPermissionMember(member)}
-                      className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info group-hover:opacity-100"
+                      className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100"
                       aria-label={`Manage permissions for ${member.displayName}`}
                       title="Manage permissions"
                     >
@@ -199,7 +199,7 @@ export default function ProjectMembersPanel({
                       size="icon"
                       onClick={() => handleRemoveMember(member)}
                       disabled={removeMemberMutation.isPending}
-                      className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground opacity-0 transition hover:bg-destructive-soft hover:text-destructive group-hover:opacity-100 disabled:opacity-40"
+                      className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground opacity-0 transition hover:bg-destructive-soft hover:text-destructive-content group-hover:opacity-100 disabled:opacity-40"
                       aria-label={`Remove member ${member.displayName}`}
                       title="Remove member"
                     >

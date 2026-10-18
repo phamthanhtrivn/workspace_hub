@@ -116,7 +116,7 @@ export default function InviteMemberDialog({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           {successMessage && (
-            <div className="mb-4 flex gap-2.5 rounded-panel border border-border bg-success-soft px-3.5 py-3 text-xs font-semibold text-success">
+            <div className="mb-4 flex gap-2.5 rounded-panel border border-border bg-success-soft px-3.5 py-3 text-xs font-semibold text-success-content">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{successMessage}</span>
             </div>
@@ -239,7 +239,7 @@ export default function InviteMemberDialog({
                       {isPending ? (
                         <Badge
                           variant="outline"
-                          className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning border-border"
+                          className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning-content border-border"
                         >
                           <Clock3 className="h-3 w-3" /> Pending
                         </Badge>

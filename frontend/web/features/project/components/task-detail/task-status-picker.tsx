@@ -71,7 +71,7 @@ export default function TaskStatusPicker({
               className={[
                 "flex w-full justify-start rounded-none cursor-pointer items-center px-3 py-2 h-auto text-left text-xs font-semibold transition hover:bg-muted",
                 opt.value === status
-                  ? "text-info bg-info-soft/50 hover:bg-info-soft/80 hover:text-info"
+                  ? "text-info-content bg-info-soft/50 hover:bg-info-soft/80 hover:text-info-content"
                   : "text-foreground",
               ].join(" ")}
             >

@@ -112,7 +112,7 @@ export function FolderPickerModal({
     <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}>
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-warning-soft text-warning ring-1 ring-warning">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-warning-soft text-warning-content ring-1 ring-warning-outline">
             <Folder className="h-5 w-5" />
           </div>
           <div>
@@ -134,7 +134,7 @@ export function FolderPickerModal({
                 type="button"
                 onClick={() => handlePathClick(idx)}
                 className={cn(
-                  "transition hover:text-info cursor-pointer",
+                  "transition hover:text-info-content cursor-pointer",
                   idx === path.length - 1 ? "text-foreground font-semibold" : "text-muted-foreground"
                 )}
               >
@@ -148,7 +148,7 @@ export function FolderPickerModal({
         <div className={`${dialogLayout.body} mt-3 flex max-h-56 min-h-36 flex-col gap-1 overflow-y-auto rounded-panel border border-border bg-card p-2`}>
           {isLoading ? (
             <div className="flex flex-1 flex-col items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin text-info" />
+              <Loader2 className="h-6 w-6 animate-spin text-info-content" />
               <span className="mt-2 text-xs font-semibold">
                 Loading folders...
               </span>
@@ -168,7 +168,7 @@ export function FolderPickerModal({
                 onClick={() => handleNavigate(folder.id, folder.name)}
                 className="flex items-center gap-3 rounded-control p-2.5 text-left text-xs font-semibold text-foreground transition hover:bg-background cursor-pointer"
               >
-                <Folder className="h-4 w-4 text-warning shrink-0" />
+                <Folder className="h-4 w-4 text-warning-content shrink-0" />
                 <span className="truncate">{folder.name}</span>
               </button>
             ))

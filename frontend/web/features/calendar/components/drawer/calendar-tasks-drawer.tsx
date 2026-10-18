@@ -183,7 +183,7 @@ export function CalendarTasksDrawer({
                       label: "Overdue",
                     },
                   ]}
-                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-input bg-card pl-2.5 pr-6 text-xs font-medium text-foreground transition hover:border-input hover:bg-background focus:border-info focus:ring-2 focus:ring-ring"
+                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-input bg-card pl-2.5 pr-6 text-xs font-medium text-foreground transition hover:border-input hover:bg-background focus:border-info-outline focus:ring-2 focus:ring-ring"
                   contentClassName="rounded-lg border-border"
                 />
               </div>
@@ -210,7 +210,7 @@ export function CalendarTasksDrawer({
                       label: "Completed",
                     },
                   ]}
-                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-input bg-card pl-2.5 pr-6 text-xs font-medium text-foreground transition hover:border-input hover:bg-background focus:border-info focus:ring-2 focus:ring-ring"
+                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-input bg-card pl-2.5 pr-6 text-xs font-medium text-foreground transition hover:border-input hover:bg-background focus:border-info-outline focus:ring-2 focus:ring-ring"
                   contentClassName="rounded-lg border-border"
                 />
               </div>
@@ -339,7 +339,7 @@ function TaskLoadError({
   if (compact) {
     return (
       <div
-        className="flex items-center gap-2 rounded-lg border border-border bg-destructive-soft px-3 py-2 text-xs font-medium text-destructive"
+        className="flex items-center gap-2 rounded-lg border border-border bg-destructive-soft px-3 py-2 text-xs font-medium text-destructive-content"
         role="alert"
       >
         <AlertCircle className="h-4 w-4 shrink-0" />
@@ -366,7 +366,7 @@ function TaskLoadError({
       className="flex flex-col items-center justify-center px-4 py-12 text-center"
       role="alert"
     >
-      <span className="grid h-12 w-12 place-items-center rounded-panel bg-destructive-soft text-destructive">
+      <span className="grid h-12 w-12 place-items-center rounded-panel bg-destructive-soft text-destructive-content">
         <AlertCircle className="h-6 w-6" />
       </span>
       <p className="mt-3 text-sm font-semibold text-foreground">
@@ -406,7 +406,7 @@ function TaskEmptyState({
     return (
       <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
         <span
-          className="grid h-12 w-12 place-items-center rounded-panel bg-info-soft text-info"
+          className="grid h-12 w-12 place-items-center rounded-panel bg-info-soft text-info-content"
           aria-hidden="true"
         >
           <FolderKanban className="h-6 w-6" />
@@ -442,7 +442,7 @@ function TaskEmptyState({
     <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
       <span
         className="grid h-12 w-12 place-items-center rounded-panel"
-        style={{ backgroundColor: activeColor + "15", color: activeColor }}
+        style={{ backgroundColor: activeColor + "15", color: "var(--foreground)" }}
         aria-hidden="true"
       >
         {projectTab ? (

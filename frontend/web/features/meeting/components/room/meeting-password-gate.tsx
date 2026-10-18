@@ -43,7 +43,7 @@ export function MeetingPasswordGate({
           onSubmit={handleSubmit}
           className="w-full max-w-md rounded-lg border border-border bg-card p-6"
         >
-          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/16 text-info ring-1 ring-ring/20">
+          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/16 text-info-content ring-1 ring-ring/20">
             <LockKeyhole className="h-8 w-8" />
           </span>
 
@@ -80,7 +80,7 @@ export function MeetingPasswordGate({
           </div>
 
           {shownError ? (
-            <p className="mt-2 text-sm font-semibold text-destructive">{shownError}</p>
+            <p className="mt-2 text-sm font-semibold text-destructive-content">{shownError}</p>
           ) : (
             <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">
               This meeting requires a password before you can continue.

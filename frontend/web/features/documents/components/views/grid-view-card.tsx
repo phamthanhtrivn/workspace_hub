@@ -156,7 +156,7 @@ export function GridViewCard({
         <div className="flex items-center justify-between pt-2">
           <DocumentsStatusBadge type="itemType" itemType={item.type} />
           {!isProjectDocuments && item.isStarred ? (
-            <Star className="h-3.5 w-3.5 fill-warning text-warning" />
+            <Star className="h-3.5 w-3.5 fill-warning-content text-warning-content" />
           ) : null}
         </div>
       </DocumentsCard>

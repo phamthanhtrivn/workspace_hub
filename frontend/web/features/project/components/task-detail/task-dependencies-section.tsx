@@ -94,7 +94,7 @@ export default function TaskDependenciesSection({
             variant="outline"
             size="sm"
             onClick={() => setIsOpen((prev) => !prev)}
-            className="h-7 cursor-pointer items-center gap-1.5 rounded-control border border-dashed border-input px-2.5 text-xs font-semibold text-muted-foreground transition hover:border-info hover:bg-info-soft hover:text-info"
+            className="h-7 cursor-pointer items-center gap-1.5 rounded-control border border-dashed border-input px-2.5 text-xs font-semibold text-muted-foreground transition hover:border-info-outline hover:bg-info-soft hover:text-info-content"
           >
             <Link2 className="h-3.5 w-3.5" />
             Blocked by ({taskDependencies.length})
@@ -137,7 +137,7 @@ export default function TaskDependenciesSection({
               <Badge
                 key={dependency.id}
                 variant="outline"
-                className="inline-flex max-w-full items-center gap-1.5 rounded-full border-border bg-info-soft/80 px-2.5 py-0.5 text-xs font-semibold text-info"
+                className="inline-flex max-w-full items-center gap-1.5 rounded-full border-border bg-info-soft/80 px-2.5 py-0.5 text-xs font-semibold text-info-content"
               >
                 <span className="truncate">
                   Blocked by {predecessor?.title || "Predecessor Task"}
@@ -150,7 +150,7 @@ export default function TaskDependenciesSection({
                     onClick={() =>
                       void onDeleteDependency(dependency.predecessorTaskId)
                     }
-                    className="ml-0.5 h-3.5 w-3.5 cursor-pointer p-0 font-semibold hover:bg-transparent hover:text-destructive"
+                    className="ml-0.5 h-3.5 w-3.5 cursor-pointer p-0 font-semibold hover:bg-transparent hover:text-destructive-content"
                     aria-label="Remove dependency"
                   >
                     x

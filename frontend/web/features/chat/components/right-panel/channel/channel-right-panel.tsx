@@ -337,7 +337,7 @@ export default function ChannelRightPanel({
               <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
                 <Pin
                   size={18}
-                  className={isPinned ? "fill-info text-info" : ""}
+                  className={isPinned ? "fill-info-content text-info-content" : ""}
                 />
               </div>
               <span className="text-xs font-medium">

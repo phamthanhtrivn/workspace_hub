@@ -178,7 +178,7 @@ export function CalendarDocumentsSection({
                 key={id}
                 className="flex items-center gap-2 rounded-panel border border-border bg-card px-3 py-2"
               >
-                <FileText className="h-4 w-4 shrink-0 text-info" />
+                <FileText className="h-4 w-4 shrink-0 text-info-content" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-xs font-semibold text-foreground">
                     {fileName}
@@ -204,7 +204,7 @@ export function CalendarDocumentsSection({
                     size="icon"
                     variant="ghost"
                     disabled={isBusy}
-                    className="h-7 w-7 rounded-control text-destructive hover:bg-destructive-soft hover:text-destructive"
+                    className="h-7 w-7 rounded-control text-destructive-content hover:bg-destructive-soft hover:text-destructive-content"
                     onClick={() => handleRemove(id)}
                     title="Remove"
                     aria-label="Remove"

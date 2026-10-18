@@ -110,7 +110,7 @@ export function PomodoroTimerDisplay({
                 theme.tabClass,
               )}>
               <TabIcon aria-hidden="true" className="size-3.5" />
-              <span>{theme.name}<span className="block text-xs opacity-70">{modeDurations[tabMode]}m</span></span>
+              <span>{theme.name}<span className="block text-xs">{modeDurations[tabMode]}m</span></span>
             </TabsTrigger>
           );
         })}
@@ -138,9 +138,9 @@ export function PomodoroTimerDisplay({
                 className={cn(
                   "size-1.5 rounded-full transition-all",
                   isRunning
-                    ? "animate-pulse bg-success ring-2 ring-success/80"
+                    ? "animate-pulse bg-success-content ring-2 ring-success-outline/80"
                     : status === "PAUSED"
-                      ? "bg-warning ring-2 ring-warning/80"
+                      ? "bg-warning-content ring-2 ring-warning-outline/80"
                       : "bg-muted-foreground/70",
                 )}
               />
@@ -215,9 +215,9 @@ export function PomodoroTimerDisplay({
                   className={cn(
                     "size-1.5 rounded-full transition-all",
                     isRunning
-                      ? "animate-ping bg-success"
+                      ? "animate-ping bg-success-content"
                       : status === "PAUSED"
-                        ? "bg-warning"
+                        ? "bg-warning-content"
                         : "bg-border",
                   )}
                 />

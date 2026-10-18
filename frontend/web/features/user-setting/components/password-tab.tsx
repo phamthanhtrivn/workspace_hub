@@ -167,7 +167,7 @@ const PasswordTab = React.memo(function PasswordTab() {
   if (isLoading) {
     return (
       <div className="flex h-full min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-link" />
       </div>
     );
   }
@@ -179,13 +179,13 @@ const PasswordTab = React.memo(function PasswordTab() {
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
       {/* Warning banner — only for Google users without a password */}
       {!hasPassword && (
-        <div className="flex items-start gap-3 rounded-panel border border-warning bg-warning-soft px-4 py-3 mt-10">
-          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+        <div className="flex items-start gap-3 rounded-panel border border-warning-outline bg-warning-soft px-4 py-3 mt-10">
+          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-warning-content" />
           <div>
-            <p className="text-sm font-semibold text-warning">
+            <p className="text-sm font-semibold text-warning-content">
               Your account doesn&apos;t have a password yet
             </p>
-            <p className="text-xs text-warning mt-0.5">
+            <p className="text-xs text-warning-content mt-0.5">
               Without a password, anyone who gains access to your session can
               permanently lock you out.
             </p>
@@ -196,9 +196,9 @@ const PasswordTab = React.memo(function PasswordTab() {
       {/* Section header */}
       <div className="flex items-center gap-2">
         {hasPassword ? (
-          <ShieldCheck className="h-5 w-5 text-primary" />
+          <ShieldCheck className="h-5 w-5 text-link" />
         ) : (
-          <KeyRound className="h-5 w-5 text-warning" />
+          <KeyRound className="h-5 w-5 text-warning-content" />
         )}
         <h3 className="text-section-title font-semibold text-foreground">
           {hasPassword ? "Change password" : "Set a password"}
@@ -236,7 +236,7 @@ const PasswordTab = React.memo(function PasswordTab() {
             id="update-password-btn"
             onClick={handleUpdatePassword}
             disabled={updatePasswordMutation.isPending}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-control border border-primary bg-card text-sm font-semibold text-primary transition hover:bg-primary hover:text-primary-foreground disabled:opacity-70 cursor-pointer"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-control border border-primary bg-card text-sm font-semibold text-link transition hover:bg-primary hover:text-primary-foreground disabled:opacity-70 cursor-pointer"
           >
             {updatePasswordMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -265,7 +265,7 @@ const PasswordTab = React.memo(function PasswordTab() {
               variant="outline"
               onClick={handleSendOtp}
               disabled={sendOtpMutation.isPending || otpCooldown > 0}
-              className="flex shrink-0 items-center gap-2 rounded-control border border-input bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-primary hover:text-primary disabled:opacity-60 cursor-pointer"
+              className="flex shrink-0 items-center gap-2 rounded-control border border-input bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-primary hover:text-link disabled:opacity-60 cursor-pointer"
             >
               {sendOtpMutation.isPending && (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -277,7 +277,7 @@ const PasswordTab = React.memo(function PasswordTab() {
                   : "Send OTP to email"}
             </Button>
             {otpSent && (
-              <p className="text-xs text-success font-medium">
+              <p className="text-xs text-success-content font-medium">
                 Code sent ✓
               </p>
             )}

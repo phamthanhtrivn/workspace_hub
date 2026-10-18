@@ -40,20 +40,20 @@ export default function ProjectInvitationsScreen({
   return (
     <main className="mx-auto w-full max-w-2xl space-y-4 p-6">
       <h1 className="text-page-title font-semibold text-foreground">Project Invitations</h1>
-      <Link href="/projects" className="text-sm font-semibold text-info hover:underline">
+      <Link href="/projects" className="text-sm font-semibold text-info-content hover:underline">
         ← Back to Projects
       </Link>
       {query.isLoading ? (
         <p className="text-xs text-muted-foreground">Loading invitations...</p>
       ) : query.isError ? (
-        <p role="alert" className="text-xs text-destructive">
+        <p role="alert" className="text-xs text-destructive-content">
           Failed to load invitations.{" "}
           <Button
             type="button"
             variant="link"
             size="sm"
             onClick={() => void query.refetch()}
-            className="h-auto p-0 font-semibold underline text-destructive hover:text-destructive cursor-pointer"
+            className="h-auto p-0 font-semibold underline text-destructive-content hover:text-destructive-content cursor-pointer"
           >
             Retry
           </Button>

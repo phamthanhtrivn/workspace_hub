@@ -73,7 +73,7 @@ export function MeetingRoomAdmissionPanel({
           setPage(1);
         }}
         placeholder="Search by name or email..."
-        containerClassName="border-border bg-accent focus-within:border-border focus-within:ring-border/10"
+        containerClassName="border-input bg-accent focus-within:border-input focus-within:ring-ring"
         className="text-muted-foreground placeholder:text-muted-foreground"
       />
 
@@ -85,7 +85,7 @@ export function MeetingRoomAdmissionPanel({
             controlSize="sm"
             disabled={actions.approveAll.isPending}
             onClick={() => actions.approveAll.mutate()}
-            className="flex-1 bg-success hover:bg-success"
+            className="flex-1 bg-success text-success-foreground hover:bg-success hover:text-success-foreground"
           >
             <Check className="h-3.5 w-3.5" />
             Accept all
@@ -161,7 +161,7 @@ export function MeetingRoomAdmissionPanel({
                     controlSize="sm"
                     disabled={isBusy}
                     onClick={() => actions.approveOne.mutate(request.userId)}
-                    className="bg-success hover:bg-success"
+                    className="bg-success text-success-foreground hover:bg-success hover:text-success-foreground"
                   >
                     <Check className="h-3.5 w-3.5" />
                     Accept

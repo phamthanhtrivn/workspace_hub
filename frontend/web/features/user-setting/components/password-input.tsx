@@ -39,7 +39,7 @@ const PasswordInput = React.memo(function PasswordInput({
           className={cn(
             "h-10 w-full rounded-control border bg-card px-3 pr-10 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground focus-visible:ring-2",
             error
-              ? "border-destructive focus-visible:ring-ring"
+              ? "border-destructive-outline focus-visible:ring-ring"
               : "border-input focus-visible:border-primary focus-visible:ring-ring",
           )}
         />
@@ -52,7 +52,7 @@ const PasswordInput = React.memo(function PasswordInput({
           {show ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>
       </div>
-      {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
+      {error && <p className="text-xs font-semibold text-destructive-content">{error}</p>}
     </div>
   );
 });

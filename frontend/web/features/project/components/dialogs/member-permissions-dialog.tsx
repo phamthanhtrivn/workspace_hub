@@ -130,7 +130,7 @@ export default function MemberPermissionsDialog({
             />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 shrink-0 text-info" />
+                <ShieldCheck className="h-4 w-4 shrink-0 text-info-content" />
                 <DialogTitle className="truncate text-section-title font-semibold text-foreground">
                   Permissions: {member.displayName}
                 </DialogTitle>
@@ -161,7 +161,7 @@ export default function MemberPermissionsDialog({
               </div>
               <Badge
                 variant="outline"
-                className="border-border bg-info-soft/70 text-xs font-semibold text-info"
+                className="border-border bg-info-soft/70 text-xs font-semibold text-info-content"
               >
                 Included
               </Badge>
@@ -170,7 +170,7 @@ export default function MemberPermissionsDialog({
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {DEFAULT_CAPABILITIES.map((capability) => (
                 <div key={capability.title} className="flex items-start gap-2.5">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-info" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-info-content" />
                   <div>
                     <p className="text-xs font-semibold text-foreground">
                       {capability.title}
@@ -266,8 +266,8 @@ export default function MemberPermissionsDialog({
             );
           })}
 
-          <div className="flex items-start gap-2 rounded-panel bg-warning-soft px-3.5 py-2.5 text-xs text-warning border border-border">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+          <div className="flex items-start gap-2 rounded-panel bg-warning-soft px-3.5 py-2.5 text-xs text-warning-content border border-border">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning-content" />
             <p className="text-xs leading-relaxed">
               Task creators always retain permission to edit tasks they originally created.
             </p>

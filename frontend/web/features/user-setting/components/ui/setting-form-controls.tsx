@@ -37,13 +37,13 @@ export const SettingInput = React.forwardRef<HTMLInputElement, SettingInputProps
           className={cn(
             "h-10 rounded-control border bg-card px-3 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground focus-visible:ring-2",
             error
-              ? "border-destructive focus-visible:ring-ring"
+              ? "border-destructive-outline focus-visible:ring-ring"
               : "border-input focus-visible:border-primary focus-visible:ring-ring",
             className,
           )}
           {...props}
         />
-        {error && <p id={`${inputId}-error`} role="alert" className="text-xs font-semibold text-destructive">{error}</p>}
+        {error && <p id={`${inputId}-error`} role="alert" className="text-xs font-semibold text-destructive-content">{error}</p>}
       </div>
     );
   },
@@ -92,7 +92,7 @@ export const SettingSlider = React.forwardRef<HTMLInputElement, SettingSliderPro
           <span>{min}{unit}</span>
           <span>{max}{unit}</span>
         </div>
-        {error && <p id={`${id}-error`} role="alert" className="mt-1 text-xs font-semibold text-destructive">{error}</p>}
+        {error && <p id={`${id}-error`} role="alert" className="mt-1 text-xs font-semibold text-destructive-content">{error}</p>}
       </div>
     );
   },
@@ -120,13 +120,13 @@ export const SettingTextarea = React.forwardRef<
         className={cn(
           "rounded-control border bg-card px-3 py-2.5 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground focus-visible:ring-2 resize-none",
           error
-            ? "border-destructive focus-visible:ring-ring"
+            ? "border-destructive-outline focus-visible:ring-ring"
             : "border-input focus-visible:border-primary focus-visible:ring-ring",
           className,
         )}
         {...props}
       />
-      {error && <p className="text-xs font-semibold text-destructive">{error}</p>}
+      {error && <p className="text-xs font-semibold text-destructive-content">{error}</p>}
     </div>
   );
 });

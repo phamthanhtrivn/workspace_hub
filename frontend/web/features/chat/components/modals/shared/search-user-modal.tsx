@@ -179,10 +179,10 @@ const SearchUserModal = React.memo(function SearchUserModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter user email..."
-                  className="w-full pl-11 pr-4 py-3 bg-card border border-input rounded-control focus:outline-none focus:border-info focus:ring-4 focus:ring-ring transition-all text-sm font-medium text-foreground placeholder:text-muted-foreground"
+                  className="w-full pl-11 pr-4 py-3 bg-card border border-input rounded-control focus:outline-none focus:border-info-outline focus:ring-4 focus:ring-ring transition-all text-sm font-medium text-foreground placeholder:text-muted-foreground"
                 />
                 <Search
-                  className="absolute left-3.5 top-3 text-muted-foreground group-focus-within:text-info transition-colors"
+                  className="absolute left-3.5 top-3 text-muted-foreground group-focus-within:text-info-content transition-colors"
                   size={20}
                 />
               </div>
@@ -201,9 +201,9 @@ const SearchUserModal = React.memo(function SearchUserModal({
               {!loading && error && (
                 <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
                   <div className="w-12 h-12 bg-destructive-soft rounded-full flex items-center justify-center mb-3">
-                    <Search size={24} className="text-destructive" />
+                    <Search size={24} className="text-destructive-content" />
                   </div>
-                  <p className="text-destructive font-medium">{error}</p>
+                  <p className="text-destructive-content font-medium">{error}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Please check the email address and try again.
                   </p>
@@ -245,7 +245,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                           )}
                         </div>
                         <div className="overflow-hidden">
-                          <p className="font-semibold text-foreground text-sm truncate group-hover:text-info transition-colors">
+                          <p className="font-semibold text-foreground text-sm truncate group-hover:text-info-content transition-colors">
                             {user.fullName || "User"}
                           </p>
                           <p className="text-xs text-muted-foreground truncate mt-0.5">
@@ -258,7 +258,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                           e.stopPropagation();
                           handleMessage(user);
                         }}
-                        className="p-2 text-info hover:bg-info-soft rounded-control transition-colors shrink-0 cursor-pointer"
+                        className="p-2 text-info-content hover:bg-info-soft rounded-control transition-colors shrink-0 cursor-pointer"
                         title="Send Message"
                       >
                         <MessageCircle size={20} />

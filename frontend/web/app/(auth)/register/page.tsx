@@ -10,7 +10,7 @@ export default function RegisterPage() {
     <div>
       <Link
         href="/"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary transition mb-6"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-link transition mb-6"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Home
@@ -40,7 +40,7 @@ export default function RegisterPage() {
         Already have an account?{" "}
         <Link
           href="/login"
-          className="font-bold text-primary transition hover:text-foreground underline"
+          className="font-bold text-link transition hover:text-foreground underline"
         >
           Sign In
         </Link>

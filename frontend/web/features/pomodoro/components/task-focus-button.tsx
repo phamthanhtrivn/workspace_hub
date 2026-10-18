@@ -19,7 +19,7 @@ function FocusButton({ target, compact = false }: { target: PomodoroActiveTask; 
   if (compact) return (
     <span data-card-interactive="true" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
       <Popover>
-        <PopoverTrigger asChild><Button type="button" size="sm" variant="ghost" disabled={disabled} aria-label={`Focus actions: ${target.title}`} title={label} className="size-7 rounded-control p-1 text-info"><Timer className="size-3.5" /></Button></PopoverTrigger>
+        <PopoverTrigger asChild><Button type="button" size="sm" variant="ghost" disabled={disabled} aria-label={`Focus actions: ${target.title}`} title={label} className="size-7 rounded-control p-1 text-info-content"><Timer className="size-3.5" /></Button></PopoverTrigger>
         <PopoverContent align="end" className="w-44 p-1">
           <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => void startFocus(target)} className="w-full justify-start gap-2 text-xs"><Timer className="size-3.5" />{label}</Button>
         </PopoverContent>

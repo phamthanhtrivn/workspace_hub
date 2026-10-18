@@ -42,30 +42,30 @@ const COLUMNS: {
   {
     status: TaskStatus.IN_PROGRESS,
     label: "IN PROGRESS",
-    headerColor: "text-info",
+    headerColor: "text-info-content",
     badgeBg: "bg-primary-soft",
-    badgeText: "text-info",
+    badgeText: "text-info-content",
   },
   {
     status: TaskStatus.IN_REVIEW,
     label: "IN REVIEW",
-    headerColor: "text-warning",
+    headerColor: "text-warning-content",
     badgeBg: "bg-warning-soft",
-    badgeText: "text-warning",
+    badgeText: "text-warning-content",
   },
   {
     status: TaskStatus.DONE,
     label: "DONE",
-    headerColor: "text-success",
+    headerColor: "text-success-content",
     badgeBg: "bg-success-soft",
-    badgeText: "text-success",
+    badgeText: "text-success-content",
   },
   {
     status: TaskStatus.CANCELLED,
     label: "CANCELLED",
-    headerColor: "text-destructive",
+    headerColor: "text-destructive-content",
     badgeBg: "bg-destructive-soft",
-    badgeText: "text-destructive",
+    badgeText: "text-destructive-content",
   },
 ];
 
@@ -204,7 +204,7 @@ export default function BoardView({
                           variant="link"
                           size="sm"
                           onClick={() => onAddTask(col.status)}
-                          className="mt-2 h-auto p-0 inline-flex items-center gap-1 font-semibold text-info hover:underline cursor-pointer"
+                          className="mt-2 h-auto p-0 inline-flex items-center gap-1 font-semibold text-info-content hover:underline cursor-pointer"
                         >
                           <Plus className="h-3 w-3" strokeWidth={2.5} />
                           Add Task

@@ -42,18 +42,18 @@ const NoteMessage = React.memo(function NoteMessage({
         <div className="absolute top-0 right-0 w-8 h-8 bg-card rounded-bl-2xl border-b border-l border-border" />
 
         <div className="flex items-start gap-3.5 mb-3.5 relative z-10">
-          <div className="bg-warning p-2.5 rounded-panel text-warning-foreground border border-warning">
+          <div className="bg-warning p-2.5 rounded-panel text-warning-foreground border border-warning-outline">
             <FileText size={22} />
           </div>
           <div className="flex-1 pr-6">
-            <h3 className="text-section-title font-semibold text-warning leading-tight">
+            <h3 className="text-section-title font-semibold text-warning-content leading-tight">
               {note.title}
             </h3>
-            <div className="flex items-center gap-2 text-xs text-warning mt-1 font-medium">
+            <div className="flex items-center gap-2 text-xs text-warning-content mt-1 font-medium">
               <span>
                 by{" "}
                 <span
-                  className={`font-semibold text-warning ${!isMe ? "cursor-pointer hover:underline" : ""}`}
+                  className={`font-semibold text-warning-content ${!isMe ? "cursor-pointer hover:underline" : ""}`}
                   onClick={() => {
                     if (!isMe) onUserClick?.(note.createdBy);
                   }}
@@ -78,7 +78,7 @@ const NoteMessage = React.memo(function NoteMessage({
         {isMe && onEditNote && (
           <button
             onClick={() => setIsEditModalOpen(true)}
-            className="cursor-pointer w-full mt-4 py-2.5 flex items-center justify-center gap-2 text-xs font-semibold text-warning bg-warning-soft hover:bg-warning-soft/90 rounded-control transition-all duration-200"
+            className="cursor-pointer w-full mt-4 py-2.5 flex items-center justify-center gap-2 text-xs font-semibold text-warning-content bg-warning-soft hover:bg-warning-soft/90 rounded-control transition-all duration-200"
           >
             <Edit2 size={14} />
             Edit Note

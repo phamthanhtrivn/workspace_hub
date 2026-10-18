@@ -295,14 +295,14 @@ export default function ManageMembersModal({
           <div className="relative group">
             <FiSearch
               size={18}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-info transition-colors"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-info-content transition-colors"
             />
             <input
               type="text"
               placeholder="Search members..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-card border border-input rounded-control text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-info transition-all placeholder:text-muted-foreground"
+              className="w-full pl-11 pr-4 py-3 bg-card border border-input rounded-control text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-info-outline transition-all placeholder:text-muted-foreground"
             />
           </div>
         </div>
@@ -353,7 +353,7 @@ export default function ManageMembersModal({
                       </span>
                     ) : member.role === SpaceRole.ADMIN ? (
                       <span
-                        className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-muted-foreground border border-border text-primary-foreground"
+                        className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-muted border border-border text-muted-foreground"
                         title="Admin"
                       >
                         <FaKey size={8} />
@@ -366,13 +366,13 @@ export default function ManageMembersModal({
                         {displayName}
                       </span>
                       {isCreator ? (
-                        <span className="text-xs bg-warning-soft text-warning px-1.5 py-0.5 rounded font-semibold flex items-center gap-1 border border-border">
-                          <FaKey size={10} className="text-warning" />{" "}
+                        <span className="text-xs bg-warning-soft text-warning-content px-1.5 py-0.5 rounded font-semibold flex items-center gap-1 border border-border">
+                          <FaKey size={10} className="text-warning-content" />{" "}
                           Owner
                         </span>
                       ) : member.role === SpaceRole.ADMIN ? (
-                        <span className="text-xs bg-info-soft text-info px-1.5 py-0.5 rounded font-semibold flex items-center gap-1 border border-border">
-                          <FiShield size={10} className="text-info" />{" "}
+                        <span className="text-xs bg-info-soft text-info-content px-1.5 py-0.5 rounded font-semibold flex items-center gap-1 border border-border">
+                          <FiShield size={10} className="text-info-content" />{" "}
                           Admin
                         </span>
                       ) : null}
@@ -393,7 +393,7 @@ export default function ManageMembersModal({
                               handleUpdateRole(member.userId, SpaceRole.ADMIN)
                             }
                             title="Promote to Admin"
-                            className="p-2 text-muted-foreground hover:text-info hover:bg-info-soft rounded-control transition-colors cursor-pointer"
+                            className="p-2 text-muted-foreground hover:text-info-content hover:bg-info-soft rounded-control transition-colors cursor-pointer"
                           >
                             <FiShield size={18} />
                           </button>
@@ -404,7 +404,7 @@ export default function ManageMembersModal({
                                 handleUpdateRole(member.userId, SpaceRole.MEMBER)
                               }
                               title="Demote to Member"
-                              className="p-2 text-info hover:bg-info-soft rounded-control transition-colors cursor-pointer"
+                              className="p-2 text-info-content hover:bg-info-soft rounded-control transition-colors cursor-pointer"
                             >
                               <FiShieldOff size={18} />
                             </button>
@@ -412,9 +412,9 @@ export default function ManageMembersModal({
                         <button
                           onClick={() => handleTransferOwnership(member.userId)}
                           title="Transfer Ownership"
-                          className="p-2 text-muted-foreground hover:text-warning hover:bg-warning-soft rounded-control transition-colors cursor-pointer"
+                          className="p-2 text-muted-foreground hover:text-warning-content hover:bg-warning-soft rounded-control transition-colors cursor-pointer"
                         >
-                          <FaKey size={16} className="text-warning" />
+                          <FaKey size={16} className="text-warning-content" />
                         </button>
                       </>
                     )}
@@ -423,7 +423,7 @@ export default function ManageMembersModal({
                       <button
                         onClick={() => handleKickMember(member.userId)}
                         title="Remove from Space"
-                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive-soft rounded-control transition-colors cursor-pointer"
+                        className="p-2 text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft rounded-control transition-colors cursor-pointer"
                       >
                         <FiTrash2 size={18} />
                       </button>
@@ -439,7 +439,7 @@ export default function ManageMembersModal({
           <button
             onClick={handleLeaveSpace}
             disabled={isProcessing}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-destructive bg-card border border-border hover:bg-destructive-soft hover:border-destructive rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-destructive-content bg-card border border-border hover:bg-destructive-soft hover:border-destructive-outline rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FiLogOut size={18} />
             {leaveLabel}

@@ -7,14 +7,14 @@ interface AvatarItem {
 }
 
 const PALETTE = [
-  "bg-primary",
-  "bg-destructive",
-  "bg-warning",
-  "bg-success",
-  "bg-primary",
-  "bg-primary",
-  "bg-primary",
-  "bg-success",
+  "bg-primary text-primary-foreground",
+  "bg-destructive text-destructive-foreground",
+  "bg-warning text-warning-foreground",
+  "bg-success text-success-foreground",
+  "bg-primary text-primary-foreground",
+  "bg-primary text-primary-foreground",
+  "bg-primary text-primary-foreground",
+  "bg-success text-success-foreground",
 ];
 
 function colorForUser(userId: string): string {
@@ -64,7 +64,7 @@ export function Avatar({
   return (
     <span
       title={user.displayName}
-      className={`${sizeClasses[size]} ${colorForUser(user.userId)} inline-grid shrink-0 place-items-center rounded-full font-semibold text-primary-foreground ring-2 ring-border`}
+      className={`${sizeClasses[size]} ${colorForUser(user.userId)} inline-grid shrink-0 place-items-center rounded-full font-semibold ring-2 ring-border`}
     >
       {getInitials(user.displayName)}
     </span>

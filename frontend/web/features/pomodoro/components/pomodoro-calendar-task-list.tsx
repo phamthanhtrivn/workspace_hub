@@ -105,9 +105,9 @@ function CalendarTaskRow({
       className={cn(
         "group flex flex-col cursor-grab touch-pan-y rounded-panel border bg-card transition-[border-color,background-color,opacity,box-shadow] duration-200 active:cursor-grabbing",
         isActive
-          ? "border-info bg-info-soft/70"
+          ? "border-info-outline bg-info-soft/70"
           : "border-border hover:border-input hover:bg-background",
-        isOver && !isDragging && "border-info bg-info-soft/70",
+        isOver && !isDragging && "border-info-outline bg-info-soft/70",
         isDragging && "z-10 opacity-60",
       )}
     >
@@ -143,7 +143,7 @@ function CalendarTaskRow({
               className={cn(
                 "shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums transition-colors",
                 isActive
-                  ? "bg-info-soft/80 text-info"
+                  ? "bg-info-soft/80 text-info-content"
                   : "bg-muted text-muted-foreground group-hover:bg-accent/60",
               )}
             >
@@ -157,7 +157,7 @@ function CalendarTaskRow({
           {note && !isNoteExpanded && (
             <div className="mt-1 flex w-full items-center gap-1.5 text-xs text-muted-foreground">
               <StickyNote
-                className="size-3 shrink-0 text-warning"
+                className="size-3 shrink-0 text-warning-content"
                 aria-hidden="true"
               />
               <span className="truncate leading-snug">{note}</span>
@@ -182,8 +182,8 @@ function CalendarTaskRow({
               isNoteExpanded ? "Collapse notes" : `Show all notes: ${note}`
             }
             className={cn(
-              "px-0 mr-1.5 my-auto flex size-7 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-warning-soft hover:text-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              isNoteExpanded && "bg-warning-soft text-warning",
+              "px-0 mr-1.5 my-auto flex size-7 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-warning-soft hover:text-warning-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isNoteExpanded && "bg-warning-soft text-warning-content",
             )}
           >
             <ChevronDown
@@ -222,7 +222,7 @@ function CalendarTaskRow({
                 setIsMenuOpen(false);
                 onRequestDelete();
               }}
-              className="h-auto justify-start whitespace-normal px-0 flex w-full items-center gap-2 rounded-control px-2.5 py-2 text-left text-xs font-semibold text-destructive transition-colors hover:bg-destructive-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-auto justify-start whitespace-normal px-0 flex w-full items-center gap-2 rounded-control px-2.5 py-2 text-left text-xs font-semibold text-destructive-content transition-colors hover:bg-destructive-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Trash2 className="size-3.5" />
               Delete task
@@ -233,8 +233,8 @@ function CalendarTaskRow({
 
       {note && isNoteExpanded && (
         <div className="mx-2.5 mb-2.5 mt-0.5 rounded-lg border border-border bg-warning-soft/50 px-3 py-2 text-xs leading-relaxed text-foreground">
-          <div className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-warning">
-            <StickyNote className="size-3 text-warning" aria-hidden="true" />
+          <div className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-warning-content">
+            <StickyNote className="size-3 text-warning-content" aria-hidden="true" />
             <span>Task notes</span>
           </div>
           <p className="whitespace-pre-wrap break-words">{note}</p>
@@ -328,7 +328,7 @@ export function PomodoroCalendarTaskList({
           className="max-w-sm rounded-panel border border-border bg-card p-5"
         >
           <div className="flex items-start gap-3.5">
-            <span className="grid size-10 shrink-0 place-items-center rounded-panel border border-border bg-destructive-soft text-destructive">
+            <span className="grid size-10 shrink-0 place-items-center rounded-panel border border-border bg-destructive-soft text-destructive-content">
               <AlertTriangle className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
@@ -339,7 +339,7 @@ export function PomodoroCalendarTaskList({
                 Are you sure you want to delete “{deleteCandidate?.title}” from Calendar?
               </AlertDialogDescription>
               {deleteError && (
-                <p role="alert" className="mt-2 text-xs font-medium text-destructive">
+                <p role="alert" className="mt-2 text-xs font-medium text-destructive-content">
                   {deleteError}
                 </p>
               )}

@@ -36,11 +36,11 @@ function Slider({
       >
         <SliderPrimitive.Track
           data-slot="slider-track"
-          className="relative h-2 w-full grow overflow-hidden rounded-full bg-accent data-[vertical]:h-full data-[vertical]:w-2"
+          className="relative h-2 w-full grow overflow-hidden rounded-full bg-muted ring-1 ring-inset ring-input data-[vertical]:h-full data-[vertical]:w-2"
         >
           <SliderPrimitive.Indicator
             data-slot="slider-range"
-            className="rounded-full bg-primary data-[horizontal]:h-full data-[vertical]:w-full"
+            className="rounded-full bg-link data-[horizontal]:h-full data-[vertical]:w-full"
           />
         </SliderPrimitive.Track>
         {Array.from({ length: thumbCount }, (_, index) => (
@@ -50,7 +50,7 @@ function Slider({
             data-slot="slider-thumb"
             {...thumbProps}
             className={cn(
-              "block size-5 shrink-0 cursor-grab rounded-full border-2 border-primary bg-card outline-none transition-[box-shadow] hover:ring-4 hover:ring-primary/10 focus-visible:ring-4 focus-visible:ring-ring active:cursor-grabbing data-[disabled]:cursor-not-allowed",
+              "block size-5 shrink-0 cursor-grab rounded-full border-2 border-link bg-card outline-none transition-[box-shadow] hover:ring-4 hover:ring-primary/10 focus-visible:ring-4 focus-visible:ring-ring active:cursor-grabbing data-[disabled]:cursor-not-allowed",
               thumbProps?.className,
             )}
           />

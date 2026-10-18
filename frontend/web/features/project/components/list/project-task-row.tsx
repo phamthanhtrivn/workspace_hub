@@ -114,7 +114,7 @@ export default function ProjectTaskRow({
                 event.stopPropagation();
                 onToggleExpanded?.();
               }}
-              className="h-6 w-6 rounded-control text-muted-foreground hover:bg-muted hover:text-info"
+              className="h-6 w-6 rounded-control text-muted-foreground hover:bg-muted hover:text-info-content"
             >
               {isExpanded ? (
                 <ChevronDown className="h-3.5 w-3.5" />
@@ -127,12 +127,12 @@ export default function ProjectTaskRow({
           )}
         </div>
         <div className="shrink-0">{issueIcon}</div>
-        <span className="w-[72px] shrink-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-info">
+        <span className="w-[72px] shrink-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-info-content">
           {issueKey}
         </span>
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <span
-            className={`truncate text-sm font-medium group-hover:text-info ${
+            className={`truncate text-sm font-medium group-hover:text-info-content ${
               level > 0 ? "text-foreground" : "text-foreground"
             }`}
           >
@@ -151,7 +151,7 @@ export default function ProjectTaskRow({
           <span
             className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-semibold ${
               overdue
-                ? "bg-destructive-soft text-destructive"
+                ? "bg-destructive-soft text-destructive-content"
                 : "bg-muted text-muted-foreground"
             }`}
           >
@@ -199,7 +199,7 @@ export default function ProjectTaskRow({
               event.stopPropagation();
               onStartCreateSubtask?.();
             }}
-            className={`h-7 rounded-md px-2 text-xs font-semibold text-muted-foreground transition hover:bg-info-soft hover:text-info focus-visible:opacity-100 ${subtaskActionVisibility}`}
+            className={`h-7 rounded-md px-2 text-xs font-semibold text-muted-foreground transition hover:bg-info-soft hover:text-info-content focus-visible:opacity-100 ${subtaskActionVisibility}`}
           >
             <Plus className="mr-1 h-3.5 w-3.5" />
             Subtask

@@ -41,9 +41,9 @@ export function VersionUploader({
       {uploadState === UploadState.IDLE ? (
         <div
           onClick={onTriggerFileSelect}
-          className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-panel p-6 hover:bg-background hover:border-info cursor-pointer transition-all duration-200 group"
+          className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-panel p-6 hover:bg-background hover:border-info-outline cursor-pointer transition-all duration-200 group"
         >
-          <div className="p-3 bg-background text-muted-foreground rounded-panel group-hover:bg-info-soft group-hover:text-info transition-all duration-200 mb-3">
+          <div className="p-3 bg-background text-muted-foreground rounded-panel group-hover:bg-info-soft group-hover:text-info-content transition-all duration-200 mb-3">
             <UploadCloud size={24} />
           </div>
           <span className="text-sm font-semibold text-foreground">
@@ -60,12 +60,12 @@ export function VersionUploader({
               {uploadState === UploadState.SUCCESS ? (
                 <CheckCircle2
                   size={16}
-                  className="text-success shrink-0"
+                  className="text-success-content shrink-0"
                 />
               ) : (
                 <Loader2
                   size={16}
-                  className="text-info animate-spin shrink-0"
+                  className="text-info-content animate-spin shrink-0"
                 />
               )}
               <span className="text-xs font-semibold text-foreground truncate max-w-xs">
@@ -78,7 +78,7 @@ export function VersionUploader({
           </div>
           <div className="w-full bg-muted h-1.5 rounded-full overflow-hidden">
             <div
-              className="bg-primary h-full rounded-full transition-all duration-200"
+              className="bg-link h-full rounded-full transition-all duration-200"
               style={{ width: `${uploadProgress}%` }}
             />
           </div>

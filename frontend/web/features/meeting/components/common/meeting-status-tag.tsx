@@ -10,10 +10,10 @@ interface MeetingStatusTagProps {
 }
 
 const meetingStatusTagClassByStatus: Record<MeetingStatus, string> = {
-  SCHEDULED: "bg-info-soft text-info ring-ring",
-  LIVE: "bg-success-soft text-success ring-success",
+  SCHEDULED: "bg-info-soft text-info-content ring-ring",
+  LIVE: "bg-success-soft text-success-content ring-success-outline",
   ENDED: "bg-muted text-foreground ring-ring",
-  CANCELLED: "bg-destructive-soft text-destructive ring-destructive",
+  CANCELLED: "bg-destructive-soft text-destructive-content ring-destructive-outline",
 };
 
 export function MeetingStatusTag({

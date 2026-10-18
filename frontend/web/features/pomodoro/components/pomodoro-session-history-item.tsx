@@ -28,12 +28,12 @@ export function PomodoroSessionHistoryItem({ session, showDates = false }: Pomod
     COMPLETED: {
       label: "Completed",
       icon: CheckCircle,
-      className: "bg-success-soft text-success border-border",
+      className: "bg-success-soft text-success-content border-border",
     },
     STOPPED: {
       label: "Stopped early",
       icon: AlertCircle,
-      className: "bg-warning-soft text-warning border-border",
+      className: "bg-warning-soft text-warning-content border-border",
     },
     SKIPPED: {
       label: "Skipped",
@@ -64,8 +64,8 @@ export function PomodoroSessionHistoryItem({ session, showDates = false }: Pomod
           <div
             className={`size-2.5 rounded-full shrink-0 ${
               isFocus
-                ? "bg-primary ring-2 ring-ring"
-                : "bg-success ring-2 ring-success"
+                ? "bg-link ring-2 ring-ring"
+                : "bg-success-content ring-2 ring-success-outline"
             }`}
           />
 
@@ -90,7 +90,7 @@ export function PomodoroSessionHistoryItem({ session, showDates = false }: Pomod
               </span>
             </div>
             {hasNotes && (
-              <span className="mt-1 flex items-center gap-1 text-xs text-warning">
+              <span className="mt-1 flex items-center gap-1 text-xs text-warning-content">
                 <StickyNote aria-hidden="true" className="size-3" /> Has notes
               </span>
             )}

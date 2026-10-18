@@ -43,9 +43,9 @@ export function MeetingRecordingBanner({
   return (
     <span
       role="status"
-      className="inline-flex items-center gap-2 rounded-md bg-destructive/15 px-3 py-1.5 text-xs font-semibold text-destructive"
+      className="inline-flex items-center gap-2 rounded-md bg-destructive-soft px-3 py-1.5 text-xs font-semibold text-destructive-content"
     >
-      <span className="h-2 w-2 rounded-full bg-destructive" />
+      <span className="h-2 w-2 rounded-full bg-destructive-content" />
       {recording.status === "RECORDING"
         ? `REC ${formatElapsedTime(elapsed)}`
         : recording.status === "STARTING"

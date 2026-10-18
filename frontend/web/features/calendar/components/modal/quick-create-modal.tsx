@@ -76,7 +76,7 @@ export function QuickCreateModal({
   const { control, formState, getValues, register, setValue } = controller.form;
   const calendarId = useWatch({ control, name: "calendarId" });
   const reminders = useWatch({ control, name: "reminders" });
-  const modalAccent = kind === "task" ? tasksColor || "var(--warning)" : "var(--primary)";
+  const modalAccent = kind === "task" ? "var(--warning-content)" : "var(--link)";
   const modalTitle = isEditing
     ? kind === "task"
       ? copy.editTask
@@ -197,10 +197,10 @@ export function QuickCreateModal({
             aria-label={copy.addTitle}
             placeholder={copy.addTitle}
             aria-invalid={Boolean(formState.errors.title)}
-            className="ml-12 h-auto w-[calc(100%-3rem)] rounded-none border-0 border-b border-input bg-transparent px-0 pb-2 text-2xl font-medium leading-tight text-foreground shadow-none outline-none placeholder:text-muted-foreground focus:border-info focus-visible:ring-0 sm:text-[1.7rem]"
+            className="ml-12 h-auto w-[calc(100%-3rem)] rounded-none border-0 border-b border-input bg-transparent px-0 pb-2 text-2xl font-medium leading-tight text-foreground shadow-none outline-none placeholder:text-muted-foreground focus:border-info-outline focus-visible:ring-0 sm:text-[1.7rem]"
           />
           {formState.errors.title && (
-            <p className="ml-12 mt-2 text-xs font-semibold text-destructive">
+            <p className="ml-12 mt-2 text-xs font-semibold text-destructive-content">
               {copy.requiredFields}
             </p>
           )}
@@ -281,7 +281,7 @@ export function QuickCreateModal({
                 aria-label={copy.addDescription}
                 rows={3}
                 placeholder={copy.addDescriptionAttachment}
-                className="min-h-[42px] w-full resize-none rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground hover:border-input focus-visible:border-info focus-visible:ring-2 focus-visible:ring-ring"
+                className="min-h-[42px] w-full resize-none rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground hover:border-input focus-visible:border-info-outline focus-visible:ring-2 focus-visible:ring-ring"
               />
             </QuickRow>
 
@@ -290,8 +290,7 @@ export function QuickCreateModal({
               <QuickRow
                 icon={
                   <ListTodo
-                    className="h-5 w-5"
-                    style={{ color: tasksColor || "var(--warning)" }}
+                    className="h-5 w-5 text-info-content"
                   />
                 }
               >
@@ -368,7 +367,7 @@ export function QuickCreateModal({
             type="button"
             variant="ghost"
             onClick={() => setShowMoreOptions((prev) => !prev)}
-            className="inline-flex h-9 w-fit cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-info transition hover:bg-info-soft"
+            className="inline-flex h-9 w-fit cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-info-content transition hover:bg-info-soft"
           >
             <span>
               {showMoreOptions ? copy.fewerOptions : copy.moreOptions}

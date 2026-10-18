@@ -67,11 +67,11 @@ export function PomodoroCalendarTaskPanel({ tasks, userId, filters, onFiltersCha
       </div>
       <PomodoroTaskFilterControls sourceLabel="Calendar" filters={filters} onChange={onFiltersChange} />
       {isLoading && <p role="status" className="text-xs text-muted-foreground">Loading Calendar tasks…</p>}
-      {isError && <p role="alert" className="text-xs text-destructive">Unable to load Calendar tasks. <Button variant="ghost" onClick={onRetry} className="underline">Retry</Button></p>}
+      {isError && <p role="alert" className="text-xs text-destructive-content">Unable to load Calendar tasks. <Button variant="ghost" onClick={onRetry} className="underline">Retry</Button></p>}
       {!isLoading && !isError && matching.length === 0 && <PomodoroTaskEmptyState sourceLabel="Calendar" filters={filters} onChange={onFiltersChange} />}
       {matching.length > 0 && <PomodoroCalendarTaskList tasks={matching} activeEventId={activeTask?.calendarEventId} isSaving={savingOrder || busy || !isReady}
         onSelect={(event) => { if (!busy && isReady) void startFocus(toCalendarFocusTask(event)); }} onDelete={deleteTask} onReorder={(active, over) => void reorder(active, over)} />}
-      {orderError && <p role="alert" className="text-xs text-destructive">{orderError}</p>}
+      {orderError && <p role="alert" className="text-xs text-destructive-content">{orderError}</p>}
     </div>
   );
 }

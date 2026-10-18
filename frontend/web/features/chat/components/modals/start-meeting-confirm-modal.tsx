@@ -38,7 +38,7 @@ export function StartMeetingConfirmModal({
     >
       <div className={`${dialogLayout.surface} w-full max-w-md rounded-panel border border-border bg-card p-6 transition-all animate-in zoom-in-95 duration-150`}>
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-panel bg-info-soft text-info border border-border">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-panel bg-info-soft text-info-content border border-border">
             <Video className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1 pt-0.5">

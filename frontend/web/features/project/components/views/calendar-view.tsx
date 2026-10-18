@@ -40,23 +40,23 @@ const MONTH_INDEXES = Array.from({ length: 12 }, (_, index) => index);
 const statusColors: Record<TaskStatus, { label: string; card: string }> = {
   [TaskStatus.TODO]: {
     label: "To Do",
-    card: "border-input bg-muted-foreground hover:bg-primary text-primary-foreground",
+    card: "border-border bg-muted hover:bg-accent text-muted-foreground",
   },
   [TaskStatus.IN_PROGRESS]: {
     label: "In Progress",
-    card: "border-border bg-primary hover:bg-primary-hover text-primary-foreground",
+    card: "border-info-outline bg-info-soft hover:bg-info-soft text-info-content",
   },
   [TaskStatus.IN_REVIEW]: {
     label: "In Review",
-    card: "border-warning bg-warning hover:bg-warning text-warning-foreground",
+    card: "border-warning-outline bg-warning-soft hover:bg-warning-soft text-warning-content",
   },
   [TaskStatus.DONE]: {
     label: "Done",
-    card: "border-success bg-success hover:bg-success text-success-foreground",
+    card: "border-success-outline bg-success-soft hover:bg-success-soft text-success-content",
   },
   [TaskStatus.CANCELLED]: {
     label: "Cancelled",
-    card: "border-destructive bg-destructive hover:bg-destructive text-destructive-foreground",
+    card: "border-destructive-outline bg-destructive-soft hover:bg-destructive-soft text-destructive-content",
   },
 };
 
@@ -176,7 +176,7 @@ function DroppableCalendarDay({
             <span
               className={`grid h-7 w-7 place-items-center rounded-full text-xs font-semibold ${
                 isToday
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary-soft text-primary-soft-foreground"
                   : "text-muted-foreground"
               }`}
             >
@@ -196,8 +196,8 @@ function DroppableCalendarDay({
             )}
           </div>
           {isOver && (
-            <div className="pointer-events-none absolute inset-x-2 top-10 bottom-2 flex items-center justify-center rounded-lg border-2 border-dashed border-info bg-info-soft/40">
-              <span className="text-xs font-semibold text-info">
+            <div className="pointer-events-none absolute inset-x-2 top-10 bottom-2 flex items-center justify-center rounded-lg border-2 border-dashed border-info-outline bg-info-soft/40">
+              <span className="text-xs font-semibold text-info-content">
                 {dropHereText}
               </span>
             </div>
@@ -243,7 +243,7 @@ function DraggableUnscheduledTask({
       }}
       className={`group inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-left transition hover:border-primary select-none ${
         canDrag
-          ? "cursor-grab active:cursor-grabbing hover:border-info"
+          ? "cursor-grab active:cursor-grabbing hover:border-info-outline"
           : "cursor-pointer"
       } ${isDragging ? "opacity-25 ring-2 ring-ring ring-offset-1" : ""}`}
     >
@@ -277,7 +277,7 @@ function UnscheduledTasksPanel({
   return (
     <div className="shrink-0 border-t border-border bg-background px-4 py-4">
       <div className="flex items-start gap-2.5">
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-warning-soft text-warning ring-1 ring-warning/20">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-warning-soft text-warning-content ring-1 ring-warning-outline/20">
           <Clock className="h-4 w-4" />
         </div>
         <div>
@@ -285,7 +285,7 @@ function UnscheduledTasksPanel({
             <h3 className="text-sm font-semibold text-foreground">
               Unscheduled Tasks
             </h3>
-            <span className="rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning">
+            <span className="rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning-content">
               {unscheduledTasks.length}
             </span>
           </div>
@@ -580,13 +580,13 @@ export default function CalendarView({
                           className={`pointer-events-auto mx-1.5 flex h-auto min-w-0 items-center gap-1.5 rounded-control border px-2.5 py-1.5 text-left transition-all cursor-pointer ${statusColors[task.status].card}`}
                         >
                           {showTitle && (
-                            <span className="truncate text-xs font-semibold text-primary-foreground">
+                            <span className="truncate text-xs font-semibold text-inherit">
                               {task.title}
                             </span>
                           )}
                           {showTitle && timeLabel && (
-                            <span className="ml-auto inline-flex min-w-0 shrink-0 items-center gap-0.5 truncate text-xs font-semibold text-primary-foreground">
-                              <Clock className="h-2.5 w-2.5 text-primary-foreground" />
+                            <span className="ml-auto inline-flex min-w-0 shrink-0 items-center gap-0.5 truncate text-xs font-semibold text-inherit">
+                              <Clock className="h-2.5 w-2.5 text-inherit" />
                               {timeLabel}
                             </span>
                           )}
@@ -615,11 +615,11 @@ export default function CalendarView({
         {activeTask ? (
           <div
             className={`pointer-events-none flex items-center gap-2 rounded-lg border px-3 py-2 opacity-95 ${
-              statusColors[activeTask.status]?.card ?? "bg-primary text-primary-foreground"
+              statusColors[activeTask.status]?.card ?? "bg-primary-soft text-primary-soft-foreground"
             }`}
           >
-            <GripVertical className="h-3.5 w-3.5 text-primary-foreground" />
-            <span className="max-w-64 truncate text-xs font-semibold text-primary-foreground">
+            <GripVertical className="h-3.5 w-3.5 text-inherit" />
+            <span className="max-w-64 truncate text-xs font-semibold text-inherit">
               {activeTask.title}
             </span>
           </div>

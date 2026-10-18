@@ -96,14 +96,14 @@ export default function ChannelChatHeader({
 
       <div className="flex shrink-0 flex-wrap items-center gap-1 text-muted-foreground">
         <button
-          className="cursor-pointer p-2 hover:bg-muted hover:text-info rounded-full transition"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition"
           onClick={onOpenSearch}
           title="Search"
         >
           <Search size={20} />
         </button>
         <button
-          className="cursor-pointer p-2 hover:bg-muted hover:text-info rounded-full transition disabled:opacity-50"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition disabled:opacity-50"
           onClick={() => setIsConfirmModalOpen(true)}
           disabled={isCreating || !activeChannel?.id}
           title="Start instant meeting"
@@ -112,7 +112,7 @@ export default function ChannelChatHeader({
         </button>
         <div className="w-px h-6 bg-accent mx-1" />
         <button
-          className="cursor-pointer p-2 hover:bg-muted hover:text-info rounded-full transition"
+          className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition"
           onClick={onToggleRightPanel}
           title="Channel info"
         >

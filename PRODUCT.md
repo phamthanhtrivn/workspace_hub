@@ -41,7 +41,7 @@ Dashboard constraints: aggregate existing APIs, preserve task source/occurrence 
 
 ## Brand Commitments
 
-Use the existing WorkspaceHub name, assets, and clear action-oriented English interface copy. The supplied brand palette is midnight (`#010736`), navy (`#0D1C42`), blue (`#22396F`), and ice blue (`#E6EDF8`). Light uses white surfaces with navy text/actions and ice blue accents. Dark uses navy surfaces with ice blue text/actions. Functional status colors and user-selected project/calendar/label colors remain available. See [DESIGN.md](DESIGN.md) for visual guidance.
+Use the existing WorkspaceHub name, assets, and clear action-oriented English interface copy. The supplied brand palette is midnight (`#010736`), navy (`#0D1C42`), blue (`#22396F`), and ice blue (`#E6EDF8`). The approved interface uses VS Code Modern-inspired neutral light and charcoal dark surfaces, gray text, navy actions (deeper navy in Dark), and muted semantic status colors. The original navy/ice primitives remain for branding. Functional status colors and user-selected project/calendar/label colors remain available. See [DESIGN.md](DESIGN.md) for visual guidance.
 
 ## Evidence on Hand
 

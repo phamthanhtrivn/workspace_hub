@@ -99,7 +99,7 @@ function ReminderRow({
               variant="ghost"
               size="icon"
               onClick={onRemove}
-              className="grid h-8 w-8 cursor-pointer place-items-center rounded-control text-muted-foreground transition-colors hover:bg-destructive-soft hover:text-destructive"
+              className="grid h-8 w-8 cursor-pointer place-items-center rounded-control text-muted-foreground transition-colors hover:bg-destructive-soft hover:text-destructive-content"
               aria-label={copy.delete}
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -142,7 +142,7 @@ function ReminderRow({
             </div>
           )}
           {fieldState.error?.message && (
-            <p className="text-xs text-destructive" role="alert">
+            <p className="text-xs text-destructive-content" role="alert">
               {fieldState.error.message}
             </p>
           )}
@@ -176,7 +176,7 @@ export function ReminderEditor({
           onClick={() =>
             append({ minutesBefore: 10, method: ReminderMethod.ALERT })
           }
-          className="h-auto cursor-pointer gap-1 p-0 text-xs font-medium text-info hover:bg-transparent hover:text-info disabled:cursor-not-allowed disabled:opacity-40"
+          className="h-auto cursor-pointer gap-1 p-0 text-xs font-medium text-info-content hover:bg-transparent hover:text-info-content disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Plus className="h-3.5 w-3.5" />
           {copy.add}

@@ -243,7 +243,7 @@ const ChatMessage = React.memo(function ChatMessage({
               <button
                 type="button"
                 onClick={openSenderProfile}
-                className="text-[13px] text-foreground font-semibold tracking-tight hover:text-info transition-colors cursor-pointer truncate"
+                className="text-[13px] text-foreground font-semibold tracking-tight hover:text-info-content transition-colors cursor-pointer truncate"
               >
                 {senderName}
               </button>
@@ -262,8 +262,8 @@ const ChatMessage = React.memo(function ChatMessage({
           ) : (
             <>
               {msg.pinned && (
-                <div className="flex items-center gap-1 text-xs text-info font-semibold px-1 mb-0.5">
-                  <Pin size={12} className="fill-info text-info" />
+                <div className="flex items-center gap-1 text-xs text-info-content font-semibold px-1 mb-0.5">
+                  <Pin size={12} className="fill-info-content text-info-content" />
                   Pinned
                 </div>
               )}
@@ -290,7 +290,7 @@ const ChatMessage = React.memo(function ChatMessage({
                       className={cn(
                         "p-3 text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden leading-relaxed transition-all duration-200 font-medium rounded-panel rounded-tl-none",
                         msg.threadReplyCount && msg.threadReplyCount > 0
-                          ? "bg-info-soft border border-border text-info"
+                          ? "bg-info-soft border border-border text-info-content"
                           : "bg-card border border-border text-foreground",
                       )}
                     >
@@ -310,12 +310,12 @@ const ChatMessage = React.memo(function ChatMessage({
                   <button
                     type="button"
                     onClick={() => onThreadReply?.(msg)}
-                    className="flex items-center gap-2 mt-2 text-xs font-semibold cursor-pointer hover:underline p-1.5 rounded-control w-fit border transition-colors text-info bg-info-soft border-border hover:bg-info-soft/70 mr-auto"
+                    className="flex items-center gap-2 mt-2 text-xs font-semibold cursor-pointer hover:underline p-1.5 rounded-control w-fit border transition-colors text-info-content bg-info-soft border-border hover:bg-info-soft/70 mr-auto"
                   >
-                    <MessageSquare size={12} className="text-info" />
+                    <MessageSquare size={12} className="text-info-content" />
                     <span>{msg.threadReplyCount} replies</span>
                     {msg.threadLastReplyAt && (
-                      <span className="text-xs text-info font-normal">
+                      <span className="text-xs text-info-content font-normal">
                         Last: {formatDateTime(msg.threadLastReplyAt)}
                       </span>
                     )}
@@ -349,7 +349,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 type="button"
                 onClick={() => onThreadReply?.(msg)}
                 title="Reply to thread"
-                className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
+                className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
               >
                 <MessageSquare size={14} />
               </button>
@@ -358,7 +358,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 <button aria-label="Add reaction"
                   type="button"
                   onClick={() => setShowReactionPicker((prev) => !prev)}
-                  className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
+                  className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
                 >
                   <SmilePlus size={14} />
                 </button>
@@ -387,7 +387,7 @@ const ChatMessage = React.memo(function ChatMessage({
                   );
                   setIsOptionsMenuOpen(true);
                 }}
-                className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
+                className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
               >
                 <MoreHorizontal size={14} />
               </button>

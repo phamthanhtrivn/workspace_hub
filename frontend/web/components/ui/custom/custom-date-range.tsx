@@ -93,7 +93,7 @@ export function CustomDateRange<TValue extends string = string>({
       ) : null}
 
       {invalid && invalidMessage ? (
-        <p className="text-xs font-semibold text-destructive">{invalidMessage}</p>
+        <p className="text-xs font-semibold text-destructive-content">{invalidMessage}</p>
       ) : null}
     </div>
   );

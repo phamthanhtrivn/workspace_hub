@@ -104,7 +104,7 @@ const PollMessage = React.memo(function PollMessage({
       <div className="bg-card border border-border rounded-panel p-5 max-w-md min-w-0 w-full [overflow-wrap:anywhere] relative overflow-hidden transition-all duration-200">
         <div className="flex items-start gap-3.5 mb-4 justify-between">
           <div className="flex items-start gap-3">
-            <div className="bg-info-soft p-2.5 rounded-panel text-info mt-1 border border-border">
+            <div className="bg-info-soft p-2.5 rounded-panel text-info-content mt-1 border border-border">
               <BarChart2 size={24} />
             </div>
             <div>
@@ -135,7 +135,7 @@ const PollMessage = React.memo(function PollMessage({
           {isMe && onEditPoll && !poll.isLocked && (
             <button
               onClick={() => setIsEditModalOpen(true)}
-              className="cursor-pointer p-2 text-muted-foreground hover:text-info hover:bg-info-soft rounded-control transition-colors flex-shrink-0"
+              className="cursor-pointer p-2 text-muted-foreground hover:text-info-content hover:bg-info-soft rounded-control transition-colors flex-shrink-0"
               title="Edit Poll"
             >
               <Edit2 size={16} />
@@ -156,7 +156,7 @@ const PollMessage = React.memo(function PollMessage({
               <div
                 key={option.id}
                 onClick={() => handleOptionClick(option.id)}
-                className={`relative overflow-hidden rounded-panel border transition-all duration-200 ${isSelected ? "border-info bg-info-soft/20" : "border-border hover:bg-background hover:border-input"} ${!poll.isLocked ? "cursor-pointer" : ""} group`}
+                className={`relative overflow-hidden rounded-panel border transition-all duration-200 ${isSelected ? "border-info-outline bg-info-soft/20" : "border-border hover:bg-background hover:border-input"} ${!poll.isLocked ? "cursor-pointer" : ""} group`}
               >
                 {/* Progress bar background */}
                 {(userHasVoted || totalVotes > 0) && (
@@ -169,7 +169,7 @@ const PollMessage = React.memo(function PollMessage({
                 <div className="relative p-3 flex items-center justify-between z-10">
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-150 ${isSelected ? "border-info bg-primary" : "border-input group-hover:border-info"}`}
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-150 ${isSelected ? "border-info-outline bg-primary" : "border-input group-hover:border-info-outline"}`}
                     >
                       {isSelected && (
                         <CheckCircle2 size={13} className="text-primary-foreground" />
@@ -177,7 +177,7 @@ const PollMessage = React.memo(function PollMessage({
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span
-                        className={`text-sm ${isSelected ? "font-semibold text-info" : "font-medium text-foreground"}`}
+                        className={`text-sm ${isSelected ? "font-semibold text-info-content" : "font-medium text-foreground"}`}
                       >
                         {option.text}
                       </span>
@@ -232,7 +232,7 @@ const PollMessage = React.memo(function PollMessage({
                           })}
                         </div>
                       )}
-                      <span className="rounded-md bg-info-soft px-1.5 py-0.5 text-xs font-semibold text-info">
+                      <span className="rounded-md bg-info-soft px-1.5 py-0.5 text-xs font-semibold text-info-content">
                         {percentage}%
                       </span>
                       <span className="w-12 text-right text-xs font-semibold text-foreground">
@@ -258,7 +258,7 @@ const PollMessage = React.memo(function PollMessage({
                   value={newOptionText}
                   onChange={(e) => setNewOptionText(e.target.value)}
                   placeholder="Enter new option..."
-                  className="flex-1 px-3.5 py-2 text-xs border border-input focus:border-info rounded-control outline-none transition"
+                  className="flex-1 px-3.5 py-2 text-xs border border-input focus:border-info-outline rounded-control outline-none transition"
                   autoFocus
                 />
                 <button
@@ -282,7 +282,7 @@ const PollMessage = React.memo(function PollMessage({
             ) : (
               <button
                 onClick={() => setIsAddingOption(true)}
-                className="flex items-center justify-center gap-1.5 text-xs text-info font-semibold py-2.5 px-3 cursor-pointer rounded-control bg-background border border-border hover:bg-info-soft/50 hover:border-border transition-all duration-150 w-full"
+                className="flex items-center justify-center gap-1.5 text-xs text-info-content font-semibold py-2.5 px-3 cursor-pointer rounded-control bg-background border border-border hover:bg-info-soft/50 hover:border-border transition-all duration-150 w-full"
               >
                 <Plus size={15} />{" "}
                 Add Poll Option
@@ -297,7 +297,7 @@ const PollMessage = React.memo(function PollMessage({
               <button
                 type="button"
                 onClick={() => setIsVotersModalOpen(true)}
-                className="flex cursor-pointer items-center gap-1 rounded-control px-1.5 py-1 font-semibold text-info transition hover:bg-info-soft hover:text-info"
+                className="flex cursor-pointer items-center gap-1 rounded-control px-1.5 py-1 font-semibold text-info-content transition hover:bg-info-soft hover:text-info-content"
               >
                 <Users size={14} />
                 <span>
@@ -314,7 +314,7 @@ const PollMessage = React.memo(function PollMessage({
               </span>
             )}
             {poll.isLocked && (
-              <span className="bg-destructive-soft text-destructive px-2 py-0.5 rounded-lg text-xs font-semibold uppercase tracking-wider">
+              <span className="bg-destructive-soft text-destructive-content px-2 py-0.5 rounded-lg text-xs font-semibold uppercase tracking-wider">
                 LOCKED
               </span>
             )}

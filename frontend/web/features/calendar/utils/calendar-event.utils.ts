@@ -125,7 +125,7 @@ export function mapCalendarEventToFullCalendar(
       ...(isTask && event.completedAt
         ? ["calendar-task-event-completed"]
         : []),
-      ...(isDeclined ? ["calendar-event-declined opacity-60"] : []),
+      ...(isDeclined ? ["calendar-event-declined"] : []),
     ],
     editable: event.permissions?.canManage ?? false,
     durationEditable: event.permissions?.canManage ?? false,

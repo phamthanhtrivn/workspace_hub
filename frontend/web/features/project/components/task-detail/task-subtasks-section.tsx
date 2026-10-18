@@ -60,14 +60,14 @@ export default function TaskSubtasksSection({
       </div>
 
       {canMarkParentDone && (
-        <div className="flex items-center justify-between gap-3 rounded-panel border border-border bg-success-soft px-3 py-2 text-xs text-success">
+        <div className="flex items-center justify-between gap-3 rounded-panel border border-border bg-success-soft px-3 py-2 text-xs text-success-content">
           <span className="font-semibold">All subtasks are done.</span>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => void onMarkParentDone?.()}
-            className="h-7 shrink-0 cursor-pointer gap-1.5 rounded-control border-success bg-card px-2.5 text-xs font-semibold text-success hover:bg-success-soft"
+            className="h-7 shrink-0 cursor-pointer gap-1.5 rounded-control border-success-outline bg-card px-2.5 text-xs font-semibold text-success-content hover:bg-success-soft"
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
             Mark parent done
@@ -83,7 +83,7 @@ export default function TaskSubtasksSection({
           onClick={() => onTaskClick?.(parentTask)}
           className="mb-1.5 flex h-auto w-full cursor-pointer items-center justify-between gap-2 rounded-control border border-border bg-background px-3 py-2 text-left text-xs transition hover:border-input hover:bg-muted font-normal"
         >
-          <span className="min-w-0 truncate font-semibold text-info">
+          <span className="min-w-0 truncate font-semibold text-info-content">
             {parentTask.title}
           </span>
           <TaskStatusBadge status={parentTask.status} compact />

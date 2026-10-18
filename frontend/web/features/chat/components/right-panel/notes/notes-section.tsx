@@ -64,12 +64,12 @@ export default function NotesSection({
                     onClick={() => setSelectedNoteId(note.id)}
                     className="p-3 bg-warning-soft border border-border rounded-lg cursor-pointer hover:bg-warning-soft transition-colors"
                   >
-                    <p className="text-xs font-semibold text-warning mb-1 truncate">
+                    <p className="text-xs font-semibold text-warning-content mb-1 truncate">
                       {note.title || "Untitled Note"}{" "}
                       -{" "}
                       {formatDateTime(note.createdAt)}
                     </p>
-                    <p className="text-xs text-warning line-clamp-2">
+                    <p className="text-xs text-warning-content line-clamp-2">
                       {note.content}
                     </p>
                   </div>

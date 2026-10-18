@@ -37,7 +37,7 @@ export function MeetingWaitingHost({
   return (
     <div className="fixed inset-0 z-[90] grid h-dvh min-h-0 overflow-y-auto py-4 [place-items:safe_center] bg-card px-4 text-foreground">
       <div className="w-full max-w-md rounded-lg border border-border bg-accent px-6 py-8 text-center">
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/16 text-info ring-1 ring-ring/20">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/16 text-info-content ring-1 ring-ring/20">
           {access.canStart ? (
             <Play className="h-7 w-7" />
           ) : (
@@ -53,7 +53,7 @@ export function MeetingWaitingHost({
           {access.title || "Schedule a meeting"}
         </p>
         <p className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-muted-foreground">
-          <CalendarClock className="h-4 w-4 text-info" />
+          <CalendarClock className="h-4 w-4 text-info-content" />
           {formatScheduledRange(access)}
         </p>
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">

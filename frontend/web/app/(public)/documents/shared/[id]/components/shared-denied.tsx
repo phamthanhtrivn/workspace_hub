@@ -8,7 +8,7 @@ export function SharedDenied() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md bg-card rounded-dialog border border-border p-8 text-center flex flex-col items-center justify-center">
-        <div className="bg-destructive-soft p-4 rounded-full text-destructive mb-4">
+        <div className="bg-destructive-soft p-4 rounded-full text-destructive-content mb-4">
           <Lock size={36} />
         </div>
         <h2 className="text-section-title font-semibold text-foreground">Truy cập bị từ chối</h2>

@@ -57,7 +57,7 @@ export function CalendarRadioGroup<TValue extends string = string>({
             className={cn(
               "flex h-auto w-full cursor-pointer items-center justify-start gap-2.5 rounded-control border p-2.5 text-left text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
               selected
-                ? "border-info bg-info-soft/50 text-info hover:bg-info-soft/70"
+                ? "border-info-outline bg-info-soft/50 text-info-content hover:bg-info-soft/70"
                 : "border-border text-foreground hover:bg-background hover:text-foreground",
               optionClassName,
             )}
@@ -66,7 +66,7 @@ export function CalendarRadioGroup<TValue extends string = string>({
               className={cn(
                 "grid h-4 w-4 shrink-0 place-items-center rounded-full border",
                 selected
-                  ? "border-info bg-primary text-primary-foreground"
+                  ? "border-info-outline bg-primary text-primary-foreground"
                   : "border-input bg-card",
               )}
               aria-hidden="true"

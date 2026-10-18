@@ -48,7 +48,7 @@ export function MeetingMessageReadReceipts({
                 <AvatarFallback
                   label={readerName}
                   className="h-full w-full bg-primary ring-0 shadow-none"
-                  iconClassName="h-2.5 w-2.5 text-muted-foreground"
+                  iconClassName="h-2.5 w-2.5 text-primary-foreground"
                 />
               )}
             </div>
@@ -57,7 +57,7 @@ export function MeetingMessageReadReceipts({
 
         {otherReaders.length > 5 && (
           <div className="relative z-0 flex h-4 w-4 items-center justify-center rounded-full border-2 border-border bg-primary hover:z-10">
-            <span className="text-[7px] font-semibold leading-none text-muted-foreground">
+            <span className="text-[7px] font-semibold leading-none text-primary-foreground">
               +{otherReaders.length - 5}
             </span>
           </div>

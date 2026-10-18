@@ -94,7 +94,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ask a question..."
-              className="w-full px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info outline-none transition-all"
+              className="w-full px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info-outline outline-none transition-all"
               required
             />
           </div>
@@ -110,14 +110,14 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                   value={option}
                   onChange={(e) => handleOptionChange(index, e.target.value)}
                   placeholder={`Option ${index + 1}`}
-                  className="flex-1 px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info outline-none transition-all"
+                  className="flex-1 px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info-outline outline-none transition-all"
                   required={index < 2}
                 />
                 {options.length > 2 && (
                   <button aria-label="Remove poll option"
                     type="button"
                     onClick={() => handleRemoveOption(index)}
-                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive-soft rounded-control transition-colors"
+                    className="p-2 text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft rounded-control transition-colors"
                   >
                     <Trash2 size={18} />
                   </button>
@@ -127,7 +127,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
             <button
               type="button"
               onClick={handleAddOption}
-              className="flex items-center gap-2 text-info hover:text-info text-sm font-medium p-2 rounded-control hover:bg-info-soft transition-colors cursor-pointer"
+              className="flex items-center gap-2 text-info-content hover:text-info-content text-sm font-medium p-2 rounded-control hover:bg-info-soft transition-colors cursor-pointer"
             >
               <Plus size={16} /> Add Option
             </button>
@@ -139,7 +139,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                 type="checkbox"
                 checked={multipleChoice}
                 onChange={(e) => setMultipleChoice(e.target.checked)}
-                className="w-4 h-4 text-info rounded focus:ring-ring"
+                className="w-4 h-4 text-info-content rounded focus:ring-ring"
               />
               <span className="text-sm text-foreground">
                 Allow multiple choices
@@ -150,7 +150,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                 type="checkbox"
                 checked={allowAddOptions}
                 onChange={(e) => setAllowAddOptions(e.target.checked)}
-                className="w-4 h-4 text-info rounded focus:ring-ring"
+                className="w-4 h-4 text-info-content rounded focus:ring-ring"
               />
               <span className="text-sm text-foreground">
                 Allow members to add options
@@ -161,7 +161,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                 type="checkbox"
                 checked={anonymous}
                 onChange={(e) => setAnonymous(e.target.checked)}
-                className="w-4 h-4 text-info rounded focus:ring-ring"
+                className="w-4 h-4 text-info-content rounded focus:ring-ring"
               />
               <span className="text-sm text-foreground">
                 Anonymous voting

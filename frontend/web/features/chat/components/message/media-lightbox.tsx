@@ -145,16 +145,16 @@ export default function MediaLightbox({
 
   const content = (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/95 backdrop-blur-sm select-none"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/95 text-media-foreground [&_button:focus-visible]:outline-media-foreground backdrop-blur-sm select-none"
       onClick={onClose}
     >
       {/* Top Bar */}
-      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-foreground">
-        <span className="text-primary-foreground text-sm">{currentMedia.name}</span>
+      <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-media-surface">
+        <span className="text-media-foreground text-sm">{currentMedia.name}</span>
         <div className="flex items-center gap-2">
           <button
             onClick={handleDownload}
-            className="cursor-pointer p-2 text-primary-foreground hover:text-foreground bg-overlay/20 hover:bg-overlay/40 rounded-full transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground bg-media-surface hover:bg-overlay rounded-full transition"
             title="Download"
           >
             <Download size={24} />
@@ -164,7 +164,7 @@ export default function MediaLightbox({
               e.stopPropagation();
               onClose();
             }}
-            className="cursor-pointer p-2 text-primary-foreground hover:text-foreground bg-overlay/20 hover:bg-overlay/40 rounded-full transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground bg-media-surface hover:bg-overlay rounded-full transition"
             title="Close"
           >
             <X size={24} />
@@ -179,7 +179,7 @@ export default function MediaLightbox({
             e.stopPropagation();
             handlePrev();
           }}
-          className="cursor-pointer absolute left-4 p-3 text-primary-foreground hover:text-foreground bg-overlay/20 hover:bg-overlay/60 rounded-full z-10 transition"
+          className="cursor-pointer absolute left-4 p-3 text-media-foreground hover:text-media-foreground bg-media-surface hover:bg-overlay rounded-full z-10 transition"
         >
           <ChevronLeft size={32} />
         </button>
@@ -231,7 +231,7 @@ export default function MediaLightbox({
             e.stopPropagation();
             handleNext();
           }}
-          className="cursor-pointer absolute right-4 p-3 text-primary-foreground hover:text-foreground bg-overlay/20 hover:bg-overlay/60 rounded-full z-10 transition"
+          className="cursor-pointer absolute right-4 p-3 text-media-foreground hover:text-media-foreground bg-media-surface hover:bg-overlay rounded-full z-10 transition"
         >
           <ChevronRight size={32} />
         </button>
@@ -240,37 +240,37 @@ export default function MediaLightbox({
       {/* Zoom Controls */}
       {currentMedia.type !== "VIDEO" && (
         <div
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 flex max-w-[calc(100vw-1.5rem)] items-center gap-2 overflow-x-auto bg-overlay/50 px-3 py-2 rounded-full backdrop-blur-md z-10"
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 flex max-w-[calc(100vw-1.5rem)] items-center gap-2 overflow-x-auto bg-media-surface px-3 py-2 rounded-full backdrop-blur-md z-10"
           onClick={(e) => e.stopPropagation()}
         >
           <button
             onClick={handleZoomOut}
-            className="cursor-pointer p-2 text-primary-foreground hover:text-foreground transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground transition"
             title="Zoom Out"
           >
             <ZoomOut size={20} />
           </button>
-          <span className="cursor-pointer text-primary-foreground text-sm font-medium w-12 text-center">
+          <span className="cursor-pointer text-media-foreground text-sm font-medium w-12 text-center">
             {Math.round(scale * 100)}%
           </span>
           <button
             onClick={handleZoomIn}
-            className="cursor-pointer p-2 text-primary-foreground hover:text-foreground transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground transition"
             title="Zoom In"
           >
             <ZoomIn size={20} />
           </button>
-          <div className="w-[1px] h-6 bg-overlay/10 mx-2"></div>
+          <div className="w-[1px] h-6 bg-media-foreground/30 mx-2"></div>
           <button
             onClick={handleRotate}
-            className="cursor-pointer p-2 text-primary-foreground hover:text-foreground transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground transition"
             title="Rotate"
           >
             <RotateCcw size={18} style={{ transform: "scaleX(-1)" }} />
           </button>
           <button
             onClick={handleReset}
-            className="cursor-pointer p-2 text-primary-foreground hover:text-foreground transition"
+            className="cursor-pointer p-2 text-media-foreground hover:text-media-foreground transition"
             title="Reset View"
           >
             <RotateCcw size={18} />

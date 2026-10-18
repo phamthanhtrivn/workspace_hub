@@ -38,10 +38,10 @@ const statusLabels: Record<MeetingInvitationNotificationStatus, string> = {
 };
 
 const statusClasses: Record<MeetingInvitationNotificationStatus, string> = {
-  PENDING: "bg-warning-soft text-warning ring-warning",
-  ACCEPTED: "bg-success-soft text-success ring-success",
+  PENDING: "bg-warning-soft text-warning-content ring-warning-outline",
+  ACCEPTED: "bg-success-soft text-success-content ring-success-outline",
   DECLINED: "bg-muted text-muted-foreground ring-ring",
-  CANCELLED: "bg-destructive-soft text-destructive ring-destructive",
+  CANCELLED: "bg-destructive-soft text-destructive-content ring-destructive-outline",
 };
 
 export function MeetingInvitationListItemRenderer({
@@ -90,7 +90,7 @@ export function MeetingInvitationListItemRenderer({
         ) : null}
       </span>
       {!notification.isRead && (
-        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
       )}
     </button>
   );
@@ -176,7 +176,7 @@ export function MeetingInvitationModalRenderer({
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-panel bg-primary text-primary-foreground">
           <Video className="h-7 w-7" />
         </span>
-        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-info">
+        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-info-content">
           Meeting invitation
         </p>
         <h3 className="mt-1 text-section-title font-semibold text-foreground">
@@ -189,7 +189,7 @@ export function MeetingInvitationModalRenderer({
 
       <div className="mt-4 space-y-2 rounded-panel border border-border bg-background px-3 py-3">
         <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <CalendarClock className="h-4 w-4 text-info" />
+          <CalendarClock className="h-4 w-4 text-info-content" />
           {formatMeetingRange(metadata.scheduledStartAt, metadata.scheduledEndAt)}
         </span>
         <span className="flex items-center justify-between gap-3">
@@ -213,7 +213,7 @@ export function MeetingInvitationModalRenderer({
             type="button"
             onClick={() => void respond("decline")}
             disabled={action !== null}
-            className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card text-sm font-semibold text-muted-foreground transition hover:border-border hover:bg-destructive-soft hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card text-sm font-semibold text-muted-foreground transition hover:border-border hover:bg-destructive-soft hover:text-destructive-content disabled:cursor-not-allowed disabled:opacity-60"
           >
             {action === "decline" ? (
               <Loader2 className="h-4 w-4 animate-spin" />

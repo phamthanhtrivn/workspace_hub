@@ -1,5 +1,7 @@
 "use client";
 
+import { readableTextOnColor } from "@/lib/color";
+
 import {
   Calendar,
   Check,
@@ -118,7 +120,7 @@ export function CalendarTaskList({
 
       {pendingCount === 0 && grouped.completed.length > 0 && (
         <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
-          <div className="grid h-10 w-10 place-items-center rounded-full bg-success-soft text-success">
+          <div className="grid h-10 w-10 place-items-center rounded-full bg-success-soft text-success-content">
             <Check className="h-5 w-5 stroke-[2.5]" />
           </div>
           <p className="mt-2 text-xs font-semibold text-foreground">
@@ -173,13 +175,13 @@ function TaskSection({
   children: ReactNode;
 }) {
   const badgeClasses = {
-    danger: "text-destructive bg-destructive-soft",
-    primary: "text-info bg-info-soft",
+    danger: "text-destructive-content bg-destructive-soft",
+    primary: "text-info-content bg-info-soft",
     neutral: "text-muted-foreground bg-muted",
   }[tone];
   const titleColor = {
-    danger: "text-destructive",
-    primary: "text-info",
+    danger: "text-destructive-content",
+    primary: "text-info-content",
     neutral: "text-muted-foreground",
   }[tone];
 
@@ -225,7 +227,7 @@ function TaskRowItem({
       {readOnly ? (
         <span
           className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md"
-          style={{ backgroundColor: `${taskColor}18`, color: taskColor }}
+          style={{ backgroundColor: `${taskColor}18`, color: "var(--foreground)" }}
           aria-hidden="true"
         >
           <FolderKanban className="h-3.5 w-3.5" />
@@ -237,8 +239,9 @@ function TaskRowItem({
           onClick={(event) => event.stopPropagation()}
           className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-full border transition-all focus-visible:ring-2 focus-visible:ring-ring"
           style={{
-            borderColor: completed ? taskColor : "var(--border)",
+            borderColor: "var(--input)",
             backgroundColor: completed ? taskColor : "transparent",
+            color: completed ? readableTextOnColor(taskColor) : "var(--foreground)",
           }}
           aria-label={task.title}
         />
@@ -267,24 +270,24 @@ function TaskRowItem({
               completed
                 ? "border-border bg-background text-muted-foreground"
                 : isOverdue
-                  ? "border-border bg-destructive-soft/60 font-medium text-destructive"
-                  : "border-border bg-card font-medium text-info"
+                  ? "border-border bg-destructive-soft/60 font-medium text-destructive-content"
+                  : "border-border bg-card font-medium text-info-content"
             }`}
           >
             {isOverdue && !completed ? (
-              <Clock className="h-3 w-3 shrink-0 text-destructive" />
+              <Clock className="h-3 w-3 shrink-0 text-destructive-content" />
             ) : task.allDay ? (
               <Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />
             ) : (
               <Clock
                 className={`h-3 w-3 shrink-0 ${
-                  completed ? "text-muted-foreground" : "text-info"
+                  completed ? "text-muted-foreground" : "text-info-content"
                 }`}
               />
             )}
             {dateLabel}
             {isRecurring && (
-              <Repeat className="ml-0.5 h-2.5 w-2.5 shrink-0 text-info" />
+              <Repeat className="ml-0.5 h-2.5 w-2.5 shrink-0 text-info-content" />
             )}
           </span>
         )}

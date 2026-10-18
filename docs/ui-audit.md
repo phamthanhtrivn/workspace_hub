@@ -1,8 +1,62 @@
 # WorkspaceHub UI simplification audit
 
-Updated 2026-10-18. This records the approved targeted simplification. Inter, navy/ice themes, workflows, permissions, backend contracts, and saved-theme behavior remain the product constraints. Counts identify review candidates; they do not prove AI authorship.
+Updated 2026-10-18. This records the approved targeted simplification. Inter, workflows, permissions, backend contracts, and saved-theme behavior remain product constraints. The current approved palette is the neutral Modern theme described below; older navy/ice sections are historical. Counts identify review candidates; they do not prove AI authorship.
 
 The original inventory contains **417 TSX files** across **687 source files**. Every TSX file is listed below: **328 change**, **70 keep**, and **19 functional/content exception**. An exception may include changes to surrounding interface styling. Shared focus logic is listed separately. The added tests, temporary scripts, Playwright setup, and generated test reports were subsequently removed at the user's request; the verification results below are historical.
+
+## Neutral Modern theme - 2026-10-18
+
+This replaces the earlier palette-preserving contrast follow-up. The user approved white/gray Light and charcoal Dark surfaces, navy actions, and muted red/green/amber information states. Logo/auth branding, stored custom colors, content, geometry, workflows, permissions, and saved-theme behavior remain intact.
+
+- Latest user steering: light primary #22396F, dark primary #0D1C42. Deep navy actions use a quiet inset outline in Dark; links, progress, and chart marks retain a separate readable blue-gray. Neutral surfaces and semantic status colors are unchanged.
+- Runtime roles: neutral page/sidebar/card/hover layers; separate solid status fills, white on-fill foregrounds, status-content text/icons, soft backgrounds, and restrained outline mixes. Links have a separate role from filled primary actions.
+- Instant meeting/creating icons use neutral secondary tiles. Mic/Camera off stays soft red on hover; actual Leave/delete actions remain solid red. Navigation, Settings tabs, recurrence choices, and ordinary badges use soft selection/status backgrounds.
+- Review spans all 415 TSX files and 2 CSS files from the existing inventory, plus presentation constants/styles in TS helpers. Shared primitives, all feature modules, public/auth/shared-document routes, third-party notifications/calendar/emoji styling, charts, status dots, and media controls follow the new roles. Existing navy/ice brand primitives are intentional logo/auth exceptions.
+- No global SVG recoloring, stored-color migration, API/permission changes, layout edits, new dependencies, test suites, temporary files, or cache setup.
+- Final contrast checks: 233 passed, covering semantic roles, 71 custom/sample colors, control edges, chart marks, and media. Minimum checked text 4.70:1; minimum checked control/icon 3.11:1. A source scan across 673 TS/TSX/CSS files found no failing explicit literal foreground/background pairs after correcting Gantt neutral labels. These are computed token/source checks, not full rendered-state certification.
+- Supplied examples: neutral Instant meeting icon 10.10:1 Light / 8.10:1 Dark; Mic off 5.75:1 Light / 6.57:1 Dark. White primary-button labels: 11.15:1 Light navy / 16.64:1 Dark navy.
+- TypeScript passed once with noEmit and incremental disabled. Final ESLint covered 278 changed TS/TSX files: 0 new diagnostics versus HEAD; 162 existing errors and 67 existing warnings remain. In-memory CSS compilation generated all 37 checked theme utilities, including deep navy action outlines.
+- The Impeccable detector reported only the unchanged semantic blockquote border in message-formatter.tsx, retained under the existing content-formatting exception. No additional test suites or artifacts were created. Older verification sections below are historical.
+- Visual verification is unavailable: the computer-use inventory returned no connected apps/browsers. The two supplied meeting examples and desktop/mobile theme rendering remain visually unverified in this session.
+
+## Contrast follow-up (historical) - 2026-10-18
+
+This pass preserves the existing navy/ice palette, stored user colors, layouts, and workflows. It fixes foreground/background pairings rather than replacing the theme. The historical verification below belongs to the earlier simplification; it is not browser evidence for this follow-up.
+
+### Source coverage
+
+The current inventory is **415 TSX components/routes and 2 CSS files**, within **673 TS/TSX/CSS sources** across app, shared components, and features. All current TSX paths are already listed in the detailed inventory below. The additional stylesheet is [responsive-dialog.module.css](../frontend/web/components/ui/responsive-dialog.module.css); its geometry-only rules retain inherited theme colors.
+
+Source scans covered color utility classes, parent/child color inheritance, conditional variants, inline fills, SVG attributes, opacity, and color configuration. Flagged cases were reviewed in their surrounding components. This is source coverage, not a claim that every rendered state was exercised in a browser.
+
+| Area | TSX/CSS files | Contrast disposition |
+| --- | ---: | --- |
+| App routes/styles | 28 | Preserve public/auth brand panels and readable text pairs; outline custom project progress without changing its saved fill. |
+| Shared UI | 33 | Give outline buttons an explicit foreground; remove faded select chevrons; outline slider tracks. Retain readable button, input, checkbox, switch, badge, menu, tooltip, dialog, and tab variants. |
+| Dashboard | 12 | Outline nonzero heatmap cells and custom-color progress. Keep chart axes, series, tooltips, panels, feedback, and navigation pairs. |
+| Projects | 51 | Fix custom-fill checkmarks, selected color outlines, and avatar status pairs. Retain task cards, board/backlog/calendar/Gantt, members, documents embedding, drawers, and dialogs. |
+| Calendar | 35 | Choose checkmark foregrounds from the actual fill; use visible checkbox borders and readable icons on custom tints. Keep completed/declined events readable without fading their text. Review calendar grids, mini-calendar, drawers, popovers, and modals. |
+| Pomodoro | 28 | Remove faded duration captions and put project icons on their saved fill with a readable foreground. Keep timer, tasks, history, audio, statistics, mini-timer, and settings pairs. |
+| Messages | 90 | Fix Threads icon, placeholders, unchecked toggle, file-type icon pairs, video play buttons, and lightbox controls. Keep bubbles, formatted content, reactions, threads, side panels, menus, and dialogs. |
+| Meetings | 71 | Fix room/creating icons, read receipts, admission actions, room pagination, nested participant/toggle surfaces, form surfaces, video play controls, and participant media controls. Review prejoin, gates, room panels, recordings, settings, and dialogs. |
+| Documents | 39 | Put download status/text on a normal card surface; distinguish progress from its track. Keep video preview canvas dark; retain explorer, grid/list, details, sharing, upload, and dialog pairs. |
+| Notifications | 16 | Pair category icons with their status foreground; keep custom-tint invitation icons readable. Review invitations, reminders, detail modal, and list states. |
+| Settings | 10 | Retain readable profile, password, preferences, session, form-control, and settings-modal pairs. Theme persistence and Save Settings behavior are unchanged. |
+| Authentication | 4 | Retain readable foregrounds on light/dark forms and invariant navy branding. |
+
+The unavailable AI/Tasks routes remain composition/placeholder surfaces covered by the app review. Default, hover, selected, focus, pending, empty, error, and disabled styling was traced where declared; conditional branches and third-party generated DOM remain subject to the browser limitation below.
+
+### Applied contrast rules and verification
+
+- Filled primary/status surfaces use their matching foreground; soft surfaces use readable semantic text. Custom hex fills keep their stored value and reuse readableTextOnColor for labels/checkmarks. Do not apply a global SVG recoloring rule.
+- Invariant media controls use opaque media-surface/media-foreground pairs. The new media-destructive token is the existing dark destructive hue (#FFB4BC), used for muted microphone indicators over dark video labels in both themes. Media menu content retains normal card colors and focus indicators.
+- **129 focused contrast checks passed**, including semantic fills, secondary text, status soft surfaces, input/focus boundaries, dark media overlays, and **55 custom/sample colors**. Minimum checked text contrast: **4.70:1**; minimum checked control/icon contrast: **3.19:1**. These calculations cover the named pairs, not every computed browser pixel.
+- Instant meeting icon: **1.74 ? 9.47:1 in Light**, **1.00 ? 16.44:1 in Dark**.
+- TypeScript: passed once with noEmit and incremental disabled. ESLint: 47 changed TS/TSX files, **0 new diagnostics** versus HEAD; **25 pre-existing errors and 22 pre-existing warnings** remain. No tests, dependencies, temporary files, or cache setup were added.
+- In-memory Tailwind CSS compilation: passed for the new media tokens, inset outlines, custom-fill marker, and scoped media-trigger focus rule.
+- Impeccable detector: one finding in the unchanged message formatter's semantic blockquote border; retain the existing documented content-formatting exception.
+- **Browser spot-checks were unavailable:** the computer-use inventory returned no connected apps/browsers. Desktop/mobile rendering, theme switching, and third-party popup states were not visually exercised in this follow-up.
+- Decorative separators, skeletons, and inactive calendar/heatmap space retain subtle contrast. Disabled controls and transient drag previews remain visually subdued. Uploaded images, document pages, avatars, videos, and user-authored rich content are not recolored.
 
 ## Applied rules
 

@@ -9,7 +9,7 @@ export default function ForgotPasswordPage() {
     <div>
       <Link
         href="/login"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary transition mb-6"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-link transition mb-6"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Sign In

@@ -13,16 +13,16 @@ interface TaskCardMessageProps {
 
 const statusBadgeStyles: Record<string, string> = {
   TODO: "bg-muted text-foreground border-border",
-  IN_PROGRESS: "bg-info-soft text-info border-border",
-  IN_REVIEW: "bg-info-soft text-info border-border",
-  DONE: "bg-success-soft text-success border-border",
-  CANCELLED: "bg-destructive-soft text-destructive border-border",
+  IN_PROGRESS: "bg-info-soft text-info-content border-border",
+  IN_REVIEW: "bg-info-soft text-info-content border-border",
+  DONE: "bg-success-soft text-success-content border-border",
+  CANCELLED: "bg-destructive-soft text-destructive-content border-border",
 };
 
 const priorityBadgeStyles: Record<string, string> = {
-  URGENT: "bg-destructive-soft text-destructive font-semibold",
-  HIGH: "bg-warning-soft text-warning font-semibold",
-  MEDIUM: "bg-info-soft text-info font-medium",
+  URGENT: "bg-destructive-soft text-destructive-content font-semibold",
+  HIGH: "bg-warning-soft text-warning-content font-semibold",
+  MEDIUM: "bg-info-soft text-info-content font-medium",
   LOW: "bg-muted text-muted-foreground font-medium",
 };
 
@@ -99,12 +99,12 @@ export default function TaskCardMessage({
           <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-success text-success-foreground">
             <CheckSquare size={13} />
           </div>
-          <span className="text-xs font-semibold tracking-wider text-success uppercase">
+          <span className="text-xs font-semibold tracking-wider text-success-content uppercase">
             Task Card
           </span>
         </div>
         {parsed.tag && (
-          <span className="rounded-full bg-success-soft/80 px-2.5 py-0.5 text-xs font-mono font-semibold text-success">
+          <span className="rounded-full bg-success-soft/80 px-2.5 py-0.5 text-xs font-mono font-semibold text-success-content">
             {parsed.tag}
           </span>
         )}
@@ -149,7 +149,7 @@ export default function TaskCardMessage({
       {targetUrl && (
         <div className="mt-3.5 flex items-center justify-between gap-2 pt-2.5 border-t border-border/70">
           <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium">
-            <FolderGit2 size={12} className="text-success" />
+            <FolderGit2 size={12} className="text-success-content" />
             <span>Project Task</span>
           </span>
           <Link

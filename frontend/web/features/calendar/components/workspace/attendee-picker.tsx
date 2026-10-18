@@ -71,7 +71,7 @@ export function AttendeePicker({
           placeholder={compact ? copy.addGuests : copy.searchAttendees}
           className={`h-auto w-full rounded-control py-2 pr-3 text-sm text-foreground shadow-none outline-none transition placeholder:text-muted-foreground ${
             compact
-              ? "rounded-control border border-input bg-card px-3 font-medium hover:border-input focus:border-info focus-visible:ring-2 focus-visible:ring-ring"
+              ? "rounded-control border border-input bg-card px-3 font-medium hover:border-input focus:border-info-outline focus-visible:ring-2 focus-visible:ring-ring"
               : "border border-input pl-9 font-semibold focus-visible:border-primary-soft focus-visible:ring-4 focus-visible:ring-ring"
           }`}
         />

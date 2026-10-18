@@ -595,12 +595,12 @@ const ThreadChatInput = React.memo(
         className="min-w-0 w-full shrink-0 bg-card border-t border-border flex justify-center relative"
       >
         {isDraggingOver && (
-          <div className="absolute inset-0 bg-info-soft/80 border-2 border-dashed border-info rounded-panel m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-info-soft/80 border-2 border-dashed border-info-outline rounded-panel m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
             <UploadCloud
-              className="text-info mb-2"
+              className="text-info-content mb-2"
               size={28}
             />
-            <p className="text-xs font-semibold text-info">
+            <p className="text-xs font-semibold text-info-content">
               Drop files here
             </p>
           </div>
@@ -621,7 +621,7 @@ const ThreadChatInput = React.memo(
                   {media.mimeType.startsWith("image/") ? (
                     <ImageIcon
                       size={16}
-                      className="text-info flex-shrink-0"
+                      className="text-info-content flex-shrink-0"
                     />
                   ) : (
                     <FileText
@@ -641,14 +641,14 @@ const ThreadChatInput = React.memo(
                   {media.status === "uploading" && (
                     <Loader2
                       size={14}
-                      className="text-info animate-spin ml-1 flex-shrink-0"
+                      className="text-info-content animate-spin ml-1 flex-shrink-0"
                     />
                   )}
 
                   <button
                     type="button"
                     onClick={() => removeFile(media.id)}
-                    className="text-muted-foreground hover:text-destructive transition ml-1 flex-shrink-0 cursor-pointer"
+                    className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
                     title={
                       media.status === "uploading"
                         ? "Remove uploading file"
@@ -662,7 +662,7 @@ const ThreadChatInput = React.memo(
             </div>
           )}
 
-          <div className="flex bg-background border border-input focus-within:border-info focus-within:ring-1 focus-within:ring-ring transition-all relative rounded-panel p-1.5 gap-1.5 items-center">
+          <div className="flex bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative rounded-panel p-1.5 gap-1.5 items-center">
             {/* Hidden Inputs */}
             <input
               type="file"
@@ -683,7 +683,7 @@ const ThreadChatInput = React.memo(
                 disabled={isUploading}
                 className={`cursor-pointer p-1.5 rounded-full transition-colors ${
                   showThreadOptions
-                    ? "bg-info-soft text-info"
+                    ? "bg-info-soft text-info-content"
                     : "text-muted-foreground hover:bg-accent"
                 }`}
                 title="Options"
@@ -715,7 +715,7 @@ const ThreadChatInput = React.memo(
                     disabled={isUploading}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
-                    <Folder size={14} className="text-info" />
+                    <Folder size={14} className="text-info-content" />
                     My Files
                   </button>
                   <button
@@ -725,7 +725,7 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left"
                   >
-                    <Type size={14} className="text-info" />
+                    <Type size={14} className="text-info-content" />
                     Formatting
                   </button>
                   <button
@@ -735,7 +735,7 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left"
                   >
-                    <Smile size={14} className="text-warning" />
+                    <Smile size={14} className="text-warning-content" />
                     Emoji
                   </button>
                   <button
@@ -745,7 +745,7 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left"
                   >
-                    <Mic size={14} className="text-success" />
+                    <Mic size={14} className="text-success-content" />
                     Voice input
                   </button>
                   <button
@@ -755,7 +755,7 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left"
                   >
-                    <Voicemail size={14} className="text-destructive" />
+                    <Voicemail size={14} className="text-destructive-content" />
                     Voice message
                   </button>
                 </div>
@@ -878,7 +878,7 @@ const ThreadChatInput = React.memo(
                 }}
                 placeholder="Reply in thread..."
                 disabled={isUploading}
-                className="w-full bg-transparent resize-none outline-none text-foreground placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px]"
+                className="w-full bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px]"
                 rows={1}
                 onKeyDown={(e) => {
                   if (mentionQuery !== null && filteredMembers.length > 0) {
@@ -923,13 +923,13 @@ const ThreadChatInput = React.memo(
             <div className="flex items-center gap-1.5 flex-shrink-0 relative">
               {isRecording ? (
                 <div className="flex items-center gap-2.5 px-1 animate-in fade-in">
-                  <div className="w-2 h-2 rounded-full bg-destructive animate-pulse"></div>
-                  <span className="text-destructive font-medium text-xs">
+                  <div className="w-2 h-2 rounded-full bg-destructive-content animate-pulse"></div>
+                  <span className="text-destructive-content font-medium text-xs">
                     {formatTime(recordingTime)}
                   </span>
                   <button
                     onClick={handleCancelRecording}
-                    className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-accent rounded-full transition cursor-pointer"
+                    className="p-1.5 text-muted-foreground hover:text-destructive-content hover:bg-accent rounded-full transition cursor-pointer"
                     title="Cancel recording"
                   >
                     <Trash2 size={16} />
@@ -948,7 +948,7 @@ const ThreadChatInput = React.memo(
                     <button
                       type="button"
                       onClick={handleStopDictation}
-                      className="p-1.5 rounded-full bg-destructive-soft text-destructive animate-pulse hover:bg-destructive-soft transition-colors cursor-pointer"
+                      className="p-1.5 rounded-full bg-destructive-soft text-destructive-content animate-pulse hover:bg-destructive-soft transition-colors cursor-pointer"
                       title="Stop speech to text"
                     >
                       <Mic size={15} />

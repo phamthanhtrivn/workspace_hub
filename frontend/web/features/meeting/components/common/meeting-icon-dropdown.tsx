@@ -79,7 +79,7 @@ export function MeetingIconDropdown({ label, items }: MeetingIconDropdownProps) 
               }}
               className={`flex h-9 w-full cursor-pointer items-center gap-2 px-3 text-left text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
                 item.danger
-                  ? "text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  ? "text-destructive-content hover:bg-destructive hover:text-destructive-foreground"
                   : "text-muted-foreground hover:bg-overlay/10 hover:text-foreground"
               }`}
             >

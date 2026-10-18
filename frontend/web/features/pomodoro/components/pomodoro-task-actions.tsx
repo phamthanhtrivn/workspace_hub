@@ -41,7 +41,7 @@ export function PomodoroTaskActions({ task, timerStatus, disabled, onAction }: P
         </Button>
       </div>
       {pending && <p role="status" className="text-xs text-muted-foreground">Saving the session and updating the task...</p>}
-      {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-xs text-destructive-content">{error}</p>}
     </div>
   );
 }

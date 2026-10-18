@@ -43,8 +43,8 @@ export default function PublicPage() {
           >
             <div className="flex lg:flex-1">
               <Link href="/" className="-m-1.5 flex items-center gap-2 p-1.5">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary shadow-lg">
-                  <span className="text-xl font-bold text-primary-foreground">W</span>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-blue to-brand-blue shadow-lg">
+                  <span className="text-xl font-bold text-brand-ice">W</span>
                 </div>
                 <span className="hidden text-xl font-bold tracking-tight text-foreground sm:block">
                   WorkspaceHub
@@ -75,7 +75,7 @@ export default function PublicPage() {
                 Next generation workspace management.{" "}
                 <Link
                   href="/register"
-                  className="font-semibold text-primary"
+                  className="font-semibold text-link"
                 >
                   Get Started{" "}
                   <span aria-hidden="true">&rarr;</span>

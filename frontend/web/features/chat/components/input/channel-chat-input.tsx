@@ -721,12 +721,12 @@ const ChannelChatInput = React.memo(
           className="min-w-0 w-full shrink-0 bg-card border-t border-border flex justify-center relative"
         >
           {isDraggingOver && (
-            <div className="absolute inset-0 bg-info-soft/80 border-2 border-dashed border-info rounded-panel m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
+            <div className="absolute inset-0 bg-info-soft/80 border-2 border-dashed border-info-outline rounded-panel m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
               <UploadCloud
-                className="text-info mb-2"
+                className="text-info-content mb-2"
                 size={28}
               />
-              <p className="text-xs font-semibold text-info">
+              <p className="text-xs font-semibold text-info-content">
                 Drop files here
               </p>
             </div>
@@ -749,8 +749,8 @@ const ChannelChatInput = React.memo(
                         size={16}
                         className={`${
                           media.status === "error"
-                            ? "text-destructive"
-                            : "text-info"
+                            ? "text-destructive-content"
+                            : "text-info-content"
                         } flex-shrink-0`}
                       />
                     ) : (
@@ -758,7 +758,7 @@ const ChannelChatInput = React.memo(
                         size={16}
                         className={`${
                           media.status === "error"
-                            ? "text-destructive"
+                            ? "text-destructive-content"
                             : "text-muted-foreground"
                         } flex-shrink-0`}
                       />
@@ -767,7 +767,7 @@ const ChannelChatInput = React.memo(
                       <span
                         className={`text-xs truncate ${
                           media.status === "error"
-                            ? "text-destructive"
+                            ? "text-destructive-content"
                             : "text-foreground"
                         }`}
                       >
@@ -776,7 +776,7 @@ const ChannelChatInput = React.memo(
                       <span
                         className={`text-xs ${
                           media.status === "error"
-                            ? "text-destructive"
+                            ? "text-destructive-content"
                             : "text-muted-foreground"
                         }`}
                       >
@@ -787,14 +787,14 @@ const ChannelChatInput = React.memo(
                     {media.status === "uploading" && (
                       <Loader2
                         size={14}
-                        className="text-info animate-spin ml-1 flex-shrink-0"
+                        className="text-info-content animate-spin ml-1 flex-shrink-0"
                       />
                     )}
 
                     <button
                       type="button"
                       onClick={() => removeFile(media.id)}
-                      className="text-muted-foreground hover:text-destructive transition ml-1 flex-shrink-0 cursor-pointer"
+                      className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
                       title={
                         media.status === "uploading"
                           ? "Remove uploading file"
@@ -808,7 +808,7 @@ const ChannelChatInput = React.memo(
               </div>
             )}
 
-            <div className="flex bg-background border border-input focus-within:border-info focus-within:ring-1 focus-within:ring-ring transition-all relative rounded-panel p-2 gap-2 items-center">
+            <div className="flex bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative rounded-panel p-2 gap-2 items-center">
               {/* Hidden Inputs */}
               <input
                 type="file"
@@ -828,7 +828,7 @@ const ChannelChatInput = React.memo(
                   disabled={isUploading}
                   className={`cursor-pointer p-2 rounded-full transition-colors ${
                     showOptions
-                      ? "bg-info-soft text-info"
+                      ? "bg-info-soft text-info-content"
                       : "text-muted-foreground hover:bg-accent"
                   }`}
                 >
@@ -860,7 +860,7 @@ const ChannelChatInput = React.memo(
                       disabled={isUploading}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
-                      <Folder size={16} className="text-info" />
+                      <Folder size={16} className="text-info-content" />
                       My Files
                     </button>
 
@@ -875,7 +875,7 @@ const ChannelChatInput = React.memo(
                         disabled={isUploading}
                         className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors text-left cursor-pointer disabled:opacity-50"
                       >
-                        <CheckSquare size={16} className="text-success" />
+                        <CheckSquare size={16} className="text-success-content" />
                         Task
                       </button>
                     )}
@@ -889,7 +889,7 @@ const ChannelChatInput = React.memo(
                         disabled={isUploading}
                         className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                       >
-                        <BarChart2 size={16} className="text-info" />
+                        <BarChart2 size={16} className="text-info-content" />
                         Poll
                       </button>
                     )}
@@ -903,7 +903,7 @@ const ChannelChatInput = React.memo(
                         disabled={isUploading}
                         className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                       >
-                        <FileText size={16} className="text-warning" />
+                        <FileText size={16} className="text-warning-content" />
                         Note
                       </button>
                     )}
@@ -1032,7 +1032,7 @@ const ChannelChatInput = React.memo(
                       : "Type @ to mention, message " + activeChannel?.name
                   }
                   disabled={isUploading}
-                  className="w-full bg-transparent resize-none outline-none text-foreground placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px]"
+                  className="w-full bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px]"
                   rows={1}
                   onKeyDown={(e) => {
                     if (mentionQuery !== null && filteredMembers.length > 0) {
@@ -1077,13 +1077,13 @@ const ChannelChatInput = React.memo(
               <div className="flex items-center gap-1.5 flex-shrink-0 relative pb-1">
                 {isRecording ? (
                   <div className="flex items-center gap-2.5 px-1 animate-in fade-in">
-                    <div className="w-2 h-2 rounded-full bg-destructive animate-pulse"></div>
-                    <span className="text-destructive font-medium text-xs">
+                    <div className="w-2 h-2 rounded-full bg-destructive-content animate-pulse"></div>
+                    <span className="text-destructive-content font-medium text-xs">
                       {formatTime(recordingTime)}
                     </span>
                     <button
                       onClick={handleCancelRecording}
-                      className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-accent rounded-full transition cursor-pointer"
+                      className="p-1.5 text-muted-foreground hover:text-destructive-content hover:bg-accent rounded-full transition cursor-pointer"
                       title="Cancel recording"
                     >
                       <Trash2 size={16} />
@@ -1104,7 +1104,7 @@ const ChannelChatInput = React.memo(
                       onClick={() => setShowFormatting(!showFormatting)}
                       className={`cursor-pointer p-2 rounded-full transition-colors ${
                         showFormatting
-                          ? "bg-info-soft text-info"
+                          ? "bg-info-soft text-info-content"
                           : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                       }`}
                       title="Text formatting"
@@ -1120,7 +1120,7 @@ const ChannelChatInput = React.memo(
                         onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                         className={`cursor-pointer p-2 rounded-full transition-colors ${
                           showEmojiPicker
-                            ? "bg-info-soft text-info"
+                            ? "bg-info-soft text-info-content"
                             : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                         }`}
                         disabled={isUploading}
@@ -1148,9 +1148,9 @@ const ChannelChatInput = React.memo(
                         }}
                         className={`cursor-pointer p-2 rounded-full transition-colors ${
                           isDictating
-                            ? "bg-destructive-soft text-destructive animate-pulse"
+                            ? "bg-destructive-soft text-destructive-content animate-pulse"
                             : showMicOptions
-                              ? "bg-info-soft text-info"
+                              ? "bg-info-soft text-info-content"
                               : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                         }`}
                         title="Voice options"
@@ -1168,7 +1168,7 @@ const ChannelChatInput = React.memo(
                             }}
                             className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition text-left cursor-pointer"
                           >
-                            <Voicemail size={16} className="text-info" />{" "}
+                            <Voicemail size={16} className="text-info-content" />{" "}
                             Send voice message
                           </button>
                           <button
@@ -1178,7 +1178,7 @@ const ChannelChatInput = React.memo(
                             }}
                             className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition text-left cursor-pointer"
                           >
-                            <Type size={16} className="text-success" />
+                            <Type size={16} className="text-success-content" />
                             Speech to text
                           </button>
                         </div>

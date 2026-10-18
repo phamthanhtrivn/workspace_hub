@@ -107,7 +107,7 @@ export function MeetingJoinLinkModal({
             className={cn(
               "mt-2 flex min-w-0 items-center gap-2 rounded-lg border bg-background px-3 py-2.5 transition focus-within:bg-card focus-within:ring-2",
               error
-                ? "border-destructive focus-within:ring-ring"
+                ? "border-destructive-outline focus-within:ring-ring"
                 : "border-border focus-within:border-primary focus-within:ring-ring",
             )}
           >
@@ -126,7 +126,7 @@ export function MeetingJoinLinkModal({
             />
           </div>
           {error ? (
-            <p className="mt-2 text-sm font-semibold text-destructive">{error}</p>
+            <p className="mt-2 text-sm font-semibold text-destructive-content">{error}</p>
           ) : null}
 
           <div className="mt-5 flex justify-end gap-2">

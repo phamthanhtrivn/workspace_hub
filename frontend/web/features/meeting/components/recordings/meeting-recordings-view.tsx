@@ -145,7 +145,7 @@ export function MeetingRecordingsView() {
                     : ""}
                 </p>
                 {recording.failureCode && (
-                  <p className="mt-1 text-xs text-destructive">
+                  <p className="mt-1 text-xs text-destructive-content">
                     {recording.failureCode === "UPLOAD_BACKUP_REQUIRES_RECOVERY"
                       ? "Upload failed. Contact the meeting administrator to recover the saved video."
                       : recording.status === "FAILED"

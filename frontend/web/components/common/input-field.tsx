@@ -19,7 +19,7 @@ const InputField = React.memo(function InputField({
           variant === "auth" ? "rounded-2xl bg-background/80" : "rounded-control bg-background"
         } ${
           error
-            ? "border-destructive bg-destructive-soft/40"
+            ? "border-destructive-outline bg-destructive-soft/40"
             : "border-input hover:border-input focus-within:border-primary"
         }`}
       >
@@ -46,7 +46,7 @@ const InputField = React.memo(function InputField({
         )}
       </div>
 
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      {error && <p className="text-xs text-destructive-content">{error}</p>}
     </div>
   );
 });

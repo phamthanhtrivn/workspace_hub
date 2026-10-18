@@ -48,7 +48,7 @@ export default function TaskChatDialog({
         <DialogHeader className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-5 pt-5 pb-4 pr-12 text-left border-b border-border">
           <div className="min-w-0 max-w-full">
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-              <MessageCircle size={15} className="text-info" />
+              <MessageCircle size={15} className="text-info-content" />
               <span>Task Discussion</span>
             </div>
             <DialogTitle className="mt-1 truncate text-base font-semibold text-foreground">
@@ -63,7 +63,7 @@ export default function TaskChatDialog({
               type="button"
               disabled={isOpeningChannel}
               onClick={handleChatClick}
-              className="inline-flex items-center gap-1.5 rounded-control bg-info-soft px-3 py-1.5 text-xs font-semibold text-info hover:bg-info-soft transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-control bg-info-soft px-3 py-1.5 text-xs font-semibold text-info-content hover:bg-info-soft transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
               title="Open real-time discussion thread in Space Chat"
             >
               <MessageSquare size={13} />

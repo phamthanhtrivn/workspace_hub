@@ -93,7 +93,7 @@ export function MeetingPreJoin({
       <div className="fixed inset-0 z-[100] flex h-dvh min-h-0 flex-col overflow-y-auto bg-card text-foreground">
         <header className="flex shrink-0 items-center justify-between border-b border-border/10 px-4 py-3 sm:px-6">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-info">
+            <p className="text-xs font-semibold uppercase tracking-wide text-info-content">
               Instant meeting
             </p>
             <h2 className="truncate text-section-title font-semibold sm:text-section-title">

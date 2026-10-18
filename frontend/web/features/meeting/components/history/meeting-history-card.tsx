@@ -17,9 +17,9 @@ interface MeetingHistoryCardProps {
 export function MeetingHistoryCard({ meeting }: MeetingHistoryCardProps) {
   return (
     <article className="relative flex flex-col overflow-hidden rounded-lg border border-border bg-card p-4 text-foreground transition hover:border-border">
-      <span className="absolute inset-x-0 top-0 h-1 bg-primary" />
+      <span className="absolute inset-x-0 top-0 h-1 bg-link" />
       <div className="flex items-center gap-3">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-primary-soft text-info ring-1 ring-ring">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-primary-soft text-info-content ring-1 ring-ring">
           <CalendarClock className="h-6 w-6" />
         </span>
         <div className="min-w-0 flex-1 pt-0.5">

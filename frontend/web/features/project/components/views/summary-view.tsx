@@ -63,21 +63,21 @@ export default function SummaryView({
           value={rootTasks.length}
           label="Tasks"
           sublabel={`+${createdRecently.length} created this week`}
-          color="bg-info-soft text-info"
+          color="bg-info-soft text-info-content"
         />
         <ProjectMetricCard
           icon={Activity}
           value={subtasks.length}
           label="Subtasks"
           sublabel={`${subtaskCompletionPercent}% completed`}
-          color="bg-info-soft text-info"
+          color="bg-info-soft text-info-content"
         />
         <ProjectMetricCard
           icon={CheckCircle2}
           value={completed.length}
           label="Completed"
           sublabel={`+${completedRecently.length} done this week`}
-          color="bg-success-soft text-success"
+          color="bg-success-soft text-success-content"
         />
         <ProjectMetricCard
           icon={CircleAlert}
@@ -88,7 +88,7 @@ export default function SummaryView({
               ? `${dueSoon.length} due in next 7 days`
               : "All deadlines on track"
           }
-          color="bg-destructive-soft text-destructive"
+          color="bg-destructive-soft text-destructive-content"
         />
       </div>
 
@@ -101,7 +101,7 @@ export default function SummaryView({
             <div
               className="grid h-32 w-32 shrink-0 place-items-center rounded-full"
               style={{
-                background: `conic-gradient(var(--success) ${completionPercent}%, var(--border) ${completionPercent}% 100%)`,
+                background: `conic-gradient(var(--success-content) ${completionPercent}%, var(--border) ${completionPercent}% 100%)`,
               }}
             >
               <div className="grid h-24 w-24 place-items-center rounded-full bg-card text-center">
@@ -148,7 +148,7 @@ export default function SummaryView({
                   <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
                     {task.title}
                   </span>
-                  <span className="shrink-0 text-xs font-semibold text-warning">
+                  <span className="shrink-0 text-xs font-semibold text-warning-content">
                     {formatDate(task.dueDate)}
                   </span>
                   <TaskStatusBadge status={task.status} compact />
@@ -175,7 +175,7 @@ export default function SummaryView({
           <MemberWorkloadList
             items={workload}
             maxCount={maxWorkload}
-            barColor="bg-primary"
+            barColor="bg-link"
             emptyMessage="No assigned workload to display."
           />
         </ProjectSummaryPanel>
@@ -212,7 +212,7 @@ export default function SummaryView({
                   key={task.id}
                   className="flex items-center gap-3 border-b border-border pb-2 last:border-0"
                 >
-                  <span className="h-2 w-2 rounded-full bg-primary" />
+                  <span className="h-2 w-2 rounded-full bg-link" />
                   <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
                     {task.title}
                   </span>

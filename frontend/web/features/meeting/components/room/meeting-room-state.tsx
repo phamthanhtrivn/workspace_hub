@@ -6,7 +6,7 @@ export function MeetingRoomLoading({ joinToken }: { joinToken: string }) {
   return (
     <div className="fixed inset-0 z-[90] grid h-dvh min-h-0 overflow-y-auto py-4 [place-items:safe_center] bg-card px-4 text-foreground">
       <div className="flex w-full max-w-sm flex-col items-center rounded-lg border border-border bg-accent px-6 py-8 text-center">
-        <Loader2 className="h-9 w-9 animate-spin text-info" />
+        <Loader2 className="h-9 w-9 animate-spin text-info-content" />
         <h1 className="mt-4 text-lg font-semibold">Joining meeting</h1>
         <p className="mt-2 text-sm font-semibold text-muted-foreground">
           {joinToken}
@@ -20,7 +20,7 @@ export function MeetingRoomError({ onBack }: { onBack: () => void }) {
   return (
     <div className="fixed inset-0 z-[90] grid h-dvh min-h-0 overflow-y-auto py-4 [place-items:safe_center] bg-card px-4 text-foreground">
       <div className="w-full max-w-sm rounded-lg border border-border bg-accent px-6 py-8 text-center">
-        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-destructive/16 text-destructive ring-1 ring-destructive/20">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-destructive-soft text-destructive-content ring-1 ring-destructive-outline/20">
           <VideoOff className="h-7 w-7" />
         </span>
         <h1 className="mt-4 text-lg font-semibold">

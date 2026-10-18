@@ -77,7 +77,7 @@ export function DocumentsInputModal({
         showCloseButton={!isLoading}
       >
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info ring-1 ring-ring">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info-content ring-1 ring-ring">
             <Icon className="h-5 w-5" />
           </div>
           <div>
@@ -102,12 +102,12 @@ export function DocumentsInputModal({
               placeholder={placeholder}
               disabled={isLoading}
               className={cn(
-                "h-11 rounded-control border border-input bg-background px-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:border-info focus:bg-card focus:outline-hidden",
-                error && "border-destructive focus-visible:ring-ring"
+                "h-11 rounded-control border border-input bg-background px-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:border-info-outline focus:bg-card focus:outline-hidden",
+                error && "border-destructive-outline focus-visible:ring-ring"
               )}
             />
             {error ? (
-              <p className="mt-1.5 text-xs font-semibold text-destructive">{error}</p>
+              <p className="mt-1.5 text-xs font-semibold text-destructive-content">{error}</p>
             ) : null}
           </div>
 

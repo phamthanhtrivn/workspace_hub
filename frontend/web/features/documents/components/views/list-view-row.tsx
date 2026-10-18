@@ -118,7 +118,7 @@ export function ListViewRow({
       className={cn(
         "hover:bg-background cursor-pointer select-none transition-colors border-b border-border",
         isSelected && "bg-info-soft/40",
-        isOver && "bg-info-soft/50 border-y-2 border-dashed border-info"
+        isOver && "bg-info-soft/50 border-y-2 border-dashed border-info-outline"
       )}
     >
       <td className="p-4 flex items-center gap-3 min-w-0">
@@ -127,7 +127,7 @@ export function ListViewRow({
           {item.name}
         </span>
         {!isProjectDocuments && item.isStarred ? (
-          <Star className="h-3.5 w-3.5 fill-warning text-warning shrink-0 ml-1" />
+          <Star className="h-3.5 w-3.5 fill-warning-content text-warning-content shrink-0 ml-1" />
         ) : null}
       </td>
       <td className="p-4 hidden sm:table-cell">

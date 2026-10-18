@@ -105,7 +105,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
           className={cn(
             "text-[13px] font-semibold truncate tracking-tight transition-colors duration-150",
             isActive
-              ? "text-info"
+              ? "text-info-content"
               : "text-foreground group-hover:text-foreground",
             unreadCount > 0 && "font-semibold",
           )}
@@ -124,10 +124,10 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
 
       <div className="flex items-center justify-end shrink-0 pl-1 gap-1">
         {isPinned && (
-          <Pin size={11} className="shrink-0 fill-info text-info" />
+          <Pin size={11} className="shrink-0 fill-info-content text-info-content" />
         )}
         {conversation.hasMention && (
-          <span className="text-info font-semibold text-xs mr-1">
+          <span className="text-info-content font-semibold text-xs mr-1">
             @
           </span>
         )}
@@ -135,7 +135,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
           <div
             className={cn(
               "text-primary-foreground text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center flex items-center justify-center",
-              isMuted ? "bg-muted-foreground" : "bg-destructive",
+              isMuted ? "bg-muted text-muted-foreground" : "bg-destructive",
             )}
           >
             {unreadCount > MAX_UNREAD_COUNT ? "99+" : unreadCount}
@@ -170,7 +170,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
               >
                 <Pin
                   size={14}
-                  className={isPinned ? "fill-info text-info" : ""}
+                  className={isPinned ? "fill-info-content text-info-content" : ""}
                 />
                 <span>{isPinned ? "Unpin" : "Pin"}</span>
               </button>

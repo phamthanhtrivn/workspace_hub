@@ -31,7 +31,7 @@ export function MeetingToggle({
       className={cn(
         "flex items-center justify-between gap-3 rounded-lg p-3 transition",
         isDark
-          ? "bg-overlay/10 ring-1 ring-border/8 hover:bg-overlay/10"
+          ? "bg-muted ring-1 ring-border/8 hover:bg-muted"
           : "border border-border bg-background hover:border-border hover:bg-info-soft/70",
         disabled && "opacity-70",
         className,
@@ -41,7 +41,7 @@ export function MeetingToggle({
         <span
           className={cn(
             "grid size-9 shrink-0 place-items-center rounded-md",
-            isDark ? "bg-overlay/10 text-info" : "bg-card text-info",
+            isDark ? "bg-card text-info-content" : "bg-card text-info-content",
           )}
         >
           <Icon className="size-4" />

@@ -68,7 +68,7 @@ export function MeetingPreviousView() {
                 className={cn(
                   "size-9",
                   isActive
-                    ? "bg-card text-info hover:bg-card"
+                    ? "bg-card text-info-content hover:bg-card"
                     : "text-muted-foreground hover:text-foreground",
                 )}
               />
@@ -82,7 +82,7 @@ export function MeetingPreviousView() {
       ) : historyQuery.isError ? (
         <div className="grid min-h-80 place-items-center rounded-lg border border-dashed border-border bg-card px-4">
           <div className="flex max-w-sm flex-col items-center text-center">
-            <VideoOff className="h-9 w-9 text-destructive" />
+            <VideoOff className="h-9 w-9 text-destructive-content" />
             <p className="mt-3 text-sm font-semibold text-foreground">
               Could not load meeting history.
             </p>

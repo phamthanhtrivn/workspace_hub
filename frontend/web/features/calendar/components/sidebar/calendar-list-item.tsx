@@ -32,7 +32,7 @@ function CalendarSelectionCheckbox({
       onCheckedChange={onToggle}
       className="h-4.5 w-4.5 cursor-pointer rounded-[5px] border transition-all focus-visible:ring-2 focus-visible:ring-ring"
       style={{
-        borderColor: calendar.color,
+        borderColor: "var(--input)",
         backgroundColor: selected ? calendar.color : "var(--card)",
         color: readableTextOnColor(calendar.color),
       }}

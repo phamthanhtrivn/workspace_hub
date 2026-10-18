@@ -79,7 +79,7 @@ export const InvitationListItemRenderer: React.FC<{
 
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex items-center gap-2">
-          <span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info">
+          <span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info-content">
             Space invite
           </span>
           <span className="text-xs font-semibold text-muted-foreground">
@@ -92,7 +92,7 @@ export const InvitationListItemRenderer: React.FC<{
             {notification.senderName || "Someone"}
           </span>{" "}
           invited you to{" "}
-          <span className="text-info">{spaceName}</span>
+          <span className="text-info-content">{spaceName}</span>
         </p>
 
         <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
@@ -101,7 +101,7 @@ export const InvitationListItemRenderer: React.FC<{
       </div>
 
       {!notification.isRead && (
-        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
       )}
     </button>
   );
@@ -198,7 +198,7 @@ export const InvitationModalRenderer: React.FC<{
           </div>
         </div>
 
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-info">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-info-content">
           Space invitation
         </p>
         <h3 className="text-section-title font-semibold tracking-tight text-foreground">
@@ -215,7 +215,7 @@ export const InvitationModalRenderer: React.FC<{
       <div className="space-y-4 p-5">
         <div className="rounded-panel border border-border bg-background p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-panel bg-card text-info ring-1 ring-ring">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-panel bg-card text-info-content ring-1 ring-ring">
               <Users size={21} />
             </div>
             <div className="min-w-0 flex-1">
@@ -231,7 +231,7 @@ export const InvitationModalRenderer: React.FC<{
         </div>
 
         {isResponded ? (
-          <div className="flex items-center justify-center gap-2 rounded-panel border border-border bg-success-soft p-3 text-sm font-semibold text-success">
+          <div className="flex items-center justify-center gap-2 rounded-panel border border-border bg-success-soft p-3 text-sm font-semibold text-success-content">
             <CheckCircle2 size={17} />
             This invitation has already been handled
           </div>
@@ -240,7 +240,7 @@ export const InvitationModalRenderer: React.FC<{
             <button
               onClick={() => handleResponse("decline")}
               disabled={isProcessing}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-foreground transition hover:border-border hover:bg-destructive-soft hover:text-destructive disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-foreground transition hover:border-border hover:bg-destructive-soft hover:text-destructive-content disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
               <XCircle size={16} />
               Decline

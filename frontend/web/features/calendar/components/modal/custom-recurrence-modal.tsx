@@ -203,7 +203,7 @@ export function CustomRecurrenceModal({
                       aria-label={getWeekdayNameByCode(weekday.value, CALENDAR_FORM_LOCALE)}
                       className={`grid h-7 w-7 cursor-pointer place-items-center rounded-full text-xs font-semibold transition sm:h-9 sm:w-9 ${
                         selected
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-primary-soft text-primary-soft-foreground"
                           : "bg-muted text-muted-foreground hover:bg-accent"
                       }`}
                     >
@@ -289,7 +289,7 @@ export function CustomRecurrenceModal({
               )}
             </div>
             {error && (
-              <p role="alert" className="text-sm text-destructive">
+              <p role="alert" className="text-sm text-destructive-content">
                 {error}
               </p>
             )}

@@ -38,7 +38,7 @@ export default function ViewPollModal({
       <div className="relative w-full max-w-md">
         <button aria-label="Close"
           onClick={onClose}
-          className="absolute -top-10 right-0 text-primary-foreground hover:text-muted-foreground p-2 transition cursor-pointer"
+          className="absolute -top-10 right-0 rounded-control bg-media-surface text-media-foreground hover:bg-media-background focus-visible:outline-media-foreground p-2 transition cursor-pointer"
         >
           <X size={24} />
         </button>

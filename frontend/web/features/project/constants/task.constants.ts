@@ -32,34 +32,34 @@ export const TASK_PRIORITY_OPTIONS = [
 
 export const TASK_DRAWER_STATUS_OPTIONS = [
   { value: TaskStatus.TODO, label: "To Do", color: "text-muted-foreground bg-muted hover:bg-accent" },
-  { value: TaskStatus.IN_PROGRESS, label: "In Progress", color: "text-info bg-primary-soft hover:bg-accent" },
-  { value: TaskStatus.IN_REVIEW, label: "In Review", color: "text-warning bg-warning-soft hover:bg-warning-soft" },
-  { value: TaskStatus.DONE, label: "Done", color: "text-success bg-success-soft hover:bg-success-soft" },
-  { value: TaskStatus.CANCELLED, label: "Cancelled", color: "text-destructive bg-destructive-soft hover:bg-destructive-soft border border-border" },
+  { value: TaskStatus.IN_PROGRESS, label: "In Progress", color: "text-info-content bg-primary-soft hover:bg-accent" },
+  { value: TaskStatus.IN_REVIEW, label: "In Review", color: "text-warning-content bg-warning-soft hover:bg-warning-soft" },
+  { value: TaskStatus.DONE, label: "Done", color: "text-success-content bg-success-soft hover:bg-success-soft" },
+  { value: TaskStatus.CANCELLED, label: "Cancelled", color: "text-destructive-content bg-destructive-soft hover:bg-destructive-soft border border-border" },
 ] as const;
 
 export const TASK_PRIORITY_SELECT_OPTIONS = TASK_PRIORITY_OPTIONS;
 export const TASK_DRAWER_PRIORITY_OPTIONS = TASK_PRIORITY_OPTIONS;
 
 export const TASK_STATUS_CHART_CONFIG = [
-  { status: TaskStatus.TODO, label: "To Do", color: "var(--info)" },
-  { status: TaskStatus.IN_PROGRESS, label: "In Progress", color: "var(--primary)" },
-  { status: TaskStatus.IN_REVIEW, label: "In Review", color: "var(--warning)" },
-  { status: TaskStatus.DONE, label: "Done", color: "var(--success)" },
-  { status: TaskStatus.CANCELLED, label: "Cancelled", color: "var(--destructive)" },
+  { status: TaskStatus.TODO, label: "To Do", color: "var(--info-content)" },
+  { status: TaskStatus.IN_PROGRESS, label: "In Progress", color: "var(--link)" },
+  { status: TaskStatus.IN_REVIEW, label: "In Review", color: "var(--warning-content)" },
+  { status: TaskStatus.DONE, label: "Done", color: "var(--success-content)" },
+  { status: TaskStatus.CANCELLED, label: "Cancelled", color: "var(--destructive-content)" },
 ] as const;
 
 export const TASK_PRIORITY_CHART_CONFIG = [
-  { priority: TaskPriority.URGENT, label: "Urgent", color: "bg-destructive" },
-  { priority: TaskPriority.HIGH, label: "High", color: "bg-warning" },
-  { priority: TaskPriority.MEDIUM, label: "Medium", color: "bg-primary" },
+  { priority: TaskPriority.URGENT, label: "Urgent", color: "bg-destructive-content" },
+  { priority: TaskPriority.HIGH, label: "High", color: "bg-warning-content" },
+  { priority: TaskPriority.MEDIUM, label: "Medium", color: "bg-link" },
   { priority: TaskPriority.LOW, label: "Low", color: "bg-muted-foreground" },
 ] as const;
 
 export const GANTT_STATUS_LEGEND = [
   { status: TaskStatus.TODO, label: "To Do", color: "bg-muted-foreground" },
-  { status: TaskStatus.IN_PROGRESS, label: "In Progress", color: "bg-primary" },
-  { status: TaskStatus.IN_REVIEW, label: "In Review", color: "bg-warning" },
-  { status: TaskStatus.DONE, label: "Done", color: "bg-success" },
-  { status: TaskStatus.CANCELLED, label: "Cancelled", color: "bg-destructive" },
+  { status: TaskStatus.IN_PROGRESS, label: "In Progress", color: "bg-link" },
+  { status: TaskStatus.IN_REVIEW, label: "In Review", color: "bg-warning-content" },
+  { status: TaskStatus.DONE, label: "Done", color: "bg-success-content" },
+  { status: TaskStatus.CANCELLED, label: "Cancelled", color: "bg-destructive-content" },
 ] as const;

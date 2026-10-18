@@ -100,7 +100,7 @@ export function PomodoroSettingsForm({ config, syncStatus, onSave }: PomodoroSet
             checked={field.value} onCheckedChange={field.onChange} disabled={disabled} />
         )} />
       </fieldset>
-      {syncStatus === "error" && <p role="alert" className="text-xs text-warning">{errors.root?.server?.message ?? POMODORO_SETTINGS_MESSAGES.pending}</p>}
+      {syncStatus === "error" && <p role="alert" className="text-xs text-warning-content">{errors.root?.server?.message ?? POMODORO_SETTINGS_MESSAGES.pending}</p>}
       <Button type="submit" disabled={disabled}
         className="flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary">
         {disabled ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}

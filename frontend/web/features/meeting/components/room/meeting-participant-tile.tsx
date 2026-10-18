@@ -61,7 +61,7 @@ export function MeetingParticipantTile({
       className={cn(
         "relative flex min-h-0 min-w-0 h-full overflow-hidden rounded-panel border border-border bg-media-background text-media-foreground transition-colors duration-200",
         shouldShowSpeakingHighlight
-          ? "border-success/70 ring-2 ring-success/45"
+          ? "border-success-outline/70 ring-2 ring-success-outline/45"
           : "",
         isMainTile ? "lg:col-span-2 lg:row-span-2" : "",
         isScreenShare ? "bg-overlay" : "",
@@ -79,7 +79,7 @@ export function MeetingParticipantTile({
 
       {handRaisedAt ? (
         <span
-          className="absolute left-3 top-12 z-10 grid h-8 w-8 place-items-center rounded-md bg-warning/95 text-warning-foreground ring-1 ring-warning/70 shadow-panel"
+          className="absolute left-3 top-12 z-10 grid h-8 w-8 place-items-center rounded-md bg-warning/95 text-warning-foreground ring-1 ring-warning-outline/70 shadow-panel"
           aria-label="Hand raised"
           title="Hand raised"
         >
@@ -88,7 +88,7 @@ export function MeetingParticipantTile({
       ) : null}
 
       {actionItems.length > 0 ? (
-        <div className="absolute right-3 top-3 z-10 rounded-md bg-overlay/35 backdrop-blur">
+        <div className="absolute right-3 top-3 z-10 rounded-md bg-media-surface text-media-foreground [&>div>button:focus-visible]:outline-media-foreground">
           <MeetingIconDropdown label={actionMenuLabel} items={actionItems} />
         </div>
       ) : null}

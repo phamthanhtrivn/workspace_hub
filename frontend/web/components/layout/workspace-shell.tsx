@@ -143,7 +143,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-card px-4 py-5 transition-all duration-200 ease-in-out lg:relative lg:flex shadow-dialog",
+          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-sidebar px-4 py-5 transition-all duration-200 ease-in-out lg:relative lg:flex shadow-dialog",
           isMobileMenuOpen
             ? "translate-x-0"
             : "-translate-x-full lg:translate-x-0",
@@ -171,7 +171,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
               isSidebarCollapsed ? "lg:mx-auto" : "",
             )}
           >
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-panel bg-primary text-sm font-semibold text-primary-foreground transition-all">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-panel bg-brand-blue text-sm font-semibold text-brand-ice transition-all">
               W
             </span>
             <div
@@ -219,7 +219,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                 className={cn(
                   "group flex items-center rounded-panel p-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring relative",
                   isActive
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary-soft text-primary-soft-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   isSidebarCollapsed ? "lg:justify-center" : "",
                 )}
@@ -229,8 +229,8 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                   className={cn(
                     "grid h-9 w-9 shrink-0 place-items-center rounded-panel transition relative",
                     isActive
-                      ? "bg-overlay/10 text-primary-foreground"
-                      : "bg-card text-muted-foreground group-hover:text-primary",
+                      ? "bg-transparent text-primary-soft-foreground"
+                      : "bg-card text-muted-foreground group-hover:text-link",
                   )}
                 >
                   <Icon className="h-4 w-4" strokeWidth={2} />
@@ -248,7 +248,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                     <span
                       className={cn(
                         "block text-xs font-semibold leading-tight",
-                        isActive ? "text-primary-foreground" : "text-muted-foreground",
+                        isActive ? "text-primary-soft-foreground" : "text-muted-foreground",
                       )}
                     >
                       {description}
@@ -274,7 +274,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                 isSidebarCollapsed ? "lg:justify-center" : "",
               )}
             >
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-card text-primary ring-1 ring-ring transition-all">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-card text-link ring-1 ring-ring transition-all">
                 <Settings className="h-4 w-4" strokeWidth={2} />
               </div>
               <div

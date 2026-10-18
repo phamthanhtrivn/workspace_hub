@@ -90,7 +90,7 @@ export function MessageVisualMedias({
               )}
             />
             <span className="absolute inset-0 flex items-center justify-center bg-overlay/20 group-hover:bg-overlay/40 transition">
-              <span className="w-10 h-10 bg-overlay/50 rounded-full flex items-center justify-center text-primary-foreground">
+              <span className="w-10 h-10 bg-media-surface rounded-full flex items-center justify-center text-media-foreground">
                 <Play size={20} className="ml-1" fill="currentColor" />
               </span>
             </span>
@@ -117,7 +117,7 @@ export function MessageFileMedias({ medias, isMe }: MessageFileMediasProps) {
             className={cn(
               "flex items-center justify-between gap-3 py-2.5 px-4 rounded-panel border transition",
               isMe
-                ? "bg-primary-soft/80 border-info/40 text-info"
+                ? "bg-primary-soft/80 border-info-outline/40 text-info-content"
                 : "bg-card border-border hover:bg-background text-foreground",
             )}
           >
@@ -127,7 +127,7 @@ export function MessageFileMedias({ medias, isMe }: MessageFileMediasProps) {
                   "p-2 rounded-lg",
                   isMe
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-info",
+                    : "bg-muted text-info-content",
                 )}
               >
                 <FileText size={20} />
@@ -139,7 +139,7 @@ export function MessageFileMedias({ medias, isMe }: MessageFileMediasProps) {
                 <span
                   className={cn(
                     "text-xs font-medium",
-                    isMe ? "text-info" : "text-muted-foreground",
+                    isMe ? "text-info-content" : "text-muted-foreground",
                   )}
                 >
                   {formatFileSize(media.sizeBytes)}
@@ -154,7 +154,7 @@ export function MessageFileMedias({ medias, isMe }: MessageFileMediasProps) {
               className={cn(
                 "ml-1 cursor-pointer transition p-1 rounded-lg",
                 isMe
-                  ? "text-info hover:bg-info-soft"
+                  ? "text-info-content hover:bg-info-soft"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             />

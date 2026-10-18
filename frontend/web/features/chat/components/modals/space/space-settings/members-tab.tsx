@@ -50,7 +50,7 @@ export function MembersTab({
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Search members..."
-          className="w-full rounded-control border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-info focus:bg-card"
+          className="w-full rounded-control border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-info-outline focus:bg-card"
         />
       </div>
 
@@ -142,7 +142,7 @@ function MemberRow({
             </span>
           ) : member.role === SpaceRole.ADMIN ? (
             <span
-              className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted-foreground border border-border text-primary-foreground"
+              className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-muted border border-border text-muted-foreground"
               title="Admin"
             >
               <FaKey size={8} />
@@ -155,11 +155,11 @@ function MemberRow({
               {isMe ? "You" : name}
             </p>
             {isCreator ? (
-              <span className="shrink-0 rounded-md border border-border bg-warning-soft px-1.5 py-0.5 text-xs font-semibold text-warning">
+              <span className="shrink-0 rounded-md border border-border bg-warning-soft px-1.5 py-0.5 text-xs font-semibold text-warning-content">
                 Owner
               </span>
             ) : member.role === SpaceRole.ADMIN ? (
-              <span className="shrink-0 rounded-md border border-border bg-info-soft px-1.5 py-0.5 text-xs font-semibold text-info">
+              <span className="shrink-0 rounded-md border border-border bg-info-soft px-1.5 py-0.5 text-xs font-semibold text-info-content">
                 Admin
               </span>
             ) : null}
@@ -180,7 +180,7 @@ function MemberRow({
                   title="Promote to Admin"
                   disabled={disabled}
                   onClick={() => onUpdateRole?.(member, SpaceRole.ADMIN)}
-                  className="p-2 rounded-control text-muted-foreground hover:text-info hover:bg-info-soft disabled:opacity-50 cursor-pointer transition-colors"
+                  className="p-2 rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft disabled:opacity-50 cursor-pointer transition-colors"
                 >
                   <Shield size={16} />
                 </button>
@@ -205,9 +205,9 @@ function MemberRow({
                 title="Transfer Ownership"
                 disabled={disabled}
                 onClick={() => onTransferOwnership?.(member)}
-                className="p-2 rounded-control text-muted-foreground hover:text-warning hover:bg-warning-soft disabled:opacity-50 cursor-pointer transition-colors"
+                className="p-2 rounded-control text-muted-foreground hover:text-warning-content hover:bg-warning-soft disabled:opacity-50 cursor-pointer transition-colors"
               >
-                <Crown size={16} className="fill-warning text-warning" />
+                <Crown size={16} className="fill-warning-content text-warning-content" />
               </button>
             </>
           )}
@@ -217,7 +217,7 @@ function MemberRow({
               title="Remove from Space"
               disabled={disabled}
               onClick={() => onRemove(member)}
-              className="p-2 rounded-control text-muted-foreground hover:text-destructive hover:bg-destructive-soft disabled:opacity-50 cursor-pointer transition-colors"
+              className="p-2 rounded-control text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft disabled:opacity-50 cursor-pointer transition-colors"
             >
               <Trash2 size={16} />
             </button>

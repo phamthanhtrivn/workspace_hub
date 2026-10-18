@@ -47,7 +47,7 @@ export function DashboardNotificationDialog({
           <div className="flex items-start gap-3">
             <span
               aria-hidden
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/5 text-primary"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/5 text-link"
             >
               <Bell size={20} />
             </span>

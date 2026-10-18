@@ -31,11 +31,11 @@ import type {
 } from "../../types/notification.types";
 
 const statusClasses: Record<ProjectInvitationNotificationStatus, string> = {
-  PENDING: "bg-warning-soft text-warning ring-warning",
-  ACCEPTED: "bg-success-soft text-success ring-success",
+  PENDING: "bg-warning-soft text-warning-content ring-warning-outline",
+  ACCEPTED: "bg-success-soft text-success-content ring-success-outline",
   DECLINED: "bg-muted text-muted-foreground ring-ring",
   CANCELLED: "bg-muted text-muted-foreground ring-ring",
-  EXPIRED: "bg-destructive-soft text-destructive ring-destructive",
+  EXPIRED: "bg-destructive-soft text-destructive-content ring-destructive-outline",
 };
 
 export function ProjectInvitationListItemRenderer({
@@ -64,7 +64,7 @@ export function ProjectInvitationListItemRenderer({
 
       <span className="min-w-0 flex-1">
         <span className="mb-1 flex items-center gap-2">
-          <span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info">
+          <span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info-content">
             Project invite
           </span>
           <span className="text-xs font-semibold text-muted-foreground">
@@ -104,7 +104,7 @@ export function ProjectInvitationListItemRenderer({
       </span>
 
       {!notification.isRead && (
-        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
       )}
     </button>
   );
@@ -177,7 +177,7 @@ export function ProjectInvitationModalRenderer({
         <div className="flex items-start gap-4">
           <span
             className="grid h-14 w-14 shrink-0 place-items-center rounded-panel text-2xl font-semibold ring-1 ring-inset ring-current/10"
-            style={{ backgroundColor: `${projectColor}14`, color: projectColor }}
+            style={{ backgroundColor: `${projectColor}14`, color: "var(--foreground)" }}
             aria-label={projectName}
           >
             {metadata.projectIcon?.trim() || (
@@ -185,7 +185,7 @@ export function ProjectInvitationModalRenderer({
             )}
           </span>
           <div className="min-w-0 pt-0.5">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-info">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-info-content">
               Project invitation
             </p>
             <h3 className="mt-1 truncate text-section-title font-semibold tracking-tight text-foreground">
@@ -252,7 +252,7 @@ export function ProjectInvitationModalRenderer({
             type="button"
             onClick={() => void respond("decline")}
             disabled={action !== null}
-            className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card text-sm font-semibold text-muted-foreground transition hover:border-border hover:bg-destructive-soft hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card text-sm font-semibold text-muted-foreground transition hover:border-border hover:bg-destructive-soft hover:text-destructive-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {action === "decline" ? (
               <Loader2 className="h-4 w-4 animate-spin" />

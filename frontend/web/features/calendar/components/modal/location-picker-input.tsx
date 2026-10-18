@@ -98,7 +98,7 @@ export function LocationPickerInput({
           }}
           className={
             className ||
-            "h-auto w-full rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground hover:border-input focus-visible:border-info focus-visible:ring-2 focus-visible:ring-ring"
+            "h-auto w-full rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground hover:border-input focus-visible:border-info-outline focus-visible:ring-2 focus-visible:ring-ring"
           }
         />
         {loading && (
@@ -115,7 +115,7 @@ export function LocationPickerInput({
               onClick={() => handleSelect(item)}
               className="flex w-full items-start gap-2.5 px-3 py-2 text-left transition hover:bg-background"
             >
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-info" />
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-info-content" />
               <div className="min-w-0 flex-1">
                 <p className="break-words text-xs font-semibold text-foreground">
                   {item.name || item.display_name.split(",")[0]}

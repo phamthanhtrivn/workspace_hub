@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { readableTextOnColor } from "@/lib/color";
 import { CALENDAR_COLOR_CHOICES } from "../../types/calendar.constants";
 
 export function CalendarColorPopover({
@@ -79,12 +80,12 @@ export function CalendarColorPopover({
                 size="icon"
                 disabled={pending}
                 onClick={() => selectColor(color)}
-                className="grid h-6 w-6 cursor-pointer place-items-center rounded-full ring-1 ring-foreground/5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60"
-                style={{ backgroundColor: color }}
+                className="grid h-6 w-6 cursor-pointer place-items-center rounded-full ring-1 ring-input transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60"
+                style={{ backgroundColor: color, color: readableTextOnColor(color) }}
                 aria-label={color}
               >
                 {value.toLowerCase() === color.toLowerCase() && (
-                  <Check className="h-3.5 w-3.5 text-primary-foreground" />
+                  <Check className="h-3.5 w-3.5" />
                 )}
               </Button>
             ))}

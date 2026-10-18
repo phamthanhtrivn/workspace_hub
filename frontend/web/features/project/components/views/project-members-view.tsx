@@ -174,7 +174,7 @@ export default function ProjectMembersView({
       <div className="grid grid-cols-1 gap-4 @min-[640px]/project-detail:grid-cols-3">
         {/* Total Members */}
         <div className="flex items-center gap-4 rounded-panel border border-border bg-card p-4 transition">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-panel bg-info-soft text-info">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-panel bg-info-soft text-info-content">
             <Users className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
@@ -194,8 +194,8 @@ export default function ProjectMembersView({
 
         {/* Owners & Admins */}
         <div className="flex items-center gap-4 rounded-panel border border-border bg-card p-4 transition">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-panel bg-warning-soft text-warning">
-            <Star className="h-6 w-6 fill-warning text-warning" />
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-panel bg-warning-soft text-warning-content">
+            <Star className="h-6 w-6 fill-warning-content text-warning-content" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-muted-foreground">
@@ -287,12 +287,12 @@ export default function ProjectMembersView({
                 onClick={() => setActiveTab("PENDING")}
                 className={`flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition ${
                   activeTab === "PENDING"
-                    ? "bg-card text-warning hover:bg-card hover:text-warning"
-                    : "text-warning hover:text-warning"
+                    ? "bg-card text-warning-content hover:bg-card hover:text-warning-content"
+                    : "text-warning-content hover:text-warning-content"
                 }`}
               >
                 <span>Pending ({pendingInvitations.length})</span>
-                <span className="flex h-2 w-2 rounded-full bg-warning" />
+                <span className="flex h-2 w-2 rounded-full bg-warning-content" />
               </Button>
             )}
           </div>
@@ -373,7 +373,7 @@ export default function ProjectMembersView({
                                   {member.displayName}
                                 </span>
                                 {isCurrent && (
-                                  <span className="rounded-full border border-border bg-info-soft px-1.5 py-0.2 text-xs font-semibold text-info">
+                                  <span className="rounded-full border border-border bg-info-soft px-1.5 py-0.2 text-xs font-semibold text-info-content">
                                     You
                                   </span>
                                 )}
@@ -385,8 +385,8 @@ export default function ProjectMembersView({
                         {/* Role Badge */}
                         <td className="px-4 py-4 whitespace-nowrap">
                           {isOwner ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-warning-soft px-2.5 py-1 text-xs font-semibold text-warning">
-                              <Star className="h-3 w-3 fill-warning text-warning" />
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-warning-soft px-2.5 py-1 text-xs font-semibold text-warning-content">
+                              <Star className="h-3 w-3 fill-warning-content text-warning-content" />
                               Project Owner
                             </span>
                           ) : (
@@ -401,7 +401,7 @@ export default function ProjectMembersView({
                         <td className="px-4 py-4 whitespace-nowrap">
                           {assignedCount > 0 ? (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 font-semibold text-foreground">
-                              <Briefcase className="h-3 w-3 text-info" />
+                              <Briefcase className="h-3 w-3 text-info-content" />
                               {assignedCount} tasks
                             </span>
                           ) : (
@@ -422,8 +422,8 @@ export default function ProjectMembersView({
                         {/* Permissions Summary */}
                         <td className="px-4 py-4">
                           {isOwner ? (
-                            <span className="inline-flex items-center gap-1 rounded border border-border bg-success-soft px-2 py-0.5 text-xs font-semibold text-success">
-                              <ShieldCheck className="h-3 w-3 text-success" />
+                            <span className="inline-flex items-center gap-1 rounded border border-border bg-success-soft px-2 py-0.5 text-xs font-semibold text-success-content">
+                              <ShieldCheck className="h-3 w-3 text-success-content" />
                               Full Access
                             </span>
                           ) : (
@@ -468,7 +468,7 @@ export default function ProjectMembersView({
                                   variant="outline"
                                   size="sm"
                                   onClick={() => setPermissionMember(member)}
-                                  className="h-8 gap-1 rounded-control px-2.5 text-xs font-semibold text-foreground hover:border-primary hover:bg-info-soft hover:text-info"
+                                  className="h-8 gap-1 rounded-control px-2.5 text-xs font-semibold text-foreground hover:border-primary hover:bg-info-soft hover:text-info-content"
                                   title={`Edit permissions for ${member.displayName}`}
                                 >
                                   <Settings2 className="h-3.5 w-3.5" />
@@ -483,7 +483,7 @@ export default function ProjectMembersView({
                                   size="sm"
                                   onClick={() => handleRemoveMember(member)}
                                   disabled={removeMemberMutation.isPending}
-                                  className="h-8 gap-1 rounded-control px-2.5 text-xs font-semibold text-muted-foreground hover:border-border hover:bg-destructive-soft hover:text-destructive disabled:opacity-50"
+                                  className="h-8 gap-1 rounded-control px-2.5 text-xs font-semibold text-muted-foreground hover:border-border hover:bg-destructive-soft hover:text-destructive-content disabled:opacity-50"
                                   title={`Remove ${member.displayName}`}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />

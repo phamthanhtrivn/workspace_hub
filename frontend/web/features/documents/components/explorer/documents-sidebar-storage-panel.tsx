@@ -28,7 +28,7 @@ export function DocumentsSidebarStoragePanel() {
     return (
       <div className="mt-auto hidden rounded-lg border border-border bg-card p-4 @min-[960px]/documents:block">
         <div className="flex items-center gap-3">
-          <Loader2 className="h-4 w-4 animate-spin text-info" />
+          <Loader2 className="h-4 w-4 animate-spin text-info-content" />
           <span className="text-xs font-semibold text-muted-foreground">
             Loading storage stats...
           </span>
@@ -39,7 +39,7 @@ export function DocumentsSidebarStoragePanel() {
 
   if (isError || !quota) {
     return (
-      <div className="mt-auto hidden rounded-lg border border-dashed border-border bg-destructive-soft p-3 text-xs font-semibold text-destructive @min-[960px]/documents:block">
+      <div className="mt-auto hidden rounded-lg border border-dashed border-border bg-destructive-soft p-3 text-xs font-semibold text-destructive-content @min-[960px]/documents:block">
         Could not load storage quota.
       </div>
     );
@@ -66,10 +66,10 @@ export function DocumentsSidebarStoragePanel() {
             className={cn(
               "h-full rounded-full transition-all duration-200",
               percentage > 90
-                ? "bg-destructive"
+                ? "bg-destructive-content"
                 : percentage > 75
-                  ? "bg-warning"
-                  : "bg-primary",
+                  ? "bg-warning-content"
+                  : "bg-link",
             )}
             style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }}
           />

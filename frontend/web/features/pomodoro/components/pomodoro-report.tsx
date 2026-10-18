@@ -114,8 +114,8 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
           </label>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">Up to 93 days. Sessions are counted by their start date in local time.</p>
-        {query.validationError ? <p role="alert" className="mt-3 text-xs text-destructive">{query.validationError}</p>
-          : query.isError ? <div role="alert" className="mt-3 text-xs text-destructive">Unable to load the report. <Button variant="ghost" type="button" className="underline" onClick={() => void query.refetch()}>Retry</Button></div>
+        {query.validationError ? <p role="alert" className="mt-3 text-xs text-destructive-content">{query.validationError}</p>
+          : query.isError ? <div role="alert" className="mt-3 text-xs text-destructive-content">Unable to load the report. <Button variant="ghost" type="button" className="underline" onClick={() => void query.refetch()}>Retry</Button></div>
           : query.isPending ? <p role="status" className="mt-3 text-xs text-muted-foreground">Loading history...</p> : null}
         {ready && report && (
           <>

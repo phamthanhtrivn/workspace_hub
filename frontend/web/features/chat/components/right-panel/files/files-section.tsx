@@ -140,7 +140,7 @@ export default function FilesSection({
                     {item.fileUrl && (
                       <span
                         onClick={(e) => handleDownload(e, item)}
-                        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info group-hover:opacity-100"
+                        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100"
                         title="Download"
                       >
                         <Download size={15} />

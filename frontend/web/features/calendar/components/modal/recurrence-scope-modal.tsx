@@ -41,7 +41,7 @@ export function RecurrenceScopeModal({
         className="max-h-[calc(100dvh-2rem)] min-w-0 w-full max-w-md overflow-y-auto rounded-panel bg-card"
       >
         <div className="flex items-center gap-3 border-b border-border px-5 py-4">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-info-soft text-info">
+          <span className="grid h-9 w-9 place-items-center rounded-full bg-info-soft text-info-content">
             <Repeat2 className="h-4 w-4" />
           </span>
           <h2
@@ -75,7 +75,7 @@ export function RecurrenceScopeModal({
                 type="button"
                 variant="ghost"
                 onClick={() => onSelect(scope)}
-                className="h-auto w-full cursor-pointer justify-start rounded-control px-4 py-3 text-left text-sm font-medium text-foreground transition hover:bg-info-soft hover:text-info"
+                className="h-auto w-full cursor-pointer justify-start rounded-control px-4 py-3 text-left text-sm font-medium text-foreground transition hover:bg-info-soft hover:text-info-content"
               >
                 {SCOPE_LABELS[scope]}
               </Button>
@@ -87,7 +87,7 @@ export function RecurrenceScopeModal({
             type="button"
             variant="ghost"
             onClick={onClose}
-            className="cursor-pointer rounded-control px-4 py-2 text-sm font-semibold text-info hover:bg-info-soft"
+            className="cursor-pointer rounded-control px-4 py-2 text-sm font-semibold text-info-content hover:bg-info-soft"
           >
             Cancel
           </Button>

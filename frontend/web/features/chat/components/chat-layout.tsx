@@ -102,7 +102,7 @@ export default function ChatLayout() {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-card">
             <div className="w-24 h-24 bg-info-soft rounded-full flex items-center justify-center mb-6">
-              <MessageCircle size={48} className="text-info" />
+              <MessageCircle size={48} className="text-info-content" />
             </div>
             <h2 className="text-section-title font-semibold text-foreground mb-2">
               Welcome to Workspace Hub Chat

@@ -12,7 +12,7 @@ export function AttachmentEditor({ documentCount }: { documentCount: number }) {
         <FileText className="h-3.5 w-3.5" />
         {copy.addFile}
       </label>
-      <label className="block cursor-pointer rounded-panel border border-dashed border-input bg-card px-3 py-2.5 text-xs font-semibold text-muted-foreground transition hover:border-info hover:bg-info-soft/60">
+      <label className="block cursor-pointer rounded-panel border border-dashed border-input bg-card px-3 py-2.5 text-xs font-semibold text-muted-foreground transition hover:border-info-outline hover:bg-info-soft/60">
         <Input
           type="file"
           multiple

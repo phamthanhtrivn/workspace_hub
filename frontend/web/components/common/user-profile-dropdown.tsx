@@ -146,7 +146,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
             <button
               onClick={handleLogout}
               disabled={logoutMutation.isPending}
-              className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold text-destructive hover:bg-destructive-soft transition cursor-pointer mt-1 disabled:opacity-50"
+              className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold text-destructive-content hover:bg-destructive-soft transition cursor-pointer mt-1 disabled:opacity-50"
             >
               <LogOut className="h-4 w-4" />
               {logoutMutation.isPending ? "Signing out..." : "Sign Out"}

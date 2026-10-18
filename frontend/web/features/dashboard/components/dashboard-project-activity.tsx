@@ -8,10 +8,10 @@ import { dateInZone } from "../utils/dashboard.utils";
 
 const levels = [
   "bg-muted",
-  "bg-success/25",
-  "bg-success/50",
-  "bg-success/75",
-  "bg-success",
+  "bg-success-content/25 ring-1 ring-inset ring-success-outline",
+  "bg-success-content/50 ring-1 ring-inset ring-success-outline",
+  "bg-success-content/75 ring-1 ring-inset ring-success-outline",
+  "bg-success-content",
 ];
 export function DashboardProjectActivity({
   today,

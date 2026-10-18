@@ -58,7 +58,7 @@ export function CalendarSidebar({
 
 
   return (
-    <aside className="flex h-full min-h-0 flex-col overflow-y-auto border-r border-border bg-card [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <aside className="flex h-full min-h-0 flex-col overflow-y-auto border-r border-border bg-sidebar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div className="shrink-0 px-4 pb-2 pt-4">
         <Button
           type="button"
@@ -66,7 +66,7 @@ export function CalendarSidebar({
           onClick={onCreateEvent}
           className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground transition-all duration-150 hover:border-input hover:bg-background"
         >
-          <div className="grid h-6 w-6 place-items-center rounded-full bg-info-soft text-info">
+          <div className="grid h-6 w-6 place-items-center rounded-full bg-info-soft text-info-content">
             <Plus className="h-4 w-4 stroke-[2.5]" />
           </div>
           <span>Create event</span>
@@ -84,7 +84,7 @@ export function CalendarSidebar({
       <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
         <div className="mb-2 flex shrink-0 items-center justify-between px-2">
           <div className="flex items-center gap-2">
-            <CalendarPlus className="h-4 w-4 text-primary" />
+            <CalendarPlus className="h-4 w-4 text-link" />
             <h2 className="text-sm font-semibold text-foreground">
               My Calendars
             </h2>

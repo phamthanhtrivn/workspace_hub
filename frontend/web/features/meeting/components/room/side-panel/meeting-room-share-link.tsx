@@ -63,7 +63,7 @@ export function MeetingRoomShareLink({ joinToken }: MeetingRoomShareLinkProps) {
       </div>
 
       <div className="mt-3 flex min-w-0 items-center gap-2">
-        <div className="flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-input bg-overlay/25 px-3 transition focus-within:border-input focus-within:ring-1 focus-within:ring-border/10">
+        <div className="flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-input bg-background px-3 transition focus-within:border-input focus-within:ring-1 focus-within:ring-ring">
           <LinkIcon className="size-4 shrink-0 text-muted-foreground" />
           <input
             readOnly
@@ -81,7 +81,7 @@ export function MeetingRoomShareLink({ joinToken }: MeetingRoomShareLinkProps) {
           className={cn(
             "size-10 shrink-0 rounded-lg border transition duration-150",
             copied
-              ? "border-success/30 bg-success/20 text-success hover:bg-success/30 hover:text-success"
+              ? "border-success-outline/30 bg-success-soft text-success-content hover:bg-success-soft hover:text-success-content"
               : "border-border bg-accent text-muted-foreground hover:bg-accent hover:text-foreground active:bg-accent",
           )}
         />

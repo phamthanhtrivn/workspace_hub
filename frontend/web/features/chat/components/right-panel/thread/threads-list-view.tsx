@@ -116,7 +116,7 @@ export default function ThreadsListView({
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
         <div className="flex items-center gap-2">
-          <MessageCircle size={18} className="text-info" />
+          <MessageCircle size={18} className="text-info-content" />
           <h3 className="font-semibold text-foreground text-sm">
             Threads
           </h3>
@@ -138,7 +138,7 @@ export default function ThreadsListView({
           <select
             value={senderId}
             onChange={(event) => setSenderId(event.target.value)}
-            className="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info focus:ring-1 focus:ring-ring cursor-pointer"
+            className="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info-outline focus:ring-1 focus:ring-ring cursor-pointer"
           >
             <option value="">
               All Senders
@@ -201,7 +201,7 @@ export default function ThreadsListView({
 
                 {/* Footer status */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground font-semibold pt-1 border-t border-border mt-1 shrink-0">
-                  <span className="flex items-center gap-1 text-info font-semibold">
+                  <span className="flex items-center gap-1 text-info-content font-semibold">
                     <MessageSquare size={12} />
                     {`${msg.threadReplyCount} ${msg.threadReplyCount === 1 ? "reply" : "replies"}`}
                   </span>

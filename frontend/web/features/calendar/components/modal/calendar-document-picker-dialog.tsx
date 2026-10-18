@@ -80,7 +80,7 @@ export function CalendarDocumentPickerDialog({
       <DialogContent className={`${dialogLayout.surface} max-w-lg gap-0 overflow-hidden rounded-dialog border-border bg-card p-0`}>
         <DialogHeader className="border-b border-border px-5 py-4 text-left">
           <DialogTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <FolderOpen className="h-4 w-4 text-info" />
+            <FolderOpen className="h-4 w-4 text-info-content" />
             Attach from My Files
           </DialogTitle>
         </DialogHeader>

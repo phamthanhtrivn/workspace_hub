@@ -176,7 +176,7 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
                 <ul className="space-y-2">
                   {task.checklists.map((entry) => (
                     <li key={entry.id} className="flex items-start gap-2">
-                      <span className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded border ${entry.completed ? "border-info bg-primary text-primary-foreground" : "border-input"}`}>
+                      <span className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded border ${entry.completed ? "border-info-outline bg-primary text-primary-foreground" : "border-input"}`}>
                         {entry.completed && <Check className="size-3" />}
                       </span>
                       <span className="min-w-0 break-words [overflow-wrap:anywhere]">{entry.title}</span>

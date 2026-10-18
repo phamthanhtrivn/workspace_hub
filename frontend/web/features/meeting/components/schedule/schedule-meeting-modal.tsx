@@ -590,7 +590,7 @@ export function ScheduleMeetingModal({
                       })
                     }
                   />
-                  <Lock className="h-4 w-4 text-info" />
+                  <Lock className="h-4 w-4 text-info-content" />
                   <span className="text-sm font-semibold">
                     Require password
                   </span>
@@ -618,7 +618,7 @@ export function ScheduleMeetingModal({
                     ) : null}
                   </div>
                 ) : isEditing && values.hasExistingPassword ? (
-                  <p className="rounded-lg bg-warning-soft px-3 py-2 text-xs font-semibold leading-5 text-warning ring-1 ring-warning">
+                  <p className="rounded-lg bg-warning-soft px-3 py-2 text-xs font-semibold leading-5 text-warning-content ring-1 ring-warning-outline">
                     The current password will be removed when you save.
                   </p>
                 ) : null}

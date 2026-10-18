@@ -22,18 +22,18 @@ export default React.memo(function TypingIndicator({
   }
 
   return (
-    <div role="status" aria-live="polite" className="flex items-center gap-2 text-info text-xs px-4 py-1 italic animate-in fade-in duration-200">
+    <div role="status" aria-live="polite" className="flex items-center gap-2 text-info-content text-xs px-4 py-1 italic animate-in fade-in duration-200">
       <span>{text}</span>
       <div className="flex items-center gap-1">
         <span
-          className="w-1 h-1 bg-primary rounded-full"
+          className="w-1 h-1 bg-link rounded-full"
 
         ></span>
         <span
-          className="w-1 h-1 bg-primary rounded-full"
+          className="w-1 h-1 bg-link rounded-full"
 
         ></span>
-        <span className="w-1 h-1 bg-primary rounded-full"></span>
+        <span className="w-1 h-1 bg-link rounded-full"></span>
       </div>
     </div>
   );

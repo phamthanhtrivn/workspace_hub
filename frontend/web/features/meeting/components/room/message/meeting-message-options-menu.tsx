@@ -77,7 +77,7 @@ export function MeetingMessageOptionsMenu({
             onRecall();
             onClose();
           }}
-          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-destructive transition hover:bg-destructive/10"
+          className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-destructive-content transition hover:bg-destructive-soft"
         >
           <Trash2 className="h-4 w-4" />
           <span>Recall message</span>

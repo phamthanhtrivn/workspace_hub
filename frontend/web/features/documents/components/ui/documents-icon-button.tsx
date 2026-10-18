@@ -27,7 +27,7 @@ export const DocumentsIconButton = React.forwardRef<
       aria-label={label}
       className={cn(
         "h-8 w-8 cursor-pointer rounded-control text-muted-foreground transition hover:bg-muted hover:text-foreground border border-transparent hover:border-border",
-        active && "bg-card text-primary border-border font-semibold",
+        active && "bg-card text-link border-border font-semibold",
         className
       )}
       {...props}

@@ -57,7 +57,7 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
         <div className="flex border-b border-border overflow-x-auto scrollbar-hide">
           <button
             onClick={() => setActiveTab("all")}
-            className={`cursor-pointer px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === "all" ? "text-info border-b-2 border-info" : "text-muted-foreground hover:text-foreground hover:bg-background"}`}
+            className={`cursor-pointer px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === "all" ? "text-info-content border-b-2 border-info-outline" : "text-muted-foreground hover:text-foreground hover:bg-background"}`}
           >
             {`All (${reactions.length})`}
           </button>
@@ -65,7 +65,7 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
             <button
               key={emoji}
               onClick={() => setActiveTab(emoji)}
-              className={`cursor-pointer px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1 ${activeTab === emoji ? "text-info border-b-2 border-info" : "text-muted-foreground hover:text-foreground hover:bg-background"}`}
+              className={`cursor-pointer px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors flex items-center gap-1 ${activeTab === emoji ? "text-info-content border-b-2 border-info-outline" : "text-muted-foreground hover:text-foreground hover:bg-background"}`}
             >
               <span>{emoji}</span>
               <span>{groupedReactions[emoji].length}</span>
@@ -92,7 +92,7 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-info-soft text-info font-semibold">
+                      <div className="w-full h-full flex items-center justify-center bg-info-soft text-info-content font-semibold">
                         {(reaction.user?.name || "?").charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -101,7 +101,7 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
                     {reaction.emoji}
                   </div>
                 </div>
-                <span className="font-medium text-foreground group-hover:text-info transition-colors">
+                <span className="font-medium text-foreground group-hover:text-info-content transition-colors">
                   {reaction.user?.name || "User"}
                 </span>
               </div>

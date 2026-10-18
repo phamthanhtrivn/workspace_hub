@@ -106,7 +106,7 @@ function getMediaKind(item: any) {
 
 function getFileIcon(item: any) {
   const kind = getMediaKind(item);
-  const className = "text-primary-foreground";
+  const className = "text-inherit";
 
   if (kind === "image") return <FileImage size={20} className={className} />;
   if (kind === "video") return <FileVideo size={20} className={className} />;
@@ -124,15 +124,15 @@ function getFileIcon(item: any) {
 
 function getFileIconBg(item: any) {
   const kind = getMediaKind(item);
-  if (kind === "image") return "bg-success";
-  if (kind === "video") return "bg-primary";
-  if (kind === "audio") return "bg-primary";
-  if (kind === "pdf") return "bg-destructive";
-  if (kind === "spreadsheet") return "bg-success";
-  if (kind === "presentation") return "bg-warning";
-  if (kind === "archive") return "bg-warning";
-  if (kind === "code") return "bg-primary";
-  return "bg-primary";
+  if (kind === "image") return "bg-success text-success-foreground";
+  if (kind === "video") return "bg-primary text-primary-foreground";
+  if (kind === "audio") return "bg-primary text-primary-foreground";
+  if (kind === "pdf") return "bg-destructive text-destructive-foreground";
+  if (kind === "spreadsheet") return "bg-success text-success-foreground";
+  if (kind === "presentation") return "bg-warning text-warning-foreground";
+  if (kind === "archive") return "bg-warning text-warning-foreground";
+  if (kind === "code") return "bg-primary text-primary-foreground";
+  return "bg-primary text-primary-foreground";
 }
 
 function formatMediaDate(item: any) {
@@ -266,7 +266,7 @@ export default function MediaDetailView({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search files by name..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card focus:border-info focus:ring-1 focus:ring-ring outline-none transition"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card focus:border-info-outline focus:ring-1 focus:ring-ring outline-none transition"
           />
         </div>
 
@@ -279,7 +279,7 @@ export default function MediaDetailView({
             onChange={(event) =>
               setActiveFilter((event.target.value || undefined) as FileFilter)
             }
-            className="w-full cursor-pointer rounded-lg border border-input bg-card px-3 py-2 text-xs font-medium text-foreground outline-none transition focus:border-info focus:ring-1 focus:ring-ring"
+            className="w-full cursor-pointer rounded-lg border border-input bg-card px-3 py-2 text-xs font-medium text-foreground outline-none transition focus:border-info-outline focus:ring-1 focus:ring-ring"
           >
             {FILE_FILTERS.map((filter) => (
               <option key={filter.label} value={filter.value || ""}>
@@ -341,7 +341,7 @@ export default function MediaDetailView({
                   {item.fileUrl && (
                     <span
                       onClick={(e) => handleDownload(e, item)}
-                      className="rounded-md p-2 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info group-hover:opacity-100"
+                      className="rounded-md p-2 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100"
                       title="Download"
                     >
                       <Download size={16} />

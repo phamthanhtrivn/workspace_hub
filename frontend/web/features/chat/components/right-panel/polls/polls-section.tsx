@@ -63,12 +63,12 @@ export default function PollsSection({
                     onClick={() => setSelectedPollId(poll.id)}
                     className="p-3 bg-info-soft border border-border rounded-lg cursor-pointer hover:bg-info-soft transition-colors"
                   >
-                    <p className="text-xs font-semibold text-info mb-1 truncate">
+                    <p className="text-xs font-semibold text-info-content mb-1 truncate">
                       {poll.title || "Untitled Poll"}{" "}
                       -{" "}
                       {formatDateTime(poll.createdAt)}
                     </p>
-                    <p className="text-xs text-info">
+                    <p className="text-xs text-info-content">
                       {`${poll.options?.length || 0} ${poll.options?.length === 1 ? "option" : "options"}`}
                     </p>
                   </div>

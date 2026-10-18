@@ -37,7 +37,7 @@ export function CalendarReminderListItemRenderer({
         </span>
       </span>
       {!notification.isRead && (
-        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
+        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
       )}
     </button>
   );
@@ -59,7 +59,7 @@ export function CalendarReminderModalRenderer({
         <span className="mx-auto grid h-14 w-14 place-items-center rounded-panel bg-primary text-primary-foreground">
           <CalendarClock className="h-7 w-7" />
         </span>
-        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-info">
+        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-info-content">
           Calendar Notification
         </p>
         <h3 className="mt-1 text-section-title font-semibold text-foreground">

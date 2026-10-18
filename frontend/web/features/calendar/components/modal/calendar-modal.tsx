@@ -1,5 +1,7 @@
 "use client";
 
+import { readableTextOnColor } from "@/lib/color";
+
 import { Trash2, X } from "lucide-react";
 import { FormEvent, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -145,9 +147,9 @@ export function CalendarModal(props: CalendarModalProps) {
             <div className="mt-2.5 flex items-center gap-2.5 rounded-lg border border-border bg-card px-3 py-2">
               <span
                 className="grid h-4.5 w-4.5 place-items-center rounded-[5px] border"
-                style={{ borderColor: color, backgroundColor: color }}
+                style={{ borderColor: "var(--input)", backgroundColor: color, color: readableTextOnColor(color) }}
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-card" />
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
               </span>
               {icon ? (
                 <span className="shrink-0 text-sm leading-none">{icon}</span>
@@ -169,7 +171,7 @@ export function CalendarModal(props: CalendarModalProps) {
               disabled={props.pending}
               onChange={(event) => setName(event.target.value)}
               placeholder="Calendar name"
-              className="h-10 w-full rounded-control border border-input px-3.5 py-2 text-sm text-foreground shadow-none outline-none transition placeholder:text-muted-foreground focus-visible:border-info focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+              className="h-10 w-full rounded-control border border-input px-3.5 py-2 text-sm text-foreground shadow-none outline-none transition placeholder:text-muted-foreground focus-visible:border-info-outline focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
             />
           </label>
 
@@ -200,7 +202,7 @@ export function CalendarModal(props: CalendarModalProps) {
               variant="ghost"
               disabled={props.pending}
               onClick={handleDeleteRequest}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive-soft hover:text-destructive disabled:cursor-wait disabled:opacity-60"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold text-destructive-content transition hover:bg-destructive-soft hover:text-destructive-content disabled:cursor-wait disabled:opacity-60"
             >
               <Trash2 className="h-4 w-4" />
               Delete calendar

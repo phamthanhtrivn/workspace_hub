@@ -76,7 +76,7 @@ export function ExplorerToolbar({
             className={cn(
               "grid h-7 w-7 place-items-center rounded-md text-xs font-semibold transition cursor-pointer",
               viewLayout === ViewLayout.GRID
-                ? "bg-card text-info border border-border"
+                ? "bg-card text-info-content border border-border"
                 : "text-muted-foreground hover:text-foreground"
             )}
             title="Grid View"
@@ -89,7 +89,7 @@ export function ExplorerToolbar({
             className={cn(
               "grid h-7 w-7 place-items-center rounded-md text-xs font-semibold transition cursor-pointer",
               viewLayout === ViewLayout.LIST
-                ? "bg-card text-info border border-border"
+                ? "bg-card text-info-content border border-border"
                 : "text-muted-foreground hover:text-foreground"
             )}
             title="List View"
@@ -125,7 +125,7 @@ export function ExplorerToolbar({
                     }}
                     className="flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-xs font-semibold text-foreground hover:bg-muted transition cursor-pointer"
                   >
-                    <FolderPlus className="h-4 w-4 text-warning" />
+                    <FolderPlus className="h-4 w-4 text-warning-content" />
                     <span>New folder</span>
                   </button>
                   <button
@@ -136,7 +136,7 @@ export function ExplorerToolbar({
                     }}
                     className="flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-xs font-semibold text-foreground hover:bg-muted transition cursor-pointer border-t border-border mt-1 pt-2"
                   >
-                    <UploadCloud className="h-4 w-4 text-info" />
+                    <UploadCloud className="h-4 w-4 text-info-content" />
                     <span>Upload file</span>
                   </button>
                 </div>

@@ -40,10 +40,10 @@ const iconByVariant = {
 };
 
 const iconBgByVariant: Record<ChatConfirmVariant, string> = {
-  danger: "bg-destructive-soft text-destructive ring-1 ring-destructive",
-  warning: "bg-warning-soft text-warning ring-1 ring-warning",
-  info: "bg-info-soft text-info ring-1 ring-ring",
-  question: "bg-info-soft text-info ring-1 ring-ring",
+  danger: "bg-destructive-soft text-destructive-content ring-1 ring-destructive-outline",
+  warning: "bg-warning-soft text-warning-content ring-1 ring-warning-outline",
+  info: "bg-info-soft text-info-content ring-1 ring-ring",
+  question: "bg-info-soft text-info-content ring-1 ring-ring",
 };
 
 const confirmButtonClassByVariant: Record<ChatConfirmVariant, string> = {
@@ -115,7 +115,7 @@ export function ChatConfirmDialog({
                     onConfirmationValueChange?.(event.target.value)
                   }
                   placeholder={confirmationPlaceholder ?? confirmationText}
-                  className="h-10 w-full rounded-control border border-input bg-card px-3 text-sm font-semibold text-foreground outline-none transition focus:border-info focus:ring-4 focus:ring-ring disabled:opacity-50"
+                  className="h-10 w-full rounded-control border border-input bg-card px-3 text-sm font-semibold text-foreground outline-none transition focus:border-info-outline focus:ring-4 focus:ring-ring disabled:opacity-50"
                 />
               </div>
             ) : null}

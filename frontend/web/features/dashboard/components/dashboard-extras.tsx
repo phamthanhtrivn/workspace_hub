@@ -65,12 +65,12 @@ export function DashboardExtras({
               >
                 <Link
                   href={`/projects/${encodeURIComponent(project.id)}`}
-                  className="flex min-h-11 min-w-0 items-center gap-3 text-sm font-semibold text-foreground hover:text-primary sm:min-h-10 [@media(pointer:coarse)]:min-h-11"
+                  className="flex min-h-11 min-w-0 items-center gap-3 text-sm font-semibold text-foreground hover:text-link sm:min-h-10 [@media(pointer:coarse)]:min-h-11"
                 >
                   <span
                     aria-hidden
                     className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/5 text-xl"
-                    style={{ color: project.color || "var(--color-primary)" }}
+                    style={{ color: project.color || "var(--chart-1)" }}
                   >
                     {project.icon &&
                     /\p{Extended_Pictographic}/u.test(project.icon) ? (
@@ -106,11 +106,11 @@ export function DashboardExtras({
                       className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
                     >
                       <div
-                        className="h-full rounded-full bg-primary"
+                        className="h-full rounded-full bg-primary ring-1 ring-inset ring-input"
                         style={{
                           width: `${progress}%`,
                           backgroundColor:
-                            project.color || "var(--color-primary)",
+                            project.color || "var(--chart-1)",
                         }}
                       />
                     </div>

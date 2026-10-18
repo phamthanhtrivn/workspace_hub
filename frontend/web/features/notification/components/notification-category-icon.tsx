@@ -25,27 +25,27 @@ const categoryIconConfig: Record<
 > = {
   ALL: {
     Icon: Bell,
-    className: "bg-primary",
+    className: "bg-primary-soft text-primary-soft-foreground",
   },
   PROJECT: {
     Icon: FolderKanban,
-    className: "bg-primary",
+    className: "bg-primary-soft text-primary-soft-foreground",
   },
   CHAT: {
     Icon: MessageCircle,
-    className: "bg-primary",
+    className: "bg-primary-soft text-primary-soft-foreground",
   },
   CALENDAR: {
     Icon: CalendarDays,
-    className: "bg-primary",
+    className: "bg-primary-soft text-primary-soft-foreground",
   },
   MEETING: {
     Icon: Video,
-    className: "bg-primary",
+    className: "bg-primary-soft text-primary-soft-foreground",
   },
   DOCUMENT: {
     Icon: FileText,
-    className: "bg-success",
+    className: "bg-success-soft text-success-content",
   },
 };
 
@@ -63,7 +63,7 @@ export function NotificationCategoryIcon({
     <span
       aria-hidden="true"
       className={cn(
-        "grid h-11 w-11 shrink-0 place-items-center rounded-full text-primary-foreground",
+        "grid h-11 w-11 shrink-0 place-items-center rounded-full",
         toneClassName,
         className,
       )}

@@ -151,13 +151,13 @@ function UserPomodoroView({ userId }: { userId: string }) {
           {!isReady && (
             <p
               role="status"
-              className="text-xs text-warning"
+              className="text-xs text-warning-content"
             >
               Loading Pomodoro...
             </p>
           )}
           {isReady && loadError && (
-            <p role="status" className="text-xs text-warning">
+            <p role="status" className="text-xs text-warning-content">
               Using local data. Sync will resume automatically when Calendar is available again.
             </p>
           )}
@@ -189,15 +189,15 @@ function UserPomodoroView({ userId }: { userId: string }) {
           {!isAmbientReady ? (
             <p role="status" className="text-xs text-muted-foreground">Loading audio preferences...</p>
           ) : ambientSyncStatus === "error" ? (
-            <p role="status" className="text-center text-xs text-warning">Audio preferences are saved locally. Account sync will retry automatically.</p>
+            <p role="status" className="text-center text-xs text-warning-content">Audio preferences are saved locally. Account sync will retry automatically.</p>
           ) : ambientSyncStatus === "saving" ? (
             <p role="status" className="text-xs text-muted-foreground">Saving audio preferences...</p>
           ) : null}
           {hasPlaybackError && (
-            <p role="status" className="text-center text-xs text-warning">{POMODORO_AUDIO_MESSAGES.playError}</p>
+            <p role="status" className="text-center text-xs text-warning-content">{POMODORO_AUDIO_MESSAGES.playError}</p>
           )}
           {isTrackUnavailable && (
-            <p role="status" className="text-center text-xs text-warning">{POMODORO_AUDIO_MESSAGES.unavailable}</p>
+            <p role="status" className="text-center text-xs text-warning-content">{POMODORO_AUDIO_MESSAGES.unavailable}</p>
           )}
         </div>
 

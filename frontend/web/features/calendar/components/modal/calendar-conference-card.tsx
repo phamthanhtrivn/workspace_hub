@@ -54,7 +54,7 @@ export function CalendarConferenceCard({
       >
         <Video
           className={`mr-2 h-4 w-4 ${
-            isPastEvent ? "text-muted-foreground" : "text-info"
+            isPastEvent ? "text-muted-foreground" : "text-info-content"
           }`}
         />
         <span className={isPastEvent ? "text-muted-foreground" : ""}>
@@ -67,7 +67,7 @@ export function CalendarConferenceCard({
   return (
     <div className="flex w-full items-center justify-between rounded-panel border border-border bg-info-soft/80 px-3.5 py-2.5 transition">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-secondary text-secondary-foreground">
           <Video className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
@@ -89,12 +89,12 @@ export function CalendarConferenceCard({
             variant="ghost"
             size="icon"
             onClick={handleCopyLink}
-            className="h-7 w-7 cursor-pointer rounded-control text-muted-foreground transition hover:bg-info-soft hover:text-info"
+            className="h-7 w-7 cursor-pointer rounded-control text-muted-foreground transition hover:bg-info-soft hover:text-info-content"
             title="Copy meeting link"
             aria-label="Copy meeting link"
           >
             {copied ? (
-              <Check className="h-3.5 w-3.5 text-success" />
+              <Check className="h-3.5 w-3.5 text-success-content" />
             ) : (
               <Copy className="h-3.5 w-3.5" />
             )}
@@ -107,7 +107,7 @@ export function CalendarConferenceCard({
           size="icon"
           disabled={disabled}
           onClick={() => onToggleConference(false)}
-          className="h-7 w-7 cursor-pointer rounded-control text-muted-foreground transition hover:bg-destructive-soft hover:text-destructive disabled:cursor-not-allowed"
+          className="h-7 w-7 cursor-pointer rounded-control text-muted-foreground transition hover:bg-destructive-soft hover:text-destructive-content disabled:cursor-not-allowed"
           title="Remove video conference"
           aria-label="Remove video conference"
         >

@@ -65,8 +65,8 @@ export function CustomSelect<TValue extends string = string>({
           aria-label={ariaLabel}
           aria-invalid={invalid || undefined}
           className={cn(
-            "h-9 cursor-pointer rounded-control border-input bg-card px-3 text-sm font-semibold text-foreground hover:bg-background data-[state=open]:border-info data-[state=open]:ring-2 data-[state=open]:ring-ring/15",
-            invalid && "border-destructive ring-2 ring-destructive/15",
+            "h-9 cursor-pointer rounded-control border-input bg-card px-3 text-sm font-semibold text-foreground hover:bg-background data-[state=open]:border-info-outline data-[state=open]:ring-2 data-[state=open]:ring-ring/15",
+            invalid && "border-destructive-outline ring-2 ring-destructive-outline/15",
             triggerClassName,
           )}
         >

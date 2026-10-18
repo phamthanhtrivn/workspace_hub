@@ -88,8 +88,8 @@ export function ShareModalLink({
           className={cn(
             "p-2.5 rounded-panel shrink-0 mt-0.5",
             linkAccess === LinkAccess.NONE
-              ? "bg-warning-soft text-warning"
-              : "bg-success-soft text-success",
+              ? "bg-warning-soft text-warning-content"
+              : "bg-success-soft text-success-content",
           )}
         >
           {linkAccess === LinkAccess.NONE ? (
@@ -133,8 +133,8 @@ export function ShareModalLink({
       >
         {isCopied ? (
           <>
-            <Check size={14} className="text-success" />
-            <span className="text-success">Link copied!</span>
+            <Check size={14} className="text-success-content" />
+            <span className="text-success-content">Link copied!</span>
           </>
         ) : (
           <>

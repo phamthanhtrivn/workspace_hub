@@ -1,5 +1,7 @@
 "use client";
 
+import { readableTextOnColor } from "@/lib/color";
+
 import { FolderKanban } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -43,11 +45,11 @@ export function PomodoroProjectTaskPanel({ tasks, userId, filters, onFiltersChan
       <CustomSelect ariaLabel="Filter by project" value={selectedProjectId} onChange={onProjectChange} disabled={busy || !isReady || isLoading}
         options={[{ value: "", label: "All projects" }, ...projects.map((project) => ({ value: project.id, label: project.name }))]} />
       {isLoading && <p role="status" className="text-xs text-muted-foreground">Loading Project tasks…</p>}
-      {isError && <p role="alert" className="text-xs text-destructive">Unable to load Project tasks. <Button type="button" variant="link" size="sm" onClick={onRetry}>Retry</Button></p>}
+      {isError && <p role="alert" className="text-xs text-destructive-content">Unable to load Project tasks. <Button type="button" variant="link" size="sm" onClick={onRetry}>Retry</Button></p>}
       {!isLoading && !isError && matching.length === 0 && <PomodoroTaskEmptyState sourceLabel="Project" filters={filters} onChange={onFiltersChange} />}
       {matching.length > 0 && <ul className="max-h-64 divide-y divide-border overflow-y-auto">
         {matching.map(({ task, project }) => <li key={task.id} className="flex items-center gap-2 py-3">
-          <FolderKanban className="size-4 shrink-0" style={{ color: project.color }} />
+          <FolderKanban className="size-4 shrink-0 rounded-sm p-0.5 ring-1 ring-input" style={{ backgroundColor: project.color, color: readableTextOnColor(project.color) }} />
           <div className="min-w-0 flex-1"><p className="truncate text-xs font-semibold text-foreground">{task.title}</p>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">{project.name} · {task.status === "TODO" ? "To do" : "In progress"} · {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : task.startDate ? new Date(task.startDate).toLocaleDateString() : "Unscheduled"}</p>
           </div>

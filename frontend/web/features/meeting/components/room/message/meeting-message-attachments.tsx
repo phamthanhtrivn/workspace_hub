@@ -92,7 +92,7 @@ export function MeetingMessageAttachments({
                   )}
                 />
                 <span className="absolute inset-0 grid place-items-center bg-overlay/25 transition group-hover:bg-overlay/40">
-                  <span className="grid h-10 w-10 place-items-center rounded-full bg-overlay/60 text-foreground">
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-media-surface text-media-foreground focus-visible:outline-media-foreground">
                     <Play className="ml-0.5 h-5 w-5" fill="currentColor" />
                   </span>
                 </span>
@@ -108,7 +108,7 @@ export function MeetingMessageAttachments({
           className={cn(
             "flex items-center justify-between gap-3 rounded-panel border px-3 py-2",
             isMe
-              ? "border-info/30 bg-info-soft/15 text-info"
+              ? "border-info-outline/30 bg-info-soft/15 text-info-content"
               : "border-border bg-accent text-muted-foreground",
           )}
         >

@@ -44,7 +44,7 @@ export function MeetingDeviceSelect({
     >
       <span
         className={cn(
-          "grid h-10 w-10 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground transition group-focus-within:bg-info-soft group-focus-within:text-info",
+          "grid h-10 w-10 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground transition group-focus-within:bg-info-soft group-focus-within:text-info-content",
           isDisabled && "text-muted-foreground",
         )}
       >

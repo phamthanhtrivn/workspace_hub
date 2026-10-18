@@ -113,7 +113,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
               onRecall?.();
               onClose();
             }}
-            className="w-full text-left px-4 py-2 hover:bg-destructive-soft text-destructive flex items-center gap-2 cursor-pointer transition-colors"
+            className="w-full text-left px-4 py-2 hover:bg-destructive-soft text-destructive-content flex items-center gap-2 cursor-pointer transition-colors"
           >
             <Trash2 size={16} />
             <span>Recall message</span>

@@ -42,7 +42,7 @@ const NotificationItem = React.memo(function NotificationItem({
             event.stopPropagation();
             onDelete(notification.id);
           }}
-          className="absolute right-3 top-3 grid h-7 w-7 cursor-pointer place-items-center rounded-full border border-transparent bg-card text-muted-foreground ring-1 ring-ring/70 transition hover:border-border hover:bg-destructive-soft hover:text-destructive hover:ring-destructive disabled:cursor-not-allowed disabled:opacity-60 shadow-panel"
+          className="absolute right-3 top-3 grid h-7 w-7 cursor-pointer place-items-center rounded-full border border-transparent bg-card text-muted-foreground ring-1 ring-ring/70 transition hover:border-border hover:bg-destructive-soft hover:text-destructive-content hover:ring-destructive-outline disabled:cursor-not-allowed disabled:opacity-60 shadow-panel"
         >
           {isDeleting ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -22,7 +22,7 @@ export const InvitationAcceptedListItemRenderer: React.FC<{
       <NotificationCategoryIcon notification={notification} className="h-10 w-10" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-semibold text-success bg-success-soft px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+          <span className="text-xs font-semibold text-success-content bg-success-soft px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
             <CheckCircle2 size={10} /> Joined
           </span>
         </div>
@@ -40,7 +40,7 @@ export const InvitationAcceptedListItemRenderer: React.FC<{
         </p>
       </div>
       {!notification.isRead && (
-        <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0"></div>
+        <div className="w-2 h-2 rounded-full bg-link mt-1.5 flex-shrink-0"></div>
       )}
     </div>
   );
@@ -57,7 +57,7 @@ export const InvitationAcceptedModalRenderer: React.FC<{
     <div className="p-5">
       <div className="flex flex-col items-center justify-center mb-6 text-center">
         <div className="relative mb-4">
-          <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-border ring-4 ring-success bg-success-soft flex items-center justify-center text-success">
+          <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-border ring-4 ring-success-outline bg-success-soft flex items-center justify-center text-success-content">
             {notification.senderAvatar ? (
               <Image
                 src={notification.senderAvatar}
@@ -77,7 +77,7 @@ export const InvitationAcceptedModalRenderer: React.FC<{
         <h3 className="text-section-title font-semibold text-foreground mb-1">
           {notification.senderName || "New member"}
         </h3>
-        <p className="text-sm font-medium text-success bg-success-soft px-3 py-1 rounded-full inline-block">
+        <p className="text-sm font-medium text-success-content bg-success-soft px-3 py-1 rounded-full inline-block">
           Accepted invitation
         </p>
       </div>

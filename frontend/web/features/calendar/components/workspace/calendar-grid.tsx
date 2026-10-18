@@ -110,9 +110,7 @@ export const CalendarGrid = memo(function CalendarGrid({
         return (
           <div
             title={`${arg.event.title}\n${arg.timeText}`}
-            className={`flex min-w-0 items-center gap-1.5 px-1 py-0.5 text-foreground ${
-              isDeclined ? "opacity-60" : ""
-            }`}
+            className="flex min-w-0 items-center gap-1.5 px-1 py-0.5 text-foreground"
           >
             <span
               aria-hidden="true"
@@ -140,7 +138,7 @@ export const CalendarGrid = memo(function CalendarGrid({
           title={`${arg.event.title}\n${arg.timeText}`}
           className={`calendar-event-content relative min-h-full min-w-0 overflow-hidden rounded px-1.5 py-1 text-primary-foreground ${
             isTask ? "calendar-task-event-content" : ""
-          } ${isDeclined ? "opacity-60" : ""}`}
+          }`}
           style={{
             backgroundColor: isDeclined ? "var(--muted-foreground)" : eventColor,
             color: isDeclined ? "var(--background)" : readableTextOnColor(eventColor),
@@ -197,7 +195,7 @@ export const CalendarGrid = memo(function CalendarGrid({
             </p>
             {!arg.event.allDay && (
               <p
-                className={`mt-0.5 whitespace-nowrap text-xs font-medium leading-[1.2] opacity-95 tabular-nums ${
+                className={`mt-0.5 whitespace-nowrap text-xs font-medium leading-[1.2] tabular-nums ${
                   isCompletedTask || isDeclined ? "line-through" : ""
                 }`}
               >
@@ -226,7 +224,7 @@ export const CalendarGrid = memo(function CalendarGrid({
       className="calendar-shell relative min-h-0 min-w-0 flex-1 overflow-auto bg-card"
     >
       {loading && (
-        <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-info shadow-panel">
+        <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-info-content shadow-panel">
           Loading...
         </div>
       )}

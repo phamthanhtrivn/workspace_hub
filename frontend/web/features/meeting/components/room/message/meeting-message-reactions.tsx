@@ -39,7 +39,7 @@ export function MeetingMessageReactions({
             className={cn(
               "flex h-6 max-w-full min-w-0 cursor-pointer items-center gap-1 rounded-full border px-2 text-xs font-semibold transition",
               hasReacted
-                ? "border-info/50 bg-primary/20 text-info"
+                ? "border-info-outline/50 bg-primary/20 text-info-content"
                 : "border-border bg-accent text-muted-foreground hover:bg-accent",
             )}
           >

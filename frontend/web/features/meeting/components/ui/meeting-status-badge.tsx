@@ -4,10 +4,10 @@ import type { MeetingStatus } from "../../types/meeting.types";
 import { getMeetingStatusLabel } from "../../utils/meeting-labels.utils";
 
 const statusClassName: Record<MeetingStatus, string> = {
-  SCHEDULED: "border-border bg-info-soft text-info",
-  LIVE: "border-border bg-success-soft text-success",
+  SCHEDULED: "border-border bg-info-soft text-info-content",
+  LIVE: "border-border bg-success-soft text-success-content",
   ENDED: "border-border bg-muted text-foreground",
-  CANCELLED: "border-border bg-destructive-soft text-destructive",
+  CANCELLED: "border-border bg-destructive-soft text-destructive-content",
 };
 
 export function MeetingStatusBadge({

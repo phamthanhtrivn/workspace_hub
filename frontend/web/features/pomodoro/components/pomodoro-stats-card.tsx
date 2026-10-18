@@ -23,7 +23,7 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
     return () => { active = false; };
   }, [lastUpdated, retryRevision]);
 
-  if (failed) return <p role="alert" className="text-xs text-destructive">
+  if (failed) return <p role="alert" className="text-xs text-destructive-content">
     Unable to load today&apos;s stats. <Button variant="ghost" type="button" className="underline" onClick={() => setRetryRevision((value) => value + 1)}>Retry</Button>
   </p>;
   if (!stats) return <p role="status" className="text-xs text-muted-foreground">Loading stats...</p>;
@@ -45,7 +45,7 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
         <div><dt className="text-xs text-muted-foreground">Focus time</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">{timeDisplay}</dd></div>
         <div><dt className="text-xs text-muted-foreground">Completed</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">{stats.completedPomodoros} <span className="text-xs font-normal text-muted-foreground">sessions</span></dd></div>
         <div><dt className="text-xs text-muted-foreground">Daily goal</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-foreground">{stats.completedPomodoros} / {dailyGoalPomodoros ?? stats.dailyGoalPomodoros} sessions</dd>
-          <div role="progressbar" aria-label="Daily focus goal" aria-valuemin={0} aria-valuemax={100} aria-valuenow={goalPercent} className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-primary transition-[width] duration-200 motion-reduce:transition-none" style={{ width: goalPercent + "%" }} /></div>
+          <div role="progressbar" aria-label="Daily focus goal" aria-valuemin={0} aria-valuemax={100} aria-valuenow={goalPercent} className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-link transition-[width] duration-200 motion-reduce:transition-none" style={{ width: goalPercent + "%" }} /></div>
         </div>
         <div><dt className="text-xs text-muted-foreground">Streak</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">{stats.currentStreak} <span className="text-xs font-normal text-muted-foreground">days</span></dd></div>
       </dl>

@@ -44,7 +44,7 @@ export const PreviewContent = React.memo(function PreviewContent({
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground py-20">
         <Loader2
-          className="animate-spin text-info"
+          className="animate-spin text-info-content"
           size={36}
         />
         <span className="text-sm font-semibold">
@@ -57,7 +57,7 @@ export const PreviewContent = React.memo(function PreviewContent({
   if (error || !previewUrl) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8 py-20">
-        <div className="bg-destructive-soft p-4 rounded-full text-destructive">
+        <div className="bg-destructive-soft p-4 rounded-full text-destructive-content">
           <X size={32} />
         </div>
         <div>
@@ -104,7 +104,7 @@ export const PreviewContent = React.memo(function PreviewContent({
 
     case PreviewFileType.VIDEO:
       return (
-        <div className="flex items-center justify-center w-full bg-primary rounded-panel overflow-hidden border border-input">
+        <div className="flex items-center justify-center w-full bg-media-background text-media-foreground rounded-panel overflow-hidden border border-input">
           <video
             controls
             autoPlay
@@ -117,7 +117,7 @@ export const PreviewContent = React.memo(function PreviewContent({
     case PreviewFileType.AUDIO:
       return (
         <div className="flex flex-col items-center justify-center w-full p-8 py-16 bg-background border border-border rounded-panel">
-          <div className="bg-success/10 p-5 rounded-full text-success mb-6 animate-pulse">
+          <div className="bg-success-soft p-5 rounded-full text-success-content mb-6 animate-pulse">
             <Music size={48} />
           </div>
           <span className="block font-semibold text-foreground text-center mb-1 max-w-md truncate">
@@ -204,13 +204,13 @@ export const PreviewIcon = React.memo(function PreviewIcon({
 }: PreviewIconProps) {
   switch (previewType) {
     case PreviewFileType.IMAGE:
-      return <ImageIcon size={22} className="text-info" />;
+      return <ImageIcon size={22} className="text-info-content" />;
     case PreviewFileType.VIDEO:
-      return <Video size={22} className="text-info" />;
+      return <Video size={22} className="text-info-content" />;
     case PreviewFileType.AUDIO:
-      return <Music size={22} className="text-success" />;
+      return <Music size={22} className="text-success-content" />;
     case PreviewFileType.PDF:
-      return <FileText size={22} className="text-destructive" />;
+      return <FileText size={22} className="text-destructive-content" />;
     default:
       return <FileIcon size={22} className="text-muted-foreground" />;
   }

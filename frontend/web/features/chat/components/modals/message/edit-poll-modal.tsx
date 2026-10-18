@@ -94,7 +94,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ask a question..."
-              className="w-full px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info outline-none transition-all"
+              className="w-full px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info-outline outline-none transition-all"
               required
             />
           </div>
@@ -105,7 +105,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
                 type="checkbox"
                 checked={multipleChoice}
                 onChange={(e) => setMultipleChoice(e.target.checked)}
-                className="w-4 h-4 text-info rounded focus:ring-ring"
+                className="w-4 h-4 text-info-content rounded focus:ring-ring"
               />
               <span className="text-sm text-foreground">
                 Allow multiple choices
@@ -116,7 +116,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
                 type="checkbox"
                 checked={allowAddOptions}
                 onChange={(e) => setAllowAddOptions(e.target.checked)}
-                className="w-4 h-4 text-info rounded focus:ring-ring cursor-pointer"
+                className="w-4 h-4 text-info-content rounded focus:ring-ring cursor-pointer"
               />
               <span className="text-sm text-foreground">
                 Allow members to add options
@@ -127,7 +127,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
                 type="checkbox"
                 checked={anonymous}
                 onChange={(e) => setAnonymous(e.target.checked)}
-                className="w-4 h-4 text-info rounded focus:ring-ring cursor-pointer"
+                className="w-4 h-4 text-info-content rounded focus:ring-ring cursor-pointer"
               />
               <span className="text-sm text-foreground">
                 Anonymous voting
@@ -138,7 +138,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
                 type="checkbox"
                 checked={isLocked}
                 onChange={(e) => setIsLocked(e.target.checked)}
-                className="w-4 h-4 text-info rounded focus:ring-ring cursor-pointer"
+                className="w-4 h-4 text-info-content rounded focus:ring-ring cursor-pointer"
               />
               <span className="text-sm text-foreground font-medium">
                 Lock poll (prevent further responses)

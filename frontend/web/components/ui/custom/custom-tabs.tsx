@@ -51,7 +51,7 @@ export function CustomTabs<TValue extends string = string>({
             value={option.value}
             disabled={option.disabled}
             className={cn(
-              "relative h-10 cursor-pointer rounded-none border-b-2 border-transparent bg-transparent px-2.5 text-sm font-semibold text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none",
+              "relative h-10 cursor-pointer rounded-none border-b-2 border-transparent bg-transparent px-2.5 text-sm font-semibold text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-link data-[state=active]:shadow-none",
               triggerClassName,
             )}
           >

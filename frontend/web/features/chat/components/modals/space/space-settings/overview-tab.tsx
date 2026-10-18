@@ -53,7 +53,7 @@ export function OverviewTab({
             value={spaceName}
             disabled={!isOwner || isSaving}
             onChange={(event) => onSpaceNameChange(event.target.value)}
-            className="flex-1 rounded-control border border-input bg-card px-3 py-2 text-sm outline-none focus:border-info focus:ring-4 focus:ring-ring disabled:bg-background disabled:text-muted-foreground"
+            className="flex-1 rounded-control border border-input bg-card px-3 py-2 text-sm outline-none focus:border-info-outline focus:ring-4 focus:ring-ring disabled:bg-background disabled:text-muted-foreground"
             maxLength={50}
           />
           {isOwner && (

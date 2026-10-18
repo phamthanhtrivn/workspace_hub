@@ -39,7 +39,7 @@ export default function MessageReactions({
             className={cn(
               "cursor-pointer flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full border transition-all duration-150",
               userReacted
-                ? "bg-info-soft border-border text-info font-semibold"
+                ? "bg-info-soft border-border text-info-content font-semibold"
                 : "bg-background border-border text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >

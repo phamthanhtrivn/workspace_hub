@@ -99,7 +99,7 @@ function PaginationButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="h-7 w-7 rounded-control text-primary hover:bg-info-soft disabled:text-muted-foreground disabled:hover:bg-transparent"
+      className="h-7 w-7 rounded-control text-link hover:bg-info-soft disabled:text-muted-foreground disabled:hover:bg-transparent"
     >
       {children}
     </Button>

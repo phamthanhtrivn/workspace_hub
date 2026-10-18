@@ -142,7 +142,7 @@ export function MeetingParticipantListItem({
   }
 
   return (
-    <article className="rounded-lg bg-overlay/10 p-3 ring-1 ring-border/8">
+    <article className="rounded-lg bg-muted p-3 ring-1 ring-border/8">
       <div className="flex items-center gap-3">
         {item.avatarUrl ? (
           <span
@@ -174,7 +174,7 @@ export function MeetingParticipantListItem({
               </span>
             ) : null}
             {item.isSelf ? (
-              <span className="shrink-0 rounded bg-overlay/10 px-1.5 py-0.5 text-xs font-semibold uppercase text-muted-foreground">
+              <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-semibold uppercase text-muted-foreground">
                 You
               </span>
             ) : null}
@@ -185,7 +185,7 @@ export function MeetingParticipantListItem({
         </span>
 
         {item.roleLabel ? (
-          <span className="shrink-0 rounded-md bg-primary/14 px-2 py-1 text-xs font-semibold text-info ring-1 ring-ring/15">
+          <span className="shrink-0 rounded-md bg-primary/14 px-2 py-1 text-xs font-semibold text-info-content ring-1 ring-ring/15">
             {item.roleLabel}
           </span>
         ) : null}

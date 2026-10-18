@@ -138,7 +138,7 @@ export default function ThreadsSection({
                         {name}
                       </span>
                       <ThreadSnippetPreview content={message.content} />
-                      <span className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-info">
+                      <span className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-info-content">
                         <MessageSquare size={11} />
                         {`${message.threadReplyCount} ${message.threadReplyCount === 1 ? "reply" : "replies"}`}
                         {lastReplyTime && (

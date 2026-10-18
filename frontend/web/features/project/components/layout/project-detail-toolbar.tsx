@@ -72,13 +72,13 @@ function TaskStatusCounts({
     <div className="flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground [&>span:not(:empty)]:whitespace-nowrap">
       <span>{count(TaskStatus.TODO)} To Do</span>
       <span className="h-3 w-px bg-accent" />
-      <span className="text-info">{count(TaskStatus.IN_PROGRESS)} In Progress</span>
+      <span className="text-info-content">{count(TaskStatus.IN_PROGRESS)} In Progress</span>
       <span className="h-3 w-px bg-accent" />
-      <span className="text-warning">{count(TaskStatus.IN_REVIEW)} In Review</span>
+      <span className="text-warning-content">{count(TaskStatus.IN_REVIEW)} In Review</span>
       <span className="h-3 w-px bg-accent" />
-      <span className="text-success">{count(TaskStatus.DONE)} Done</span>
+      <span className="text-success-content">{count(TaskStatus.DONE)} Done</span>
       <span className="h-3 w-px bg-accent" />
-      <span className="text-destructive">{count(TaskStatus.CANCELLED)} Cancelled</span>
+      <span className="text-destructive-content">{count(TaskStatus.CANCELLED)} Cancelled</span>
     </div>
   );
 }
@@ -127,14 +127,14 @@ export default function ProjectDetailToolbar({
           size="icon-sm"
           onClick={onOpenProjectNavigation}
           aria-label="Open project navigation"
-          className="mr-1 h-8 w-8 shrink-0 text-muted-foreground hover:bg-muted hover:text-info lg:hidden"
+          className="mr-1 h-8 w-8 shrink-0 text-muted-foreground hover:bg-muted hover:text-info-content lg:hidden"
         >
           <Menu className="h-4 w-4" />
         </Button>
         <Breadcrumb className="min-w-0">
           <BreadcrumbList className="flex-wrap gap-y-1 text-xs font-medium text-muted-foreground">
             <BreadcrumbItem className="shrink-0">
-              <BreadcrumbLink asChild className="hover:text-info">
+              <BreadcrumbLink asChild className="hover:text-info-content">
                 <Link href="/projects">Projects</Link>
               </BreadcrumbLink>
             </BreadcrumbItem>
@@ -145,7 +145,7 @@ export default function ProjectDetailToolbar({
                 variant="ghost"
                 size="sm"
                 onClick={() => onViewChange?.("overview")}
-                className="h-auto min-w-0 max-w-full shrink justify-start rounded-control p-0 text-xs font-medium text-muted-foreground shadow-none hover:bg-transparent hover:text-info focus-visible:ring-ring"
+                className="h-auto min-w-0 max-w-full shrink justify-start rounded-control p-0 text-xs font-medium text-muted-foreground shadow-none hover:bg-transparent hover:text-info-content focus-visible:ring-ring"
               >
                 <span className="truncate">{project.name}</span>
               </Button>
@@ -282,7 +282,7 @@ export default function ProjectDetailToolbar({
               className={[
                 "h-9 rounded-control px-3 text-xs font-semibold transition cursor-pointer",
                 onlyMyIssues
-                  ? "border-border bg-primary-soft text-info hover:bg-primary-soft"
+                  ? "border-border bg-primary-soft text-info-content hover:bg-primary-soft"
                   : "border-border bg-card text-muted-foreground hover:bg-background",
               ].join(" ")}
             >
@@ -295,7 +295,7 @@ export default function ProjectDetailToolbar({
                 variant="link"
                 size="sm"
                 onClick={onClearFilters}
-                className="h-auto p-0 text-xs font-semibold text-info hover:underline cursor-pointer"
+                className="h-auto p-0 text-xs font-semibold text-info-content hover:underline cursor-pointer"
               >
                 Clear filters
               </Button>

@@ -248,7 +248,7 @@ export const MeetingMessageInput = forwardRef<
   return (
     <div className="relative border-t border-border/10 p-3 mt-2">
       {uploads.length > 0 && (
-        <div className="mb-2 flex max-h-24 flex-col gap-1 overflow-y-auto rounded-lg border border-border bg-overlay/20 p-2">
+        <div className="mb-2 flex max-h-24 flex-col gap-1 overflow-y-auto rounded-lg border border-border bg-muted p-2">
           {uploads.map((upload) => (
             <div
               key={upload.id}
@@ -258,7 +258,7 @@ export const MeetingMessageInput = forwardRef<
                 {upload.name} - {formatFileSize(upload.sizeBytes)}
               </span>
               {upload.status === "uploading" ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-info" />
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-info-content" />
               ) : (
                 <MeetingIconButton
                   label="Remove upload"
@@ -298,7 +298,7 @@ export const MeetingMessageInput = forwardRef<
         </div>
       )}
 
-      <div className="flex items-end gap-2 rounded-panel border border-input bg-overlay/25 p-2">
+      <div className="flex items-end gap-2 rounded-panel border border-input bg-background p-2">
         <input
           ref={fileInputRef}
           type="file"
@@ -345,7 +345,7 @@ export const MeetingMessageInput = forwardRef<
                   disabled={isUploading}
                   className="flex cursor-pointer items-center gap-3 rounded-control px-3 py-2 text-left text-sm font-semibold text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  <Folder className="h-4 w-4 text-info" />
+                  <Folder className="h-4 w-4 text-info-content" />
                   My files
                 </button>
               </div>

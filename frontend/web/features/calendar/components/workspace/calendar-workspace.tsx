@@ -329,7 +329,7 @@ export function CalendarWorkspace() {
           {calendar.hasError ? (
             <div className="flex flex-1 items-center justify-center p-6">
               <div className="rounded-panel border border-border bg-card px-5 py-4 text-center">
-                <AlertCircle className="mx-auto h-8 w-8 text-destructive" />
+                <AlertCircle className="mx-auto h-8 w-8 text-destructive-content" />
                 <p className="mt-2 text-sm font-semibold text-foreground">
                   Failed to load calendar events
                 </p>

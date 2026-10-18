@@ -19,10 +19,10 @@ interface CustomBadgeProps extends React.ComponentProps<typeof Badge> {
 const customBadgeVariantClass: Record<CustomBadgeVariant, string> = {
   default: "border-border bg-card text-foreground",
   muted: "border-transparent bg-muted text-muted-foreground",
-  primary: "border-transparent bg-primary text-primary-foreground",
-  success: "border-border bg-success-soft text-success",
-  warning: "border-border bg-warning-soft text-warning",
-  danger: "border-border bg-destructive-soft text-destructive",
+  primary: "border-transparent bg-primary-soft text-primary-soft-foreground",
+  success: "border-border bg-success-soft text-success-content",
+  warning: "border-border bg-warning-soft text-warning-content",
+  danger: "border-border bg-destructive-soft text-destructive-content",
   label: "border-transparent text-primary-foreground",
 };
 

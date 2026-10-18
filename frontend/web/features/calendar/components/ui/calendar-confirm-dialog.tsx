@@ -42,10 +42,10 @@ const iconByVariant = {
 };
 
 const iconBgByVariant: Record<CalendarConfirmVariant, string> = {
-  danger: "bg-destructive-soft text-destructive ring-1 ring-destructive",
-  warning: "bg-warning-soft text-warning ring-1 ring-warning",
-  info: "bg-info-soft text-info ring-1 ring-ring",
-  question: "bg-info-soft text-info ring-1 ring-ring",
+  danger: "bg-destructive-soft text-destructive-content ring-1 ring-destructive-outline",
+  warning: "bg-warning-soft text-warning-content ring-1 ring-warning-outline",
+  info: "bg-info-soft text-info-content ring-1 ring-ring",
+  question: "bg-info-soft text-info-content ring-1 ring-ring",
 };
 
 const confirmButtonClassByVariant: Record<CalendarConfirmVariant, string> = {

@@ -562,12 +562,12 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             size="icon"
             className={`relative z-[80] h-11 w-11 rounded-full border bg-card transition focus-visible:ring-4 focus-visible:ring-ring ${
               isOpen
-                ? "border-info bg-info-soft text-primary"
+                ? "border-info-outline bg-info-soft text-link"
                 : "border-border text-muted-foreground hover:bg-background"
             }`}
             aria-label="Notifications"
           >
-            <Bell size={22} className={isOpen ? "fill-info" : ""} />
+            <Bell size={22} className={isOpen ? "fill-info-content" : ""} />
             {unreadCount > 0 ? (
               <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-border bg-destructive px-1.5 text-xs font-semibold text-destructive-foreground">
                 {formatNotificationCount(unreadCount)}
@@ -592,7 +592,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                 variant="ghost"
                 size="sm"
                 onClick={handleMarkAllAsRead}
-                className="h-7 rounded-full px-2 text-xs font-semibold text-primary hover:bg-info-soft hover:text-foreground"
+                className="h-7 rounded-full px-2 text-xs font-semibold text-link hover:bg-info-soft hover:text-foreground"
               >
                 <Check size={14} />
                 Mark all as read
@@ -669,7 +669,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                       ? "Delete read"
                       : `Delete read ${categoryConfig[category].label}`
                   }
-                  className="h-8 min-w-0 shrink rounded-control border-border bg-card px-2 text-xs font-semibold text-muted-foreground hover:border-border hover:bg-destructive-soft hover:text-destructive"
+                  className="h-8 min-w-0 shrink rounded-control border-border bg-card px-2 text-xs font-semibold text-muted-foreground hover:border-border hover:bg-destructive-soft hover:text-destructive-content"
                 >
                   <Trash2 className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">

@@ -24,11 +24,11 @@ export function DocumentsStatusBadge({
       <Badge
         variant="outline"
         className={cn(
-          "gap-1 border-border bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning rounded-lg",
+          "gap-1 border-border bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning-content rounded-lg",
           className
         )}
       >
-        <Star className="h-3 w-3 fill-warning text-warning" />
+        <Star className="h-3 w-3 fill-warning-content text-warning-content" />
         <span>Starred</span>
       </Badge>
     );
@@ -46,12 +46,12 @@ export function DocumentsStatusBadge({
       >
         {isFolder ? (
           <>
-            <Folder className="h-3 w-3 text-warning" />
+            <Folder className="h-3 w-3 text-warning-content" />
             <span>Folder</span>
           </>
         ) : (
           <>
-            <FileText className="h-3 w-3 text-info" />
+            <FileText className="h-3 w-3 text-info-content" />
             <span>File</span>
           </>
         )}
@@ -66,7 +66,7 @@ export function DocumentsStatusBadge({
       <Badge
         variant="outline"
         className={cn(
-          "gap-1 border-border bg-info-soft px-2 py-0.5 text-xs font-semibold text-info rounded-lg",
+          "gap-1 border-border bg-info-soft px-2 py-0.5 text-xs font-semibold text-info-content rounded-lg",
           className
         )}
       >
@@ -81,7 +81,7 @@ export function DocumentsStatusBadge({
       <Badge
         variant="outline"
         className={cn(
-          "gap-1 border-border bg-success-soft px-2 py-0.5 text-xs font-semibold text-success rounded-lg",
+          "gap-1 border-border bg-success-soft px-2 py-0.5 text-xs font-semibold text-success-content rounded-lg",
           className
         )}
       >
@@ -95,7 +95,7 @@ export function DocumentsStatusBadge({
     <Badge
       variant="outline"
       className={cn(
-        "gap-1 border-border bg-info-soft px-2 py-0.5 text-xs font-semibold text-info rounded-lg",
+        "gap-1 border-border bg-info-soft px-2 py-0.5 text-xs font-semibold text-info-content rounded-lg",
         className
       )}
     >

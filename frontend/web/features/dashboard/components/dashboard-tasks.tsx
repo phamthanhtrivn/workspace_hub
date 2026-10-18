@@ -65,7 +65,7 @@ export function DashboardTasks({
                   </p>
                 </div>
                 <span
-                  className={`col-start-1 row-start-2 shrink-0 text-xs font-medium ${bucket === "Overdue" ? "text-destructive" : bucket === "Today" ? "text-primary" : "text-muted-foreground"}`}
+                  className={`col-start-1 row-start-2 shrink-0 text-xs font-medium ${bucket === "Overdue" ? "text-destructive-content" : bucket === "Today" ? "text-link" : "text-muted-foreground"}`}
                   title={taskDate(task, zone)}
                 >
                   {bucket === "Upcoming" ? taskDate(task, zone) : bucket}
@@ -73,7 +73,7 @@ export function DashboardTasks({
                 <ArrowUpRight
                   aria-hidden
                   size={16}
-                  className="col-start-2 row-span-2 row-start-1 shrink-0 text-primary"
+                  className="col-start-2 row-span-2 row-start-1 shrink-0 text-link"
                 />
               </Link>
             </li>
@@ -85,7 +85,7 @@ export function DashboardTasks({
           Showing 6 of {visibleTasks.length} open tasks
         </p>
       )}
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-border pt-3 text-xs font-medium text-primary">
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-border pt-3 text-xs font-medium text-link">
         <Link href="/calendar" className="inline-flex min-h-11 items-center hover:underline sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
           Personal tasks
         </Link>

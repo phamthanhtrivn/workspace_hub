@@ -95,7 +95,7 @@ export function MeetingRecordingShareDialog({
           <p className="mt-2 text-sm text-muted-foreground">Searching…</p>
         )}
         {users.isError && (
-          <p role="alert" className="mt-2 text-sm text-destructive">
+          <p role="alert" className="mt-2 text-sm text-destructive-content">
             Could not search accounts.
           </p>
         )}

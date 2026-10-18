@@ -141,7 +141,7 @@ export default function BrowseChannelsModal({
         {/* Header */}
         <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Globe className="text-info" size={20} />
+            <Globe className="text-info-content" size={20} />
             <h2 className="text-section-title font-semibold text-foreground">
               Browse Channels
             </h2>
@@ -166,7 +166,7 @@ export default function BrowseChannelsModal({
               placeholder="Search channels by name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-card border border-input focus:border-info focus:ring-4 focus:ring-ring rounded-control text-sm outline-none transition duration-150"
+              className="w-full pl-10 pr-4 py-2.5 bg-card border border-input focus:border-info-outline focus:ring-4 focus:ring-ring rounded-control text-sm outline-none transition duration-150"
             />
           </div>
         </div>
@@ -175,7 +175,7 @@ export default function BrowseChannelsModal({
         <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-4 flex flex-col gap-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full`}>
           {isLoading ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
-              <Loader2 className="animate-spin text-info" size={24} />
+              <Loader2 className="animate-spin text-info-content" size={24} />
               <span className="text-xs">Loading channels...</span>
             </div>
           ) : filteredChannels.length > 0 ? (
@@ -201,7 +201,7 @@ export default function BrowseChannelsModal({
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {`${memberCount} members`}
                         {channel.isDefault && (
-                          <span className="ml-2 px-1.5 py-0.5 bg-info-soft text-info rounded text-xs font-semibold">
+                          <span className="ml-2 px-1.5 py-0.5 bg-info-soft text-info-content rounded text-xs font-semibold">
                             Default
                           </span>
                         )}
@@ -211,7 +211,7 @@ export default function BrowseChannelsModal({
 
                   <div className="flex shrink-0 items-center gap-2">
                     {isJoined ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-success bg-success-soft rounded-lg border border-border">
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-success-content bg-success-soft rounded-lg border border-border">
                         <Check size={14} />
                         Joined
                       </span>
@@ -236,7 +236,7 @@ export default function BrowseChannelsModal({
                           type="button"
                           onClick={() => handleDeleteChannel(channel.id)}
                           disabled={deleteMutation.isPending}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-control border border-border bg-destructive-soft text-destructive hover:bg-destructive-soft hover:text-destructive disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-control border border-border bg-destructive-soft text-destructive-content hover:bg-destructive-soft hover:text-destructive-content disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition"
                           title="Delete Channel"
                         >
                           {deleteMutation.isPending &&

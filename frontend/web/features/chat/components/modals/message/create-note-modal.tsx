@@ -64,7 +64,7 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter note title..."
-              className="w-full px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info outline-none transition-all"
+              className="w-full px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info-outline outline-none transition-all"
               required
             />
           </div>
@@ -77,7 +77,7 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
               value={content}
               setValue={setContent}
               placeholder="Enter note content..."
-              focusColorClassName="focus-within:border-info focus-within:ring-ring"
+              focusColorClassName="focus-within:border-info-outline focus-within:ring-ring"
             />
           </div>
 

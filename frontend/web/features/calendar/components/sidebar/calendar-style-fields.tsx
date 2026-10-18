@@ -9,6 +9,7 @@ import {
   CALENDAR_ICON_CHOICES,
 } from "../../types/calendar.constants";
 import { cn } from "@/lib/utils";
+import { readableTextOnColor } from "@/lib/color";
 
 export function CalendarIconPicker({
   value,
@@ -36,7 +37,7 @@ export function CalendarIconPicker({
           "grid cursor-pointer place-items-center rounded-control text-sm transition-all",
           compact ? "h-8 w-8" : "h-9 w-9",
           value === null
-            ? "bg-primary text-primary-foreground ring-2 ring-ring/30 ring-offset-1"
+            ? "bg-primary-soft text-primary-soft-foreground ring-2 ring-ring/30 ring-offset-1"
             : "bg-muted text-muted-foreground hover:bg-accent hover:text-muted-foreground",
         )}
         aria-label="No icon"
@@ -57,7 +58,7 @@ export function CalendarIconPicker({
             "grid cursor-pointer place-items-center rounded-control text-base transition-all",
             compact ? "h-8 w-8" : "h-9 w-9",
             value === icon
-              ? "bg-info-soft text-info ring-2 ring-ring ring-offset-1"
+              ? "bg-info-soft text-info-content ring-2 ring-ring ring-offset-1"
               : "bg-muted hover:bg-accent/80",
           )}
           aria-label={icon}
@@ -101,12 +102,12 @@ export function CalendarColorPicker({
                 ? "ring-2 ring-ring ring-offset-2"
                 : "ring-1 ring-ring",
             )}
-            style={{ backgroundColor: choice }}
+            style={{ backgroundColor: choice, color: readableTextOnColor(choice) }}
             aria-label={choice}
           >
             {value.toLowerCase() === choice.toLowerCase() &&
               !showCustomColor && (
-                <Check className="h-3.5 w-3.5 stroke-[2.5] text-primary-foreground drop-" />
+                <Check className="h-3.5 w-3.5 stroke-[2.5]" />
               )}
           </Button>
         ))}
@@ -138,7 +139,7 @@ export function CalendarColorPicker({
           <Input
             value={value}
             onChange={(event) => onChange(event.target.value)}
-            className="min-w-0 flex-1 rounded-control border border-input px-3 py-1.5 text-xs font-mono font-medium text-foreground shadow-none outline-none focus-visible:border-info focus-visible:ring-2 focus-visible:ring-ring"
+            className="min-w-0 flex-1 rounded-control border border-input px-3 py-1.5 text-xs font-mono font-medium text-foreground shadow-none outline-none focus-visible:border-info-outline focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
       )}

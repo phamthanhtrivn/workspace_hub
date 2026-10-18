@@ -147,7 +147,7 @@ export default function TaskDetailDrawer({
             className={[
               "flex h-9 items-center gap-1.5 rounded-none border-b-2 px-2 py-2 text-xs font-semibold transition shadow-none cursor-pointer",
               activeTab === "details"
-                ? "border-primary text-info hover:text-info hover:bg-transparent"
+                ? "border-primary text-info-content hover:text-info-content hover:bg-transparent"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-transparent",
             ].join(" ")}
           >
@@ -164,7 +164,7 @@ export default function TaskDetailDrawer({
             className={[
               "flex h-9 items-center gap-1.5 rounded-none border-b-2 px-2 py-2 text-xs font-semibold transition shadow-none cursor-pointer",
               activeTab === "activity"
-                ? "border-primary text-info hover:text-info hover:bg-transparent"
+                ? "border-primary text-info-content hover:text-info-content hover:bg-transparent"
                 : "border-transparent text-muted-foreground hover:text-foreground hover:bg-transparent",
             ].join(" ")}
           >
@@ -180,7 +180,7 @@ export default function TaskDetailDrawer({
 
         {(isTerminalTaskStatus(task.status) ||
           (!canEditTask && !canContributeTask)) && (
-          <div className="mx-5 mt-3 flex items-center gap-2 rounded-panel border border-border bg-success-soft px-3 py-2 text-xs font-semibold text-success">
+          <div className="mx-5 mt-3 flex items-center gap-2 rounded-panel border border-border bg-success-soft px-3 py-2 text-xs font-semibold text-success-content">
             <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
             {isTerminalTaskStatus(task.status)
               ? task.status === TaskStatus.CANCELLED

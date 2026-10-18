@@ -74,7 +74,7 @@ export const parseInlineStyles = (
         return (
           <code
             key={`inline-code-${index}`}
-            className="bg-muted text-destructive font-mono px-1 py-0.5 rounded text-[11px] border border-border"
+            className="bg-muted text-destructive-content font-mono px-1 py-0.5 rounded text-[11px] border border-border"
           >
             {t.text}
           </code>
@@ -125,7 +125,7 @@ export const formatMessageContent = (
             newParts.push(
               <span
                 key={`special-${specialStr}-${partIdx}-${idx}`}
-                className="font-semibold text-info bg-info-soft/80 px-1.5 py-0.5 rounded-md transition-colors"
+                className="font-semibold text-info-content bg-info-soft/80 px-1.5 py-0.5 rounded-md transition-colors"
               >
                 {specialStr}
               </span>,
@@ -160,7 +160,7 @@ export const formatMessageContent = (
             newParts.push(
               <span
                 key={`user-${userId}-${partIdx}-${idx}`}
-                className="font-semibold text-info bg-info-soft/80 px-1.5 py-0.5 rounded-md hover:bg-info-soft transition-colors cursor-pointer"
+                className="font-semibold text-info-content bg-info-soft/80 px-1.5 py-0.5 rounded-md hover:bg-info-soft transition-colors cursor-pointer"
               >
                 {searchStr}
               </span>,
@@ -191,7 +191,7 @@ export const formatMessageContent = (
         fallbackParts.push(
           <span
             key={`mention-regex-${partIdx}-${matchIdx}`}
-            className="font-semibold text-info bg-info-soft/80 px-1.5 py-0.5 rounded-md hover:bg-info-soft transition-colors cursor-pointer"
+            className="font-semibold text-info-content bg-info-soft/80 px-1.5 py-0.5 rounded-md hover:bg-info-soft transition-colors cursor-pointer"
           >
             {fullMention}
           </span>,
@@ -228,7 +228,7 @@ export const formatMessageContent = (
             href={linkUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-info hover:underline break-all"
+            className="text-info-content hover:underline break-all"
             onClick={(e) => e.stopPropagation()}
           >
             {linkText}
@@ -259,7 +259,7 @@ export const formatMessageContent = (
               href={s}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-info hover:underline break-all"
+              className="text-info-content hover:underline break-all"
               onClick={(e) => e.stopPropagation()}
             >
               {s}

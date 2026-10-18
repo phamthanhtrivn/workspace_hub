@@ -42,10 +42,10 @@ function QuotaWidget() {
           className={cn(
             "h-full rounded-full transition-all duration-200",
             percentage > 90
-              ? "bg-destructive"
+              ? "bg-destructive-content"
               : percentage > 75
-                ? "bg-warning"
-                : "bg-primary",
+                ? "bg-warning-content"
+                : "bg-link",
           )}
           style={{ width: `${percentage}%` }}
         />

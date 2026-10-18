@@ -41,7 +41,7 @@ export function CalendarSelect({
       <SelectTrigger
         aria-label={ariaLabel}
         className={cn(
-          "group inline-flex h-9 min-w-24 cursor-pointer items-center justify-between gap-2 rounded-md border-0 border-b-[3px] border-transparent bg-accent px-3 text-sm font-medium text-foreground shadow-none outline-none transition-colors hover:bg-border/80 focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:border-info data-[state=open]:bg-border [&_svg]:text-info",
+          "group inline-flex h-9 min-w-24 cursor-pointer items-center justify-between gap-2 rounded-md border-0 border-b-[3px] border-transparent bg-accent px-3 text-sm font-medium text-foreground shadow-none outline-none transition-colors hover:bg-border/80 focus-visible:ring-2 focus-visible:ring-ring data-[state=open]:border-info-outline data-[state=open]:bg-border [&_svg]:text-info-content",
           triggerClassName,
         )}
       >

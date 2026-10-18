@@ -52,8 +52,8 @@ export function MeetingAlertDialog({
           <span
             className={`grid h-10 w-10 shrink-0 place-items-center rounded-panel border ${
               variant === "danger"
-                ? "border-border bg-destructive-soft text-destructive"
-                : "border-border bg-warning-soft text-warning"
+                ? "border-border bg-destructive-soft text-destructive-content"
+                : "border-border bg-warning-soft text-warning-content"
             }`}
           >
             <AlertTriangle className="h-5 w-5" />

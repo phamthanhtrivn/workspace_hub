@@ -108,7 +108,7 @@ export function ShareToChatModal({
           showCloseButton={!isSubmitting}
         >
           <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info ring-1 ring-ring">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info-content ring-1 ring-ring">
               <Send className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
@@ -128,7 +128,7 @@ export function ShareToChatModal({
                 onClick={() => setActiveTab(ShareTabType.CHANNEL)}
                 className={`flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
                   activeTab === ShareTabType.CHANNEL
-                    ? "border-info text-info"
+                    ? "border-info-outline text-info-content"
                     : "border-transparent text-muted-foreground hover:text-muted-foreground"
                 }`}
               >
@@ -140,7 +140,7 @@ export function ShareToChatModal({
                 onClick={() => setActiveTab(ShareTabType.DM)}
                 className={`flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
                   activeTab === ShareTabType.DM
-                    ? "border-info text-info"
+                    ? "border-info-outline text-info-content"
                     : "border-transparent text-muted-foreground hover:text-muted-foreground"
                 }`}
               >
@@ -180,7 +180,7 @@ export function ShareToChatModal({
                   />
                 </div>
                 {projectSpaceUnavailable ? (
-                  <p className="text-xs font-semibold text-warning">
+                  <p className="text-xs font-semibold text-warning-content">
                     Project chat space is not available.
                   </p>
                 ) : null}
@@ -208,7 +208,7 @@ export function ShareToChatModal({
                 value={introMessage}
                 onChange={(e) => setIntroMessage(e.target.value)}
                 placeholder="Add a message..."
-                className="min-h-[80px] rounded-control border border-input bg-background p-3 text-sm font-semibold text-foreground focus:outline-hidden focus:border-info"
+                className="min-h-[80px] rounded-control border border-input bg-background p-3 text-sm font-semibold text-foreground focus:outline-hidden focus:border-info-outline"
               />
             </div>
           </div>

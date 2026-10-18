@@ -209,7 +209,7 @@ export default function ProjectsPage() {
             ))}
           </div>
         ) : isError ? (
-          <div className="py-12 text-center text-sm font-semibold text-destructive">
+          <div className="py-12 text-center text-sm font-semibold text-destructive-content">
             Failed to load projects. Please try refreshing the page.
           </div>
         ) : projects.length > 0 ? (
@@ -276,7 +276,7 @@ export default function ProjectsPage() {
                             {project.icon || "📁"}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <span title={project.name} className="block truncate text-sm font-semibold text-info group-hover:underline">
+                            <span title={project.name} className="block truncate text-sm font-semibold text-info-content group-hover:underline">
                               {project.name}
                             </span>
                             {projectIdSuffix ? (
@@ -326,10 +326,10 @@ export default function ProjectsPage() {
                           </div>
                           <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
                             <div
-                              className="h-full rounded-full transition-all duration-200"
+                              className="h-full rounded-full ring-1 ring-inset ring-input transition-all duration-200"
                               style={{
                                 width: `${progress}%`,
-                                backgroundColor: project.color || "var(--primary)",
+                                backgroundColor: project.color || "var(--chart-1)",
                               }}
                             />
                           </div>

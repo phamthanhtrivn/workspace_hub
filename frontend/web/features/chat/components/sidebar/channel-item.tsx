@@ -77,7 +77,7 @@ const ChannelItem = React.memo(function ChannelItem({
           className={cn(
             "shrink-0 p-1 rounded-lg transition-all duration-150",
             isActive
-              ? "bg-info-soft text-info"
+              ? "bg-info-soft text-info-content"
               : "bg-accent/50 text-muted-foreground group-hover:text-foreground group-hover:bg-accent/80",
           )}
         >
@@ -92,7 +92,7 @@ const ChannelItem = React.memo(function ChannelItem({
           className={cn(
             "text-[13px] font-semibold truncate tracking-tight transition-colors duration-150",
             isActive
-              ? "text-info"
+              ? "text-info-content"
               : "text-foreground group-hover:text-foreground",
             unreadCount > 0 && "font-semibold",
           )}
@@ -107,10 +107,10 @@ const ChannelItem = React.memo(function ChannelItem({
 
       <div className="flex items-center justify-end shrink-0 pl-1 gap-1">
         {isPinned && (
-          <Pin size={11} className="shrink-0 fill-info text-info" />
+          <Pin size={11} className="shrink-0 fill-info-content text-info-content" />
         )}
         {channel.hasMention && (
-          <span className="text-info font-semibold text-xs mr-1">
+          <span className="text-info-content font-semibold text-xs mr-1">
             @
           </span>
         )}
@@ -118,7 +118,7 @@ const ChannelItem = React.memo(function ChannelItem({
           <div
             className={cn(
               "text-primary-foreground text-xs font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center flex items-center justify-center",
-              isMuted ? "bg-muted-foreground" : "bg-destructive",
+              isMuted ? "bg-muted text-muted-foreground" : "bg-destructive",
             )}
           >
             {unreadCount > MAX_UNREAD_COUNT ? "99+" : unreadCount}
@@ -153,7 +153,7 @@ const ChannelItem = React.memo(function ChannelItem({
               >
                 <Pin
                   size={14}
-                  className={isPinned ? "fill-info text-info" : ""}
+                  className={isPinned ? "fill-info-content text-info-content" : ""}
                 />
                 <span>{isPinned ? "Unpin" : "Pin"}</span>
               </button>
@@ -178,7 +178,7 @@ const ChannelItem = React.memo(function ChannelItem({
                     onLeave?.(channel);
                     setIsMenuOpen(false);
                   }}
-                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-destructive transition hover:bg-destructive-soft/50 font-semibold"
+                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-destructive-content transition hover:bg-destructive-soft/50 font-semibold"
                 >
                   <LogOut size={14} />
                   <span>Leave</span>
@@ -191,7 +191,7 @@ const ChannelItem = React.memo(function ChannelItem({
                     onDelete?.(channel);
                     setIsMenuOpen(false);
                   }}
-                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-destructive transition hover:bg-destructive-soft/50 font-semibold"
+                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-destructive-content transition hover:bg-destructive-soft/50 font-semibold"
                 >
                   <Trash2 size={14} />
                   <span>Delete</span>

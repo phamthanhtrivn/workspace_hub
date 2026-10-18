@@ -51,7 +51,7 @@ export default function EditNoteModal({
       <div className={`${dialogLayout.surface} bg-card rounded-panel w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200`}>
         <div className="flex justify-between items-center p-4 border-b border-border">
           <h2 className="text-section-title font-semibold text-foreground flex items-center gap-2">
-            <FileText size={20} className="text-warning" />
+            <FileText size={20} className="text-warning-content" />
             Edit Note
           </h2>
           <button aria-label="Close"
@@ -72,7 +72,7 @@ export default function EditNoteModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter title..."
-              className="w-full px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-warning outline-none transition-all"
+              className="w-full px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-warning-outline outline-none transition-all"
               required
             />
           </div>

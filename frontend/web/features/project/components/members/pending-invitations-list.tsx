@@ -69,7 +69,7 @@ export default function PendingInvitationsList({
   return (
     <div className="mt-4 border-t border-border pt-4">
       <div className="mb-2 flex items-center gap-2 px-2">
-        <Clock3 className="h-3.5 w-3.5 text-warning" />
+        <Clock3 className="h-3.5 w-3.5 text-warning-content" />
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Pending Invitations ({invitations.length})
         </p>
@@ -123,7 +123,7 @@ export default function PendingInvitationsList({
                   size="icon"
                   onClick={() => void handleResend(invitation)}
                   disabled={isCancelling || resendMutation.isPending}
-                  className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground transition hover:bg-card hover:text-info disabled:cursor-not-allowed disabled:opacity-40"
+                  className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground transition hover:bg-card hover:text-info-content disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label={`Resend invitation for ${displayName}`}
                   title="Resend invitation"
                 >
@@ -137,7 +137,7 @@ export default function PendingInvitationsList({
                   size="icon"
                   onClick={() => handleCancel(invitation)}
                   disabled={isResending || cancelMutation.isPending}
-                  className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground transition hover:bg-card hover:text-destructive disabled:cursor-not-allowed disabled:opacity-40"
+                  className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground transition hover:bg-card hover:text-destructive-content disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label={`Revoke invitation for ${displayName}`}
                   title="Revoke invitation"
                 >

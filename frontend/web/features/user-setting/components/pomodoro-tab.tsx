@@ -17,7 +17,7 @@ export default function PomodoroTab() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
       <h3 className="text-section-title font-semibold text-foreground">Pomodoro</h3>
-      {loadError && syncStatus === "idle" && <p role="status" className="text-xs text-warning">{POMODORO_SETTINGS_MESSAGES.local}</p>}
+      {loadError && syncStatus === "idle" && <p role="status" className="text-xs text-warning-content">{POMODORO_SETTINGS_MESSAGES.local}</p>}
       <PomodoroSettingsForm config={config} syncStatus={syncStatus} onSave={saveConfig} />
     </div>
   );

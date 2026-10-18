@@ -103,7 +103,7 @@ const RegisterForm = React.memo(function RegisterForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-semibold text-foreground">
-            Full Name <span className="text-destructive">*</span>
+            Full Name <span className="text-destructive-content">*</span>
           </label>
 
           <InputField
@@ -120,7 +120,7 @@ const RegisterForm = React.memo(function RegisterForm() {
 
         <div className="space-y-2">
           <label className="text-sm font-semibold text-foreground">
-            Date of Birth <span className="text-destructive">*</span>
+            Date of Birth <span className="text-destructive-content">*</span>
           </label>
 
           <InputField
@@ -138,7 +138,7 @@ const RegisterForm = React.memo(function RegisterForm() {
 
       <div className="space-y-2">
         <label className="text-sm font-semibold text-foreground">
-          Email <span className="text-destructive">*</span>
+          Email <span className="text-destructive-content">*</span>
         </label>
 
         <InputField
@@ -155,7 +155,7 @@ const RegisterForm = React.memo(function RegisterForm() {
 
       <div className="space-y-2">
         <label className="text-sm font-semibold text-foreground">
-          Password <span className="text-destructive">*</span>
+          Password <span className="text-destructive-content">*</span>
         </label>
 
         <InputField
@@ -180,7 +180,7 @@ const RegisterForm = React.memo(function RegisterForm() {
 
       <div className="space-y-2">
         <label className="text-sm font-semibold text-foreground">
-          Confirm Password <span className="text-destructive">*</span>
+          Confirm Password <span className="text-destructive-content">*</span>
         </label>
 
         <InputField

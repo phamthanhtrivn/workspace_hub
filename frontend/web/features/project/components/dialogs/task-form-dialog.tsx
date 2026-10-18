@@ -141,7 +141,7 @@ export default function TaskFormDialog({
             <section>
               <label className="block">
                 <span className="mb-1.5 block text-xs font-semibold text-foreground">
-                  Task Title <span className="text-destructive">*</span>
+                  Task Title <span className="text-destructive-content">*</span>
                 </span>
                 <Input
                   autoFocus

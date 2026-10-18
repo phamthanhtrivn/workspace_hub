@@ -152,7 +152,7 @@ export default function ChannelActionsSection({
                 type="button"
                 onClick={confirmLeaveChannel}
                 disabled={leaveMutation.isPending || deleteMutation.isPending}
-                className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card px-3 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive-soft disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card px-3 py-2 text-sm font-semibold text-destructive-content transition hover:bg-destructive-soft disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <LogOut size={15} />
                 Leave Channel
@@ -173,7 +173,7 @@ export default function ChannelActionsSection({
             type="button"
             onClick={confirmLeaveChannel}
             disabled={leaveMutation.isPending}
-            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card px-3 py-2 text-sm font-semibold text-destructive transition hover:bg-destructive-soft disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card px-3 py-2 text-sm font-semibold text-destructive-content transition hover:bg-destructive-soft disabled:cursor-not-allowed disabled:opacity-50"
           >
             <LogOut size={15} />
             {actionLabel}

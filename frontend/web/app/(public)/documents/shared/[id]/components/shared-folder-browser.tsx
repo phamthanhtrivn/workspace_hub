@@ -123,7 +123,7 @@ function SharedFolderBrowserInner({
                 className={
                   index === breadcrumbs.length - 1
                     ? "text-foreground font-semibold truncate max-w-[180px]"
-                    : "hover:text-info transition-colors truncate max-w-[120px] cursor-pointer"
+                    : "hover:text-info-content transition-colors truncate max-w-[120px] cursor-pointer"
                 }
               >
                 {index === 0 ? (
@@ -163,7 +163,7 @@ function SharedFolderBrowserInner({
       {/* File/Folder List */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 size={24} className="animate-spin text-info" />
+          <Loader2 size={24} className="animate-spin text-info-content" />
         </div>
       ) : children.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -207,7 +207,7 @@ function SharedFolderBrowserInner({
                     <button
                       onClick={() => enqueueDownload(item.id, item.name, true)}
                       title="Tải xuống thư mục (ZIP)"
-                      className="p-1.5 rounded-control text-muted-foreground hover:text-info hover:bg-info-soft transition-colors cursor-pointer"
+                      className="p-1.5 rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft transition-colors cursor-pointer"
                     >
                       <FolderArchive size={14} />
                     </button>
@@ -215,7 +215,7 @@ function SharedFolderBrowserInner({
                     <button
                       onClick={() => void handleDownloadFile(item)}
                       title="Tải xuống tệp"
-                      className="p-1.5 rounded-control text-muted-foreground hover:text-info hover:bg-info-soft transition-colors cursor-pointer"
+                      className="p-1.5 rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft transition-colors cursor-pointer"
                     >
                       <Download size={14} />
                     </button>

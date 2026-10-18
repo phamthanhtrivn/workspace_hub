@@ -26,11 +26,11 @@ const meetingButtonToneClass: Record<MeetingButtonTone, string> = {
   secondary:
     "bg-muted text-foreground hover:text-foreground hover:bg-accent",
   outline:
-    "border border-border bg-card text-muted-foreground hover:border-border hover:bg-info-soft hover:text-info",
+    "border border-border bg-card text-muted-foreground hover:border-border hover:bg-info-soft hover:text-info-content",
   ghost:
     "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
   danger:
-    "border border-border bg-destructive-soft text-destructive hover:border-destructive hover:bg-destructive hover:text-destructive-foreground transition-all duration-150",
+    "border border-destructive-outline bg-destructive-soft text-destructive-content hover:border-destructive-outline hover:bg-destructive-soft hover:text-destructive-content transition-all duration-150",
 };
 
 const meetingButtonSizeClass: Record<MeetingControlSize, string> = {
@@ -84,7 +84,7 @@ export function MeetingInput({
         aria-invalid={invalid || undefined}
         className={cn(
           "h-10 rounded-control border-input bg-card text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-ring",
-          invalid && "border-destructive focus-visible:ring-ring",
+          invalid && "border-destructive-outline focus-visible:ring-ring",
           className,
         )}
         {...props}
@@ -96,7 +96,7 @@ export function MeetingInput({
     <span
       className={cn(
         "flex h-10 min-w-0 items-center gap-2 rounded-control border border-input bg-card px-3 transition focus-within:border-primary focus-within:ring-2 focus-within:ring-ring",
-        invalid && "border-destructive focus-within:ring-ring",
+        invalid && "border-destructive-outline focus-within:ring-ring",
         containerClassName,
       )}
     >
@@ -127,7 +127,7 @@ export function MeetingTextarea({
       aria-invalid={invalid || undefined}
       className={cn(
         "min-h-24 rounded-control border-input bg-card text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-ring",
-        invalid && "border-destructive focus-visible:ring-ring",
+        invalid && "border-destructive-outline focus-visible:ring-ring",
         className,
       )}
       {...props}

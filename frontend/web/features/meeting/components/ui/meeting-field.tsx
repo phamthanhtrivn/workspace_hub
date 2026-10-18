@@ -19,7 +19,7 @@ function MeetingField({
       <span className="text-xs font-semibold uppercase text-muted-foreground">{label}</span>
       {children}
       {error ? (
-        <span className="block text-xs font-semibold text-destructive">{error}</span>
+        <span className="block text-xs font-semibold text-destructive-content">{error}</span>
       ) : null}
     </label>
   );

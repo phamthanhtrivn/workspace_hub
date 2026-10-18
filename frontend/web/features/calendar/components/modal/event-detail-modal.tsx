@@ -202,7 +202,7 @@ export function EventDetailModal({
                 disabled={busy}
                 aria-label="Cancel event"
                 title="Cancel event"
-                className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
+                className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-destructive-content disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -236,7 +236,7 @@ export function EventDetailModal({
               <h2
                 id="calendar-event-detail-heading"
                 className={`text-2xl font-normal leading-tight text-foreground break-words ${
-                  isCompletedTask ? "line-through opacity-60" : ""
+                  isCompletedTask ? "line-through" : ""
                 }`}
               >
                 {event.title}
@@ -269,8 +269,7 @@ export function EventDetailModal({
             <div className="mt-0.5 flex w-5 shrink-0 justify-center">
               {isTask ? (
                 <ListTodo
-                  className="h-4 w-4"
-                  style={{ color: tasksColor || "var(--warning)" }}
+                  className="h-4 w-4 text-info-content"
                 />
               ) : (
                 <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -285,7 +284,7 @@ export function EventDetailModal({
           {hasMeeting && (
             <div className="flex items-start gap-4">
               <div className="mt-1 flex w-5 shrink-0 justify-center">
-                <Video className="h-4 w-4 text-info" />
+                <Video className="h-4 w-4 text-info-content" />
               </div>
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -313,7 +312,7 @@ export function EventDetailModal({
                     title="Copy meeting link"
                   >
                     {copiedMeeting ? (
-                      <Check className="h-4 w-4 text-success" />
+                      <Check className="h-4 w-4 text-success-content" />
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
@@ -339,13 +338,13 @@ export function EventDetailModal({
                   )}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="group flex items-start gap-1.5 text-sm font-medium text-foreground transition hover:text-info"
+                  className="group flex items-start gap-1.5 text-sm font-medium text-foreground transition hover:text-info-content"
                   title="Open in Google Maps"
                 >
                   <span className="break-words whitespace-normal leading-relaxed group-hover:underline">
                     {event.location}
                   </span>
-                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition group-hover:text-info" />
+                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition group-hover:text-info-content" />
                 </a>
               </div>
             </div>
@@ -443,7 +442,7 @@ export function EventDetailModal({
               type="button"
               onClick={onTaskCompletionChange}
               disabled={busy}
-              className="cursor-pointer rounded-full bg-info-soft px-5 py-2.5 text-sm font-semibold text-info transition-colors hover:bg-info-soft disabled:cursor-wait disabled:opacity-60"
+              className="cursor-pointer rounded-full bg-info-soft px-5 py-2.5 text-sm font-semibold text-info-content transition-colors hover:bg-info-soft disabled:cursor-wait disabled:opacity-60"
             >
               {isCompletedTask ? "Mark as incomplete" : "Mark as completed"}
             </Button>

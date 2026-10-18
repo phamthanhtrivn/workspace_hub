@@ -41,20 +41,20 @@ export function getIssueKey(task: Task): string {
 }
 
 export function getIssueIcon(): React.ReactNode {
-  return <CheckSquare2 className="h-3.5 w-3.5 text-info fill-primary-soft" />;
+  return <CheckSquare2 className="h-3.5 w-3.5 text-info-content fill-primary-soft" />;
 }
 
 export function getPriorityIcon(priority: TaskPriority): React.ReactNode {
   switch (priority) {
     case TaskPriority.URGENT:
-      return <ChevronsUp className="h-4 w-4 text-destructive" />;
+      return <ChevronsUp className="h-4 w-4 text-destructive-content" />;
     case TaskPriority.HIGH:
-      return <ChevronUp className="h-4 w-4 text-warning" />;
+      return <ChevronUp className="h-4 w-4 text-warning-content" />;
     case TaskPriority.MEDIUM:
       return <Equal className="h-4 w-4 text-muted-foreground" />;
     case TaskPriority.LOW:
     default:
-      return <ChevronDown className="h-4 w-4 text-info" />;
+      return <ChevronDown className="h-4 w-4 text-info-content" />;
   }
 }
 
@@ -122,7 +122,7 @@ export default function TaskCard({
     >
       {/* Title */}
       <p
-        className={`font-semibold leading-snug text-foreground group-hover:text-info break-words ${
+        className={`font-semibold leading-snug text-foreground group-hover:text-info-content break-words ${
           isCompact ? "text-[13px]" : "text-sm"
         }`}
       >
@@ -145,7 +145,7 @@ export default function TaskCard({
           {task.dueDate && (
             <span
               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${
-                overdue ? "bg-destructive-soft text-destructive" : "bg-muted"
+                overdue ? "bg-destructive-soft text-destructive-content" : "bg-muted"
               }`}
             >
               <Calendar className="h-3 w-3" />
@@ -158,7 +158,7 @@ export default function TaskCard({
             <span
               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${
                 checklistDone === checklistTotal
-                  ? "bg-success-soft text-success"
+                  ? "bg-success-soft text-success-content"
                   : "bg-muted"
               }`}
             >

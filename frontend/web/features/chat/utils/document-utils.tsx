@@ -21,7 +21,7 @@ export function getFileIcon(
   if (type === DocumentItemType.FOLDER) {
     return (
       <Folder
-        className="text-warning shrink-0 animate-pulse-slow"
+        className="text-warning-content shrink-0 animate-pulse-slow"
         size={24}
       />
     );
@@ -30,28 +30,28 @@ export function getFileIcon(
   const ext = name.split(".").pop()?.toLowerCase() || "";
 
   if (EXTENSIONS.PDF.includes(ext)) {
-    return <FileText className="text-destructive shrink-0" size={24} />;
+    return <FileText className="text-destructive-content shrink-0" size={24} />;
   }
   if (EXTENSIONS.WORD.includes(ext)) {
-    return <FileText className="text-info shrink-0" size={24} />;
+    return <FileText className="text-info-content shrink-0" size={24} />;
   }
   if (EXTENSIONS.EXCEL.includes(ext)) {
-    return <FileSpreadsheet className="text-success shrink-0" size={24} />;
+    return <FileSpreadsheet className="text-success-content shrink-0" size={24} />;
   }
   if (EXTENSIONS.IMAGE.includes(ext)) {
-    return <Image className="text-info shrink-0" size={24} />;
+    return <Image className="text-info-content shrink-0" size={24} />;
   }
   if (EXTENSIONS.VIDEO.includes(ext)) {
-    return <Video className="text-info shrink-0" size={24} />;
+    return <Video className="text-info-content shrink-0" size={24} />;
   }
   if (EXTENSIONS.AUDIO.includes(ext)) {
-    return <Music className="text-success shrink-0" size={24} />;
+    return <Music className="text-success-content shrink-0" size={24} />;
   }
   if (EXTENSIONS.ARCHIVE.includes(ext)) {
-    return <FileArchive className="text-warning shrink-0" size={24} />;
+    return <FileArchive className="text-warning-content shrink-0" size={24} />;
   }
   if (EXTENSIONS.CODE.includes(ext)) {
-    return <Code className="text-info shrink-0" size={24} />;
+    return <Code className="text-info-content shrink-0" size={24} />;
   }
 
   return <File className="text-muted-foreground shrink-0" size={24} />;

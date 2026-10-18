@@ -49,7 +49,7 @@ export default function TaskActivityPanel({
           variant="ghost"
           size="sm"
           onClick={onRefresh}
-          className="h-7 shrink-0 rounded-control px-2.5 text-xs font-semibold text-info hover:bg-info-soft cursor-pointer"
+          className="h-7 shrink-0 rounded-control px-2.5 text-xs font-semibold text-info-content hover:bg-info-soft cursor-pointer"
         >
           Refresh
         </Button>
@@ -69,7 +69,7 @@ export default function TaskActivityPanel({
         </div>
       ) : isError ? (
         <div className="rounded-panel border border-border bg-destructive-soft px-4 py-5 text-center">
-          <p className="text-xs font-semibold text-destructive">
+          <p className="text-xs font-semibold text-destructive-content">
             Could not load task activity log.
           </p>
           <Button
@@ -77,7 +77,7 @@ export default function TaskActivityPanel({
             variant="link"
             size="sm"
             onClick={onRefresh}
-            className="mt-2 h-auto p-0 text-xs font-semibold text-destructive underline cursor-pointer hover:text-destructive"
+            className="mt-2 h-auto p-0 text-xs font-semibold text-destructive-content underline cursor-pointer hover:text-destructive-content"
           >
             Retry
           </Button>
@@ -99,7 +99,7 @@ export default function TaskActivityPanel({
                 {index < activities.length - 1 && (
                   <span className="absolute bottom-0 left-3.5 top-7 w-px bg-accent" />
                 )}
-                <span className="relative z-[1] grid h-7 w-7 shrink-0 place-items-center rounded-full border border-border bg-info-soft text-info">
+                <span className="relative z-[1] grid h-7 w-7 shrink-0 place-items-center rounded-full border border-border bg-info-soft text-info-content">
                   <History className="h-3.5 w-3.5" />
                 </span>
                 <div className="min-w-0 flex-1 pt-0.5">
@@ -130,7 +130,7 @@ export default function TaskActivityPanel({
                         <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
                       )}
                       {newValue && (
-                        <span className="min-w-0 break-words rounded-md bg-info-soft px-2 py-0.5 font-semibold text-info">
+                        <span className="min-w-0 break-words rounded-md bg-info-soft px-2 py-0.5 font-semibold text-info-content">
                           {newValue}
                         </span>
                       )}

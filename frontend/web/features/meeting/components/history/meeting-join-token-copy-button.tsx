@@ -42,7 +42,7 @@ export function MeetingJoinTokenCopyButton({
       type="button"
       onClick={handleCopy}
       className={cn(
-        "flex min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-md text-xs font-semibold text-muted-foreground transition hover:text-info focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "flex min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-md text-xs font-semibold text-muted-foreground transition hover:text-info-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         className,
       )}
       aria-label={copyLabel}
@@ -50,11 +50,11 @@ export function MeetingJoinTokenCopyButton({
     >
       {copied ? (
         <Check
-          className={cn("h-4 w-4 shrink-0 text-success", iconClassName)}
+          className={cn("h-4 w-4 shrink-0 text-success-content", iconClassName)}
         />
       ) : (
         <Hash
-          className={cn("h-4 w-4 shrink-0 text-info", iconClassName)}
+          className={cn("h-4 w-4 shrink-0 text-info-content", iconClassName)}
         />
       )}
       <span className="truncate font-mono">{joinToken}</span>

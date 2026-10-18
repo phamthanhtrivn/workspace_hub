@@ -155,7 +155,7 @@ export default function PinnedMessagesSection({
                       className="h-7 w-7 shrink-0 rounded-full object-cover"
                     />
                   ) : (
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-info-soft text-xs font-semibold text-info">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-info-soft text-xs font-semibold text-info-content">
                       {getInitial(message.senderProfile?.fullName)}
                     </span>
                   )}
@@ -172,10 +172,10 @@ export default function PinnedMessagesSection({
                       e.stopPropagation();
                       handleUnpin(message.id);
                     }}
-                    className="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-destructive-soft hover:text-destructive transition"
+                    className="cursor-pointer rounded-md p-1.5 text-muted-foreground hover:bg-destructive-soft hover:text-destructive-content transition"
                     title="Unpin"
                   >
-                    <Pin size={13} className="mt-1 shrink-0 text-info" />
+                    <Pin size={13} className="mt-1 shrink-0 text-info-content" />
                   </span>
                 </button>
               ))}

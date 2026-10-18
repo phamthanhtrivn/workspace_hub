@@ -94,7 +94,7 @@ export default function TaskChecklistSection({
               variant="ghost"
               size="sm"
               onClick={() => setIsAdding((value) => !value)}
-              className="h-7 w-7 p-0 text-muted-foreground hover:bg-info-soft hover:text-info cursor-pointer"
+              className="h-7 w-7 p-0 text-muted-foreground hover:bg-info-soft hover:text-info-content cursor-pointer"
               title="Add checklist item"
             >
               <Plus className="h-4 w-4" />
@@ -129,7 +129,7 @@ export default function TaskChecklistSection({
         <div className="space-y-1.5">
           <div className="mb-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
             <div
-              className="h-full rounded-full bg-success transition-all duration-200"
+              className="h-full rounded-full bg-success-content transition-all duration-200"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -145,7 +145,7 @@ export default function TaskChecklistSection({
                   checked={item.completed}
                   onCheckedChange={() => void handleUpdate(item)}
                   disabled={isReadOnly}
-                  className="data-[state=checked]:bg-success data-[state=checked]:border-success cursor-pointer"
+                  className="data-[state=checked]:bg-success data-[state=checked]:border-success-outline cursor-pointer"
                 />
                 <span
                   className={
@@ -162,7 +162,7 @@ export default function TaskChecklistSection({
                     variant="ghost"
                     size="icon"
                     onClick={() => void handleDelete(item.id)}
-                    className="ml-auto h-6 w-6 rounded text-muted-foreground hover:bg-destructive-soft hover:text-destructive cursor-pointer"
+                    className="ml-auto h-6 w-6 rounded text-muted-foreground hover:bg-destructive-soft hover:text-destructive-content cursor-pointer"
                     title="Delete item"
                   >
                     <Trash2 className="h-3.5 w-3.5" />

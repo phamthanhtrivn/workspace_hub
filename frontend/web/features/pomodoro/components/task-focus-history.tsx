@@ -22,15 +22,15 @@ function FocusHistory({ target }: { target: TaskFocusHistoryTarget }) {
         <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">Last {POMODORO_TASK_SETTINGS.historyDays} days</span>
       </div>
       {isLoading ? <p role="status" className="text-xs text-muted-foreground">Loading focus history…</p> : isError ? (
-        <p role="alert" className="text-xs text-destructive">Unable to load focus history. <Button variant="ghost" onClick={() => void refetch()} className="underline">Retry</Button></p>
+        <p role="alert" className="text-xs text-destructive-content">Unable to load focus history. <Button variant="ghost" onClick={() => void refetch()} className="underline">Retry</Button></p>
       ) : history ? <>
         <dl className="grid grid-cols-2 gap-4 rounded-panel bg-background p-4">
           <div className="min-w-0">
-            <dt className="flex items-center gap-1.5 text-xs text-muted-foreground"><Timer aria-hidden="true" className="size-3.5 shrink-0 text-info" />Focus time</dt>
+            <dt className="flex items-center gap-1.5 text-xs text-muted-foreground"><Timer aria-hidden="true" className="size-3.5 shrink-0 text-info-content" />Focus time</dt>
             <dd className="mt-2 text-2xl font-semibold tracking-tight tabular-nums text-foreground">{Math.floor(history.summary.focusSeconds / 60)}<span className="ml-1 text-xs font-normal tracking-normal text-muted-foreground">min</span></dd>
           </div>
           <div className="min-w-0 border-l border-border pl-4">
-            <dt className="flex items-center gap-1.5 text-xs text-muted-foreground"><CheckCircle2 aria-hidden="true" className="size-3.5 shrink-0 text-info" />Completed sessions</dt>
+            <dt className="flex items-center gap-1.5 text-xs text-muted-foreground"><CheckCircle2 aria-hidden="true" className="size-3.5 shrink-0 text-info-content" />Completed sessions</dt>
             <dd className="mt-2 text-2xl font-semibold tracking-tight tabular-nums text-foreground">{history.summary.completedFocusSessions}</dd>
           </div>
         </dl>

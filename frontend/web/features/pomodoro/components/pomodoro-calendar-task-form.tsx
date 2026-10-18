@@ -95,7 +95,7 @@ export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSa
         <label className="text-xs font-medium text-muted-foreground" htmlFor={`${formId}-title`}>Task title</label>
         <Input {...register("title")} id={`${formId}-title`} data-modal-initial-focus placeholder="What would you like to work on?"
           required maxLength={POMODORO_TASK_SETTINGS.maxGoalTitleLength} aria-invalid={Boolean(errors.title)} aria-describedby={errors.title ? `${formId}-title-error` : undefined} />
-        {errors.title && <p id={`${formId}-title-error`} role="alert" className="text-xs text-destructive">{errors.title.message}</p>}
+        {errors.title && <p id={`${formId}-title-error`} role="alert" className="text-xs text-destructive-content">{errors.title.message}</p>}
       </div>
       <QuickRow icon={<ListTodo className="h-5 w-5" style={{ color: CALENDAR_DEFAULT_TASK_COLOR }} />}>
         <div className="rounded-panel border border-border bg-card px-3 py-2">
@@ -108,19 +108,19 @@ export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSa
       </QuickRow>
       <CalendarTimeFields form={form} onStartDateChange={time.handleStartDateChange} onEndDateChange={time.handleEndDateChange}
         onStartTimeChange={time.handleStartTimeChange} onEndDateTimeChange={time.handleEndDateTimeChange} onAllDayChange={time.handleAllDayChange} />
-      {errors.endAt && <p role="alert" className="text-xs text-destructive">{errors.endAt.message}</p>}
+      {errors.endAt && <p role="alert" className="text-xs text-destructive-content">{errors.endAt.message}</p>}
       <CalendarTaskDeadlineFields value={deadline} onChange={setDeadline} />
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground" htmlFor={`${formId}-description`}>Description (optional)</label>
         <Textarea {...register("description")} id={`${formId}-description`} rows={3} maxLength={POMODORO_TASK_SETTINGS.maxDescriptionLength}
           aria-invalid={Boolean(errors.description)} aria-describedby={errors.description ? `${formId}-description-error` : undefined} placeholder="Add task details…" />
-        {errors.description && <p id={`${formId}-description-error`} role="alert" className="text-xs text-destructive">{errors.description.message}</p>}
+        {errors.description && <p id={`${formId}-description-error`} role="alert" className="text-xs text-destructive-content">{errors.description.message}</p>}
       </div>
     </fieldset>
     {!isLoading && !isError && !defaultCalendarId && <p role="status" className="text-xs text-muted-foreground">{POMODORO_TASK_MESSAGES.personalCalendarRequired}</p>}
-    {isError && <p role="alert" className="text-xs text-destructive">Unable to load your personal task list. <Button type="button" variant="link" size="sm" onClick={() => void refetch()}>Retry</Button></p>}
+    {isError && <p role="alert" className="text-xs text-destructive-content">Unable to load your personal task list. <Button type="button" variant="link" size="sm" onClick={() => void refetch()}>Retry</Button></p>}
     {createdTask && <p role="status" className="text-xs text-muted-foreground">Task saved to My tasks. Your current focus is kept until you confirm the switch.</p>}
-    {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+    {error && <p role="alert" className="text-xs text-destructive-content">{error}</p>}
     <Button type="submit" className="w-full" disabled={creating || busy || !createdEligible || isLoading || isError || !defaultCalendarId}>
       {creating ? "Preparing focus…" : createdTask ? "Start created task" : "Create task & start focus"}
     </Button>

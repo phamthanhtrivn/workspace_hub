@@ -63,7 +63,7 @@ export default function ChannelMemberRow({
           </span>
         ) : isAdmin ? (
           <span
-            className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-muted-foreground border border-border text-primary-foreground"
+            className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-muted border border-border text-muted-foreground"
             title="Admin"
           >
             <FaKey size={8} />
@@ -77,7 +77,7 @@ export default function ChannelMemberRow({
             {displayName}
           </span>
           {isAdmin ? (
-            <span className="shrink-0 rounded-full border border-border bg-info-soft px-1.5 py-0.5 text-xs font-semibold uppercase leading-none text-info">
+            <span className="shrink-0 rounded-full border border-border bg-info-soft px-1.5 py-0.5 text-xs font-semibold uppercase leading-none text-info-content">
               Admin
             </span>
           ) : null}

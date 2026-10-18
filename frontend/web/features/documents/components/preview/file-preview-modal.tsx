@@ -122,7 +122,7 @@ export function FilePreviewModal({
       <DialogContent className={`${dialogLayout.surface} max-w-4xl border-border bg-card p-6 text-foreground rounded-dialog`}>
         <DialogHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 text-left pr-6">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-background text-info border border-border">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-background text-info-content border border-border">
               <PreviewIcon previewType={previewType} />
             </div>
             <div className="min-w-0">

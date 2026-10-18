@@ -34,7 +34,7 @@ export const DefaultListItemRenderer: React.FC<{
         </p>
       </div>
       {!notification.isRead && (
-        <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0"></div>
+        <div className="w-2 h-2 rounded-full bg-link mt-1.5 flex-shrink-0"></div>
       )}
     </div>
   );

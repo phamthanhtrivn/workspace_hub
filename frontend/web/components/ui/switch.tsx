@@ -41,8 +41,8 @@ function Switch({
       <span
         data-slot="switch-thumb"
         className={cn(
-          "block size-5 rounded-full bg-background transition-transform",
-          checked ? "translate-x-5" : "translate-x-0",
+          "block size-5 rounded-full transition-transform",
+          checked ? "translate-x-5 bg-primary-foreground" : "translate-x-0 bg-background",
         )}
       />
     </button>

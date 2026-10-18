@@ -46,7 +46,7 @@ export default function RichTextTextarea({
   setValue,
   placeholder,
   minHeightClassName = "min-h-[160px]",
-  focusColorClassName = "focus-within:border-warning focus-within:ring-warning/20",
+  focusColorClassName = "focus-within:border-warning-outline focus-within:ring-warning-outline/20",
 }: RichTextTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { applyFormatting, handleListKeyDown } = useTextFormatting({

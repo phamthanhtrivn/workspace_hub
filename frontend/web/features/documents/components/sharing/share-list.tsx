@@ -130,7 +130,7 @@ export function ShareModalList({
         {/* Owner Item */}
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 p-2">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-info-soft text-info flex items-center justify-center text-xs font-semibold uppercase tracking-wider shrink-0 relative overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-info-soft text-info-content flex items-center justify-center text-xs font-semibold uppercase tracking-wider shrink-0 relative overflow-hidden">
               {ownerProfile?.avatarUrl ? (
                 <Image
                   src={ownerProfile.avatarUrl}
@@ -218,7 +218,7 @@ export function ShareModalList({
                         onClick={() =>
                           handleRemoveShare(share.id, share.shareWithEmail)
                         }
-                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive-soft/50 rounded-control transition-colors cursor-pointer"
+                        className="p-1.5 text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft/50 rounded-control transition-colors cursor-pointer"
                       >
                         <Trash2 size={14} />
                       </button>

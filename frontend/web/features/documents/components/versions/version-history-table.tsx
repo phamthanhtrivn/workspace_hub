@@ -62,7 +62,7 @@ export function VersionHistoryTable({
                 <td className="px-5 py-4 flex items-center gap-2">
                   <span>v{version.versionNumber}</span>
                   {isLatest && (
-                    <span className="bg-info-soft text-info text-xs px-2 py-0.5 rounded-full font-semibold border border-border">
+                    <span className="bg-info-soft text-info-content text-xs px-2 py-0.5 rounded-full font-semibold border border-border">
                       Current
                     </span>
                   )}
@@ -89,14 +89,14 @@ export function VersionHistoryTable({
                         )
                       }
                       title="Preview version"
-                      className="p-1.5 hover:bg-muted text-muted-foreground hover:text-info rounded-control cursor-pointer transition-colors"
+                      className="p-1.5 hover:bg-muted text-muted-foreground hover:text-info-content rounded-control cursor-pointer transition-colors"
                     >
                       <Eye size={15} />
                     </button>
                     <button
                       onClick={() => onDownload(version.id)}
                       title="Download version"
-                      className="p-1.5 hover:bg-muted text-muted-foreground hover:text-info rounded-control cursor-pointer transition-colors"
+                      className="p-1.5 hover:bg-muted text-muted-foreground hover:text-info-content rounded-control cursor-pointer transition-colors"
                     >
                       <Download size={15} />
                     </button>

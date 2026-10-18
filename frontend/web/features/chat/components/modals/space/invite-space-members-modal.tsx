@@ -152,7 +152,7 @@ export default function InviteSpaceMembersModal({
               {selectedUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center gap-1.5 bg-info-soft border border-border text-info text-xs px-2.5 py-1 rounded-lg"
+                  className="flex items-center gap-1.5 bg-info-soft border border-border text-info-content text-xs px-2.5 py-1 rounded-lg"
                 >
                   <span>
                     {user.fullName} ({user.email})
@@ -160,7 +160,7 @@ export default function InviteSpaceMembersModal({
                   <button aria-label="Remove selected member"
                     type="button"
                     onClick={() => handleRemoveUser(user.id)}
-                    className="hover:bg-info-soft rounded text-info hover:text-info p-0.5 cursor-pointer"
+                    className="hover:bg-info-soft rounded text-info-content hover:text-info-content p-0.5 cursor-pointer"
                   >
                     <X size={12} />
                   </button>
@@ -180,7 +180,7 @@ export default function InviteSpaceMembersModal({
               placeholder="Enter user email to search..."
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-background border border-transparent focus:border-info focus:bg-card rounded-control text-sm outline-none transition"
+              className="w-full pl-9 pr-4 py-2.5 bg-background border border-transparent focus:border-info-outline focus:bg-card rounded-control text-sm outline-none transition"
             />
           </div>
 
@@ -188,7 +188,7 @@ export default function InviteSpaceMembersModal({
           <div className="min-h-[120px] max-h-[200px] overflow-y-auto flex flex-col gap-1 border border-border rounded-panel p-1">
             {loading ? (
               <div className="flex justify-center items-center py-6 text-muted-foreground text-xs gap-1.5">
-                <Loader2 size={14} className="animate-spin text-info" />
+                <Loader2 size={14} className="animate-spin text-info-content" />
                 Searching...
               </div>
             ) : results.length > 0 ? (

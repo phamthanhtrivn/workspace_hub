@@ -112,7 +112,7 @@ export default function PollVotersModal({
                   <h3 className="min-w-0 truncate text-sm font-semibold text-foreground">
                     {section.optionText}
                   </h3>
-                  <span className="shrink-0 rounded-full bg-info-soft px-2.5 py-1 text-xs font-semibold text-info">
+                  <span className="shrink-0 rounded-full bg-info-soft px-2.5 py-1 text-xs font-semibold text-info-content">
                     {`${section.voters.length} votes`}
                   </span>
                 </div>

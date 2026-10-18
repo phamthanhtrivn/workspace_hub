@@ -15,7 +15,7 @@ export default function SeeAllButton({
     <button
       type="button"
       onClick={onClick}
-      className={`mt-3 flex w-full cursor-pointer items-center justify-between rounded-control bg-info-soft px-3 py-2 text-sm font-medium text-info transition hover:bg-info-soft ${className}`}
+      className={`mt-3 flex w-full cursor-pointer items-center justify-between rounded-control bg-info-soft px-3 py-2 text-sm font-medium text-info-content transition hover:bg-info-soft ${className}`}
     >
       <span className="truncate">{children}</span>
       <ChevronRight size={15} className="shrink-0" />

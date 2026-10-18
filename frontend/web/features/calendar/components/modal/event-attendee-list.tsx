@@ -80,11 +80,11 @@ export function EventAttendeeList({
                   AttendeeResponseStatus.NEEDS_ACTION;
                 const statusStyles: Record<AttendeeResponseStatus, string> = {
                   [AttendeeResponseStatus.ACCEPTED]:
-                    "bg-success-soft text-success border-border",
+                    "bg-success-soft text-success-content border-border",
                   [AttendeeResponseStatus.TENTATIVE]:
-                    "bg-warning-soft text-warning border-border",
+                    "bg-warning-soft text-warning-content border-border",
                   [AttendeeResponseStatus.DECLINED]:
-                    "bg-destructive-soft text-destructive border-border",
+                    "bg-destructive-soft text-destructive-content border-border",
                   [AttendeeResponseStatus.NEEDS_ACTION]:
                     "bg-muted text-muted-foreground border-border",
                 };

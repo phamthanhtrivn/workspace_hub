@@ -22,12 +22,12 @@ const tagVariantClass: Record<CustomTagVariant, string> = {
   default:
     "bg-card text-muted-foreground ring-ring hover:bg-background hover:text-foreground",
   active:
-    "bg-primary text-primary-foreground ring-primary hover:bg-primary",
+    "bg-primary-soft text-primary-soft-foreground ring-ring/30 hover:bg-primary-soft",
   muted:
     "bg-background text-muted-foreground ring-ring hover:bg-muted hover:text-foreground",
   success:
-    "bg-success-soft text-success ring-success hover:bg-success-soft",
-  danger: "bg-destructive-soft text-destructive ring-destructive hover:bg-destructive-soft",
+    "bg-success-soft text-success-content ring-success-outline hover:bg-success-soft",
+  danger: "bg-destructive-soft text-destructive-content ring-destructive-outline hover:bg-destructive-soft",
 };
 
 export function CustomTag({

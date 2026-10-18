@@ -10,7 +10,7 @@ export default function LoginPage() {
     <div>
       <Link
         href="/"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary transition mb-6"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-link transition mb-6"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Home
@@ -39,7 +39,7 @@ export default function LoginPage() {
         Don't have an account?{" "}
         <Link
           href="/register"
-          className="font-bold text-primary transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring underline"
+          className="font-bold text-link transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring underline"
         >
           Sign Up
         </Link>

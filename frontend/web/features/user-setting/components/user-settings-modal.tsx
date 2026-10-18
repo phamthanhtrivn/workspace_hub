@@ -62,8 +62,8 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               className={cn(
                 `flex min-w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-control px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-semibold ${
                   activeTab === UserSettingTab.PROFILE
-                    ? "text-primary-foreground bg-primary"
-                    : "text-muted-foreground hover:bg-border/70"
+                    ? "text-primary-soft-foreground bg-primary-soft"
+                    : "text-muted-foreground hover:bg-muted"
                 }`,
               )}
             >
@@ -77,8 +77,8 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               className={cn(
                 `flex min-w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-control px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-semibold ${
                   activeTab === UserSettingTab.GENERAL
-                    ? "text-primary-foreground bg-primary"
-                    : "text-muted-foreground hover:bg-border/70"
+                    ? "text-primary-soft-foreground bg-primary-soft"
+                    : "text-muted-foreground hover:bg-muted"
                 }`,
               )}
             >
@@ -94,8 +94,8 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               className={cn(
                 "flex min-w-[110px] shrink-0 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-control px-3 py-2.5 transition-colors md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-semibold",
                 activeTab === UserSettingTab.POMODORO
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-border/70",
+                  ? "bg-primary-soft text-primary-soft-foreground"
+                  : "text-muted-foreground hover:bg-muted",
               )}
             >
               <Clock3 className="h-5 w-5 md:h-4 md:w-4" />
@@ -106,8 +106,8 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               className={cn(
                 `flex min-w-[110px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-control px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-semibold ${
                   activeTab === UserSettingTab.SESSION
-                    ? "text-primary-foreground bg-primary"
-                    : "text-muted-foreground hover:bg-border/70"
+                    ? "text-primary-soft-foreground bg-primary-soft"
+                    : "text-muted-foreground hover:bg-muted"
                 }`,
               )}
             >
@@ -121,15 +121,15 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               className={cn(
                 `relative flex min-w-[110px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-control px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-semibold ${
                   activeTab === UserSettingTab.PASSWORD
-                    ? "text-primary-foreground bg-primary"
-                    : "text-muted-foreground hover:bg-border/70"
+                    ? "text-primary-soft-foreground bg-primary-soft"
+                    : "text-muted-foreground hover:bg-muted"
                 }`,
               )}
             >
               <span className="relative">
                 <KeyRound className="h-5 w-5 md:h-4 md:w-4" />
                 {!hasPassword && (
-                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-warning ring-2 ring-border" />
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-warning-content ring-2 ring-border" />
                 )}
               </span>
               <span className="text-xs font-semibold md:text-sm">

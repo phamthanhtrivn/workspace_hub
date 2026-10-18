@@ -38,25 +38,25 @@ const taskStatusConfig: Record<
   },
   [TaskStatus.IN_PROGRESS]: {
     label: "In Progress",
-    color: "text-info",
+    color: "text-info-content",
     bg: "bg-info-soft border-border",
     icon: Loader2,
   },
   [TaskStatus.IN_REVIEW]: {
     label: "In Review",
-    color: "text-warning",
+    color: "text-warning-content",
     bg: "bg-warning-soft border-border",
     icon: Eye,
   },
   [TaskStatus.DONE]: {
     label: "Done",
-    color: "text-success",
+    color: "text-success-content",
     bg: "bg-success-soft border-border",
     icon: CheckCircle2,
   },
   [TaskStatus.CANCELLED]: {
     label: "Cancelled",
-    color: "text-destructive",
+    color: "text-destructive-content",
     bg: "bg-destructive-soft border-border",
     icon: Ban,
   },
@@ -70,19 +70,19 @@ const projectStatusConfig: Record<
 > = {
   [ProjectStatus.ACTIVE]: {
     label: "Active",
-    color: "text-success",
+    color: "text-success-content",
     bg: "bg-success-soft border-border",
     icon: Loader2,
   },
   [ProjectStatus.ON_HOLD]: {
     label: "On Hold",
-    color: "text-warning",
+    color: "text-warning-content",
     bg: "bg-warning-soft border-border",
     icon: Pause,
   },
   [ProjectStatus.COMPLETED]: {
     label: "Completed",
-    color: "text-info",
+    color: "text-info-content",
     bg: "bg-info-soft border-border",
     icon: CheckCircle2,
   },
@@ -147,19 +147,19 @@ const taskPriorityConfig: Record<
 > = {
   [TaskPriority.URGENT]: {
     label: "Urgent",
-    color: "text-destructive",
+    color: "text-destructive-content",
     bg: "bg-destructive-soft border-border",
     icon: ChevronsUp,
   },
   [TaskPriority.HIGH]: {
     label: "High",
-    color: "text-warning",
+    color: "text-warning-content",
     bg: "bg-warning-soft border-border",
     icon: ChevronUp,
   },
   [TaskPriority.MEDIUM]: {
     label: "Medium",
-    color: "text-info",
+    color: "text-info-content",
     bg: "bg-info-soft border-border",
     icon: Equal,
   },

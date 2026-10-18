@@ -25,7 +25,7 @@ export function MeetingScreenShareToggle({
         "group flex cursor-pointer items-start gap-3 rounded-lg p-3 transition",
         disabled && "cursor-not-allowed opacity-70",
         isDark
-          ? "bg-overlay/10 ring-1 ring-border/8 hover:bg-overlay/10"
+          ? "bg-muted ring-1 ring-border/8 hover:bg-muted"
           : "border border-input bg-background hover:border-input hover:bg-info-soft/70",
       )}
     >
@@ -38,11 +38,11 @@ export function MeetingScreenShareToggle({
       />
       <span
         className={cn(
-          "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border transition",
+          "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border transition peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
           checked
             ? "border-primary bg-primary text-primary-foreground"
             : isDark
-              ? "border-border bg-overlay/10 text-transparent group-hover:border-info"
+              ? "border-input bg-card text-transparent group-hover:border-info-outline"
               : "border-input bg-card text-transparent group-hover:border-primary",
         )}
         aria-hidden="true"
@@ -59,7 +59,7 @@ export function MeetingScreenShareToggle({
           <MonitorUp
             className={cn(
               "mt-0.5 h-4 w-4 shrink-0",
-              isDark ? "text-info" : "text-info",
+              isDark ? "text-info-content" : "text-info-content",
             )}
           />
           Allow screen sharing

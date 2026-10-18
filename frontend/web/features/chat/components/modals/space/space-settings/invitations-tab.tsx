@@ -86,7 +86,7 @@ export function InvitationsTab({
                 title="Resend Invitation"
                 disabled={isMutating}
                 onClick={() => onResend(invitation.id)}
-                className="p-2 rounded-control text-muted-foreground hover:text-info hover:bg-info-soft disabled:opacity-50 cursor-pointer"
+                className="p-2 rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw size={16} />
               </button>
@@ -95,7 +95,7 @@ export function InvitationsTab({
                 title="Cancel Invitation"
                 disabled={isMutating}
                 onClick={() => onCancel(invitation.id)}
-                className="p-2 rounded-control text-muted-foreground hover:text-destructive hover:bg-destructive-soft disabled:opacity-50 cursor-pointer"
+                className="p-2 rounded-control text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft disabled:opacity-50 cursor-pointer"
               >
                 <X size={16} />
               </button>

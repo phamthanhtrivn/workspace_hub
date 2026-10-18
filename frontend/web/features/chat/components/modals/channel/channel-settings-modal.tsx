@@ -143,7 +143,7 @@ export default function ChannelSettingsModal({
                     value={channelName}
                     onChange={(e) => setChannelName(e.target.value)}
                     placeholder="Enter channel name"
-                    className="w-full px-4 py-2 bg-card border border-input rounded-control focus:outline-none focus:border-info focus:ring-2 focus:ring-ring transition-all text-sm font-medium text-foreground"
+                    className="w-full px-4 py-2 bg-card border border-input rounded-control focus:outline-none focus:border-info-outline focus:ring-2 focus:ring-ring transition-all text-sm font-medium text-foreground"
                   />
                 </div>
               </div>
@@ -259,7 +259,7 @@ function SettingItem({
   return (
     <div className="flex items-center justify-between p-4 bg-card hover:bg-background transition-colors">
       <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-panel bg-info-soft text-info flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-panel bg-info-soft text-info-content flex items-center justify-center shrink-0">
           {icon}
         </div>
         <div>
@@ -271,12 +271,12 @@ function SettingItem({
         onClick={onChange}
         disabled={disabled}
         className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-          checked ? "bg-primary" : "bg-accent"
+          checked ? "bg-primary" : "bg-input"
         } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         <span
-          className={`inline-block h-5 w-5 transform rounded-full bg-card transition-transform duration-200 ease-in-out ${
-            checked ? "translate-x-5" : "translate-x-0.5"
+          className={`inline-block h-5 w-5 transform rounded-full transition-transform duration-200 ease-in-out ${
+            checked ? "translate-x-5 bg-primary-foreground" : "translate-x-0.5 bg-card"
           }`}
         />
       </button>

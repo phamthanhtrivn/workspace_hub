@@ -40,7 +40,7 @@ function UploadProgress({
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {getStatusLabel()}
         </span>
-        <span className="text-xs font-semibold text-info">
+        <span className="text-xs font-semibold text-info-content">
           {uploadProgress}%
         </span>
       </div>
@@ -54,10 +54,10 @@ function UploadProgress({
           className={cn(
             "h-full rounded-full transition-all duration-200",
             uploadState === UploadState.ERROR
-              ? "bg-destructive"
+              ? "bg-destructive-content"
               : uploadState === UploadState.SUCCESS
-                ? "bg-success"
-                : "bg-primary",
+                ? "bg-success-content"
+                : "bg-link",
           )}
           style={{ width: `${uploadProgress}%` }}
         />

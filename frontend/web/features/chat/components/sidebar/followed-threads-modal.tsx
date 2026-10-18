@@ -152,7 +152,7 @@ export default function FollowedThreadsModal({
       >
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="w-9 h-9 rounded-panel bg-info-soft text-info flex items-center justify-center shrink-0">
+            <span className="w-9 h-9 rounded-panel bg-info-soft text-info-content flex items-center justify-center shrink-0">
               <MessageSquareText size={18} />
             </span>
             <div className="min-w-0">
@@ -183,7 +183,7 @@ export default function FollowedThreadsModal({
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search followed threads..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border border-input focus:border-info focus:ring-4 focus:ring-ring rounded-control outline-none transition"
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border border-input focus:border-info-outline focus:ring-4 focus:ring-ring rounded-control outline-none transition"
             />
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function FollowedThreadsModal({
         <div className={`${dialogLayout.body} flex-1 min-h-0 overflow-y-auto p-3 bg-card`}>
           {isLoading ? (
             <div className="h-48 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Loader2 size={24} className="animate-spin text-info" />
+              <Loader2 size={24} className="animate-spin text-info-content" />
               <p className="text-sm font-medium">
                 Loading threads...
               </p>
@@ -203,7 +203,7 @@ export default function FollowedThreadsModal({
               </p>
               <button
                 onClick={() => refetch()}
-                className="px-4 py-2 text-xs font-semibold text-info bg-info-soft hover:bg-info-soft rounded-control transition cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-info-content bg-info-soft hover:bg-info-soft rounded-control transition cursor-pointer"
               >
                 Try Again
               </button>
@@ -254,7 +254,7 @@ export default function FollowedThreadsModal({
                     </span>
                     <ThreadSnippetPreview content={thread.rootMessage.content} />
                     <span className="flex items-center justify-between text-xs text-muted-foreground font-semibold pt-1 border-t border-border mt-1 shrink-0">
-                      <span className="flex items-center gap-1 text-info font-semibold">
+                      <span className="flex items-center gap-1 text-info-content font-semibold">
                         <MessageSquare size={11} />
                         {`${thread.replyCount} replies`}
                       </span>

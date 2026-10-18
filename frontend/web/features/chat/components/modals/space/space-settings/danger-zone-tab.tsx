@@ -40,18 +40,18 @@ export function DangerZoneTab({
         <div className="rounded-panel border border-border bg-destructive-soft/60 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-destructive">
+              <p className="text-sm font-semibold text-destructive-content">
                 Leave Space
               </p>
-              <p className="mt-1 text-xs text-destructive">
+              <p className="mt-1 text-xs text-destructive-content">
                 You will lose access to all channels and messages in this space.
               </p>
               {isOwner ? (
-                <p className="mt-2 text-xs font-semibold text-destructive">
+                <p className="mt-2 text-xs font-semibold text-destructive-content">
                   You must transfer ownership to another member before leaving this space.
                 </p>
               ) : isLastAdmin ? (
-                <p className="mt-2 text-xs font-semibold text-destructive">
+                <p className="mt-2 text-xs font-semibold text-destructive-content">
                   You are the last admin in this space. Promote another member to admin before leaving.
                 </p>
               ) : null}
@@ -60,7 +60,7 @@ export function DangerZoneTab({
               type="button"
               disabled={isLeaving || isLastAdmin || isOwner}
               onClick={onLeave}
-              className="inline-flex items-center gap-2 rounded-control bg-card px-3 py-2 text-sm font-semibold text-destructive border border-border hover:bg-destructive-soft disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-control bg-card px-3 py-2 text-sm font-semibold text-destructive-content border border-border hover:bg-destructive-soft disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <LogOut size={15} />
               Leave
@@ -73,7 +73,7 @@ export function DangerZoneTab({
         <div className="rounded-panel border border-border bg-card p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-destructive">
+              <p className="text-sm font-semibold text-destructive-content">
                 Delete Space
               </p>
               <p className="mt-1 text-xs text-muted-foreground">

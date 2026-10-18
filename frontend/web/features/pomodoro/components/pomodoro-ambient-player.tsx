@@ -72,7 +72,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                   "relative flex size-8 shrink-0 items-center justify-center rounded-control transition-all duration-200",
                   isPlaying
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground group-hover:bg-info-soft group-hover:text-info",
+                    : "bg-muted text-muted-foreground group-hover:bg-info-soft group-hover:text-info-content",
                 )}
               >
                 {isPlaying ? (
@@ -85,11 +85,11 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
               {/* Track Title and Description */}
               <div className="min-w-0 flex-1 overflow-hidden">
                 <div className="flex items-center gap-1.5">
-                  <span className="truncate text-xs font-semibold text-foreground group-hover:text-info transition-colors">
+                  <span className="truncate text-xs font-semibold text-foreground group-hover:text-info-content transition-colors">
                     {activeTrackName}
                   </span>
                   {isPlaying && (
-                    <span className="size-1.5 rounded-control bg-success shrink-0" />
+                    <span className="size-1.5 rounded-control bg-success-content shrink-0" />
                   )}
                 </div>
                 <p className="truncate text-xs text-muted-foreground group-hover:text-muted-foreground transition-colors">
@@ -198,7 +198,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
                 aria-label={isMuted ? "Unmute" : "Mute"}
               >
                 {isMuted ? (
-                  <VolumeX className="size-3.5 text-destructive" />
+                  <VolumeX className="size-3.5 text-destructive-content" />
                 ) : (
                   <Volume2 className="size-3.5" />
                 )}

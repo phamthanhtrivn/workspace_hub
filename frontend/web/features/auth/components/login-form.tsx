@@ -101,7 +101,7 @@ const LoginForm = React.memo(function LoginForm() {
             htmlFor="email"
             className="text-sm font-semibold text-foreground"
           >
-            Email <span className="text-destructive">*</span>
+            Email <span className="text-destructive-content">*</span>
           </label>
         </div>
 
@@ -123,12 +123,12 @@ const LoginForm = React.memo(function LoginForm() {
             htmlFor="password"
             className="text-sm font-semibold text-foreground"
           >
-            Password <span className="text-destructive">*</span>
+            Password <span className="text-destructive-content">*</span>
           </label>
           <div>
             <Link
               href="/forgot-password"
-              className="text-sm font-semibold text-primary hover:text-foreground transition"
+              className="text-sm font-semibold text-link hover:text-foreground transition"
             >
               Forgot password?
             </Link>

@@ -215,7 +215,7 @@ export default function TaskDocumentsSection({
               key={attachment.id}
               className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2"
             >
-              <FileText className="h-4 w-4 shrink-0 text-info" />
+              <FileText className="h-4 w-4 shrink-0 text-info-content" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold text-foreground">
                   {attachment.name}
@@ -242,7 +242,7 @@ export default function TaskDocumentsSection({
                   size="icon"
                   variant="ghost"
                   disabled={detachDocument.isPending}
-                  className="h-7 w-7 rounded-control text-destructive hover:bg-destructive-soft hover:text-destructive"
+                  className="h-7 w-7 rounded-control text-destructive-content hover:bg-destructive-soft hover:text-destructive-content"
                   onClick={() => void handleRemove(attachment.id)}
                   title="Remove"
                   aria-label="Remove"
@@ -368,7 +368,7 @@ function TaskDocumentPickerDialog({
       <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-dialog border-border bg-card p-0">
         <DialogHeader className="border-b border-border px-5 py-4 text-left">
           <DialogTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <FolderOpen className="h-4 w-4 text-info" />
+            <FolderOpen className="h-4 w-4 text-info-content" />
             {mode === "PROJECT_DOCUMENT"
               ? "Attach project documents"
               : "Attach from My Files"}

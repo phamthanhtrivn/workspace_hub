@@ -32,7 +32,7 @@ export function DashboardPanel({
         {href && (
           <Link
             href={href}
-            className="flex min-h-11 shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11"
+            className="flex min-h-11 shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11"
           >
             View all <ArrowUpRight size={14} />
           </Link>
@@ -54,7 +54,7 @@ export function QueryFeedback({
     return (
       <div
         role="status"
-        className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-destructive-soft p-3 text-xs text-destructive"
+        className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-destructive-soft p-3 text-xs text-destructive-content"
       >
         <span className="min-w-0 break-words">Could not load {label}.</span>
         <button

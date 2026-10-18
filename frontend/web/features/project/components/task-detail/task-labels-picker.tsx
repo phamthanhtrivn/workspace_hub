@@ -49,7 +49,7 @@ export default function TaskLabelsPicker({
           size="sm"
           onClick={() => !disabled && setIsOpen((prev) => !prev)}
           disabled={disabled}
-          className="h-7 cursor-pointer items-center gap-1.5 rounded-control border border-dashed border-input px-2.5 text-xs font-semibold text-muted-foreground hover:border-primary hover:bg-info-soft/50 hover:text-info disabled:cursor-default disabled:hover:border-input disabled:hover:bg-transparent disabled:hover:text-muted-foreground transition"
+          className="h-7 cursor-pointer items-center gap-1.5 rounded-control border border-dashed border-input px-2.5 text-xs font-semibold text-muted-foreground hover:border-primary hover:bg-info-soft/50 hover:text-info-content disabled:cursor-default disabled:hover:border-input disabled:hover:bg-transparent disabled:hover:text-muted-foreground transition"
           title="Attach or remove labels"
         >
           <Tag className="h-3.5 w-3.5" />

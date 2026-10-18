@@ -142,13 +142,13 @@ export default function ProjectSettingsDialog({
                   </label>
                 </div>
                 {startDate && dueDate && startDate > dueDate && (
-                  <p className="text-xs font-semibold text-destructive">
+                  <p className="text-xs font-semibold text-destructive-content">
                     Start date cannot be after due date.
                   </p>
                 )}
 
                 <label className="block text-xs font-semibold text-muted-foreground">
-                  Project Name <span className="text-destructive">*</span>
+                  Project Name <span className="text-destructive-content">*</span>
                   <Input
                     value={name}
                     onChange={(event) => setName(event.target.value)}
@@ -226,7 +226,7 @@ export default function ProjectSettingsDialog({
                           style={{
                             backgroundColor: color,
                             boxShadow: selected
-                              ? `0 0 0 2px var(--card), 0 0 0 4px ${color}`
+                              ? `0 0 0 2px var(--card), 0 0 0 4px var(--ring)`
                               : undefined,
                           }}
                         />
@@ -270,7 +270,7 @@ export default function ProjectSettingsDialog({
                 variant="ghost"
                 disabled={isBusy}
                 onClick={() => void onArchive()}
-                className="cursor-pointer inline-flex items-center gap-1.5 rounded-control px-3 text-xs font-semibold text-destructive hover:bg-destructive-soft hover:text-destructive disabled:opacity-50"
+                className="cursor-pointer inline-flex items-center gap-1.5 rounded-control px-3 text-xs font-semibold text-destructive-content hover:bg-destructive-soft hover:text-destructive-content disabled:opacity-50"
               >
                 <Archive className="h-3.5 w-3.5" /> Archive Project
               </Button>

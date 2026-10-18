@@ -128,13 +128,13 @@ export default function TaskCommentsSection({
         </p>
       )}
       {isError && (
-        <p role="alert" className="text-xs text-destructive">
+        <p role="alert" className="text-xs text-destructive-content">
           Could not load comments.{" "}
           <Button
             type="button"
             variant="link"
             size="sm"
-            className="h-auto p-0 underline font-semibold cursor-pointer text-destructive hover:text-destructive"
+            className="h-auto p-0 underline font-semibold cursor-pointer text-destructive-content hover:text-destructive-content"
             onClick={() => void refetch()}
           >
             Retry
@@ -183,7 +183,7 @@ export default function TaskCommentsSection({
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(comment.id)}
-                          className="h-5 w-5 rounded text-muted-foreground hover:bg-destructive-soft hover:text-destructive cursor-pointer"
+                          className="h-5 w-5 rounded text-muted-foreground hover:bg-destructive-soft hover:text-destructive-content cursor-pointer"
                           aria-label="Delete comment"
                         >
                           <Trash2 className="h-3 w-3" />
@@ -269,7 +269,7 @@ export default function TaskCommentsSection({
               onClick={() => void handleCreate()}
               disabled={!newComment.trim() || createComment.isPending}
               aria-label="Send comment"
-              className="absolute right-1.5 top-1/2 h-7 w-7 -translate-y-1/2 cursor-pointer rounded-control text-info hover:bg-muted disabled:opacity-50"
+              className="absolute right-1.5 top-1/2 h-7 w-7 -translate-y-1/2 cursor-pointer rounded-control text-info-content hover:bg-muted disabled:opacity-50"
             >
               <Send className="h-3.5 w-3.5" strokeWidth={2.5} />
             </Button>

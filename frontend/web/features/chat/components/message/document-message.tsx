@@ -58,8 +58,8 @@ const DocumentMessage = React.memo(function DocumentMessage({
   if (isError || !metadata) {
     return (
       <div className="flex flex-col items-center my-3 w-full">
-        <div className="bg-destructive-soft border border-border rounded-panel p-4 max-w-sm min-w-0 w-full [overflow-wrap:anywhere] flex items-center gap-3 text-destructive">
-          <Lock size={20} className="shrink-0 text-destructive" />
+        <div className="bg-destructive-soft border border-border rounded-panel p-4 max-w-sm min-w-0 w-full [overflow-wrap:anywhere] flex items-center gap-3 text-destructive-content">
+          <Lock size={20} className="shrink-0 text-destructive-content" />
           <div className="text-xs font-semibold">
             Document unavailable or removed
           </div>
@@ -164,9 +164,9 @@ const DocumentMessage = React.memo(function DocumentMessage({
                 </button>
                 <button
                   onClick={handleDownload}
-                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-warning bg-warning-soft hover:bg-warning-soft/80 rounded-control transition-all"
+                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-warning-content bg-warning-soft hover:bg-warning-soft/80 rounded-control transition-all"
                 >
-                  <Download size={14} className="text-warning" />
+                  <Download size={14} className="text-warning-content" />
                   <span>Download Zip</span>
                 </button>
               </>
@@ -181,17 +181,17 @@ const DocumentMessage = React.memo(function DocumentMessage({
                 </button>
                 <button
                   onClick={handleDownload}
-                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-info bg-info-soft hover:bg-info-soft/80 rounded-control transition-all"
+                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-info-content bg-info-soft hover:bg-info-soft/80 rounded-control transition-all"
                 >
-                  <Download size={14} className="text-info" />
+                  <Download size={14} className="text-info-content" />
                   <span>Download</span>
                 </button>
               </>
             )}
           </>
         ) : (
-          <div className="w-full flex items-center gap-2.5 text-destructive bg-destructive-soft/50 p-2.5 rounded-panel border border-border">
-            <Lock size={15} className="shrink-0 text-destructive" />
+          <div className="w-full flex items-center gap-2.5 text-destructive-content bg-destructive-soft/50 p-2.5 rounded-panel border border-border">
+            <Lock size={15} className="shrink-0 text-destructive-content" />
             <div className="text-xs font-semibold leading-normal">
               Access denied. Shared by{" "}
               <span className="underline">{metadata.ownerEmail}</span>

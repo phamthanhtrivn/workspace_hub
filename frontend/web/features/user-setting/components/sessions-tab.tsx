@@ -36,7 +36,7 @@ const SessionsTab = React.memo(function SessionsTab() {
   if (isLoading) {
     return (
       <div className="flex h-full min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-link" />
       </div>
     );
   }
@@ -72,7 +72,7 @@ const SessionsTab = React.memo(function SessionsTab() {
                   <p className="text-sm font-semibold text-foreground flex items-center gap-2">
                     {session.deviceName || "Unknown device"}
                     {session.currentSession && (
-                      <Badge className="bg-success-soft text-success hover:bg-success-soft border-none font-semibold uppercase text-xs px-1.5 py-0.5">
+                      <Badge className="bg-success-soft text-success-content hover:bg-success-soft border-none font-semibold uppercase text-xs px-1.5 py-0.5">
                         Current device
                       </Badge>
                     )}
@@ -92,7 +92,7 @@ const SessionsTab = React.memo(function SessionsTab() {
                   variant="outline"
                   size="sm"
                   onClick={() => setRevokingSessionId(session.id)}
-                  className="flex items-center justify-center gap-2 rounded-control border-border bg-destructive-soft text-xs font-semibold text-destructive hover:bg-destructive-soft hover:text-destructive cursor-pointer"
+                  className="flex items-center justify-center gap-2 rounded-control border-border bg-destructive-soft text-xs font-semibold text-destructive-content hover:bg-destructive-soft hover:text-destructive-content cursor-pointer"
                 >
                   <LogOut className="h-3 w-3" />
                   Sign out

@@ -64,10 +64,10 @@ export default function ThreadSnippetPreview({
       <div
         className={`flex items-center gap-1.5 text-xs font-semibold text-foreground bg-info-soft/90 border border-border rounded-lg px-2.5 py-1.5 my-0.5 ${className}`}
       >
-        <CheckSquare size={13} className="text-info shrink-0" />
+        <CheckSquare size={13} className="text-info-content shrink-0" />
         <span className="truncate">{snippet.title}</span>
         {snippet.tag && (
-          <span className="ml-auto text-xs font-mono bg-info-soft/90 text-info px-1.5 py-0.2 rounded font-semibold shrink-0">
+          <span className="ml-auto text-xs font-mono bg-info-soft/90 text-info-content px-1.5 py-0.2 rounded font-semibold shrink-0">
             {snippet.tag}
           </span>
         )}

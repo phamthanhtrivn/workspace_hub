@@ -82,13 +82,13 @@ export default function ChannelMembersModal({
           <label className="group relative block">
             <Search
               size={20}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-info"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-info-content"
             />
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search members by name..."
-              className="w-full rounded-control border border-input bg-card py-3 pl-11 pr-4 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-info focus:ring-4 focus:ring-ring"
+              className="w-full rounded-control border border-input bg-card py-3 pl-11 pr-4 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-info-outline focus:ring-4 focus:ring-ring"
             />
           </label>
         </div>
@@ -96,7 +96,7 @@ export default function ChannelMembersModal({
         <div className={`${dialogLayout.body} min-h-0 flex-1 overflow-y-auto bg-card px-4 py-4 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border`}>
           {isLoading ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-sm font-medium text-muted-foreground">
-              <Loader2 size={24} className="animate-spin text-info" />
+              <Loader2 size={24} className="animate-spin text-info-content" />
               <span>Loading members...</span>
             </div>
           ) : isError ? (

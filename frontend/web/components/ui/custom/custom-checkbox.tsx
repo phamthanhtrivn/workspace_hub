@@ -70,7 +70,7 @@ export function CustomCheckbox({
             </p>
           ) : null}
           {error ? (
-            <p className="mt-1 text-xs font-semibold text-destructive">
+            <p className="mt-1 text-xs font-semibold text-destructive-content">
               {error}
             </p>
           ) : null}

@@ -39,7 +39,7 @@ export function DashboardSun({
         <Sun
           aria-hidden
           size={36}
-          className="absolute text-primary transition-[transform,color] duration-200 motion-reduce:transition-none"
+          className="absolute text-link transition-[transform,color] duration-200 motion-reduce:transition-none"
           style={{
             left: `calc(8px + ${progress} * (100% - 52px))`,
             bottom: "4px",
@@ -50,7 +50,7 @@ export function DashboardSun({
         <Moon
           aria-hidden
           size={34}
-          className="absolute bottom-7 left-1/2 -translate-x-1/2 text-info"
+          className="absolute bottom-7 left-1/2 -translate-x-1/2 text-info-content"
         />
       )}
       <svg

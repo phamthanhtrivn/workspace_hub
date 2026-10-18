@@ -167,7 +167,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               htmlFor="email"
               className="text-sm font-semibold text-foreground"
             >
-              Email <span className="text-destructive">*</span>
+              Email <span className="text-destructive-content">*</span>
             </label>
             <InputField
               variant="auth"
@@ -197,7 +197,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
         >
           <div className="space-y-4">
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-4">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-link mb-4">
                 <KeyRound className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-foreground">
@@ -220,7 +220,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
                 }}
               />
               {errors.otp && (
-                <p className="text-xs text-destructive mt-2">{errors.otp}</p>
+                <p className="text-xs text-destructive-content mt-2">{errors.otp}</p>
               )}
             </div>
 
@@ -231,7 +231,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               <button
                 type="button"
                 onClick={() => handleSendEmail()}
-                className="font-bold text-primary transition hover:text-foreground cursor-pointer"
+                className="font-bold text-link transition hover:text-foreground cursor-pointer"
                 disabled={isLoading}
               >
                 Resend code
@@ -258,7 +258,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               htmlFor="newPassword"
               className="text-sm font-semibold text-foreground"
             >
-              New Password <span className="text-destructive">*</span>
+              New Password <span className="text-destructive-content">*</span>
             </label>
             <InputField
               variant="auth"
@@ -285,7 +285,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               htmlFor="confirmPassword"
               className="text-sm font-semibold text-foreground"
             >
-              Confirm Password <span className="text-destructive">*</span>
+              Confirm Password <span className="text-destructive-content">*</span>
             </label>
             <InputField
               variant="auth"
@@ -321,7 +321,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
           Remembered your password?{" "}
           <Link
             href={AuthRouteTarget.LOGIN}
-            className="font-bold text-primary transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring underline"
+            className="font-bold text-link transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring underline"
           >
             Back to Sign In
           </Link>

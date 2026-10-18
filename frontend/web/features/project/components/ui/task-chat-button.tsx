@@ -23,7 +23,7 @@ export default function TaskChatButton({
         event.stopPropagation();
         onOpenChat(task);
       }}
-      className={`inline-flex shrink-0 items-center gap-1 rounded text-muted-foreground transition hover:bg-info-soft hover:text-info h-auto cursor-pointer ${
+      className={`inline-flex shrink-0 items-center gap-1 rounded text-muted-foreground transition hover:bg-info-soft hover:text-info-content h-auto cursor-pointer ${
         compact ? "p-1" : "px-1.5 py-1"
       }`}
       title="Open task chat"

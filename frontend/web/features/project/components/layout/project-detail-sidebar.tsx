@@ -125,7 +125,7 @@ function SidebarNavItem({
           "group h-12 w-full justify-start gap-3 rounded-control px-2.5 text-sm font-semibold transition-colors",
           "focus-visible:ring-2 focus-visible:ring-ring",
           active
-            ? "bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
+            ? "bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft hover:text-primary-soft-foreground"
             : "text-muted-foreground hover:bg-muted hover:text-foreground",
           isCollapsed && "lg:justify-center lg:px-2",
         )}
@@ -134,8 +134,8 @@ function SidebarNavItem({
           className={cn(
             "grid h-8 w-8 shrink-0 place-items-center rounded-md transition-colors",
             active
-              ? "bg-overlay/10"
-              : "bg-muted text-muted-foreground group-hover:bg-card group-hover:text-info",
+              ? "bg-transparent"
+              : "bg-muted text-muted-foreground group-hover:bg-card group-hover:text-info-content",
           )}
         >
           <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
@@ -192,7 +192,7 @@ export default function ProjectDetailSidebar({
       <aside
         aria-label="Project navigation"
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[calc(100vw-3rem)] shrink-0 flex-col border-r border-border bg-card transition-[width,transform,visibility] duration-200 ease-in-out shadow-dialog",
+          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[calc(100vw-3rem)] shrink-0 flex-col border-r border-border bg-sidebar transition-[width,transform,visibility] duration-200 ease-in-out shadow-dialog",
           "lg:relative lg:inset-auto lg:z-20 lg:h-full lg:max-w-none lg:translate-x-0 lg:visible",
           isMobileOpen
             ? "visible translate-x-0"
@@ -209,7 +209,7 @@ export default function ProjectDetailSidebar({
             isCollapsed ? "Expand project sidebar" : "Collapse project sidebar"
           }
           aria-expanded={!isCollapsed}
-          className="absolute -right-4 top-8 z-30 hidden h-8 w-8 rounded-full border-border bg-card text-muted-foreground hover:bg-background hover:text-info focus-visible:ring-2 focus-visible:ring-ring lg:flex shadow-panel"
+          className="absolute -right-4 top-8 z-30 hidden h-8 w-8 rounded-full border-border bg-card text-muted-foreground hover:bg-background hover:text-info-content focus-visible:ring-2 focus-visible:ring-ring lg:flex shadow-panel"
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -300,7 +300,7 @@ export default function ProjectDetailSidebar({
                   className={cn(
                     "group h-12 min-w-0 flex-1 justify-start gap-3 rounded-control px-2.5 text-sm font-semibold transition-colors",
                     membersActive
-                      ? "bg-primary text-primary-foreground hover:bg-primary-hover hover:text-primary-foreground"
+                      ? "bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft hover:text-primary-soft-foreground"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     isCollapsed &&
                     "lg:w-full lg:flex-none lg:justify-center lg:px-2",
@@ -310,8 +310,8 @@ export default function ProjectDetailSidebar({
                     className={cn(
                       "relative grid h-8 w-8 shrink-0 place-items-center rounded-md",
                       membersActive
-                        ? "bg-overlay/10"
-                        : "bg-muted text-muted-foreground group-hover:bg-card group-hover:text-info",
+                        ? "bg-transparent"
+                        : "bg-muted text-muted-foreground group-hover:bg-card group-hover:text-info-content",
                     )}
                   >
                     <Users className="h-[18px] w-[18px]" strokeWidth={2} />
@@ -332,7 +332,7 @@ export default function ProjectDetailSidebar({
                       className={cn(
                         "rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums",
                         membersActive
-                          ? "bg-overlay/10 text-primary-foreground"
+                          ? "bg-transparent text-primary-soft-foreground"
                           : "bg-muted text-muted-foreground",
                       )}
                     >
@@ -355,7 +355,7 @@ export default function ProjectDetailSidebar({
                     onClick={onInviteMembers}
                     aria-label="Invite member"
                     className={cn(
-                      "h-9 text-info hover:bg-info-soft hover:text-info",
+                      "h-9 text-info-content hover:bg-info-soft hover:text-info-content",
                       isCollapsed ? "lg:w-full" : "w-9",
                     )}
                   >
@@ -408,7 +408,7 @@ export default function ProjectDetailSidebar({
                 type="button"
                 variant="ghost"
                 onClick={() => onViewChange("members")}
-                className="h-9 w-full justify-between rounded-control px-2 text-xs font-semibold text-info hover:bg-info-soft hover:text-info"
+                className="h-9 w-full justify-between rounded-control px-2 text-xs font-semibold text-info-content hover:bg-info-soft hover:text-info-content"
               >
                 <span>View all members</span>
                 <ChevronRight className="h-4 w-4" />
@@ -430,7 +430,7 @@ export default function ProjectDetailSidebar({
                     isCollapsed && "lg:justify-center lg:px-2",
                   )}
                 >
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground group-hover:bg-card group-hover:text-info">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-muted text-muted-foreground group-hover:bg-card group-hover:text-info-content">
                     <Settings
                       className="h-[18px] w-[18px]"
                       strokeWidth={2}
@@ -455,12 +455,12 @@ export default function ProjectDetailSidebar({
                 asChild
                 variant="ghost"
                 className={cn(
-                  "group h-12 w-full justify-start gap-3 rounded-control px-2.5 text-destructive hover:bg-destructive-soft hover:text-destructive",
+                  "group h-12 w-full justify-start gap-3 rounded-control px-2.5 text-destructive-content hover:bg-destructive-soft hover:text-destructive-content",
                   isCollapsed && "lg:justify-center lg:px-2",
                 )}
               >
                 <Link href="/projects" aria-label="Exit project">
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-destructive-soft text-destructive group-hover:bg-card group-hover:text-destructive">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-destructive-soft text-destructive-content group-hover:bg-card group-hover:text-destructive-content">
                     <ArrowLeft
                       className="h-[18px] w-[18px]"
                       strokeWidth={2}

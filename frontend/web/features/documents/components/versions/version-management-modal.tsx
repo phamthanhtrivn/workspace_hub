@@ -161,7 +161,7 @@ export function VersionManagementModal({
     <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
       <DialogContent className={`${dialogLayout.surface} max-w-2xl border-border bg-card p-6 text-foreground rounded-dialog`}>
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info ring-1 ring-ring">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info-content ring-1 ring-ring">
             <History className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">

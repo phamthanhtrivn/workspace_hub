@@ -184,7 +184,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background gap-3 text-muted-foreground">
-        <Loader2 className="animate-spin text-info" size={36} />
+        <Loader2 className="animate-spin text-info-content" size={36} />
         <span className="text-sm font-semibold">
           Đang tải thông tin tài liệu...
         </span>

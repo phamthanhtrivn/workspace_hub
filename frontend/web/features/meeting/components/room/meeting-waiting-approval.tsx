@@ -23,11 +23,11 @@ export function MeetingWaitingApproval({
     <MeetingFullscreenPortal>
       <div className="fixed inset-0 z-[100] flex h-dvh min-h-0 overflow-y-auto py-4 [align-items:safe_center] justify-center bg-card px-4 text-foreground">
         <section className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center">
-          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-accent text-info ring-1 ring-border/12">
+          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-accent text-info-content ring-1 ring-border/12">
             {isRejected ? (
-              <XCircle className="h-8 w-8 text-destructive" />
+              <XCircle className="h-8 w-8 text-destructive-content" />
             ) : (
-              <ShieldCheck className="h-8 w-8 text-info" />
+              <ShieldCheck className="h-8 w-8 text-info-content" />
             )}
           </span>
           <h2 className="mt-5 text-section-title font-semibold">

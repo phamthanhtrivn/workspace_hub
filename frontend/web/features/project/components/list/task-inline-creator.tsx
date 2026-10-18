@@ -58,7 +58,7 @@ export default function TaskInlineCreator({
           className ?? ""
         }`}
       >
-        <CheckSquare2 className="h-4 w-4 shrink-0 text-info fill-primary-soft" />
+        <CheckSquare2 className="h-4 w-4 shrink-0 text-info-content fill-primary-soft" />
         <Input
           type="text"
           value={title}
@@ -104,7 +104,7 @@ export default function TaskInlineCreator({
         setIsOpen(true);
         setTitle("");
       }}
-      className={`flex h-9 w-full justify-start rounded-none items-center gap-1.5 border-t border-border bg-card px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-info cursor-pointer ${
+      className={`flex h-9 w-full justify-start rounded-none items-center gap-1.5 border-t border-border bg-card px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-info-content cursor-pointer ${
         buttonClassName ?? ""
       }`}
     >

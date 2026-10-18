@@ -91,7 +91,7 @@ export function UpcomingMeetingsView({
       ) : upcomingQuery.isError ? (
         <div className="grid min-h-80 place-items-center rounded-lg border border-dashed border-border bg-card px-4">
           <div className="flex max-w-sm flex-col items-center text-center">
-            <CalendarDays className="h-9 w-9 text-destructive" />
+            <CalendarDays className="h-9 w-9 text-destructive-content" />
             <p className="mt-3 text-sm font-semibold text-foreground">
               Could not load upcoming meetings.
             </p>

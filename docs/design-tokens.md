@@ -6,54 +6,60 @@ The runtime source of truth is [globals.css](../frontend/web/app/globals.css). T
 
 | CSS variable | Tailwind utilities | Value | Role |
 | --- | --- | --- | --- |
-| `--brand-midnight` | `bg-brand-midnight`, `text-brand-midnight` | `#010736` | Dark canvas / main light text |
-| `--brand-navy` | `bg-brand-navy`, `text-brand-navy` | `#0D1C42` | Dark cards and invariant brand panels |
-| `--brand-blue` | `bg-brand-blue`, `text-brand-blue` | `#22396F` | Light primary / dark grouped surfaces |
-| `--brand-ice` | `bg-brand-ice`, `text-brand-ice` | `#E6EDF8` | Light accents / dark text and primary actions |
+| `--brand-midnight` | `bg-brand-midnight`, `text-brand-midnight` | `#010736` | Original brand primitive |
+| `--brand-navy` | `bg-brand-navy`, `text-brand-navy` | `#0D1C42` | Invariant brand panels |
+| `--brand-blue` | `bg-brand-blue`, `text-brand-blue` | `#22396F` | Original logo/brand blue |
+| `--brand-ice` | `bg-brand-ice`, `text-brand-ice` | `#E6EDF8` | Original logo/brand accent |
 
-Light uses white surfaces with ice blue accents and navy text/actions. Dark uses layered navy surfaces with ice blue text/actions. Derived blue-tinted shades provide readable secondary text and visible control boundaries.
+The workspace uses neutral white/gray Light and charcoal Dark themes inspired by VS Code Modern. Navy is reserved for actions, links, focus, and soft selection: #22396F in Light and deeper #0D1C42 filled actions in Dark. Brand primitives above remain for logos and the existing auth brand panel; they are not workspace surface tokens.
 
 ## Semantic colors
 
-Use semantic utilities in components; their values change with the theme.
+Use semantic utilities; their values follow the theme. Filled controls and ordinary text have distinct roles.
 
-| CSS variable | Tailwind utility | Light | Dark | Usage |
+| Token | Utility | Light | Dark | Role |
 | --- | --- | --- | --- | --- |
-| `--background` | `bg-background` | `#FFFFFF` | `#010736` | Page canvas |
-| `--foreground` | `text-foreground` | `#010736` | `#E6EDF8` | Main text |
-| `--card` | `bg-card` | `#FFFFFF` | `#0D1C42` | Cards and panels |
-| `--card-foreground` | `text-card-foreground` | `#010736` | `#E6EDF8` | Text on cards |
-| `--popover` | `bg-popover` | `#FFFFFF` | `#0D1C42` | Menus, dialogs, and floating panels |
-| `--popover-foreground` | `text-popover-foreground` | `#010736` | `#E6EDF8` | Text on floating panels |
-| `--primary` | `bg-primary` | `#22396F` | `#E6EDF8` | Filled primary action |
-| `--primary-foreground` | `text-primary-foreground` | `#E6EDF8` | `#010736` | Text/icons on primary action |
-| `--primary-hover` | `bg-primary-hover` | `#0D1C42` | `#FFFFFF` | Primary action hover |
-| `--primary-soft` | `bg-primary-soft` | `#E6EDF8` | `#22396F` | Subtle selection |
-| `--primary-soft-foreground` | `text-primary-soft-foreground` | `#22396F` | `#E6EDF8` | Text on subtle selection |
-| `--secondary` | `bg-secondary` | `#E6EDF8` | `#22396F` | Secondary action surface |
-| `--secondary-foreground` | `text-secondary-foreground` | `#010736` | `#E6EDF8` | Text on secondary action |
-| `--muted` | `bg-muted` | `#F3F4F7` | `#22396F` | Grouped/recessed surface |
-| `--muted-foreground` | `text-muted-foreground` | `#53617C` | `#C3C9D6` | Secondary text and placeholders |
-| `--accent` | `bg-accent` | `#E6EDF8` | `#22396F` | Row/control hover |
-| `--accent-foreground` | `text-accent-foreground` | `#010736` | `#E6EDF8` | Text on hover |
-| `--border` | `border-border` | `#CDD2DD` | `#344B7C` | Decorative dividers |
-| `--input` | `border-input` | `#78849D` | `#8597BB` | Meaningful input boundaries |
-| `--ring` | `ring-ring` | `#22396F` | `#E6EDF8` | Focus indicator |
+| `--background` | `bg-background` | `#FFFFFF` | `#1F1F1F` | Page canvas |
+| `--foreground` | `text-foreground` | `#3B3B3B` | `#CCCCCC` | Main text |
+| `--sidebar` | `bg-sidebar` | `#F8F8F8` | `#181818` | Sidebar canvas |
+| `--card` | `bg-card` | `#FFFFFF` | `#252526` | Cards and panels |
+| `--card-foreground` | `text-card-foreground` | `#3B3B3B` | `#CCCCCC` | Card text |
+| `--popover` | `bg-popover` | `#FFFFFF` | `#252526` | Menus and dialogs |
+| `--popover-foreground` | `text-popover-foreground` | `#3B3B3B` | `#CCCCCC` | Floating text |
+| `--primary` | `bg-primary` | `#22396F` | `#0D1C42` | Filled main actions |
+| `--primary-foreground` | `text-primary-foreground` | `#FFFFFF` | `#FFFFFF` | White text on filled actions |
+| `--primary-hover` | `hover:bg-primary-hover` | `#0D1C42` | `#162B55` | Main action hover |
+| `--link` | `text-link` | `#22396F` | `#B0C4E0` | Links on normal surfaces |
+| `--primary-soft` | `bg-primary-soft` | `#EAF0F8` | `#253247` | Ordinary selected states |
+| `--primary-soft-foreground` | `text-primary-soft-foreground` | `#22396F` | `#B0C4E0` | Soft selection text/icons |
+| `--secondary` | `bg-secondary` | `#F3F3F3` | `#313131` | Neutral controls/icon tiles |
+| `--secondary-foreground` | `text-secondary-foreground` | `#3B3B3B` | `#CCCCCC` | Neutral control text |
+| `--muted` | `bg-muted` | `#F3F3F3` | `#313131` | Grouped surface |
+| `--muted-foreground` | `text-muted-foreground` | `#616161` | `#A5A5A5` | Metadata and placeholders |
+| `--accent` | `bg-accent` | `#F3F3F3` | `#313131` | Ordinary hover |
+| `--accent-foreground` | `text-accent-foreground` | `#3B3B3B` | `#CCCCCC` | Hover text |
+| `--border` | `border-border` | `#E5E5E5` | `#3C3C3C` | Decorative separators |
+| `--input` | `border-input` | `#808080` | `#808080` | Meaningful control edges |
+| `--ring` | `ring-ring` | `#22396F` | `#8EAAD0` | Keyboard focus |
 
-Use `text-primary` for action links on standard surfaces and `text-info` on information surfaces. Pair filled controls with their matching foreground. `bg-primary` automatically follows the active theme; adding `dark:bg-primary` repeats the same rule. The same mappings support text, borders, rings, SVG fills/strokes, gradients, and opacity modifiers such as `bg-primary/10`.
+Use text-link for links and primary-soft/primary-soft-foreground for navigation, tabs, and ordinary selection. Keep primary/primary-foreground for action buttons. Avoid reusing a filled-button background token as text on a dark card.
+
+Dark filled navy buttons/links get a subtle inset primary-outline edge (#637DA6) against charcoal; it does not change their dimensions. Links/data marks use a separate readable blue-gray (#B0C4E0), rather than the deep button fill. Checked switch thumbs retain a contrasting foreground.
 
 ## Functional states and charts
 
-| Role | CSS variables | Light fill/text | Dark fill/text | Soft surface (light / dark) |
-| --- | --- | --- | --- | --- |
-| success | `--success`, `--success-foreground`, `--success-soft` | `#18633E` / `#FFFFFF` | `#86D6AE` / `#010736` | `#E5F2EB` / `#173F38` |
-| warning | `--warning`, `--warning-foreground`, `--warning-soft` | `#805313` / `#FFFFFF` | `#F0CD88` / `#010736` | `#FAEFD9` / `#423E36` |
-| destructive | `--destructive`, `--destructive-foreground`, `--destructive-soft` | `#B42332` / `#FFFFFF` | `#FFB4BC` / `#010736` | `#FBE9EC` / `#512E46` |
-| info | `--info`, `--info-foreground`, `--info-soft` | `#22396F` / `#E6EDF8` | `#B7C8F0` / `#010736` | `#EDF0F6` / `#22396F` |
+| Role | Light: content / soft / fill | Dark: content / soft / fill |
+| --- | --- | --- |
+| destructive | `#B42332` / `#FBEEEE` / `#B42332` | `#E2A1A1` / `#3A2727` / `#A63838` |
+| success | `#24633E` / `#EDF5EF` / `#2E6F43` | `#91BD9D` / `#26352B` / `#285E3B` |
+| warning | `#795418` / `#FAF3E7` / `#795718` | `#D2B478` / `#393124` / `#795718` |
+| info | `#22396F` / `#EAF0F8` / `#22396F` | `#B0C4E0` / `#253247` / `#0D1C42` |
 
-Use paired foregrounds on filled states and the state color as text on its soft surface. Keep a label/icon alongside the color. Chart colors `--chart-1` through `--chart-5` cover primary, secondary, warning, success, and destructive series. Theme chart tooltips, axes, cursor, and grid as well as the series.
+For each status, text-status-content is the text/icon color on neutral or status-soft surfaces; bg-status is the solid fill paired with text-status-foreground (white in both themes). Status-outline mixes 75% content with 25% soft for restrained one-pixel boundaries. Keep labels/icons alongside status colors.
 
-Sidebar tokens alias the corresponding card, foreground, primary, accent, border, and ring roles. Existing shadcn components consume these same variables.
+Mic/Camera off uses destructive-soft, destructive-content, and destructive-outline throughout hover. Leave/delete actions remain filled destructive controls. Status badges use soft surfaces. Chart series, progress marks, and status dots use content/chart colors so dark button fills do not disappear on charcoal.
+
+Sidebar primary tokens alias soft selection roles. Third-party widgets consume the same semantic surface/text roles.
 
 ## Type, spacing, radius, and motion
 
@@ -78,6 +84,7 @@ Persistent panels use a border without a shadow. Use shared elevation only for f
 - User-selected project/calendar/label fills remain stored hex values, including their color-picker options. Do not replace these persisted values with CSS variables.
 - `readableTextOnColor` selects `--on-color` (white) or `--on-color-dark` (black) for readable text against a user-selected hex fill. Other unknown CSS fills use `--primary-foreground`.
 - `--media-background`, `--media-surface`, and `--media-foreground` preserve a dark video canvas and readable overlays in both themes. Surrounding controls use normal surface tokens.
+- `--media-destructive` / `text-media-destructive` is the invariant #E2A1A1 alert foreground for dark media controls in both themes; ordinary alerts continue using theme-aware destructive tokens.
 - `--overlay` is an invariant dark backdrop. Uploaded images, document pages, and video are not recolored.
 - Use semantic utility names instead of equivalent arbitrary classes: `bg-muted`, `text-muted-foreground`, and `border-border`. Direct CSS variables remain appropriate for chart/SVG attributes, gradients, and third-party properties that do not accept utility classes.
 
@@ -97,7 +104,7 @@ Preferences exposes Light and Dark. Selecting an option edits the form; Save Set
   <h2 className="text-section-title font-semibold">Project details</h2>
   <p className="mt-2 text-sm text-muted-foreground">Shared context for your team.</p>
 </section>
-<span className="rounded-full bg-success-soft px-2 py-1 text-xs text-success">
+<span className="rounded-full bg-success-soft px-2 py-1 text-xs text-success-content">
   Completed
 </span>
 ```

@@ -138,7 +138,7 @@ export function UpcomingMeetingCard({
         data-meeting-join-token={meeting.joinToken}
         className={`flex min-h-48 flex-col justify-between rounded-lg border bg-card p-4 transition ${
           isHighlighted
-            ? "border-info ring-4 ring-ring"
+            ? "border-info-outline ring-4 ring-ring"
             : "border-border"
         }`}
       >
@@ -149,7 +149,7 @@ export function UpcomingMeetingCard({
                 {meeting.title}
               </h3>
               <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                <CalendarClock className="h-4 w-4 shrink-0 text-info" />
+                <CalendarClock className="h-4 w-4 shrink-0 text-info-content" />
                 <span className="truncate">
                   {formatMeetingRange(
                     meeting.scheduledStartAt,

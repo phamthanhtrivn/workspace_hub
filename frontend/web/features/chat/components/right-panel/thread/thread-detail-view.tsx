@@ -502,7 +502,7 @@ export default function ThreadDetailView({
                   className="flex items-center justify-between gap-3 py-1.5 px-2.5 rounded-lg border border-border bg-card hover:bg-background transition max-w-[240px]"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="p-1.5 rounded-md bg-info-soft text-info flex-shrink-0">
+                    <div className="p-1.5 rounded-md bg-info-soft text-info-content flex-shrink-0">
                       <FileText size={16} />
                     </div>
                     <div className="flex flex-col min-w-0">
@@ -552,7 +552,7 @@ export default function ThreadDetailView({
             <Bell
               size={18}
               className={
-                isFollowing ? "fill-info text-info" : "text-muted-foreground"
+                isFollowing ? "fill-info-content text-info-content" : "text-muted-foreground"
               }
             />
           </button>

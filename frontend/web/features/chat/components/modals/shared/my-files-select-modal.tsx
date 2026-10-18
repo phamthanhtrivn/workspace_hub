@@ -176,8 +176,8 @@ export default function MyFilesSelectModal({
                 onClick={() => handleNavigateToFolder(history.id, history.name)}
                 className={`cursor-pointer text-xs font-semibold whitespace-nowrap transition-colors ${
                   isDarkTone
-                    ? "hover:text-info"
-                    : "hover:text-info"
+                    ? "hover:text-info-content"
+                    : "hover:text-info-content"
                 } ${
                   idx === folderHistory.length - 1
                     ? isDarkTone
@@ -241,8 +241,8 @@ export default function MyFilesSelectModal({
                         size={18}
                         className={`shrink-0 ${
                           isDarkTone
-                            ? "fill-info/10 text-info"
-                            : "fill-info text-info"
+                            ? "fill-info-content/10 text-info-content"
+                            : "fill-info-content text-info-content"
                         }`}
                       />
                       <span
@@ -272,7 +272,7 @@ export default function MyFilesSelectModal({
                     className={`cursor-pointer w-full flex items-center justify-between p-3 rounded-control border transition-all text-left ${
                       isDarkTone
                         ? isSelected
-                          ? "border-info/40 bg-primary/15"
+                          ? "border-info-outline/40 bg-primary/15"
                           : "border-border bg-accent hover:bg-accent"
                         : isSelected
                           ? "bg-info-soft/50 border-border"
@@ -284,10 +284,10 @@ export default function MyFilesSelectModal({
                         className={`w-5 h-5 rounded-md flex items-center justify-center transition border ${
                           isDarkTone
                             ? isSelected
-                              ? "border-info bg-primary text-primary-foreground"
+                              ? "border-info-outline bg-primary text-primary-foreground"
                               : "border-border bg-overlay/20"
                             : isSelected
-                              ? "bg-primary border-info text-primary-foreground"
+                              ? "bg-primary border-info-outline text-primary-foreground"
                               : "border-input bg-card"
                         }`}
                       >

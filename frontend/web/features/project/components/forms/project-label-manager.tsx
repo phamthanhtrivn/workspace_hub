@@ -62,12 +62,12 @@ function LabelColorSwatches({
                 ? "border-border ring-2 ring-primary ring-offset-1 hover:border-border"
                 : "border-border ring-1 ring-ring",
             )}
-            style={{ backgroundColor: color }}
+            style={{ backgroundColor: color, color: readableTextOnColor(color) }}
           >
             {isSelected ? (
               <Check
                 aria-hidden="true"
-                className="h-3.5 w-3.5 text-primary-foreground drop-"
+                className="h-3.5 w-3.5"
                 strokeWidth={3}
               />
             ) : null}
@@ -215,7 +215,7 @@ export function ProjectLabelManager({
                       size="icon"
                       disabled={updateDisabled || isBusy}
                       onClick={() => void handleUpdateLabel(label.id)}
-                      className="h-8 w-8 cursor-pointer rounded-control text-success hover:bg-success-soft hover:text-success disabled:cursor-default disabled:opacity-50"
+                      className="h-8 w-8 cursor-pointer rounded-control text-success-content hover:bg-success-soft hover:text-success-content disabled:cursor-default disabled:opacity-50"
                       aria-label={`Save label ${label.name}`}
                     >
                       <Check className="h-4 w-4" />
@@ -273,7 +273,7 @@ export function ProjectLabelManager({
                           size="icon"
                           disabled={isBusy}
                           onClick={() => handleDeleteClick(label)}
-                          className="h-7 w-7 cursor-pointer rounded-control text-muted-foreground hover:bg-destructive-soft hover:text-destructive disabled:cursor-default disabled:opacity-50"
+                          className="h-7 w-7 cursor-pointer rounded-control text-muted-foreground hover:bg-destructive-soft hover:text-destructive-content disabled:cursor-default disabled:opacity-50"
                           aria-label={`Delete label ${label.name}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />

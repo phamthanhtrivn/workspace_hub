@@ -14,7 +14,7 @@ export function MeetingAccessDenied({ onBack }: MeetingAccessDeniedProps) {
   return (
     <div className="fixed inset-0 z-[90] grid h-dvh min-h-0 overflow-y-auto py-4 [place-items:safe_center] bg-card px-4 text-foreground">
       <div className="w-full max-w-md rounded-panel border border-border bg-accent p-8 text-center">
-        <span className="mx-auto grid h-16 w-16 place-items-center rounded-panel bg-destructive/15 text-destructive ring-1 ring-destructive/30">
+        <span className="mx-auto grid h-16 w-16 place-items-center rounded-panel bg-destructive-soft text-destructive-content ring-1 ring-destructive-outline/30">
           <ShieldAlert className="h-8 w-8" />
         </span>
         <h1 className="mt-5 text-page-title font-semibold tracking-tight text-foreground">

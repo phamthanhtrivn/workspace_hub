@@ -149,15 +149,15 @@ export function DownloadQueueProvider({
       {children}
 
       {/* ── Fixed Bottom Bar ── */}
-      <div className="fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-1.5rem)] rounded-panel bg-primary border border-input overflow-hidden animate-in slide-in-from-bottom-4 duration-200 shadow-panel">
+      <div className="fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-1.5rem)] rounded-panel bg-card text-card-foreground border border-input overflow-hidden animate-in slide-in-from-bottom-4 duration-200 shadow-panel">
         {/* Header */}
         <div
-          className="flex items-center justify-between px-4 py-3 hover:bg-overlay/40 transition-colors cursor-pointer"
+          className="flex items-center justify-between px-4 py-3 hover:bg-muted transition-colors cursor-pointer"
           onClick={() => setIsCollapsed((c) => !c)}
         >
           <div className="flex items-center gap-2.5">
-            <Download size={15} className="text-info shrink-0" />
-            <span className="text-sm font-semibold text-primary-foreground">
+            <Download size={15} className="text-info-content shrink-0" />
+            <span className="text-sm font-semibold text-foreground">
               {activeCount > 0
                 ? `Downloading ${activeCount} item${activeCount > 1 ? "s" : ""}...`
                 : "Download completed"}
@@ -174,7 +174,7 @@ export function DownloadQueueProvider({
                   e.stopPropagation();
                   clearDone();
                 }}
-                className="text-xs font-semibold text-muted-foreground hover:text-primary-foreground px-2 py-0.5 rounded hover:bg-primary transition-colors cursor-pointer"
+                className="text-xs font-semibold text-muted-foreground hover:text-foreground px-2 py-0.5 rounded hover:bg-muted transition-colors cursor-pointer"
               >
                 Clear all
               </button>
@@ -184,7 +184,7 @@ export function DownloadQueueProvider({
                 e.stopPropagation();
                 setIsCollapsed((c) => !c);
               }}
-              className="w-6 h-6 flex items-center justify-center rounded-control hover:bg-primary text-muted-foreground hover:text-primary-foreground transition-colors text-xs font-semibold cursor-pointer"
+              className="w-6 h-6 flex items-center justify-center rounded-control hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-xs font-semibold cursor-pointer"
             >
               {isCollapsed ? <FaAngleUp /> : <FaAngleDown />}
             </button>
@@ -223,17 +223,17 @@ function DownloadTaskRow({
     <div className="px-4 py-3 flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <FolderArchive size={14} className="text-warning shrink-0" />
+          <FolderArchive size={14} className="text-warning-content shrink-0" />
           <span className="text-xs font-semibold text-muted-foreground truncate max-w-[180px]">
             {task.folderName}.zip
           </span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {task.status === DownloadStatus.DONE && (
-            <CheckCircle2 size={14} className="text-success" />
+            <CheckCircle2 size={14} className="text-success-content" />
           )}
           {task.status === DownloadStatus.ERROR && (
-            <AlertCircle size={14} className="text-destructive" />
+            <AlertCircle size={14} className="text-destructive-content" />
           )}
           {(task.status === DownloadStatus.DONE ||
             task.status === DownloadStatus.ERROR) && (
@@ -251,19 +251,19 @@ function DownloadTaskRow({
       {/* Progress Bar */}
       {(task.status === DownloadStatus.DOWNLOADING ||
         task.status === DownloadStatus.QUEUED) && (
-        <div className="h-1 w-full bg-primary rounded-full overflow-hidden">
+        <div className="h-1 w-full bg-muted ring-1 ring-inset ring-input rounded-full overflow-hidden">
           {isIndeterminate ? (
-            <div className="h-full bg-primary rounded-full animate-pulse w-1/2" />
+            <div className="h-full bg-link rounded-full animate-pulse w-1/2" />
           ) : (
             <div
-              className="h-full bg-primary rounded-full transition-all duration-200"
+              className="h-full bg-link rounded-full transition-all duration-200"
               style={{ width: `${task.progress}%` }}
             />
           )}
         </div>
       )}
       {task.status === DownloadStatus.ERROR && (
-        <p className="text-xs text-destructive font-medium truncate">
+        <p className="text-xs text-destructive-content font-medium truncate">
           {task.error}
         </p>
       )}

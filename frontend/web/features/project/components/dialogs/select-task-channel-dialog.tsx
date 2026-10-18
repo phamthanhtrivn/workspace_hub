@@ -108,7 +108,7 @@ export default function SelectTaskChannelDialog({
     <Dialog open={isOpen} onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="flex max-w-md flex-col p-0 rounded-dialog border-border bg-card">
         <DialogHeader className="shrink-0 break-words text-left px-4 pt-4 pb-2 pr-12 sm:px-6 sm:pr-12">
-          <div className="flex items-center gap-2 text-xs font-semibold text-info">
+          <div className="flex items-center gap-2 text-xs font-semibold text-info-content">
             <MessageSquare size={16} />
             <span>Task Discussion Thread</span>
           </div>
@@ -123,13 +123,13 @@ export default function SelectTaskChannelDialog({
         <form onSubmit={handleSubmit} className="flex min-h-0 max-h-[inherit] flex-1 flex-col">
           <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 py-4 sm:px-6">
             <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <UserCheck size={14} className="text-info" />
+              <UserCheck size={14} className="text-info-content" />
               <span>Target Channel {spaceId ? `(${channels.length} available)` : ""}</span>
             </label>
 
             {!spaceId ? (
-              <div className="rounded-panel border border-border bg-warning-soft/80 p-3.5 text-xs text-warning font-medium flex flex-col gap-1">
-                <span className="font-semibold flex items-center gap-1.5 text-warning">
+              <div className="rounded-panel border border-border bg-warning-soft/80 p-3.5 text-xs text-warning-content font-medium flex flex-col gap-1">
+                <span className="font-semibold flex items-center gap-1.5 text-warning-content">
                   <AlertCircle size={14} /> Project Space Required
                 </span>
                 <span>
@@ -141,8 +141,8 @@ export default function SelectTaskChannelDialog({
                 Loading your space channels...
               </div>
             ) : channels.length === 0 ? (
-              <div className="rounded-panel border border-border bg-warning-soft/80 p-3.5 text-xs text-warning font-medium flex flex-col gap-1">
-                <span className="font-semibold flex items-center gap-1.5 text-warning">
+              <div className="rounded-panel border border-border bg-warning-soft/80 p-3.5 text-xs text-warning-content font-medium flex flex-col gap-1">
+                <span className="font-semibold flex items-center gap-1.5 text-warning-content">
                   <AlertCircle size={14} /> No Selectable Channels
                 </span>
                 <span>
@@ -154,7 +154,7 @@ export default function SelectTaskChannelDialog({
                 value={selectedChannelId}
                 onValueChange={(val) => setSelectedChannelId(val)}
               >
-                <SelectTrigger className="h-11 w-full rounded-control border-input bg-background px-3.5 text-xs font-semibold text-foreground focus:ring-1 focus:ring-ring focus:border-info cursor-pointer transition-colors">
+                <SelectTrigger className="h-11 w-full rounded-control border-input bg-background px-3.5 text-xs font-semibold text-foreground focus:ring-1 focus:ring-ring focus:border-info-outline cursor-pointer transition-colors">
                   <SelectValue placeholder="Select a channel..." />
                 </SelectTrigger>
                 <SelectContent className="rounded-panel border-border bg-card z-[130]">
@@ -162,13 +162,13 @@ export default function SelectTaskChannelDialog({
                     <SelectItem
                       key={channel.id}
                       value={channel.id}
-                      className="cursor-pointer text-xs py-2.5 px-3 focus:bg-info-soft focus:text-info font-medium rounded-lg"
+                      className="cursor-pointer text-xs py-2.5 px-3 focus:bg-info-soft focus:text-info-content font-medium rounded-lg"
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <Hash size={14} className="text-info shrink-0" />
+                        <Hash size={14} className="text-info-content shrink-0" />
                         <span className="truncate">{channel.name}</span>
                         {channel.isDefault && (
-                          <span className="text-xs bg-info-soft text-info px-1.5 py-0.2 rounded-full font-medium ml-1">
+                          <span className="text-xs bg-info-soft text-info-content px-1.5 py-0.2 rounded-full font-medium ml-1">
                             default
                           </span>
                         )}

@@ -87,7 +87,7 @@ function PersonalDashboard() {
       icon: AlertCircle,
       href: "#my-tasks",
       danger: true,
-      theme: "text-destructive",
+      theme: "text-destructive-content",
     },
     {
       label: "Due today",
@@ -101,7 +101,7 @@ function PersonalDashboard() {
       icon: ListChecks,
       href: "#my-tasks",
       danger: false,
-      theme: "text-primary",
+      theme: "text-link",
     },
     {
       label: "Focus today",
@@ -144,7 +144,7 @@ function PersonalDashboard() {
                   : "Your workday"}
                 {now &&
                   `, ${new Intl.DateTimeFormat("en", { timeZone: zone, day: "2-digit" }).format(new Date(now))}`}
-                <span className="text-primary">.</span>
+                <span className="text-link">.</span>
               </h1>
               <p className="mt-3 text-xs text-muted-foreground">
                 Your schedule, priorities and a little room to focus.
@@ -206,7 +206,7 @@ function PersonalDashboard() {
                   <li key={item.key}>
                     <Link
                       href={item.href}
-                      className="relative flex items-center gap-3 border-b border-border py-4 pr-2 hover:bg-muted before:absolute before:-left-[17px] before:h-2 before:w-2 before:rounded-full before:bg-primary"
+                      className="relative flex items-center gap-3 border-b border-border py-4 pr-2 hover:bg-muted before:absolute before:-left-[17px] before:h-2 before:w-2 before:rounded-full before:bg-link"
                     >
                       <time className="w-16 shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
                         {item.allDay ? "All day" : formatTime(item.at, zone)}

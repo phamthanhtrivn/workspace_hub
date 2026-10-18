@@ -92,7 +92,7 @@ export default function CreateProjectDialog({
                 htmlFor="project-name"
                 className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
               >
-                Project Name <span className="text-destructive">*</span>
+                Project Name <span className="text-destructive-content">*</span>
               </label>
               <Input
                 id="project-name"
@@ -156,7 +156,7 @@ export default function CreateProjectDialog({
                 </label>
               </div>
               {startDate && dueDate && startDate > dueDate ? (
-                <p className="mt-2 text-xs font-semibold text-destructive">
+                <p className="mt-2 text-xs font-semibold text-destructive-content">
                   Start date cannot be after end date.
                 </p>
               ) : null}
@@ -221,7 +221,7 @@ export default function CreateProjectDialog({
                       style={{
                         backgroundColor: color,
                         boxShadow: selected
-                          ? `0 0 0 2px var(--card), 0 0 0 4px ${color}`
+                          ? `0 0 0 2px var(--card), 0 0 0 4px var(--ring)`
                           : undefined,
                       }}
                     />

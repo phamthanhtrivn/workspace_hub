@@ -40,7 +40,7 @@ function GanttUnscheduledTaskChip({
       <span className="shrink-0 font-mono text-xs font-semibold text-muted-foreground">
         {issueKey}
       </span>
-      <span className="min-w-0 max-w-56 truncate text-xs font-semibold text-foreground group-hover:text-info">
+      <span className="min-w-0 max-w-56 truncate text-xs font-semibold text-foreground group-hover:text-info-content">
         {task.title}
       </span>
       <span className="ml-auto shrink-0 text-xs font-semibold text-muted-foreground">
@@ -155,7 +155,7 @@ export default function GanttView({
               variant="ghost"
               size="sm"
               onClick={handleJumpToToday}
-              className="h-7 px-2.5 py-1 text-xs font-semibold text-foreground transition hover:bg-card hover:text-info cursor-pointer"
+              className="h-7 px-2.5 py-1 text-xs font-semibold text-foreground transition hover:bg-card hover:text-info-content cursor-pointer"
             >
               Today
             </Button>
@@ -178,7 +178,7 @@ export default function GanttView({
             <span className="text-xs font-medium text-muted-foreground">
               ({rangeFormatted})
             </span>
-            <span className="inline-flex items-center rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold text-info">
+            <span className="inline-flex items-center rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold text-info-content">
               {datedTasks.length} {datedTasks.length === 1 ? "task" : "tasks"}
             </span>
           </div>
@@ -198,7 +198,7 @@ export default function GanttView({
                 onClick={() => setZoomMode(mode)}
                 className={`h-7 rounded-md px-3 py-1 text-xs font-semibold transition cursor-pointer ${
                   isActive
-                    ? "bg-card text-info ring-1 ring-ring/80 hover:bg-card hover:text-info"
+                    ? "bg-card text-info-content ring-1 ring-ring/80 hover:bg-card hover:text-info-content"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -258,14 +258,14 @@ export default function GanttView({
                       key={month.isoKey}
                       className={`flex h-12 flex-col items-center justify-center border-r border-border text-center transition ${
                         month.isCurrentMonth
-                          ? "bg-info-soft/80 font-semibold text-info"
+                          ? "bg-info-soft/80 font-semibold text-info-content"
                           : "text-foreground"
                       }`}
                     >
                       <span
                         className={`text-xs font-semibold leading-tight ${
                           month.isCurrentMonth
-                            ? "text-info"
+                            ? "text-info-content"
                             : "text-foreground"
                         }`}
                       >
@@ -286,14 +286,14 @@ export default function GanttView({
                       key={week.isoKey}
                       className={`flex h-12 flex-col items-center justify-center border-r border-border text-center transition ${
                         week.isCurrentWeek
-                          ? "bg-info-soft/80 font-semibold text-info"
+                          ? "bg-info-soft/80 font-semibold text-info-content"
                           : "text-foreground"
                       }`}
                     >
                       <span
                         className={`text-xs font-semibold leading-tight ${
                           week.isCurrentWeek
-                            ? "text-info"
+                            ? "text-info-content"
                             : "text-foreground"
                         }`}
                       >
@@ -317,7 +317,7 @@ export default function GanttView({
                       key={day.isoKey}
                       className={`flex h-12 flex-col items-center justify-center border-r border-border text-center transition ${
                         day.isToday
-                          ? "bg-info-soft/70 font-semibold text-info"
+                          ? "bg-info-soft/70 font-semibold text-info-content"
                           : day.isWeekend
                             ? "bg-muted text-muted-foreground"
                             : "text-muted-foreground"
@@ -399,7 +399,7 @@ export default function GanttView({
                           <span className="shrink-0 font-mono text-xs font-semibold text-muted-foreground">
                             {issueKey}
                           </span>
-                          <span className="min-w-0 basis-full truncate text-xs font-semibold text-foreground group-hover:text-info @min-[240px]/gantt-label:basis-auto">
+                          <span className="min-w-0 basis-full truncate text-xs font-semibold text-foreground group-hover:text-info-content @min-[240px]/gantt-label:basis-auto">
                             {task.title}
                           </span>
                         </div>
@@ -497,7 +497,7 @@ export default function GanttView({
 
                           {width < 90 && (
                             <span
-                              className="ml-2 whitespace-nowrap text-xs font-semibold text-foreground transition group-hover:text-info"
+                              className="ml-2 whitespace-nowrap text-xs font-semibold text-foreground transition group-hover:text-info-content"
                               title={`${task.title} (${dateRangeFormatted})`}
                             >
                               {task.title}
@@ -511,7 +511,7 @@ export default function GanttView({
                             style={{ left: `${Math.max(0, left - 18)}px` }}
                           >
                             <span
-                              className="flex h-4 w-4 items-center justify-center rounded-full bg-info-soft text-xs font-semibold text-info ring-1 ring-ring"
+                              className="flex h-4 w-4 items-center justify-center rounded-full bg-info-soft text-xs font-semibold text-info-content ring-1 ring-ring"
                               title={`Predecessors: ${predecessors.map((p) => p.title).join(", ")}`}
                             >
                               {"<-"}
@@ -546,7 +546,7 @@ export default function GanttView({
             className="flex h-auto w-full items-center justify-between gap-2 whitespace-normal rounded-none bg-background px-4 py-3 text-left transition hover:bg-muted font-normal cursor-pointer"
           >
             <div className="flex min-w-0 items-center gap-2.5">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-warning-soft text-warning ring-1 ring-warning/20">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-warning-soft text-warning-content ring-1 ring-warning-outline/20">
                 <Clock className="h-4 w-4" />
               </div>
               <div>
@@ -554,7 +554,7 @@ export default function GanttView({
                   <span className="text-xs font-semibold text-foreground">
                     Unscheduled Tasks
                   </span>
-                  <span className="rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning">
+                  <span className="rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning-content">
                     {unscheduledTasks.length}
                   </span>
                 </div>

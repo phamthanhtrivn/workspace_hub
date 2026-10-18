@@ -36,7 +36,7 @@ export function DocumentsSidebar({ activeView, onViewChange }: DocumentsSidebarP
   ];
 
   return (
-    <aside className="flex shrink-0 flex-col gap-5 border-b border-border bg-card px-4 py-4 @min-[960px]/documents:w-80 @min-[960px]/documents:border-b-0 @min-[960px]/documents:border-r @min-[960px]/documents:py-6">
+    <aside className="flex shrink-0 flex-col gap-5 border-b border-border bg-sidebar px-4 py-4 @min-[960px]/documents:w-80 @min-[960px]/documents:border-b-0 @min-[960px]/documents:border-r @min-[960px]/documents:py-6">
       <nav
         className="flex gap-2 overflow-x-auto @min-[960px]/documents:flex-col @min-[960px]/documents:overflow-visible"
         aria-label="Document Navigation"
@@ -53,7 +53,7 @@ export function DocumentsSidebar({ activeView, onViewChange }: DocumentsSidebarP
               className={cn(
                 "cursor-pointer flex h-12 shrink-0 items-center gap-3 rounded-md px-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isActive
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary-soft text-primary-soft-foreground"
                   : "text-muted-foreground hover:bg-muted"
               )}
               aria-current={isActive ? "page" : undefined}
@@ -61,7 +61,7 @@ export function DocumentsSidebar({ activeView, onViewChange }: DocumentsSidebarP
               <span
                 className={cn(
                   "grid h-8 w-8 shrink-0 place-items-center rounded-md",
-                  isActive ? "bg-overlay/10 text-primary-foreground" : "bg-background text-muted-foreground"
+                  isActive ? "bg-transparent text-primary-soft-foreground" : "bg-background text-muted-foreground"
                 )}
               >
                 <Icon className="h-4 w-4" />

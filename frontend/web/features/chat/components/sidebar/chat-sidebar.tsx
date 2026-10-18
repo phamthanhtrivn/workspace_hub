@@ -93,7 +93,7 @@ interface ChatSidebarProps {
 
 function ProjectSpaceBadge() {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-info-soft px-1.5 py-0.5 text-xs font-semibold normal-case leading-none text-info">
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-info-soft px-1.5 py-0.5 text-xs font-semibold normal-case leading-none text-info-content">
       <FolderKanban size={11} strokeWidth={2.5} />
       Project
     </span>
@@ -724,7 +724,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                           ),
                         );
                       }}
-                      className="hover:text-info hover:underline cursor-pointer normal-case"
+                      className="hover:text-info-content hover:underline cursor-pointer normal-case"
                     >
                       {activeSpace.creatorProfile.fullName}
                     </span>
@@ -734,12 +734,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           </div>
           <button
             onClick={() => setIsFollowedThreadsModalOpen(true)}
-            className="flex items-center justify-between px-3 py-2 mx-1 rounded-control cursor-pointer transition-all duration-200 select-none group bg-primary text-primary-foreground hover:bg-primary"
+            className="flex items-center justify-between px-3 py-2 mx-1 rounded-control cursor-pointer transition-all duration-200 select-none group bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft"
           >
             <span className="flex items-center min-w-0 gap-2.5">
               <MessageSquareText
                 size={15}
-                className="shrink-0 text-muted-foreground"
+                className="shrink-0 text-primary-soft-foreground"
               />
               <span className="text-[13px] font-semibold truncate">
                 {ChatSidebarSection.THREADS}
@@ -771,7 +771,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                     className={cn(
                       "px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-colors flex items-center justify-between gap-2",
                       space.id === activeSpaceId
-                        ? "bg-info-soft text-info font-semibold"
+                        ? "bg-info-soft text-info-content font-semibold"
                         : "text-muted-foreground hover:bg-background",
                     )}
                   >
@@ -795,7 +795,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                                 ),
                               );
                             }}
-                            className="hover:text-info hover:underline cursor-pointer"
+                            className="hover:text-info-content hover:underline cursor-pointer"
                           >
                             {space.creatorProfile.email}
                           </span>
@@ -855,7 +855,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search channels, conversations..."
-            className="w-full pl-9 pr-4 py-2 text-xs bg-muted border border-transparent focus:border-info/20 focus:ring-4 focus:ring-ring rounded-control outline-none transition-all duration-200"
+            className="w-full pl-9 pr-4 py-2 text-xs bg-muted border border-transparent focus:border-info-outline/20 focus:ring-4 focus:ring-ring rounded-control outline-none transition-all duration-200"
           />
         </div>
       </div>

@@ -15,29 +15,29 @@ function ActiveMiniTimer() {
   return (
     <aside aria-label="Active focus session" className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3 border-b border-border bg-info-soft/60 px-4 py-3 text-xs sm:px-6">
       <div className="flex min-w-0 flex-1 basis-full items-center gap-3 sm:basis-0">
-        <span className="grid size-9 shrink-0 place-items-center rounded-panel bg-info-soft/80 text-info"><Timer className="size-4" /></span>
+        <span className="grid size-9 shrink-0 place-items-center rounded-panel bg-info-soft/80 text-info-content"><Timer className="size-4" /></span>
         <div className="min-w-0">
           <p className="mb-0.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <span aria-hidden="true" className={`size-1.5 rounded-full ${status === "RUNNING" ? "bg-primary" : "bg-warning"}`} />
+            <span aria-hidden="true" className={`size-1.5 rounded-full ${status === "RUNNING" ? "bg-link" : "bg-warning-content"}`} />
             {status === "PAUSED" ? "Paused" : mode === "FOCUS" ? "Focus in progress" : "Break in progress"}
           </p>
-          <Link href="/pomodoro" className="block truncate text-sm font-semibold text-foreground outline-none hover:text-info focus-visible:ring-2 focus-visible:ring-ring" title={activeTask?.title || "Free focus"}>{activeTask?.title || "Free focus"}</Link>
+          <Link href="/pomodoro" className="block truncate text-sm font-semibold text-foreground outline-none hover:text-info-content focus-visible:ring-2 focus-visible:ring-ring" title={activeTask?.title || "Free focus"}>{activeTask?.title || "Free focus"}</Link>
         </div>
       </div>
       <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-3">
         <div className="flex items-center gap-3 rounded-panel border border-border bg-card px-3 py-1.5">
           <div className="text-right">
             <p className="text-xs font-medium text-muted-foreground">{mode === "FOCUS" ? "Focus" : "Break"}</p>
-            <span className="font-mono text-lg font-semibold leading-6 tracking-tight tabular-nums text-info">{String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}</span>
+            <span className="font-mono text-lg font-semibold leading-6 tracking-tight tabular-nums text-info-content">{String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}</span>
           </div>
           <div className="flex items-center gap-1 border-l border-border pl-3">
-            <Button size="icon-sm" variant="ghost" className="rounded-control text-info hover:bg-info-soft hover:text-info" disabled={busy} title={status === "RUNNING" ? "Pause focus" : "Resume focus"} aria-label={status === "RUNNING" ? "Pause focus" : "Resume focus"} onClick={status === "RUNNING" ? pause : resume}>
+            <Button size="icon-sm" variant="ghost" className="rounded-control text-info-content hover:bg-info-soft hover:text-info-content" disabled={busy} title={status === "RUNNING" ? "Pause focus" : "Resume focus"} aria-label={status === "RUNNING" ? "Pause focus" : "Resume focus"} onClick={status === "RUNNING" ? pause : resume}>
               {status === "RUNNING" ? <Pause className="size-4" /> : <Play className="size-4" />}
             </Button>
             <Button size="icon-sm" variant="ghost" className="rounded-control text-muted-foreground hover:bg-muted hover:text-foreground" disabled={busy} title="Stop and save focus session" aria-label="Stop and save focus session" onClick={() => void stopSession().catch((error) => toast.error(error instanceof Error ? error.message : "Unable to save the session."))}><Square className="size-3.5" /></Button>
           </div>
         </div>
-        <Button asChild size="sm" variant="ghost" className="gap-1.5 rounded-control text-info hover:bg-info-soft/70 hover:text-info">
+        <Button asChild size="sm" variant="ghost" className="gap-1.5 rounded-control text-info-content hover:bg-info-soft/70 hover:text-info-content">
           <Link href="/pomodoro">Open Pomodoro<ArrowUpRight className="size-3.5" /></Link>
         </Button>
       </div>
