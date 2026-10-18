@@ -4,6 +4,43 @@ Updated 2026-10-18. This records the approved targeted simplification. Inter, wo
 
 The original inventory contains **417 TSX files** across **687 source files**. Every TSX file is listed below: **328 change**, **70 keep**, and **19 functional/content exception**. An exception may include changes to surrounding interface styling. Shared focus logic is listed separately. The added tests, temporary scripts, Playwright setup, and generated test reports were subsequently removed at the user's request; the verification results below are historical.
 
+<!-- dashboard-context-polish:start -->
+## Dashboard context and theme polish — 2026-10-18
+
+Retains the approved equal-column layout, stat cards, weather/location preference,
+queries and existing navigation. A pure context helper chooses the next valid,
+future, timed item in today's configured timezone; all-day and invalid dates are
+excluded without reordering the timeline. Header Up next waits for all timeline
+sources to have data, and a meeting with server LIVE status takes header precedence.
+The shared 30-second clock updates relative schedule labels; passing a scheduled
+time never synthesizes LIVE. Cached query data and existing error/retry feedback
+remain available, and the default greeting does not claim the schedule is empty.
+
+The extracted My day section adds distinct semantic icon tiles and an Up next badge.
+Zero overdue/due counts stay neutral; positive counts use their semantic roles.
+Upcoming meetings emphasize the first/LIVE rows and keep View meeting permissions
+in the existing destination. Task due/priority badges, unread notification labels,
+project progress metadata and today/active-day heatmap annotations improve scanning.
+Saved project fills use the existing readableTextOnColor helper for icon foregrounds.
+An all-zero focus week replaces the empty chart with an Open Pomodoro invitation,
+keeping real zero metrics and Daily totals. Positive weeks retain the existing chart.
+
+All new surfaces use existing light/dark semantic tokens. Hover/pressed/focus
+feedback uses shared controls and motion-gated color transitions, without new
+global palette changes, API calls, continuous animation or direct create/edit actions.
+Verification: focused ESLint and one non-incremental TypeScript pass succeeded.
+One contrast calculation pass checked 19 text/control token pairs per theme;
+normal text reached at least 5.75:1 in light and 6.10:1 in dark, and checked
+boundaries/focus indicators reached 3:1. In-memory helper checks covered future
+selection, all-day/invalid dates, server LIVE, relative schedule wording and midnight
+in the user's timezone. Static rendering covered a single timeline Up next marker,
+meeting links/statuses, focus pending/error/zero/positive data and cached refresh
+errors. The dynamic chart was stubbed for static rendering. Browser inventory is
+empty, so live mobile/desktop light/dark, switching themes, keyboard, filters and
+disclosure interactions remain unperformed. No package, test/script file or cache
+configuration was added; no API/query changes were needed.
+<!-- dashboard-context-polish:end -->
+
 <!-- dashboard-panel-layout:start -->
 ## Dashboard balanced panel rows — 2026-10-18
 

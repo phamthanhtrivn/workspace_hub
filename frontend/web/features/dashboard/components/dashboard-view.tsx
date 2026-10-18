@@ -3,27 +3,27 @@
 import Link from "next/link";
 import {
   AlertCircle,
-  CalendarDays,
   Clock3,
   ListChecks,
   Video,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { useDashboard } from "../hooks/use-dashboard";
-import { DashboardPanel, EmptyState, QueryFeedback } from "./dashboard-panel";
+import { Badge } from "@/components/ui/badge";
+import { DashboardDay } from "./dashboard-day";
 import { DashboardTasks } from "./dashboard-tasks";
 import { DashboardProductivity } from "./dashboard-productivity";
 import { DashboardMeetings } from "./dashboard-meetings";
 import { DashboardExtras } from "./dashboard-extras";
 import {
   formatMinutes,
-  formatTime,
   taskBucket,
 } from "../utils/dashboard.utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { DashboardQuickActions } from "./dashboard-quick-actions";
 import { DashboardWeather } from "./dashboard-weather";
+import { formatScheduledRelativeTime, selectDashboardContext } from "../utils/dashboard-context.utils";
 
 function PersonalDashboard() {
   const dashboard = useDashboard();
@@ -42,6 +42,12 @@ function PersonalDashboard() {
     meetings,
   } = dashboard;
   const tasksReady = personal.isSuccess && project.isSuccess;
+  const overdueCount = tasks.filter((task) => taskBucket(task, today, zone) === "Overdue").length;
+  const dueTodayCount = tasks.filter((task) => taskBucket(task, today, zone) === "Today").length;
+  const timelineReady = [dashboard.events, personal, project, dashboard.dayMeetings].every((query) => query.data !== undefined);
+  const { nextItem, liveMeeting } = selectDashboardContext({ dayItems: timelineReady ? dayItems : [], upcoming, now, today, zone });
+  const contextTitle = liveMeeting?.title ?? nextItem?.title;
+  const contextHref = liveMeeting ? `/meetings/${encodeURIComponent(liveMeeting.joinToken)}` : nextItem?.href;
   const todayFocus = daily.at(-1);
   const next = upcoming[0];
   const wait =
@@ -77,36 +83,24 @@ function PersonalDashboard() {
   const stats = [
     {
       label: "Overdue",
-      value: tasksReady
-        ? String(
-            tasks.filter((task) => taskBucket(task, today, zone) === "Overdue")
-              .length,
-          )
-        : "…",
+      value: tasksReady ? String(overdueCount) : "…",
       detail: "Tasks needing attention",
       icon: AlertCircle,
       href: "#my-tasks",
-      danger: true,
-      theme: "text-destructive-content",
-      iconTheme: "bg-destructive-soft text-destructive-content",
+      theme: tasksReady && overdueCount > 0 ? "text-destructive-content" : "text-foreground",
+      iconTheme: tasksReady && overdueCount > 0 ? "bg-destructive-soft text-destructive-content" : "bg-secondary text-secondary-foreground",
       queries: [personal, project],
       errorHref: "#my-tasks",
       errorDetail: "Could not load all tasks. View retry options.",
     },
     {
       label: "Due today",
-      value: tasksReady
-        ? String(
-            tasks.filter((task) => taskBucket(task, today, zone) === "Today")
-              .length,
-          )
-        : "…",
+      value: tasksReady ? String(dueTodayCount) : "…",
       detail: "Open tasks due today",
       icon: ListChecks,
       href: "#my-tasks",
-      danger: false,
-      theme: "text-link",
-      iconTheme: "bg-primary-soft text-primary-soft-foreground",
+      theme: tasksReady && dueTodayCount > 0 ? "text-link" : "text-foreground",
+      iconTheme: tasksReady && dueTodayCount > 0 ? "bg-primary-soft text-primary-soft-foreground" : "bg-secondary text-secondary-foreground",
       queries: [personal, project],
       errorHref: "#my-tasks",
       errorDetail: "Could not load all tasks. View retry options.",
@@ -118,7 +112,6 @@ function PersonalDashboard() {
       detail: "Recorded focus time",
       icon: Clock3,
       href: "/pomodoro",
-      danger: false,
       theme: "text-foreground",
       iconTheme: "bg-secondary text-secondary-foreground",
       queries: [focus],
@@ -133,7 +126,6 @@ function PersonalDashboard() {
       href: next
         ? `/meetings/${encodeURIComponent(next.joinToken)}`
         : "/meetings",
-      danger: false,
       theme: "text-foreground",
       iconTheme: "bg-secondary text-secondary-foreground",
       queries: [meetings],
@@ -162,9 +154,15 @@ function PersonalDashboard() {
                   `, ${new Intl.DateTimeFormat("en", { timeZone: zone, day: "2-digit" }).format(new Date(now))}`}
                 <span className="text-link">.</span>
               </h1>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Your schedule, priorities and a little room to focus.
-              </p>
+              <div className="mt-3 flex min-h-11 min-w-0 items-center text-xs">
+                {contextTitle && contextHref ? (
+                  <Link href={contextHref} className="flex min-h-11 min-w-0 cursor-pointer flex-wrap items-center gap-x-2 gap-y-1 rounded-control py-1 text-link hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150">
+                    <Badge className={liveMeeting ? "bg-success-soft text-success-content" : undefined}>{liveMeeting ? "Live now" : "Up next"}</Badge>
+                    <span className="min-w-0 break-words font-medium [overflow-wrap:anywhere]">{contextTitle}</span>
+                    {!liveMeeting && nextItem && <span>{formatScheduledRelativeTime(nextItem.at, now)}</span>}
+                  </Link>
+                ) : <p className="text-muted-foreground">Your schedule, priorities and a little room to focus.</p>}
+              </div>
             </div>
           </div>
           <DashboardQuickActions />
@@ -184,11 +182,11 @@ function PersonalDashboard() {
                   if (stat.label === "Due today")
                     dashboard.setTaskFilter("Today");
                 }}
-                className={`flex min-h-36 min-w-0 flex-1 cursor-pointer flex-col rounded-panel p-4 transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:p-5 ${stat.theme}`}
+                className={`flex min-h-36 min-w-0 flex-1 cursor-pointer flex-col rounded-panel p-4 hover:bg-muted active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150 sm:p-5 ${hasError ? "text-foreground" : stat.theme}`}
               >
                 <div className="flex min-w-0 items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
                   <span>{stat.label}</span>
-                  <span className={`grid size-8 shrink-0 place-items-center rounded-control ${stat.iconTheme}`}>
+                  <span className={`grid size-8 shrink-0 place-items-center rounded-control ${hasError ? "bg-secondary text-secondary-foreground" : stat.iconTheme}`}>
                     <stat.icon aria-hidden size={17} />
                   </span>
                 </div>
@@ -217,59 +215,7 @@ function PersonalDashboard() {
           })}
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
-          <DashboardPanel
-            title="My day"
-            href="/calendar"
-            description="Your schedule and deadlines for today"
-          >
-            <QueryFeedback query={dashboard.events} label="calendar events" />
-            <QueryFeedback query={personal} label="personal deadlines" />
-            <QueryFeedback query={project} label="project deadlines" />
-            <QueryFeedback
-              query={dashboard.dayMeetings}
-              label="meeting schedule"
-            />
-            {!dayItems.length &&
-              dashboard.events.isSuccess &&
-              tasksReady &&
-              dashboard.dayMeetings.isSuccess && (
-                <EmptyState>
-                  No events or deadlines today. Make room for focused work.
-                </EmptyState>
-              )}
-            <ul className="border-l border-border pl-3">
-              {dayItems.map((item) => (
-                <li key={item.key}>
-                  <Link
-                    href={item.href}
-                    className="relative flex min-w-0 cursor-pointer items-center gap-3 border-b border-border py-4 pr-2 hover:bg-muted before:absolute before:-left-[17px] before:h-2 before:w-2 before:rounded-full before:bg-link"
-                  >
-                    <time className="w-16 shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
-                      {item.allDay ? "All day" : formatTime(item.at, zone)}
-                    </time>
-                    <span className="grid h-7 w-7 shrink-0 place-items-center text-muted-foreground">
-                      {item.kind === "Meeting" ? (
-                        <Video size={15} />
-                      ) : item.kind === "Task" ? (
-                        <ListChecks size={15} />
-                      ) : (
-                        <CalendarDays size={15} />
-                      )}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="line-clamp-2 break-words text-sm font-medium text-foreground [overflow-wrap:anywhere]">
-                        {item.title}
-                      </span>
-                      <span className="mt-1 block text-xs text-muted-foreground">
-                        {item.kind}
-                        {item.kind === "Task" ? " · Due today" : ""}
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </DashboardPanel>
+          <DashboardDay dashboard={dashboard} nextItemKey={nextItem?.key} />
           <div id="upcoming-meetings" className="flex min-w-0 scroll-mt-6">
             <DashboardMeetings dashboard={dashboard} />
           </div>

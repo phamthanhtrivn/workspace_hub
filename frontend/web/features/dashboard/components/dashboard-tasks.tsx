@@ -2,11 +2,17 @@ import { useId, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DashboardPanel, EmptyState, QueryFeedback } from "./dashboard-panel";
 import { taskBucket, taskDate } from "../utils/dashboard.utils";
 import type { useDashboard } from "../hooks/use-dashboard";
 
 const TASK_PREVIEW_LIMIT = 6;
+const PRIORITY_TONES: Record<string, string> = {
+  URGENT: "bg-destructive-soft text-destructive-content",
+  HIGH: "bg-warning-soft text-warning-content",
+  LOW: "bg-secondary text-secondary-foreground",
+};
 
 export function DashboardTasks({
   dashboard,
@@ -42,7 +48,7 @@ export function DashboardTasks({
             type="button"
             aria-pressed={filter === taskFilter}
             onClick={() => setTaskFilter(filter)}
-            className={`min-h-11 cursor-pointer border-b-2 px-3 py-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-9 [@media(pointer:coarse)]:min-h-11 ${filter === taskFilter ? "border-link text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            className={`min-h-11 cursor-pointer rounded-t-control border-b-2 px-3 py-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150 sm:min-h-9 [@media(pointer:coarse)]:min-h-11 ${filter === taskFilter ? "border-link bg-primary-soft text-primary-soft-foreground" : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"}`}
           >
             {filter}
           </Button>
@@ -65,24 +71,23 @@ export function DashboardTasks({
               <Link
                 href={task.href}
                 aria-label={`Open ${task.title}`}
-                className="grid min-w-0 cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-b border-border py-4 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex"
+                className="group grid min-w-0 cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-control border-b border-border px-2 py-4 hover:bg-muted active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150 sm:flex"
               >
                 <div className="min-w-0 flex-1">
-                  <span className="line-clamp-2 break-words text-sm font-medium text-foreground [overflow-wrap:anywhere]">
+                  <span className="line-clamp-2 break-words text-sm font-medium text-foreground group-hover:text-link [overflow-wrap:anywhere]">
                     {task.title}
                   </span>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">
-                    {task.projectName}
-                    {task.priority !== "MEDIUM" &&
-                      ` · ${task.priority.toLowerCase()}`}
-                  </p>
+                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
+                    {task.projectName && <span className="min-w-0 truncate text-xs text-muted-foreground">{task.projectName}</span>}
+                    {task.priority !== "MEDIUM" && <Badge variant="secondary" className={`max-w-full whitespace-normal break-words ${PRIORITY_TONES[task.priority] ?? ""}`}>{task.priority.toLowerCase()}</Badge>}
+                  </div>
                 </div>
-                <span
-                  className={`col-start-1 row-start-2 shrink-0 text-xs font-medium ${bucket === "Overdue" ? "text-destructive-content" : bucket === "Today" ? "text-link" : "text-muted-foreground"}`}
+                <Badge variant="secondary"
+                  className={`col-start-1 row-start-2 max-w-full justify-self-start whitespace-normal break-words ${bucket === "Overdue" ? "bg-destructive-soft text-destructive-content" : bucket === "Today" ? "bg-primary-soft text-primary-soft-foreground" : ""}`}
                   title={taskDate(task, zone)}
                 >
                   {bucket === "Upcoming" ? taskDate(task, zone) : bucket}
-                </span>
+                </Badge>
                 <ArrowUpRight
                   aria-hidden
                   size={16}

@@ -1,5 +1,8 @@
 "use client";
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import { Timer } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { DashboardPanel, QueryFeedback } from "./dashboard-panel";
 import { formatMinutes } from "../utils/dashboard.utils";
 import type { useDashboard } from "../hooks/use-dashboard";
@@ -11,7 +14,7 @@ const ProductivityChart = dynamic(
       <div
         role="status"
         aria-label="Loading focus chart"
-        className="h-60 animate-pulse rounded-control bg-muted"
+        className="h-60 rounded-control bg-muted motion-safe:animate-pulse"
       />
     ),
   },
@@ -23,6 +26,7 @@ export function DashboardProductivity({
   dashboard: ReturnType<typeof useDashboard>;
 }) {
   const todayFocus = dashboard.daily.at(-1);
+  const totalMinutes = dashboard.daily.reduce((sum, day) => sum + day.minutes, 0);
   return (
     <DashboardPanel
       title="Productivity"
@@ -35,7 +39,7 @@ export function DashboardProductivity({
           <dl className="mb-5 flex min-w-0 flex-wrap gap-x-6 gap-y-4">
             <div className="min-w-0 flex-1 basis-40">
               <dt className="text-xs text-muted-foreground">Focus today</dt>
-              <dd className="mt-2 break-words text-3xl font-medium tracking-tight text-foreground tabular-nums">
+              <dd className={`mt-2 break-words text-3xl font-semibold tracking-tight tabular-nums ${todayFocus && todayFocus.minutes > 0 ? "text-link" : "text-foreground"}`}>
                 {todayFocus ? formatMinutes(todayFocus.minutes) : "—"}
               </dd>
               {todayFocus && (
@@ -46,13 +50,22 @@ export function DashboardProductivity({
             </div>
             <div className="min-w-0 flex-1 basis-40">
               <dt className="text-xs text-muted-foreground">Last 7 days</dt>
-              <dd className="mt-2 break-words text-3xl font-medium tracking-tight text-foreground tabular-nums">
-                {formatMinutes(dashboard.daily.reduce((sum, day) => sum + day.minutes, 0))}
+              <dd className="mt-2 break-words text-2xl font-medium tracking-tight text-foreground tabular-nums">
+                {formatMinutes(totalMinutes)}
               </dd>
               <dd className="mt-1 text-xs text-muted-foreground">Recorded focus</dd>
             </div>
           </dl>
-          <ProductivityChart days={dashboard.daily} />
+          {totalMinutes > 0 ? <ProductivityChart days={dashboard.daily} /> : (
+            <div className="flex flex-col items-start gap-3 border-t border-border py-5">
+              <span className="grid size-10 place-items-center rounded-control bg-secondary text-secondary-foreground"><Timer aria-hidden size={20} /></span>
+              <div>
+                <p className="text-sm font-medium text-foreground">Make room for a little focused work.</p>
+                <p className="mt-1 text-xs text-muted-foreground">No recorded focus this week. Start when you are ready.</p>
+              </div>
+              <Button asChild size="sm" className="min-h-11 sm:min-h-9 [@media(pointer:coarse)]:min-h-11 motion-reduce:transition-none"><Link href="/pomodoro">Open Pomodoro</Link></Button>
+            </div>
+          )}
           <details className="mt-3 text-xs text-muted-foreground">
             <summary className="min-h-11 cursor-pointer content-center rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
               Daily totals

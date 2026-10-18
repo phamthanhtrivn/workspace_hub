@@ -42,7 +42,7 @@ export function DashboardPanel({
           <Link
             href={href}
             aria-label={`View all: ${title}`}
-            className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1 text-xs font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11"
+            className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1 rounded-control text-xs font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150 sm:min-h-6 [@media(pointer:coarse)]:min-h-11"
           >
             View all <ArrowUpRight size={14} />
           </Link>

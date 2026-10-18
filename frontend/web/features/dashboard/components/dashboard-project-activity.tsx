@@ -52,6 +52,7 @@ export function DashboardProjectActivity({
   const total = days
     .filter((day) => !day.future)
     .reduce((sum, day) => sum + day.count, 0);
+  const activeDays = days.filter((day) => !day.future && day.count > 0).length;
   return (
     <DashboardPanel
       title="Task activity"
@@ -60,10 +61,12 @@ export function DashboardProjectActivity({
       <QueryFeedback query={tasks} label="completed tasks" />
       {tasks.data !== undefined && (
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{total}</span>{" "}
-            tasks completed
-          </p>
+          <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm text-muted-foreground">
+              <span className="text-2xl font-semibold text-foreground tabular-nums">{total}</span>{" "}tasks completed
+            </p>
+            <p className="text-xs text-muted-foreground">{activeDays} {activeDays === 1 ? "active day" : "active days"} in this period</p>
+          </div>
           <div className="flex min-w-0 items-stretch gap-2">
             <div
               aria-hidden
@@ -88,10 +91,10 @@ export function DashboardProjectActivity({
                   aria-label={
                     day.future
                       ? `${day.date}: future date`
-                      : `${day.date}: ${day.count} completed tasks`
+                      : `${day.date === today ? "Today, " : ""}${day.date}: ${day.count} completed tasks`
                   }
-                  title={`${day.date}: ${day.count} completed tasks`}
-                  className={`aspect-square min-w-0 rounded-sm ${day.future ? "invisible" : levels[day.level]}`}
+                  title={`${day.date === today ? "Today, " : ""}${day.date}: ${day.count} completed tasks`}
+                  className={`aspect-square min-w-0 rounded-sm ${day.future ? "invisible" : levels[day.level]} ${day.date === today ? "outline-2 outline-offset-1 outline-ring" : ""}`}
                 />
               ))}
             </div>
@@ -113,7 +116,7 @@ export function DashboardProjectActivity({
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Each square represents a day. Open Daily totals for exact counts.
+            Each square represents a day. Today is outlined. Open Daily totals for exact counts.
           </p>
           <details className="text-xs text-muted-foreground">
             <summary className="min-h-11 cursor-pointer content-center rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
