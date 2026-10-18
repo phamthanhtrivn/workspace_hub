@@ -4,6 +4,38 @@ Updated 2026-10-18. This records the approved targeted simplification. Inter, wo
 
 The original inventory contains **417 TSX files** across **687 source files**. Every TSX file is listed below: **328 change**, **70 keep**, and **19 functional/content exception**. An exception may include changes to surrounding interface styling. Shared focus logic is listed separately. The added tests, temporary scripts, Playwright setup, and generated test reports were subsequently removed at the user's request; the verification results below are historical.
 
+<!-- dashboard-panel-layout:start -->
+## Dashboard balanced panel rows — 2026-10-18
+
+The Dashboard now uses one row-based grid: My day / Upcoming meetings, My tasks /
+Productivity, full-width Active projects, then Recent activity / Task activity.
+Named container queries switch to two equal columns at 960px of available content,
+independent of viewport width or sidebar state. Below that, the DOM reading order
+stacks naturally. Gaps are consistently 24px; the previous asymmetric column
+padding is removed. Panels stretch with their row without fixed content heights.
+
+Today's focus time and completed sessions now share the Productivity panel with
+the seven-day total, existing 240px chart and Daily totals disclosure. The unused
+standalone Focus component is removed. One focus query/feedback group remains;
+cached focus and task activity remain visible alongside a refresh error.
+Active projects distribute only the existing one/two/three entries at 640px of
+Dashboard content width. The heatmap scales up to 384px with square cells and
+aligned weekday labels; expanding its totals grows the page without nested scrolling.
+The auth-loading skeleton mirrors all seven panel positions and their container
+breakpoint. Stat cards, weather/location preference, anchor targets, task filters,
+Show more/fewer, links, APIs and query ownership remain unchanged.
+
+Browser inventory is empty. Live 375/768/1366/1920px, sidebar, theme and interaction
+checks cannot run. Focused ESLint and one non-incremental TypeScript pass succeeded.
+An in-memory Tailwind compilation confirmed the named 960px container query,
+equal columns, full-width project row and square heatmap cells. Static rendering of
+the actual merged Productivity component covered pending, initial error, success,
+cached refresh error and zero sessions, confirming one retry group and preserved
+cached metrics. The dynamic chart was stubbed for that check; interactive filters,
+Show more/fewer, charts and Daily totals were not browser-tested. No packages,
+test/script files or cache configuration were added.
+<!-- dashboard-panel-layout:end -->
+
 <!-- dashboard-stat-weather:start -->
 ## Dashboard stat cards and local weather — 2026-10-18
 

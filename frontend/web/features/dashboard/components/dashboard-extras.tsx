@@ -53,14 +53,14 @@ export function DashboardExtras({
   };
   return (
     <>
-      <DashboardPanel title="Active projects" href="/projects">
+      <DashboardPanel title="Active projects" href="/projects" className="col-span-full">
         <QueryFeedback query={extras.projects} label="projects" />
         {extras.projects.isSuccess && !projects.length && (
           <EmptyState>
             No active projects yet. Open Projects to get started.
           </EmptyState>
         )}
-        <div className="grid min-w-0 grid-cols-1 gap-5 md:grid-cols-3">
+        <div className={`grid min-w-0 grid-cols-1 gap-6 ${projects.length === 3 ? "@min-[640px]/dashboard:grid-cols-3" : projects.length === 2 ? "@min-[640px]/dashboard:grid-cols-2" : ""}`}>
           {projects.map((project, index) => {
             const query = extras.counts[index];
             const counts = query?.data;
@@ -139,53 +139,51 @@ export function DashboardExtras({
           })}
         </div>
       </DashboardPanel>
-      <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-2">
-        <DashboardPanel
-          title="Recent activity"
-          description="Your latest notifications"
-        >
-          <QueryFeedback query={extras.notifications} label="notifications" />
-          {extras.notifications.isSuccess &&
-            !extras.notifications.data.data.length && (
-              <EmptyState>No recent notifications.</EmptyState>
-            )}
-          <ul className="space-y-1">
-            {extras.notifications.data?.data.map((item) => (
-              <li key={item.id}>
-                <Button variant="unstyled"
-                  type="button"
-                  onClick={() => openNotification(item)}
-                  className={`flex w-full min-w-0 cursor-pointer flex-wrap items-start gap-3 rounded-control p-3 text-left hover:bg-muted ${item.isRead ? "" : "bg-info-soft"}`}
-                >
-                  <Bell size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1 basis-24">
-                    <span className="block truncate text-sm font-medium text-foreground">
-                      {item.title}
-                    </span>
-                    <span className="mt-1 block truncate text-xs text-muted-foreground">
-                      {item.content}
-                    </span>
+      <DashboardPanel
+        title="Recent activity"
+        description="Your latest notifications"
+      >
+        <QueryFeedback query={extras.notifications} label="notifications" />
+        {extras.notifications.isSuccess &&
+          !extras.notifications.data.data.length && (
+            <EmptyState>No recent notifications.</EmptyState>
+          )}
+        <ul className="space-y-1">
+          {extras.notifications.data?.data.map((item) => (
+            <li key={item.id}>
+              <Button variant="unstyled"
+                type="button"
+                onClick={() => openNotification(item)}
+                className={`flex w-full min-w-0 cursor-pointer flex-wrap items-start gap-3 rounded-control p-3 text-left hover:bg-muted ${item.isRead ? "" : "bg-info-soft"}`}
+              >
+                <Bell size={16} className="mt-0.5 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1 basis-24">
+                  <span className="block truncate text-sm font-medium text-foreground">
+                    {item.title}
                   </span>
-                  <time
-                    dateTime={item.createdAt}
-                    className="shrink-0 text-xs text-muted-foreground"
-                  >
-                    {new Intl.DateTimeFormat("en", {
-                      timeZone: dashboard.zone,
-                      month: "short",
-                      day: "numeric",
-                    }).format(new Date(item.createdAt))}
-                  </time>
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </DashboardPanel>
-        <DashboardProjectActivity
-          today={dashboard.today}
-          zone={dashboard.zone}
-        />
-      </div>
+                  <span className="mt-1 block truncate text-xs text-muted-foreground">
+                    {item.content}
+                  </span>
+                </span>
+                <time
+                  dateTime={item.createdAt}
+                  className="shrink-0 text-xs text-muted-foreground"
+                >
+                  {new Intl.DateTimeFormat("en", {
+                    timeZone: dashboard.zone,
+                    month: "short",
+                    day: "numeric",
+                  }).format(new Date(item.createdAt))}
+                </time>
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </DashboardPanel>
+      <DashboardProjectActivity
+        today={dashboard.today}
+        zone={dashboard.zone}
+      />
       {notification && (
         <DashboardNotificationDialog
           notification={notification}

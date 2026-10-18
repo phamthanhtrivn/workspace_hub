@@ -58,16 +58,16 @@ export function DashboardProjectActivity({
       description="Completed tasks over the last 12 weeks"
     >
       <QueryFeedback query={tasks} label="completed tasks" />
-      {tasks.isSuccess && (
+      {tasks.data !== undefined && (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{total}</span>{" "}
             tasks completed
           </p>
-          <div className="flex min-w-0 gap-2">
+          <div className="flex min-w-0 items-stretch gap-2">
             <div
               aria-hidden
-              className="grid h-32 shrink-0 grid-rows-7 items-center text-xs text-muted-foreground"
+              className="grid shrink-0 grid-rows-7 items-center gap-1 text-xs text-muted-foreground"
             >
               <span />
               <span>Mon</span>
@@ -78,7 +78,7 @@ export function DashboardProjectActivity({
               <span />
             </div>
             <div
-              className="grid h-32 min-w-0 w-56 max-w-full grid-flow-col grid-cols-12 grid-rows-7 gap-1"
+              className="grid min-w-0 w-full max-w-96 grid-flow-col grid-cols-12 grid-rows-7 gap-1"
               aria-label="Daily completed tasks"
             >
               {days.map((day) => (
@@ -91,7 +91,7 @@ export function DashboardProjectActivity({
                       : `${day.date}: ${day.count} completed tasks`
                   }
                   title={`${day.date}: ${day.count} completed tasks`}
-                  className={`rounded-sm ${day.future ? "invisible" : levels[day.level]}`}
+                  className={`aspect-square min-w-0 rounded-sm ${day.future ? "invisible" : levels[day.level]}`}
                 />
               ))}
             </div>
@@ -123,7 +123,7 @@ export function DashboardProjectActivity({
               role="region"
               aria-label="Daily completed task totals"
               tabIndex={0}
-              className="mt-2 max-h-64 overflow-y-auto overscroll-contain rounded-control p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="mt-2 rounded-control p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <ul className="grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
                 {days.filter((day) => !day.future).map((day) => (

@@ -13,7 +13,6 @@ import { useDashboard } from "../hooks/use-dashboard";
 import { DashboardPanel, EmptyState, QueryFeedback } from "./dashboard-panel";
 import { DashboardTasks } from "./dashboard-tasks";
 import { DashboardProductivity } from "./dashboard-productivity";
-import { DashboardFocus } from "./dashboard-focus";
 import { DashboardMeetings } from "./dashboard-meetings";
 import { DashboardExtras } from "./dashboard-extras";
 import {
@@ -144,7 +143,7 @@ function PersonalDashboard() {
   ];
   return (
     <div className="min-h-full min-w-0 w-full bg-background text-foreground">
-      <div className="min-w-0 w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="@container/dashboard min-w-0 w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <header className="flex flex-wrap items-end justify-between gap-5">
           <div className="flex min-w-0 max-w-full items-center gap-4 sm:gap-6">
             <DashboardWeather now={now} zone={zone} />
@@ -217,79 +216,71 @@ function PersonalDashboard() {
             );
           })}
         </div>
-        <div className="grid min-w-0 grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)] xl:gap-10">
-          <div className="min-w-0 space-y-6">
-            <DashboardPanel
-              title="My day"
-              href="/calendar"
-              description="Your schedule and deadlines for today"
-            >
-              <QueryFeedback query={dashboard.events} label="calendar events" />
-              <QueryFeedback query={personal} label="personal deadlines" />
-              <QueryFeedback query={project} label="project deadlines" />
-              <QueryFeedback
-                query={dashboard.dayMeetings}
-                label="meeting schedule"
-              />
-              {!dayItems.length &&
-                dashboard.events.isSuccess &&
-                tasksReady &&
-                dashboard.dayMeetings.isSuccess && (
-                  <EmptyState>
-                    No events or deadlines today. Make room for focused work.
-                  </EmptyState>
-                )}
-              <ul className="border-l border-border pl-3">
-                {dayItems.map((item) => (
-                  <li key={item.key}>
-                    <Link
-                      href={item.href}
-                      className="relative flex min-w-0 cursor-pointer items-center gap-3 border-b border-border py-4 pr-2 hover:bg-muted before:absolute before:-left-[17px] before:h-2 before:w-2 before:rounded-full before:bg-link"
-                    >
-                      <time className="w-16 shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
-                        {item.allDay ? "All day" : formatTime(item.at, zone)}
-                      </time>
-                      <span className="grid h-7 w-7 shrink-0 place-items-center text-muted-foreground">
-                        {item.kind === "Meeting" ? (
-                          <Video size={15} />
-                        ) : item.kind === "Task" ? (
-                          <ListChecks size={15} />
-                        ) : (
-                          <CalendarDays size={15} />
-                        )}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="line-clamp-2 break-words text-sm font-medium text-foreground [overflow-wrap:anywhere]">
-                          {item.title}
-                        </span>
-                        <span className="mt-1 block text-xs text-muted-foreground">
-                          {item.kind}
-                          {item.kind === "Task" ? " · Due today" : ""}
-                        </span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </DashboardPanel>
-            <div id="my-tasks" className="scroll-mt-6">
-              <DashboardTasks dashboard={dashboard} />
-            </div>
-          </div>
-          <div className="min-w-0 space-y-8 xl:pl-8">
-            <div id="focus-report" className="scroll-mt-6">
-              <DashboardProductivity dashboard={dashboard} />
-            </div>
-            <DashboardFocus
-              query={focus}
-              today={focus.isSuccess ? todayFocus : undefined}
+        <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
+          <DashboardPanel
+            title="My day"
+            href="/calendar"
+            description="Your schedule and deadlines for today"
+          >
+            <QueryFeedback query={dashboard.events} label="calendar events" />
+            <QueryFeedback query={personal} label="personal deadlines" />
+            <QueryFeedback query={project} label="project deadlines" />
+            <QueryFeedback
+              query={dashboard.dayMeetings}
+              label="meeting schedule"
             />
-            <div id="upcoming-meetings" className="scroll-mt-6">
-              <DashboardMeetings dashboard={dashboard} />
-            </div>
+            {!dayItems.length &&
+              dashboard.events.isSuccess &&
+              tasksReady &&
+              dashboard.dayMeetings.isSuccess && (
+                <EmptyState>
+                  No events or deadlines today. Make room for focused work.
+                </EmptyState>
+              )}
+            <ul className="border-l border-border pl-3">
+              {dayItems.map((item) => (
+                <li key={item.key}>
+                  <Link
+                    href={item.href}
+                    className="relative flex min-w-0 cursor-pointer items-center gap-3 border-b border-border py-4 pr-2 hover:bg-muted before:absolute before:-left-[17px] before:h-2 before:w-2 before:rounded-full before:bg-link"
+                  >
+                    <time className="w-16 shrink-0 text-xs font-medium tabular-nums text-muted-foreground">
+                      {item.allDay ? "All day" : formatTime(item.at, zone)}
+                    </time>
+                    <span className="grid h-7 w-7 shrink-0 place-items-center text-muted-foreground">
+                      {item.kind === "Meeting" ? (
+                        <Video size={15} />
+                      ) : item.kind === "Task" ? (
+                        <ListChecks size={15} />
+                      ) : (
+                        <CalendarDays size={15} />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="line-clamp-2 break-words text-sm font-medium text-foreground [overflow-wrap:anywhere]">
+                        {item.title}
+                      </span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {item.kind}
+                        {item.kind === "Task" ? " · Due today" : ""}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </DashboardPanel>
+          <div id="upcoming-meetings" className="flex min-w-0 scroll-mt-6">
+            <DashboardMeetings dashboard={dashboard} />
           </div>
+          <div id="my-tasks" className="flex min-w-0 scroll-mt-6">
+            <DashboardTasks dashboard={dashboard} />
+          </div>
+          <div id="focus-report" className="flex min-w-0 scroll-mt-6">
+            <DashboardProductivity dashboard={dashboard} />
+          </div>
+          <DashboardExtras dashboard={dashboard} />
         </div>
-        <DashboardExtras dashboard={dashboard} />
       </div>
     </div>
   );
@@ -302,13 +293,17 @@ export function DashboardView() {
       <div
         role="status"
         aria-label="Loading your dashboard"
-        className="min-w-0 w-full space-y-5 px-4 py-6 sm:px-6 lg:px-8"
+        className="@container/dashboard min-w-0 w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8"
       >
         <Skeleton className="h-10 w-64 max-w-full" />
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-36 w-full rounded-panel" />)}
         </div>
-        <Skeleton className="h-96 w-full" />
+        <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
+          {["h-48", "h-48", "h-[28rem]", "h-[28rem]", "h-48", "h-80", "h-80"].map((height, index) => (
+            <Skeleton key={index} className={`w-full rounded-panel ${height} ${index === 4 ? "col-span-full" : ""}`} />
+          ))}
+        </div>
       </div>
     );
   return <PersonalDashboard key={userId} />;

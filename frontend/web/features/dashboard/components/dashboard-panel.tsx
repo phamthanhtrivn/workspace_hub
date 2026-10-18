@@ -3,6 +3,7 @@ import { ArrowUpRight, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 
 export function DashboardPanel({
@@ -11,16 +12,22 @@ export function DashboardPanel({
   children,
   description,
   tone = "default",
+  className,
 }: {
   title: string;
   href?: string;
   children: ReactNode;
   description?: string;
   tone?: "default" | "focus";
+  className?: string;
 }) {
   return (
     <section
-      className={`min-w-0 overflow-hidden rounded-panel border border-border ${tone === "focus" ? "bg-secondary" : "bg-card"}`}
+      className={cn(
+        "flex min-w-0 flex-1 flex-col overflow-hidden rounded-panel border border-border",
+        tone === "focus" ? "bg-secondary" : "bg-card",
+        className,
+      )}
     >
       <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-border px-4 py-4">
         <div className="min-w-0 flex-1 basis-40 break-words">
