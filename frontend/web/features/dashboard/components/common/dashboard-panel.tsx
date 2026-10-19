@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { ArrowUpRight, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { ViewAllAction } from "@/components/common/view-all-action";
 import { cn } from "@/lib/utils";
 
 
@@ -39,11 +39,7 @@ export function DashboardPanel({
           )}
         </div>
         {href && (
-          <Button asChild variant="link" size="sm" className="h-auto min-h-11 gap-1 px-0 text-xs font-medium text-muted-foreground hover:text-link sm:min-h-6 [@media(pointer:coarse)]:min-h-11 motion-reduce:transition-none [&_svg]:size-3.5">
-            <Link href={href} aria-label={`View all: ${title}`}>
-              View all <ArrowUpRight aria-hidden size={14} />
-            </Link>
-          </Button>
+          <ViewAllAction label="View all" href={href} aria-label={`View all: ${title}`} />
         )}
       </div>
       <div className="min-w-0 p-4">{children}</div>

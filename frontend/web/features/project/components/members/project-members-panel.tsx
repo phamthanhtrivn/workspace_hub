@@ -19,7 +19,6 @@ import {
 import { useProjectConfirmDialog } from "@/features/project/hooks/use-project-confirm-dialog";
 import { ProjectConfirmDialog } from "../ui/project-confirm-dialog";
 import {
-  ChevronRight,
   Settings2,
   Star,
   Trash2,
@@ -28,6 +27,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { ViewAllAction } from "@/components/common/view-all-action";
 
 const ROLE_CONFIG: Record<
   ProjectRole,
@@ -226,15 +226,12 @@ export default function ProjectMembersPanel({
         invitations={pendingInvitations}
       />
       {onViewAll && (
-        <Button
-          type="button"
-          variant="outline"
+        <ViewAllAction
+          label="View all members"
+          appearance="row"
           onClick={onViewAll}
-          className="mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-control border border-border bg-background py-2 text-xs font-semibold text-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <span>View all members</span>
-          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-        </Button>
+          className="mt-3"
+        />
       )}
       {canInvite && (
         <InviteMemberDialog

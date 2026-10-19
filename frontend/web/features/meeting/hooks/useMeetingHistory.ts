@@ -6,8 +6,9 @@ import {
   getMeetingHistorySummary,
 } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
+import { MEETING_LIST_PAGE_SIZE } from "../types/meeting.constants";
 
-export const meetingHistoryPageSize = 9;
+export const meetingHistoryPageSize = MEETING_LIST_PAGE_SIZE;
 
 export function useMeetingHistory({
   page,

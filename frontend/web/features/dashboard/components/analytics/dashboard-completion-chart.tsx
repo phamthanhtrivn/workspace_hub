@@ -2,8 +2,8 @@
 
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { COMPLETION_CHART_CONFIG } from "../constants/dashboard-chart-config";
-import type { TaskCompletionDay } from "../types/dashboard-analytics.types";
+import { COMPLETION_CHART_CONFIG } from "../../constants/dashboard-chart-config";
+import type { TaskCompletionDay } from "../../types/dashboard-analytics.types";
 
 export default function DashboardCompletionChart({ days }: { days: TaskCompletionDay[] }) {
   return (

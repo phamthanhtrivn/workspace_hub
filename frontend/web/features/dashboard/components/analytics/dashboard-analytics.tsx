@@ -4,11 +4,11 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { COMPLETION_PERIODS, DEFAULT_COMPLETION_PERIOD, MAX_WORKLOAD_PROJECTS } from "../constants/dashboard-analytics";
-import type { useDashboard } from "../hooks/use-dashboard";
-import type { CompletionPeriod } from "../types/dashboard-analytics.types";
-import { buildProjectWorkload, buildTaskCompletionTrend, buildTaskDeadlineDistribution } from "../utils/dashboard-analytics.utils";
-import { DashboardPanel, EmptyState } from "./dashboard-panel";
+import { COMPLETION_PERIODS, DEFAULT_COMPLETION_PERIOD, MAX_WORKLOAD_PROJECTS } from "../../constants/dashboard-analytics";
+import type { useDashboard } from "../../hooks/use-dashboard";
+import type { CompletionPeriod } from "../../types/dashboard-analytics.types";
+import { buildProjectWorkload, buildTaskCompletionTrend, buildTaskDeadlineDistribution } from "../../utils/dashboard-analytics.utils";
+import { DashboardPanel, EmptyState } from "../common/dashboard-panel";
 import { DashboardChartData, DashboardChartFeedback, DashboardChartSkeleton } from "./dashboard-chart-support";
 
 const DeadlineChart = dynamic(() => import("./dashboard-deadline-chart"), { ssr: false, loading: DashboardChartSkeleton });

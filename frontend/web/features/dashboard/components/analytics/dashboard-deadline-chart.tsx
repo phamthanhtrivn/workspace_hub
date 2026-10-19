@@ -2,8 +2,8 @@
 
 import { Label, Pie, PieChart } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { DEADLINE_CHART_CONFIG } from "../constants/dashboard-chart-config";
-import type { TaskDeadlineSlice } from "../types/dashboard-analytics.types";
+import { DEADLINE_CHART_CONFIG } from "../../constants/dashboard-chart-config";
+import type { TaskDeadlineSlice } from "../../types/dashboard-analytics.types";
 
 export default function DashboardDeadlineChart({ slices }: { slices: TaskDeadlineSlice[] }) {
   const total = slices.reduce((sum, slice) => sum + slice.count, 0);

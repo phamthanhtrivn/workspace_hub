@@ -3,10 +3,10 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DashboardPanel, QueryFeedback } from "./dashboard-panel";
-import { DashboardDisclosure } from "./dashboard-disclosure";
-import { formatMinutes } from "../utils/dashboard.utils";
-import type { useDashboard } from "../hooks/use-dashboard";
+import { DashboardPanel, QueryFeedback } from "../common/dashboard-panel";
+import { DashboardDisclosure } from "../common/dashboard-disclosure";
+import { formatMinutes } from "../../utils/dashboard.utils";
+import type { useDashboard } from "../../hooks/use-dashboard";
 const ProductivityChart = dynamic(
   () => import("./dashboard-productivity-chart"),
   {

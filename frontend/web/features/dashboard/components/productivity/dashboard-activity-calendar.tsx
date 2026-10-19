@@ -1,8 +1,8 @@
 import { useId, type CSSProperties } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { DashboardActivity } from "../utils/dashboard-activity.utils";
+import type { DashboardActivity } from "../../utils/dashboard-activity.utils";
 import styles from "./dashboard-activity-calendar.module.css";
-import { DashboardDisclosure } from "./dashboard-disclosure";
+import { DashboardDisclosure } from "../common/dashboard-disclosure";
 
 const ACTIVITY_LEVELS = [0, 1, 2, 3, 4];
 const WEEKDAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];

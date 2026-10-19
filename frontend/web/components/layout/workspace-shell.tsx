@@ -319,7 +319,8 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
         <main
           className={cn(
             "flex-1",
-            pathname.startsWith("/chat") ||
+            pathname === "/projects" ||
+              pathname.startsWith("/chat") ||
               pathname.startsWith("/documents") ||
               pathname.startsWith("/meetings") ||
               pathname.startsWith("/calendar")

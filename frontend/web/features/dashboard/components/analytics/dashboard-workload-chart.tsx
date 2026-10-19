@@ -2,8 +2,8 @@
 
 import { Bar, BarChart, BarStack, CartesianGrid, LabelList, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { WORKLOAD_CHART_CONFIG } from "../constants/dashboard-chart-config";
-import type { ProjectWorkload } from "../types/dashboard-analytics.types";
+import { WORKLOAD_CHART_CONFIG } from "../../constants/dashboard-chart-config";
+import type { ProjectWorkload } from "../../types/dashboard-analytics.types";
 
 export default function DashboardWorkloadChart({ projects }: { projects: ProjectWorkload[] }) {
   const names = new Map(projects.map((project) => [project.projectId, project.projectName]));

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { MeetingRoomPanel } from "./meeting.types";
 
+export const MEETING_LIST_PAGE_SIZE = 12;
+
 export const MEETING_ROUTES = {
   DASHBOARD: "/meetings",
   room: (joinToken: string) => `/meetings/${encodeURIComponent(joinToken)}`,

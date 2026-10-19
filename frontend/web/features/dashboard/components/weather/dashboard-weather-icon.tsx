@@ -1,4 +1,4 @@
-import type { WeatherCondition } from "../types/dashboard-weather.types";
+import type { WeatherCondition } from "../../types/dashboard-weather.types";
 
 const CLOUD = "fill-slate-100 stroke-slate-500 dark:fill-slate-600 dark:stroke-slate-300";
 const RAIN = "fill-sky-600 stroke-sky-700 dark:fill-sky-400 dark:stroke-sky-300";

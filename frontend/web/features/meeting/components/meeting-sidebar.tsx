@@ -1,13 +1,12 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { FeatureSidebarItem } from "@/components/common/feature-sidebar-item";
 import {
   MeetingDashboardNavItemId,
   meetingDashboardNavItems,
   meetingNavIconById,
 } from "../types/meeting.constants";
 import { MeetingSidebarStatsPanel } from "./meeting-sidebar-stats-panel";
-import { Button } from "@/components/ui/button";
 
 
 interface MeetingSidebarProps {
@@ -34,46 +33,23 @@ export function MeetingSidebar({
         aria-label="Meeting sidebar"
         tabIndex={0}
       >
-      <nav
-        className="flex w-max min-w-full shrink-0 gap-2 pb-2 @min-[1120px]/meetings:w-full @min-[1120px]/meetings:flex-col @min-[1120px]/meetings:pb-0"
-        aria-label="Meeting dashboard"
-      >
-        {meetingDashboardNavItems.map((item) => {
-          const Icon = meetingNavIconById[item.id];
-          const isActive = item.id === activeItemId;
-          const isEnabled = enabledMeetingNavItems.has(item.id);
-
-          return (
-            <Button variant="unstyled"
+        <nav
+          className="flex w-max min-w-full shrink-0 gap-1.5 pb-2 @min-[1120px]/meetings:w-full @min-[1120px]/meetings:flex-col @min-[1120px]/meetings:pb-0"
+          aria-label="Meeting dashboard"
+        >
+          {meetingDashboardNavItems.map((item) => (
+            <FeatureSidebarItem
               key={item.id}
-              type="button"
-              disabled={!isEnabled}
+              icon={meetingNavIconById[item.id]}
+              label={item.label}
+              active={item.id === activeItemId}
+              disabled={!enabledMeetingNavItems.has(item.id)}
               onClick={() => onItemSelect(item.id)}
-              className={cn(
-                "cursor-pointer flex h-12 shrink-0 items-center gap-3 rounded-control px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
-                isActive
-                  ? "bg-primary-soft text-primary-soft-foreground"
-                  : "text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-70",
-              )}
-              aria-current={isActive ? "page" : undefined}
-            >
-              <span
-                className={cn(
-                  "grid h-8 w-8 shrink-0 place-items-center",
-                  isActive ? "text-primary-soft-foreground" : "text-muted-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4" aria-hidden />
-              </span>
-              <span className="whitespace-nowrap">
-                {item.label}
-              </span>
-            </Button>
-          );
-        })}
-      </nav>
+            />
+          ))}
+        </nav>
 
-      <MeetingSidebarStatsPanel />
+        <MeetingSidebarStatsPanel />
       </div>
     </aside>
   );
