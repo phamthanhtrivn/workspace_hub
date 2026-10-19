@@ -18,11 +18,13 @@ import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
 import { MeetingRecordingPlayer } from "./meeting-recording-player";
 import { MeetingRecordingShareDialog } from "./meeting-recording-share-dialog";
 import { NativeSelect } from "@/components/ui/native-select";
+import { MEETING_LIST_PAGE_SIZE } from "../../types/meeting.constants";
 
 
 export function MeetingRecordingsView() {
   const [params, setParams] = useState<RecordingQuery>({
     page: 1,
+    limit: MEETING_LIST_PAGE_SIZE,
     scope: "all",
   });
   const { query, remove, refresh } = useMeetingRecordings(params);
