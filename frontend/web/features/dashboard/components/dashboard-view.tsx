@@ -15,6 +15,7 @@ import { DashboardTasks } from "./dashboard-tasks";
 import { DashboardProductivity } from "./dashboard-productivity";
 import { DashboardMeetings } from "./dashboard-meetings";
 import { DashboardExtras } from "./dashboard-extras";
+import { DashboardAnalytics } from "./dashboard-analytics";
 import {
   formatMinutes,
   taskBucket,
@@ -214,6 +215,7 @@ function PersonalDashboard() {
             );
           })}
         </div>
+        <DashboardAnalytics dashboard={dashboard} />
         <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
           <DashboardDay dashboard={dashboard} nextItemKey={nextItem?.key} />
           <div id="upcoming-meetings" className="flex min-w-0 scroll-mt-6">
@@ -244,6 +246,11 @@ export function DashboardView() {
         <Skeleton className="h-10 w-64 max-w-full" />
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-36 w-full rounded-panel" />)}
+        </div>
+        <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
+          {[false, false, true].map((fullWidth, index) => (
+            <Skeleton key={index} className={`h-80 w-full rounded-panel ${fullWidth ? "col-span-full" : ""}`} />
+          ))}
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
           {["h-48", "h-48", "h-[28rem]", "h-[28rem]", "h-48", "h-80", "h-80"].map((height, index) => (

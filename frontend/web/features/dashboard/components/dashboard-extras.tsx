@@ -181,6 +181,7 @@ export function DashboardExtras({
         </ul>
       </DashboardPanel>
       <DashboardProjectActivity
+        tasks={dashboard.completedTasks}
         today={dashboard.today}
         zone={dashboard.zone}
       />

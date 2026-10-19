@@ -4,6 +4,7 @@ export interface DashboardTask {
   href: string;
   source: "calendar" | "project";
   sourceId: string;
+  projectId?: string;
   projectName?: string;
   dueAt: string | null;
   dateOnly: boolean;

@@ -14,10 +14,11 @@ import {
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
 import type { DashboardTask } from "../types/dashboard.types";
+import type { DashboardCompletedTask } from "../types/dashboard-analytics.types";
 import { getUpcomingMeetings } from "@/features/meeting/api/meeting.api";
 import type { UpcomingMeetingItem } from "@/features/meeting/types/meeting.types";
 
-export async function getDashboardCompletedTasks(userId: string) {
+export async function getDashboardCompletedTasks(userId: string): Promise<DashboardCompletedTask[]> {
   const [events, calendars, projects] = await Promise.all([
     getAllCalendarTasks(),
     getCalendars(),
@@ -33,7 +34,7 @@ export async function getDashboardCompletedTasks(userId: string) {
       )
       .map((calendar) => calendar.id),
   );
-  const completed = new Map<string, { key: string; completedAt: string }>();
+  const completed = new Map<string, DashboardCompletedTask>();
   for (const event of events) {
     if (
       personalCalendars.has(event.calendarId) &&
@@ -152,6 +153,7 @@ export async function getProjectDashboardTasks(
                 key: `project:${task.id}`,
                 source: "project" as const,
                 sourceId: task.id,
+                projectId: project.id,
                 title: task.title,
                 href: `/projects/${encodeURIComponent(project.id)}?taskId=${encodeURIComponent(task.id)}`,
                 projectName: project.name,
