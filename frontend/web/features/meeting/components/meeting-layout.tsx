@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { MeetingHero } from "./common/meeting-hero";
 import { MeetingActionTile } from "./common/meeting-action-tile";
 import { MeetingJoinLinkModal } from "./common/meeting-join-link-modal";
@@ -166,14 +167,15 @@ export function MeetingLayout() {
   });
 
   return (
-    <div className="@container/meetings h-full min-h-0 min-w-0 w-full overflow-y-auto bg-background text-foreground">
-    <div className="flex min-h-full min-w-0 flex-col @min-[1120px]/meetings:flex-row">
+    <div className="@container/meetings h-full min-h-0 min-w-0 w-full overflow-hidden bg-background text-foreground">
+    <div className="flex h-full min-h-0 min-w-0 flex-col @min-[1120px]/meetings:flex-row">
       <MeetingSidebar
         activeItemId={activeNavItemId}
         onItemSelect={setActiveNavItemId}
       />
 
-      <section className="@container/meeting-content flex min-w-0 flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
+      <section className="@container/meeting-content flex min-h-0 min-w-0 flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
+        <ScrollArea key={activeNavItemId} className="min-h-0 flex-1" contentClassName="flex min-h-full flex-col" viewportProps={{ role: "region", "aria-label": "Meetings content" }}>
         <div className="flex min-w-0 w-full flex-1 flex-col gap-5">
           {isOverviewActive ? (
             <>
@@ -221,6 +223,7 @@ export function MeetingLayout() {
             <MeetingPreviousView />
           )}
         </div>
+        </ScrollArea>
       </section>
     </div>
 

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { QueryFeedback } from "./dashboard-panel";
+import { DashboardDisclosure } from "./dashboard-disclosure";
 
 type ChartQuery = Parameters<typeof QueryFeedback>[0]["query"];
 
@@ -29,10 +30,7 @@ export function DashboardChartData({ caption, columns, rows }: {
   rows: readonly { key: string; cells: readonly ReactNode[] }[];
 }) {
   return (
-    <details className="mt-4 text-xs text-muted-foreground">
-      <summary className="min-h-11 cursor-pointer content-center rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        View data
-      </summary>
+    <DashboardDisclosure title="View data" className="mt-4 text-xs text-muted-foreground">
       <Table className="text-xs">
         <TableCaption className="sr-only">{caption}</TableCaption>
         <TableHeader>
@@ -46,6 +44,6 @@ export function DashboardChartData({ caption, columns, rows }: {
           ))}
         </TableBody>
       </Table>
-    </details>
+    </DashboardDisclosure>
   );
 }

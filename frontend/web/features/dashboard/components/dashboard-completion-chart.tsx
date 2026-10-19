@@ -13,7 +13,7 @@ export default function DashboardCompletionChart({ days }: { days: TaskCompletio
         <XAxis dataKey="date" axisLine={false} tickLine={false} tickMargin={12} minTickGap={32} tickFormatter={(date: string) => days.find((day) => day.date === date)?.label ?? date} />
         <YAxis allowDecimals={false} axisLine={false} tickLine={false} tickMargin={8} domain={[0, (maximum: number) => Math.max(1, maximum)]} />
         <ChartTooltip cursor={{ stroke: "var(--border)", strokeDasharray: "3 4" }} isAnimationActive={false} content={<ChartTooltipContent indicator="line" />} />
-        <Line type="linear" dataKey="count" stroke="var(--color-count)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" dot={days.length <= 7 ? { r: 3, fill: "var(--card)", strokeWidth: 2 } : false} activeDot={{ r: 5, fill: "var(--color-count)", stroke: "var(--card)", strokeWidth: 2 }} isAnimationActive={false} />
+        <Line type="monotone" dataKey="count" stroke="var(--color-count)" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" dot={days.length <= 7 ? { r: 3, fill: "var(--card)", strokeWidth: 2 } : false} activeDot={{ r: 5, fill: "var(--color-count)", stroke: "var(--card)", strokeWidth: 2 }} isAnimationActive={false} />
       </LineChart>
     </ChartContainer>
   );

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardPanel, QueryFeedback } from "./dashboard-panel";
+import { DashboardDisclosure } from "./dashboard-disclosure";
 import { formatMinutes } from "../utils/dashboard.utils";
 import type { useDashboard } from "../hooks/use-dashboard";
 const ProductivityChart = dynamic(
@@ -66,10 +67,7 @@ export function DashboardProductivity({
               <Button asChild size="sm" className="min-h-11 sm:min-h-9 [@media(pointer:coarse)]:min-h-11 motion-reduce:transition-none"><Link href="/pomodoro">Open Pomodoro</Link></Button>
             </div>
           )}
-          <details className="mt-3 text-xs text-muted-foreground">
-            <summary className="min-h-11 cursor-pointer content-center rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
-              Daily totals
-            </summary>
+          <DashboardDisclosure title="Daily totals" className="mt-3 text-xs text-muted-foreground">
             <ul className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {dashboard.daily.map((day) => (
                 <li key={day.date} className="min-w-0 break-words">
@@ -77,7 +75,7 @@ export function DashboardProductivity({
                 </li>
               ))}
             </ul>
-          </details>
+          </DashboardDisclosure>
         </>
       )}
     </DashboardPanel>

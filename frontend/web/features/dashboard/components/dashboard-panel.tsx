@@ -39,13 +39,11 @@ export function DashboardPanel({
           )}
         </div>
         {href && (
-          <Link
-            href={href}
-            aria-label={`View all: ${title}`}
-            className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1 rounded-control text-xs font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150 sm:min-h-6 [@media(pointer:coarse)]:min-h-11"
-          >
-            View all <ArrowUpRight size={14} />
-          </Link>
+          <Button asChild variant="link" size="sm" className="h-auto min-h-11 gap-1 px-0 text-xs font-medium text-muted-foreground hover:text-link sm:min-h-6 [@media(pointer:coarse)]:min-h-11 motion-reduce:transition-none [&_svg]:size-3.5">
+            <Link href={href} aria-label={`View all: ${title}`}>
+              View all <ArrowUpRight aria-hidden size={14} />
+            </Link>
+          </Button>
         )}
       </div>
       <div className="min-w-0 p-4">{children}</div>

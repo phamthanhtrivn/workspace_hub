@@ -321,6 +321,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
             "flex-1",
             pathname.startsWith("/chat") ||
               pathname.startsWith("/documents") ||
+              pathname.startsWith("/meetings") ||
               pathname.startsWith("/calendar")
               ? "overflow-hidden"
               : "overflow-y-auto",
