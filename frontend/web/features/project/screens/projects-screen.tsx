@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Settings } from "lucide-react";
 import CreateProjectDialog from "@/features/project/components/dialogs/create-project-dialog";
@@ -56,6 +56,12 @@ export default function ProjectsScreen() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const tableViewportRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (tableViewportRef.current) tableViewportRef.current.scrollTop = 0;
+  }, [activeFilter, currentPage, debouncedSearchQuery]);
+
   const projectListQuery = useMemo(
     () => ({
       page: currentPage,
@@ -152,9 +158,9 @@ export default function ProjectsScreen() {
   };
 
   return (
-    <div className="w-full min-w-0 flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
 
-      <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-2 flex shrink-0 flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-page-title font-semibold tracking-tight text-foreground">
             Projects
@@ -173,7 +179,7 @@ export default function ProjectsScreen() {
       </div>
 
       {/* Filter Tabs & Search */}
-      <div className="mt-6 flex min-w-0 flex-col gap-3 border-b border-border pb-3 md:flex-row md:items-center md:justify-between">
+      <div className="mt-6 flex min-w-0 shrink-0 flex-col gap-3 border-b border-border pb-3 md:flex-row md:items-center md:justify-between">
         <CustomTabs
           value={activeFilter}
           options={PROJECT_FILTER_OPTIONS}
@@ -193,7 +199,14 @@ export default function ProjectsScreen() {
       </div>
 
       {/* Main Table */}
-      <div className="mt-4 min-w-0 rounded-panel border border-border bg-card">
+      <div className="mt-4 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-panel border border-border bg-card">
+        <div
+          ref={tableViewportRef}
+          role="region"
+          aria-label="Projects table"
+          tabIndex={0}
+          className="min-h-0 flex-1 overflow-auto overscroll-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        >
         {isLoading ? (
           <div className="divide-y divide-border">
             {[1, 2, 3].map((i) => (
@@ -214,9 +227,6 @@ export default function ProjectsScreen() {
             Failed to load projects. Please try refreshing the page.
           </div>
         ) : projects.length > 0 ? (
-          <>
-            <div role="region" aria-label="Projects table" tabIndex={0}
-              className="overflow-x-auto rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
             <Table unstyled className="w-full min-w-[760px] table-fixed border-collapse text-left text-sm">
               <colgroup>
                 <col />
@@ -225,7 +235,7 @@ export default function ProjectsScreen() {
                 <col className="w-[18%]" />
                 <col className="w-20" />
               </colgroup>
-              <TableHeader unstyled>
+              <TableHeader unstyled className="sticky top-0 z-10 bg-background">
                 <TableRow unstyled className="border-b border-border bg-background text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <TableHead unstyled className="px-6 py-3 font-semibold">Name</TableHead>
                   <TableHead unstyled className="px-6 py-3 font-semibold">Owner</TableHead>
@@ -359,25 +369,6 @@ export default function ProjectsScreen() {
                 })}
               </TableBody>
             </Table>
-            </div>
-            <DocumentsPagination
-              currentPage={paginationMeta?.page ?? currentPage}
-              totalPages={paginationMeta?.totalPages ?? 1}
-              totalItems={paginationMeta?.total ?? 0}
-              itemsPerPage={PROJECTS_PER_PAGE}
-              isLoading={isFetching}
-              onPageChange={setCurrentPage}
-              summaryText={
-                paginationMeta
-                  ? `Showing ${(paginationMeta.page - 1) * paginationMeta.limit + 1}-${Math.min(
-                      paginationMeta.page * paginationMeta.limit,
-                      paginationMeta.total,
-                    )} of ${paginationMeta.total} projects`
-                  : undefined
-              }
-              className="px-6 pb-4"
-            />
-          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="grid h-16 w-16 place-items-center rounded-panel bg-background text-3xl border border-border">
@@ -398,6 +389,26 @@ export default function ProjectsScreen() {
               </Button>
             ) : null}
           </div>
+        )}
+        </div>
+        {!isLoading && !isError && projects.length > 0 && (
+          <DocumentsPagination
+            currentPage={paginationMeta?.page ?? currentPage}
+            totalPages={paginationMeta?.totalPages ?? 1}
+            totalItems={paginationMeta?.total ?? 0}
+            itemsPerPage={PROJECTS_PER_PAGE}
+            isLoading={isFetching}
+            onPageChange={setCurrentPage}
+            summaryText={
+              paginationMeta
+                ? `Showing ${(paginationMeta.page - 1) * paginationMeta.limit + 1}-${Math.min(
+                    paginationMeta.page * paginationMeta.limit,
+                    paginationMeta.total,
+                  )} of ${paginationMeta.total} projects`
+                : undefined
+            }
+            className="shrink-0 px-4 py-4 sm:px-6"
+          />
         )}
       </div>
 
