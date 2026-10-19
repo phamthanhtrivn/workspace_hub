@@ -25,6 +25,7 @@ import {
 import { Avatar } from "../ui/avatar-stack";
 
 import { Button } from "@/components/ui/button";
+import { ViewAllAction } from "@/components/common/view-all-action";
 import {
   Tooltip,
   TooltipContent,
@@ -407,15 +408,11 @@ export default function ProjectDetailSidebar({
                 </p>
               ) : null}
 
-              <Button
-                type="button"
-                variant="ghost"
+              <ViewAllAction
+                label="View all members"
+                appearance="row"
                 onClick={() => onViewChange("members")}
-                className="h-9 w-full justify-between rounded-control px-2 text-xs font-semibold text-info-content hover:bg-info-soft hover:text-info-content"
-              >
-                <span>View all members</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              />
             </div>
           </section>
         </nav>

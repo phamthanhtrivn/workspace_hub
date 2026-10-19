@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowUpRight, History } from "lucide-react";
+import { History } from "lucide-react";
+import { ViewAllAction } from "@/components/common/view-all-action";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { useMeetingHistory } from "../../hooks/useMeetingHistory";
 import { getMeetingHistoryTitle } from "../../utils/meeting-history.utils";
@@ -9,7 +10,6 @@ import { MeetingStatusTag } from "../common/meeting-status-tag";
 import { MeetingHistoryAvatarStack } from "../history/meeting-history-avatar-stack";
 import { MeetingJoinTokenCopyButton } from "../history/meeting-join-token-copy-button";
 import { MeetingEmptyState } from "../ui/meeting-empty-state";
-import { MeetingButton } from "../ui/meeting-form-controls";
 
 interface MeetingOverviewRecentProps {
   enabled: boolean;
@@ -27,9 +27,7 @@ export function MeetingOverviewRecent({ enabled, now, onViewHistory }: MeetingOv
     <section className="min-w-0 space-y-4" aria-labelledby="meeting-overview-recent-title">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <h2 id="meeting-overview-recent-title" className="text-section-title font-semibold text-foreground">Recent meetings</h2>
-        <MeetingButton type="button" tone="ghost" controlSize="sm" onClick={onViewHistory}>
-          View history <ArrowUpRight aria-hidden className="size-4" />
-        </MeetingButton>
+        <ViewAllAction label="View history" onClick={onViewHistory} aria-label="View meeting history" />
       </div>
 
       <QueryFeedback label="recent meetings" pending={query.isPending && !history}

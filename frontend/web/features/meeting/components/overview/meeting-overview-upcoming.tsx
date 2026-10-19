@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowUpRight, CalendarDays, Plus } from "lucide-react";
+import { CalendarDays, Plus } from "lucide-react";
+import { ViewAllAction } from "@/components/common/view-all-action";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import type { useUpcomingMeetings } from "../../hooks/useScheduledMeetings";
 import type { UpcomingMeetingItem } from "../../types/meeting.types";
@@ -26,9 +27,7 @@ export function MeetingOverviewUpcoming({ query, now, onViewAll, onSchedule, onE
     <section className="min-w-0 space-y-4" aria-labelledby="meeting-overview-upcoming-title">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         <h2 id="meeting-overview-upcoming-title" className="text-section-title font-semibold text-foreground">Next meetings</h2>
-        <MeetingButton type="button" tone="ghost" controlSize="sm" onClick={onViewAll}>
-          View all <ArrowUpRight aria-hidden className="size-4" />
-        </MeetingButton>
+        <ViewAllAction label="View all" onClick={onViewAll} aria-label="View all upcoming meetings" />
       </div>
 
       <QueryFeedback label="upcoming meetings" pending={query.isPending && !upcoming}
