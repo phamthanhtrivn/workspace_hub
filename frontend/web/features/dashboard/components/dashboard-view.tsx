@@ -10,20 +10,20 @@ import {
 import { useAppSelector } from "@/store/store";
 import { useDashboard } from "../hooks/use-dashboard";
 import { Badge } from "@/components/ui/badge";
-import { DashboardDay } from "./dashboard-day";
-import { DashboardTasks } from "./dashboard-tasks";
-import { DashboardProductivity } from "./dashboard-productivity";
-import { DashboardMeetings } from "./dashboard-meetings";
-import { DashboardExtras } from "./dashboard-extras";
-import { DashboardAnalytics } from "./dashboard-analytics";
+import { DashboardDay } from "./day/dashboard-day";
+import { DashboardTasks } from "./tasks/dashboard-tasks";
+import { DashboardProductivity } from "./productivity/dashboard-productivity";
+import { DashboardMeetings } from "./overview/dashboard-meetings";
+import { DashboardExtras } from "./overview/dashboard-extras";
+import { DashboardAnalytics } from "./analytics/dashboard-analytics";
 import {
   formatMinutes,
   taskBucket,
 } from "../utils/dashboard.utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
-import { DashboardQuickActions } from "./dashboard-quick-actions";
-import { DashboardWeather } from "./dashboard-weather";
+import { DashboardQuickActions } from "./overview/dashboard-quick-actions";
+import { DashboardWeather } from "./weather/dashboard-weather";
 import { formatScheduledRelativeTime, selectDashboardContext } from "../utils/dashboard-context.utils";
 
 function PersonalDashboard() {
@@ -137,7 +137,7 @@ function PersonalDashboard() {
   return (
     <div className="min-h-full min-w-0 w-full bg-background text-foreground">
       <div className="@container/dashboard min-w-0 w-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="flex flex-wrap items-end justify-between gap-5">
+        <header className="flex flex-wrap items-center justify-between gap-5">
           <div className="flex min-w-0 max-w-full items-center gap-4 sm:gap-6">
             <DashboardWeather now={now} zone={zone} />
             <div className="min-w-0">

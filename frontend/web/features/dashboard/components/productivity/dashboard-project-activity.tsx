@@ -1,8 +1,8 @@
 "use client";
-import type { useDashboardCompletedTasks } from "../hooks/use-dashboard-completed-tasks";
-import { DashboardPanel, QueryFeedback } from "./dashboard-panel";
+import type { useDashboardCompletedTasks } from "../../hooks/use-dashboard-completed-tasks";
+import { DashboardPanel, QueryFeedback } from "../common/dashboard-panel";
 import { Skeleton } from "@/components/ui/skeleton";
-import { buildDashboardActivity } from "../utils/dashboard-activity.utils";
+import { buildDashboardActivity } from "../../utils/dashboard-activity.utils";
 import { DashboardActivityCalendar } from "./dashboard-activity-calendar";
 
 export function DashboardProjectActivity({

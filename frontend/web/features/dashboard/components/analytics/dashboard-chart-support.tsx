@@ -3,8 +3,8 @@
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { QueryFeedback } from "./dashboard-panel";
-import { DashboardDisclosure } from "./dashboard-disclosure";
+import { QueryFeedback } from "../common/dashboard-panel";
+import { DashboardDisclosure } from "../common/dashboard-disclosure";
 
 type ChartQuery = Parameters<typeof QueryFeedback>[0]["query"];
 

@@ -5,9 +5,9 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
-import { WEATHER_CREDIT_URL, WEATHER_MAX_AGE_MS } from "../constants/dashboard-weather";
-import { useDashboardWeather } from "../hooks/use-dashboard-weather";
-import { describeWeather } from "../utils/dashboard-weather.utils";
+import { WEATHER_CREDIT_URL, WEATHER_MAX_AGE_MS } from "../../constants/dashboard-weather";
+import { useDashboardWeather } from "../../hooks/use-dashboard-weather";
+import { describeWeather } from "../../utils/dashboard-weather.utils";
 import { DashboardSun } from "./dashboard-sun";
 import { DashboardWeatherIcon } from "./dashboard-weather-icon";
 

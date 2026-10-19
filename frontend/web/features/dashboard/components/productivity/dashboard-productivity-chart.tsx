@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { FocusDay } from "../types/dashboard.types";
+import type { FocusDay } from "../../types/dashboard.types";
 
 export default function DashboardProductivityChart({
   days,

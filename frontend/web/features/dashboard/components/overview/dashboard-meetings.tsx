@@ -3,10 +3,10 @@ import { Users, Video } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { UpcomingMeetingItem } from "@/features/meeting/types/meeting.types";
-import { DashboardPanel, EmptyState, QueryFeedback } from "./dashboard-panel";
-import { formatTime } from "../utils/dashboard.utils";
-import type { useDashboard } from "../hooks/use-dashboard";
-import { formatScheduledRelativeTime } from "../utils/dashboard-context.utils";
+import { DashboardPanel, EmptyState, QueryFeedback } from "../common/dashboard-panel";
+import { formatTime } from "../../utils/dashboard.utils";
+import type { useDashboard } from "../../hooks/use-dashboard";
+import { formatScheduledRelativeTime } from "../../utils/dashboard-context.utils";
 
 function MeetingItem({
   meeting,
