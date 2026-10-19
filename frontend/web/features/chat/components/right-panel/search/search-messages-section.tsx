@@ -162,7 +162,7 @@ export default function SearchMessagesSection({
                   className="w-full p-1.5 text-sm bg-card border border-input rounded-control outline-none focus:border-info-outline focus:ring-1 focus:ring-ring transition"
                 />
               </div>
-              <div className="overflow-y-auto flex-1 p-1 custom-scrollbar">
+              <div className="overflow-y-auto flex-1 p-1">
                 <Button variant="unstyled" type="button"
                   onClick={() => {
                     setSenderId("");

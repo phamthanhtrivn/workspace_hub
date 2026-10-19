@@ -8,7 +8,6 @@ import {
 } from "../types/meeting.constants";
 import { MeetingSidebarStatsPanel } from "./meeting-sidebar-stats-panel";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 interface MeetingSidebarProps {
@@ -29,9 +28,14 @@ export function MeetingSidebar({
 }: MeetingSidebarProps) {
   return (
     <aside className="flex min-h-0 min-w-0 shrink-0 flex-col border-b border-border bg-sidebar px-4 py-4 @min-[1120px]/meetings:w-80 @min-[1120px]/meetings:border-b-0 @min-[1120px]/meetings:border-r @min-[1120px]/meetings:py-6">
-      <ScrollArea scrollbars="both" className="@min-[1120px]/meetings:flex-1" viewportClassName="h-auto @min-[1120px]/meetings:h-full" contentClassName="flex min-h-full flex-col gap-5" viewportProps={{ role: "region", "aria-label": "Meeting sidebar" }}>
+      <div
+        className="flex min-h-0 min-w-0 flex-col gap-5 overflow-auto overscroll-contain @min-[1120px]/meetings:flex-1"
+        role="region"
+        aria-label="Meeting sidebar"
+        tabIndex={0}
+      >
       <nav
-        className="flex w-max min-w-full gap-2 pb-2 @min-[1120px]/meetings:w-full @min-[1120px]/meetings:flex-col @min-[1120px]/meetings:pb-0"
+        className="flex w-max min-w-full shrink-0 gap-2 pb-2 @min-[1120px]/meetings:w-full @min-[1120px]/meetings:flex-col @min-[1120px]/meetings:pb-0"
         aria-label="Meeting dashboard"
       >
         {meetingDashboardNavItems.map((item) => {
@@ -70,7 +74,7 @@ export function MeetingSidebar({
       </nav>
 
       <MeetingSidebarStatsPanel />
-      </ScrollArea>
+      </div>
     </aside>
   );
 }

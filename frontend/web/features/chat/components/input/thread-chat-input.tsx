@@ -777,7 +777,7 @@ const ThreadChatInput = React.memo(
             <div className="flex-1 flex flex-col min-w-0">
               {/* Formatting Toolbar */}
               {showFormatting && (
-                <div className="flex items-center gap-0.5 pb-1 mb-1 border-b border-border/60 overflow-x-auto scrollbar-none">
+                <div className="flex items-center gap-0.5 pb-1 mb-1 border-b border-border/60 overflow-x-auto">
                   <Button variant="unstyled"
                     type="button"
                     onClick={() => applyFormatting("bold")}

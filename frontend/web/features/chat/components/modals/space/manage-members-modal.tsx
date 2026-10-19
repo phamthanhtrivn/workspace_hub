@@ -310,7 +310,7 @@ export default function ManageMembersModal({
           </div>
         </div>
 
-        <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar`}>
+        <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-3 space-y-1`}>
           {filteredMembers?.map((member: ConversationMember) => {
             const profile = memberProfiles?.[member.userId];
             const name =

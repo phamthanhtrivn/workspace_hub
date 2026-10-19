@@ -50,7 +50,7 @@ export function MeetingRoomChatPanel({
     <div className="mt-3 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg bg-accent ring-1 ring-border/8">
       <div
         ref={containerRef}
-        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 [scrollbar-width:thin] [scrollbar-color:color-mix(in_srgb,var(--primary)_35%,transparent)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-accent"
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3"
       >
         <MeetingMessageList
           messages={messages}

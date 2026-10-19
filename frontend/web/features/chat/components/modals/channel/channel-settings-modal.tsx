@@ -134,7 +134,7 @@ export default function ChannelSettingsModal({
         </div>
 
         {/* Scrollable Modal Content */}
-        <div className={`${dialogLayout.body} overflow-y-auto flex-1 custom-scrollbar`}>
+        <div className={`${dialogLayout.body} overflow-y-auto flex-1`}>
           {/* Channel Info Section */}
           <div className="p-5 bg-background flex flex-col gap-4 border-b border-border">
             {canEditName ? (

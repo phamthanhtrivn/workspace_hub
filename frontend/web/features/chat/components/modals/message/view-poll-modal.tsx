@@ -44,7 +44,7 @@ export default function ViewPollModal({
         >
           <X size={24} />
         </Button>
-        <div className="max-h-[85vh] overflow-y-auto no-scrollbar rounded-panel">
+        <div className="max-h-[85vh] overflow-y-auto rounded-panel">
           <PollMessage
             poll={poll}
             onVote={(pollOptionId) => {

@@ -96,7 +96,7 @@ export default function ChannelMembersModal({
           </label>
         </div>
 
-        <div className={`${dialogLayout.body} min-h-0 flex-1 overflow-y-auto bg-card px-4 py-4 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border`}>
+        <div className={`${dialogLayout.body} min-h-0 flex-1 overflow-y-auto bg-card px-4 py-4`}>
           {isLoading ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-sm font-medium text-muted-foreground">
               <Loader2 size={24} className="animate-spin text-info-content" />

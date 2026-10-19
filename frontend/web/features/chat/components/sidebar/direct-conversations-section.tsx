@@ -173,7 +173,7 @@ export default function DirectConversationsSection({
       {isDmExpanded && (
         <div
           className={cn(
-            "pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-thumb]:rounded-full",
+            "pr-1 flex flex-col gap-0.5",
             directMessages.length > 10 && "max-h-80 overflow-y-auto",
           )}
         >

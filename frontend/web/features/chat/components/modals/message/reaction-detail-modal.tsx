@@ -56,7 +56,7 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
           </Button>
         </div>
 
-        <div className="flex border-b border-border overflow-x-auto scrollbar-hide">
+        <div className="flex border-b border-border overflow-x-auto">
           <Button variant="unstyled"
             onClick={() => setActiveTab("all")}
             className={`cursor-pointer px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === "all" ? "text-info-content border-b-2 border-info-outline" : "text-muted-foreground hover:text-foreground hover:bg-background"}`}

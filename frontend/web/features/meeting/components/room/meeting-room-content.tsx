@@ -232,7 +232,7 @@ export function MeetingRoomContent({
       <main className="relative flex min-h-0 min-w-0 flex-1">
         <section
           ref={stageContainerRef}
-          className="relative min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden"
+          className="relative min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6"
         >
           <MeetingRoomReactionOverlay
             containerRef={stageContainerRef}

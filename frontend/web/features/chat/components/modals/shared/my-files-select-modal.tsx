@@ -157,7 +157,7 @@ export default function MyFilesSelectModal({
 
         {/* Breadcrumbs Navigation */}
         <div
-          className={`flex items-center gap-1.5 px-6 py-3 border-b overflow-x-auto scrollbar-none ${
+          className={`flex items-center gap-1.5 px-6 py-3 border-b overflow-x-auto ${
             isDarkTone
               ? "border-border bg-accent"
               : "border-border bg-background"

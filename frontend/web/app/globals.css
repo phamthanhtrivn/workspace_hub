@@ -122,6 +122,8 @@
   --secondary-foreground: #3B3B3B;
   --muted: #F3F3F3;
   --muted-foreground: #616161;
+  --scrollbar-thumb: color-mix(in srgb, var(--muted-foreground) 40%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--muted-foreground) 65%, transparent);
   --accent: #F3F3F3;
   --accent-foreground: #3B3B3B;
   --border: #E5E5E5;
@@ -219,8 +221,15 @@
 }
 
 @layer base {
-  * { @apply border-border outline-ring/50; }
-  html { @apply font-sans; scroll-behavior: smooth; scrollbar-color: var(--input) var(--background); }
+  * {
+    @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+  *:hover, *:focus-visible {
+    scrollbar-color: var(--scrollbar-thumb-hover) transparent;
+  }
+  html { @apply font-sans; scroll-behavior: smooth; }
   body { @apply bg-background text-foreground text-sm; }
   ::selection { background: var(--primary); color: var(--primary-foreground); }
   input, textarea { caret-color: var(--link); }
@@ -229,6 +238,40 @@
   :focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
   textarea, select { border-color: var(--input); }
+}
+
+/* Keep native scrolling and use one compact scrollbar across app surfaces. */
+@layer base {
+  @supports selector(::-webkit-scrollbar) {
+    /* Let WebKit pseudo-elements control sizing instead of the standard API. */
+    *, *:hover, *:focus-visible {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      border: 2px solid transparent;
+      border-radius: 9999px;
+      background: var(--scrollbar-thumb);
+      background-clip: padding-box;
+    }
+    ::-webkit-scrollbar-thumb:hover,
+    ::-webkit-scrollbar-thumb:active {
+      background-color: var(--scrollbar-thumb-hover);
+    }
+    ::-webkit-scrollbar-button { display: none; }
+  }
+
+  @media (forced-colors: active) {
+    *, *:hover, *:focus-visible {
+      scrollbar-width: auto;
+      scrollbar-color: auto;
+    }
+    ::-webkit-scrollbar-thumb { background-color: CanvasText; }
+    ::-webkit-scrollbar-thumb:hover,
+    ::-webkit-scrollbar-thumb:active { background-color: Highlight; }
+  }
 }
 
 /* Deep navy actions retain a quiet visible edge against charcoal surfaces. */

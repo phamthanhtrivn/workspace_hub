@@ -750,7 +750,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             <div className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Spaces
             </div>
-            <div className="max-h-[min(18rem,55vh)] overflow-y-auto flex flex-col gap-0.5 px-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-thumb]:rounded-full">
+            <div className="max-h-[min(18rem,55vh)] overflow-y-auto flex flex-col gap-0.5 px-1">
               {spaces.map((space) => {
                 const hasCollision = spaceNameCounts[space.name] > 1;
                 return (
@@ -849,7 +849,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       </div>
 
       {/* Main Items Scrollable List */}
-      <div className="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-thumb]:rounded-full">
+      <div className="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-5">
         {/* Channels Section */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between px-3 mb-1 text-xs font-semibold text-muted-foreground uppercase tracking-widest select-none">
@@ -907,7 +907,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           {isChannelsExpanded && (
             <div
               className={cn(
-                "pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-accent [&::-webkit-scrollbar-thumb]:rounded-full",
+                "pr-1 flex flex-col gap-0.5",
                 joinedChannels.length > 10 && "max-h-80 overflow-y-auto",
               )}
             >

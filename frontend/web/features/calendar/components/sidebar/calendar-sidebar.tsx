@@ -58,7 +58,7 @@ export function CalendarSidebar({
 
 
   return (
-    <aside className="flex h-full min-h-0 flex-col overflow-y-auto border-r border-border bg-sidebar [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <aside className="flex h-full min-h-0 flex-col overflow-y-auto border-r border-border bg-sidebar">
       <div className="shrink-0 px-4 pb-2 pt-4">
         <Button
           type="button"

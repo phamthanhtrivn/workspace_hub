@@ -175,7 +175,7 @@ export default function BrowseChannelsModal({
         </div>
 
         {/* Channel List */}
-        <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-4 flex flex-col gap-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full`}>
+        <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-4 flex flex-col gap-2`}>
           {isLoading ? (
             <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
               <Loader2 className="animate-spin text-info-content" size={24} />

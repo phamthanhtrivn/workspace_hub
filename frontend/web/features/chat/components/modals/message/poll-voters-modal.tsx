@@ -103,7 +103,7 @@ export default function PollVotersModal({
           </Button>
         </div>
 
-        <div className={`${dialogLayout.body} min-h-0 flex-1 overflow-y-auto bg-card px-4 py-4 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border`}>
+        <div className={`${dialogLayout.body} min-h-0 flex-1 overflow-y-auto bg-card px-4 py-4`}>
           <div className="space-y-4">
             {voterSections.map((section) => (
               <section
