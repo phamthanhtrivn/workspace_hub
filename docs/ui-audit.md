@@ -1,5 +1,12 @@
 # WorkspaceHub UI simplification audit
 
+## Calendar Tasks drawer overlay - 2026-10-21
+
+- The user chose an always-modal Tasks drawer, matching Projects Task detail, while retaining Calendar's current contents and 400px width. Replace the canvas-bound SheetPanel and feature backdrop with the owned Sheet/SheetContent portal, using the same overlay/20 treatment. The backdrop now covers the complete viewport including workspace navigation/header; the calendar no longer shrinks or changes layout at the former 1040px canvas breakpoint. Narrow screens use the available width up to 400px.
+- Reuse shared dismissal, modal focus ownership, scroll locking and popup layers. Keep the original opener through temporary task-detail modals so closing Tasks returns focus correctly. While another owned Calendar modal is open (event/project details, event editing, recurrence scope or calendar creation), the list sheet yields its surface and then returns with the same tab/time/status state. Task filtering, permissions, completion/focus actions, callback task IDs and backend payloads remain unchanged.
+- Verification: scoped ESLint and TypeScript passed. Actual drawer/list/shared controls in headless Chromium fixtures passed at 1920px, 1440px, 390px and 320px in Light/Dark: viewport overlay bounds and pointer coverage, portal placement outside transformed/calendar containers, unchanged canvas dimensions, 400px/responsive drawer bounds, Select visibility, completion/selection IDs, detail-modal return, outside/close/Escape dismissal, focus return and document scroll locking. Desktop/mobile captures were reviewed. Task data and the focus-action boundary were mocked; authenticated backend flows were not exercised. Temporary fixtures/scripts, bundles, browser profiles and captures were removed after verification.
+
+
 ## Compact focus and activity panel rows - 2026-10-21
 
 - Use the collapsed Task activity date range/legend as the Recent activity / Task activity row's content boundary: 24rem from a 640px Dashboard container width, 28rem on small containers. Keep the rolling six-month range based on today/timezone. Use Open Pomodoro as the Upcoming meetings / Productivity row's empty-state boundary: 28rem from 640px, retaining 30rem on small containers for wrapped text and touch controls. Both rows shrink from the older 36rem desktop height, and each pair shares named height classes with its loading skeletons.
