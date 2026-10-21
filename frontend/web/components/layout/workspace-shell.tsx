@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Bot,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -66,12 +65,6 @@ const menuItems = [
     label: "Documents",
     description: "Notes & File Storage",
     icon: Files,
-  },
-  {
-    href: "/ai",
-    label: "AI Assistant",
-    description: "Chat & Smart Insights",
-    icon: Bot,
   },
 ];
 

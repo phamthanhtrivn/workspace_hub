@@ -6,7 +6,7 @@ machine. CI and production continue to use application images.
 
 ## Infrastructure and environment
 
-Use Docker Desktop with Compose v2, Node 22, Java 21/Maven, and Python 3.12 or 3.14.
+Use Docker Desktop with Compose v2, Node 22, Java 21/Maven.
 Keep your existing private environment files:
 
 - `backend/docker/.env`: PostgreSQL, Redis, Kafka ports and LiveKit settings.
@@ -35,8 +35,6 @@ your `.env` (for example PostgreSQL may use 5433 rather than 5432). Set Redis an
 Kafka to the published host ports. Service URLs use `http://localhost:<port>`.
 Use the same JWT secret and internal service credential across services that
 share them. Do not use container DNS names in host application configuration.
-For AI, use `postgresql+psycopg://USER:ENCODED_PASSWORD@localhost:PORT/ai_db`
-without Prisma's `?schema=public`, and `DOCUMENT_SERVICE_URL=http://localhost:8085`.
 
 ## Schema preparation
 
@@ -48,7 +46,6 @@ does not apply migrations or reset data.
 | User | SQL under `backend/user-service/src/main/resources/db/migration` |
 | Project | SQL under `backend/project-service/database/migrations` |
 | Communication, Document, Calendar, Notification | Committed Prisma migrations in each service |
-| AI | Alembic via `python -m app.infrastructure.migrate` in its virtual environment |
 
 User/Project deployment SQL jobs use `deploy/shared/sql-migrations` with recorded
 checksums. For local existing databases, follow the service's SQL migration order
@@ -70,8 +67,6 @@ databases may need the baseline preparation described in
 | `backend/notification-service` | `npm run start:dev` | 8084 |
 | `backend/document-service` | `npm run start:dev` | 8085 |
 | `backend/calendar-service` | `npm run start:dev` | 8086 |
-| `backend/ai-service` | `.\.venv\Scripts\python.exe -m app.main` | 8087 |
-| `backend/ai-service` (another terminal) | `.\.venv\Scripts\python.exe -m app.modules.jobs.worker` | worker |
 | `frontend/web` | `npm run dev` | 3000 |
 
 Run `npm ci` in each Node application first and generate its Prisma client where
@@ -79,10 +74,9 @@ applicable. User Service does not automatically load `.env`: supply the existing
 variables through your IDE run configuration or terminal environment before Maven.
 For AI, create the environment once with `py -3.14 -m venv .venv`, then install
 `requirements-dev.txt`. Preserve an existing `.env`; the AI example is for first setup.
-See [AI setup](../backend/ai-service/DOCUMENT_QA.md) for feature configuration.
 
 Check each service's readiness directly, then through Kong at
-`http://localhost:8000/health/<service>` (for example `/health/ai`). Open
+`http://localhost:8000/health/<service>` (for example `/health/document`). Open
 `http://localhost:3000`, authenticate, and verify chat/meeting WebSocket connections
 and inter-service calls. A healthy gateway alone does not prove the apps are up.
 Services called by Docker infrastructure must listen on an interface reachable
@@ -95,8 +89,6 @@ Egress. Keep existing recording volumes. The webhook targets host Communication
 at `http://host.docker.internal:8083/api/meetings/livekit/webhook`.
 See [recording setup](../meeting-recording-setup.md).
 
-Run host unit tests through npm/Python. Docker application E2E is a CI fixture at
-`.github/ci/ai/compose.yml`, with disposable PostgreSQL and fake provider calls;
-it is not a local application entry point. Production builds/pushes SHA images in
+Run host unit tests through npm/Python. Production builds/pushes SHA images in
 GitHub Actions; EC2 pulls them, runs migration containers, checks health and rolls
 back failures. See [deployment](deployment.md).

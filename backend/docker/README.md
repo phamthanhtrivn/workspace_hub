@@ -1,7 +1,7 @@
 # Backend services on the host
 
 `docker-compose.host.yml` runs PostgreSQL, Redis, Kafka, Kong and LiveKit in
-Docker. Run the backend services, AI API/worker and frontend directly on the host.
+Docker. Run the backend services and frontend directly on the host.
 See [local development](../../docs/local-development.md) for application terminals and migrations.
 
 Run from the repository root, using the existing environment files:
@@ -9,7 +9,7 @@ Run from the repository root, using the existing environment files:
 - `backend/docker/.env`: database credentials, infrastructure ports and LiveKit.
 - `backend/kong-gateway/.env`: `FRONTEND_URL` and `JWT_SECRET_KEY`.
 - `backend/livekit/.env`: the included LiveKit/recording configuration.
-- Node/Python applications use their own env files. Inject User Service variables through the IDE or terminal; Java does not automatically load .env.
+- Node applications use their own env files. Inject User Service variables through the IDE or terminal; Java does not automatically load .env.
 
 Validate the configuration:
 
@@ -23,7 +23,7 @@ Start the infrastructure and gateway:
 docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml up -d --build
 ```
 
-If the infrastructure is already running and only Kong needs the new AI routes:
+If the infrastructure is already running and only Kong needs the updated routes:
 
 ```powershell
 docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml up -d --build --no-deps kong
@@ -32,7 +32,7 @@ docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.h
 Kong loads `kong.host.yml` through the image's startup template renderer and
 forwards application calls to `host.docker.internal`. Proxy HTTP is on port 8000;
 the local Admin API is bound to loopback on port 8001. After starting host services,
-check `/health/ai` and `/health/document` through Kong. Gateway readiness itself
+check `/health/document` through Kong. Gateway readiness itself
 does not imply that the host application services are running.
 
 The Compose project remains `docker`, with `wh_*` container names, `wh_network`,

@@ -191,47 +191,6 @@ services:
       timeout: 5s
       retries: 18
       start_period: 45s
-  ai-service:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-ai-service:${AI_SERVICE_IMAGE_TAG:?AI_SERVICE_IMAGE_TAG is required}
-    environment: &ai-environment
-      NODE_ENV: production
-      AI_ENABLED: ${AI_ENABLED:-false}
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/ai_db
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
-      JWT_ISSUER: workspace-hub
-      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
-      DOCUMENT_SERVICE_URL: http://document-service:8085
-      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:?FRONTEND_URL is required}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
-      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-2}
-      GEMINI_REQUESTS_PER_MINUTE: ${GEMINI_REQUESTS_PER_MINUTE:-5}
-      GEMINI_REQUESTS_PER_DAY: ${GEMINI_REQUESTS_PER_DAY:-100}
-      GEMINI_TOKENS_PER_MINUTE: ${GEMINI_TOKENS_PER_MINUTE:-20000}
-      PORT: '8087'
-    expose: ['8087']
-    restart: unless-stopped
-    healthcheck:
-      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8087/ready', timeout=3)"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-  ai-worker:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-ai-worker:${AI_WORKER_IMAGE_TAG:?AI_WORKER_IMAGE_TAG is required}
-    environment: *ai-environment
-    command: [python, -m, app.modules.jobs.worker]
-    restart: unless-stopped
-    healthcheck:
-      test: [CMD, python, -c, "from app.modules.jobs.worker import healthy; raise SystemExit(0 if healthy() else 1)"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-  ai-service-migration:
-    image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-ai-service-migration:${AI_SERVICE_MIGRATION_IMAGE_TAG:?AI_SERVICE_MIGRATION_IMAGE_TAG is required}
-    profiles: [migration]
-    environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/ai_db
-    restart: 'no'
   kong:
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-kong:${KONG_IMAGE_TAG:?KONG_IMAGE_TAG is required}
     environment:
@@ -260,8 +219,6 @@ services:
       document-service:
         condition: service_healthy
       calendar-service:
-        condition: service_healthy
-      ai-service:
         condition: service_healthy
   frontend-web:
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-web:${FRONTEND_WEB_IMAGE_TAG:?FRONTEND_WEB_IMAGE_TAG is required}

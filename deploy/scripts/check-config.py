@@ -9,7 +9,7 @@ from catalog import IMAGES
 
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME_SERVICES = {'frontend-web', 'kong', 'user-service', 'project-service',
-                    'communication-service', 'document-service', 'calendar-service', 'notification-service', 'ai-service', 'ai-worker'}
+                    'communication-service', 'document-service', 'calendar-service', 'notification-service'}
 
 
 def configuration(area, profile=None):

@@ -4,7 +4,7 @@ source "$(dirname "$0")/common.sh"
 deadline=$((SECONDS + ${HEALTH_TIMEOUT_SECONDS:-240}))
 services=("$@")
 if (( ${#services[@]} == 0 )); then
-  services=(user-service project-service communication-service notification-service document-service calendar-service ai-service ai-worker kong frontend-web)
+  services=(user-service project-service communication-service notification-service document-service calendar-service kong frontend-web)
 fi
 while (( SECONDS < deadline )); do
   healthy=true
@@ -22,7 +22,6 @@ while (( SECONDS < deadline )); do
       if [[ "$service" == kong ]]; then
         routes=(user project communication notification document calendar)
         available=$(compose config --services)
-        if [[ "$available" == *ai-service* ]]; then routes+=(ai); fi
         break
       fi
       if [[ "$service" == *-service ]]; then routes+=("${service%-service}"); fi

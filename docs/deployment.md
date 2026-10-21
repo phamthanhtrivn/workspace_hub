@@ -7,7 +7,7 @@ it needs neither a Git checkout nor application build tools.
 
 | Host | Runtime directory | Services |
 | --- | --- | --- |
-| APP | `/opt/workspacehub/app` | web, Kong, user, project, communication, document, calendar, notification, AI API/worker |
+| APP | `/opt/workspacehub/app` | web, Kong, user, project, communication, document, calendar, notification |
 | REALTIME | `/opt/workspacehub/realtime` | LiveKit, Egress |
 | INFRA | `/opt/workspacehub/infra` | PostgreSQL, Redis, Kafka, topic initializer |
 
@@ -22,10 +22,9 @@ Production retains image build/push, EC2 pull/run, migrations and rollback.
 
 ## Images and GitHub configuration
 
-Production publishes ten application repositories: `workspacehub-web`,
+Production publishes eight application repositories: `workspacehub-web`,
 `workspacehub-kong`, and `workspacehub-{user,project,communication,document,calendar,notification}-service`.
-`workspacehub-ai-service` and `workspacehub-ai-worker` provide document QA.
-Seven `workspacehub-<service>-migration` repositories contain migration tools.
+Six `workspacehub-<service>-migration` repositories contain migration tools.
 Each image uses `sha-<full Git commit SHA>` for its own last build. Unchanged images
 retain their previous tags, so one APP release can contain different SHA tags.
 Enable immutable SHA tags in Docker Hub;

@@ -15,9 +15,6 @@ values = {
     'LIVEKIT_URL': 'ws://192.0.2.11:7880', 'LIVEKIT_PUBLIC_URL': 'ws://192.0.2.11:7880',
     'NEXT_PUBLIC_API_URL': 'http://localhost:8000',
     'NEXT_PUBLIC_NOMINATIM_URL': 'https://nominatim.openstreetmap.org',
-    'AI_ENABLED': 'false', 'GEMINI_MODEL': 'gemini-3.8-flash',
-    'GEMINI_EMBEDDING_MODEL': 'gemini-embedding-2', 'GEMINI_REQUESTS_PER_MINUTE': '5',
-    'GEMINI_REQUESTS_PER_DAY': '100', 'GEMINI_TOKENS_PER_MINUTE': '20000',
 }
 names = set()
 for area in ('prod/app', 'prod/infra', 'prod/realtime'):
