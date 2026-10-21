@@ -55,7 +55,7 @@ export function DashboardExtras({
   };
   return (
     <>
-      <DashboardPanel title="Active projects" href="/projects" className="col-span-full">
+      <DashboardPanel height="content" title="Active projects" href="/projects" className="col-span-full">
         <QueryFeedback query={extras.projects} label="projects" />
         {extras.projects.isSuccess && !projects.length && (
           <EmptyState>

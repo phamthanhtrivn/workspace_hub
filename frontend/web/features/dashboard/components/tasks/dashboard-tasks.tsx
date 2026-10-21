@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DashboardPanel, EmptyState, QueryFeedback } from "../common/dashboard-panel";
@@ -18,6 +18,10 @@ export function DashboardTasks({
   const { tasks, today, zone, personal, project, taskFilter, setTaskFilter } =
     dashboard;
   const taskListId = useId();
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+  }, [taskFilter]);
   const [taskLimits, setTaskLimits] = useState<Record<typeof taskFilter, number>>({
     All: TASK_PREVIEW_LIMIT,
     Overdue: TASK_PREVIEW_LIMIT,
@@ -34,22 +38,62 @@ export function DashboardTasks({
     <DashboardPanel
       title="My tasks"
       description="Personal and project tasks, ordered by due status and priority"
+      bodyRef={bodyRef}
+      toolbar={
+        <div role="group" className="flex w-fit max-w-full flex-wrap gap-1 rounded-control bg-muted p-1" aria-label="Filter tasks">
+          {(["All", "Overdue", "Today"] as const).map((filter) => (
+            <Button variant="ghost" size="sm"
+              key={filter}
+              type="button"
+              aria-pressed={filter === taskFilter}
+              onClick={() => setTaskFilter(filter)}
+              className="min-h-11 text-muted-foreground aria-pressed:bg-card aria-pressed:text-foreground motion-reduce:transition-none sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
+            >
+              {filter}
+            </Button>
+          ))}
+        </div>
+      }
+      footer={<>
+        {visibleTasks.length > TASK_PREVIEW_LIMIT && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p role="status" className="text-xs text-muted-foreground">
+              Showing {shownCount} of {visibleTasks.length} open tasks
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              aria-controls={taskListId}
+              aria-expanded={shownCount > TASK_PREVIEW_LIMIT}
+              onClick={() => {
+                if (!remainingCount && bodyRef.current) bodyRef.current.scrollTop = 0;
+                setTaskLimits((limits) => ({
+                  ...limits,
+                  [taskFilter]: remainingCount
+                    ? limits[taskFilter] + TASK_PREVIEW_LIMIT
+                    : TASK_PREVIEW_LIMIT,
+                }));
+              }}
+              className="h-auto min-h-11 max-w-full whitespace-normal sm:min-h-9 [@media(pointer:coarse)]:min-h-11"
+            >
+              {remainingCount
+                ? `Show ${nextCount} more ${nextCount === 1 ? "task" : "tasks"}`
+                : "Show fewer tasks"}
+            </Button>
+          </div>
+        )}
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-link">
+          <Link href="/calendar" className="inline-flex min-h-11 cursor-pointer items-center hover:underline sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
+            Personal tasks
+          </Link>
+          <Link href="/projects" className="inline-flex min-h-11 cursor-pointer items-center hover:underline sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
+            Project tasks
+          </Link>
+        </div>
+      </>}
     >
       <QueryFeedback query={personal} label="personal tasks" />
       <QueryFeedback query={project} label="project tasks" />
-      <div role="group" className="mb-3 flex w-fit max-w-full flex-wrap gap-1 rounded-control bg-muted p-1" aria-label="Filter tasks">
-        {(["All", "Overdue", "Today"] as const).map((filter) => (
-          <Button variant="ghost" size="sm"
-            key={filter}
-            type="button"
-            aria-pressed={filter === taskFilter}
-            onClick={() => setTaskFilter(filter)}
-            className="min-h-11 text-muted-foreground aria-pressed:bg-card aria-pressed:text-foreground motion-reduce:transition-none sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
-          >
-            {filter}
-          </Button>
-        ))}
-      </div>
       {!visibleTasks.length && personal.isSuccess && project.isSuccess && (
         <EmptyState>
           {taskFilter === "All"
@@ -65,40 +109,6 @@ export function DashboardTasks({
           <DashboardTaskItem key={task.key} task={task} today={today} zone={zone} />
         ))}
       </ul>
-      {visibleTasks.length > TASK_PREVIEW_LIMIT && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-          <p role="status" className="text-xs text-muted-foreground">
-            Showing {shownCount} of {visibleTasks.length} open tasks
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            aria-controls={taskListId}
-            aria-expanded={shownCount > TASK_PREVIEW_LIMIT}
-            onClick={() =>
-              setTaskLimits((limits) => ({
-                ...limits,
-                [taskFilter]: remainingCount
-                  ? limits[taskFilter] + TASK_PREVIEW_LIMIT
-                  : TASK_PREVIEW_LIMIT,
-              }))
-            }
-            className="h-auto min-h-11 max-w-full whitespace-normal sm:min-h-9 [@media(pointer:coarse)]:min-h-11"
-          >
-            {remainingCount
-              ? `Show ${nextCount} more ${nextCount === 1 ? "task" : "tasks"}`
-              : "Show fewer tasks"}
-          </Button>
-        </div>
-      )}
-      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-border pt-3 text-xs font-medium text-link">
-        <Link href="/calendar" className="inline-flex min-h-11 cursor-pointer items-center hover:underline sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
-          Personal tasks
-        </Link>
-        <Link href="/projects" className="inline-flex min-h-11 cursor-pointer items-center hover:underline sm:min-h-6 [@media(pointer:coarse)]:min-h-11">
-          Project tasks
-        </Link>
-      </div>
     </DashboardPanel>
   );
 }

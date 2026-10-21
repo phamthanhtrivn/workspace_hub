@@ -10,6 +10,7 @@ import type { CompletionPeriod } from "../../types/dashboard-analytics.types";
 import { buildProjectWorkload, buildTaskCompletionTrend, buildTaskDeadlineDistribution } from "../../utils/dashboard-analytics.utils";
 import { DashboardPanel, EmptyState } from "../common/dashboard-panel";
 import { DashboardChartData, DashboardChartFeedback, DashboardChartSkeleton } from "./dashboard-chart-support";
+import { DashboardDisclosure, DashboardDisclosureTrigger } from "../common/dashboard-disclosure";
 
 const DeadlineChart = dynamic(() => import("./dashboard-deadline-chart"), { ssr: false, loading: DashboardChartSkeleton });
 const CompletionChart = dynamic(() => import("./dashboard-completion-chart"), { ssr: false, loading: DashboardChartSkeleton });
@@ -26,7 +27,7 @@ function TaskDeadlines({ dashboard }: DashboardProps) {
     <DashboardPanel title="Task deadlines" description="Your open personal and assigned project tasks">
       <DashboardChartFeedback queries={[{ query: personal, label: "personal tasks" }, { query: project, label: "assigned project tasks" }]} />
       {ready ? total ? (
-        <>
+        <div className="mx-auto flex min-h-full w-full max-w-xl flex-col justify-center">
           <DeadlineChart slices={slices} />
           <ul aria-label="Task deadline totals" className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 border-t border-border pt-4 text-xs sm:grid-cols-2">
             {slices.map((slice) => (
@@ -37,7 +38,7 @@ function TaskDeadlines({ dashboard }: DashboardProps) {
               </li>
             ))}
           </ul>
-        </>
+        </div>
       ) : <EmptyState>No open tasks. You are all caught up.</EmptyState> : null}
     </DashboardPanel>
   );
@@ -50,27 +51,31 @@ function TaskCompletions({ dashboard }: DashboardProps) {
   const days = ready ? buildTaskCompletionTrend(completedTasks.data, today, zone, period) : [];
   const total = days.reduce((sum, day) => sum + day.count, 0);
   return (
-    <DashboardPanel title="Completion trend" description="Personal and assigned project tasks completed each day">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p aria-live="polite" className="text-sm text-muted-foreground">
-          {ready ? <><span className="font-semibold text-foreground tabular-nums">{total}</span> completed in {period} days</> : "Completed tasks"}
-        </p>
-        <div role="group" aria-label="Completion trend period" className="flex gap-1 rounded-control bg-muted p-1">
-          {COMPLETION_PERIODS.map((days) => (
-            <Button key={days} size="sm" variant="ghost" aria-pressed={period === days} onClick={() => setPeriod(days)} className="min-h-11 aria-pressed:bg-card aria-pressed:text-foreground motion-reduce:transition-none sm:min-h-8 [@media(pointer:coarse)]:min-h-11">
-              {days} days
-            </Button>
-          ))}
-        </div>
-      </div>
-      <DashboardChartFeedback queries={[{ query: completedTasks, label: "completed tasks" }]} />
-      {ready ? total ? (
-        <>
-          <CompletionChart days={days} />
-          <DashboardChartData caption={`Completed tasks in the last ${period} days`} columns={["Date", "Completed tasks"]} rows={days.map((day) => ({ key: day.date, cells: [day.date, day.count] }))} />
-        </>
-      ) : <EmptyState>No completed tasks in the last {period} days. Completed work will appear here.</EmptyState> : null}
-    </DashboardPanel>
+    <DashboardDisclosure>
+      <DashboardPanel title="Completion trend" description="Personal and assigned project tasks completed each day"
+        footer={ready && total > 0 && <DashboardDisclosureTrigger title="View data" />}
+        toolbar={<div className="flex flex-wrap items-center justify-between gap-3">
+          <p aria-live="polite" className="text-sm text-muted-foreground">
+            {ready ? <><span className="font-semibold text-foreground tabular-nums">{total}</span> completed in {period} days</> : "Completed tasks"}
+          </p>
+          <div role="group" aria-label="Completion trend period" className="flex gap-1 rounded-control bg-muted p-1">
+            {COMPLETION_PERIODS.map((days) => (
+              <Button key={days} size="sm" variant="ghost" aria-pressed={period === days} onClick={() => setPeriod(days)} className="min-h-11 aria-pressed:bg-card aria-pressed:text-foreground motion-reduce:transition-none sm:min-h-8 [@media(pointer:coarse)]:min-h-11">
+                {days} days
+              </Button>
+            ))}
+          </div>
+        </div>}
+      >
+        <DashboardChartFeedback queries={[{ query: completedTasks, label: "completed tasks" }]} />
+        {ready ? total ? (
+          <>
+            <CompletionChart days={days} />
+            <DashboardChartData caption={`Completed tasks in the last ${period} days`} columns={["Date", "Completed tasks"]} rows={days.map((day) => ({ key: day.date, cells: [day.date, day.count] }))} />
+          </>
+        ) : <EmptyState>No completed tasks in the last {period} days. Completed work will appear here.</EmptyState> : null}
+      </DashboardPanel>
+    </DashboardDisclosure>
   );
 }
 
@@ -79,18 +84,21 @@ function ProjectWorkloads({ dashboard }: DashboardProps) {
   const ready = project.isSuccess && Boolean(today);
   const projects = ready ? buildProjectWorkload(project.data, today, zone) : [];
   return (
-    <DashboardPanel title="Project workload" description={`Top ${MAX_WORKLOAD_PROJECTS} active projects by open tasks assigned to you`} className="col-span-full">
-      <DashboardChartFeedback queries={[{ query: project, label: "assigned project tasks" }]} />
-      {ready ? projects.length ? (
-        <>
-          <WorkloadChart projects={projects} />
-          <DashboardChartData caption="Open tasks assigned to you by project" columns={["Project", "Overdue", "Other open tasks", "Total"]} rows={projects.map((project) => ({
-            key: project.projectId,
-            cells: [<Link key={project.projectId} href={`/projects/${encodeURIComponent(project.projectId)}`} className="inline-flex min-h-11 max-w-full items-center rounded-control text-link underline underline-offset-4 [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{project.projectName}</Link>, project.overdue, project.remaining, project.total],
-          }))} />
-        </>
-      ) : <EmptyState>No open tasks assigned to you in active projects.</EmptyState> : null}
-    </DashboardPanel>
+    <DashboardDisclosure className="col-span-full">
+      <DashboardPanel title="Project workload" description={`Top ${MAX_WORKLOAD_PROJECTS} active projects by open tasks assigned to you`}
+        footer={ready && projects.length > 0 && <DashboardDisclosureTrigger title="View data" />}>
+        <DashboardChartFeedback queries={[{ query: project, label: "assigned project tasks" }]} />
+        {ready ? projects.length ? (
+          <>
+            <WorkloadChart projects={projects} />
+            <DashboardChartData caption="Open tasks assigned to you by project" columns={["Project", "Overdue", "Other open tasks", "Total"]} rows={projects.map((project) => ({
+              key: project.projectId,
+              cells: [<Link key={project.projectId} href={`/projects/${encodeURIComponent(project.projectId)}`} className="inline-flex min-h-11 max-w-full items-center rounded-control text-link underline underline-offset-4 [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{project.projectName}</Link>, project.overdue, project.remaining, project.total],
+            }))} />
+          </>
+        ) : <EmptyState>No open tasks assigned to you in active projects.</EmptyState> : null}
+      </DashboardPanel>
+    </DashboardDisclosure>
   );
 }
 

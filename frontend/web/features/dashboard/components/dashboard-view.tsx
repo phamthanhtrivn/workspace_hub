@@ -14,6 +14,7 @@ import { useDashboard } from "../hooks/use-dashboard";
 import { Badge } from "@/components/ui/badge";
 import { DashboardDay } from "./day/dashboard-day";
 import { DashboardTasks } from "./tasks/dashboard-tasks";
+import { DASHBOARD_PANEL_HEIGHT } from "./common/dashboard-panel";
 import { DashboardProductivity } from "./productivity/dashboard-productivity";
 import { DashboardMeetings } from "./overview/dashboard-meetings";
 import { DashboardExtras } from "./overview/dashboard-extras";
@@ -223,14 +224,14 @@ function PersonalDashboard() {
           })}
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
-          <div id="my-tasks" className="flex min-w-0 scroll-mt-6">
+          <div id="my-tasks" className="flex min-h-0 min-w-0 scroll-mt-6">
             <DashboardTasks dashboard={dashboard} onCreateTask={() => setCreatingTask(true)} />
           </div>
           <DashboardDay dashboard={dashboard} nextItemKey={nextItem?.key} />
-          <div id="upcoming-meetings" className="flex min-w-0 scroll-mt-6">
+          <div id="upcoming-meetings" className="flex min-h-0 min-w-0 scroll-mt-6">
             <DashboardMeetings dashboard={dashboard} />
           </div>
-          <div id="focus-report" className="flex min-w-0 scroll-mt-6">
+          <div id="focus-report" className="flex min-h-0 min-w-0 scroll-mt-6">
             <DashboardProductivity dashboard={dashboard} />
           </div>
           <DashboardExtras dashboard={dashboard} />
@@ -265,7 +266,7 @@ export function DashboardView() {
           {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-28 w-full rounded-panel" />)}
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
-          {["h-[28rem]", "h-80", "h-48", "h-[28rem]", "h-48", "h-80", "h-80"].map((height, index) => (
+          {[DASHBOARD_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, "h-48", DASHBOARD_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT].map((height, index) => (
             <Skeleton key={index} className={`w-full rounded-panel ${height} ${index === 4 ? "col-span-full" : ""}`} />
           ))}
         </div>
@@ -273,7 +274,7 @@ export function DashboardView() {
           <Skeleton className="h-6 w-32" />
           <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
             {[false, false, true].map((fullWidth, index) => (
-              <Skeleton key={index} className={`h-80 w-full rounded-panel ${fullWidth ? "col-span-full" : ""}`} />
+              <Skeleton key={index} className={`${DASHBOARD_PANEL_HEIGHT} w-full rounded-panel ${fullWidth ? "col-span-full" : ""}`} />
             ))}
           </div>
         </div>
