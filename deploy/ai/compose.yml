@@ -1,0 +1,87 @@
+name: wh-notebook
+services:
+  notebook-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: notebook
+      POSTGRES_DB: notebook_db
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure deploy/ai/.env first}
+    volumes: [notebook-postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U notebook -d notebook_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  notebook-redis:
+    image: redis:7.4-alpine
+    command: [redis-server, --appendonly, "yes", --maxmemory-policy, noeviction]
+    volumes: [notebook-redis:/data]
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+  notebook-qdrant:
+    image: qdrant/qdrant:v1.19.2
+    volumes: [notebook-qdrant:/qdrant/storage]
+    restart: unless-stopped
+  rag-worker:
+    build: ../../backend/rag-worker
+    # Only the worker's own credential and model settings; never gateway, LLM or DB secrets.
+    environment:
+      RAG_SERVICE_KEY: ${RAG_SERVICE_KEY:?Configure dedicated RAG credentials first}
+      RAG_SERVICE_KEY_PREVIOUS: ${RAG_SERVICE_KEY_PREVIOUS:-}
+      QDRANT_URL: ${QDRANT_URL:-http://notebook-qdrant:6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-intfloat/multilingual-e5-small}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+      INDEX_PIPELINE_VERSION: ${INDEX_PIPELINE_VERSION:-notebook-v1}
+      OMP_NUM_THREADS: ${OMP_NUM_THREADS:-2}
+      TOKENIZERS_PARALLELISM: ${TOKENIZERS_PARALLELISM:-false}
+    volumes: [notebook-models:/models]
+    depends_on: [notebook-qdrant]
+    restart: unless-stopped
+    mem_limit: 6g
+  migrate:
+    build: ../../backend/ai-service
+    env_file: .env
+    command: [node, dist/migrate.js]
+    depends_on:
+      notebook-db: { condition: service_healthy }
+    restart: "no"
+  notebook-api:
+    build: ../../backend/ai-service
+    env_file: .env
+    ports: ["127.0.0.1:8087:8087"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    networks: [default, workspace]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      notebook-redis: { condition: service_healthy }
+      rag-worker: { condition: service_started }
+    restart: unless-stopped
+  notebook-jobs:
+    build: ../../backend/ai-service
+    env_file: .env
+    command: [node, dist/worker.js]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    networks: [default, workspace]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      notebook-redis: { condition: service_healthy }
+      rag-worker: { condition: service_started }
+    restart: unless-stopped
+volumes:
+  notebook-postgres:
+  notebook-redis:
+  notebook-qdrant:
+  notebook-models:
+networks:
+  workspace:
+    name: wh_network
+    external: true

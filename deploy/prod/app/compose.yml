@@ -150,6 +150,10 @@ services:
       PORT: '8085'
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/document_db?schema=public
       INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      AI_DOCUMENT_SERVICE_KEY: ${AI_DOCUMENT_SERVICE_KEY:-}
+      AI_DOCUMENT_SERVICE_KEY_PREVIOUS: ${AI_DOCUMENT_SERVICE_KEY_PREVIOUS:-}
+      CALENDAR_DOCUMENT_SERVICE_KEY: ${CALENDAR_DOCUMENT_SERVICE_KEY:?CALENDAR_DOCUMENT_SERVICE_KEY is required}
+      CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS: ${CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS:-}
     expose:
       - '8085'
     restart: unless-stopped
@@ -178,6 +182,7 @@ services:
       USER_SERVICE_URL: http://user-service:8081
       PROJECT_SERVICE_URL: http://project-service:8082
       DOCUMENT_SERVICE_URL: http://document-service:8085
+      CALENDAR_DOCUMENT_SERVICE_KEY: ${CALENDAR_DOCUMENT_SERVICE_KEY:?CALENDAR_DOCUMENT_SERVICE_KEY is required}
     expose:
       - '8086'
     restart: unless-stopped
@@ -196,6 +201,7 @@ services:
     environment:
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      AI_GATEWAY_KEY: ${AI_GATEWAY_KEY:-}
     ports:
       - ${KONG_PORT:-8000}:8000
     restart: unless-stopped

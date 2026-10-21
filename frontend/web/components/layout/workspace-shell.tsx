@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -65,6 +66,12 @@ const menuItems = [
     label: "Documents",
     description: "Notes & File Storage",
     icon: Files,
+  },
+  {
+    href: "/ai",
+    label: "Notebook AI",
+    description: "Sources, Chat & Studio",
+    icon: BookOpen,
   },
 ];
 

@@ -168,7 +168,19 @@ or include them in a deployment bundle.
 Optional APP names: `AWS_CLOUDFRONT_URL`, `MAIL_FROM`, `MAIL_PORT` (587),
 `FRONTEND_PORT` (3000), `KONG_PORT` (8000). Match PostgreSQL credentials on APP/INFRA
 and LiveKit credentials on APP/REALTIME. Use a shared JWT secret of at least 32
-random characters. Internal credentials are shared by the services on APP.
+random characters. Legacy internal credentials remain shared by existing APP services.
+
+Before deploying the Calendar/Document security update, provision a **separate**
+`CALENDAR_DOCUMENT_SERVICE_KEY` of at least 32 random characters in the APP operator
+env. It is required by both Compose and runtime preflight; the old shared internal
+key is no longer accepted for Calendar document authorization. Document Service
+optionally accepts `CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS` during key rotation.
+Deploy the receiver and caller together (or update Document first, then Calendar).
+For Notebook AI, optional `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY` and
+`AI_DOCUMENT_SERVICE_KEY_PREVIOUS` are forwarded to Kong/Document; configure matching
+keys in the separate AI stack before enabling it. Do not reuse Calendar/legacy
+keys, publish internal endpoints, or copy local runtime secrets into Git. The new
+AI stack is not yet part of the production image/release catalog.
 Generate valid VAPID keys with your notification service's web-push dependency.
 Match backend Google client ID to the frontend build variable.
 

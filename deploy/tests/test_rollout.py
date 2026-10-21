@@ -26,6 +26,7 @@ class PartialRolloutTests(unittest.TestCase):
         tree = ast.parse((SCRIPTS / 'render-runtime.py').read_text())
         keys = next(ast.literal_eval(node.value)['app'].split() for node in tree.body if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == 'required' for target in node.targets))
         self.source = ''.join(f'{key}=fixture\n' for key in keys)
+        self.source += 'CALENDAR_DOCUMENT_SERVICE_KEY=fixture-calendar-document-not-production-000\n'
         (self.root / '.env.production').write_text(self.source)
         subprocess.run([sys.executable, str(SCRIPTS / 'render-runtime.py'), 'app', str(self.root)], check=True)
         self.runtime = (self.root / '.env.runtime').read_bytes()

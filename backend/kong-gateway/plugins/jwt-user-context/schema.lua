@@ -15,6 +15,7 @@ return {
           { header_user_name = { type = "string", default = "X-User-Name" } },
           { header_user_avatar = { type = "string", default = "X-User-Avatar" } },
           { optional = { type = "boolean", default = false } },
+          { gateway_service_key = { type = "string", required = false } },
         },
       },
     },

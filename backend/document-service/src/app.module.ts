@@ -6,6 +6,7 @@ import { QuotaModule } from './modules/quota/quota.module';
 import { DocumentModule } from './modules/document/document.module';
 import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-profile-snapshot.module';
 import { HealthController } from './common/health.controller';
+import { NotebookBridgeModule } from './modules/notebook-bridge/notebook-bridge.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { HealthController } from './common/health.controller';
     QuotaModule,
     DocumentModule,
     UserProfileSnapshotModule,
+    NotebookBridgeModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
