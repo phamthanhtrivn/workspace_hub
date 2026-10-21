@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { DashboardTask } from "../../types/dashboard.types";
 import { taskBucket, taskDate } from "../../utils/dashboard.utils";
+import { TaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
 
 const PRIORITY_TONES: Record<string, string> = {
   URGENT: "bg-destructive-soft text-destructive-content",
@@ -25,11 +26,11 @@ export function DashboardTaskItem({ task, today, zone }: DashboardTaskItemProps)
   const SourceIcon = isProjectTask ? FolderKanban : CalendarCheck2;
 
   return (
-    <li className="min-w-0 border-b border-border last:border-b-0">
+    <li className="flex min-w-0 flex-wrap items-center gap-x-2 border-b border-border py-1 last:border-b-0">
       <Button
         asChild
         variant="ghost"
-        className="group grid h-auto min-h-16 w-full min-w-0 grid-cols-[2rem_minmax(0,1fr)_1rem] items-start gap-x-3 gap-y-2 whitespace-normal rounded-control px-3 py-3 text-left font-normal hover:bg-muted active:bg-accent focus-visible:ring-inset motion-reduce:transition-none sm:grid-cols-[2rem_minmax(0,1fr)_auto_1rem] sm:items-center"
+        className="group grid h-auto min-h-16 min-w-0 flex-1 basis-56 grid-cols-[2rem_minmax(0,1fr)_1rem] items-start gap-x-3 gap-y-2 whitespace-normal rounded-control px-3 py-3 text-left font-normal hover:bg-muted active:bg-accent focus-visible:ring-inset motion-reduce:transition-none sm:grid-cols-[2rem_minmax(0,1fr)_auto_1rem] sm:items-center"
       >
         <Link href={task.href} aria-label={`Open ${task.title}`}>
           <span
@@ -76,6 +77,7 @@ export function DashboardTaskItem({ task, today, zone }: DashboardTaskItemProps)
           />
         </Link>
       </Button>
+      {task.focusTask && <div className="mb-2 ml-auto mr-3 sm:mb-0"><TaskFocusButton target={task.focusTask} /></div>}
     </li>
   );
 }

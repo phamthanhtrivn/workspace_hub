@@ -10,8 +10,10 @@ const TASK_PREVIEW_LIMIT = 6;
 
 export function DashboardTasks({
   dashboard,
+  onCreateTask,
 }: {
   dashboard: ReturnType<typeof useDashboard>;
+  onCreateTask: () => void;
 }) {
   const { tasks, today, zone, personal, project, taskFilter, setTaskFilter } =
     dashboard;
@@ -35,14 +37,14 @@ export function DashboardTasks({
     >
       <QueryFeedback query={personal} label="personal tasks" />
       <QueryFeedback query={project} label="project tasks" />
-      <div role="group" className="mb-3 flex flex-wrap gap-1" aria-label="Filter tasks">
+      <div role="group" className="mb-3 flex w-fit max-w-full flex-wrap gap-1 rounded-control bg-muted p-1" aria-label="Filter tasks">
         {(["All", "Overdue", "Today"] as const).map((filter) => (
-          <Button variant="unstyled"
+          <Button variant="ghost" size="sm"
             key={filter}
             type="button"
             aria-pressed={filter === taskFilter}
             onClick={() => setTaskFilter(filter)}
-            className={`min-h-11 cursor-pointer rounded-t-control border-b-2 px-3 py-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150 sm:min-h-9 [@media(pointer:coarse)]:min-h-11 ${filter === taskFilter ? "border-link bg-primary-soft text-primary-soft-foreground" : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+            className="min-h-11 text-muted-foreground aria-pressed:bg-card aria-pressed:text-foreground motion-reduce:transition-none sm:min-h-8 [@media(pointer:coarse)]:min-h-11"
           >
             {filter}
           </Button>
@@ -55,6 +57,7 @@ export function DashboardTasks({
             : taskFilter === "Overdue"
               ? "No overdue tasks."
               : "No tasks due today."}
+          {taskFilter !== "Overdue" && <span className="mt-3 block"><Button type="button" variant="outline" onClick={onCreateTask} className="min-h-11">Create a task</Button></span>}
         </EmptyState>
       )}
       <ul id={taskListId}>

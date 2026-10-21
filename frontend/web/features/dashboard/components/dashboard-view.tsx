@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import { useState } from "react";
 import {
   AlertCircle,
   Clock3,
@@ -26,8 +28,13 @@ import { DashboardQuickActions } from "./overview/dashboard-quick-actions";
 import { DashboardWeather } from "./weather/dashboard-weather";
 import { formatScheduledRelativeTime, selectDashboardContext } from "../utils/dashboard-context.utils";
 
+const DashboardQuickTaskDialog = dynamic(() => import("./overview/dashboard-quick-task-dialog"), {
+  loading: () => <p role="status" className="text-sm text-muted-foreground">Opening task form…</p>,
+});
+
 function PersonalDashboard() {
   const dashboard = useDashboard();
+  const [creatingTask, setCreatingTask] = useState(false);
   const {
     auth,
     today,
@@ -166,7 +173,7 @@ function PersonalDashboard() {
               </div>
             </div>
           </div>
-          <DashboardQuickActions />
+          <DashboardQuickActions onCreateTask={() => setCreatingTask(true)} disabled={!dashboard.ready} />
         </header>
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => {
@@ -183,7 +190,7 @@ function PersonalDashboard() {
                   if (stat.label === "Due today")
                     dashboard.setTaskFilter("Today");
                 }}
-                className={`flex min-h-36 min-w-0 flex-1 cursor-pointer flex-col rounded-panel p-4 hover:bg-muted active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150 sm:p-5 ${hasError ? "text-foreground" : stat.theme}`}
+                className={`flex min-h-28 min-w-0 flex-1 cursor-pointer flex-col rounded-panel p-4 hover:bg-muted active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-safe:transition-colors motion-safe:duration-150 sm:p-5 ${hasError ? "text-foreground" : stat.theme}`}
               >
                 <div className="flex min-w-0 items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
                   <span>{stat.label}</span>
@@ -215,20 +222,30 @@ function PersonalDashboard() {
             );
           })}
         </div>
-        <DashboardAnalytics dashboard={dashboard} />
         <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
+          <div id="my-tasks" className="flex min-w-0 scroll-mt-6">
+            <DashboardTasks dashboard={dashboard} onCreateTask={() => setCreatingTask(true)} />
+          </div>
           <DashboardDay dashboard={dashboard} nextItemKey={nextItem?.key} />
           <div id="upcoming-meetings" className="flex min-w-0 scroll-mt-6">
             <DashboardMeetings dashboard={dashboard} />
-          </div>
-          <div id="my-tasks" className="flex min-w-0 scroll-mt-6">
-            <DashboardTasks dashboard={dashboard} />
           </div>
           <div id="focus-report" className="flex min-w-0 scroll-mt-6">
             <DashboardProductivity dashboard={dashboard} />
           </div>
           <DashboardExtras dashboard={dashboard} />
         </div>
+        <section aria-labelledby="dashboard-insights-title" className="space-y-4 border-t border-border pt-6">
+          <div>
+            <h2 id="dashboard-insights-title" className="text-section-title font-semibold">Insights</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Review deadlines, completed work and your project workload.</p>
+          </div>
+          <DashboardAnalytics dashboard={dashboard} />
+        </section>
+        {creatingTask && <DashboardQuickTaskDialog zone={zone} onClose={() => setCreatingTask(false)} onCreated={() => {
+          dashboard.setTaskFilter("All");
+          setCreatingTask(false);
+        }} />}
       </div>
     </div>
   );
@@ -245,17 +262,20 @@ export function DashboardView() {
       >
         <Skeleton className="h-10 w-64 max-w-full" />
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-36 w-full rounded-panel" />)}
+          {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-28 w-full rounded-panel" />)}
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
-          {[false, false, true].map((fullWidth, index) => (
-            <Skeleton key={index} className={`h-80 w-full rounded-panel ${fullWidth ? "col-span-full" : ""}`} />
-          ))}
-        </div>
-        <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
-          {["h-48", "h-48", "h-[28rem]", "h-[28rem]", "h-48", "h-80", "h-80"].map((height, index) => (
+          {["h-[28rem]", "h-80", "h-48", "h-[28rem]", "h-48", "h-80", "h-80"].map((height, index) => (
             <Skeleton key={index} className={`w-full rounded-panel ${height} ${index === 4 ? "col-span-full" : ""}`} />
           ))}
+        </div>
+        <div className="space-y-4 border-t border-border pt-6">
+          <Skeleton className="h-6 w-32" />
+          <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
+            {[false, false, true].map((fullWidth, index) => (
+              <Skeleton key={index} className={`h-80 w-full rounded-panel ${fullWidth ? "col-span-full" : ""}`} />
+            ))}
+          </div>
         </div>
       </div>
     );

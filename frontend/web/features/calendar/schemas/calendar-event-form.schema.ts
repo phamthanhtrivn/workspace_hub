@@ -4,6 +4,7 @@ import {
   CALENDAR_MAX_REMINDERS,
   CALENDAR_MAX_REMINDER_MINUTES_BEFORE,
   CALENDAR_MIN_EVENT_DURATION_MS,
+  CALENDAR_TASK_TITLE_MAX_LENGTH,
 } from "../types/calendar.constants";
 import {
   EventSourceType,
@@ -25,7 +26,7 @@ const reminderSchema = z.object({
 export const calendarEventFormSchema = z
   .object({
     calendarId: z.string().min(1, copy.requiredFields),
-    title: z.string().trim().min(1, copy.requiredFields).max(200),
+    title: z.string().trim().min(1, copy.requiredFields).max(CALENDAR_TASK_TITLE_MAX_LENGTH),
     description: z.string().max(2_000),
     location: z.string().max(500),
     startAt: z.string().min(1, copy.requiredFields),

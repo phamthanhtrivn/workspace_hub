@@ -11,7 +11,7 @@ import type { PomodoroActiveTask } from "../types/pomodoro";
 import { isProjectFocusActive, isProjectFocusEligible, isCalendarFocusEligible, toCalendarFocusTask, toProjectFocusTask, sameFocusTask } from "../utils/focus-task";
 import { usePomodoroSessionActions } from "./pomodoro-session-provider";
 
-function FocusButton({ target, compact = false }: { target: PomodoroActiveTask; compact?: boolean }) {
+export function TaskFocusButton({ target, compact = false }: { target: PomodoroActiveTask; compact?: boolean }) {
   const { startFocus, activeTask, status, busy, isReady } = usePomodoroSessionActions();
   const current = sameFocusTask(activeTask, target);
   const label = current && status === "RUNNING" ? "Focusing" : current && status === "PAUSED" ? "Resume focus" : "Start focus";
@@ -42,7 +42,7 @@ function ProjectFocusAction({ task, project: suppliedProject, compact }: { task:
   const { data: queriedProject } = useProject(suppliedProject ? "" : task.projectId);
   const project = suppliedProject ?? queriedProject;
   if (!userId || !project || !isProjectFocusActive(project) || !isProjectFocusEligible(task, userId)) return null;
-  return <FocusButton target={toProjectFocusTask(task, project)} compact={compact} />;
+  return <TaskFocusButton target={toProjectFocusTask(task, project)} compact={compact} />;
 }
 
 export function ProjectTaskFocusButton(props: { task: Task; project?: Project; compact?: boolean }) {
@@ -53,5 +53,5 @@ export function ProjectTaskFocusButton(props: { task: Task; project?: Project; c
 export function CalendarTaskFocusButton({ event, compact }: { event: CalendarEvent; compact?: boolean }) {
   const userId = useAppSelector((state) => state.auth.userId);
   if (!userId || !isCalendarFocusEligible(event, userId)) return null;
-  return <FocusButton target={toCalendarFocusTask(event)} compact={compact} />;
+  return <TaskFocusButton target={toCalendarFocusTask(event)} compact={compact} />;
 }
