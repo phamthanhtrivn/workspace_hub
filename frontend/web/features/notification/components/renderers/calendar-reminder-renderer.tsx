@@ -78,7 +78,7 @@ export function CalendarReminderModalRenderer({
       </div>
 
       {canOpenCalendar ? (
-        <Button variant="unstyled"
+        <Button variant="default"
           type="button"
           onClick={() => {
             onClose();
@@ -86,17 +86,17 @@ export function CalendarReminderModalRenderer({
             const sep = rawLink.includes("?") ? "&" : "?";
             router.push(`${rawLink}${sep}t=${Date.now()}`);
           }}
-          className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary"
+          className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-control text-sm font-semibold transition"
         >
           <CalendarClock className="h-4 w-4" />
           Open in Calendar
         </Button>
       ) : null}
 
-      <Button variant="unstyled"
+      <Button variant="ghost"
         type="button"
         onClick={onClose}
-        className="mt-3 w-full cursor-pointer rounded-control py-2 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-muted-foreground"
+        className="mt-3 w-full cursor-pointer rounded-control py-2 text-xs font-semibold transition"
       >
         Close
       </Button>

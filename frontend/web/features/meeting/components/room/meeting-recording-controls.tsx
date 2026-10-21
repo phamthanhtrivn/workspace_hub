@@ -13,7 +13,7 @@ import { useMeetingRecording } from "../../hooks/useMeetingRecording";
 import type { RecordingLayout } from "../../types/meeting-recording.types";
 import { MeetingRoomControlButton } from "../common/meeting-room-control-button";
 import { MeetingButton } from "../ui/meeting-form-controls";
-import { NativeSelect } from "@/components/ui/native-select";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
 
 
 export function MeetingRecordingControls({
@@ -86,16 +86,17 @@ export function MeetingRecordingControls({
           {dialog === "start" && (
             <label className="mt-4 block text-sm">
               Recording layout
-              <NativeSelect unstyled aria-label="Recording layout"
+              <CustomSelect
+                ariaLabel="Recording layout"
                 value={layout}
-                onChange={(event) =>
-                  setLayout(event.target.value as RecordingLayout)
+                onChange={nextValue =>
+                  setLayout(nextValue as RecordingLayout)
                 }
-                className="mt-2 block h-10 w-full rounded-md border bg-background px-3"
+                triggerClassName="mt-2 block h-10 w-full rounded-md border bg-background px-3"
               >
                 <option value="speaker">Active speaker + shared screen</option>
                 <option value="grid">Gallery + shared screen</option>
-              </NativeSelect>
+              </CustomSelect>
             </label>
           )}
           <div className="mt-6 flex justify-end gap-2">

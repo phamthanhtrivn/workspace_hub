@@ -50,9 +50,9 @@ export default function MessageReactions({
           </Button>
         );
       })}
-      <Button variant="unstyled"
+      <Button variant="link"
         onClick={onOpenDetails}
-        className="cursor-pointer text-xs text-muted-foreground hover:text-muted-foreground hover:underline px-2 py-0.5 transition"
+        className="cursor-pointer text-xs hover:underline px-2 py-0.5 transition"
       >
         Details
       </Button>

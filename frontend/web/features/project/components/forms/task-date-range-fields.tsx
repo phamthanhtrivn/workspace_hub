@@ -1,7 +1,8 @@
 "use client";
+import { CustomDateField } from "@/components/ui/custom/custom-date-time-picker";
+
 
 import { CalendarDays } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { CustomCheckbox } from "@/components/ui/custom/custom-checkbox";
 
 interface TaskDateRangeFieldsProps {
@@ -54,12 +55,14 @@ export function TaskDateRangeFields({
             />
             {allDay ? "Start Date" : "Start Date & Time"}
           </span>
-          <Input
-            type={allDay ? "date" : "datetime-local"}
+          <CustomDateField
+            dateOnly={allDay}
             value={startDate}
             disabled={disabled}
-            onChange={(event) => onStartDateChange(event.target.value)}
+            onChange={nextValue => onStartDateChange(nextValue)}
             className="h-11 w-full rounded-control border-input text-xs font-semibold text-foreground disabled:bg-background"
+            ariaLabel="Task start date"
+            allowClear
           />
         </label>
         <label className="block">
@@ -70,12 +73,14 @@ export function TaskDateRangeFields({
             />
             {allDay ? "Due Date" : "Due Date & Time"}
           </span>
-          <Input
-            type={allDay ? "date" : "datetime-local"}
+          <CustomDateField
+            dateOnly={allDay}
             value={dueDate}
             disabled={disabled}
-            onChange={(event) => onDueDateChange(event.target.value)}
+            onChange={nextValue => onDueDateChange(nextValue)}
             className="h-11 w-full rounded-control border-input text-xs font-semibold text-foreground disabled:bg-background"
+            ariaLabel="Task due date"
+            allowClear
           />
         </label>
       </div>

@@ -1,4 +1,6 @@
 import { useId as useControlledPopupId } from "react";
+
+import { IconButton } from "@/components/ui/icon-button";
 import React, { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Bell, BellOff, MoreVertical, Pin, User } from "lucide-react";
@@ -137,7 +139,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
         ) : null}
 
         <div ref={menuRef} className="relative">
-          <Button aria-expanded={isMenuOpen} aria-controls={`${controlledPopupId}-isMenuOpen`} aria-haspopup="menu" variant="unstyled"
+          <IconButton aria-expanded={isMenuOpen} aria-controls={`${controlledPopupId}-isMenuOpen`} aria-haspopup="menu" label="Conversation options" showTooltip={false} size="icon-sm"
             type="button"
             onClick={(event) => {
               event.stopPropagation();
@@ -147,7 +149,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
             title="Conversation options"
           >
             <MoreVertical size={14} />
-          </Button>
+          </IconButton>
 
           {isMenuOpen && (
             <AnchoredMenu id={`${controlledPopupId}-isMenuOpen`} onClose={() => setIsMenuOpen(false)} side="bottom" align="end" aria-label="Conversation actions"

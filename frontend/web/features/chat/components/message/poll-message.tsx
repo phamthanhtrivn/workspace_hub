@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import React, { useState } from "react";
 import {
   BarChart2,
@@ -139,13 +141,13 @@ const PollMessage = React.memo(function PollMessage({
             </div>
           </div>
           {isMe && onEditPoll && !poll.isLocked && (
-            <Button variant="unstyled"
+            <IconButton label="Edit Poll" showTooltip={false} size="icon-sm"
               onClick={() => setIsEditModalOpen(true)}
               className="cursor-pointer p-2 text-muted-foreground hover:text-info-content hover:bg-info-soft rounded-control transition-colors flex-shrink-0"
               title="Edit Poll"
             >
               <Edit2 size={16} />
-            </Button>
+            </IconButton>
           )}
         </div>
 
@@ -165,7 +167,7 @@ const PollMessage = React.memo(function PollMessage({
               >
                 <label className="absolute inset-0 z-20 cursor-pointer has-[:disabled]:cursor-default rounded-[inherit] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
                   <span className="sr-only">{option.text}</span>
-                  {poll.multipleChoice ? <NativeCheckbox className="sr-only" checked={Boolean(isSelected)} disabled={poll.isLocked} onChange={() => handleOptionClick(option.id)} /> : <NativeRadio className="sr-only" name={pollFieldId} checked={Boolean(isSelected)} disabled={poll.isLocked} onChange={() => handleOptionClick(option.id)} onClick={() => { if (isSelected) handleOptionClick(option.id); }} />}
+                  {poll.multipleChoice ? <NativeCheckbox data-ui-interaction-exception="Hidden form control preserves existing poll selection semantics." className="sr-only" checked={Boolean(isSelected)} disabled={poll.isLocked} onChange={() => handleOptionClick(option.id)} /> : <NativeRadio data-ui-interaction-exception="Hidden form control preserves existing poll selection semantics." className="sr-only" name={pollFieldId} checked={Boolean(isSelected)} disabled={poll.isLocked} onChange={() => handleOptionClick(option.id)} onClick={() => { if (isSelected) handleOptionClick(option.id); }} />}
                 </label>
                 {/* Progress bar background */}
                 {(userHasVoted || totalVotes > 0) && (
@@ -270,20 +272,20 @@ const PollMessage = React.memo(function PollMessage({
                   className="flex-1 px-3.5 py-2 text-xs border border-input focus:border-info-outline rounded-control outline-none transition"
                   autoFocus
                 />
-                <Button variant="unstyled"
+                <Button variant="default"
                   type="submit"
                   disabled={!newOptionText.trim()}
-                  className="px-4 py-2 bg-primary hover:bg-primary text-primary-foreground text-xs font-semibold rounded-control disabled:opacity-50 transition"
+                  className="px-4 py-2 text-xs font-semibold rounded-control disabled:opacity-50 transition"
                 >
                   Add
                 </Button>
-                <Button variant="unstyled"
+                <Button variant="secondary"
                   type="button"
                   onClick={() => {
                     setIsAddingOption(false);
                     setNewOptionText("");
                   }}
-                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground text-xs font-semibold rounded-control transition"
+                  className="px-4 py-2 text-xs font-semibold rounded-control transition"
                 >
                   Cancel
                 </Button>

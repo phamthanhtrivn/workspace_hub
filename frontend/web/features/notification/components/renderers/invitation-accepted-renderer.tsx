@@ -96,9 +96,9 @@ export const InvitationAcceptedModalRenderer: React.FC<{
       </div>
 
       <div className="flex justify-end gap-3 border-t border-border pt-4 mt-2">
-        <Button variant="unstyled"
+        <Button variant="secondary"
           onClick={onClose}
-          className="px-4 py-2 bg-muted hover:bg-accent text-foreground rounded-control text-sm font-semibold transition cursor-pointer"
+          className="px-4 py-2 rounded-control text-sm font-semibold transition cursor-pointer"
         >
           Close
         </Button>

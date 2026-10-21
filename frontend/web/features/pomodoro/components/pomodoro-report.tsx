@@ -1,11 +1,12 @@
 "use client";
+import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
+
 
 import { useId, useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { usePomodoroReport } from "../hooks/use-pomodoro-report";
 import { POMODORO_REPORT_PAGE_SIZE } from "../constants/pomodoro-report";
@@ -88,27 +89,49 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
         <div className="mt-3 grid grid-cols-1 gap-3 @min-[480px]/pomodoro:grid-cols-2 @min-[960px]/pomodoro:grid-cols-4">
           <label htmlFor={`${id}-start`} className="min-w-0 text-xs font-semibold text-muted-foreground">
             From date
-            <Input id={`${id}-start`} type="date" value={range.startDate} onChange={(event) => changeRange({ ...range, startDate: event.target.value })} className={INPUT_CLASS} />
+            <CustomDatePicker
+              id={`${id}-start`}
+              value={range.startDate}
+              onChange={nextValue => changeRange({ ...range, startDate: nextValue })}
+              triggerClassName={INPUT_CLASS}
+              ariaLabel="From date"
+              allowClear
+            />
           </label>
           <label htmlFor={`${id}-end`} className="min-w-0 text-xs font-semibold text-muted-foreground">
             To date
-            <Input id={`${id}-end`} type="date" value={range.endDate} onChange={(event) => changeRange({ ...range, endDate: event.target.value })} className={INPUT_CLASS} />
+            <CustomDatePicker
+              id={`${id}-end`}
+              value={range.endDate}
+              onChange={nextValue => changeRange({ ...range, endDate: nextValue })}
+              triggerClassName={INPUT_CLASS}
+              ariaLabel="To date"
+              allowClear
+            />
           </label>
           <label htmlFor={`${id}-project`} className="min-w-0 text-xs font-semibold text-muted-foreground">
             Project
             <CustomSelect
-              id={`${id}-project`} value={filters.project} disabled={!ready} ariaLabel="Project"
+              id={`${id}-project`}
+              value={filters.project}
+              disabled={!ready}
+              ariaLabel="Project"
               options={[{ value: "", label: "All projects / personal" }, ...options.projects.map(([value, label]) => ({ value, label }))]}
-              className="mt-1" triggerClassName="h-auto px-2 py-2 text-xs font-normal shadow-none"
+              className="mt-1"
+              triggerClassName="h-auto px-2 py-2 text-xs font-normal shadow-none"
               onChange={(project) => { setFilters({ project, task: "" }); resetPages(); }}
             />
           </label>
           <label htmlFor={`${id}-task`} className="min-w-0 text-xs font-semibold text-muted-foreground">
             Task
             <CustomSelect
-              id={`${id}-task`} value={filters.task} disabled={!ready} ariaLabel="Task"
+              id={`${id}-task`}
+              value={filters.task}
+              disabled={!ready}
+              ariaLabel="Task"
               options={[{ value: "", label: "All tasks" }, ...options.tasks.map(([value, label]) => ({ value, label }))]}
-              className="mt-1" triggerClassName="h-auto px-2 py-2 text-xs font-normal shadow-none"
+              className="mt-1"
+              triggerClassName="h-auto px-2 py-2 text-xs font-normal shadow-none"
               onChange={(task) => { setFilters({ ...filters, task }); resetPages(); }}
             />
           </label>

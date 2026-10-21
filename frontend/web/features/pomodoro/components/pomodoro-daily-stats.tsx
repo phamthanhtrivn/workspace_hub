@@ -1,4 +1,6 @@
 "use client";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 import { useEffect, useRef } from "react";
 import { SimplePagination } from "@/components/ui/custom/simple-pagination";
@@ -20,8 +22,8 @@ export function PomodoroDailyStats({ days, page, totalPages, onPageChange }: Pom
   }, [page]);
 
   return (
-    <details className="mt-4" open>
-      <summary className="cursor-pointer text-xs font-semibold text-foreground">Daily stats</summary>
+    <Collapsible className="mt-4" defaultOpen>
+      <CollapsibleTrigger render={<Button type="button" variant="ghost" className="group h-auto w-full justify-between whitespace-normal text-left" />} className="cursor-pointer text-xs font-semibold text-foreground">Daily stats</CollapsibleTrigger><CollapsibleContent>
       <Table containerRef={scrollRef} containerClassName="mt-2 max-h-56 overflow-auto" className="caption-top text-left text-xs">
         <TableCaption className="sr-only">Focus time and completed sessions by day</TableCaption>
         <TableHeader className="sticky top-0 bg-card text-muted-foreground [&_tr]:border-0">
@@ -44,6 +46,7 @@ export function PomodoroDailyStats({ days, page, totalPages, onPageChange }: Pom
       {totalPages > 1 && (
         <SimplePagination page={page} totalPages={totalPages} onPageChange={onPageChange} ariaLabel="Daily stats pagination" className="mt-2" />
       )}
-    </details>
+    </CollapsibleContent>
+    </Collapsible>
   );
 }

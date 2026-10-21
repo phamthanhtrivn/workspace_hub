@@ -61,7 +61,7 @@ export function QueryFeedback({
         className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-destructive-soft p-3 text-xs text-destructive-content"
       >
         <span className="min-w-0 break-words">Could not load {label}.</span>
-        <Button variant="unstyled"
+        <Button variant="link"
           type="button"
           onClick={() => void query.refetch()}
           className="flex min-h-11 shrink-0 cursor-pointer items-center gap-1 rounded-control px-2 py-1 font-semibold hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-8 [@media(pointer:coarse)]:min-h-11"

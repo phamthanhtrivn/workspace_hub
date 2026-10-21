@@ -1,4 +1,6 @@
 "use client";
+
+import { IconButton } from "@/components/ui/icon-button";
 import { useId as useControlledPopupId } from "react";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -866,7 +868,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             </Button>
             {activeSpaceId && (
               <div className="relative" ref={channelsDropdownRef}>
-                <Button aria-expanded={isChannelsDropdownOpen} aria-controls={`${controlledPopupId}-isChannelsDropdownOpen`} aria-haspopup="menu" variant="unstyled"
+                <IconButton aria-expanded={isChannelsDropdownOpen} aria-controls={`${controlledPopupId}-isChannelsDropdownOpen`} aria-haspopup="menu" label="Channel options" showTooltip={false} size="icon-sm"
                   onClick={() =>
                     setIsChannelsDropdownOpen(!isChannelsDropdownOpen)
                   }
@@ -874,7 +876,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   title="Channel options"
                 >
                   <Plus size={14} />
-                </Button>
+                </IconButton>
                 {isChannelsDropdownOpen && (
                   <AnchoredMenu id={`${controlledPopupId}-isChannelsDropdownOpen`} onClose={() => setIsChannelsDropdownOpen(false)} side="bottom" align="end" aria-label="Channel actions" className="w-44 bg-card border border-border rounded-panel z-50 py-1 text-foreground font-normal normal-case shadow-panel">
                     <DropdownMenuItem closeOnClick={false}

@@ -78,9 +78,9 @@ const NoteMessage = React.memo(function NoteMessage({
         </div>
 
         {isMe && onEditNote && (
-          <Button variant="unstyled"
+          <Button variant="warning-soft"
             onClick={() => setIsEditModalOpen(true)}
-            className="cursor-pointer w-full mt-4 py-2.5 flex items-center justify-center gap-2 text-xs font-semibold text-warning-content bg-warning-soft hover:bg-warning-soft/90 rounded-control transition-all duration-200"
+            className="cursor-pointer w-full mt-4 py-2.5 flex items-center justify-center gap-2 text-xs font-semibold rounded-control transition-all duration-200"
           >
             <Edit2 size={14} />
             Edit Note

@@ -1,4 +1,6 @@
 "use client";
+import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
+
 
 
 
@@ -27,7 +29,7 @@ import {
   CalendarRecurrenceWeekday,
 } from "../../types/calendar.types";
 import { getWeekdayNameByCode } from "../../utils/calendar-recurrence.utils";
-import { NativeRadio } from "@/components/ui/radio-group";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DialogSurface } from "@/components/ui/dialog";
 
 
@@ -222,8 +224,7 @@ export function CustomRecurrenceModal({
             <span className="text-sm font-semibold text-muted-foreground">
               {copy.recurrenceEnds}
             </span>
-            <div
-              role="radiogroup"
+            <RadioGroup name="recurrenceEndType" value={draft.endType} onValueChange={(endType: CalendarRecurrenceEndType) => setDraft((current) => ({ ...current, endType }))}
               aria-label={copy.recurrenceEnds}
               className="space-y-3"
             >
@@ -234,32 +235,27 @@ export function CustomRecurrenceModal({
                     className="grid min-h-11 grid-cols-1 items-center gap-2 sm:grid-cols-[8rem_minmax(0,1fr)]"
                   >
                     <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold text-foreground">
-                      <NativeRadio
+                      <RadioGroupItem
 
-                        name="recurrenceEndType"
                         value={endType}
-                        checked={draft.endType === endType}
-                        onChange={() =>
-                          setDraft((current) => ({ ...current, endType }))
-                        }
                         className="h-4 w-4 shrink-0 accent-link"
                       />
                       {CALENDAR_FORM_RECURRENCE_END_LABELS[endType]}
                     </label>
                     {endType === "on" && (
-                      <Input
-                        type="date"
-                        aria-label={copy.endDate}
+                      <CustomDatePicker
+                        ariaLabel={copy.endDate}
                         min={startDate}
                         disabled={draft.endType !== "on"}
                         value={draft.until}
-                        onChange={(event) =>
+                        onChange={nextValue =>
                           setDraft((current) => ({
                             ...current,
-                            until: event.target.value,
+                            until: nextValue,
                           }))
                         }
-                        className="h-11 min-w-0 rounded-control border-input px-3 text-sm font-semibold text-foreground shadow-none disabled:bg-muted"
+                        triggerClassName="h-11 min-w-0 rounded-control border-input px-3 text-sm font-semibold text-foreground shadow-none disabled:bg-muted"
+                        allowClear
                       />
                     )}
                     {endType === "after" && (
@@ -290,7 +286,7 @@ export function CustomRecurrenceModal({
                   </div>
                 ),
               )}
-            </div>
+            </RadioGroup>
             {error && (
               <p role="alert" className="text-sm text-destructive-content">
                 {error}

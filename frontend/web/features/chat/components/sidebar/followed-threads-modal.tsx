@@ -193,9 +193,9 @@ export default function FollowedThreadsModal({
               <p className="text-sm font-semibold text-foreground">
                 Failed to load followed threads
               </p>
-              <Button variant="unstyled"
+              <Button variant="info-soft"
                 onClick={() => refetch()}
-                className="px-4 py-2 text-xs font-semibold text-info-content bg-info-soft hover:bg-info-soft rounded-control transition cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold rounded-control transition cursor-pointer"
               >
                 Try Again
               </Button>

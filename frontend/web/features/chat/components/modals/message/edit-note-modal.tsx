@@ -95,17 +95,17 @@ export default function EditNoteModal({
           </div>
 
           <div className="pt-2 flex justify-end gap-3">
-            <Button variant="unstyled"
+            <Button variant="secondary"
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 rounded-control font-medium text-foreground hover:bg-muted transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-control font-medium transition-colors cursor-pointer"
             >
               Cancel
             </Button>
-            <Button variant="unstyled"
+            <Button variant="warning"
               type="submit"
               disabled={!title.trim() || !content.trim()}
-              className="px-5 py-2.5 rounded-control font-medium text-warning-foreground bg-warning hover:bg-warning disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="px-5 py-2.5 rounded-control font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               Save Changes
             </Button>

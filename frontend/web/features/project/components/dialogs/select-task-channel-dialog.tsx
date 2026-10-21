@@ -183,17 +183,17 @@ export default function SelectTaskChannelDialog({
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 px-4 py-3 border-t border-border sm:px-6">
-            <Button variant="unstyled"
+            <Button variant="secondary"
               type="button"
               onClick={onClose}
-              className="rounded-control px-4 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted transition-colors cursor-pointer"
+              className="rounded-control px-4 py-2 text-xs font-semibold transition-colors cursor-pointer"
             >
               Cancel
             </Button>
-            <Button variant="unstyled"
+            <Button variant="default"
               type="submit"
               disabled={!spaceId || isSubmitting || loadingChannels || channels.length === 0}
-              className="flex items-center gap-1.5 rounded-control bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex items-center gap-1.5 rounded-control px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <Sparkles size={13} />
               <span>{isSubmitting ? "Opening..." : "Open Thread in Space"}</span>

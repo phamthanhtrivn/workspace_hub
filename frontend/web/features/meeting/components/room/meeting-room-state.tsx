@@ -31,10 +31,10 @@ export function MeetingRoomError({ onBack }: { onBack: () => void }) {
         <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">
           Check the meeting link and try again.
         </p>
-        <Button variant="unstyled"
+        <Button variant="secondary"
           type="button"
           onClick={onBack}
-          className="mt-5 h-11 cursor-pointer rounded-control bg-card px-5 text-sm font-semibold text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="mt-5 h-11 cursor-pointer rounded-control px-5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           Back to meetings
         </Button>

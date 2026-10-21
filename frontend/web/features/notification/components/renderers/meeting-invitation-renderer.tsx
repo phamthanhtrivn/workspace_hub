@@ -224,11 +224,11 @@ export function MeetingInvitationModalRenderer({
             )}
             Decline
           </Button>
-          <Button variant="unstyled"
+          <Button variant="default"
             type="button"
             onClick={() => void respond("accept")}
             disabled={action !== null}
-            className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-control text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
           >
             {action === "accept" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -239,20 +239,20 @@ export function MeetingInvitationModalRenderer({
           </Button>
         </div>
       ) : canOpenMeeting ? (
-        <Button variant="unstyled"
+        <Button variant="success"
           type="button"
           onClick={openMeeting}
-          className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-control bg-success text-sm font-semibold text-success-foreground transition hover:bg-success"
+          className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-control text-sm font-semibold transition"
         >
           <CheckCircle2 className="h-4 w-4" />
           Open scheduled meeting
         </Button>
       ) : null}
 
-      <Button variant="unstyled"
+      <Button variant="ghost"
         type="button"
         onClick={onClose}
-        className="mt-3 w-full cursor-pointer rounded-control py-2 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-muted-foreground"
+        className="mt-3 w-full cursor-pointer rounded-control py-2 text-xs font-semibold transition"
       >
         Close
       </Button>

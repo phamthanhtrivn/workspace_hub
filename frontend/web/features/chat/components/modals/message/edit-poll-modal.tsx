@@ -8,7 +8,7 @@ import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeCheckbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DialogSurface } from "@/components/ui/dialog";
 
 
@@ -107,10 +107,10 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
 
           <div className="space-y-3 pt-4 border-t border-border">
             <label className="flex items-center gap-3 cursor-pointer">
-              <NativeCheckbox
+              <Checkbox
 
                 checked={multipleChoice}
-                onChange={(e) => setMultipleChoice(e.target.checked)}
+                onCheckedChange={nextChecked => setMultipleChoice(nextChecked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring"
               />
               <span className="text-sm text-foreground">
@@ -118,10 +118,10 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <NativeCheckbox
+              <Checkbox
 
                 checked={allowAddOptions}
-                onChange={(e) => setAllowAddOptions(e.target.checked)}
+                onCheckedChange={nextChecked => setAllowAddOptions(nextChecked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring cursor-pointer"
               />
               <span className="text-sm text-foreground">
@@ -129,10 +129,10 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <NativeCheckbox
+              <Checkbox
 
                 checked={anonymous}
-                onChange={(e) => setAnonymous(e.target.checked)}
+                onCheckedChange={nextChecked => setAnonymous(nextChecked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring cursor-pointer"
               />
               <span className="text-sm text-foreground">
@@ -140,10 +140,10 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <NativeCheckbox
+              <Checkbox
 
                 checked={isLocked}
-                onChange={(e) => setIsLocked(e.target.checked)}
+                onCheckedChange={nextChecked => setIsLocked(nextChecked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring cursor-pointer"
               />
               <span className="text-sm text-foreground font-medium">
@@ -153,10 +153,10 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
           </div>
 
           <div className="pt-2">
-            <Button variant="unstyled"
+            <Button variant="default"
               type="submit"
               disabled={!title.trim()}
-              className="flex-1 w-full py-2 px-4 bg-primary text-primary-foreground rounded-control font-medium hover:bg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="flex-1 w-full py-2 px-4 rounded-control font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Save Changes
             </Button>

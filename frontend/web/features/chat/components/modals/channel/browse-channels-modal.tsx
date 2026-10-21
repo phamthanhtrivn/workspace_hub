@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
@@ -149,12 +151,12 @@ export default function BrowseChannelsModal({
               Browse Channels
             </h2>
           </div>
-          <Button variant="unstyled" aria-label="Close"
+          <IconButton label="Close" showTooltip={false} size="icon-sm" aria-label="Close"
             onClick={onClose}
             className="p-1 rounded-control text-muted-foreground hover:text-muted-foreground hover:bg-muted transition cursor-pointer"
           >
             <X size={20} />
-          </Button>
+          </IconButton>
         </div>
 
         {/* Search */}
@@ -219,10 +221,10 @@ export default function BrowseChannelsModal({
                         Joined
                       </span>
                     ) : (
-                      <Button variant="unstyled"
+                      <Button variant="default"
                         onClick={() => joinMutation.mutate(channel.id)}
                         disabled={joinMutation.isPending}
-                        className="px-4 py-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:bg-primary disabled:bg-primary rounded-control transition cursor-pointer flex items-center gap-1"
+                        className="px-4 py-1.5 text-xs font-semibold disabled:bg-primary rounded-control transition cursor-pointer flex items-center gap-1"
                       >
                         {joinMutation.isPending &&
                         joinMutation.variables === channel.id ? (

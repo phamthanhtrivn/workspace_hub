@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
@@ -15,7 +17,6 @@ import { cn } from "@/lib/utils";
 import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
 import { MEETING_ROUTES } from "../../types/meeting.constants";
 import { parseMeetingJoinToken } from "../../utils/meeting-join-link.utils";
-import { Button } from "@/components/ui/button";
 
 
 interface MeetingJoinLinkModalProps {
@@ -87,7 +88,7 @@ export function MeetingJoinLinkModal({
               Paste a meeting link or join token to open it in a new tab.
             </DialogDescription>
           </div>
-          <Button variant="unstyled"
+          <IconButton label="Close" showTooltip={false} size="icon-sm"
             type="button"
             onClick={onClose}
             className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-control text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -95,7 +96,7 @@ export function MeetingJoinLinkModal({
             title="Close"
           >
             <X className="h-5 w-5" />
-          </Button>
+          </IconButton>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="px-5 py-5">

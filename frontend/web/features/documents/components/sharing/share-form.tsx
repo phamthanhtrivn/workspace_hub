@@ -10,7 +10,7 @@ import { searchUserByEmail } from "@/features/chat/api/chat.api";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 import { ShareSuggestionsDropdown } from "./share-suggestions-dropdown";
 import { Combobox, ComboboxInput } from "@/components/ui/combobox";
-import { NativeSelect } from "@/components/ui/native-select";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Button } from "@/components/ui/button";
 
 
@@ -195,20 +195,21 @@ export function ShareModalForm({
           />
           </Combobox>
         </div>
-        <NativeSelect unstyled aria-label="Share permission"
+        <CustomSelect
+          ariaLabel="Share permission"
           value={permissionInput}
-          onChange={(e) =>
-            setPermissionInput(e.target.value as SharePermission)
+          onChange={nextValue =>
+            setPermissionInput(nextValue as SharePermission)
           }
-          className="bg-card border border-input hover:border-input rounded-panel py-2.5 px-3 text-xs font-semibold text-foreground outline-hidden transition-all cursor-pointer"
+          triggerClassName="bg-card border border-input hover:border-input rounded-panel py-2.5 px-3 text-xs font-semibold text-foreground outline-hidden transition-all cursor-pointer"
         >
           <option value={SharePermission.VIEWER}>Can view</option>
           <option value={SharePermission.EDITOR}>Can edit</option>
-        </NativeSelect>
-        <Button variant="unstyled"
+        </CustomSelect>
+        <Button variant="default"
           type="submit"
           disabled={addShareMutation.isPending}
-          className="flex items-center justify-center p-2.5 bg-primary hover:bg-primary text-primary-foreground rounded-control transition-all disabled:opacity-50 cursor-pointer"
+          className="flex items-center justify-center p-2.5 rounded-control transition-all disabled:opacity-50 cursor-pointer"
         >
           {addShareMutation.isPending ? (
             <Loader2 size={16} className="animate-spin" />

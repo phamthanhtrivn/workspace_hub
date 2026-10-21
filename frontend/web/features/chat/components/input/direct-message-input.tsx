@@ -1,4 +1,6 @@
 "use client";
+
+import { IconButton } from "@/components/ui/icon-button";
 import { useId as useControlledPopupId } from "react";
 
 import React, {
@@ -576,14 +578,14 @@ const DirectMessageInput = React.memo(
                         className="text-info-content animate-spin ml-1 flex-shrink-0"
                       />
                     )}
-                    <Button variant="unstyled"
+                    <IconButton label="Remove file" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => removeFile(media.id)}
                       className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
                       title="Remove file"
                     >
                       <X size={14} />
-                    </Button>
+                    </IconButton>
                   </div>
                 ))}
               </div>

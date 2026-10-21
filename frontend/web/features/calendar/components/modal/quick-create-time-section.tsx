@@ -20,7 +20,7 @@ export function QuickCreateTimeSection({ kind, recurrencePreset, recurrenceOptio
   return <div className="space-y-2">
     <CalendarTimeFields {...timeProps} showTimeZone={kind === "event"} />
     <QuickRow icon={null}>
-      <CalendarSelect value={recurrencePreset} options={recurrenceOptions} ariaLabel={copy.recurrence}
+      <CalendarSelect disabled={timeProps.disabled} value={recurrencePreset} options={recurrenceOptions} ariaLabel={copy.recurrence}
         onChange={(value) => onRecurrenceChange(value as CalendarRecurrencePreset)} alignItemWithTrigger={false}
         triggerClassName="h-10 w-full justify-between rounded-panel border border-input bg-muted px-3 text-sm font-semibold text-muted-foreground hover:bg-accent/70 data-[state=open]:bg-card"
         popupClassName="min-w-[15.5rem]" />

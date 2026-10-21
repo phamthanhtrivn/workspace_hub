@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import React, {
   createContext,
   useContext,
@@ -170,12 +172,12 @@ export function DownloadQueueProvider({
                 t.status === DownloadStatus.DONE ||
                 t.status === DownloadStatus.ERROR,
             ) && (
-              <Button variant="unstyled"
+              <Button variant="secondary"
                 onClick={(e) => {
                   e.stopPropagation();
                   clearDone();
                 }}
-                className="text-xs font-semibold text-muted-foreground hover:text-foreground px-2 py-0.5 rounded hover:bg-muted transition-colors cursor-pointer"
+                className="text-xs font-semibold px-2 py-0.5 rounded transition-colors cursor-pointer"
               >
                 Clear all
               </Button>
@@ -239,13 +241,13 @@ function DownloadTaskRow({
           )}
           {(task.status === DownloadStatus.DONE ||
             task.status === DownloadStatus.ERROR) && (
-            <Button variant="unstyled"
+            <IconButton label="Remove download" showTooltip={false} size="icon-sm"
               onClick={() => onRemove(task.id)}
               aria-label="Remove download"
               className="text-muted-foreground hover:text-muted-foreground transition-colors"
             >
               <X size={13} />
-            </Button>
+            </IconButton>
           )}
         </div>
       </div>

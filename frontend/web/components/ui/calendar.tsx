@@ -2,7 +2,9 @@
 
 import * as React from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker, getDefaultClassNames, type DayButton } from "react-day-picker";
+import { DayPicker, getDefaultClassNames, useDayPicker, type DayButton, type DropdownProps } from "react-day-picker";
+import { CustomSelect } from "./custom/custom-select";
+import { setMonth, setYear } from "date-fns";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +23,7 @@ function Calendar({ className, classNames, components, showOutsideDays = true, .
         button_next: cn(buttonVariants({ variant: "ghost", size: "icon" }), "size-[var(--cell-size)] min-h-0 min-w-0 p-0 aria-disabled:opacity-50"),
         month_caption: "flex h-[var(--cell-size)] items-center justify-center px-[var(--cell-size)]",
         caption_label: "text-sm font-semibold",
+        dropdowns: "flex min-w-0 items-center gap-1",
         month_grid: "w-full border-collapse",
         weekdays: "grid grid-cols-7",
         weekday: "py-1 text-center text-xs font-normal text-muted-foreground",
@@ -42,10 +45,24 @@ function Calendar({ className, classNames, components, showOutsideDays = true, .
           return <Icon aria-hidden className={cn("size-4", chevronClassName)} {...chevronProps} />;
         },
         DayButton: CalendarDayButton,
+        MonthsDropdown: (dropdownProps) => <CalendarDropdown {...dropdownProps} kind="month" />,
+        YearsDropdown: (dropdownProps) => <CalendarDropdown {...dropdownProps} kind="year" />,
         ...components,
       }}
       {...props} />
   );
+}
+
+function CalendarDropdown({ kind, options = [], value, disabled, "aria-label": ariaLabel }: DropdownProps & { kind: "month" | "year" }) {
+  const { months, goToMonth } = useDayPicker();
+  return <CustomSelect
+    value={String(value ?? "")}
+    disabled={disabled}
+    ariaLabel={ariaLabel ?? (kind === "month" ? "Month" : "Year")}
+    options={options.map((option) => ({ ...option, value: String(option.value) }))}
+    triggerClassName="h-8 w-auto min-w-20 border-0 px-2 text-xs"
+    onChange={(next) => goToMonth(kind === "month" ? setMonth(months[0].date, Number(next)) : setYear(months[0].date, Number(next)))}
+  />;
 }
 
 function CalendarDayButton({ className, day, modifiers, ...props }: React.ComponentProps<typeof DayButton>) {

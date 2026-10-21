@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { LinkAccess } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Button } from "@/components/ui/button";
 
 
@@ -111,19 +111,20 @@ export function ShareModalLink({
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             {isOwner ? (
-              <NativeSelect unstyled aria-label="Link access"
+              <CustomSelect
+                ariaLabel="Link access"
                 value={linkAccess}
-                onChange={(e) =>
-                  void handleLinkAccessChange(e.target.value as LinkAccess)
+                onChange={nextValue =>
+                  void handleLinkAccessChange(nextValue as LinkAccess)
                 }
-                className="bg-transparent border border-input rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-semibold text-foreground outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
+                triggerClassName="bg-transparent border border-input rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-semibold text-foreground outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
               >
                 {Object.entries(LINK_ACCESS_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
                 ))}
-              </NativeSelect>
+              </CustomSelect>
             ) : (
               <span className="text-sm font-semibold text-foreground py-0.5 px-1.5 block -ml-1.5">
                 {LINK_ACCESS_LABELS[linkAccess]}

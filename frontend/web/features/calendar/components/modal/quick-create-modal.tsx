@@ -251,6 +251,7 @@ export function QuickCreateModal({
           <div className="space-y-2.5">
             {/* Time & Recurrence Section */}
             <QuickCreateTimeSection
+              disabled={submitting || formState.isSubmitting}
               form={controller.form}
               kind={kind}
               recurrencePreset={controller.recurrencePreset}

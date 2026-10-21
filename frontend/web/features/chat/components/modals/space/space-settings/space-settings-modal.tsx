@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useEffect, useMemo, useState } from "react";
@@ -243,13 +245,13 @@ export default function SpaceSettingsModal({
             </h2>
             <p className="text-xs text-muted-foreground truncate">{space.name}</p>
           </div>
-          <Button variant="unstyled" aria-label="Close"
+          <IconButton label="Close" showTooltip={false} size="icon-sm" aria-label="Close"
             type="button"
             onClick={onClose}
             className="p-2 rounded-control text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
           >
             <X size={18} />
-          </Button>
+          </IconButton>
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
@@ -365,10 +367,10 @@ export default function SpaceSettingsModal({
               ? "Admin Settings"
               : "Member Settings"}
           </div>
-          <Button variant="unstyled"
+          <Button variant="secondary"
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-control bg-accent text-sm font-semibold text-foreground hover:bg-border transition cursor-pointer"
+            className="px-4 py-2 rounded-control text-sm font-semibold transition cursor-pointer"
           >
             Close
           </Button>

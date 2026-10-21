@@ -263,11 +263,11 @@ export function ProjectInvitationModalRenderer({
             )}
             Decline
           </Button>
-          <Button variant="unstyled"
+          <Button variant="default"
             type="button"
             onClick={() => void respond("accept")}
             disabled={action !== null}
-            className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-control text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {action === "accept" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -278,23 +278,23 @@ export function ProjectInvitationModalRenderer({
           </Button>
         </div>
       ) : status === "ACCEPTED" ? (
-        <Button variant="unstyled"
+        <Button variant="success"
           type="button"
           onClick={() => {
             onClose();
             router.push(`/projects/${metadata.projectId}`);
           }}
-          className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-control bg-success text-sm font-semibold text-success-foreground transition hover:bg-success focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-control text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <CheckCircle2 className="h-4 w-4" />
           Open project
         </Button>
       ) : null}
 
-      <Button variant="unstyled"
+      <Button variant="ghost"
         type="button"
         onClick={onClose}
-        className="mt-3 w-full cursor-pointer rounded-control py-2 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="mt-3 w-full cursor-pointer rounded-control py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         Close
       </Button>

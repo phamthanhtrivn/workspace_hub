@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, KeyboardEvent, ClipboardEvent } from "react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 interface OtpInputProps {
   length?: number;
@@ -100,7 +101,7 @@ export const OtpInput = React.memo(function OtpInput({
     <div role="group" aria-label={label} aria-describedby={error || description ? `${id}-description` : undefined}>
     <div className={cn("flex justify-between items-center gap-2", className)}>
       {Array.from({ length }, (_, index) => (
-        <input
+        <Input
           key={index}
           ref={(el) => {
             inputRefs.current[index] = el;

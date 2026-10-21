@@ -1,4 +1,5 @@
 "use client";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 import Link from "next/link";
 import { Loader2, Menu, MessageCircle, Plus, UserPlus } from "lucide-react";
@@ -247,7 +248,7 @@ export default function ProjectDetailToolbar({
               onAssigneeChange={onAssigneeChange}
             />
 
-            <details className="min-w-0 max-w-full"><summary className="min-h-9 cursor-pointer rounded-control px-2 py-2 text-xs font-semibold text-muted-foreground">Assignee options{selectedAssigneeIds.length > 0 ? ` (${selectedAssigneeIds.length} selected)` : ""}{onlyMyIssues ? " · My tasks" : ""}</summary><div className="flex flex-wrap items-center gap-3 pt-2">
+            <Collapsible className="min-w-0 max-w-full"><CollapsibleTrigger render={<Button type="button" variant="ghost" className="group h-auto w-full justify-between whitespace-normal text-left" />} className="min-h-9 cursor-pointer rounded-control px-2 py-2 text-xs font-semibold text-muted-foreground">Assignee options{selectedAssigneeIds.length > 0 ? ` (${selectedAssigneeIds.length} selected)` : ""}{onlyMyIssues ? " · My tasks" : ""}</CollapsibleTrigger><CollapsibleContent><div className="flex flex-wrap items-center gap-3 pt-2">
             <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
               <span className="mr-1 text-xs font-semibold text-muted-foreground">
                 Assignee:
@@ -294,7 +295,8 @@ export default function ProjectDetailToolbar({
               Only My Tasks
             </Button>
 
-            </div></details>
+            </div></CollapsibleContent>
+    </Collapsible>
             {isFiltersActive && (
               <Button
                 type="button"

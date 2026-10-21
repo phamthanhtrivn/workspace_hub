@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
@@ -7,7 +9,7 @@ import React, { useState, useEffect } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeCheckbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DialogSurface } from "@/components/ui/dialog";
 
 
@@ -119,20 +121,20 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                   required={index < 2}
                 />
                 {options.length > 2 && (
-                  <Button variant="unstyled" aria-label="Remove poll option"
+                  <IconButton label="Remove poll option" showTooltip={false} size="icon-sm" aria-label="Remove poll option"
                     type="button"
                     onClick={() => handleRemoveOption(index)}
                     className="p-2 text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft rounded-control transition-colors"
                   >
                     <Trash2 size={18} />
-                  </Button>
+                  </IconButton>
                 )}
               </div>
             ))}
-            <Button variant="unstyled"
+            <Button variant="ghost"
               type="button"
               onClick={handleAddOption}
-              className="flex items-center gap-2 text-info-content hover:text-info-content text-sm font-medium p-2 rounded-control hover:bg-info-soft transition-colors cursor-pointer"
+              className="flex items-center gap-2 text-sm font-medium p-2 rounded-control transition-colors cursor-pointer"
             >
               <Plus size={16} /> Add Option
             </Button>
@@ -140,10 +142,10 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
 
           <div className="space-y-3 pt-4 border-t border-border">
             <label className="flex items-center gap-3 cursor-pointer">
-              <NativeCheckbox
+              <Checkbox
 
                 checked={multipleChoice}
-                onChange={(e) => setMultipleChoice(e.target.checked)}
+                onCheckedChange={nextChecked => setMultipleChoice(nextChecked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring"
               />
               <span className="text-sm text-foreground">
@@ -151,10 +153,10 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <NativeCheckbox
+              <Checkbox
 
                 checked={allowAddOptions}
-                onChange={(e) => setAllowAddOptions(e.target.checked)}
+                onCheckedChange={nextChecked => setAllowAddOptions(nextChecked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring"
               />
               <span className="text-sm text-foreground">
@@ -162,10 +164,10 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <NativeCheckbox
+              <Checkbox
 
                 checked={anonymous}
-                onChange={(e) => setAnonymous(e.target.checked)}
+                onCheckedChange={nextChecked => setAnonymous(nextChecked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring"
               />
               <span className="text-sm text-foreground">
@@ -175,12 +177,12 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
           </div>
 
           <div className="pt-2">
-            <Button variant="unstyled"
+            <Button variant="default"
               type="submit"
               disabled={
                 !title.trim() || options.filter((o) => o.trim()).length < 2
               }
-              className="cursor-pointer w-full bg-primary hover:bg-primary text-primary-foreground font-medium py-2.5 rounded-control transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="cursor-pointer w-full font-medium py-2.5 rounded-control transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create Poll
             </Button>

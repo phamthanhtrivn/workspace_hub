@@ -1,5 +1,8 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
+
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -444,11 +447,13 @@ export function ScheduleMeetingModal({
               <span className="text-xs font-semibold uppercase text-muted-foreground">
                 Date
               </span>
-              <MeetingInput
-                type="date"
+              <CustomDatePicker
+                disabled={isSubmitting}
+                ariaLabel="Meeting date"
+                required
                 value={getDateInputValue(values.scheduledStartAt)}
-                onChange={(event) => updateStartDate(event.target.value)}
-                className="h-10 w-full cursor-pointer rounded-control border border-border px-3 text-sm font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-ring"
+                onChange={updateStartDate}
+                triggerClassName="h-10"
               />
             </label>
             <label className="space-y-1.5">
@@ -548,14 +553,14 @@ export function ScheduleMeetingModal({
                     <span className="max-w-36 truncate">
                       {user.fullName || user.email}
                     </span>
-                    <Button variant="unstyled"
+                    <IconButton label="Delete" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => removeInvitee(user.id)}
                       className="cursor-pointer text-muted-foreground hover:text-foreground"
                       aria-label="Delete"
                     >
                       <X className="h-3.5 w-3.5" />
-                    </Button>
+                    </IconButton>
                   </span>
                 ))}
               </div>

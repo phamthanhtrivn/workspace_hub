@@ -82,11 +82,11 @@ export function DangerZoneTab({
                 Permanently delete this space and all its channels, messages, and files. This action cannot be undone.
               </p>
             </div>
-            <Button variant="unstyled"
+            <Button variant="destructive"
               type="button"
               disabled={isDeleting}
               onClick={onDelete}
-              className="inline-flex items-center gap-2 rounded-control bg-destructive px-3 py-2 text-sm font-semibold text-destructive-foreground hover:bg-destructive disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold disabled:opacity-50 cursor-pointer"
             >
               <Trash2 size={15} />
               Delete

@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "@/components/ui/button";
 
 import {
   type Task,
@@ -103,24 +104,22 @@ export default function TaskCard({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
       draggable={isDraggable}
       onDragStart={handleDragStart}
-      onClick={onClick}
-      onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onClick?.();
-        }
-      }}
-      className={`group relative min-w-0 w-full shrink-0 overflow-visible rounded-panel border border-border bg-card text-left transition duration-150 hover:z-20 hover:border-input hover:bg-background focus-within:z-20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring ${
+      className={`relative [&>:not([data-primary-action]):not(.sticky)]:relative [&>:not([data-primary-action])]:z-10 [&>:not([data-primary-action])]:pointer-events-none [&_button]:pointer-events-auto [&_a]:pointer-events-auto group min-w-0 w-full shrink-0 overflow-visible rounded-panel border border-border bg-card text-left transition duration-150 hover:z-20 hover:border-input hover:bg-background focus-within:z-20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring ${
         isCompact ? "p-2.5" : "p-3"
       } ${
         isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"
       }`}
     >
+      <Button
+        data-primary-action
+        type="button"
+        variant="unstyled"
+        aria-label={`Open ${task.title}`}
+        onClick={() => onClick?.()}
+        className="absolute inset-0 z-0 h-full w-full rounded-[inherit] focus-visible:ring-inset"
+      />
       {/* Title */}
       <p
         className={`font-semibold leading-snug text-foreground group-hover:text-info-content break-words ${

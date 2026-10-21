@@ -1,4 +1,6 @@
 "use client";
+import { CustomDateField } from "@/components/ui/custom/custom-date-time-picker";
+
 import { useId as useControlledPopupId } from "react";
 
 import { useRef, useState } from "react";
@@ -21,7 +23,6 @@ import {
 import { Avatar } from "../ui/avatar-stack";
 import { getPriorityIcon } from "../ui/task-card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { CustomCheckbox } from "@/components/ui/custom/custom-checkbox";
 import { ProjectSelect } from "../ui/project-form-controls";
 import { AnchoredPopover, AnchoredMenu } from "@/components/ui/anchored-popup";
@@ -311,12 +312,14 @@ export default function TaskPropertiesPanel({
             <CalendarDays className="h-3 w-3" strokeWidth={2} />
             {task.allDay ? "Start Date" : "Start Date & Time"}
           </span>
-          <Input aria-label="Task start date"
-            type={task.allDay ? "date" : "datetime-local"}
+          <CustomDateField
+            ariaLabel="Task start date"
+            dateOnly={task.allDay}
             value={startDateValue}
-            onChange={(e) => void onStartDateChange(e.target.value)}
+            onChange={nextValue => void onStartDateChange(nextValue)}
             disabled={isReadOnly}
             className="h-8 w-full rounded-control border-input bg-card px-2.5 text-xs font-semibold text-foreground"
+            allowClear
           />
         </div>
 
@@ -326,12 +329,14 @@ export default function TaskPropertiesPanel({
             <CalendarDays className="h-3 w-3" strokeWidth={2} />
             {task.allDay ? "Due Date" : "Due Date & Time"}
           </span>
-          <Input aria-label="Task due date"
-            type={task.allDay ? "date" : "datetime-local"}
+          <CustomDateField
+            ariaLabel="Task due date"
+            dateOnly={task.allDay}
             value={dueDateValue}
-            onChange={(e) => void onDueDateChange(e.target.value)}
+            onChange={nextValue => void onDueDateChange(nextValue)}
             disabled={isReadOnly}
             className="h-8 w-full rounded-control border-input bg-card px-2.5 text-xs font-semibold text-foreground"
+            allowClear
           />
         </div>
 

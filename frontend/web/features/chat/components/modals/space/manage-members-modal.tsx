@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
@@ -391,7 +393,7 @@ export default function ManageMembersModal({
                     {isCurrentUserOwner && (
                       <>
                         {member.role === SpaceRole.MEMBER && (
-                          <Button variant="unstyled"
+                          <IconButton label="Promote to Admin" showTooltip={false} size="icon-sm"
                             onClick={() =>
                               handleUpdateRole(member.userId, SpaceRole.ADMIN)
                             }
@@ -399,10 +401,10 @@ export default function ManageMembersModal({
                             className="p-2 text-muted-foreground hover:text-info-content hover:bg-info-soft rounded-control transition-colors cursor-pointer"
                           >
                             <FiShield size={18} />
-                          </Button>
+                          </IconButton>
                         )}
                         {member.role === SpaceRole.ADMIN && !isCreator && (
-                            <Button variant="unstyled"
+                            <IconButton label="Demote to Member" showTooltip={false} size="icon-sm"
                               onClick={() =>
                                 handleUpdateRole(member.userId, SpaceRole.MEMBER)
                               }
@@ -410,26 +412,26 @@ export default function ManageMembersModal({
                               className="p-2 text-info-content hover:bg-info-soft rounded-control transition-colors cursor-pointer"
                             >
                               <FiShieldOff size={18} />
-                            </Button>
+                            </IconButton>
                           )}
-                        <Button variant="unstyled"
+                        <IconButton label="Transfer Ownership" showTooltip={false} size="icon-sm"
                           onClick={() => handleTransferOwnership(member.userId)}
                           title="Transfer Ownership"
                           className="p-2 text-muted-foreground hover:text-warning-content hover:bg-warning-soft rounded-control transition-colors cursor-pointer"
                         >
                           <FaKey size={16} className="text-warning-content" />
-                        </Button>
+                        </IconButton>
                       </>
                     )}
 
                     {canCurrentUserRemove && (
-                      <Button variant="unstyled"
+                      <IconButton label="Remove from Space" showTooltip={false} size="icon-sm"
                         onClick={() => handleKickMember(member.userId)}
                         title="Remove from Space"
                         className="p-2 text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft rounded-control transition-colors cursor-pointer"
                       >
                         <FiTrash2 size={18} />
-                      </Button>
+                      </IconButton>
                     )}
                   </div>
                 )}
@@ -449,10 +451,10 @@ export default function ManageMembersModal({
           </Button>
 
           {currentUserRole === SpaceRole.ADMIN && (
-            <Button variant="unstyled"
+            <Button variant="destructive"
               onClick={handleDisbandChannel}
               disabled={isProcessing}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-destructive-foreground bg-destructive hover:bg-destructive rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FiTrash2 size={18} />
               Disband Channel

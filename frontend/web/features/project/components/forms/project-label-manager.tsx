@@ -1,4 +1,5 @@
 "use client";
+import { CustomColorPicker } from "@/components/ui/custom/custom-color-picker";
 
 import { useState } from "react";
 import { Check, Pencil, Trash2, X } from "lucide-react";
@@ -9,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProjectConfirmDialog } from "../ui/project-confirm-dialog";
 import { useProjectConfirmDialog } from "@/features/project/hooks/use-project-confirm-dialog";
-import { cn } from "@/lib/utils";
 import { readableTextOnColor } from "@/lib/color";
 
 interface LabelDraft {
@@ -27,55 +27,10 @@ interface ProjectLabelManagerProps {
   onDeleteLabel?: (labelId: string) => Promise<void>;
 }
 
-function LabelColorSwatches({
-  value,
-  onChange,
-  disabled = false,
-  label,
-}: {
-  value: string;
-  onChange: (color: string) => void;
-  disabled?: boolean;
-  label: string;
+function LabelColorSwatches({ value, onChange, disabled = false, label }: {
+  value: string; onChange: (color: string) => void; disabled?: boolean; label: string;
 }) {
-  return (
-    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
-      {PROJECT_SETTINGS_LABELS.COLOR_OPTIONS.map((color, index) => {
-        const isSelected = value === color;
-        const colorLabel = `${label} ${index + 1}: ${color}`;
-
-        return (
-          <Button
-            key={color}
-            type="button"
-            variant="ghost"
-            size="icon"
-            role="radio"
-            aria-checked={isSelected}
-            aria-label={colorLabel}
-            title={colorLabel}
-            disabled={disabled}
-            onClick={() => onChange(color)}
-            className={cn(
-              "h-7 w-7 cursor-pointer rounded-control border-2 p-0 transition duration-150 disabled:cursor-default disabled:opacity-60",
-              isSelected
-                ? "border-border ring-2 ring-primary ring-offset-1 hover:border-border"
-                : "border-border ring-1 ring-ring",
-            )}
-            style={{ backgroundColor: color, color: readableTextOnColor(color) }}
-          >
-            {isSelected ? (
-              <Check
-                aria-hidden="true"
-                className="h-3.5 w-3.5"
-                strokeWidth={3}
-              />
-            ) : null}
-          </Button>
-        );
-      })}
-    </div>
-  );
+  return <CustomColorPicker value={value} options={PROJECT_SETTINGS_LABELS.COLOR_OPTIONS} onChange={onChange} disabled={disabled} ariaLabel={label} allowCustom={false} />;
 }
 
 export function ProjectLabelManager({

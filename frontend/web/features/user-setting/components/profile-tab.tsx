@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Camera, Loader2, Save, User } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 import { useAppSelector } from "@/store/store";
 import {
   useUpdateUserProfileMutation,
@@ -186,14 +187,20 @@ const ProfileTab = React.memo(function ProfileTab() {
         />
       </div>
 
-      <SettingInput
-        label="Date of birth"
-        type="date"
-        value={profileForm.dob || ""}
-        onChange={(e) => updateProfileField("dob", e.target.value)}
-        error={errors.dob}
-        className="w-full sm:w-1/2"
-      />
+      <div className="space-y-1 w-full sm:w-1/2">
+        <label htmlFor="profile-dob" className="text-sm font-semibold">Date of birth</label>
+        <CustomDatePicker
+          disabled={updateProfileMutation.isPending || uploadAvatarMutation.isPending}
+          id="profile-dob"
+          ariaLabel="Date of birth"
+          value={profileForm.dob || ""}
+          onChange={(dob) => updateProfileField("dob", dob)}
+          invalid={Boolean(errors.dob)}
+          descriptionId={errors.dob ? "profile-dob-error" : undefined}
+          triggerClassName="h-10"
+        />
+        {errors.dob && <p id="profile-dob-error" role="alert" className="text-xs text-destructive-content">{errors.dob}</p>}
+      </div>
 
       <SettingTextarea
         label="Bio"

@@ -1,4 +1,6 @@
 "use client";
+
+import { IconButton } from "@/components/ui/icon-button";
 import { useId as useControlledPopupId } from "react";
 
 import React, {
@@ -786,7 +788,11 @@ const ChannelChatInput = React.memo(
                       />
                     )}
 
-                    <Button variant="unstyled"
+                    <IconButton label={
+                        media.status === "uploading"
+                          ? "Remove uploading file"
+                          : "Remove file"
+                      } showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => removeFile(media.id)}
                       className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
@@ -797,7 +803,7 @@ const ChannelChatInput = React.memo(
                       }
                     >
                       <X size={14} />
-                    </Button>
+                    </IconButton>
                   </div>
                 ))}
               </div>
@@ -919,81 +925,81 @@ const ChannelChatInput = React.memo(
                 {/* Formatting Toolbar */}
                 {showFormatting && (
                   <div className="flex items-center gap-0.5 pb-1.5 mb-1 border-b border-border/60 overflow-x-auto">
-                    <Button variant="unstyled"
+                    <IconButton label="Bold" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => applyFormatting("bold")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Bold"
                     >
                       <Bold size={15} />
-                    </Button>
-                    <Button variant="unstyled"
+                    </IconButton>
+                    <IconButton label="Italic" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => applyFormatting("italic")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Italic"
                     >
                       <Italic size={15} />
-                    </Button>
-                    <Button variant="unstyled"
+                    </IconButton>
+                    <IconButton label="Strikethrough" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => applyFormatting("strikethrough")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Strikethrough"
                     >
                       <Strikethrough size={15} />
-                    </Button>
+                    </IconButton>
 
                     <div className="w-px bg-accent mx-1 h-4"></div>
 
-                    <Button variant="unstyled"
+                    <IconButton label="Heading" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => applyFormatting("heading")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Heading"
                     >
                       <Heading size={15} />
-                    </Button>
-                    <Button variant="unstyled"
+                    </IconButton>
+                    <IconButton label="Link" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => applyFormatting("link")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Link"
                     >
                       <Link size={15} />
-                    </Button>
-                    <Button variant="unstyled"
+                    </IconButton>
+                    <IconButton label="Code Block" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => applyFormatting("code")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Code Block"
                     >
                       <Code size={15} />
-                    </Button>
-                    <Button variant="unstyled"
+                    </IconButton>
+                    <IconButton label="Quote" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => applyFormatting("quote")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Quote"
                     >
                       <Quote size={15} />
-                    </Button>
-                    <Button variant="unstyled"
+                    </IconButton>
+                    <IconButton label="Bulleted List" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => applyFormatting("bullet")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Bulleted List"
                     >
                       <List size={15} />
-                    </Button>
-                    <Button variant="unstyled"
+                    </IconButton>
+                    <IconButton label="Numbered List" showTooltip={false} size="icon-sm"
                       type="button"
                       onClick={() => applyFormatting("number")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Numbered List"
                     >
                       <ListOrdered size={15} />
-                    </Button>
+                    </IconButton>
                   </div>
                 )}
 

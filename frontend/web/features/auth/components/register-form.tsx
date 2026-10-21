@@ -3,7 +3,6 @@
 import React, { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Calendar,
   Eye,
   EyeOff,
   Lock,
@@ -20,6 +19,7 @@ import {
   getAuthValidationErrors,
 } from "../utils/auth-error";
 import { Button } from "@/components/ui/button";
+import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 
 
 const RegisterForm = React.memo(function RegisterForm() {
@@ -127,16 +127,18 @@ const RegisterForm = React.memo(function RegisterForm() {
             Date of Birth <span className="text-destructive-content">*</span>
           </label>
 
-          <InputField autoComplete="bday" required
-            variant="auth"
+          <CustomDatePicker
+            disabled={registerMutation.isPending}
+            required
             id="dob"
-            type="date"
-            icon={Calendar}
-            placeholder=""
+            ariaLabel="Date of birth"
             value={formData.dob}
-            error={errors.dob}
-            onChange={handleChange}
+            invalid={Boolean(errors.dob)}
+            descriptionId={errors.dob ? "dob-error" : undefined}
+            triggerClassName="h-12 rounded-2xl bg-background/80 text-sm"
+            onChange={(dob) => { setFormData((current) => ({ ...current, dob })); setErrors((current) => ({ ...current, dob: "" })); }}
           />
+          {errors.dob && <p id="dob-error" role="alert" className="text-xs text-destructive-content">{errors.dob}</p>}
         </div>
       </div>
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import { useMemo, useState } from "react";
 import { Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -162,13 +164,13 @@ export default function DirectConversationsSection({
           )}
           <span>{ChatSidebarSection.DIRECT_MESSAGES}</span>
         </Button>
-        <Button variant="unstyled"
+        <IconButton label="Find new chat" showTooltip={false} size="icon-sm"
           onClick={onCreateDirectConversation}
           className="p-0.5 hover:bg-muted rounded text-muted-foreground hover:text-muted-foreground transition cursor-pointer"
           title="Find new chat"
         >
           <Plus size={14} />
-        </Button>
+        </IconButton>
       </div>
       {isDmExpanded && (
         <div

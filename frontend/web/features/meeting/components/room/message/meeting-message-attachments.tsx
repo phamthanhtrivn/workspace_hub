@@ -1,12 +1,13 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import { Download, FileText, Play } from "lucide-react";
 import Image from "next/image";
 import { saveAs } from "file-saver";
 import { formatFileSize } from "@/lib/file";
 import { cn } from "@/lib/utils";
 import type { MeetingMessageMediaResponse } from "../../../types/meeting.types";
-import { Button } from "@/components/ui/button";
 
 
 function isVisualMedia(media: MeetingMessageMediaResponse) {
@@ -125,13 +126,13 @@ export function MeetingMessageAttachments({
               </div>
             </div>
           </div>
-          <Button variant="unstyled" aria-label="Download attachment"
+          <IconButton label="Download attachment" showTooltip={false} size="icon-sm" aria-label="Download attachment"
             type="button"
             onClick={(event) => void downloadMedia(event, media)}
             className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-control transition hover:bg-accent"
           >
             <Download className="h-4 w-4" />
-          </Button>
+          </IconButton>
         </div>
       ))}
     </div>

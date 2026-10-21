@@ -115,11 +115,11 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
         {/* Action buttons or Ended status text */}
         {isLive ? (
           <div className="flex items-center gap-2 pt-2.5 border-t border-border">
-            <Button variant="unstyled"
+            <Button variant="default"
               type="button"
               onClick={handleJoinInApp}
               disabled={!joinToken}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-control bg-primary hover:bg-primary active:bg-primary text-primary-foreground font-semibold text-xs md:text-sm transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-control active:bg-primary font-semibold text-xs md:text-sm transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play size={15} className="fill-current" />
               <span>Join Now</span>

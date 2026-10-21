@@ -256,11 +256,11 @@ export function MeetingRoomContent({
             {showParticipantPagination ? (
               <div className="mt-6 shrink-0">
                 <div className="mx-auto flex w-fit items-center justify-center gap-2 rounded-md bg-muted px-2 py-1.5 text-xs font-semibold text-muted-foreground ring-1 ring-border/8">
-                  <Button variant="unstyled"
+                  <Button variant="ghost"
                     type="button"
                     disabled={!canGoPrevious}
                     onClick={goToPreviousParticipantPage}
-                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-control text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground sm:w-auto sm:gap-1.5 sm:px-2.5"
+                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-control transition disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground sm:w-auto sm:gap-1.5 sm:px-2.5"
                     aria-label="Previous"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -273,11 +273,11 @@ export function MeetingRoomContent({
                     {currentParticipantPage} / {totalParticipantPages}
                   </span>
 
-                  <Button variant="unstyled"
+                  <Button variant="ghost"
                     type="button"
                     disabled={!canGoNext}
                     onClick={goToNextParticipantPage}
-                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-control text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground sm:w-auto sm:gap-1.5 sm:px-2.5"
+                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-control transition disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground sm:w-auto sm:gap-1.5 sm:px-2.5"
                     aria-label="Next"
                   >
                     <span className="hidden sm:inline">

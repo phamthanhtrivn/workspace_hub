@@ -1,4 +1,6 @@
 "use client";
+import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
+
 
 import { useState } from "react";
 import {
@@ -131,13 +133,15 @@ export default function CreateProjectDialog({
                   className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 >
                   Start Date <span className="font-semibold normal-case text-muted-foreground">(Optional)</span>
-                  <Input
+                  <CustomDatePicker
+                    disabled={isSubmitting}
                     id="project-start-date"
-                    type="date"
                     value={startDate}
-                    onChange={(event) => setStartDate(event.target.value)}
+                    onChange={nextValue => setStartDate(nextValue)}
                     max={dueDate || undefined}
-                    className="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    triggerClassName="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    ariaLabel="Start date"
+                    allowClear
                   />
                 </label>
                 <label
@@ -145,13 +149,15 @@ export default function CreateProjectDialog({
                   className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 >
                   End Date <span className="font-semibold normal-case text-muted-foreground">(Optional)</span>
-                  <Input
+                  <CustomDatePicker
+                    disabled={isSubmitting}
                     id="project-due-date"
-                    type="date"
                     value={dueDate}
-                    onChange={(event) => setDueDate(event.target.value)}
+                    onChange={nextValue => setDueDate(nextValue)}
                     min={startDate || undefined}
-                    className="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    triggerClassName="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    ariaLabel="End date"
+                    allowClear
                   />
                 </label>
               </div>

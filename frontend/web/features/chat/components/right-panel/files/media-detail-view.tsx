@@ -1,4 +1,6 @@
 import { toast } from "sonner";
+
+import { IconButton } from "@/components/ui/icon-button";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useMemo, useState, useEffect } from "react";
 import {
@@ -26,7 +28,7 @@ import { getChannelMedia } from "@/features/chat/api/channel.api";
 import MediaLightbox from "../../message/media-lightbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
 
 
 const FILE_FILTERS = [
@@ -281,19 +283,20 @@ export default function MediaDetailView({
           <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">
             File Type
           </label>
-          <NativeSelect unstyled aria-label="File filter"
+          <CustomSelect
+            ariaLabel="File filter"
             value={activeFilter || ""}
-            onChange={(event) =>
-              setActiveFilter((event.target.value || undefined) as FileFilter)
+            onChange={nextValue =>
+              setActiveFilter((nextValue || undefined) as FileFilter)
             }
-            className="w-full cursor-pointer rounded-lg border border-input bg-card px-3 py-2 text-xs font-medium text-foreground outline-none transition focus:border-info-outline focus:ring-1 focus:ring-ring"
+            triggerClassName="w-full cursor-pointer rounded-lg border border-input bg-card px-3 py-2 text-xs font-medium text-foreground outline-none transition focus:border-info-outline focus:ring-1 focus:ring-ring"
           >
             {FILE_FILTERS.map((filter) => (
               <option key={filter.label} value={filter.value || ""}>
                 {filter.label}
               </option>
             ))}
-          </NativeSelect>
+          </CustomSelect>
         </div>
       </div>
 
@@ -347,13 +350,13 @@ export default function MediaDetailView({
                     </span>
                   </span>
                   </Button>{item.fileUrl && (
-                    <Button variant="unstyled" type="button" aria-label="Download file"
+                    <IconButton label="Download file" showTooltip={false} size="icon-sm" type="button" aria-label="Download file"
                       onClick={(e) => handleDownload(e, item)}
                       className="rounded-md p-2 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
                       title="Download"
                     >
                       <Download size={16} />
-                    </Button>
+                    </IconButton>
                   )}
                 </div>
               );

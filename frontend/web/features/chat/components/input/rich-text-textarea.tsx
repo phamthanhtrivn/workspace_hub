@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import React, { useRef } from "react";
 import {
   Bold,
@@ -16,7 +18,6 @@ import {
   FormattingType,
   useTextFormatting,
 } from "../../hooks/input/useTextFormatting";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 
@@ -76,7 +77,7 @@ export default function RichTextTextarea({
         {FORMAT_BUTTONS.map(({ type, label, icon: Icon }, index) => (
           <React.Fragment key={type}>
             {index === 3 ? <div className="mx-1 h-4 w-px bg-accent" /> : null}
-            <Button variant="unstyled"
+            <IconButton label={label} showTooltip={false} size="icon-sm"
               type="button"
               onClick={() => applyFormatting(type)}
               className="cursor-pointer rounded-control p-1.5 text-muted-foreground transition hover:bg-card hover:text-foreground"
@@ -84,7 +85,7 @@ export default function RichTextTextarea({
               aria-label={label}
             >
               <Icon size={15} />
-            </Button>
+            </IconButton>
           </React.Fragment>
         ))}
       </div>

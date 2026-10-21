@@ -164,9 +164,9 @@ const DocumentMessage = React.memo(function DocumentMessage({
                   <FolderOpen size={14} className="text-muted-foreground" />
                   <span>Open Folder</span>
                 </Button>
-                <Button variant="unstyled"
+                <Button variant="warning-soft"
                   onClick={handleDownload}
-                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-warning-content bg-warning-soft hover:bg-warning-soft/80 rounded-control transition-all"
+                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-control transition-all"
                 >
                   <Download size={14} className="text-warning-content" />
                   <span>Download Zip</span>
@@ -181,9 +181,9 @@ const DocumentMessage = React.memo(function DocumentMessage({
                   <Eye size={14} className="text-muted-foreground" />
                   <span>Preview</span>
                 </Button>
-                <Button variant="unstyled"
+                <Button variant="info-soft"
                   onClick={handleDownload}
-                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-info-content bg-info-soft hover:bg-info-soft/80 rounded-control transition-all"
+                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-control transition-all"
                 >
                   <Download size={14} className="text-info-content" />
                   <span>Download</span>

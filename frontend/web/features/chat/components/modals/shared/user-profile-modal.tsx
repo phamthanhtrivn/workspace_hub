@@ -175,9 +175,9 @@ const UserProfileModal = React.memo(function UserProfileModal() {
               </div>
 
               {currentUserId !== selectedProfileUserId && (
-                <Button variant="unstyled"
+                <Button variant="default"
                   onClick={handleMessage}
-                  className="cursor-pointer w-full bg-primary text-primary-foreground font-semibold py-3 rounded-control transform transition-all duration-200"
+                  className="cursor-pointer w-full font-semibold py-3 rounded-control transform transition-all duration-200"
                 >
                   Send Message
                 </Button>
