@@ -12,7 +12,6 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatTimeAgo } from "@/lib/date";
 import { useAppDispatch } from "@/store/store";
 import { setProjectInvitationStatus } from "@/store/notification/notification.slice";
 import { useRespondProjectInvitation } from "@/features/project/hooks/use-invitations";
@@ -24,7 +23,7 @@ import {
   getProjectInvitationMetadata,
   getProjectInviterInitials,
 } from "../../utils/project-invitation.utils";
-import { NotificationCategoryIcon } from "../notification-category-icon";
+import { NotificationListRow } from "../notification-list-row";
 import type {
   Notification,
   ProjectInvitationNotificationStatus,
@@ -55,60 +54,15 @@ export function ProjectInvitationListItemRenderer({
   const projectColor = getProjectColor(metadata.projectColor);
 
   return (
-    <Button variant="unstyled"
-      type="button"
-      onClick={onClick}
-      className={`group flex w-full cursor-pointer items-start gap-3 border-b border-border p-3 text-left transition last:border-0 hover:bg-info-soft/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
-        notification.isRead ? "bg-card" : "bg-info-soft/60"
-      }`}
+    <NotificationListRow notification={notification} onClick={onClick}
+      badge={<span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info-content">Project invite</span>}
+      title={<span className="flex min-w-0 items-start gap-1.5">{metadata.projectIcon?.trim() && <span className="inline-flex size-4 shrink-0 items-center justify-center text-xs" style={{ color: projectColor }}>{metadata.projectIcon.trim()}</span>}<span className="min-w-0">{projectName}</span></span>}
+      description={"Invited by " + inviterName}
     >
-      <NotificationCategoryIcon notification={notification} />
-
-      <span className="min-w-0 flex-1">
-        <span className="mb-1 flex items-center gap-2">
-          <span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info-content">
-            Project invite
-          </span>
-          <span className="text-xs font-semibold text-muted-foreground">
-            {formatTimeAgo(new Date(notification.createdAt))}
-          </span>
-        </span>
-
-        <span className="flex items-center gap-1.5 truncate text-sm font-semibold text-foreground">
-          {metadata.projectIcon?.trim() ? (
-            <span
-              className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-xs"
-              style={{ color: projectColor }}
-            >
-              {metadata.projectIcon.trim()}
-            </span>
-          ) : null}
-          <span className="truncate">{projectName}</span>
-        </span>
-
-        <span className="mt-0.5 block truncate text-xs font-semibold text-muted-foreground">
-          {`Invited by ${inviterName}`}
-        </span>
-
-        <span
-          className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${statusClasses[status]}`}
-        >
-          {status === "PENDING"
-            ? "Awaiting response"
-            : status === "ACCEPTED"
-              ? "Accepted"
-              : status === "DECLINED"
-                ? "Declined"
-                : status === "CANCELLED"
-                  ? "Revoked"
-                  : "Expired"}
-        </span>
+      <span className={"mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 " + statusClasses[status]}>
+        {status === "PENDING" ? "Awaiting response" : status === "ACCEPTED" ? "Accepted" : status === "DECLINED" ? "Declined" : status === "CANCELLED" ? "Revoked" : "Expired"}
       </span>
-
-      {!notification.isRead && (
-        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
-      )}
-    </Button>
+    </NotificationListRow>
   );
 }
 

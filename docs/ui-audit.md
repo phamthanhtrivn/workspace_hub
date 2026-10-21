@@ -1,5 +1,13 @@
 # WorkspaceHub UI simplification audit
 
+## Header notification lists - 2026-10-21
+
+- Reproduced the task-notification layout defect in Chromium: the default renderer occupied about 267px in a 404px list and inherited centered text. Accepted/declined invitation rows shared the missing full-width/left-alignment classes; other renderers placed timestamps differently. Borders belonged to each renderer, so last-child rules also removed separators independently of the list.
+- All seven list renderers now compose NotificationListRow, which uses the owned Button and category icon. It owns full-width, left-aligned, wrapping title/description content, a timestamp below the content, a reserved unread indicator, semantic read/unread surfaces and keyboard focus. Keep each renderer's domain title, invitation/status badge, schedule and callbacks. NotificationItem owns row separators and a separate 44px shared IconButton for deletion, with content padding reserved only when that action exists. Modal renderers, API modules and action hooks remain unchanged.
+- Bound the bell popup to the viewport/available popover height. Headers, category/time/read filters and pagination remain outside the list scroll body. Wrap header/read-filter controls on narrow screens, retain horizontal category navigation, add an accessible keyboard-scroll region and restore its start when reopening/changing page or filters.
+- Verification: scoped ESLint and TypeScript passed. Headless Chromium fixtures use the actual dropdown, registry, all renderers, Redux reducer, mutation hook, date controls, confirmation and detail dialog with mocked API/profile/navigation boundaries. At 1440x900, 390x844 and 320x568 in Light/Dark, checks cover all notification types plus document fallback across five pages, category/read filters, full-row backgrounds/alignment, long strings, date range, viewport/footer bounds, scroll reset, separate delete targets, delete cancellation/confirmation, opening details, mark-all-read and Escape/focus. Empty/error/retry/loading states and keyboard scrolling were also checked. All seven modal renderer implementations compare unchanged against HEAD. Desktop/mobile screenshots were reviewed; authenticated backend writes were not exercised. Temporary fixtures, scripts, browser profiles and captures were removed after verification.
+
+
 ## Compact Dashboard Insights panels — 2026-10-21
 
 - Limit this density change to the three Insights panels in the user's screenshots. Task deadlines and Completion trend now use 28rem on small Dashboard containers and 30rem from 640px, down from 30rem/36rem. Project workload uses 26rem instead of 30rem/36rem. Daily-work panel heights remain unchanged. Authentication/loading skeletons share the new named height constants.

@@ -1,6 +1,6 @@
 # Shared UI inventory
 
-Updated 2026-10-21. Covers **458 TSX files** under frontend/web, including the two new shared picker components. Generated from TypeScript JSX/imports after the migration; this is a source inventory, not browser verification.
+Updated 2026-10-21. Covers **459 TSX files** under frontend/web, including the two shared picker components and the shared notification row. Generated from TypeScript JSX/imports after the migration; this is a source inventory, not browser verification.
 
 ## Interpretation
 
@@ -14,7 +14,7 @@ Updated 2026-10-21. Covers **458 TSX files** under frontend/web, including the t
 | --- | ---: |
 | Composed UI | 75 |
 | Layout / content / vendor | 54 |
-| Shared UI | 286 |
+| Shared UI | 287 |
 | Owned base | 43 |
 
 ## Explicit native exceptions
@@ -392,17 +392,18 @@ The owned date picker also contains a visually hidden form-validation proxy. Ful
 | features/notification/components/chat-message-alert-manager.tsx | Layout / content / vendor | 0 |
 | features/notification/components/notification-category-icon.tsx | Layout / content / vendor | 0 |
 | features/notification/components/notification-detail-modal.tsx | Shared UI | 0 |
-| features/notification/components/notification-item.tsx | Shared UI | 1 |
+| features/notification/components/notification-item.tsx | Shared UI | 0 |
+| features/notification/components/notification-list-row.tsx | Shared UI | 1 |
 | features/notification/components/notification-list.tsx | Shared UI | 0 |
 | features/notification/components/notification-managers.tsx | Layout / content / vendor | 0 |
 | features/notification/components/push-subscription-manager.tsx | Layout / content / vendor | 0 |
-| features/notification/components/renderers/calendar-reminder-renderer.tsx | Shared UI | 1 |
-| features/notification/components/renderers/default-renderer.tsx | Shared UI | 1 |
-| features/notification/components/renderers/invitation-accepted-renderer.tsx | Shared UI | 1 |
-| features/notification/components/renderers/invitation-declined-renderer.tsx | Shared UI | 1 |
-| features/notification/components/renderers/invitation-renderer.tsx | Shared UI | 1 |
-| features/notification/components/renderers/meeting-invitation-renderer.tsx | Shared UI | 2 |
-| features/notification/components/renderers/project-invitation-renderer.tsx | Shared UI | 2 |
+| features/notification/components/renderers/calendar-reminder-renderer.tsx | Shared UI | 0 |
+| features/notification/components/renderers/default-renderer.tsx | Shared UI | 0 |
+| features/notification/components/renderers/invitation-accepted-renderer.tsx | Shared UI | 0 |
+| features/notification/components/renderers/invitation-declined-renderer.tsx | Shared UI | 0 |
+| features/notification/components/renderers/invitation-renderer.tsx | Shared UI | 0 |
+| features/notification/components/renderers/meeting-invitation-renderer.tsx | Shared UI | 1 |
+| features/notification/components/renderers/project-invitation-renderer.tsx | Shared UI | 1 |
 | features/notification/components/service-worker-navigation-listener.tsx | Layout / content / vendor | 0 |
 | features/notification/components/space-notification-alert-manager.tsx | Layout / content / vendor | 0 |
 | features/pomodoro/components/pomodoro-active-task.tsx | Shared UI | 0 |

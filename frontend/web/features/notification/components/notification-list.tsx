@@ -54,7 +54,7 @@ const NotificationList = React.memo(function NotificationList({
   }
 
   return (
-    <div className="flex flex-col bg-card">
+    <div role="list" aria-label="Notifications" className="flex min-w-0 flex-col bg-card">
       {notifications.map((notification) => (
         <NotificationItem 
           key={notification.id} 

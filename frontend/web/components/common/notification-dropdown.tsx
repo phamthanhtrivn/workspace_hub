@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Bell,
   CalendarDays,
@@ -213,6 +213,10 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     toLocalDateInputValue(new Date()),
   );
   const [page, setPage] = useState(1);
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (listRef.current) listRef.current.scrollTop = 0;
+  }, [isOpen, page, category, tab, timeFilter, customFromDate, customToDate]);
   const [pagination, setPagination] = useState({
     page: 1,
     total: 0,
@@ -588,9 +592,9 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
           align="end"
           sideOffset={10}
           onOpenAutoFocus={(event) => event.preventDefault()}
-          className="w-[min(calc(100vw-1.5rem),26rem)] overflow-hidden rounded-panel border-border bg-card p-0 ring-1 ring-foreground/5"
+          className="flex max-h-[min(calc(100dvh-1rem),var(--radix-popover-content-available-height))] w-[min(calc(100vw-1.5rem),26rem)] flex-col overflow-hidden rounded-panel border-border bg-card p-0 ring-1 ring-foreground/5"
         >
-          <div className="flex items-center justify-between gap-3 bg-background px-4 py-3">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 bg-background px-4 py-3">
             <h3 className="text-base font-semibold text-foreground">
               Notifications
             </h3>
@@ -611,7 +615,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
 
           <Separator />
 
-          <div className="flex gap-2 overflow-x-auto px-3 py-2">
+          <div role="group" aria-label="Notification categories" className="flex shrink-0 gap-2 overflow-x-auto px-3 py-2">
             {NOTIFICATION_CATEGORIES.map((item) => {
               const { label, Icon } = categoryConfig[item];
               const itemUnreadCount = unreadCountsByCategory[item] ?? 0;
@@ -631,7 +635,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
 
           <Separator />
 
-          <div className="bg-background px-3 py-2.5">
+          <div className="shrink-0 bg-background px-3 py-2.5">
             <CustomDateRange
               value={timeFilter}
               options={timeFilterOptions}
@@ -652,7 +656,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
 
           <Separator />
 
-          <div className="flex items-center justify-between gap-2 px-4">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-4">
             <CustomTabs
               value={tab}
               options={readTabOptions}
@@ -693,7 +697,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
 
           <Separator />
 
-          <div className="max-h-[52vh] overflow-y-auto overscroll-contain">
+          <div ref={listRef} role="region" aria-label="Notification list" aria-busy={loading} tabIndex={0} className="min-h-0 max-h-[52vh] overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-gutter:stable] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
             <QueryFeedback label="notifications" error={listError} retrying={loading} onRetry={() => fetchList(page)} />
             {(!listError || visibleNotifications.length > 0) && <NotificationList
               notifications={visibleNotifications}
@@ -709,7 +713,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             />}
           </div>
 
-          <div className="border-t border-border bg-background px-3 py-2">
+          <div className="shrink-0 border-t border-border bg-background px-3 py-2">
             <SimplePagination
               page={currentPage}
               totalPages={pagination.totalPages}

@@ -23,7 +23,7 @@ import {
   getMeetingInvitationMetadata,
   getMeetingStatus,
 } from "../../utils/meeting-invitation.utils";
-import { NotificationCategoryIcon } from "../notification-category-icon";
+import { NotificationListRow } from "../notification-list-row";
 import type {
   MeetingInvitationNotificationStatus,
   Notification,
@@ -60,41 +60,12 @@ export function MeetingInvitationListItemRenderer({
     notification.type !== NotificationType.MEETING_UPDATED || metadata.status;
 
   return (
-    <Button variant="unstyled"
-      type="button"
-      onClick={onClick}
-      className={`flex w-full cursor-pointer items-start gap-3 border-b border-border p-3 text-left transition last:border-0 hover:bg-info-soft/50 ${
-        notification.isRead ? "bg-card" : "bg-info-soft/60"
-      }`}
+    <NotificationListRow notification={notification} onClick={onClick} title={metadata.title || notification.title}
+      description={<>{senderName} {getMeetingActionLabel(notification)}</>}
     >
-      <NotificationCategoryIcon notification={notification} />
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-semibold text-foreground">
-            {metadata.title || notification.title}
-          </span>
-          <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-            {formatTimeAgo(new Date(notification.createdAt))}
-          </span>
-        </span>
-        <span className="mt-0.5 block truncate text-xs font-semibold text-muted-foreground">
-          {senderName} {getMeetingActionLabel(notification)}
-        </span>
-        <span className="mt-0.5 block truncate text-xs font-medium text-muted-foreground">
-          {formatMeetingRange(metadata.scheduledStartAt, metadata.scheduledEndAt)}
-        </span>
-        {shouldShowStatus ? (
-          <span
-            className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ${statusClasses[status]}`}
-          >
-            {statusLabels[status]}
-          </span>
-        ) : null}
-      </span>
-      {!notification.isRead && (
-        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
-      )}
-    </Button>
+      <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{formatMeetingRange(metadata.scheduledStartAt, metadata.scheduledEndAt)}</span>
+      {shouldShowStatus && <span className={"mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 " + statusClasses[status]}>{statusLabels[status]}</span>}
+    </NotificationListRow>
   );
 }
 

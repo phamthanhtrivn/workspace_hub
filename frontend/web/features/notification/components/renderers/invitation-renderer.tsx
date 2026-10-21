@@ -15,7 +15,6 @@ import {
   XCircle,
 } from "lucide-react";
 import Image from "next/image";
-import { formatTimeAgo } from "@/lib/date";
 import {
   acceptInvitation,
   declineInvitation,
@@ -30,7 +29,7 @@ import {
   getNotificationApiErrorMessage,
   getSpaceInvitationInitials,
 } from "../../utils/notification-display.utils";
-import { NotificationCategoryIcon } from "../notification-category-icon";
+import { NotificationListRow } from "../notification-list-row";
 import { Button } from "@/components/ui/button";
 
 
@@ -70,42 +69,11 @@ export const InvitationListItemRenderer: React.FC<{
   const spaceName = metadata?.spaceName || metadata?.conversationName || "space";
 
   return (
-    <Button variant="unstyled"
-      type="button"
-      onClick={onClick}
-      className={`group flex w-full cursor-pointer gap-3 border-b border-border p-3 text-left transition last:border-0 hover:bg-info-soft/45 ${
-        !notification.isRead ? "bg-info-soft/60" : "bg-card"
-      }`}
-    >
-      <NotificationCategoryIcon notification={notification} />
-
-      <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center gap-2">
-          <span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info-content">
-            Space invite
-          </span>
-          <span className="text-xs font-semibold text-muted-foreground">
-            {formatTimeAgo(new Date(notification.createdAt))}
-          </span>
-        </div>
-
-        <p className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
-          <span className="text-foreground">
-            {notification.senderName || "Someone"}
-          </span>{" "}
-          invited you to{" "}
-          <span className="text-info-content">{spaceName}</span>
-        </p>
-
-        <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-          {notification.content}
-        </p>
-      </div>
-
-      {!notification.isRead && (
-        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
-      )}
-    </Button>
+    <NotificationListRow notification={notification} onClick={onClick}
+      badge={<span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info-content">Space invite</span>}
+      title={<>{notification.senderName || "Someone"} invited you to <span className="text-info-content">{spaceName}</span></>}
+      description={notification.content}
+    />
   );
 };
 
