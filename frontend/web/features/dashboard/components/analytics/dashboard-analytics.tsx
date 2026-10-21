@@ -8,7 +8,7 @@ import { COMPLETION_PERIODS, DEFAULT_COMPLETION_PERIOD, MAX_WORKLOAD_PROJECTS } 
 import type { useDashboard } from "../../hooks/use-dashboard";
 import type { CompletionPeriod } from "../../types/dashboard-analytics.types";
 import { buildProjectWorkload, buildTaskCompletionTrend, buildTaskDeadlineDistribution } from "../../utils/dashboard-analytics.utils";
-import { DashboardPanel, EmptyState } from "../common/dashboard-panel";
+import { DASHBOARD_CHART_PANEL_HEIGHT, DASHBOARD_WORKLOAD_PANEL_HEIGHT, DashboardPanel, EmptyState } from "../common/dashboard-panel";
 import { DashboardChartData, DashboardChartFeedback, DashboardChartSkeleton } from "./dashboard-chart-support";
 import { DashboardDisclosure, DashboardDisclosureTrigger } from "../common/dashboard-disclosure";
 
@@ -24,12 +24,12 @@ function TaskDeadlines({ dashboard }: DashboardProps) {
   const slices = ready ? buildTaskDeadlineDistribution(tasks, today, zone) : [];
   const total = slices.reduce((sum, slice) => sum + slice.count, 0);
   return (
-    <DashboardPanel title="Task deadlines" description="Your open personal and assigned project tasks">
+    <DashboardPanel title="Task deadlines" description="Your open personal and assigned project tasks" className={DASHBOARD_CHART_PANEL_HEIGHT}>
       <DashboardChartFeedback queries={[{ query: personal, label: "personal tasks" }, { query: project, label: "assigned project tasks" }]} />
       {ready ? total ? (
         <div className="mx-auto flex min-h-full w-full max-w-xl flex-col justify-center">
           <DeadlineChart slices={slices} />
-          <ul aria-label="Task deadline totals" className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 border-t border-border pt-4 text-xs sm:grid-cols-2">
+          <ul aria-label="Task deadline totals" className="mt-3 grid grid-cols-1 gap-x-6 gap-y-2 border-t border-border pt-3 text-xs sm:grid-cols-2">
             {slices.map((slice) => (
               <li key={slice.label} className="flex min-w-0 items-center gap-2">
                 <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: slice.fill }} />
@@ -53,6 +53,7 @@ function TaskCompletions({ dashboard }: DashboardProps) {
   return (
     <DashboardDisclosure>
       <DashboardPanel title="Completion trend" description="Personal and assigned project tasks completed each day"
+        className={DASHBOARD_CHART_PANEL_HEIGHT}
         footer={ready && total > 0 && <DashboardDisclosureTrigger title="View data" />}
         toolbar={<div className="flex flex-wrap items-center justify-between gap-3">
           <p aria-live="polite" className="text-sm text-muted-foreground">
@@ -86,6 +87,7 @@ function ProjectWorkloads({ dashboard }: DashboardProps) {
   return (
     <DashboardDisclosure className="col-span-full">
       <DashboardPanel title="Project workload" description={`Top ${MAX_WORKLOAD_PROJECTS} active projects by open tasks assigned to you`}
+        className={DASHBOARD_WORKLOAD_PANEL_HEIGHT}
         footer={ready && projects.length > 0 && <DashboardDisclosureTrigger title="View data" />}>
         <DashboardChartFeedback queries={[{ query: project, label: "assigned project tasks" }]} />
         {ready ? projects.length ? (

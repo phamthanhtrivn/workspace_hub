@@ -26,7 +26,7 @@ const EmojiPickerPopover: React.FC<EmojiPickerPopoverProps> = ({
   return (
     <AnchoredPopover onClose={onClose} anchorElementRef={triggerRef} side="top" align="end" aria-label="Message emoji"
       ref={popoverRef}
-      className="max-h-[min(420px,60dvh)] max-w-[calc(100vw-1.5rem)] overflow-y-auto z-50 animate-in fade-in zoom-in-95 duration-200 rounded-panel overflow-hidden border border-border bg-card shadow-panel"
+      className="max-h-[min(420px,60dvh)] max-w-[calc(100vw-1.5rem)] overflow-y-auto animate-in fade-in zoom-in-95 duration-200 rounded-panel overflow-hidden border border-border bg-card shadow-panel"
     >
       <EmojiPicker
         onEmojiClick={(emojiData) => onEmojiSelect(emojiData.emoji)}

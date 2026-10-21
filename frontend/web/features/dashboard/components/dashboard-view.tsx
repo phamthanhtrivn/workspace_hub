@@ -14,7 +14,7 @@ import { useDashboard } from "../hooks/use-dashboard";
 import { Badge } from "@/components/ui/badge";
 import { DashboardDay } from "./day/dashboard-day";
 import { DashboardTasks } from "./tasks/dashboard-tasks";
-import { DASHBOARD_PANEL_HEIGHT } from "./common/dashboard-panel";
+import { DASHBOARD_CHART_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, DASHBOARD_WORKLOAD_PANEL_HEIGHT } from "./common/dashboard-panel";
 import { DashboardProductivity } from "./productivity/dashboard-productivity";
 import { DashboardMeetings } from "./overview/dashboard-meetings";
 import { DashboardExtras } from "./overview/dashboard-extras";
@@ -273,8 +273,8 @@ export function DashboardView() {
         <div className="space-y-4 border-t border-border pt-6">
           <Skeleton className="h-6 w-32" />
           <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
-            {[false, false, true].map((fullWidth, index) => (
-              <Skeleton key={index} className={`${DASHBOARD_PANEL_HEIGHT} w-full rounded-panel ${fullWidth ? "col-span-full" : ""}`} />
+            {[DASHBOARD_CHART_PANEL_HEIGHT, DASHBOARD_CHART_PANEL_HEIGHT, DASHBOARD_WORKLOAD_PANEL_HEIGHT].map((height, index) => (
+              <Skeleton key={index} className={`${height} w-full rounded-panel ${index === 2 ? "col-span-full" : ""}`} />
             ))}
           </div>
         </div>

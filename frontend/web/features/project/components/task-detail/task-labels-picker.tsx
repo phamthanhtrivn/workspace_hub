@@ -52,7 +52,7 @@ export default function TaskLabelsPicker({
         </Button>
 
         {isOpen && !disabled && (
-          <AnchoredPopover id={`${controlledPopupId}-isOpen`} onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task labels" className="z-30 max-h-60 w-56 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
+          <AnchoredPopover id={`${controlledPopupId}-isOpen`} onClose={() => setIsOpen(false)} side="bottom" align="start" aria-label="Task labels" className="max-h-60 w-56 overflow-y-auto rounded-panel border border-border bg-card p-1.5 shadow-panel">
             {availableLabels.length === 0 ? (
               <p className="px-3 py-2.5 text-xs text-muted-foreground">
                 No labels configured in project settings.

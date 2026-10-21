@@ -13,7 +13,7 @@ export default function DashboardDeadlineChart({ slices }: { slices: TaskDeadlin
     fill: `var(--color-deadline${index})`,
   })).filter((slice) => slice.count > 0);
   return (
-    <ChartContainer config={DEADLINE_CHART_CONFIG} className="mx-auto h-64 w-full max-w-96 @min-[640px]/dashboard:h-80" role="group" aria-label={`Open tasks grouped by deadline: ${total} tasks`}>
+    <ChartContainer config={DEADLINE_CHART_CONFIG} className="mx-auto h-56 w-full max-w-96 @min-[640px]/dashboard:h-72" role="group" aria-label={`Open tasks grouped by deadline: ${total} tasks`}>
       <PieChart accessibilityLayer>
         <ChartTooltip cursor={false} isAnimationActive={false} content={<ChartTooltipContent nameKey="category" hideLabel />} />
         <Pie data={segments} dataKey="count" nameKey="category" innerRadius="72%" outerRadius="92%" cornerRadius={4} paddingAngle={segments.length > 1 ? 3 : 0} strokeWidth={0} isAnimationActive={false}>

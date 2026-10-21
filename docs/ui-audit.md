@@ -1,5 +1,18 @@
 # WorkspaceHub UI simplification audit
 
+## Compact Dashboard Insights panels — 2026-10-21
+
+- Limit this density change to the three Insights panels in the user's screenshots. Task deadlines and Completion trend now use 28rem on small Dashboard containers and 30rem from 640px, down from 30rem/36rem. Project workload uses 26rem instead of 30rem/36rem. Daily-work panel heights remain unchanged. Authentication/loading skeletons share the new named height constants.
+- Keep paired chart panels equal, headers/toolbars/footers fixed, and View data inside the existing scroll body. Retain the centered doughnut and legend, reducing the chart canvas to 224px/288px and tightening legend spacing. Completion and workload canvases adapt on narrow containers so axes fit before expanding data. No query, calculation, task filter, API payload or permission logic changes.
+- Verification: real components rendered in headless Chromium at 1440px, 390px and 320px in Light/Dark. Collapsed charts fit their scroll body at all six combinations; opening/closing both data disclosures preserves panel dimensions and positions while scrolling the expanded rows internally. Empty/loading/error heights, real task totals and no horizontal page overflow passed; desktop/mobile captures were visually reviewed. TypeScript, scoped Dashboard lint and all ten existing Dashboard tests passed. Fixtures mock query boundaries; authenticated backend flows were not exercised. Temporary verification files were removed after checks.
+
+## Portaled Select/Assignee visibility in task drawers — 2026-10-21
+
+- Reproduced the Projects task drawer defect with the actual Sheet and task controls: an editable Assignee trigger was visible and clickable, but its portaled list inherited feature z-20 beneath the drawer's z-110. Labels and Dependencies also supplied a lower root z-index. Read-only disablement remains intentional.
+- Share the layer-120 constant across Select, Popover, anchored popups, Menu and Combobox. Radix root classes apply the shared layer after feature classes, preventing ordinary feature z-index overrides from hiding the content. Remove eight obsolete root overrides across Projects, Chat, Meetings and Pomodoro; keep inner Base UI Popup layers where their separate Positioner already owns the portal layer. Assignee and Priority lists follow the anchor width. Extend workspace/shared-ui to flag direct root popup and wrapper popup-class z-index overrides.
+- Browser verification at 1440px, 390px and 320px in Light/Dark covered pointer hit testing above the drawer, member IDs and null on unassign, label/dependency/parent IDs, Priority, read-only disablement, Escape/focus restoration, shared Select/Popover/date picker in Dialog and Project filter outside a modal. TypeScript and eight in-memory lint-rule cases passed. Across modified production sources, lint retains the same nine baseline errors and one warning in two existing consumer files, with no new diagnostics; the eight new-rule violations on the old classes are resolved. No business handlers, permission checks or API values changed. Tests used isolated fixtures, not authenticated backend writes; temporary fixtures/scripts/profiles/captures were removed after verification.
+
+
 ## Dashboard stable panel scrolling and larger deadline chart — 2026-10-21
 
 The user approved bounded scrolling for long Dashboard panels on laptop and mobile, stable equal-height panels in each row, and fixed panel-level controls. This supersedes the older natural-height/no-panel-scrolling guidance below.

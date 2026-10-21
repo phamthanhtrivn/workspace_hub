@@ -6,6 +6,8 @@ import { ViewAllAction } from "@/components/common/view-all-action";
 import { cn } from "@/lib/utils";
 
 export const DASHBOARD_PANEL_HEIGHT = "h-[30rem] @min-[640px]/dashboard:h-[36rem]";
+export const DASHBOARD_CHART_PANEL_HEIGHT = "h-[28rem] @min-[640px]/dashboard:h-[30rem]";
+export const DASHBOARD_WORKLOAD_PANEL_HEIGHT = "h-[26rem] @min-[640px]/dashboard:h-[26rem]";
 
 export function DashboardPanel({
   title,

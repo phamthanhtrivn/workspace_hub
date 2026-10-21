@@ -4,6 +4,7 @@ import * as React from "react";
 import { Menu } from "@base-ui/react/menu";
 import * as Primitive from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils";
+import { POPUP_LAYER_CLASS } from "./popup-layer";
 
 interface AnchoredPopupProps extends React.ComponentProps<"div"> {
   onClose: () => void;
@@ -59,7 +60,7 @@ export function AnchoredMenu({ onClose, side = "bottom", align = "start", sideOf
     const target = details.event.target;
     if (/^(pointer|mouse|click)/.test(details.event.type) && target instanceof Node && (anchorElementRef?.current ?? marker.current?.parentElement)?.contains(target)) { details.cancel(); return; }
     onClose();
-  }}><Menu.Portal><Menu.Positioner anchor={anchor} side={side} align={align} sideOffset={sideOffset} alignOffset={alignOffset} className="z-[120] max-w-[calc(100vw-1rem)]">
+  }}><Menu.Portal><Menu.Positioner anchor={anchor} side={side} align={align} sideOffset={sideOffset} alignOffset={alignOffset} className={cn(POPUP_LAYER_CLASS, "max-w-[calc(100vw-1rem)]")}>
     <Menu.Popup id={popupId} ref={ref} finalFocus={() => {
       const active = document.activeElement;
       if (active instanceof Element && active.closest('[aria-modal="true"]')) return false;
@@ -91,7 +92,7 @@ export function AnchoredPopover({ onClose, side = "bottom", align = "start", sid
         if (event.target instanceof Node && (anchorElementRef?.current ?? marker.current?.parentElement)?.contains(event.target)) event.preventDefault();
         else interactedOutside.current = true;
       }}
-      className={cn("z-[120] max-h-[var(--radix-popover-content-available-height)] max-w-[calc(100vw-1rem)] overflow-y-auto outline-none", className)} {...props} />
+      className={cn("max-h-[var(--radix-popover-content-available-height)] max-w-[calc(100vw-1rem)] overflow-y-auto outline-none", className, POPUP_LAYER_CLASS)} {...props} />
     </Primitive.Portal>
   </Primitive.Root></>;
 }

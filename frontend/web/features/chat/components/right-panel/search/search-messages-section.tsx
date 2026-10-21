@@ -152,7 +152,7 @@ export default function SearchMessagesSection({
           </Button>
 
           {isSenderDropdownOpen && (
-            <AnchoredPopover id={`${controlledPopupId}-isSenderDropdownOpen`} onClose={() => setIsSenderDropdownOpen(false)} side="bottom" align="end" aria-label="Search senders" className="bg-card border border-border rounded-lg z-20 max-h-64 flex flex-col overflow-hidden shadow-panel w-[var(--radix-popover-trigger-width)]">
+            <AnchoredPopover id={`${controlledPopupId}-isSenderDropdownOpen`} onClose={() => setIsSenderDropdownOpen(false)} side="bottom" align="end" aria-label="Search senders" className="bg-card border border-border rounded-lg max-h-64 flex flex-col overflow-hidden shadow-panel w-[var(--radix-popover-trigger-width)]">
               <div className="p-2 border-b border-border bg-background">
                 <Input aria-label="Search sender" unstyled
                   type="text"

@@ -268,7 +268,7 @@ export const MeetingMessageInput = forwardRef<
       {isEmojiOpen && (
         <AnchoredPopover id={`${controlledPopupId}-isEmojiOpen`} onClose={() => setIsEmojiOpen(false)} side="top" align="end" aria-label="Message emoji"
           ref={emojiPickerRef}
-          className="z-[90] overflow-hidden rounded-lg border border-border bg-card shadow-panel"
+          className="overflow-hidden rounded-lg border border-border bg-card shadow-panel"
         >
           <EmojiPicker
             onEmojiClick={(emojiData) => {

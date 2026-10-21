@@ -159,7 +159,7 @@ export default function SelectTaskChannelDialog({
                 <SelectTrigger className="h-11 w-full rounded-control border-input bg-background px-3.5 text-xs font-semibold text-foreground focus:ring-1 focus:ring-ring focus:border-info-outline cursor-pointer transition-colors">
                   <SelectValue placeholder="Select a channel..." />
                 </SelectTrigger>
-                <SelectContent className="rounded-panel border-border bg-card z-[130]">
+                <SelectContent className="rounded-panel border-border bg-card">
                   {channels.map((channel) => (
                     <SelectItem
                       key={channel.id}

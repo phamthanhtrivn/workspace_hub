@@ -177,7 +177,7 @@ export default function TaskPropertiesPanel({
             </Button>
 
             {showAssigneeDropdown && !isReadOnly && (
-              <AnchoredPopover id={`${controlledPopupId}-showAssigneeDropdown`} onClose={() => setShowAssigneeDropdown(false)} side="bottom" align="start" aria-label="Task assignee" className="z-20 max-h-48 w-full overflow-y-auto rounded-panel border border-border bg-card py-1 shadow-panel">
+              <AnchoredPopover id={`${controlledPopupId}-showAssigneeDropdown`} onClose={() => setShowAssigneeDropdown(false)} side="bottom" align="start" aria-label="Task assignee" className="max-h-48 w-[var(--radix-popover-trigger-width)] overflow-y-auto rounded-panel border border-border bg-card py-1 shadow-panel">
                 <Button
                   type="button"
                   variant="ghost"
@@ -251,7 +251,7 @@ export default function TaskPropertiesPanel({
             </Button>
 
             {showPriorityDropdown && !isReadOnly && (
-              <AnchoredMenu id={`${controlledPopupId}-showPriorityDropdown`} onClose={() => setShowPriorityDropdown(false)} side="bottom" align="start" aria-label="Task priority" className="z-20 w-full overflow-hidden rounded-panel border border-border bg-card py-1 shadow-panel">
+              <AnchoredMenu id={`${controlledPopupId}-showPriorityDropdown`} onClose={() => setShowPriorityDropdown(false)} side="bottom" align="start" aria-label="Task priority" className="w-[var(--anchor-width)] overflow-hidden rounded-panel border border-border bg-card py-1 shadow-panel">
                 {TASK_DRAWER_PRIORITY_OPTIONS.map((opt) => (
                   <DropdownMenuItem closeOnClick={false}
                     key={opt.value}
