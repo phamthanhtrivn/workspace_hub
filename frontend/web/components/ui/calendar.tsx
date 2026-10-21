@@ -18,9 +18,10 @@ function Calendar({ className, classNames, components, showOutsideDays = true, .
         root: defaults.root,
         months: "relative flex flex-col gap-4 sm:flex-row",
         month: "flex w-full flex-col gap-2",
-        nav: "absolute inset-x-0 top-0 flex items-center justify-between",
-        button_previous: cn(buttonVariants({ variant: "ghost", size: "icon" }), "size-[var(--cell-size)] min-h-0 min-w-0 p-0 aria-disabled:opacity-50"),
-        button_next: cn(buttonVariants({ variant: "ghost", size: "icon" }), "size-[var(--cell-size)] min-h-0 min-w-0 p-0 aria-disabled:opacity-50"),
+        // Only the arrows intercept clicks; the caption dropdowns sit between them.
+        nav: "pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between",
+        button_previous: cn(buttonVariants({ variant: "ghost", size: "icon" }), "pointer-events-auto size-[var(--cell-size)] min-h-0 min-w-0 p-0 aria-disabled:opacity-50"),
+        button_next: cn(buttonVariants({ variant: "ghost", size: "icon" }), "pointer-events-auto size-[var(--cell-size)] min-h-0 min-w-0 p-0 aria-disabled:opacity-50"),
         month_caption: "flex h-[var(--cell-size)] items-center justify-center px-[var(--cell-size)]",
         caption_label: "text-sm font-semibold",
         dropdowns: "flex min-w-0 items-center gap-1",
