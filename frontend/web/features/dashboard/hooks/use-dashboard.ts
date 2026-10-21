@@ -143,7 +143,7 @@ export function useDashboard() {
     focus,
     completedTasks,
     tasks,
-    upcoming: upcoming.slice(0, 3),
+    upcoming: upcoming.slice(0, 5),
     taskFilter,
     setTaskFilter,
     dayItems: today

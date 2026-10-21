@@ -1,5 +1,12 @@
 # WorkspaceHub UI simplification audit
 
+## Compact focus and activity panel rows - 2026-10-21
+
+- Use the collapsed Task activity date range/legend as the Recent activity / Task activity row's content boundary: 24rem from a 640px Dashboard container width, 28rem on small containers. Keep the rolling six-month range based on today/timezone. Use Open Pomodoro as the Upcoming meetings / Productivity row's empty-state boundary: 28rem from 640px, retaining 30rem on small containers for wrapped text and touch controls. Both rows shrink from the older 36rem desktop height, and each pair shares named height classes with its loading skeletons.
+- Preserve bounded native scroll bodies, fixed headers/footers, notification/meeting entries, the recorded-focus chart and both Daily totals disclosures. Productivity keeps its two summary metrics side by side on narrow screens and tightens mobile empty-state spacing so the action remains visible. Expanded data scrolls inside its panel without changing row heights, page position or trigger focus. This UI change leaves API fetching, existing user item-limit edits, permissions and data calculations intact.
+- Verification: scoped ESLint and TypeScript passed. Headless Chromium fixtures rendered the actual four panels at 1440px, 390px and 320px in Light/Dark, with mocked query/store boundaries. Checks cover equal row heights, date-range/Open Pomodoro visibility, ten-entry scroll lists, stable expansion/collapse, 184 activity dates and seven focus-day totals, fixed controls/focus/page position, zero and recorded focus, loading/empty/error states and no horizontal page overflow. Desktop/mobile captures were reviewed; authenticated backend calls were not exercised. Temporary test fixtures, scripts, bundles, browser profiles and captures were removed after verification.
+
+
 ## Header notification lists - 2026-10-21
 
 - Reproduced the task-notification layout defect in Chromium: the default renderer occupied about 267px in a 404px list and inherited centered text. Accepted/declined invitation rows shared the missing full-width/left-alignment classes; other renderers placed timestamps differently. Borders belonged to each renderer, so last-child rules also removed separators independently of the list.

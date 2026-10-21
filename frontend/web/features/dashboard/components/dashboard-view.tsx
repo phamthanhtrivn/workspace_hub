@@ -14,7 +14,7 @@ import { useDashboard } from "../hooks/use-dashboard";
 import { Badge } from "@/components/ui/badge";
 import { DashboardDay } from "./day/dashboard-day";
 import { DashboardTasks } from "./tasks/dashboard-tasks";
-import { DASHBOARD_CHART_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, DASHBOARD_WORKLOAD_PANEL_HEIGHT } from "./common/dashboard-panel";
+import { DASHBOARD_ACTIVITY_PANEL_HEIGHT, DASHBOARD_CHART_PANEL_HEIGHT, DASHBOARD_FOCUS_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, DASHBOARD_WORKLOAD_PANEL_HEIGHT } from "./common/dashboard-panel";
 import { DashboardProductivity } from "./productivity/dashboard-productivity";
 import { DashboardMeetings } from "./overview/dashboard-meetings";
 import { DashboardExtras } from "./overview/dashboard-extras";
@@ -266,7 +266,7 @@ export function DashboardView() {
           {Array.from({ length: 4 }, (_, index) => <Skeleton key={index} className="h-28 w-full rounded-panel" />)}
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
-          {[DASHBOARD_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, "h-48", DASHBOARD_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT].map((height, index) => (
+          {[DASHBOARD_PANEL_HEIGHT, DASHBOARD_PANEL_HEIGHT, DASHBOARD_FOCUS_PANEL_HEIGHT, DASHBOARD_FOCUS_PANEL_HEIGHT, "h-48", DASHBOARD_ACTIVITY_PANEL_HEIGHT, DASHBOARD_ACTIVITY_PANEL_HEIGHT].map((height, index) => (
             <Skeleton key={index} className={`w-full rounded-panel ${height} ${index === 4 ? "col-span-full" : ""}`} />
           ))}
         </div>

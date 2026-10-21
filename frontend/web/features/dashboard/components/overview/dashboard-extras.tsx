@@ -11,7 +11,7 @@ import { useAppDispatch } from "@/store/store";
 import { markReadSuccess } from "@/store/notification/notification.slice";
 import { notificationKeys } from "@/features/notification/hooks/use-notification-actions";
 import { useDashboardExtras } from "../../hooks/use-dashboard-extras";
-import { DashboardPanel, EmptyState, QueryFeedback } from "../common/dashboard-panel";
+import { DASHBOARD_ACTIVITY_PANEL_HEIGHT, DashboardPanel, EmptyState, QueryFeedback } from "../common/dashboard-panel";
 import type { useDashboard } from "../../hooks/use-dashboard";
 import { DashboardNotificationDialog } from "./dashboard-notification-dialog";
 import { DashboardProjectActivity } from "../productivity/dashboard-project-activity";
@@ -139,6 +139,7 @@ export function DashboardExtras({
       <DashboardPanel
         title="Recent activity"
         description="Your latest notifications"
+        className={DASHBOARD_ACTIVITY_PANEL_HEIGHT}
       >
         <QueryFeedback query={extras.notifications} label="notifications" />
         {extras.notifications.isSuccess &&

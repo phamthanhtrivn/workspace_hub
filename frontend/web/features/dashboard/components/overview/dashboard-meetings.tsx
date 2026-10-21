@@ -3,7 +3,7 @@ import { Users, Video } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { UpcomingMeetingItem } from "@/features/meeting/types/meeting.types";
-import { DashboardPanel, EmptyState, QueryFeedback } from "../common/dashboard-panel";
+import { DASHBOARD_FOCUS_PANEL_HEIGHT, DashboardPanel, EmptyState, QueryFeedback } from "../common/dashboard-panel";
 import { formatTime } from "../../utils/dashboard.utils";
 import type { useDashboard } from "../../hooks/use-dashboard";
 import { formatScheduledRelativeTime } from "../../utils/dashboard-context.utils";
@@ -71,7 +71,7 @@ export function DashboardMeetings({
   dashboard: ReturnType<typeof useDashboard>;
 }) {
   return (
-    <DashboardPanel title="Upcoming meetings" href="/meetings?tab=upcoming">
+    <DashboardPanel title="Upcoming meetings" href="/meetings?tab=upcoming" className={DASHBOARD_FOCUS_PANEL_HEIGHT}>
       <QueryFeedback query={dashboard.meetings} label="meetings" />
       {!dashboard.upcoming.length && dashboard.meetings.isSuccess && (
         <EmptyState>No upcoming meetings. Your schedule is clear.</EmptyState>

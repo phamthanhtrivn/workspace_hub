@@ -1,6 +1,6 @@
 "use client";
 import type { useDashboardCompletedTasks } from "../../hooks/use-dashboard-completed-tasks";
-import { DashboardPanel, QueryFeedback } from "../common/dashboard-panel";
+import { DASHBOARD_ACTIVITY_PANEL_HEIGHT, DashboardPanel, QueryFeedback } from "../common/dashboard-panel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { buildDashboardActivity } from "../../utils/dashboard-activity.utils";
 import { DashboardActivityCalendar } from "./dashboard-activity-calendar";
@@ -19,6 +19,7 @@ export function DashboardProjectActivity({
   return (
     <DashboardDisclosure>
       <DashboardPanel title="Task activity" description="Completed tasks over the last 6 months"
+        className={DASHBOARD_ACTIVITY_PANEL_HEIGHT}
         footer={activity && <DashboardDisclosureTrigger title="Daily totals" />}>
         <QueryFeedback query={tasks} label="completed tasks" />
         {activity ? <DashboardActivityCalendar activity={activity} /> : tasks.data !== undefined ? (
