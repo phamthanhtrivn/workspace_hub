@@ -42,7 +42,7 @@ export function SimplePagination({
   return (
     <nav
       aria-label={ariaLabel}
-      className={cn("flex items-center justify-end gap-1", className)}
+      className={cn("flex min-h-10 flex-wrap items-center justify-end gap-1 p-1", className)}
     >
       <PaginationButton
         label={labels?.first ?? "First page"}
@@ -58,8 +58,9 @@ export function SimplePagination({
       >
         <ChevronLeft />
       </PaginationButton>
-      <span className="mx-1 inline-flex h-7 min-w-12 items-center justify-center rounded-full bg-card px-2 text-xs font-semibold text-foreground ring-1 ring-ring">
-        {currentPage}/{safeTotalPages}
+      <span aria-current="page" aria-label={`Page ${currentPage} of ${safeTotalPages}`}
+        className="mx-1 inline-flex h-8 min-w-14 shrink-0 items-center justify-center rounded-control border border-border bg-card px-2 text-xs font-medium text-foreground tabular-nums">
+        {currentPage} / {safeTotalPages}
       </span>
       <PaginationButton
         label={labels?.next ?? "Next page"}
@@ -99,7 +100,7 @@ function PaginationButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="h-7 w-7 rounded-control text-link hover:bg-info-soft disabled:text-muted-foreground disabled:hover:bg-transparent"
+      className="size-8 rounded-control text-link hover:bg-info-soft disabled:text-muted-foreground disabled:hover:bg-transparent motion-reduce:transition-none"
     >
       {children}
     </Button>

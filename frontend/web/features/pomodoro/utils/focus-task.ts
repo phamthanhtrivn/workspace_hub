@@ -21,11 +21,16 @@ function dateKey(value: string, allDay = false): string {
 function matchesDates(start: string | undefined, end: string | undefined, allDay: boolean, scope: FocusTaskScope, now: Date): boolean {
   if (!start && !end) return scope === "all";
   const startKey = start ? dateKey(start, allDay) : "";
-  const endKey = end ? dateKey(end, allDay) : startKey;
-  if ((start && !startKey) || (end && !endKey) || (startKey && endKey < startKey)) return false;
+  const endKey = end ? dateKey(end, allDay) : "";
+  if ((start && !startKey) || (end && !endKey) || (startKey && endKey && endKey < startKey)) return false;
   const today = dateKey(now.toISOString());
-  if (endKey < today) return false;
-  return scope === "all" || ((!startKey || startKey <= today) && endKey >= today);
+  // Unfinished overdue work is still actionable. Missing due dates are open-ended.
+  return scope === "all" || !startKey || startKey <= today;
+}
+
+export function isProjectFocusOverdue(task: Pick<Task, "dueDate" | "allDay">, now = new Date()): boolean {
+  const dueDate = task.dueDate ? dateKey(task.dueDate, task.allDay) : "";
+  return Boolean(dueDate && dueDate < dateKey(now.toISOString()));
 }
 
 export function isProjectFocusEligible(task: Task, userId: string, scope: FocusTaskScope = "all", now = new Date()): boolean {
@@ -38,23 +43,34 @@ export function isProjectFocusActive(project: Pick<Project, "status" | "archived
   return !project.archived && project.status === "ACTIVE";
 }
 
-export function isCalendarFocusEligible(event: CalendarEvent, userId: string, scope: FocusTaskScope = "all", now = new Date()): boolean {
-  const isTask = event.sourceType === "TASK" || Boolean(event.description?.includes("[TASK]"));
-  const isPersonal = Boolean(event.calendar && !event.calendar.projectId && event.calendar.ownerUserId === userId);
+function calendarFocusDates(event: Pick<CalendarEvent, "startAt" | "endAt" | "allDay">) {
   // Calendar stores inclusive 23:59 ends as well as exclusive midnight ends.
   let start = event.startAt;
   let end = event.endAt;
   if (event.allDay) {
     start = formatLocalDateKey(event.startAt);
     const exclusiveEnd = getExclusiveAllDayEndDateKey(event.endAt, event.startAt);
-    if (!start || !exclusiveEnd) return false;
+    if (!start || !exclusiveEnd) return null;
     const lastDay = new Date(`${exclusiveEnd}T00:00:00`);
     lastDay.setDate(lastDay.getDate() - 1);
     end = formatLocalDateKey(lastDay);
   }
+  return { start, end };
+}
+
+export function isCalendarFocusOverdue(event: Pick<CalendarEvent, "startAt" | "endAt" | "allDay">, now = new Date()): boolean {
+  const dates = calendarFocusDates(event);
+  const endKey = dates?.end ? dateKey(dates.end, event.allDay) : "";
+  return Boolean(endKey && endKey < dateKey(now.toISOString()));
+}
+
+export function isCalendarFocusEligible(event: CalendarEvent, userId: string, scope: FocusTaskScope = "all", now = new Date()): boolean {
+  const isTask = event.sourceType === "TASK" || Boolean(event.description?.includes("[TASK]"));
+  const isPersonal = Boolean(event.calendar && !event.calendar.projectId && event.calendar.ownerUserId === userId);
+  const dates = calendarFocusDates(event);
   return isTask && isPersonal && event.permissions?.canManage !== false &&
     event.status !== "CANCELLED" && !event.cancelledAt && !event.completedAt &&
-    matchesDates(start, end, event.allDay, scope, now);
+    Boolean(dates && matchesDates(dates.start, dates.end, event.allDay, scope, now));
 }
 
 export function toProjectFocusTask(task: Task, project?: Pick<Project, "id" | "name" | "color">): PomodoroActiveTask {

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React from "react";
+import { toast } from "sonner";
 import { usePomodoroSession } from "./pomodoro-session-provider";
 import { usePomodoroViewMode } from "../hooks/use-pomodoro-view-mode";
 import { PomodoroTimerDisplay } from "./pomodoro-timer-display";
@@ -10,7 +11,10 @@ import { PomodoroActiveTaskCard } from "./pomodoro-active-task";
 import { PomodoroStatsOverview } from "./pomodoro-stats-card";
 import { PomodoroReport } from "./pomodoro-report";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Settings } from "lucide-react";
+import { useOpenUserSettings } from "@/features/user-setting/hooks/use-open-user-settings";
+import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
+import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
 import { POMODORO_AUDIO_MESSAGES } from "../constants/pomodoro-audio";
@@ -25,7 +29,9 @@ function UserPomodoroView({ userId }: { userId: string }) {
     isReady,
     loadError,
     sessionRevision,
-    isTaskActionPending,
+    completionStatus,
+    retryCompletion,
+    cycleCount,
     mode,
     status,
     timeLeft,
@@ -47,9 +53,8 @@ function UserPomodoroView({ userId }: { userId: string }) {
     start,
     pause,
     resume,
-    reset,
-    skip,
-    switchMode,
+    requestSessionAction,
+    stopSession,
     selectAmbientTrack,
     toggleAmbientPlay,
     changeAmbientVolume,
@@ -59,8 +64,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
 
   const { viewMode, setViewMode } = usePomodoroViewMode(userId);
   const minimalMode = viewMode === "focus";
-  const handleReset = useCallback(() => reset(), [reset]);
-  const handleSkip = useCallback(() => skip(), [skip]);
+  const openSettings = useOpenUserSettings();
 
   return (
     <div className="@container/pomodoro relative w-full min-w-0 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
@@ -77,7 +81,10 @@ function UserPomodoroView({ userId }: { userId: string }) {
           </p>
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {openSettings && <Button type="button" variant="outline" size="sm" onClick={() => openSettings(UserSettingTab.POMODORO)}>
+            <Settings aria-hidden="true" className="size-3.5" />{copy.settings}
+          </Button>}
           {/* Minimal Focus View Toggle */}
           <Button
             type="button"
@@ -110,7 +117,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
         className={
           minimalMode
             ? "mx-auto grid max-w-xl grid-cols-1 items-start gap-5"
-            : "grid min-w-0 grid-cols-1 items-start gap-5 @min-[880px]/pomodoro:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] @min-[880px]/pomodoro:gap-x-8"
+            : "mx-auto grid w-full min-w-0 max-w-6xl grid-cols-1 items-start gap-5 @min-[880px]/pomodoro:grid-cols-2 @min-[880px]/pomodoro:grid-rows-[auto_1fr] @min-[880px]/pomodoro:gap-x-8"
         }
       >
         {/* Left Column: Focus Studio Core */}
@@ -118,7 +125,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
           className={
             minimalMode
               ? "flex min-w-0 flex-col items-center gap-4"
-              : "flex min-w-0 flex-col items-center gap-4 @min-[880px]/pomodoro:col-start-1 @min-[880px]/pomodoro:row-span-2 @min-[880px]/pomodoro:row-start-1"
+              : "flex min-w-0 flex-col items-center gap-4 @min-[880px]/pomodoro:col-start-1 @min-[880px]/pomodoro:row-start-1"
           }
         >
           {/* Precision Timer Display */}
@@ -126,6 +133,10 @@ function UserPomodoroView({ userId }: { userId: string }) {
             <PomodoroTimerDisplay
               mode={mode}
               status={status}
+              completionStatus={completionStatus}
+              cycleCount={cycleCount}
+              longBreakInterval={config.longBreakInterval}
+              disabled={!isReady || busy}
               timeLeft={timeLeft}
               totalDuration={totalDuration}
               focusDuration={config.focusDuration}
@@ -133,7 +144,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
               longBreakDuration={config.longBreak}
               activeTaskTitle={activeTask?.title}
               activeTaskNote={activeTask?.description}
-              onSwitchMode={switchMode}
+              onSwitchMode={(nextMode) => requestSessionAction({ type: "mode", mode: nextMode })}
             />
           </div>
 
@@ -145,8 +156,9 @@ function UserPomodoroView({ userId }: { userId: string }) {
             onStart={start}
             onPause={pause}
             onResume={resume}
-            onReset={handleReset}
-            onSkip={handleSkip}
+            onReset={() => requestSessionAction({ type: "reset" })}
+            onSkip={() => requestSessionAction({ type: "skip" })}
+            onStop={() => void stopSession().catch((error) => toast.error(error instanceof Error ? error.message : copy.stopFailed))}
           />
           {!isReady && (
             <p
@@ -162,11 +174,24 @@ function UserPomodoroView({ userId }: { userId: string }) {
             </p>
           )}
           {isReady && status === "RUNNING" && timeLeft === 0 && (
-            <p role="status" className="text-xs text-muted-foreground">
-              Saving your completed session. The system will retry if the connection is interrupted.
-            </p>
+            <div className="text-center text-xs text-muted-foreground">
+              <p>{copy.pendingHelp}</p>
+              {completionStatus === "error" && <Button type="button" variant="link" onClick={() => void retryCompletion()}>{copy.retry}</Button>}
+            </div>
           )}
 
+        </div>
+
+        <div className={cn("flex min-w-0 flex-col gap-5",
+          !minimalMode && "@min-[880px]/pomodoro:col-start-2 @min-[880px]/pomodoro:row-start-1 @min-[880px]/pomodoro:row-span-2",
+        )}>
+          {isReady && <fieldset disabled={busy} className="flex w-full min-w-0 justify-center [&>div]:max-w-none">
+            <PomodoroActiveTaskCard compact={minimalMode} />
+          </fieldset>}
+          {!minimalMode && <PomodoroStatsOverview lastUpdated={sessionRevision} dailyGoalPomodoros={config.dailyGoalPomodoros} />}
+        </div>
+
+        <div className={cn("flex min-w-0 flex-col items-center gap-3", !minimalMode && "@min-[880px]/pomodoro:col-start-1 @min-[880px]/pomodoro:row-start-2")}>
           {/* Ambient Music & Focus Sound Capsule */}
           <div className="w-full flex justify-center">
             <PomodoroAmbientPlayer
@@ -201,22 +226,6 @@ function UserPomodoroView({ userId }: { userId: string }) {
           )}
         </div>
 
-        {/* Active Focus Target Card */}
-        {isReady && (
-          <fieldset disabled={isTaskActionPending} className={cn(
-            "flex w-full min-w-0 justify-center [&>div]:max-w-none",
-            !minimalMode && "@min-[880px]/pomodoro:col-start-2 @min-[880px]/pomodoro:row-start-1",
-          )}>
-            <PomodoroActiveTaskCard />
-          </fieldset>
-        )}
-
-        {/* Supporting stats sit below the active task. */}
-        {!minimalMode && (
-          <div className="min-w-0 @min-[880px]/pomodoro:col-start-2 @min-[880px]/pomodoro:row-start-2">
-            <PomodoroStatsOverview lastUpdated={sessionRevision} dailyGoalPomodoros={config.dailyGoalPomodoros} />
-          </div>
-        )}
       </div>
 
       <div hidden={minimalMode} className="mt-8 min-w-0 border-t border-border/80 pt-6">

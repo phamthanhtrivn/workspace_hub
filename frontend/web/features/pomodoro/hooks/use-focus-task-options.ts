@@ -13,13 +13,13 @@ export function useFocusTaskOptions(source: PomodoroFocusSource, open: boolean) 
   const calendar = useQuery({
     queryKey: ["pomodoro", "focus-tasks", userId, "calendar", day],
     queryFn: () => getAvailableCalendarFocusTasks(userId!), enabled: Boolean(userId) && open && source === "calendar",
-    staleTime: POMODORO_TASK_SETTINGS.taskRefetchInterval, refetchOnWindowFocus: "always",
+    staleTime: POMODORO_TASK_SETTINGS.taskRefetchInterval, refetchOnMount: "always", refetchOnWindowFocus: "always",
     refetchInterval: POMODORO_TASK_SETTINGS.taskRefetchInterval,
   });
   const project = useQuery({
     queryKey: ["pomodoro", "focus-tasks", userId, "project", day],
     queryFn: () => getAvailableProjectFocusTasks(userId!), enabled: Boolean(userId) && open && source === "project",
-    staleTime: POMODORO_TASK_SETTINGS.taskRefetchInterval, refetchOnWindowFocus: "always",
+    staleTime: POMODORO_TASK_SETTINGS.taskRefetchInterval, refetchOnMount: "always", refetchOnWindowFocus: "always",
     refetchInterval: POMODORO_TASK_SETTINGS.taskRefetchInterval,
   });
   return { userId, calendar, project };

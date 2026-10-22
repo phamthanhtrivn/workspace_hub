@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward, Square } from "lucide-react";
+import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
 import type { PomodoroMode, PomodoroStatus } from "../types/pomodoro";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ interface PomodoroControlsProps {
   onResume: () => void;
   onReset: () => void;
   onSkip: () => void;
+  onStop: () => void;
 }
 
 export const PomodoroControls = React.memo(function PomodoroControls({
@@ -27,6 +29,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
   onResume,
   onReset,
   onSkip,
+  onStop,
 }: PomodoroControlsProps) {
   const isRunning = status === "RUNNING";
   const modeTheme = POMODORO_MODE_THEMES[mode] ?? POMODORO_MODE_THEMES.FOCUS;
@@ -38,7 +41,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
         : "Start long break";
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex flex-col items-center justify-center gap-3">
       <div className="flex max-w-full flex-wrap items-center justify-center gap-2 sm:gap-3">
         <Button
           type="button"
@@ -46,7 +49,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
           size="icon"
           onClick={onReset}
           disabled={disabled}
-          title="Reset session" aria-label="Reset session"
+          title={copy.resetHint} aria-label="Reset session"
           className="size-11 rounded-control text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
         >
           <RotateCcw className="size-4.5" />
@@ -83,12 +86,15 @@ export const PomodoroControls = React.memo(function PomodoroControls({
           size="icon"
           onClick={onSkip}
           disabled={disabled}
-          title="Skip session" aria-label="Skip session"
+          title={copy.skipHint} aria-label="Skip session"
           className="size-11 rounded-control text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
         >
           <SkipForward className="size-4.5" />
         </Button>
       </div>
+      <Button type="button" variant="outline" disabled={disabled || status === "IDLE"} onClick={onStop} className="min-h-11 gap-2">
+        <Square aria-hidden="true" className="size-3.5" />{copy.stop}
+      </Button>
     </div>
   );
 });

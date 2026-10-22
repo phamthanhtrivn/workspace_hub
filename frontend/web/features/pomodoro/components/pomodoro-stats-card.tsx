@@ -40,16 +40,16 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
   );
 
   return (
-    <section className="w-full min-w-0 border-t border-border pt-5">
-      <h3 className="text-base font-semibold text-foreground">Today&apos;s performance</h3>
-      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5">
+    <section className="w-full min-w-0 rounded-panel border border-border bg-card p-4 sm:p-5">
+      <h3 className="text-sm font-semibold text-foreground">Today&apos;s performance</h3>
+      <dl className="mt-4 grid grid-cols-2 gap-x-5 gap-y-4">
         <div><dt className="text-xs text-muted-foreground">Focus time</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">{timeDisplay}</dd></div>
         <div><dt className="text-xs text-muted-foreground">Completed</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">{stats.completedPomodoros} <span className="text-xs font-normal text-muted-foreground">sessions</span></dd></div>
-        <div><dt className="text-xs text-muted-foreground">Daily goal</dt><dd className="mt-1 text-sm font-semibold tabular-nums text-foreground">{stats.completedPomodoros} / {dailyGoalPomodoros ?? stats.dailyGoalPomodoros} sessions</dd>
-          <Progress value={goalPercent}  aria-label="Daily focus goal"    className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-link transition-[width] duration-200 motion-reduce:transition-none" style={{ width: goalPercent + "%" }} /></Progress>
+        <div><dt className="text-xs text-muted-foreground">Daily goal</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">{stats.completedPomodoros} / {dailyGoalPomodoros ?? stats.dailyGoalPomodoros} <span className="text-xs font-normal text-muted-foreground">sessions</span></dd>
         </div>
         <div><dt className="text-xs text-muted-foreground">Streak</dt><dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">{stats.currentStreak} <span className="text-xs font-normal text-muted-foreground">days</span></dd></div>
       </dl>
+      <Progress value={goalPercent} aria-label="Daily focus goal" className="mt-4 h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full bg-link transition-[width] duration-200 motion-reduce:transition-none" style={{ width: goalPercent + "%" }} /></Progress>
     </section>
   );
 });

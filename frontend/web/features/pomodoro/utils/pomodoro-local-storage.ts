@@ -6,6 +6,7 @@ import type { PomodoroViewMode } from "../types/pomodoro-preferences";
 const STORAGE_SCHEMA_VERSION = 1;
 const CONFIG_KEY = "workspace-hub:pomodoro:config";
 const TIMER_STATE_KEY = "workspace-hub:pomodoro:timer-state";
+const COMPLETION_NOTICE_KEY = "workspace-hub:pomodoro:completion-notice";
 const PENDING_CONFIG_KEY = "workspace-hub:pomodoro:pending-config";
 const VIEW_MODE_KEY = "workspace-hub:pomodoro:view-mode";
 const AMBIENT_PREFERENCES_KEY = "workspace-hub:pomodoro:ambient-preferences";
@@ -143,9 +144,19 @@ export function clearLocalPomodoroData(userId: string): void {
     window.localStorage.removeItem(`${CONFIG_KEY}:${userId}`);
     window.localStorage.removeItem(`${TIMER_STATE_KEY}:${userId}`);
     window.localStorage.removeItem(`${PENDING_CONFIG_KEY}:${userId}`);
+    window.localStorage.removeItem(`${COMPLETION_NOTICE_KEY}:${userId}`);
   } catch {
     // Storage may be disabled.
   }
+}
+
+export function wasPomodoroCompletionNotified(userId: string, key: string): boolean {
+  return readEnvelope(`${COMPLETION_NOTICE_KEY}:${userId}`,
+    (value): value is string => typeof value === "string") === key;
+}
+
+export function markPomodoroCompletionNotified(userId: string, key: string): void {
+  if (userId) writeEnvelope(`${COMPLETION_NOTICE_KEY}:${userId}`, key);
 }
 
 export function loadLocalPomodoroViewMode(userId: string): PomodoroViewMode | null {

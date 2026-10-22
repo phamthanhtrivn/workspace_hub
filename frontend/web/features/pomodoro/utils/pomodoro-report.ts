@@ -1,8 +1,11 @@
 import type { PomodoroSessionRecord } from "../types/pomodoro";
+import { POMODORO_REPORT_COPY as copy, POMODORO_REPORT_MAX_DAYS, POMODORO_REPORT_SOURCES } from "../constants/pomodoro-report";
 
 export interface PomodoroReportRange { startDate: string; endDate: string }
-export interface PomodoroReportFilters { project: string; task: string }
+export type PomodoroReportSource = (typeof POMODORO_REPORT_SOURCES)[number]["value"];
+export interface PomodoroReportFilters { source: PomodoroReportSource; project: string; task: string }
 export type PomodoroReportPreset = "today" | "week" | "month";
+export type PomodoroReportRangeErrors = Partial<Record<keyof PomodoroReportRange, string>>;
 const DAY_MS = 86_400_000;
 
 export function localDateKey(date: Date): string {
@@ -14,31 +17,59 @@ export function presetReportRange(preset: PomodoroReportPreset, now = new Date()
   const end = new Date(now);
   if (preset === "week") {
     start.setDate(start.getDate() - (start.getDay() + 6) % 7);
-    end.setTime(start.getTime());
-    end.setDate(end.getDate() + 6);
   } else if (preset === "month") {
     start.setDate(1);
-    end.setMonth(end.getMonth() + 1, 0);
   }
   return { startDate: localDateKey(start), endDate: localDateKey(end) };
 }
 
-export function reportRangeBounds(range: PomodoroReportRange) {
+export function reportRangeErrors(range: PomodoroReportRange, now = new Date()): PomodoroReportRangeErrors {
+  const errors: PomodoroReportRangeErrors = {};
+  const today = localDateKey(now);
+  for (const field of ["startDate", "endDate"] as const) {
+    const value = range[field];
+    const date = new Date(`${value}T00:00:00`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(date.getTime()) || localDateKey(date) !== value) {
+      errors[field] = copy.invalidDate;
+    } else if (value > today) errors[field] = copy.futureDate;
+  }
+  if (Object.keys(errors).length) return errors;
+  if (range.endDate < range.startDate) return { endDate: copy.reversedDates };
+  const end = new Date(`${range.endDate}T00:00:00`);
+  end.setDate(end.getDate() + 1);
+  if (end.getTime() - new Date(`${range.startDate}T00:00:00`).getTime() > POMODORO_REPORT_MAX_DAYS * DAY_MS) {
+    errors.endDate = copy.rangeTooLong;
+  }
+  return errors;
+}
+
+// Full local-day bounds also drive daily buckets; request bounds use a separate cutoff.
+export function reportRangeBounds(range: PomodoroReportRange, now = new Date()) {
+  const errors = reportRangeErrors(range, now);
+  const error = errors.startDate || errors.endDate;
+  if (error) throw new Error(error);
   const start = new Date(`${range.startDate}T00:00:00`);
   const end = new Date(`${range.endDate}T00:00:00`);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(range.startDate) || !/^\d{4}-\d{2}-\d{2}$/.test(range.endDate) ||
-    !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) ||
-    localDateKey(start) !== range.startDate || localDateKey(end) !== range.endDate) {
-    throw new Error("Please choose valid start and end dates.");
-  }
-  if (end < start) throw new Error("The end date must be on or after the start date.");
   end.setDate(end.getDate() + 1);
-  if (end.getTime() - start.getTime() > 93 * DAY_MS) throw new Error("Each report supports a maximum of 93 days.");
   return { startAt: start.toISOString(), endAt: end.toISOString() };
 }
 
-export function sessionProjectKey(session: PomodoroSessionRecord) {
-  return session.projectId || "personal";
+export function reportRequestBounds(range: PomodoroReportRange, now = new Date()) {
+  const bounds = reportRangeBounds(range, now);
+  return { ...bounds, endAt: new Date(Math.min(Date.parse(bounds.endAt), now.getTime())).toISOString() };
+}
+
+export function sameReportRange(left: PomodoroReportRange, right: PomodoroReportRange) {
+  return left.startDate === right.startDate && left.endDate === right.endDate;
+}
+
+export function formatReportRange(range: PomodoroReportRange) {
+  const format = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString();
+  return `${format(range.startDate)} – ${format(range.endDate)}`;
+}
+
+function matchesReportSource(session: PomodoroSessionRecord, source: PomodoroReportSource) {
+  return source === "all" || (source === "project" ? Boolean(session.projectId) : !session.projectId);
 }
 
 export function sessionTaskKey(session: PomodoroSessionRecord) {
@@ -47,27 +78,40 @@ export function sessionTaskKey(session: PomodoroSessionRecord) {
   return session.taskTitle ? `title:${session.taskTitle}` : "free";
 }
 
-export function reportFilterOptions(sessions: PomodoroSessionRecord[], project = "") {
+export function reportFilterOptions(sessions: PomodoroSessionRecord[], filters: Pick<PomodoroReportFilters, "source" | "project">) {
   const projects = new Map<string, string>();
   const tasks = new Map<string, string>();
   for (const session of sessions) {
-    const projectKey = sessionProjectKey(session);
-    projects.set(projectKey, session.projectId ? session.projectName || "Unnamed project" : "Personal / Free focus");
-    if (!project || projectKey === project) {
+    if (!matchesReportSource(session, filters.source)) continue;
+    if (session.projectId) projects.set(session.projectId, session.projectName || "Unnamed project");
+    if (!filters.project || session.projectId === filters.project) {
       tasks.set(sessionTaskKey(session), session.taskTitle || "Session without a task");
     }
   }
   return { projects: [...projects], tasks: [...tasks] };
 }
 
+export function reconcileReportFilters(sessions: PomodoroSessionRecord[], filters: PomodoroReportFilters) {
+  const options = reportFilterOptions(sessions, filters);
+  if (filters.project && !options.projects.some(([key]) => key === filters.project)) {
+    return { filters: { ...filters, project: "", task: "" }, notice: copy.projectReset };
+  }
+  if (filters.task && !options.tasks.some(([key]) => key === filters.task)) {
+    return { filters: { ...filters, task: "" }, notice: copy.taskReset };
+  }
+  return { filters, notice: "" };
+}
+
 export function buildPomodoroReport(
-  sessions: PomodoroSessionRecord[], range: PomodoroReportRange, filters: PomodoroReportFilters,
+  sessions: PomodoroSessionRecord[], range: PomodoroReportRange, filters: PomodoroReportFilters, now = new Date(),
 ) {
-  const { startAt, endAt } = reportRangeBounds(range);
+  const { startAt, endAt } = reportRangeBounds(range, now);
+  const cutoff = Math.min(Date.parse(endAt), now.getTime());
   const selected = sessions.filter((session) => {
     const startedAt = Date.parse(session.startedAt);
-    return startedAt >= Date.parse(startAt) && startedAt < Date.parse(endAt) &&
-      (!filters.project || sessionProjectKey(session) === filters.project) &&
+    return startedAt >= Date.parse(startAt) && startedAt < cutoff &&
+      matchesReportSource(session, filters.source) &&
+      (!filters.project || session.projectId === filters.project) &&
       (!filters.task || sessionTaskKey(session) === filters.task);
   }).sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt) || b.id.localeCompare(a.id));
   const days = new Map<string, { date: string; focusSeconds: number; completedFocusSessions: number; totalSessions: number }>();
@@ -106,13 +150,6 @@ export function formatFocusTime(seconds: number): string {
   return hours > 0 ? `${hours}h ${minutes}m ${remainder}s` : `${minutes}m ${remainder}s`;
 }
 
-export function createReportExport(
-  report: ReturnType<typeof buildPomodoroReport>, range: PomodoroReportRange, filters: PomodoroReportFilters,
-) {
-  return {
-    exportedAt: new Date().toISOString(),
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    range: { ...range, ...reportRangeBounds(range) },
-    filters, ...report,
-  };
+export function getPomodoroReportDays(days: ReturnType<typeof buildPomodoroReport>["daily"], hideEmpty: boolean) {
+  return hideEmpty ? days.filter(day => day.totalSessions > 0) : days;
 }

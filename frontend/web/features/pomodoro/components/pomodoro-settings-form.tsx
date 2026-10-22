@@ -14,6 +14,7 @@ import { fromPomodoroSettingsForm, pomodoroSettingsSchema, toPomodoroSettingsFor
 import { useSettingsDraft } from "@/features/user-setting/hooks/use-settings-draft";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { playPomodoroSound } from "../utils/sound";
+import { PomodoroNotificationSettings } from "./pomodoro-notification-settings";
 
 interface PomodoroSettingsFormProps {
   config: PomodoroConfig;
@@ -91,8 +92,7 @@ export function PomodoroSettingsForm({ config, syncStatus, onSave }: PomodoroSet
           )} />
         </div>
         <Controller name="notificationEnabled" control={control} render={({ field }) => (
-          <SettingSwitchCard title="Browser notifications" description="Notify you while you are in another tab or app."
-            checked={field.value} onCheckedChange={field.onChange} disabled={disabled} />
+          <PomodoroNotificationSettings enabled={field.value} onChange={field.onChange} disabled={disabled} />
         )} />
       </fieldset>
 

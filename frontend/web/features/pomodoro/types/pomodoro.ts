@@ -2,6 +2,12 @@ export type PomodoroMode = "FOCUS" | "SHORT_BREAK" | "LONG_BREAK";
 
 export type PomodoroStatus = "IDLE" | "RUNNING" | "PAUSED";
 
+export type PomodoroCompletionStatus = "idle" | "saving" | "error";
+export type PomodoroSessionAction =
+  | { type: "reset" }
+  | { type: "skip" }
+  | { type: "mode"; mode: PomodoroMode };
+
 export type PomodoroSessionStatus = "COMPLETED" | "STOPPED" | "SKIPPED";
 
 export type PomodoroTaskAction = "COMPLETE" | "REVIEW";

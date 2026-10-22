@@ -20,6 +20,7 @@ import {
 import { useAppSelector } from "@/store/store";
 import UserSettingsModal from "@/features/user-setting/components/user-settings-modal";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
+import { OpenUserSettingsContext } from "@/features/user-setting/hooks/use-open-user-settings";
 import { cn } from "@/lib/utils";
 import WorkspaceHeader from "./workspace-header";
 import { PomodoroMiniTimer } from "@/features/pomodoro/components/pomodoro-mini-timer";
@@ -139,6 +140,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
   }, []);
 
   return (
+    <OpenUserSettingsContext.Provider value={handleOpenSettings}>
     <div className="flex h-dvh overflow-hidden bg-background text-foreground">
       {isMobileMenuOpen && (
         <div data-ui-interaction-exception="Backdrop dismissal; close button and Escape are available."
@@ -339,6 +341,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
         initialTab={activeSettingsTab}
       />
     </div>
+    </OpenUserSettingsContext.Provider>
   );
 });
 
