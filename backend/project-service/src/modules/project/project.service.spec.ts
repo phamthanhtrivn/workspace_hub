@@ -1,9 +1,87 @@
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { ProjectService } from './project.service';
+import { PROJECT_DATE_MESSAGES } from './project.constants';
 import {
   ProjectMemberStatus,
   ProjectRole,
   ProjectStatus,
 } from './project.enums';
+
+describe('ProjectService creation dates', () => {
+  type Dependencies = ConstructorParameters<typeof ProjectService>;
+  const ownerId = '22222222-2222-4222-8222-222222222222';
+
+  function createService() {
+    const createProject = jest.fn().mockImplementation(async ({ data }) => data);
+    const transaction = jest.fn(async (operation) =>
+      operation({ project: { create: createProject } }),
+    );
+    const ensureProjectRootFolder = jest.fn().mockResolvedValue(undefined);
+    const service = new ProjectService(
+      { $transaction: transaction } as unknown as Dependencies[0],
+      {} as Dependencies[1],
+      { getProfileByUserId: jest.fn().mockResolvedValue(null) } as unknown as Dependencies[2],
+      { ensureProjectRootFolder } as unknown as Dependencies[3],
+      {} as Dependencies[4],
+      {} as Dependencies[5],
+    );
+    return { service, transaction, createProject, ensureProjectRootFolder };
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-10-22T05:00:00Z'));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it.each([
+    {
+      label: 'a past start date',
+      dates: { startDate: '2026-10-21' },
+      error: new BadRequestException(PROJECT_DATE_MESSAGES.startDateInPast),
+    },
+    {
+      label: 'an end date without a start date',
+      dates: { dueDate: '2026-10-23' },
+      error: new BadRequestException(PROJECT_DATE_MESSAGES.startDateRequiredForEndDate),
+    },
+    {
+      label: 'an end date with a null start date',
+      dates: { startDate: null, dueDate: '2026-10-23' },
+      error: new BadRequestException(PROJECT_DATE_MESSAGES.startDateRequiredForEndDate),
+    },
+    {
+      label: 'an end date before the start date',
+      dates: { startDate: '2026-10-24', dueDate: '2026-10-23' },
+      error: new ConflictException(PROJECT_DATE_MESSAGES.invalidDateRange),
+    },
+  ])('rejects $label before writing', async ({ dates, error }) => {
+    const { service, transaction, ensureProjectRootFolder } = createService();
+
+    await expect(service.create(ownerId, { name: 'Project Alpha', ...dates }))
+      .rejects.toThrow(error);
+    expect(transaction).not.toHaveBeenCalled();
+    expect(ensureProjectRootFolder).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { label: 'omitted dates', dates: {} },
+    { label: 'null dates', dates: { startDate: null, dueDate: null } },
+    { label: 'today without an end date', dates: { startDate: '2026-10-22' } },
+    { label: 'equal dates', dates: { startDate: '2026-10-22', dueDate: '2026-10-22' } },
+    { label: 'future dates', dates: { startDate: '2026-10-23', dueDate: '2026-10-24' } },
+  ])('creates a project with $label', async ({ dates }) => {
+    const { service, transaction, createProject, ensureProjectRootFolder } = createService();
+
+    await expect(service.create(ownerId, { name: 'Project Alpha', ...dates }))
+      .resolves.toMatchObject({ name: 'Project Alpha', ownerId });
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(createProject).toHaveBeenCalledTimes(1);
+    expect(ensureProjectRootFolder).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe('ProjectService project space access sync', () => {
   const projectId = '11111111-1111-4111-8111-111111111111';

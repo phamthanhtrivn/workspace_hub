@@ -19,7 +19,11 @@ import { InternalRenameProjectDto } from './dto/internal-rename-project.dto';
 import { ProjectListQueryDto } from './dto/project-list-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
-import { PROJECT_LIST_PAGE_SIZE } from './project.constants';
+import {
+  PROJECT_DATE_MESSAGES,
+  PROJECT_DATE_TIME_ZONE,
+  PROJECT_LIST_PAGE_SIZE,
+} from './project.constants';
 import { toMemberResponse, toProjectResponse } from './project.mapper';
 import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
 import { paginate } from '../../common/utils/pagination';
@@ -48,6 +52,7 @@ export class ProjectService {
     const now = new Date();
     const startDate = this.toDate(dto.startDate);
     const dueDate = this.toDate(dto.dueDate);
+    this.validateCreateDates(startDate, dueDate, now);
     this.validateDateRange(startDate, dueDate);
 
     const project = await this.prisma.$transaction(async (tx) => {
@@ -656,12 +661,33 @@ export class ProjectService {
     return value == null ? value : new Date(value);
   }
 
+  private validateCreateDates(
+    startDate: Date | null | undefined,
+    dueDate: Date | null | undefined,
+    now: Date,
+  ): void {
+    if (dueDate && !startDate) {
+      throw new BadRequestException(PROJECT_DATE_MESSAGES.startDateRequiredForEndDate);
+    }
+    if (!startDate) return;
+
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: PROJECT_DATE_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    if (formatter.format(startDate) < formatter.format(now)) {
+      throw new BadRequestException(PROJECT_DATE_MESSAGES.startDateInPast);
+    }
+  }
+
   private validateDateRange(
     startDate?: Date | null,
     dueDate?: Date | null,
   ): void {
     if (startDate && dueDate && startDate > dueDate) {
-      throw new ConflictException('Start date cannot be after due date');
+      throw new ConflictException(PROJECT_DATE_MESSAGES.invalidDateRange);
     }
   }
 
