@@ -1,7 +1,7 @@
 "use client";
 
-import { FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ProjectColorDot, ProjectIdentityIcon } from "./project-identity";
 
 interface ProjectPreviewCardProps {
   name?: string;
@@ -34,20 +34,13 @@ export default function ProjectPreviewCard({
         Preview
       </p>
       <div className="mt-2 flex min-w-0 items-center gap-3">
-        <span
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-panel text-lg"
-          style={{
-            backgroundColor: `${color}14`,
-            boxShadow: `0 0 0 1px ${color}66`,
-            color: "var(--foreground)",
-          }}
-          aria-hidden="true"
-        >
-          {icon || <FolderKanban className="h-5 w-5" strokeWidth={2} />}
-        </span>
+        <ProjectIdentityIcon icon={icon} color={color} />
         <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-foreground">
-            {displayName}
+          <span className="flex min-w-0 items-center gap-2">
+            <ProjectColorDot color={color} />
+            <span className="truncate text-sm font-semibold text-foreground">
+              {displayName}
+            </span>
           </span>
           {displayDescription ? (
             <span className="mt-0.5 block truncate text-xs font-medium text-muted-foreground">

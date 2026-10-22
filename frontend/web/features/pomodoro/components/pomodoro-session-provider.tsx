@@ -13,6 +13,8 @@ import { POMODORO_TASK_MESSAGES } from "../constants/pomodoro-task";
 import type { PomodoroActiveTask } from "../types/pomodoro";
 import { AlertDialog, AlertDialogContent } from "@/components/ui/alert-dialog";
 import { PomodoroFocusSwitchConfirmation } from "./pomodoro-focus-switch-confirmation";
+import { usePomodoroSessionConfirmation } from "../hooks/use-pomodoro-session-confirmation";
+import { PomodoroSessionConfirmation } from "./pomodoro-session-confirmation";
 
 type Timer = ReturnType<typeof usePomodoroTimer>;
 interface FocusSwitchActions {
@@ -22,6 +24,7 @@ interface FocusSwitchActions {
   setFocusDialogOpen: (open: boolean) => void;
 }
 type Session = Timer & ReturnType<typeof usePomodoroTaskActions> & FocusSwitchActions & {
+  requestSessionAction: ReturnType<typeof usePomodoroSessionConfirmation>["requestSessionAction"];
   startFocus: (task: PomodoroActiveTask) => Promise<boolean>;
   startFreeFocus: () => Promise<boolean>;
   focusRevision: number;
@@ -36,13 +39,16 @@ function UserPomodoroSessionProvider({ userId, children }: { userId: string; chi
   const taskActions = usePomodoroTaskActions(timer.finishActiveTask);
   const queryClient = useQueryClient();
   // The wrapper distinguishes a request for free focus from no pending request.
-  const [pendingTarget, setPendingTarget] = useState<{ task: PomodoroActiveTask | null } | null>(null);
+  const [pendingTargetState, setPendingTarget] = useState<{ task: PomodoroActiveTask | null; identity: string } | null>(null);
   const [focusDialogOpen, setFocusDialogOpen] = useState(false);
   const [focusRevision, setFocusRevision] = useState(0);
   const [validating, setValidating] = useState(false);
   const inFlight = useRef(false);
   const busy = validating || timer.isTaskActionPending || (timer.status === "RUNNING" && timer.timeLeft === 0);
-  const { isReady, isTaskActionPending, status, mode, activeTask, updateActiveTask, resume: resumeTimer, beginFocusTask, beginFreeFocus, start: startTimer } = timer;
+  const pendingTarget = pendingTargetState?.identity === timer.sessionIdentity && !(timer.status === "RUNNING" && timer.timeLeft === 0)
+    ? pendingTargetState : null;
+  const confirmation = usePomodoroSessionConfirmation(timer, validating || focusDialogOpen || Boolean(pendingTarget));
+  const { isReady, status, mode, activeTask, updateActiveTask, resume: resumeTimer, beginFocusTask, beginFreeFocus, start: startTimer } = timer;
 
   const refreshTasks = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: ["projects"] });
@@ -52,9 +58,9 @@ function UserPomodoroSessionProvider({ userId, children }: { userId: string; chi
 
   const executeFocus = useCallback(async (target: PomodoroActiveTask | null, replace = false) => {
     if (!isReady) throw new Error(POMODORO_TASK_MESSAGES.notReady);
-    if (inFlight.current || isTaskActionPending) throw new Error(POMODORO_TASK_MESSAGES.busy);
+    if (inFlight.current || busy || confirmation.pendingSessionAction) throw new Error(POMODORO_TASK_MESSAGES.busy);
     if (!replace && status !== "IDLE" && (!sameFocusTask(activeTask, target) || mode !== "FOCUS")) {
-      setPendingTarget({ task: target });
+      setPendingTarget({ task: target, identity: timer.sessionIdentity });
       return false;
     }
     inFlight.current = true;
@@ -80,7 +86,7 @@ function UserPomodoroSessionProvider({ userId, children }: { userId: string; chi
       inFlight.current = false;
       setValidating(false);
     }
-  }, [isReady, isTaskActionPending, status, mode, activeTask, updateActiveTask, resumeTimer, beginFocusTask, beginFreeFocus, userId, refreshTasks]);
+  }, [isReady, busy, confirmation.pendingSessionAction, timer.sessionIdentity, status, mode, activeTask, updateActiveTask, resumeTimer, beginFocusTask, beginFreeFocus, userId, refreshTasks]);
 
   const startFocus = useCallback(async (target: PomodoroActiveTask) => {
     try { return await executeFocus(target); }
@@ -124,13 +130,15 @@ function UserPomodoroSessionProvider({ userId, children }: { userId: string; chi
 
   return (
     <ActionsContext.Provider value={actions}>
-      <SessionContext.Provider value={{ ...timer, ...taskActions, ...actions, start, resume }}>
+      <SessionContext.Provider value={{ ...timer, ...taskActions, ...actions, start, resume, requestSessionAction: confirmation.requestSessionAction }}>
         {children}
         <AlertDialog open={Boolean(pendingTarget) && !focusDialogOpen} onOpenChange={(open) => { if (!open) cancelFocusSwitch(); }}>
           <AlertDialogContent showCloseButton={false} aria-label="Switch focus task">
             <PomodoroFocusSwitchConfirmation />
           </AlertDialogContent>
         </AlertDialog>
+        <PomodoroSessionConfirmation action={confirmation.pendingSessionAction} busy={busy || confirmation.confirming}
+          onCancel={confirmation.cancelSessionAction} onConfirm={confirmation.confirmSessionAction} />
       </SessionContext.Provider>
     </ActionsContext.Provider>
   );

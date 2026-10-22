@@ -6,7 +6,6 @@ import {
   ChevronRight,
   Clock,
   GripVertical,
-  Plus,
 } from "lucide-react";
 import {
   DndContext,
@@ -14,15 +13,13 @@ import {
   PointerSensor,
   pointerWithin,
   useDraggable,
-  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import { TaskStatus, type Task } from "@/features/project/types/project";
+import { type Task } from "@/features/project/types/project";
 import { useCalendarGrid } from "@/features/project/hooks/use-calendar-grid";
-import { taskDateKey } from "@/features/project/utils/task-dates";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,185 +30,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getPriorityIcon } from "../ui/task-card";
+import { useMediaQuery } from "@/components/ui/use-media-query";
+import { CALENDAR_TASK_STATUS_STYLES, PROJECT_CALENDAR_DESKTOP_QUERY } from "../../constants/calendar-view.constants";
+import ProjectCalendarWeek from "../calendar/project-calendar-week";
+
+export { buildWeekTaskSegments } from "../../utils/calendar-layout.utils";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTH_INDEXES = Array.from({ length: 12 }, (_, index) => index);
-
-const statusColors: Record<TaskStatus, { label: string; card: string }> = {
-  [TaskStatus.TODO]: {
-    label: "To Do",
-    card: "border-border bg-muted hover:bg-accent text-muted-foreground",
-  },
-  [TaskStatus.IN_PROGRESS]: {
-    label: "In Progress",
-    card: "border-info-outline bg-info-soft hover:bg-info-soft text-info-content",
-  },
-  [TaskStatus.IN_REVIEW]: {
-    label: "In Review",
-    card: "border-warning-outline bg-warning-soft hover:bg-warning-soft text-warning-content",
-  },
-  [TaskStatus.DONE]: {
-    label: "Done",
-    card: "border-success-outline bg-success-soft hover:bg-success-soft text-success-content",
-  },
-  [TaskStatus.CANCELLED]: {
-    label: "Cancelled",
-    card: "border-destructive-outline bg-destructive-soft hover:bg-destructive-soft text-destructive-content",
-  },
-};
-
-interface CalendarTaskSegment {
-  task: Task;
-  startColumn: number;
-  span: number;
-  lane: number;
-  showTitle: boolean;
-}
-
-export function buildWeekTaskSegments(
-  weekDays: Array<{ key: string; isCurrentMonth?: boolean; tasks: Task[] }>,
-): CalendarTaskSegment[] {
-  if (weekDays.length === 0) return [];
-  const currentMonthDays = weekDays.filter((d) => d.isCurrentMonth !== false);
-  if (currentMonthDays.length === 0) return [];
-
-  const weekStart = currentMonthDays[0].key;
-  const weekEnd = currentMonthDays[currentMonthDays.length - 1].key;
-  const uniqueTasks = new Map<string, Task>();
-  currentMonthDays.forEach((day) =>
-    day.tasks.forEach((task) => uniqueTasks.set(task.id, task)),
-  );
-
-  const candidates = [...uniqueTasks.values()]
-    .map((task) => {
-      const taskStart = taskDateKey(
-        task.startDate || task.dueDate,
-        task.allDay,
-      );
-      const taskEnd = taskDateKey(task.dueDate || task.startDate, task.allDay);
-      const segmentStart = taskStart < weekStart ? weekStart : taskStart;
-      const segmentEnd = taskEnd > weekEnd ? weekEnd : taskEnd;
-      return {
-        task,
-        taskStart,
-        startColumn: weekDays.findIndex((day) => day.key === segmentStart),
-        endColumn: weekDays.findIndex((day) => day.key === segmentEnd),
-      };
-    })
-    .filter(
-      (segment) =>
-        segment.startColumn >= 0 && segment.endColumn >= segment.startColumn,
-    )
-    .sort((a, b) => a.startColumn - b.startColumn || b.endColumn - a.endColumn);
-
-  const occupiedThrough: number[] = [];
-  return candidates.map((segment) => {
-    let lane = occupiedThrough.findIndex(
-      (endColumn) => endColumn < segment.startColumn,
-    );
-    if (lane < 0) lane = occupiedThrough.length;
-    occupiedThrough[lane] = segment.endColumn;
-    return {
-      task: segment.task,
-      startColumn: segment.startColumn,
-      span: segment.endColumn - segment.startColumn + 1,
-      lane,
-      showTitle:
-        segment.taskStart === weekDays[segment.startColumn].key ||
-        segment.startColumn ===
-          weekDays.findIndex((day) => day.isCurrentMonth !== false),
-    };
-  });
-}
-
-function getCalendarTaskTimeLabel(
-  task: Task,
-  formatTime: (value: string | undefined) => string,
-): string {
-  if (task.allDay) return "";
-  const startTime = formatTime(task.startDate);
-  const endTime = formatTime(task.dueDate);
-  if (startTime && endTime) return `${startTime} - ${endTime}`;
-  return startTime || endTime;
-}
-
-function DroppableCalendarDay({
-  date,
-  keyStr,
-  isCurrentMonth,
-  isToday,
-  dayTasksCount,
-  onCreateDate,
-  dropHereText,
-  moreTasksText,
-}: {
-  date: Date;
-  keyStr: string;
-  isCurrentMonth?: boolean;
-  isToday?: boolean;
-  dayTasksCount: number;
-  onCreateDate?: (date: string) => void;
-  dropHereText: string;
-  moreTasksText: string;
-}) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: keyStr,
-    disabled: !isCurrentMonth,
-  });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`group relative border-r border-border p-2 last:border-r-0 transition-colors ${
-        !isCurrentMonth
-          ? "bg-background pointer-events-none"
-          : isOver
-            ? "bg-info-soft/90 ring-2 ring-inset ring-ring"
-            : "bg-card"
-      }`}
-    >
-      {isCurrentMonth && (
-        <>
-          <div className="flex items-center justify-between">
-            <span
-              className={`grid h-7 w-7 place-items-center rounded-full text-xs font-semibold ${
-                isToday
-                  ? "bg-primary-soft text-primary-soft-foreground"
-                  : "text-muted-foreground"
-              }`}
-            >
-              {date.getDate()}
-            </span>
-            {onCreateDate && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => onCreateDate(keyStr)}
-                className="pointer-events-auto h-7 w-7 rounded-control text-muted-foreground opacity-0 transition hover:bg-muted hover:text-muted-foreground group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 cursor-pointer p-0"
-                aria-label={`Create task for ${keyStr}`}
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
-            )}
-          </div>
-          {isOver && (
-            <div className="pointer-events-none absolute inset-x-2 top-10 bottom-2 flex items-center justify-center rounded-lg border-2 border-dashed border-info-outline bg-info-soft/40">
-              <span className="text-xs font-semibold text-info-content">
-                {dropHereText}
-              </span>
-            </div>
-          )}
-          {dayTasksCount > 4 && !isOver && (
-            <p className="absolute bottom-2 left-2 text-xs font-semibold text-muted-foreground">
-              {moreTasksText}
-            </p>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
 
 function DraggableUnscheduledTask({
   task,
@@ -327,6 +153,7 @@ export default function CalendarView({
   onTaskReschedule,
   canEditTask,
 }: CalendarViewProps) {
+  const isDesktop = useMediaQuery(PROJECT_CALENDAR_DESKTOP_QUERY);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [yearInput, setYearInput] = useState("");
   const [isEditingYear, setIsEditingYear] = useState(false);
@@ -514,7 +341,7 @@ export default function CalendarView({
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto">
-        <div className="min-w-[420px]">
+        <div className="min-w-[560px]">
         <div className="sticky top-0 z-20 grid grid-cols-7 border-b border-border bg-background">
           {WEEKDAYS.map((weekday) => (
             <div
@@ -526,80 +353,20 @@ export default function CalendarView({
           ))}
         </div>
 
-        <div>
-          {Array.from(
-            { length: Math.ceil(days.length / 7) },
-            (_, weekIndex) => {
-              const weekDays = days.slice(weekIndex * 7, weekIndex * 7 + 7);
-              const segments = buildWeekTaskSegments(weekDays);
-              const visibleSegments = segments.filter(
-                (segment) => segment.lane < 4,
-              );
-              return (
-                <div
-                  key={weekDays[0].key}
-                  className="relative grid min-h-40 grid-cols-7 border-b border-border sm:min-h-44"
-                >
-                  {weekDays.map(
-                    ({
-                      date,
-                      key,
-                      isCurrentMonth,
-                      isToday,
-                      tasks: dayTasks,
-                    }) => (
-                      <DroppableCalendarDay
-                        key={key}
-                        date={date}
-                        keyStr={key}
-                        isCurrentMonth={isCurrentMonth}
-                        isToday={isToday}
-                        dayTasksCount={dayTasks.length}
-                        onCreateDate={onCreateDate}
-                        dropHereText="Drop task here"
-                        moreTasksText={`+${Math.max(0, dayTasks.length - 4)} more`}
-                      />
-                    ),
-                  )}
-                  <div className="pointer-events-none absolute inset-x-0 top-11 grid grid-cols-7 auto-rows-[42px] gap-y-1">
-                    {visibleSegments.map(
-                      ({ task, startColumn, span, lane, showTitle }) => {
-                        const timeLabel = getCalendarTaskTimeLabel(
-                          task,
-                          formatTime,
-                        );
-                        return (
-                        <Button
-                          key={task.id}
-                          type="button"
-                          variant="ghost"
-                          onClick={() => onTaskClick?.(task)}
-                          style={{
-                            gridColumn: `${startColumn + 1} / span ${span}`,
-                            gridRow: lane + 1,
-                          }}
-                          className={`pointer-events-auto mx-1.5 flex h-auto min-w-0 items-center gap-1.5 rounded-control border px-2.5 py-1.5 text-left transition-all cursor-pointer ${statusColors[task.status].card}`}
-                        >
-                          {showTitle && (
-                            <span className="truncate text-xs font-semibold text-inherit">
-                              {task.title}
-                            </span>
-                          )}
-                          {showTitle && timeLabel && (
-                            <span className="ml-auto inline-flex min-w-0 shrink-0 items-center gap-0.5 truncate text-xs font-semibold text-inherit">
-                              <Clock className="h-2.5 w-2.5 text-inherit" />
-                              {timeLabel}
-                            </span>
-                          )}
-                        </Button>
-                        );
-                      },
-                    )}
-                  </div>
-                </div>
-              );
-            },
-          )}
+        <div key={`${selectedYear}-${selectedMonth}`}>
+          {Array.from({ length: Math.ceil(days.length / 7) }, (_, weekIndex) => {
+            const weekDays = days.slice(weekIndex * 7, weekIndex * 7 + 7);
+            return (
+              <ProjectCalendarWeek
+                key={weekDays[0].key}
+                days={weekDays}
+                compact={!isDesktop}
+                formatTime={formatTime}
+                onTaskClick={onTaskClick}
+                onCreateDate={onCreateDate}
+              />
+            );
+          })}
         </div>
 
         <UnscheduledTasksPanel
@@ -616,7 +383,7 @@ export default function CalendarView({
         {activeTask ? (
           <div
             className={`pointer-events-none flex items-center gap-2 rounded-lg border px-3 py-2 opacity-95 ${
-              statusColors[activeTask.status]?.card ?? "bg-primary-soft text-primary-soft-foreground"
+              CALENDAR_TASK_STATUS_STYLES[activeTask.status] ?? "bg-primary-soft text-primary-soft-foreground"
             }`}
           >
             <GripVertical className="h-3.5 w-3.5 text-inherit" />

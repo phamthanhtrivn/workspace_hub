@@ -4,6 +4,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import Link from "next/link";
 import { Loader2, Menu, MessageCircle, Plus, UserPlus } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
+import { ProjectIdentityIcon } from "../ui/project-identity";
 import { ProjectSearchInput } from "../ui/project-form-controls";
 import TaskQuickFilters from "../ui/task-quick-filters";
 import {
@@ -148,9 +149,10 @@ export default function ProjectDetailToolbar({
                 variant="ghost"
                 size="sm"
                 onClick={() => onViewChange?.("overview")}
-                className="h-auto min-w-0 max-w-full shrink justify-start rounded-control p-0 text-xs font-medium text-muted-foreground shadow-none hover:bg-transparent hover:text-info-content focus-visible:ring-ring"
+                className="h-auto min-w-0 max-w-full shrink justify-start gap-2 rounded-control p-0 text-xs font-medium text-foreground shadow-none hover:bg-transparent hover:text-info-content focus-visible:ring-ring"
               >
-                <span className="truncate">{project.name}</span>
+                <ProjectIdentityIcon icon={project.icon} color={project.color} size="sm" />
+                <span className="truncate" title={project.name}>{project.name}</span>
               </Button>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="shrink-0 text-muted-foreground" />

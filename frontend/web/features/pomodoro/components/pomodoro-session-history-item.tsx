@@ -6,6 +6,7 @@ import { CheckCircle, AlertCircle, FastForward, StickyNote, ChevronDown } from "
 import { Badge } from "@/components/ui/badge";
 import type { PomodoroSessionRecord } from "../types/pomodoro";
 import { POMODORO_DISPLAY_LOCALE } from "../constants/pomodoro-display";
+import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
 
 interface PomodoroSessionHistoryItemProps {
   session: PomodoroSessionRecord;
@@ -59,7 +60,7 @@ export function PomodoroSessionHistoryItem({ session, showDates = false }: Pomod
       className="group rounded-panel border border-border bg-background text-xs transition-all hover:border-border open:border-border"
     >
       <CollapsibleTrigger render={<Button type="button" variant="ghost" className="group h-auto w-full justify-between whitespace-normal text-left" />}
-        aria-label={`View session details for ${taskTitle} at ${startTime}${showDates ? ` on ${new Date(session.startedAt).toLocaleDateString(POMODORO_DISPLAY_LOCALE)}` : ""}`}
+        aria-label={`View ${sessionLabel.toLowerCase()} session details for ${taskTitle} on ${new Date(session.startedAt).toLocaleDateString(POMODORO_DISPLAY_LOCALE)} at ${startTime}: ${statusBadge.label}, ${Math.floor(session.actualSeconds / 60)} minutes ${session.actualSeconds % 60} seconds actual, ${session.durationMinutes} minutes planned`}
         className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 rounded-panel p-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
       >
         <div className="flex items-center gap-3 min-w-0 pr-2">
@@ -72,12 +73,12 @@ export function PomodoroSessionHistoryItem({ session, showDates = false }: Pomod
           />
 
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 truncate">
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               <span className="font-semibold text-foreground truncate">
                 {taskTitle}
               </span>
               {session.projectName && (
-                <span className="text-xs text-muted-foreground shrink-0">
+                <span className="max-w-full truncate text-xs text-muted-foreground" title={session.projectName}>
                   • {session.projectName}
                 </span>
               )}
@@ -88,7 +89,7 @@ export function PomodoroSessionHistoryItem({ session, showDates = false }: Pomod
               <span>{startTime} - {endTime}</span>
               <span>•</span>
               <span className="font-medium text-muted-foreground">
-                {session.durationMinutes} minutes
+                {copy.duration(session.actualSeconds, session.durationMinutes)}
               </span>
             </div>
             {hasNotes && (
@@ -126,6 +127,10 @@ export function PomodoroSessionHistoryItem({ session, showDates = false }: Pomod
           <div className="flex flex-wrap gap-x-2">
             <dt className="font-semibold text-foreground">Session type:</dt>
             <dd>{sessionLabel}</dd>
+          </div>
+          <div className="flex flex-wrap gap-x-2">
+            <dt className="font-semibold text-foreground">Result:</dt>
+            <dd>{statusBadge.label}</dd>
           </div>
           <div className="flex flex-wrap gap-x-2">
             <dt className="font-semibold text-foreground">Actual duration:</dt>

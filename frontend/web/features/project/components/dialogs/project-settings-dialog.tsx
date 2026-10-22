@@ -208,7 +208,7 @@ export default function ProjectSettingsDialog({
 
                 <fieldset>
                   <legend className="block text-xs font-semibold text-muted-foreground">
-                    Theme Color
+                    Project Color
                   </legend>
                   <div className="mt-2 flex flex-wrap gap-2.5">
                     {PROJECT_COLOR_OPTIONS.map((color) => {

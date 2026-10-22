@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
-  FolderKanban,
   LayoutDashboard,
   LayoutGrid,
   ListTodo,
@@ -23,6 +22,8 @@ import {
   type ProjectMember,
 } from "@/features/project/types/project";
 import { Avatar } from "../ui/avatar-stack";
+import { ProjectIdentityIcon } from "../ui/project-identity";
+import { getProjectColorStyle } from "../../utils/project-color.utils";
 
 import { Button } from "@/components/ui/button";
 import { ViewAllAction } from "@/components/common/view-all-action";
@@ -222,18 +223,11 @@ export default function ProjectDetailSidebar({
           )}
         </Button>
 
-        <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-border px-3">
-          <span
-            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-border bg-background text-lg font-semibold"
-            style={{ borderColor: project.color, color: "var(--foreground)" }}
-            aria-hidden="true"
-          >
-            {project.icon ? (
-              project.icon
-            ) : (
-              <FolderKanban className="h-5 w-5" strokeWidth={2} />
-            )}
-          </span>
+        <header
+          className="flex h-[72px] shrink-0 items-center gap-3 border-b border-border bg-[color-mix(in_srgb,var(--project-color)_8%,var(--sidebar))] px-3"
+          style={getProjectColorStyle(project.color)}
+        >
+          <ProjectIdentityIcon icon={project.icon} color={project.color} size="lg" />
           <div
             className={cn(
               "min-w-0 flex-1 overflow-hidden opacity-100 transition-[width,opacity] duration-200",
