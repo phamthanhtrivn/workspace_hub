@@ -1,7 +1,11 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { useEffect, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+
 import { Settings, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DangerZoneTab } from "./danger-zone-tab";
@@ -26,6 +30,9 @@ import ChatConfirmDialog, {
 import {
   getSpaceMemberName,
 } from "@/features/chat/types/space-settings/space-settings.types";
+import { Button } from "@/components/ui/button";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 const TAB_LABELS: Record<SpaceSettingsTab, string> = {
   [SpaceSettingsTab.OVERVIEW]: "Overview",
@@ -229,41 +236,40 @@ export default function SpaceSettingsModal({
 
   if (!isOpen || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-      <div className="w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40">
+      <div className={`${dialogLayout.surface} w-full max-w-3xl max-h-[90vh] overflow-hidden rounded-panel border border-border bg-card flex flex-col`}>
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="min-w-0">
-            <h2 className="text-base font-bold text-slate-900 truncate">
+            <h2 className="text-section-title font-semibold text-foreground truncate">
               Space Settings
             </h2>
-            <p className="text-xs text-slate-500 truncate">{space.name}</p>
+            <p className="text-xs text-muted-foreground truncate">{space.name}</p>
           </div>
-          <button
+          <IconButton label="Close" showTooltip={false} size="icon-sm" aria-label="Close"
             type="button"
             onClick={onClose}
-            className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+            className="p-2 rounded-control text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer"
           >
             <X size={18} />
-          </button>
+          </IconButton>
         </div>
 
-        <div className="flex min-h-0 flex-1">
-          <div className="w-44 shrink-0 border-r border-slate-100 bg-slate-50/70 p-2 flex flex-col gap-2">
+        <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
+          <div className="w-full shrink-0 border-b border-border bg-background p-2 flex flex-wrap gap-2 sm:w-44 sm:flex-col sm:border-b-0 sm:border-r">
             {visibleTabs.map((tab) => (
-              <button
+              <Button variant="unstyled"
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition cursor-pointer",
+                  "w-full text-left px-3 py-2 rounded-control text-xs font-semibold transition cursor-pointer",
                   activeTab === tab.id
-                    ? "bg-white text-blue-700 shadow-sm"
-                    : "text-slate-500 hover:bg-white hover:text-slate-800",
+                    ? "bg-card text-info-content"
+                    : "text-muted-foreground hover:bg-card hover:text-foreground",
                 )}
               >
                 {TAB_LABELS[tab.id] || tab.id}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -354,20 +360,20 @@ export default function SpaceSettingsModal({
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-slate-400">
+        <div className="px-5 py-3 border-t border-border bg-background flex shrink-0 flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Settings size={14} />
             {settings.isAdmin
               ? "Admin Settings"
               : "Member Settings"}
           </div>
-          <button
+          <Button variant="secondary"
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-300 transition cursor-pointer"
+            className="px-4 py-2 rounded-control text-sm font-semibold transition cursor-pointer"
           >
             Close
-          </button>
+          </Button>
         </div>
 
         {settings.isAdmin && !isProjectSpace && (
@@ -397,8 +403,6 @@ export default function SpaceSettingsModal({
           onCancel={closeConfirm}
         />
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 

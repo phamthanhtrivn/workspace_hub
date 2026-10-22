@@ -1,5 +1,9 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ExternalLink, Link as LinkIcon, X } from "lucide-react";
 import {
@@ -13,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
 import { MEETING_ROUTES } from "../../types/meeting.constants";
 import { parseMeetingJoinToken } from "../../utils/meeting-join-link.utils";
+
 
 interface MeetingJoinLinkModalProps {
   open: boolean;
@@ -67,49 +72,49 @@ export function MeetingJoinLinkModal({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-md p-0" showCloseButton={false}>
-        <DialogHeader className="flex flex-row items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
+      <DialogContent className={`${dialogLayout.surface} max-w-md p-0`} showCloseButton={false}>
+        <DialogHeader className="flex flex-row items-start justify-between gap-4 border-b border-border px-5 py-4">
           <div className="min-w-0">
             <DialogTitle
               id="meeting-join-link-modal-title"
-              className="text-base font-black text-[#172B4D]"
+              className="text-base font-semibold text-foreground"
             >
               Join a meeting
             </DialogTitle>
             <DialogDescription
               id="meeting-join-link-modal-description"
-              className="mt-1 text-sm font-semibold leading-6 text-slate-500"
+              className="mt-1 text-sm leading-6 text-muted-foreground"
             >
               Paste a meeting link or join token to open it in a new tab.
             </DialogDescription>
           </div>
-          <button
+          <IconButton label="Close" showTooltip={false} size="icon-sm"
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+            className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-control text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Close"
             title="Close"
           >
             <X className="h-5 w-5" />
-          </button>
+          </IconButton>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="px-5 py-5">
           <label
             htmlFor="meeting-join-link"
-            className="text-xs font-black uppercase text-slate-500"
+            className="text-sm font-medium text-foreground"
           >
             Meeting link
           </label>
           <div
             className={cn(
-              "mt-2 flex min-w-0 items-center gap-2 rounded-lg border bg-slate-50 px-3 py-2.5 transition focus-within:bg-white focus-within:ring-2",
+              "mt-2 flex min-w-0 items-center gap-2 rounded-control border bg-card px-3 py-2.5 transition-colors duration-150 focus-within:ring-2",
               error
-                ? "border-red-300 focus-within:ring-red-100"
-                : "border-slate-200 focus-within:border-[#0052CC] focus-within:ring-blue-100",
+                ? "border-destructive-outline focus-within:ring-ring"
+                : "border-input focus-within:border-ring focus-within:ring-ring",
             )}
           >
-            <LinkIcon className="h-4 w-4 shrink-0 text-slate-400" />
+            <LinkIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
             <MeetingInput
               id="meeting-join-link"
               ref={inputRef}
@@ -120,11 +125,11 @@ export function MeetingJoinLinkModal({
                 if (error) setError(null);
               }}
               placeholder="https://workspacehub.app/meetings/..."
-              className="h-auto min-w-0 flex-1 border-0 bg-transparent px-0 py-0 text-sm font-semibold text-[#172B4D] shadow-none outline-none placeholder:text-slate-400 focus-visible:ring-0"
+              className="h-auto min-w-0 flex-1 border-0 bg-transparent px-0 py-0 text-sm font-normal text-foreground shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0"
             />
           </div>
           {error ? (
-            <p className="mt-2 text-sm font-semibold text-red-600">{error}</p>
+            <p className="mt-2 text-sm font-semibold text-destructive-content">{error}</p>
           ) : null}
 
           <div className="mt-5 flex justify-end gap-2">

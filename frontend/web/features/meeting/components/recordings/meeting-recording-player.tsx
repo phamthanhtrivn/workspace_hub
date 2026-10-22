@@ -112,7 +112,7 @@ export function MeetingRecordingPlayer({
                 controls
                 playsInline
                 preload="metadata"
-                className="mt-4 aspect-video w-full rounded-md bg-black"
+                className="mt-4 aspect-video w-full rounded-md bg-overlay"
                 onLoadedMetadata={() => {
                   if (video.current) {
                     if (!playback && query.data) setPlayback(query.data);

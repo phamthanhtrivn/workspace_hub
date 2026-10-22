@@ -27,17 +27,17 @@ export function SharedPreview({
   const previewType = getPreviewFileType(item.mimeType, item.name);
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-lg overflow-hidden flex-1 flex flex-col min-h-[450px]">
-      <div className="border-b border-slate-50 px-6 py-4.5 bg-slate-50/20 shrink-0 flex items-center justify-between">
-        <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">
-          Bản xem trước tài liệu
+    <div className="bg-card rounded-dialog border border-border overflow-hidden flex-1 flex flex-col min-h-[450px]">
+      <div className="border-b border-border px-6 py-4.5 bg-background shrink-0 flex items-center justify-between">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          Document preview
         </h3>
-        <span className="text-xs text-slate-400 font-semibold">
+        <span className="text-xs text-muted-foreground font-semibold">
           {getFileTypeDescription(item.mimeType, item.name)}
         </span>
       </div>
 
-      <div className="p-6 flex-1 flex flex-col justify-center bg-white min-h-[400px]">
+      <div className="p-6 flex-1 flex flex-col justify-center bg-card min-h-[400px]">
         <PreviewContent
           item={item}
           previewType={previewType}

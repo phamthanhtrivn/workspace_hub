@@ -5,7 +5,9 @@ import type { EventClickArg } from "@fullcalendar/core";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { QueryFeedback } from "@/components/common/query-feedback";
+import { SheetPanel } from "@/components/ui/sheet";
+import { useElementMinWidth } from "@/components/ui/use-element-min-width";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -66,6 +68,8 @@ export function CalendarWorkspace() {
   );
   const tasksQuery = useCalendarTasks();
   const createCalendar = useCreateCalendar();
+  const workspaceRef = useRef<HTMLElement>(null);
+  const wideWorkspace = useElementMinWidth(workspaceRef, 960);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [tasksDrawerOpen, setTasksDrawerOpen] = useState(false);
@@ -159,7 +163,7 @@ export function CalendarWorkspace() {
   }, []);
 
   const handleToggleSidebar = useCallback(() => {
-    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+    if ((workspaceRef.current?.clientWidth ?? 0) >= 960) {
       setDesktopSidebarOpen((prev) => {
         const next = !prev;
         try {
@@ -259,27 +263,27 @@ export function CalendarWorkspace() {
   }, [tasksData, calendarEvents, projectCalendarIds]);
 
   return (
-    <section className="relative h-full w-full overflow-hidden bg-white">
+    <section data-calendar-workspace ref={workspaceRef} className="@container/calendar-workspace relative h-full min-h-0 min-w-0 w-full overflow-hidden bg-card">
       {mobileSidebarOpen && (
         <Button
           type="button"
           variant="ghost"
-          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-slate-950/30 p-0 lg:hidden"
+          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-overlay/30 p-0 @min-[960px]/calendar-workspace:hidden"
           onClick={() => setMobileSidebarOpen(false)}
           aria-label="Close"
         />
       )}
       <div className="flex h-full min-h-0 w-full overflow-hidden">
-        <div
+        <SheetPanel id="calendar-navigation" open={wideWorkspace ? desktopSidebarOpen : mobileSidebarOpen} modal={!wideWorkspace} onClose={() => setMobileSidebarOpen(false)} aria-label="Calendar navigation"
           className={cn(
-            "z-30 shrink-0 transform transition-all duration-300 ease-in-out",
-            "fixed inset-y-0 left-0 w-64 lg:static lg:inset-auto",
+            "z-50 shrink-0 transform transition-transform duration-200 ease-out",
+            "fixed inset-y-0 left-0 w-64 @min-[960px]/calendar-workspace:static @min-[960px]/calendar-workspace:inset-auto",
             mobileSidebarOpen
               ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0",
+              : "-translate-x-full @min-[960px]/calendar-workspace:translate-x-0",
             desktopSidebarOpen
-              ? "lg:w-64 lg:opacity-100"
-              : "lg:w-0 lg:overflow-hidden lg:opacity-0 lg:border-none",
+              ? "@min-[960px]/calendar-workspace:w-64 @min-[960px]/calendar-workspace:opacity-100"
+              : "@min-[960px]/calendar-workspace:w-0 @min-[960px]/calendar-workspace:overflow-hidden @min-[960px]/calendar-workspace:opacity-0 @min-[960px]/calendar-workspace:border-none",
           )}
         >
           <div className="h-full w-64">
@@ -313,10 +317,12 @@ export function CalendarWorkspace() {
               }}
             />
           </div>
-        </div>
+        </SheetPanel>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-slate-50/60">
+        <div data-calendar-canvas className="@container/calendar-canvas relative flex min-h-0 min-w-0 flex-1">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
           <CalendarToolbar
+            navigationOpen={wideWorkspace ? desktopSidebarOpen : mobileSidebarOpen}
             title={calendar.title}
             activeView={calendar.activeView}
             onViewChange={calendar.handleViewChange}
@@ -324,16 +330,8 @@ export function CalendarWorkspace() {
             onToggleSidebar={handleToggleSidebar}
           />
 
-          {calendar.hasError ? (
-            <div className="flex flex-1 items-center justify-center p-6">
-              <div className="rounded-xl border border-red-100 bg-white px-5 py-4 text-center shadow-sm">
-                <AlertCircle className="mx-auto h-8 w-8 text-red-500" />
-                <p className="mt-2 text-sm font-bold text-slate-700">
-                  Failed to load calendar events
-                </p>
-              </div>
-            </div>
-          ) : (
+          {calendar.hasError && <QueryFeedback label="calendar events" error retrying={calendar.retrying} onRetry={calendar.retry} />}
+          {(!calendar.hasError || calendar.hasLoadedContent) && (
             <CalendarGrid
               calendarRef={calendarRef}
               events={displayEvents}
@@ -352,6 +350,11 @@ export function CalendarWorkspace() {
 
         <CalendarTasksDrawer
           open={tasksDrawerOpen}
+          coveredByModal={Boolean(
+            calendar.detailEvent || calendar.draft || calendar.editingEvent ||
+            calendar.pendingEventMove || createCalendarOpen ||
+            (selectedProject && selectedProjectTask)
+          )}
           tasks={allTasks}
           projectTaskEvents={domainProjectTaskEvents}
           projects={projects}
@@ -374,6 +377,7 @@ export function CalendarWorkspace() {
             }
           }}
         />
+        </div>
       </div>
 
       {(calendar.draft || calendar.editingEvent) && (

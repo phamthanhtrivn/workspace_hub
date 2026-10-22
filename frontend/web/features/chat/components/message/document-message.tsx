@@ -14,6 +14,8 @@ import {
   METADATA_QUERY_KEY,
   METADATA_STALE_TIME,
 } from "../../types/document.constants";
+import { Button } from "@/components/ui/button";
+
 interface DocumentMessageProps {
   msg: ChatMessageResponse;
   isMe: boolean;
@@ -44,11 +46,11 @@ const DocumentMessage = React.memo(function DocumentMessage({
   if (isLoading) {
     return (
       <div className="flex flex-col items-center my-3 w-full">
-        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 max-w-sm w-full animate-pulse flex items-center gap-4">
-          <div className="w-10 h-10 bg-slate-200 rounded-xl" />
+        <div className="bg-background border border-border rounded-panel p-4 max-w-sm min-w-0 w-full [overflow-wrap:anywhere] animate-pulse flex items-center gap-4">
+          <div className="w-10 h-10 bg-accent rounded-panel" />
           <div className="flex-1 space-y-2">
-            <div className="h-4 bg-slate-200 rounded-sm w-3/4" />
-            <div className="h-3 bg-slate-200 rounded-sm w-1/2" />
+            <div className="h-4 bg-accent rounded-sm w-3/4" />
+            <div className="h-3 bg-accent rounded-sm w-1/2" />
           </div>
         </div>
       </div>
@@ -58,8 +60,8 @@ const DocumentMessage = React.memo(function DocumentMessage({
   if (isError || !metadata) {
     return (
       <div className="flex flex-col items-center my-3 w-full">
-        <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 max-w-sm w-full flex items-center gap-3 text-rose-700">
-          <Lock size={20} className="shrink-0 text-rose-500" />
+        <div className="bg-destructive-soft border border-border rounded-panel p-4 max-w-sm min-w-0 w-full [overflow-wrap:anywhere] flex items-center gap-3 text-destructive-content">
+          <Lock size={20} className="shrink-0 text-destructive-content" />
           <div className="text-xs font-semibold">
             Document unavailable or removed
           </div>
@@ -115,16 +117,16 @@ const DocumentMessage = React.memo(function DocumentMessage({
 
   const themeClasses =
     metadata.type === DocumentItemType.FOLDER
-      ? "bg-amber-50/30 border-amber-200/50 hover:shadow-[0_8px_30px_rgba(245,158,11,0.06)]"
-      : "bg-slate-50/50 border-slate-200/60 hover:shadow-[0_8px_30px_rgba(30,41,59,0.06)]";
+      ? "bg-warning-soft/30 border-border"
+      : "bg-background border-border";
 
   return (
     <div
-      className={`border rounded-2xl p-4 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] max-w-sm w-full transition-all duration-300 ${themeClasses}`}
+      className={`border rounded-panel p-4 max-w-sm min-w-0 w-full [overflow-wrap:anywhere] transition-all duration-200 ${themeClasses}`}
     >
       <div className="flex items-start gap-3">
         {/* File/Folder Icon */}
-        <div className="p-2.5 bg-white border border-slate-100 rounded-xl shadow-xs">
+        <div className="p-2.5 bg-card border border-border rounded-panel">
           {getFileIcon(
             metadata.type as DocumentItemType,
             metadata.mimeType,
@@ -134,12 +136,12 @@ const DocumentMessage = React.memo(function DocumentMessage({
 
         <div className="flex-1 min-w-0 pr-1">
           <h4
-            className="text-sm font-bold text-slate-800 leading-snug truncate"
+            className="text-sm font-semibold text-foreground leading-snug truncate"
             title={metadata.name}
           >
             {metadata.name}
           </h4>
-          <p className="text-xs text-slate-400 font-bold mt-1">
+          <p className="text-xs text-muted-foreground font-semibold mt-1">
             {metadata.type === DocumentItemType.FOLDER
               ? "Folder"
               : formatBytes(metadata.sizeBytes)}
@@ -150,49 +152,49 @@ const DocumentMessage = React.memo(function DocumentMessage({
       </div>
 
       {/* Action Buttons based on Permissions */}
-      <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between gap-2.5">
+      <div className="mt-4 border-t border-border pt-3 flex items-center justify-between gap-2.5">
         {metadata.hasPermission ? (
           <>
             {metadata.type === DocumentItemType.FOLDER ? (
               <>
-                <button
+                <Button variant="unstyled"
                   onClick={handleOpenFolder}
-                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all"
+                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground bg-card border border-border hover:bg-background rounded-control transition-all"
                 >
-                  <FolderOpen size={14} className="text-slate-500" />
+                  <FolderOpen size={14} className="text-muted-foreground" />
                   <span>Open Folder</span>
-                </button>
-                <button
+                </Button>
+                <Button variant="warning-soft"
                   onClick={handleDownload}
-                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100/80 rounded-xl transition-all"
+                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-control transition-all"
                 >
-                  <Download size={14} className="text-amber-600" />
+                  <Download size={14} className="text-warning-content" />
                   <span>Download Zip</span>
-                </button>
+                </Button>
               </>
             ) : (
               <>
-                <button
+                <Button variant="unstyled"
                   onClick={handlePreview}
-                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all"
+                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground bg-card border border-border hover:bg-background rounded-control transition-all"
                 >
-                  <Eye size={14} className="text-slate-500" />
+                  <Eye size={14} className="text-muted-foreground" />
                   <span>Preview</span>
-                </button>
-                <button
+                </Button>
+                <Button variant="info-soft"
                   onClick={handleDownload}
-                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-bold text-violet-700 bg-violet-50 hover:bg-violet-100/80 rounded-xl transition-all"
+                  className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-control transition-all"
                 >
-                  <Download size={14} className="text-violet-600" />
+                  <Download size={14} className="text-info-content" />
                   <span>Download</span>
-                </button>
+                </Button>
               </>
             )}
           </>
         ) : (
-          <div className="w-full flex items-center gap-2.5 text-rose-600 bg-rose-50/50 p-2.5 rounded-xl border border-rose-100/50">
-            <Lock size={15} className="shrink-0 text-rose-500" />
-            <div className="text-[11px] font-bold leading-normal">
+          <div className="w-full flex items-center gap-2.5 text-destructive-content bg-destructive-soft/50 p-2.5 rounded-panel border border-border">
+            <Lock size={15} className="shrink-0 text-destructive-content" />
+            <div className="text-xs font-semibold leading-normal">
               Access denied. Shared by{" "}
               <span className="underline">{metadata.ownerEmail}</span>
             </div>

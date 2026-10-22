@@ -1,8 +1,16 @@
-import React, { useEffect, useRef } from "react";
+
+import React, { useRef } from "react";
 import { Edit2, Pin, Trash2 } from "lucide-react";
+
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
+
+const VIEWPORT_GAP_PX = 12;
 
 interface MessageOptionsDropdownProps {
   isOpen: boolean;
+  id?: string;
   onClose: () => void;
   buttonRect: DOMRect | null;
   isMe: boolean;
@@ -16,6 +24,7 @@ interface MessageOptionsDropdownProps {
 
 export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   isOpen,
+  id,
   onClose,
   buttonRect,
   isMe,
@@ -28,86 +37,53 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
 
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen, onClose]);
 
   if (!isOpen || !buttonRect) return null;
 
-  const getStyle = (): React.CSSProperties => {
-    const style: React.CSSProperties = {
-      left: isMe ? buttonRect.right + 10 : buttonRect.left,
-      transform: "none",
-    };
 
-    if (buttonRect.bottom > window.innerHeight / 2) {
-      // Open upwards
-      style.bottom = window.innerHeight - buttonRect.top + 10;
-    } else {
-      // Open downwards
-      style.top = buttonRect.bottom + 10;
-    }
-    return style;
-  };
 
-  return (
-    <div
-      ref={menuRef}
-      className="fixed z-50 min-w-[180px] bg-white border border-gray-200 rounded-xl shadow-lg py-1 text-sm text-gray-700 animate-in fade-in zoom-in-95 duration-100"
-      style={getStyle()}
-    >
+  return typeof document === "undefined" ? null : <AnchoredMenu id={id} aria-label="Message options" ref={menuRef} onClose={onClose} anchorRect={buttonRect} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="start" alignOffset={isMe ? buttonRect.width + VIEWPORT_GAP_PX : 0} className="z-50 w-[180px] max-w-[calc(100vw-1.5rem)] overflow-y-auto bg-card border border-border rounded-panel py-1 text-sm text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel">
       {isMe && canEdit && (
-        <button
+        <DropdownMenuItem closeOnClick={false}
           onClick={() => {
             onEdit?.();
             onClose();
           }}
-          className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
+          className="w-full text-left px-4 py-2 hover:bg-background flex items-center gap-2 cursor-pointer transition-colors"
         >
           <Edit2 size={16} />
           <span>Edit message</span>
-        </button>
+        </DropdownMenuItem>
       )}
 
-      <button
+      <DropdownMenuItem closeOnClick={false}
         onClick={() => {
           onPin?.();
           onClose();
         }}
-        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
+        className="w-full text-left px-4 py-2 hover:bg-background flex items-center gap-2 cursor-pointer transition-colors"
       >
         <Pin size={16} />
         <span>
           {isPinned ? "Unpin message" : "Pin message"}
         </span>
-      </button>
+      </DropdownMenuItem>
 
       {isMe && canRecall && (
         <>
-          <div className="h-px bg-gray-100 my-1 mx-2" />
-          <button
+          <div className="h-px bg-muted my-1 mx-2" />
+          <DropdownMenuItem closeOnClick={false}
             onClick={() => {
               onRecall?.();
               onClose();
             }}
-            className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 cursor-pointer transition-colors"
+            className="w-full text-left px-4 py-2 hover:bg-destructive-soft text-destructive-content flex items-center gap-2 cursor-pointer transition-colors"
           >
             <Trash2 size={16} />
             <span>Recall message</span>
-          </button>
+          </DropdownMenuItem>
         </>
       )}
-    </div>
-  );
+    </AnchoredMenu>;
 };

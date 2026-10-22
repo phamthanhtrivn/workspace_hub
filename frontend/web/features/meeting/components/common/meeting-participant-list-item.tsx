@@ -142,7 +142,7 @@ export function MeetingParticipantListItem({
   }
 
   return (
-    <article className="rounded-lg bg-white/6 p-3 ring-1 ring-white/8">
+    <article className="rounded-lg bg-muted p-3 ring-1 ring-border/8">
       <div className="flex items-center gap-3">
         {item.avatarUrl ? (
           <span
@@ -154,19 +154,19 @@ export function MeetingParticipantListItem({
         ) : (
           <AvatarFallback
             label={item.displayName}
-            className="h-10 w-10 bg-slate-200/90"
-            iconClassName="h-5 w-5 text-slate-400"
+            className="h-10 w-10 bg-accent/90"
+            iconClassName="h-5 w-5 text-muted-foreground"
           />
         )}
 
         <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-center gap-2">
-            <span className="block truncate text-sm font-black">
+            <span className="block truncate text-sm font-semibold">
               {item.displayName}
             </span>
             {item.participant.handRaisedAt ? (
               <span
-                className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-amber-300 text-slate-950"
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-warning text-warning-foreground"
                 aria-label="Hand raised"
                 title="Hand raised"
               >
@@ -174,18 +174,18 @@ export function MeetingParticipantListItem({
               </span>
             ) : null}
             {item.isSelf ? (
-              <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-black uppercase text-slate-300">
+              <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-semibold uppercase text-muted-foreground">
                 You
               </span>
             ) : null}
           </span>
-          <span className="mt-1 block truncate text-xs font-semibold text-slate-400">
+          <span className="mt-1 block truncate text-xs font-semibold text-muted-foreground">
             {item.email}
           </span>
         </span>
 
         {item.roleLabel ? (
-          <span className="shrink-0 rounded-md bg-blue-500/14 px-2 py-1 text-[11px] font-black text-blue-100 ring-1 ring-blue-200/15">
+          <span className="shrink-0 rounded-md bg-primary/14 px-2 py-1 text-xs font-semibold text-info-content ring-1 ring-ring/15">
             {item.roleLabel}
           </span>
         ) : null}

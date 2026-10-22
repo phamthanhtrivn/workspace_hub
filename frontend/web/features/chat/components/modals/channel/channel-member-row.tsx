@@ -6,6 +6,8 @@ import {
 } from "@/features/chat/types/chat.types";
 import { User } from "lucide-react";
 import { FaKey } from "react-icons/fa";
+import { Button } from "@/components/ui/button";
+
 
 interface ChannelMemberRowProps {
   member: ChannelMemberListItem;
@@ -37,13 +39,13 @@ export default function ChannelMemberRow({
   const isCreator = member.userId === spaceCreatorId;
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={() => onOpenProfile(member.userId)}
-      className="flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 text-left transition-all duration-200 hover:border-blue-100 hover:bg-blue-50/50 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
+      className="flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-control border border-transparent p-3 text-left transition-all duration-200 hover:border-border hover:bg-info-soft/50 focus:outline-none focus:ring-4 focus:ring-ring"
     >
       <div className="relative h-11 w-11 shrink-0">
-        <div className="h-full w-full overflow-hidden rounded-full border border-gray-100 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-sm font-semibold text-gray-500 shadow-sm">
+        <div className="h-full w-full overflow-hidden rounded-full border border-border bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
           {member.profile?.avatarUrl ? (
             <img
               src={member.profile.avatarUrl}
@@ -56,14 +58,14 @@ export default function ChannelMemberRow({
         </div>
         {isCreator ? (
           <span
-            className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-500 border border-white text-white shadow-sm"
+            className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-warning border border-border text-warning-foreground"
             title="Owner"
           >
             <FaKey size={8} />
           </span>
         ) : isAdmin ? (
           <span
-            className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-slate-400 border border-white text-white shadow-sm"
+            className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-muted border border-border text-muted-foreground"
             title="Admin"
           >
             <FaKey size={8} />
@@ -73,20 +75,20 @@ export default function ChannelMemberRow({
 
       <span className="min-w-0">
         <span className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm font-semibold text-gray-800">
+          <span className="truncate text-sm font-semibold text-foreground">
             {displayName}
           </span>
           {isAdmin ? (
-            <span className="shrink-0 rounded-full border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-blue-600">
+            <span className="shrink-0 rounded-full border border-border bg-info-soft px-1.5 py-0.5 text-xs font-semibold uppercase leading-none text-info-content">
               Admin
             </span>
           ) : null}
         </span>
-        <span className="mt-0.5 block truncate text-xs text-gray-500">
+        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
           {member.profile?.email}
         </span>
       </span>
-    </button>
+    </Button>
   );
 }
 

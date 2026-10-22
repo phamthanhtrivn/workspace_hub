@@ -1,3 +1,6 @@
+import { toast } from "sonner";
+
+import { IconButton } from "@/components/ui/icon-button";
 import React from "react";
 import {
   ChevronDown,
@@ -12,9 +15,13 @@ import { saveAs } from "file-saver";
 import { formatFileSize } from "@/lib/file";
 import { formatDateTime } from "@/lib/date";
 import SeeAllButton from "../see-all-button";
+import { Button } from "@/components/ui/button";
+
 
 interface FilesSectionProps {
   isExpanded: boolean;
+  loading?: boolean;
+  error?: boolean;
   onToggle: () => void;
   files: any[];
   onSeeAll?: () => void;
@@ -51,7 +58,7 @@ function FileThumb({ item }: { item: any }) {
         : File;
 
   return (
-    <span className="flex h-full w-full items-center justify-center bg-blue-500 text-white">
+    <span className="flex h-full w-full items-center justify-center bg-primary text-primary-foreground">
       <Icon size={18} />
     </span>
   );
@@ -59,6 +66,8 @@ function FileThumb({ item }: { item: any }) {
 
 export default function FilesSection({
   isExpanded,
+  loading = false,
+  error = false,
   onToggle,
   files,
   onSeeAll,
@@ -76,39 +85,43 @@ export default function FilesSection({
       saveAs(blob, item.name);
     } catch (error) {
       console.error("Download error:", error);
+      toast.error("Could not download this file. Please try again.");
     }
   };
 
   return (
     <div>
-      <button
+      <Button variant="unstyled"
         onClick={onToggle}
-        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
-        <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-          <FileText size={18} className="text-gray-500" />
+        <div className="flex items-center gap-3 text-foreground font-medium text-sm">
+          <FileText size={18} className="text-muted-foreground" />
           Files
         </div>
         {isExpanded ? (
-          <ChevronDown size={16} className="text-gray-400" />
+          <ChevronDown size={16} className="text-muted-foreground" />
         ) : (
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={16} className="text-muted-foreground" />
         )}
-      </button>
+      </Button>
 
       {isExpanded && (
         <div className="px-4 pb-4">
-          {files.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-2">
+          {(loading || error) && files.length === 0 ? null : files.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-2">
               No files available
             </p>
           ) : (
             <>
               <div className="flex flex-col gap-2">
                 {displayItems.map((item, idx) => (
-                  <button
+                  <div
                     key={item.id || idx}
-                    onClick={() => {
+
+                    className="group flex w-full cursor-pointer items-center gap-3 rounded-control border border-border p-2 text-left transition hover:bg-background"
+                  >
+                    <Button variant="unstyled" type="button" onClick={() => {
                       if (isVisualFile(item)) {
                         onOpenPreview?.(item.id);
                         return;
@@ -120,33 +133,30 @@ export default function FilesSection({
                           "noopener,noreferrer",
                         );
                       }
-                    }}
-                    className="group flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-2 text-left transition hover:bg-gray-50"
-                  >
-                    <span className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-gray-100">
+                    }} className="flex min-w-0 flex-1 items-center gap-3 text-left"><span className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
                       <FileThumb item={item} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-gray-800">
+                      <span className="block truncate text-sm font-semibold text-foreground">
                         {item.name}
                       </span>
-                      <span className="block truncate text-xs text-gray-500">
+                      <span className="block truncate text-xs text-muted-foreground">
                         {formatFileSize(item.sizeBytes)} -{" "}
                         {formatDateTime(
                           item.message?.createdAt || item.createdAt,
                         )}
                       </span>
                     </span>
-                    {item.fileUrl && (
-                      <span
+                    </Button>{item.fileUrl && (
+                      <IconButton label="Download file" showTooltip={false} size="icon-sm" type="button" aria-label="Download file"
                         onClick={(e) => handleDownload(e, item)}
-                        className="rounded-md p-1.5 text-gray-400 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
+                        className="rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
                         title="Download"
                       >
                         <Download size={15} />
-                      </span>
+                      </IconButton>
                     )}
-                  </button>
+                  </div>
                 ))}
               </div>
               {hasMore && (
@@ -158,7 +168,7 @@ export default function FilesSection({
           )}
         </div>
       )}
-      <div className="h-px bg-gray-100 mx-4 my-1" />
+      <div className="h-px bg-muted mx-4 my-1" />
     </div>
   );
 }

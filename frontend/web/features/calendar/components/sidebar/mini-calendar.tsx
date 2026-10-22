@@ -64,7 +64,7 @@ export const MiniCalendar = memo(function MiniCalendar({
   return (
     <div className="calendar-mini-shell px-4 py-4">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="truncate text-sm font-black capitalize text-[var(--color-primary-dark)]">
+        <h2 className="truncate text-sm font-semibold capitalize text-foreground">
           {title}
         </h2>
         <div className="flex items-center gap-1">
@@ -73,7 +73,7 @@ export const MiniCalendar = memo(function MiniCalendar({
             variant="ghost"
             size="icon-sm"
             onClick={() => move("prev")}
-            className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+            className="grid h-7 w-7 cursor-pointer place-items-center rounded-control text-muted-foreground transition hover:bg-muted hover:text-foreground"
             aria-label="Previous"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -83,7 +83,7 @@ export const MiniCalendar = memo(function MiniCalendar({
             variant="ghost"
             size="icon-sm"
             onClick={() => move("next")}
-            className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+            className="grid h-7 w-7 cursor-pointer place-items-center rounded-control text-muted-foreground transition hover:bg-muted hover:text-foreground"
             aria-label="Next"
           >
             <ChevronRight className="h-4 w-4" />

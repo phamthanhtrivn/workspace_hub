@@ -1,3 +1,4 @@
+import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState } from "react";
 import { BarChart2, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import ViewPollModal from "../../modals/message/view-poll-modal";
@@ -5,6 +6,8 @@ import { formatDateTime } from "@/lib/date";
 import { usePolls } from "../../../hooks/usePolls";
 import SeeAllButton from "../see-all-button";
 import { useActiveChat } from "../../../hooks/useChatQueries";
+import { Button } from "@/components/ui/button";
+
 
 interface PollsSectionProps {
   isExpanded: boolean;
@@ -21,7 +24,7 @@ export default function PollsSection({
 
   const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
 
-  const { polls, loading } = usePolls(activeConversation?.id);
+  const { polls, loading, isError, retrying, retry } = usePolls(activeConversation?.id);
 
   const displayPolls = polls.slice(0, 3);
   const hasMore = polls.length > 3;
@@ -30,48 +33,49 @@ export default function PollsSection({
 
   return (
     <div>
-      <button
+      <Button variant="unstyled"
         onClick={onToggle}
-        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
-        <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-          <BarChart2 size={18} className="text-gray-500" />
+        <div className="flex items-center gap-3 text-foreground font-medium text-sm">
+          <BarChart2 size={18} className="text-muted-foreground" />
           Polls
         </div>
         {isExpanded ? (
-          <ChevronDown size={16} className="text-gray-400" />
+          <ChevronDown size={16} className="text-muted-foreground" />
         ) : (
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={16} className="text-muted-foreground" />
         )}
-      </button>
+      </Button>
       {isExpanded && (
         <div className="px-4 pb-4">
-          {loading ? (
+          {isError && polls.length > 0 && <QueryFeedback label="polls" error retrying={retrying} onRetry={() => retry()} />}
+          {isError && polls.length === 0 ? <QueryFeedback label="polls" error retrying={retrying} onRetry={() => retry()} /> : loading ? (
             <div className="flex justify-center py-4">
-              <Loader2 size={16} className="text-gray-400 animate-spin" />
+              <Loader2 size={16} className="text-muted-foreground animate-spin" />
             </div>
           ) : polls.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-2">
+            <p className="text-xs text-muted-foreground text-center py-2">
               No polls available
             </p>
           ) : (
             <>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {displayPolls.map((poll) => (
-                  <div
+                  <Button variant="unstyled" type="button"
                     key={poll.id}
                     onClick={() => setSelectedPollId(poll.id)}
-                    className="p-3 bg-purple-50 border border-purple-100 rounded-lg cursor-pointer hover:bg-purple-100 transition-colors"
+                    className="w-full text-left p-3 bg-info-soft border border-border rounded-lg cursor-pointer hover:bg-info-soft transition-colors"
                   >
-                    <p className="text-xs font-semibold text-purple-900 mb-1 truncate">
+                    <p className="text-xs font-semibold text-info-content mb-1 truncate">
                       {poll.title || "Untitled Poll"}{" "}
                       -{" "}
                       {formatDateTime(poll.createdAt)}
                     </p>
-                    <p className="text-[10px] text-purple-600/70">
+                    <p className="text-xs text-info-content">
                       {`${poll.options?.length || 0} ${poll.options?.length === 1 ? "option" : "options"}`}
                     </p>
-                  </div>
+                  </Button>
                 ))}
               </div>
               {hasMore && (
@@ -83,7 +87,7 @@ export default function PollsSection({
           )}
         </div>
       )}
-      <div className="h-px bg-gray-100 mx-4 my-1"></div>
+      <div className="h-px bg-muted mx-4 my-1"></div>
 
       <ViewPollModal
         isOpen={!!selectedPoll}

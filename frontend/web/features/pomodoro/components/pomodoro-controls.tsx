@@ -29,26 +29,25 @@ export const PomodoroControls = React.memo(function PomodoroControls({
   onSkip,
 }: PomodoroControlsProps) {
   const isRunning = status === "RUNNING";
-  const isFocus = mode === "FOCUS";
   const modeTheme = POMODORO_MODE_THEMES[mode] ?? POMODORO_MODE_THEMES.FOCUS;
   const startLabel =
     mode === "FOCUS"
-      ? "START FOCUS"
+      ? "Start focus"
       : mode === "SHORT_BREAK"
-        ? "START SHORT BREAK"
-        : "START LONG BREAK";
+        ? "Start short break"
+        : "Start long break";
 
   return (
     <div className="flex items-center justify-center">
-      <div className="flex items-center gap-1 sm:gap-3 p-1.5 rounded-full bg-white/90 border border-slate-200/90 shadow-lg shadow-slate-200/40 backdrop-blur-md">
+      <div className="flex max-w-full flex-wrap items-center justify-center gap-2 sm:gap-3">
         <Button
           type="button"
           variant="ghost"
           size="icon"
           onClick={onReset}
           disabled={disabled}
-          title="Reset session"
-          className="size-11 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-transform active:scale-90"
+          title="Reset session" aria-label="Reset session"
+          className="size-11 rounded-control text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
         >
           <RotateCcw className="size-4.5" />
         </Button>
@@ -59,23 +58,22 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             onClick={status === "IDLE" ? onStart : onResume}
             disabled={disabled}
             className={cn(
-              "h-13 px-3 sm:px-8 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase shadow-md transition-all duration-200 active:scale-95",
+              "h-13 px-3 sm:px-8 rounded-control text-xs sm:text-sm font-semibold  transition-colors duration-200",
               modeTheme.startButtonClass,
-              isFocus && status === "IDLE" && "hover:shadow-blue-900/35",
             )}
           >
             <Play className="mr-2 size-4.5 fill-current" />
-            {status === "IDLE" ? startLabel : "RESUME"}
+            {status === "IDLE" ? startLabel : "Resume"}
           </Button>
         ) : (
           <Button
             type="button"
             onClick={onPause}
             disabled={disabled}
-            className="h-13 px-3 sm:px-8 rounded-full text-xs sm:text-sm font-black tracking-wider uppercase bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-900/20 hover:brightness-110 transition-all duration-200 active:scale-95"
+            className="h-13 px-3 sm:px-8 rounded-control text-xs sm:text-sm font-semibold  bg-warning text-warning-foreground transition-colors duration-200"
           >
             <Pause className="mr-2 size-4.5 fill-current" />
-            PAUSE
+            Pause
           </Button>
         )}
 
@@ -85,8 +83,8 @@ export const PomodoroControls = React.memo(function PomodoroControls({
           size="icon"
           onClick={onSkip}
           disabled={disabled}
-          title="Skip session"
-          className="size-11 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-transform active:scale-90"
+          title="Skip session" aria-label="Skip session"
+          className="size-11 rounded-control text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
         >
           <SkipForward className="size-4.5" />
         </Button>

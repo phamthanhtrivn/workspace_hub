@@ -9,6 +9,7 @@ import { calendarKeys } from "@/features/calendar/hooks/use-calendar-queries";
 import { getCalendarEvents } from "@/features/calendar/api/calendar.api";
 import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import { usePomodoroSessionActions } from "@/features/pomodoro/components/pomodoro-session-provider";
+import { useDashboardCompletedTasks } from "./use-dashboard-completed-tasks";
 import {
   getDashboardDayMeetings,
   getDashboardFocusSessions,
@@ -50,6 +51,7 @@ export function useDashboard() {
   const ready = Boolean(auth.userId && today);
   const bounds = today ? dayBounds(today, zone) : { startAt: "", endAt: "" };
   const actions = usePomodoroSessionActions();
+  const completedTasks = useDashboardCompletedTasks(auth.userId);
   const personal = useQuery({
     queryKey: [
       ...calendarKeys.all,
@@ -139,8 +141,9 @@ export function useDashboard() {
     meetings,
     dayMeetings,
     focus,
+    completedTasks,
     tasks,
-    upcoming: upcoming.slice(0, 3),
+    upcoming: upcoming.slice(0, 5),
     taskFilter,
     setTaskFilter,
     dayItems: today

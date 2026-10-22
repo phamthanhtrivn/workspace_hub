@@ -1,0 +1,38 @@
+.surface {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: auto;
+  max-height: calc(100dvh - 2rem);
+}
+
+.surface > * {
+  min-width: 0;
+}
+
+.surface > form {
+  min-height: 0;
+  max-height: inherit;
+  overflow-y: auto;
+}
+
+.surface > :global([data-slot="dialog-header"]) {
+  flex-shrink: 0;
+  padding-right: 2.75rem;
+  overflow-wrap: anywhere;
+}
+
+.surface > :global([data-slot="dialog-footer"]) {
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.surface .body {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  max-height: none;
+  overflow: auto;
+  overscroll-behavior: contain;
+}

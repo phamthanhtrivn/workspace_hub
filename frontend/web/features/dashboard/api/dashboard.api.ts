@@ -1,5 +1,6 @@
 import { Temporal } from "temporal-polyfill";
 import {
+  createCalendarEvent,
   getAllCalendarTasks,
   getCalendars,
   listCalendarPomodoroSessions,
@@ -14,10 +15,39 @@ import {
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
 import type { DashboardTask } from "../types/dashboard.types";
+import type { DashboardCompletedTask } from "../types/dashboard-analytics.types";
 import { getUpcomingMeetings } from "@/features/meeting/api/meeting.api";
 import type { UpcomingMeetingItem } from "@/features/meeting/types/meeting.types";
+import { isCalendarFocusEligible, isProjectFocusEligible, toCalendarFocusTask, toProjectFocusTask } from "@/features/pomodoro/utils/focus-task";
+import { CALENDAR_DEFAULT_TASK_COLOR } from "@/features/calendar/types/calendar.constants";
+import { EventSourceType } from "@/features/calendar/types/calendar.types";
+import { writeTaskDeadline } from "@/features/calendar/utils/calendar-task-deadline.utils";
+import { getPersonalTaskCalendar } from "@/features/pomodoro/utils/personal-task-calendar";
+import { POMODORO_TASK_MESSAGES } from "@/features/pomodoro/constants/pomodoro-task";
+import { dashboardQuickTaskSchema, type DashboardQuickTaskInput } from "../schemas/dashboard-quick-task.schema";
+import { dayBounds } from "../utils/dashboard.utils";
 
-export async function getDashboardCompletedTasks(userId: string) {
+export async function createDashboardQuickTask(input: DashboardQuickTaskInput, userId: string, zone: string) {
+  const { title, deadline } = dashboardQuickTaskSchema.parse(input);
+  if (!userId) throw new Error(POMODORO_TASK_MESSAGES.personalCalendarRequired);
+  const today = Temporal.Now.instant().toZonedDateTimeISO(zone).toPlainDate().toString();
+  const calendar = getPersonalTaskCalendar(await getCalendars(), userId);
+  if (!calendar) throw new Error(POMODORO_TASK_MESSAGES.personalCalendarRequired);
+  const { startAt, endAt } = dayBounds(today, zone);
+  return createCalendarEvent({
+    calendarId: calendar.id,
+    title,
+    description: writeTaskDeadline("", deadline.date, deadline.time, deadline.enabled),
+    startAt,
+    endAt,
+    allDay: true,
+    sourceType: EventSourceType.TASK,
+    color: CALENDAR_DEFAULT_TASK_COLOR,
+    reminders: [],
+  });
+}
+
+export async function getDashboardCompletedTasks(userId: string): Promise<DashboardCompletedTask[]> {
   const [events, calendars, projects] = await Promise.all([
     getAllCalendarTasks(),
     getCalendars(),
@@ -33,7 +63,7 @@ export async function getDashboardCompletedTasks(userId: string) {
       )
       .map((calendar) => calendar.id),
   );
-  const completed = new Map<string, { key: string; completedAt: string }>();
+  const completed = new Map<string, DashboardCompletedTask>();
   for (const event of events) {
     if (
       personalCalendars.has(event.calendarId) &&
@@ -112,6 +142,7 @@ export async function getPersonalDashboardTasks(
         dueAt,
         dateOnly: !deadline.time,
         priority: "MEDIUM",
+        focusTask: isCalendarFocusEligible(event, userId) ? toCalendarFocusTask(event) : undefined,
       },
     ];
   });
@@ -152,6 +183,7 @@ export async function getProjectDashboardTasks(
                 key: `project:${task.id}`,
                 source: "project" as const,
                 sourceId: task.id,
+                projectId: project.id,
                 title: task.title,
                 href: `/projects/${encodeURIComponent(project.id)}?taskId=${encodeURIComponent(task.id)}`,
                 projectName: project.name,
@@ -159,6 +191,7 @@ export async function getProjectDashboardTasks(
                 dateOnly:
                   task.allDay || /^\d{4}-\d{2}-\d{2}$/.test(task.dueDate || ""),
                 priority: task.priority,
+                focusTask: isProjectFocusEligible(task, userId) ? toProjectFocusTask(task, project) : undefined,
               }));
           }),
       )),

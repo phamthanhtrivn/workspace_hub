@@ -16,11 +16,11 @@ export function MemberWorkloadList({
   items,
   maxCount,
   emptyMessage,
-  barColor = "bg-slate-500",
+  barColor = "bg-muted-foreground",
 }: MemberWorkloadListProps) {
   if (items.length === 0) {
     return (
-      <p className="py-8 text-center text-xs font-semibold text-slate-400">
+      <p className="py-8 text-center text-xs font-semibold text-muted-foreground">
         {emptyMessage ?? "No assigned workload to display."}
       </p>
     );
@@ -35,17 +35,17 @@ export function MemberWorkloadList({
           key={item.name}
           className="grid grid-cols-[100px_1fr_28px] items-center gap-3 text-xs sm:grid-cols-[140px_1fr_28px]"
         >
-          <span className="flex min-w-0 items-center gap-2 truncate text-slate-600">
-            <Users className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <span className="flex min-w-0 items-center gap-2 truncate text-muted-foreground">
+            <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             {item.name}
           </span>
-          <div className="h-5 rounded-sm bg-slate-100">
+          <div className="h-5 rounded-sm bg-muted">
             <div
               className={`h-5 rounded-sm ${barColor}`}
               style={{ width: `${(item.count / safeMax) * 100}%` }}
             />
           </div>
-          <strong className="text-right text-slate-700">{item.count}</strong>
+          <strong className="text-right text-foreground">{item.count}</strong>
         </div>
       ))}
     </div>

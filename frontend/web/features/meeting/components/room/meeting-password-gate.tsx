@@ -38,27 +38,27 @@ export function MeetingPasswordGate({
 
   return (
     <MeetingFullscreenPortal>
-      <div className="fixed inset-0 z-[100] flex min-h-[100dvh] items-center justify-center bg-[#07111f] px-4 text-white">
+      <div className="fixed inset-0 z-[100] flex h-dvh min-h-0 overflow-y-auto py-4 [align-items:safe_center] justify-center bg-card px-4 text-foreground">
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-md rounded-lg border border-white/10 bg-[#0d1420] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)]"
+          className="w-full max-w-md rounded-lg border border-border bg-card p-6"
         >
-          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-blue-500/16 text-blue-100 ring-1 ring-blue-300/20">
+          <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-primary/16 text-info-content ring-1 ring-ring/20">
             <LockKeyhole className="h-8 w-8" />
           </span>
 
           <div className="mt-5 text-center">
-            <h1 className="text-xl font-black">
+            <h1 className="text-page-title font-semibold">
               Enter meeting password
             </h1>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+            <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">
               {meetingTitle || "Schedule a meeting"}
             </p>
           </div>
 
           <label
             htmlFor="meeting-room-password"
-            className="mt-6 block text-xs font-black uppercase tracking-wide text-slate-300"
+            className="mt-6 block text-xs font-semibold uppercase tracking-wide text-muted-foreground"
           >
             Password
           </label>
@@ -75,14 +75,14 @@ export function MeetingPasswordGate({
                 setLocalError(null);
               }}
               placeholder="Enter meeting password"
-              className="h-12 border-white/10 bg-white font-bold text-[#172B4D]"
+              className="h-12 border-border bg-card font-semibold text-foreground"
             />
           </div>
 
           {shownError ? (
-            <p className="mt-2 text-sm font-bold text-red-200">{shownError}</p>
+            <p className="mt-2 text-sm font-semibold text-destructive-content">{shownError}</p>
           ) : (
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-400">
+            <p className="mt-2 text-sm font-semibold leading-6 text-muted-foreground">
               This meeting requires a password before you can continue.
             </p>
           )}
@@ -93,7 +93,7 @@ export function MeetingPasswordGate({
               tone="ghost"
               controlSize="lg"
               onClick={onBack}
-              className="flex-1 text-slate-200 hover:bg-white/10 hover:text-white"
+              className="flex-1 text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               Back to meetings
             </MeetingButton>
@@ -102,7 +102,7 @@ export function MeetingPasswordGate({
               tone="secondary"
               controlSize="lg"
               disabled={isSubmitting}
-              className="flex-1 bg-white font-black text-[#172B4D] hover:bg-slate-100"
+              className="flex-1 bg-card font-semibold text-foreground hover:bg-muted"
             >
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Continue

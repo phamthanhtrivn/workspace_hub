@@ -43,7 +43,7 @@ function formatTaskTime(value: string, allDay: boolean) {
 }
 
 function MemberName({ member, fallback }: { member?: ProjectMember; fallback: string }) {
-  if (!member) return <span className="text-slate-500">{fallback}</span>;
+  if (!member) return <span className="text-muted-foreground">{fallback}</span>;
   return (
     <span className="inline-flex min-w-0 items-center gap-2">
       <Avatar user={member} size="xs" />
@@ -71,33 +71,33 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
     <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent
         aria-labelledby="project-task-detail-title"
-        className="flex max-h-[min(92dvh,760px)] max-w-xl flex-col rounded-2xl border-slate-200 bg-white"
+        className="flex max-h-[min(92dvh,760px)] max-w-xl flex-col rounded-dialog border-border bg-card"
       >
         <div className="min-h-0 overflow-y-auto">
           <DialogHeader className="space-y-2 px-6 pb-5 pt-6">
-            <DialogDescription className="flex min-w-0 items-center gap-2 pr-10 text-xs font-semibold text-slate-500">
+            <DialogDescription className="flex min-w-0 items-center gap-2 pr-10 text-xs font-semibold text-muted-foreground">
               <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: project.color }} />
               <span className="min-w-0 break-words">{project.name}</span>
-              <span className="shrink-0 text-slate-300">/</span>
+              <span className="shrink-0 text-muted-foreground">/</span>
               <span className="shrink-0">#{task.taskNumber}</span>
             </DialogDescription>
-            <DialogTitle id="project-task-detail-title" className="break-words pr-10 text-xl leading-7 [overflow-wrap:anywhere]">
+            <DialogTitle id="project-task-detail-title" className="break-words pr-10 text-section-title leading-7 [overflow-wrap:anywhere]">
               {task.title}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6 border-t border-slate-100 px-6 py-5 text-sm text-slate-700">
+          <div className="space-y-6 border-t border-border px-6 py-5 text-sm text-foreground">
             <ProjectTaskFocusButton task={task} project={project} />
             <TaskFocusHistory target={{ taskId: task.id }} />
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="mb-1 text-xs font-medium text-slate-500">Status</p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Status</p>
                 <div>
                   <TaskStatusBadge status={task.status} />
                 </div>
               </div>
               <div>
-                <p className="mb-1 text-xs font-medium text-slate-500">Priority</p>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">Priority</p>
                 <div>
                   <TaskPriorityBadge priority={task.priority} />
                 </div>
@@ -105,28 +105,28 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
             </div>
 
             {task.startDate && task.dueDate && (
-              <section className="border-t border-slate-100 pt-5">
+              <section className="border-t border-border pt-5">
                 <div className="mb-3 flex items-center gap-2">
-                  <h3 className="font-semibold text-slate-900">Time</h3>
-                  {task.allDay && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">All day</span>}
+                  <h3 className="font-semibold text-foreground">Time</h3>
+                  {task.allDay && <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">All day</span>}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <p className="mb-1 text-xs text-slate-500">Start date</p>
-                    <p className="font-medium text-slate-800">{formatTaskTime(task.startDate, task.allDay)}</p>
+                    <p className="mb-1 text-xs text-muted-foreground">Start date</p>
+                    <p className="font-medium text-foreground">{formatTaskTime(task.startDate, task.allDay)}</p>
                   </div>
                   <div>
-                    <p className="mb-1 text-xs text-slate-500">End date</p>
-                    <p className="font-medium text-slate-800">{formatTaskTime(task.dueDate, task.allDay)}</p>
+                    <p className="mb-1 text-xs text-muted-foreground">End date</p>
+                    <p className="font-medium text-foreground">{formatTaskTime(task.dueDate, task.allDay)}</p>
                   </div>
                 </div>
-                {task.completedAt && <p className="mt-3 text-xs text-slate-500">Completed at: {formatTaskTime(task.completedAt, false)}</p>}
+                {task.completedAt && <p className="mt-3 text-xs text-muted-foreground">Completed at: {formatTaskTime(task.completedAt, false)}</p>}
               </section>
             )}
 
-            <section className="grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
+            <section className="grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
               <div className="min-w-0">
-                <h3 className="mb-2 text-xs font-medium text-slate-500">Assignees</h3>
+                <h3 className="mb-2 text-xs font-medium text-muted-foreground">Assignees</h3>
                 {task.assignees.length ? (
                   <ul className="space-y-2">
                     {task.assignees.map((assignee) => (
@@ -135,24 +135,24 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
                       </li>
                     ))}
                   </ul>
-                ) : <p className="text-slate-500">Unassigned</p>}
+                ) : <p className="text-muted-foreground">Unassigned</p>}
               </div>
               {task.reporterId && (
                 <div className="min-w-0">
-                  <h3 className="mb-2 text-xs font-medium text-slate-500">Reporter</h3>
+                  <h3 className="mb-2 text-xs font-medium text-muted-foreground">Reporter</h3>
                   <MemberName member={membersById.get(task.reporterId)} fallback={memberFallback} />
                 </div>
               )}
             </section>
 
             {task.labels.length > 0 && (
-              <section className="grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2">
+              <section className="grid gap-4 border-t border-border pt-5 sm:grid-cols-2">
                 {task.labels.length > 0 && (
                   <div className="min-w-0">
-                    <h3 className="mb-2 text-xs font-medium text-slate-500">Labels</h3>
+                    <h3 className="mb-2 text-xs font-medium text-muted-foreground">Labels</h3>
                     <div className="flex flex-wrap gap-1.5">
                       {task.labels.map((label) => (
-                        <span key={label.id} className="max-w-full break-words rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700">
+                        <span key={label.id} className="max-w-full break-words rounded-full border border-border px-2.5 py-1 text-xs font-medium text-foreground">
                           <span className="mr-1.5 inline-block size-2 rounded-full" style={{ backgroundColor: label.color }} />
                           {label.name}
                         </span>
@@ -164,19 +164,19 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
             )}
 
             {task.description.trim() && (
-              <section className="border-t border-slate-100 pt-5">
-                <h3 className="mb-2 font-semibold text-slate-900">Description</h3>
+              <section className="border-t border-border pt-5">
+                <h3 className="mb-2 font-semibold text-foreground">Description</h3>
                 <p className="whitespace-pre-wrap break-words leading-6 [overflow-wrap:anywhere]">{task.description}</p>
               </section>
             )}
 
             {task.checklists.length > 0 && (
-              <section className="border-t border-slate-100 pt-5">
-                <h3 className="mb-3 font-semibold text-slate-900">Checklist ({completedChecklistCount}/{task.checklists.length})</h3>
+              <section className="border-t border-border pt-5">
+                <h3 className="mb-3 font-semibold text-foreground">Checklist ({completedChecklistCount}/{task.checklists.length})</h3>
                 <ul className="space-y-2">
                   {task.checklists.map((entry) => (
                     <li key={entry.id} className="flex items-start gap-2">
-                      <span className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded border ${entry.completed ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300"}`}>
+                      <span className={`mt-0.5 grid size-4 shrink-0 place-items-center rounded border ${entry.completed ? "border-info-outline bg-primary text-primary-foreground" : "border-input"}`}>
                         {entry.completed && <Check className="size-3" />}
                       </span>
                       <span className="min-w-0 break-words [overflow-wrap:anywhere]">{entry.title}</span>
@@ -187,12 +187,12 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
             )}
 
             {task.documentAttachments.length > 0 && (
-              <section className="border-t border-slate-100 pt-5">
-                <h3 className="mb-3 font-semibold text-slate-900">Attached documents ({task.documentAttachments.length})</h3>
+              <section className="border-t border-border pt-5">
+                <h3 className="mb-3 font-semibold text-foreground">Attached documents ({task.documentAttachments.length})</h3>
                 <ul className="space-y-2">
                   {task.documentAttachments.map((attachment) => (
                     <li key={attachment.id} className="flex min-w-0 items-start gap-2">
-                      <Paperclip className="mt-0.5 size-4 shrink-0 text-slate-400" />
+                      <Paperclip className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                       <span className="min-w-0 break-words [overflow-wrap:anywhere]">{attachment.name}</span>
                     </li>
                   ))}
@@ -202,7 +202,7 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
           </div>
         </div>
 
-        <DialogFooter className="shrink-0 border-slate-100 bg-white px-6 py-4">
+        <DialogFooter className="shrink-0 border-border bg-card px-6 py-4">
           <Button asChild variant="outline">
             <Link href={`/projects/${project.id}?taskId=${task.id}`}>
               Open project

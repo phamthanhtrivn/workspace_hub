@@ -1,8 +1,17 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+
 import { X, Plus, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface CreatePollModalProps {
   isOpen: boolean;
@@ -21,6 +30,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const fieldId = React.useId();
   const [title, setTitle] = useState("");
   const [options, setOptions] = useState<string[]>(["", ""]);
   const [multipleChoice, setMultipleChoice] = useState(true);
@@ -67,122 +77,119 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
 
   if (!mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/50 p-4">
+      <div className={`${dialogLayout.surface} bg-card rounded-panel w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200`}>
+        <div className="flex justify-between items-center p-4 border-b border-border">
+          <h2 className="text-section-title font-semibold text-foreground">
             Create a Poll
           </h2>
-          <button
+          <Button variant="unstyled" aria-label="Close"
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+            className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className={`${dialogLayout.body} p-6 space-y-5`}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor={`${fieldId}-question`} className="block text-sm font-medium text-foreground mb-1">
               Poll Question
             </label>
-            <input
+            <Input unstyled id={`${fieldId}-question`}
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ask a question..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+              className="w-full px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info-outline outline-none transition-all"
               required
             />
           </div>
 
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-foreground">
               Options
             </label>
             {options.map((option, index) => (
               <div key={index} className="flex items-center gap-2">
-                <input
+                <Input unstyled id={`${fieldId}-option-${index}`} aria-label={`Poll option ${index + 1}`}
                   type="text"
                   value={option}
                   onChange={(e) => handleOptionChange(index, e.target.value)}
                   placeholder={`Option ${index + 1}`}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  className="flex-1 px-4 py-2 border border-input rounded-control focus:ring-2 focus:ring-ring focus:border-info-outline outline-none transition-all"
                   required={index < 2}
                 />
                 {options.length > 2 && (
-                  <button
+                  <IconButton label="Remove poll option" showTooltip={false} size="icon-sm" aria-label="Remove poll option"
                     type="button"
                     onClick={() => handleRemoveOption(index)}
-                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft rounded-control transition-colors"
                   >
                     <Trash2 size={18} />
-                  </button>
+                  </IconButton>
                 )}
               </div>
             ))}
-            <button
+            <Button variant="ghost"
               type="button"
               onClick={handleAddOption}
-              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium p-2 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer"
+              className="flex items-center gap-2 text-sm font-medium p-2 rounded-control transition-colors cursor-pointer"
             >
               <Plus size={16} /> Add Option
-            </button>
+            </Button>
           </div>
 
-          <div className="space-y-3 pt-4 border-t border-gray-100">
+          <div className="space-y-3 pt-4 border-t border-border">
             <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
+
                 checked={multipleChoice}
-                onChange={(e) => setMultipleChoice(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                onCheckedChange={nextChecked => setMultipleChoice(nextChecked)}
+                className="w-4 h-4 text-info-content rounded focus:ring-ring"
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-foreground">
                 Allow multiple choices
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
+
                 checked={allowAddOptions}
-                onChange={(e) => setAllowAddOptions(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                onCheckedChange={nextChecked => setAllowAddOptions(nextChecked)}
+                className="w-4 h-4 text-info-content rounded focus:ring-ring"
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-foreground">
                 Allow members to add options
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
+
                 checked={anonymous}
-                onChange={(e) => setAnonymous(e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                onCheckedChange={nextChecked => setAnonymous(nextChecked)}
+                className="w-4 h-4 text-info-content rounded focus:ring-ring"
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-foreground">
                 Anonymous voting
               </span>
             </label>
           </div>
 
           <div className="pt-2">
-            <button
+            <Button variant="default"
               type="submit"
               disabled={
                 !title.trim() || options.filter((o) => o.trim()).length < 2
               }
-              className="cursor-pointer w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="cursor-pointer w-full font-medium py-2.5 rounded-control transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create Poll
-            </button>
+            </Button>
           </div>
         </form>
       </div>
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 };
 
 export default CreatePollModal;

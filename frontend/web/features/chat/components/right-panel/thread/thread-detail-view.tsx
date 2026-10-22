@@ -1,3 +1,4 @@
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, {
   useCallback,
   useEffect,
@@ -5,7 +6,7 @@ import React, {
   useState,
   useMemo,
 } from "react";
-import { X, User, FileText, Download, Bell, Play } from "lucide-react";
+import { X, FileText, Download, Bell, Play } from "lucide-react";
 import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -48,6 +49,8 @@ import MediaLightbox from "../../message/media-lightbox";
 import MessageAvatar from "../../message/message-avatar";
 import { upsertMessageById } from "../../../utils/message-state-utils";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+
 
 interface ThreadDetailViewProps {
   rootMessage: ChatMessageResponse;
@@ -212,7 +215,7 @@ export default function ThreadDetailView({
   };
 
   // Fetch thread messages (root message + replies)
-  const { data: threadData, isLoading } = useQuery({
+  const threadQuery = useQuery({
     queryKey: chatKeys.threadMessages(
       isDirect ? ChatScope.DIRECT : ChatScope.CHANNEL,
       rootMessage.id,
@@ -224,6 +227,7 @@ export default function ThreadDetailView({
     staleTime: 1000 * 30, // 30s
   });
 
+  const { data: threadData, isLoading } = threadQuery;
   const activeRootMessage = threadData?.data?.rootMessage || rootMessage;
   const replies = threadData?.data?.replies || [];
 
@@ -433,39 +437,39 @@ export default function ThreadDetailView({
             {visualMedias.map((media: any, index: number) => {
               if (media.type === "IMAGE") {
                 return (
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     key={media.id}
                     onClick={() => {
                       setLightboxMedias(visualMedias);
                       setLightboxIndex(index);
                     }}
-                    className="cursor-pointer overflow-hidden rounded-lg block border border-gray-100 shadow-sm text-left w-full focus:outline-none"
+                    className="cursor-pointer overflow-hidden rounded-control block border border-border text-left w-full focus:outline-none"
                   >
                     <img
                       src={media.fileUrl}
                       alt={media.name}
                       className="w-full max-h-[160px] object-cover hover:opacity-90 transition"
                     />
-                  </button>
+                  </Button>
                 );
               } else {
                 return (
-                  <button
+                  <Button variant="unstyled"
                     type="button"
                     key={media.id}
                     onClick={() => {
                       setLightboxMedias(visualMedias);
                       setLightboxIndex(index);
                     }}
-                    className="relative w-full rounded-lg overflow-hidden border border-gray-100 shadow-sm bg-black/5 block text-left focus:outline-none cursor-pointer"
+                    className="relative w-full rounded-control overflow-hidden border border-border bg-overlay/5 block text-left focus:outline-none cursor-pointer"
                   >
                     <video
                       src={media.fileUrl}
                       className="w-full max-h-[160px] object-cover"
                     />
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/25 transition">
-                      <span className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white backdrop-blur-sm shadow-lg animate-in fade-in duration-150">
+                    <span className="absolute inset-0 flex items-center justify-center bg-overlay/10 hover:bg-overlay/25 transition">
+                      <span className="w-8 h-8 bg-overlay/50 rounded-full flex items-center justify-center text-primary-foreground animate-in fade-in duration-150">
                         <Play
                           size={16}
                           fill="currentColor"
@@ -473,7 +477,7 @@ export default function ThreadDetailView({
                         />
                       </span>
                     </span>
-                  </button>
+                  </Button>
                 );
               }
             })}
@@ -499,17 +503,17 @@ export default function ThreadDetailView({
               return (
                 <div
                   key={media.id}
-                  className="flex items-center justify-between gap-3 py-1.5 px-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition max-w-[240px]"
+                  className="flex items-center justify-between gap-3 py-1.5 px-2.5 rounded-lg border border-border bg-card hover:bg-background transition max-w-[240px]"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="p-1.5 rounded-md bg-blue-50 text-blue-500 flex-shrink-0">
+                    <div className="p-1.5 rounded-md bg-info-soft text-info-content flex-shrink-0">
                       <FileText size={16} />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-medium truncate text-gray-800">
+                      <span className="text-xs font-medium truncate text-foreground">
                         {media.name}
                       </span>
-                      <span className="text-[9px] text-gray-400">
+                      <span className="text-xs text-muted-foreground">
                         {formatSize(media.sizeBytes)}
                       </span>
                     </div>
@@ -519,7 +523,7 @@ export default function ThreadDetailView({
                     download={media.name}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-1 hover:bg-gray-100 rounded-full text-gray-500 hover:text-gray-700 transition"
+                    className="p-1 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground transition"
                   >
                     <Download size={14} />
                   </a>
@@ -533,16 +537,16 @@ export default function ThreadDetailView({
   };
 
   return (
-    <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
+    <div className="w-full h-full min-h-0 min-w-0 bg-card border-l border-border flex flex-col">
       {/* Header */}
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center justify-between">
+        <h2 className="font-semibold text-foreground">
           Thread Discussion
         </h2>
         <div className="flex items-center gap-2">
-          <button
+          <Button variant="unstyled"
             onClick={handleToggleFollow}
-            className="p-2 hover:bg-gray-100 rounded-full transition cursor-pointer"
+            className="p-2 hover:bg-muted rounded-full transition cursor-pointer"
             title={
               isFollowing
                 ? "Following this thread"
@@ -552,16 +556,16 @@ export default function ThreadDetailView({
             <Bell
               size={18}
               className={
-                isFollowing ? "fill-blue-500 text-blue-500" : "text-gray-400"
+                isFollowing ? "fill-info-content text-info-content" : "text-muted-foreground"
               }
             />
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled" aria-label="Close"
             onClick={onBack}
-            className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition animate-fade-in"
+            className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition animate-fade-in"
           >
             <X size={20} />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -571,7 +575,7 @@ export default function ThreadDetailView({
         className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"
       >
         {/* Root parent message */}
-        <div className="border-b border-gray-100 pb-4">
+        <div className="border-b border-border pb-4">
           <div className="flex items-start gap-3">
             <MessageAvatar
               showAvatar={true}
@@ -591,10 +595,10 @@ export default function ThreadDetailView({
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between mb-1">
-                <span className="font-bold text-xs text-gray-900 truncate">
+                <span className="font-semibold text-xs text-foreground truncate">
                   {rootProfile?.fullName || "User"}
                 </span>
-                <span className="text-[10px] text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   {formatDateTime(activeRootMessage.createdAt)}
                 </span>
               </div>
@@ -608,14 +612,14 @@ export default function ThreadDetailView({
                   className="max-w-full"
                 />
               ) : (
-                <div className="text-xs text-gray-800 break-words bg-[#F4F5F7] p-3 rounded-2xl border border-gray-200/60 shadow-xs">
+                <div className="text-xs text-foreground break-words bg-muted p-3 rounded-panel border border-border">
                   {activeRootMessage.content ? (
                     renderMessageContent(
                       activeRootMessage.content,
                       memberProfiles ?? undefined,
                     )
                   ) : (
-                    <span className="text-gray-400 italic">
+                    <span className="text-muted-foreground italic">
                       Attachment
                     </span>
                   )}
@@ -624,14 +628,15 @@ export default function ThreadDetailView({
               )}
             </div>
           </div>
-          <div className="mt-2 pl-11 text-[10px] font-semibold text-gray-500">
+          <div className="mt-2 pl-11 text-xs font-semibold text-muted-foreground">
             {`${replies.length} ${replies.length === 1 ? "reply" : "replies"}`}
           </div>
         </div>
 
         {/* Loading / Replies */}
-        {isLoading ? (
-          <div className="text-center text-xs text-gray-400 py-4">
+        {threadQuery.isError && replies.length > 0 && <QueryFeedback label="thread replies" error retrying={threadQuery.isFetching} onRetry={() => threadQuery.refetch()} />}
+        {threadQuery.isError && replies.length === 0 ? <QueryFeedback label="thread replies" error retrying={threadQuery.isFetching} onRetry={() => threadQuery.refetch()} /> : isLoading ? (
+          <div className="text-center text-xs text-muted-foreground py-4">
             Loading comments...
           </div>
         ) : (
@@ -658,14 +663,14 @@ export default function ThreadDetailView({
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between mb-0.5">
-                      <span className="font-bold text-xs text-gray-700 truncate">
+                      <span className="font-semibold text-xs text-foreground truncate">
                         {profile?.fullName || "User"}
                       </span>
-                      <span className="text-[9px] text-gray-400">
+                      <span className="text-xs text-muted-foreground">
                         {formatDateTime(reply.createdAt)}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-800 break-words bg-gray-100/50 p-2 rounded-lg">
+                    <div className="text-xs text-foreground break-words bg-muted p-2 rounded-lg">
                       {renderMessageContent(
                         reply.content,
                         memberProfiles ?? undefined,
@@ -684,8 +689,8 @@ export default function ThreadDetailView({
       {canReplyInThread ? (
         <ThreadChatInput ref={chatInputRef} onSendMessage={handleSendReply} />
       ) : (
-        <div className="w-full border-t border-gray-200 bg-white p-3">
-          <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
+        <div className="w-full border-t border-border bg-card p-3">
+          <div className="flex items-center justify-center rounded-panel border border-border bg-background p-3 text-sm text-muted-foreground">
             Only space administrators can reply in this thread.
           </div>
         </div>

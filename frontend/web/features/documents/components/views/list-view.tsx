@@ -4,6 +4,7 @@ import React from "react";
 import { DocumentItem } from "../../types/documents.types";
 import { DocumentViewType } from "../../types/documents.enums";
 import { ListViewRow } from "./list-view-row";
+import { Table, TableBody } from "@/components/ui/table";
 
 interface ListViewProps {
   items: DocumentItem[];
@@ -57,10 +58,10 @@ function ListView({
   isProjectDocuments = false,
 }: ListViewProps) {
   return (
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs animate-in fade-in duration-200">
-      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto">
-        <table className="w-full border-collapse text-left text-sm text-slate-700">
-          <tbody className="divide-y divide-slate-100">
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-panel border border-border bg-card animate-in fade-in duration-200">
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 min-w-0 overflow-auto">
+        <Table unstyled className="w-full min-w-[640px] border-collapse text-left text-sm text-foreground">
+          <TableBody unstyled className="divide-y divide-border">
             {items.map((item) => (
               <ListViewRow
                 key={item.id}
@@ -87,8 +88,8 @@ function ListView({
                 isProjectDocuments={isProjectDocuments}
               />
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
         {footer}
       </div>
     </div>

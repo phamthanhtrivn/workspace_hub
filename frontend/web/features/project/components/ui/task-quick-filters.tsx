@@ -54,13 +54,13 @@ export default function TaskQuickFilters({
   ];
 
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 lg:flex-none">
+    <div className="grid w-full min-w-0 grid-cols-1 gap-2 @min-[480px]/project-detail:grid-cols-3 @min-[800px]/project-detail:w-auto @min-[800px]/project-detail:flex-none">
       <ProjectSelect
         value={status}
         options={statusOptions}
         onChange={(val) => onStatusChange(val as TaskStatus | "")}
         ariaLabel="Filter by status"
-        className="min-w-[130px]"
+        className="w-full min-w-0 @min-[800px]/project-detail:w-32"
       />
 
       <ProjectSelect
@@ -68,7 +68,7 @@ export default function TaskQuickFilters({
         options={priorityOptions}
         onChange={(val) => onPriorityChange(val as TaskPriority | "")}
         ariaLabel="Filter by priority"
-        className="min-w-[130px]"
+        className="w-full min-w-0 @min-[800px]/project-detail:w-32"
       />
 
       <ProjectSelect
@@ -76,7 +76,7 @@ export default function TaskQuickFilters({
         options={assigneeOptions}
         onChange={onAssigneeChange}
         ariaLabel="Filter by assignee"
-        className="min-w-[140px]"
+        className="w-full min-w-0 @min-[800px]/project-detail:w-36"
       />
     </div>
   );

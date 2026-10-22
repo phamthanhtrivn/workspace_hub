@@ -27,13 +27,13 @@ const NotificationList = React.memo(function NotificationList({
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="flex items-start gap-3 border-b border-slate-100 p-3 last:border-0"
+            className="flex items-start gap-3 border-b border-border p-3 last:border-0"
           >
-            <Skeleton className="h-10 w-10 shrink-0 rounded-full bg-slate-100" />
+            <Skeleton className="h-10 w-10 shrink-0 rounded-full bg-muted" />
             <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-3.5 w-3/4 bg-slate-100" />
-              <Skeleton className="h-3 w-full bg-slate-100" />
-              <Skeleton className="h-2.5 w-16 bg-slate-100" />
+              <Skeleton className="h-3.5 w-3/4 bg-muted" />
+              <Skeleton className="h-3 w-full bg-muted" />
+              <Skeleton className="h-2.5 w-16 bg-muted" />
             </div>
           </div>
         ))}
@@ -44,17 +44,17 @@ const NotificationList = React.memo(function NotificationList({
 
   if (notifications.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 px-6 py-10 text-center text-slate-500">
-        <div className="grid h-11 w-11 place-items-center rounded-full bg-slate-50 text-slate-400 ring-1 ring-slate-200">
+      <div className="flex flex-col items-center justify-center gap-2 px-6 py-10 text-center text-muted-foreground">
+        <div className="grid h-11 w-11 place-items-center rounded-full bg-background text-muted-foreground ring-1 ring-ring">
           <BellOff className="h-5 w-5" />
         </div>
-        <p className="text-sm font-black text-slate-700">No notifications</p>
+        <p className="text-sm font-semibold text-foreground">No notifications</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col bg-white">
+    <div role="list" aria-label="Notifications" className="flex min-w-0 flex-col bg-card">
       {notifications.map((notification) => (
         <NotificationItem 
           key={notification.id} 

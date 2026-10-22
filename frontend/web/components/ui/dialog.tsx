@@ -6,10 +6,15 @@ import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useModalDialog } from "./use-modal-dialog";
 
 interface DialogContextValue {
   open: boolean;
   onOpenChange?: (open: boolean) => void;
+  titleId: string;
+  modalRole: "dialog" | "alertdialog";
+  closeOnEscape: boolean;
+  closeOnOutsideClick: boolean;
 }
 
 const DialogContext = React.createContext<DialogContextValue | null>(null);
@@ -18,13 +23,20 @@ function Dialog({
   open = false,
   onOpenChange,
   children,
+  modalRole = "dialog",
+  closeOnEscape = true,
+  closeOnOutsideClick = true,
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   children: React.ReactNode;
+  modalRole?: "dialog" | "alertdialog";
+  closeOnEscape?: boolean;
+  closeOnOutsideClick?: boolean;
 }) {
+  const titleId = React.useId();
   return (
-    <DialogContext.Provider value={{ open, onOpenChange }}>
+    <DialogContext.Provider value={{ open, onOpenChange, titleId, modalRole, closeOnEscape, closeOnOutsideClick }}>
       {children}
     </DialogContext.Provider>
   );
@@ -74,13 +86,13 @@ function DialogPortal({ children }: { children: React.ReactNode }) {
 }
 
 function DialogOverlay({ className }: { className?: string }) {
-  const { onOpenChange } = useDialogContext();
+  const { onOpenChange, closeOnOutsideClick } = useDialogContext();
   return (
     <div
       data-slot="dialog-overlay"
-      className={cn("fixed inset-0 z-[100] bg-black/55 backdrop-blur-sm", className)}
+      className={cn("fixed inset-0 z-[100] bg-overlay/55", className)}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onOpenChange?.(false);
+        if (closeOnOutsideClick && event.target === event.currentTarget) onOpenChange?.(false);
       }}
     />
   );
@@ -90,47 +102,38 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  overlayClassName,
+  onFocusCapture,
   ref,
   ...props
-}: React.ComponentProps<"div"> & { showCloseButton?: boolean }) {
-  const { open, onOpenChange } = useDialogContext();
+}: React.ComponentProps<"div"> & { showCloseButton?: boolean; overlayClassName?: string }) {
+  const { open, onOpenChange, titleId, modalRole, closeOnEscape } = useDialogContext();
   const contentRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    if (!open) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    function handleKeyDown(event: KeyboardEvent) {
-      const dialogs = document.querySelectorAll('[data-slot="dialog-content"]');
-      if (dialogs[dialogs.length - 1] !== contentRef.current || event.defaultPrevented) return;
-      if (event.target instanceof Element && event.target.closest('[data-slot="select-content"], [data-slot="popover-content"]')) return;
-      if (event.key === "Escape") onOpenChange?.(false);
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onOpenChange, open]);
+  const { captureOpener } = useModalDialog({ dialogRef: contentRef, onClose: () => { if (closeOnEscape) onOpenChange?.(false); }, enabled: open });
 
   if (!open) return null;
 
   return (
     <DialogPortal>
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
       <div
         ref={(node) => {
           contentRef.current = node;
           if (typeof ref === "function") ref(node);
           else if (ref) ref.current = node;
         }}
-        role="dialog"
+        role={modalRole}
         aria-modal="true"
+        aria-labelledby={props["aria-label"] ? undefined : titleId}
+        tabIndex={-1}
         data-slot="dialog-content"
+        onFocusCapture={(event) => {
+          captureOpener(event);
+          onFocusCapture?.(event);
+        }}
         className={cn(
-          "fixed left-1/2 top-1/2 z-[110] max-h-[92dvh] w-[calc(100%-1.5rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-lg border bg-background text-foreground shadow-2xl",
+          "fixed left-1/2 top-1/2 z-[110] max-h-[92dvh] w-[calc(100%-1.5rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-dialog border bg-popover text-popover-foreground shadow-dialog",
           className,
         )}
         {...props}
@@ -141,7 +144,7 @@ function DialogContent({
             type="button"
             aria-label="Close"
             onClick={() => onOpenChange?.(false)}
-            className="absolute right-3 top-3 grid size-9 cursor-pointer place-items-center rounded-md text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+            className="absolute right-3 top-3 grid size-9 cursor-pointer place-items-center rounded-control text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="size-4" />
           </button>
@@ -149,6 +152,35 @@ function DialogContent({
       </div>
     </DialogPortal>
   );
+}
+
+/** Composition adapter for existing layouts; the shared layer owns the portal
+ * and modal lifecycle without imposing new visual styles on feature content. */
+function DialogSurface({ children, onClose, open = true, ref, onFocusCapture, className, ...props }: React.ComponentProps<"div"> & { onClose: () => void; open?: boolean }) {
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const titleId = React.useId();
+  const ariaLabel = props["aria-label"];
+  const ariaLabelledBy = props["aria-labelledby"];
+  const { captureOpener } = useModalDialog({ dialogRef: contentRef, onClose, enabled: open });
+  React.useEffect(() => {
+    const node = contentRef.current;
+    if (!node || ariaLabel || ariaLabelledBy) return;
+    const heading = node.querySelector<HTMLElement>("h1,h2,h3,h4,h5,h6,[data-dialog-title]");
+    if (heading) {
+      if (!heading.id) heading.id = titleId;
+      node.setAttribute("aria-labelledby", heading.id);
+    } else {
+      node.setAttribute("aria-label", "Dialog");
+    }
+  }, [open, titleId, ariaLabel, ariaLabelledBy]);
+  if (!open) return null;
+  return <DialogPortal><div
+    ref={(node) => { contentRef.current = node; if (typeof ref === "function") ref(node); else if (ref) ref.current = node; }}
+    role="dialog" aria-modal="true" tabIndex={-1} data-slot="dialog-surface"
+    className={cn("relative z-[110]", className)}
+    onFocusCapture={(event) => { captureOpener(event); onFocusCapture?.(event); }}
+    {...props}
+  >{children}</div></DialogPortal>;
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
@@ -172,10 +204,12 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
 }
 
 function DialogTitle({ className, ...props }: React.ComponentProps<"h2">) {
+  const { titleId } = useDialogContext();
   return (
     <h2
+      id={titleId}
       data-slot="dialog-title"
-      className={cn("text-lg font-bold tracking-tight", className)}
+      className={cn("text-section-title font-semibold tracking-tight", className)}
       {...props}
     />
   );
@@ -201,4 +235,5 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
+  DialogSurface,
 };

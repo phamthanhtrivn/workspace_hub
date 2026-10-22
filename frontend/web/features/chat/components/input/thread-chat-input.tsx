@@ -1,5 +1,8 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+import { useId as useControlledPopupId } from "react";
+
 import React, {
   useState,
   useRef,
@@ -55,6 +58,11 @@ import {
   getCachedMentionOptions,
   getChannelMentionOptions,
 } from "../../utils/mention-member-utils";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 
 interface ThreadChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -80,6 +88,7 @@ const ThreadChatInput = React.memo(
     { onSendMessage },
     ref,
   ) {
+  const controlledPopupId = useControlledPopupId();
     const [message, setMessage] = useState("");
     const [showThreadOptions, setShowThreadOptions] = useState(false);
     const [showFormatting, setShowFormatting] = useState(false);
@@ -98,6 +107,7 @@ const ThreadChatInput = React.memo(
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [mentions, setMentions] = useState<string[]>([]);
 
+    const mentionListId = React.useId();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const plusButtonRef = useRef<HTMLButtonElement>(null);
@@ -117,20 +127,7 @@ const ThreadChatInput = React.memo(
     });
 
     // Close options on outside click
-    useEffect(() => {
-      const handleClickOutside = (event: MouseEvent) => {
-        if (
-          threadOptionsRef.current &&
-          !threadOptionsRef.current.contains(event.target as Node)
-        ) {
-          setShowThreadOptions(false);
-        }
-      };
-      document.addEventListener("mousedown", handleClickOutside);
-      return () => {
-        document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }, []);
+
 
     // 1. Text Formatting Hook
     const { applyFormatting, handleListKeyDown } = useTextFormatting({
@@ -592,15 +589,15 @@ const ThreadChatInput = React.memo(
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        className="w-full bg-white border-t border-gray-200 flex justify-center relative"
+        className="min-w-0 w-full shrink-0 bg-card border-t border-border flex justify-center relative"
       >
         {isDraggingOver && (
-          <div className="absolute inset-0 bg-blue-50/80 backdrop-blur-xs border-2 border-dashed border-blue-500 rounded-2xl m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-info-soft/80 border-2 border-dashed border-info-outline rounded-panel m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
             <UploadCloud
-              className="text-blue-500 animate-bounce mb-2"
+              className="text-info-content mb-2"
               size={28}
             />
-            <p className="text-xs font-black text-blue-600">
+            <p className="text-xs font-semibold text-info-content">
               Drop files here
             </p>
           </div>
@@ -614,26 +611,26 @@ const ThreadChatInput = React.memo(
                   key={media.id}
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-lg max-w-[220px] ${
                     media.status === "error"
-                      ? "bg-red-50 border border-red-200"
-                      : "bg-gray-100"
+                      ? "bg-destructive-soft border border-border"
+                      : "bg-muted"
                   }`}
                 >
                   {media.mimeType.startsWith("image/") ? (
                     <ImageIcon
                       size={16}
-                      className="text-blue-500 flex-shrink-0"
+                      className="text-info-content flex-shrink-0"
                     />
                   ) : (
                     <FileText
                       size={16}
-                      className="text-gray-500 flex-shrink-0"
+                      className="text-muted-foreground flex-shrink-0"
                     />
                   )}
                   <div className="flex flex-col flex-1 min-w-0">
-                    <span className="text-xs truncate text-gray-700">
+                    <span className="text-xs truncate text-foreground">
                       {media.name}
                     </span>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-xs text-muted-foreground">
                       {formatFileSize(media.sizeBytes)}
                     </span>
                   </div>
@@ -641,14 +638,18 @@ const ThreadChatInput = React.memo(
                   {media.status === "uploading" && (
                     <Loader2
                       size={14}
-                      className="text-blue-500 animate-spin ml-1 flex-shrink-0"
+                      className="text-info-content animate-spin ml-1 flex-shrink-0"
                     />
                   )}
 
-                  <button
+                  <IconButton label={
+                      media.status === "uploading"
+                        ? "Remove uploading file"
+                        : "Remove file"
+                    } showTooltip={false} size="icon-sm"
                     type="button"
                     onClick={() => removeFile(media.id)}
-                    className="text-gray-500 hover:text-red-500 transition ml-1 flex-shrink-0 cursor-pointer"
+                    className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
                     title={
                       media.status === "uploading"
                         ? "Remove uploading file"
@@ -656,13 +657,13 @@ const ThreadChatInput = React.memo(
                     }
                   >
                     <X size={14} />
-                  </button>
+                  </IconButton>
                 </div>
               ))}
             </div>
           )}
 
-          <div className="flex bg-gray-50 border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all relative rounded-xl p-1.5 gap-1.5 items-center">
+          <div className="flex bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative rounded-panel p-1.5 gap-1.5 items-center">
             {/* Hidden Inputs */}
             <input
               type="file"
@@ -676,15 +677,15 @@ const ThreadChatInput = React.memo(
 
             {/* Actions Trigger Dropdown */}
             <div ref={threadOptionsRef} className="relative flex-shrink-0">
-              <button
+              <Button aria-expanded={showThreadOptions} aria-controls={`${controlledPopupId}-showThreadOptions`} aria-haspopup="menu" variant="unstyled"
                 ref={plusButtonRef}
                 type="button"
                 onClick={() => setShowThreadOptions(!showThreadOptions)}
                 disabled={isUploading}
                 className={`cursor-pointer p-1.5 rounded-full transition-colors ${
                   showThreadOptions
-                    ? "bg-blue-100 text-blue-600"
-                    : "text-gray-400 hover:bg-gray-200"
+                    ? "bg-info-soft text-info-content"
+                    : "text-muted-foreground hover:bg-accent"
                 }`}
                 title="Options"
               >
@@ -692,73 +693,73 @@ const ThreadChatInput = React.memo(
                   size={18}
                   className={`transition-transform ${showThreadOptions ? "rotate-45" : ""}`}
                 />
-              </button>
+              </Button>
 
               {showThreadOptions && (
-                <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[170px] animate-in fade-in zoom-in-95 duration-200 z-50">
-                  <button
+                <AnchoredMenu id={`${controlledPopupId}-showThreadOptions`} onClose={() => setShowThreadOptions(false)} side="top" align="start" aria-label="Thread attachments" className="bg-card border border-border rounded-panel p-2 flex flex-col gap-1 min-w-[170px] animate-in fade-in zoom-in-95 duration-200 z-50 shadow-panel">
+                  <DropdownMenuItem closeOnClick={false}
                     onClick={() => {
                       setShowThreadOptions(false);
                       fileInputRef.current?.click();
                     }}
                     disabled={isUploading}
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
-                    <Paperclip size={14} className="text-gray-500" />
+                    <Paperclip size={14} className="text-muted-foreground" />
                     Files
-                  </button>
-                  <button
+                  </DropdownMenuItem>
+                  <DropdownMenuItem closeOnClick={false}
                     onClick={() => {
                       setShowThreadOptions(false);
                       setIsMyFilesModalOpen(true);
                     }}
                     disabled={isUploading}
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
-                    <Folder size={14} className="text-blue-500" />
+                    <Folder size={14} className="text-info-content" />
                     My Files
-                  </button>
-                  <button
+                  </DropdownMenuItem>
+                  <DropdownMenuItem closeOnClick={false}
                     onClick={() => {
                       setShowThreadOptions(false);
                       setShowFormatting(!showFormatting);
                     }}
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
+                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left"
                   >
-                    <Type size={14} className="text-blue-500" />
+                    <Type size={14} className="text-info-content" />
                     Formatting
-                  </button>
-                  <button
+                  </DropdownMenuItem>
+                  <DropdownMenuItem closeOnClick={false}
                     onClick={() => {
                       setShowThreadOptions(false);
                       setShowEmojiPicker(true);
                     }}
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
+                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left"
                   >
-                    <Smile size={14} className="text-yellow-500" />
+                    <Smile size={14} className="text-warning-content" />
                     Emoji
-                  </button>
-                  <button
+                  </DropdownMenuItem>
+                  <DropdownMenuItem closeOnClick={false}
                     onClick={() => {
                       setShowThreadOptions(false);
                       handleStartDictation();
                     }}
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
+                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left"
                   >
-                    <Mic size={14} className="text-green-500" />
+                    <Mic size={14} className="text-success-content" />
                     Voice input
-                  </button>
-                  <button
+                  </DropdownMenuItem>
+                  <DropdownMenuItem closeOnClick={false}
                     onClick={() => {
                       setShowThreadOptions(false);
                       void handleStartRecording();
                     }}
-                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
+                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left"
                   >
-                    <Voicemail size={14} className="text-red-500" />
+                    <Voicemail size={14} className="text-destructive-content" />
                     Voice message
-                  </button>
-                </div>
+                  </DropdownMenuItem>
+                </AnchoredMenu>
               )}
             </div>
 
@@ -771,7 +772,7 @@ const ThreadChatInput = React.memo(
             />
 
             {/* Mention Dropdown */}
-            <MentionDropdown
+            <MentionDropdown id={mentionListId}
               query={mentionQuery}
               members={filteredMembers}
               selectedIndex={selectedIndex}
@@ -782,85 +783,85 @@ const ThreadChatInput = React.memo(
             <div className="flex-1 flex flex-col min-w-0">
               {/* Formatting Toolbar */}
               {showFormatting && (
-                <div className="flex items-center gap-0.5 pb-1 mb-1 border-b border-gray-200/60 overflow-x-auto scrollbar-none">
-                  <button
+                <div className="flex items-center gap-0.5 pb-1 mb-1 border-b border-border/60 overflow-x-auto">
+                  <IconButton label="Bold" showTooltip={false} size="icon-sm"
                     type="button"
                     onClick={() => applyFormatting("bold")}
-                    className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
+                    className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Bold"
                   >
                     <Bold size={13} />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton label="Italic" showTooltip={false} size="icon-sm"
                     type="button"
                     onClick={() => applyFormatting("italic")}
-                    className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
+                    className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Italic"
                   >
                     <Italic size={13} />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton label="Strikethrough" showTooltip={false} size="icon-sm"
                     type="button"
                     onClick={() => applyFormatting("strikethrough")}
-                    className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
+                    className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Strikethrough"
                   >
                     <Strikethrough size={13} />
-                  </button>
-                  <div className="w-px bg-gray-200 mx-1 h-3"></div>
-                  <button
+                  </IconButton>
+                  <div className="w-px bg-accent mx-1 h-3"></div>
+                  <IconButton label="Heading" showTooltip={false} size="icon-sm"
                     type="button"
                     onClick={() => applyFormatting("heading")}
-                    className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
+                    className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Heading"
                   >
                     <Heading size={13} />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton label="Link" showTooltip={false} size="icon-sm"
                     type="button"
                     onClick={() => applyFormatting("link")}
-                    className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
+                    className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Link"
                   >
                     <Link size={13} />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton label="Code Block" showTooltip={false} size="icon-sm"
                     type="button"
                     onClick={() => applyFormatting("code")}
-                    className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
+                    className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Code Block"
                   >
                     <Code size={13} />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton label="Quote" showTooltip={false} size="icon-sm"
                     type="button"
                     onClick={() => applyFormatting("quote")}
-                    className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
+                    className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Quote"
                   >
                     <Quote size={13} />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton label="Bulleted List" showTooltip={false} size="icon-sm"
                     type="button"
                     onClick={() => applyFormatting("bullet")}
-                    className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
+                    className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Bulleted List"
                   >
                     <List size={13} />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton label="Numbered List" showTooltip={false} size="icon-sm"
                     type="button"
                     onClick={() => applyFormatting("number")}
-                    className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
+                    className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Numbered List"
                   >
                     <ListOrdered size={13} />
-                  </button>
+                  </IconButton>
                 </div>
               )}
 
               {/* Textarea Input */}
-              <textarea
+              <Textarea unstyled role="combobox" aria-label="Reply in thread" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
                 id="thread-chat-input-textarea"
                 ref={textareaRef}
                 onPaste={handlePaste}
@@ -878,7 +879,7 @@ const ThreadChatInput = React.memo(
                 }}
                 placeholder="Reply in thread..."
                 disabled={isUploading}
-                className="w-full bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px]"
+                className="w-full bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px]"
                 rows={1}
                 onKeyDown={(e) => {
                   if (mentionQuery !== null && filteredMembers.length > 0) {
@@ -923,45 +924,45 @@ const ThreadChatInput = React.memo(
             <div className="flex items-center gap-1.5 flex-shrink-0 relative">
               {isRecording ? (
                 <div className="flex items-center gap-2.5 px-1 animate-in fade-in">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                  <span className="text-red-500 font-medium text-xs">
+                  <div className="w-2 h-2 rounded-full bg-destructive-content animate-pulse"></div>
+                  <span className="text-destructive-content font-medium text-xs">
                     {formatTime(recordingTime)}
                   </span>
-                  <button
+                  <Button variant="unstyled"
                     onClick={handleCancelRecording}
-                    className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition cursor-pointer"
+                    className="p-1.5 text-muted-foreground hover:text-destructive-content hover:bg-accent rounded-full transition cursor-pointer"
                     title="Cancel recording"
                   >
                     <Trash2 size={16} />
-                  </button>
-                  <button
+                  </Button>
+                  <Button variant="unstyled"
                     onClick={handleStopRecording}
-                    className="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer"
+                    className="p-1.5 text-primary-foreground bg-primary hover:bg-primary rounded-full transition cursor-pointer"
                     title="Send"
                   >
                     <Send size={14} />
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <>
                   {isDictating && (
-                    <button
+                    <Button variant="unstyled"
                       type="button"
                       onClick={handleStopDictation}
-                      className="p-1.5 rounded-full bg-red-100 text-red-600 animate-pulse hover:bg-red-200 transition-colors cursor-pointer"
+                      className="p-1.5 rounded-full bg-destructive-soft text-destructive-content animate-pulse hover:bg-destructive-soft transition-colors cursor-pointer"
                       title="Stop speech to text"
                     >
                       <Mic size={15} />
-                    </button>
+                    </Button>
                   )}
-                  <button
+                  <Button variant="unstyled" aria-label="Send message"
                     className={`p-1.5 rounded-full transition-colors flex items-center justify-center ${
                       (message.trim() ||
                         interimMessage.trim() ||
                         uploadingMedia.some((m) => m.status === "success")) &&
                       !isUploading
-                        ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
-                        : "bg-gray-200 text-gray-400"
+                        ? "bg-primary text-primary-foreground hover:bg-primary cursor-pointer"
+                        : "bg-accent text-muted-foreground"
                     }`}
                     disabled={
                       (!message.trim() &&
@@ -972,7 +973,7 @@ const ThreadChatInput = React.memo(
                     onClick={handleSend}
                   >
                     <Send size={15} />
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

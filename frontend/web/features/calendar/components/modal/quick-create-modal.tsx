@@ -1,5 +1,7 @@
 "use client";
 
+
+
 import {
   AlignLeft,
   Bell,
@@ -18,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
 import { CalendarEventFormController } from "../../hooks/use-calendar-event-form";
-import { useModalDialog } from "../../hooks/use-modal-dialog";
+
 import {
   CalendarEvent,
   CalendarTaskDeadline,
@@ -37,8 +39,10 @@ import {
   QuickRow,
 } from "./quick-create-time-section";
 import { CalendarTaskDeadlineFields } from "./calendar-task-deadline-fields";
+import { CalendarTaskTitleField } from "./calendar-task-title-field";
 import { ReminderEditor } from "./reminder-editor";
 import { formatReminderSummary } from "../../utils/calendar-reminder.utils";
+import { DialogSurface } from "@/components/ui/dialog";
 
 export type { QuickCreateKind } from "./quick-create-time-section";
 
@@ -74,7 +78,7 @@ export function QuickCreateModal({
   const { control, formState, getValues, register, setValue } = controller.form;
   const calendarId = useWatch({ control, name: "calendarId" });
   const reminders = useWatch({ control, name: "reminders" });
-  const modalAccent = kind === "task" ? tasksColor || "#f59e0b" : "#2563eb";
+  const modalAccent = kind === "task" ? "var(--warning-content)" : "var(--link)";
   const modalTitle = isEditing
     ? kind === "task"
       ? copy.editTask
@@ -86,7 +90,7 @@ export function QuickCreateModal({
   const selectedCalendar =
     calendars.find((calendar) => calendar.id === calendarId) ?? calendars[0];
   const locationValue = useWatch({ control, name: "location" }) ?? "";
-  useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
+
 
   // Expand "More options" downwards
   const [showMoreOptions, setShowMoreOptions] = useState<boolean>(() => {
@@ -108,7 +112,7 @@ export function QuickCreateModal({
     if (kind === "task") {
       setValue("sourceType", EventSourceType.TASK);
       setValue("useEventColor", true);
-      setValue("color", tasksColor || "#f59e0b");
+      setValue("color", tasksColor || "var(--warning)");
       const personalCalendar =
         calendars.find((c) => !c.projectId && c.isDefault) ??
         calendars.find((c) => !c.projectId) ??
@@ -131,9 +135,9 @@ export function QuickCreateModal({
     controller.submit(submitEvent);
   };
 
-  return (
+  return typeof document === "undefined" ? null : <DialogSurface onClose={onClose}>{(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/30 p-2 backdrop-blur-[3px] sm:p-5"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/30 p-2 sm:p-5"
       onWheelCapture={(event) => {
         if (
           event.target instanceof Node &&
@@ -158,18 +162,18 @@ export function QuickCreateModal({
       <form
         ref={dialogRef}
         onSubmit={handleSubmit}
-        role="dialog"
-        aria-modal="true"
+
+
         aria-labelledby="calendar-quick-create-heading"
-        className="flex max-h-[92dvh] w-full max-w-[35rem] flex-col overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-[0_24px_70px_rgba(15,23,42,0.24)] ring-1 ring-white/70 transition-all duration-300 ease-out"
+        className="flex max-h-[92dvh] w-full max-w-[35rem] flex-col overflow-hidden rounded-dialog border border-border bg-card ring-1 ring-border/70 transition-all duration-200 ease-out"
       >
         {/* Modal Top Bar */}
-        <div className="flex h-12 shrink-0 items-center justify-between border-b border-slate-200/70 bg-slate-100/80 px-4 sm:px-6">
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-muted px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="h-1 w-7 rounded-full bg-slate-400/80" />
+            <span className="h-1 w-7 rounded-full bg-muted-foreground/80" />
             <h2
               id="calendar-quick-create-heading"
-              className="truncate text-xs font-bold uppercase text-slate-500"
+              className="truncate text-xs font-semibold uppercase text-muted-foreground"
             >
               {modalTitle}
             </h2>
@@ -179,7 +183,7 @@ export function QuickCreateModal({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-white hover:text-slate-900"
+            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-muted-foreground transition hover:bg-card hover:text-foreground"
             aria-label={copy.close}
           >
             <X className="h-4 w-4" />
@@ -188,6 +192,10 @@ export function QuickCreateModal({
 
         {/* Title and Tabs */}
         <div className="shrink-0 px-5 pt-5 sm:px-7">
+          {kind === "task" ? (
+            <CalendarTaskTitleField {...register("title")} id="calendar-quick-create-title" data-modal-initial-focus
+              wrapperClassName="ml-12" error={formState.errors.title?.message} />
+          ) : <>
           <Input
             {...register("title")}
             data-modal-initial-focus
@@ -195,32 +203,33 @@ export function QuickCreateModal({
             aria-label={copy.addTitle}
             placeholder={copy.addTitle}
             aria-invalid={Boolean(formState.errors.title)}
-            className="ml-12 h-auto w-[calc(100%-3rem)] rounded-none border-0 border-b border-slate-200 bg-transparent px-0 pb-2 text-2xl font-medium leading-tight text-slate-800 shadow-none outline-none placeholder:text-slate-500 focus:border-blue-500 focus-visible:ring-0 sm:text-[1.7rem]"
+            className="ml-12 h-auto w-[calc(100%-3rem)] rounded-none border-0 border-b border-input bg-transparent px-0 pb-2 text-2xl font-medium leading-tight text-foreground shadow-none outline-none placeholder:text-muted-foreground focus:border-info-outline focus-visible:ring-0 sm:text-[1.7rem]"
           />
           {formState.errors.title && (
-            <p className="ml-12 mt-2 text-xs font-semibold text-red-600">
+            <p className="ml-12 mt-2 text-xs font-semibold text-destructive-content">
               {copy.requiredFields}
             </p>
           )}
+          </>}
 
           {!isEditing && (
             <div
-              className="ml-12 mt-4 inline-flex rounded-2xl bg-slate-100 p-1 shadow-inner shadow-slate-200/70"
-              role="tablist"
+              className="ml-12 mt-4 inline-flex rounded-panel bg-muted p-1"
+              role="group" aria-label="Event or task"
             >
               {QUICK_CREATE_TABS.map((tab) => (
                 <Button
                   key={tab.value}
                   type="button"
                   variant="ghost"
-                  role="tab"
-                  aria-selected={kind === tab.value}
+
+                  aria-pressed={kind === tab.value}
                   onClick={() => onKindChange(tab.value)}
                   className={cn(
-                    "h-8 cursor-pointer rounded-xl px-4 text-sm font-semibold transition hover:bg-white/80",
+                    "h-8 cursor-pointer rounded-control px-4 text-sm font-semibold transition hover:bg-card",
                     kind === tab.value
-                      ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/60"
-                      : "text-slate-500 hover:text-slate-800",
+                      ? "bg-card text-foreground ring-1 ring-ring/60"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                   style={
                     kind === tab.value
@@ -242,6 +251,7 @@ export function QuickCreateModal({
           <div className="space-y-2.5">
             {/* Time & Recurrence Section */}
             <QuickCreateTimeSection
+              disabled={submitting || formState.isSubmitting}
               form={controller.form}
               kind={kind}
               recurrencePreset={controller.recurrencePreset}
@@ -270,7 +280,7 @@ export function QuickCreateModal({
               />
             )}
 
-            {kind === "task" && <CalendarTaskDeadlineFields value={deadline} onChange={setDeadline} />}
+            {kind === "task" && <CalendarTaskDeadlineFields value={deadline} onChange={setDeadline} disabled={submitting} />}
 
             {/* Description */}
             <QuickRow icon={<AlignLeft className="h-5 w-5" />}>
@@ -279,7 +289,7 @@ export function QuickCreateModal({
                 aria-label={copy.addDescription}
                 rows={3}
                 placeholder={copy.addDescriptionAttachment}
-                className="min-h-[42px] w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-2xs outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100"
+                className="min-h-[42px] w-full resize-none rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground hover:border-input focus-visible:border-info-outline focus-visible:ring-2 focus-visible:ring-ring"
               />
             </QuickRow>
 
@@ -288,22 +298,21 @@ export function QuickCreateModal({
               <QuickRow
                 icon={
                   <ListTodo
-                    className="h-5 w-5"
-                    style={{ color: tasksColor || "#f59e0b" }}
+                    className="h-5 w-5 text-info-content"
                   />
                 }
               >
-                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-2xs transition hover:border-slate-300">
+                <div className="rounded-panel border border-border bg-card px-3 py-2 transition hover:border-input">
                   <div className="flex items-center gap-2">
                     <span
                       className="h-3 w-3 shrink-0 rounded-full"
-                      style={{ backgroundColor: tasksColor || "#f59e0b" }}
+                      style={{ backgroundColor: tasksColor || "var(--warning)" }}
                     />
-                    <span className="text-sm font-semibold text-slate-700">
+                    <span className="text-sm font-semibold text-foreground">
                       {copy.task}
                     </span>
                   </div>
-                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {reminders && reminders.length > 0
                       ? `${copy.myTasks} · ${formatReminderSummary(reminders)}`
                       : copy.myTasks}
@@ -312,7 +321,7 @@ export function QuickCreateModal({
               </QuickRow>
             ) : (
               <QuickRow icon={<CalendarDays className="h-5 w-5" />}>
-                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-2xs transition hover:border-slate-300">
+                <div className="rounded-panel border border-border bg-card px-3 py-2 transition hover:border-input">
                   <div className="flex items-center gap-2">
                     <CustomSelect
                       value={calendarId}
@@ -324,17 +333,17 @@ export function QuickCreateModal({
                         value: cal.id,
                         label: cal.name,
                       }))}
-                      triggerClassName="h-8 min-w-0 max-w-full cursor-pointer border-0 bg-transparent px-0 text-sm font-medium text-slate-700 shadow-none hover:bg-transparent focus-visible:ring-0"
-                      contentClassName="rounded-lg border-slate-200"
+                      triggerClassName="h-8 min-w-0 max-w-full cursor-pointer border-0 bg-transparent px-0 text-sm font-medium text-foreground shadow-none hover:bg-transparent focus-visible:ring-0"
+                      contentClassName="rounded-lg border-border"
                     />
                     <span
                       className="h-3.5 w-3.5 shrink-0 rounded-full"
                       style={{
-                        backgroundColor: selectedCalendar?.color || "#2563eb",
+                        backgroundColor: selectedCalendar?.color || "var(--primary)",
                       }}
                     />
                   </div>
-                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {formatReminderSummary(reminders)}
                   </p>
                 </div>
@@ -342,7 +351,7 @@ export function QuickCreateModal({
             )}
 
             {showMoreOptions && (
-              <div className="space-y-3 border-t border-slate-200/70 pt-4 transition-all duration-300">
+              <div className="space-y-3 border-t border-border pt-4 transition-all duration-200">
                 <QuickRow icon={<Bell className="h-5 w-5" />}>
                   <ReminderEditor control={control} />
                 </QuickRow>
@@ -361,12 +370,12 @@ export function QuickCreateModal({
           </div>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200/70 bg-slate-50/95 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+        <div className="flex shrink-0 flex-col gap-3 border-t border-border bg-background px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
           <Button
             type="button"
             variant="ghost"
             onClick={() => setShowMoreOptions((prev) => !prev)}
-            className="inline-flex h-9 w-fit cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 active:scale-[0.98]"
+            className="inline-flex h-9 w-fit cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-info-content transition hover:bg-info-soft"
           >
             <span>
               {showMoreOptions ? copy.fewerOptions : copy.moreOptions}
@@ -383,14 +392,14 @@ export function QuickCreateModal({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="h-9 cursor-pointer rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 active:scale-[0.98]"
+              className="h-9 cursor-pointer rounded-full border border-input bg-card px-4 text-sm font-semibold text-foreground transition hover:bg-muted"
             >
               {copy.cancel}
             </Button>
             <Button
               type="submit"
               disabled={submitting || formState.isSubmitting}
-              className="h-9 cursor-pointer rounded-full bg-blue-700 px-6 text-sm font-semibold text-white shadow-sm shadow-blue-700/20 transition hover:bg-blue-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-9 cursor-pointer rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? copy.saving : copy.save}
             </Button>
@@ -398,5 +407,5 @@ export function QuickCreateModal({
         </div>
       </form>
     </div>
-  );
+  )}</DialogSurface>;
 }

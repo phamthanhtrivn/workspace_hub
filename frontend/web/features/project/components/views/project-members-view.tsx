@@ -32,6 +32,7 @@ import { useProjectConfirmDialog } from "@/features/project/hooks/use-project-co
 import { ProjectConfirmDialog } from "../ui/project-confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 
 interface ProjectMembersViewProps {
   projectId: string;
@@ -169,23 +170,23 @@ export default function ProjectMembersView({
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="min-w-0 space-y-4 pb-4">
       {/* ── 1. Top Summary Metric Cards ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 @min-[640px]/project-detail:grid-cols-3">
         {/* Total Members */}
-        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs transition hover:shadow-sm">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#0052CC]">
+        <div className="flex items-center gap-4 rounded-panel border border-border bg-card p-4 transition">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-panel bg-info-soft text-info-content">
             <Users className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-slate-500">
+            <p className="text-xs font-semibold text-muted-foreground">
               Total Members
             </p>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900">
+              <span className="text-2xl font-semibold text-foreground">
                 {members.length}
               </span>
-              <span className="text-[11px] font-medium text-slate-400">
+              <span className="text-xs font-medium text-muted-foreground">
                 active members
               </span>
             </div>
@@ -193,19 +194,19 @@ export default function ProjectMembersView({
         </div>
 
         {/* Owners & Admins */}
-        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs transition hover:shadow-sm">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600">
-            <Star className="h-6 w-6 fill-amber-400 text-amber-500" />
+        <div className="flex items-center gap-4 rounded-panel border border-border bg-card p-4 transition">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-panel bg-warning-soft text-warning-content">
+            <Star className="h-6 w-6 fill-warning-content text-warning-content" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-slate-500">
+            <p className="text-xs font-semibold text-muted-foreground">
               Project Owners
             </p>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900">
+              <span className="text-2xl font-semibold text-foreground">
                 {ownerCount}
               </span>
-              <span className="text-[11px] font-medium text-slate-400">
+              <span className="text-xs font-medium text-muted-foreground">
                 owners
               </span>
             </div>
@@ -213,19 +214,19 @@ export default function ProjectMembersView({
         </div>
 
         {/* Pending Invites */}
-        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs transition hover:shadow-sm">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">
+        <div className="flex items-center gap-4 rounded-panel border border-border bg-card p-4 transition">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-panel bg-muted text-muted-foreground">
             <Clock3 className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-slate-500">
+            <p className="text-xs font-semibold text-muted-foreground">
               Pending Invitations
             </p>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-slate-900">
+              <span className="text-2xl font-semibold text-foreground">
                 {pendingInvitations.length}
               </span>
-              <span className="text-[11px] font-medium text-slate-400">
+              <span className="text-xs font-medium text-muted-foreground">
                 {pendingInvitations.length > 0
                   ? "awaiting response"
                   : "no pending invites"}
@@ -236,19 +237,19 @@ export default function ProjectMembersView({
       </div>
 
       {/* ── 2. Filters & Action Toolbar ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           {/* Tab buttons */}
-          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50/70 p-1">
+          <div className="inline-flex max-w-full flex-wrap gap-y-1 rounded-lg border border-border bg-background p-1">
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={() => setActiveTab("ALL")}
-              className={`h-7 cursor-pointer rounded-md px-3 py-1 text-xs font-bold transition ${
+              className={`h-7 cursor-pointer rounded-md px-3 py-1 text-xs font-semibold transition ${
                 activeTab === "ALL"
-                  ? "bg-white text-slate-800 shadow-xs hover:bg-white hover:text-slate-800"
-                  : "text-slate-500 hover:text-slate-900"
+                  ? "bg-card text-foreground hover:bg-card hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               All Members ({members.length})
@@ -258,10 +259,10 @@ export default function ProjectMembersView({
               variant="ghost"
               size="sm"
               onClick={() => setActiveTab("ADMIN")}
-              className={`h-7 cursor-pointer rounded-md px-3 py-1 text-xs font-bold transition ${
+              className={`h-7 cursor-pointer rounded-md px-3 py-1 text-xs font-semibold transition ${
                 activeTab === "ADMIN"
-                  ? "bg-white text-slate-800 shadow-xs hover:bg-white hover:text-slate-800"
-                  : "text-slate-500 hover:text-slate-900"
+                  ? "bg-card text-foreground hover:bg-card hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Owners ({ownerCount})
@@ -271,10 +272,10 @@ export default function ProjectMembersView({
               variant="ghost"
               size="sm"
               onClick={() => setActiveTab("MEMBER")}
-              className={`h-7 cursor-pointer rounded-md px-3 py-1 text-xs font-bold transition ${
+              className={`h-7 cursor-pointer rounded-md px-3 py-1 text-xs font-semibold transition ${
                 activeTab === "MEMBER"
-                  ? "bg-white text-slate-800 shadow-xs hover:bg-white hover:text-slate-800"
-                  : "text-slate-500 hover:text-slate-900"
+                  ? "bg-card text-foreground hover:bg-card hover:text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Members ({regularMemberCount})
@@ -285,14 +286,14 @@ export default function ProjectMembersView({
                 variant="ghost"
                 size="sm"
                 onClick={() => setActiveTab("PENDING")}
-                className={`flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-3 py-1 text-xs font-bold transition ${
+                className={`flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-3 py-1 text-xs font-semibold transition ${
                   activeTab === "PENDING"
-                    ? "bg-white text-amber-700 shadow-xs hover:bg-white hover:text-amber-700"
-                    : "text-amber-600 hover:text-amber-800"
+                    ? "bg-card text-warning-content hover:bg-card hover:text-warning-content"
+                    : "text-warning-content hover:text-warning-content"
                 }`}
               >
                 <span>Pending ({pendingInvitations.length})</span>
-                <span className="flex h-2 w-2 rounded-full bg-amber-500" />
+                <span className="flex h-2 w-2 rounded-full bg-warning-content" />
               </Button>
             )}
           </div>
@@ -300,14 +301,14 @@ export default function ProjectMembersView({
 
         {/* Search box */}
         {activeTab !== "PENDING" && (
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-            <Input
+          <div className="relative min-w-0 w-full @min-[800px]/project-detail:w-64">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input aria-label="Search members"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search members..."
-              className="h-9 w-full rounded-lg border-slate-200 bg-white pl-9 pr-3 text-xs font-medium text-slate-800"
+              className="h-9 w-full rounded-control border-input bg-card pl-9 pr-3 text-xs font-medium text-foreground"
             />
           </div>
         )}
@@ -315,49 +316,49 @@ export default function ProjectMembersView({
 
       {/* ── 3. Main Content: Members Table or Pending Invites Tab ── */}
       {activeTab === "PENDING" ? (
-        <div className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-xs">
+        <div className="rounded-panel border border-border bg-card p-6">
           <PendingInvitationsList
             projectId={projectId}
             invitations={pendingInvitations}
           />
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xs">
+        <div className="overflow-hidden rounded-panel border border-border bg-card">
           {filteredMembers.length === 0 ? (
             <div className="py-16 text-center">
-              <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400">
+              <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-muted text-muted-foreground">
                 <Users className="h-6 w-6" />
               </div>
-              <p className="text-sm font-semibold text-slate-600">
+              <p className="text-sm font-semibold text-muted-foreground">
                 No members found
               </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-black uppercase tracking-wider text-slate-500">
-                    <th className="px-6 py-3.5">Member</th>
-                    <th className="px-4 py-3.5">Role</th>
-                    <th className="px-4 py-3.5">Tasks</th>
-                    <th className="px-4 py-3.5">Joined</th>
-                    <th className="px-4 py-3.5">Permissions</th>
-                    <th className="px-6 py-3.5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
+              <Table unstyled className="w-full min-w-[760px] table-fixed border-collapse text-left [&_td]:break-words">
+                <TableHeader unstyled>
+                  <TableRow unstyled className="border-b border-border bg-background text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    <TableHead unstyled className="px-6 py-3.5">Member</TableHead>
+                    <TableHead unstyled className="px-4 py-3.5">Role</TableHead>
+                    <TableHead unstyled className="px-4 py-3.5">Tasks</TableHead>
+                    <TableHead unstyled className="px-4 py-3.5">Joined</TableHead>
+                    <TableHead unstyled className="px-4 py-3.5">Permissions</TableHead>
+                    <TableHead unstyled className="px-6 py-3.5 text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody unstyled className="divide-y divide-border text-xs">
                   {filteredMembers.map((member) => {
                     const isOwner = member.role === ProjectRole.ADMIN;
                     const isCurrent = member.userId === currentUserId;
                     const assignedCount = tasksByMember.get(member.userId) ?? 0;
 
                     return (
-                      <tr
+                      <TableRow unstyled
                         key={member.id}
-                        className="transition hover:bg-slate-50/60"
+                        className="transition hover:bg-background"
                       >
                         {/* Member Name & Avatar */}
-                        <td className="px-6 py-4">
+                        <TableCell unstyled className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <Avatar
                               user={{
@@ -369,106 +370,106 @@ export default function ProjectMembersView({
                             />
                             <div className="min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-slate-900">
+                                <span className="font-semibold text-foreground">
                                   {member.displayName}
                                 </span>
                                 {isCurrent && (
-                                  <span className="rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.2 text-[10px] font-bold text-blue-700">
+                                  <span className="rounded-full border border-border bg-info-soft px-1.5 py-0.2 text-xs font-semibold text-info-content">
                                     You
                                   </span>
                                 )}
                               </div>
                             </div>
                           </div>
-                        </td>
+                        </TableCell>
 
                         {/* Role Badge */}
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <TableCell unstyled className="px-4 py-4 whitespace-nowrap">
                           {isOwner ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">
-                              <Star className="h-3 w-3 fill-amber-400 text-amber-600" />
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-warning-soft px-2.5 py-1 text-xs font-semibold text-warning-content">
+                              <Star className="h-3 w-3 fill-warning-content text-warning-content" />
                               Project Owner
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                              <User className="h-3 w-3 text-slate-500" />
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+                              <User className="h-3 w-3 text-muted-foreground" />
                               Member
                             </span>
                           )}
-                        </td>
+                        </TableCell>
 
                         {/* Tasks Assigned */}
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <TableCell unstyled className="px-4 py-4 whitespace-nowrap">
                           {assignedCount > 0 ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-semibold text-slate-700">
-                              <Briefcase className="h-3 w-3 text-[#0052CC]" />
+                            <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 font-semibold text-foreground">
+                              <Briefcase className="h-3 w-3 text-info-content" />
                               {assignedCount} tasks
                             </span>
                           ) : (
-                            <span className="text-slate-400">
+                            <span className="text-muted-foreground">
                               No tasks assigned
                             </span>
                           )}
-                        </td>
+                        </TableCell>
 
                         {/* Joined Date */}
-                        <td className="px-4 py-4 whitespace-nowrap text-slate-500 font-medium">
+                        <TableCell unstyled className="px-4 py-4 whitespace-nowrap text-muted-foreground font-medium">
                           <span className="inline-flex items-center gap-1.5">
-                            <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                            <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                             {formatJoinDate(member.joinedAt)}
                           </span>
-                        </td>
+                        </TableCell>
 
                         {/* Permissions Summary */}
-                        <td className="px-4 py-4">
+                        <TableCell unstyled className="px-4 py-4">
                           {isOwner ? (
-                            <span className="inline-flex items-center gap-1 rounded border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
-                              <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                            <span className="inline-flex items-center gap-1 rounded border border-border bg-success-soft px-2 py-0.5 text-xs font-semibold text-success-content">
+                              <ShieldCheck className="h-3 w-3 text-success-content" />
                               Full Access
                             </span>
                           ) : (
                             <div className="flex flex-wrap gap-1 max-w-xs">
                               {member.canCreateTask && (
-                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-semibold text-muted-foreground">
                                   Create Tasks
                                 </span>
                               )}
                               {member.canManageMembers && (
-                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-semibold text-muted-foreground">
                                   Manage Members
                                 </span>
                               )}
                               {member.canEditDocuments && (
-                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                <span className="rounded bg-muted px-1.5 py-0.5 text-xs font-semibold text-muted-foreground">
                                   Edit Documents
                                 </span>
                               )}
                               {!member.canCreateTask &&
                                 !member.canManageMembers &&
                                 !member.canEditDocuments && (
-                                  <span className="text-[11px] text-slate-400">
+                                  <span className="text-xs text-muted-foreground">
                                     Standard permissions
                                   </span>
                                 )}
                             </div>
                           )}
-                        </td>
+                        </TableCell>
 
                         {/* Actions */}
-                        <td className="px-6 py-4 text-right whitespace-nowrap">
+                        <TableCell unstyled className="px-6 py-4 text-right whitespace-nowrap">
                           {isOwner ? (
-                            <span className="text-[11px] font-semibold text-slate-400">
+                            <span className="text-xs font-semibold text-muted-foreground">
                               Owner
                             </span>
                           ) : (
-                            <div className="inline-flex items-center gap-2">
+                            <div className="inline-flex flex-wrap items-center justify-end gap-2">
                               {canManagePermissions && (
                                 <Button
                                   type="button"
                                   variant="outline"
                                   size="sm"
                                   onClick={() => setPermissionMember(member)}
-                                  className="h-8 gap-1 rounded-lg px-2.5 text-xs font-semibold text-slate-700 hover:border-[#0052CC] hover:bg-blue-50 hover:text-[#0052CC]"
+                                  className="h-8 gap-1 rounded-control px-2.5 text-xs font-semibold text-foreground hover:border-primary hover:bg-info-soft hover:text-info-content"
                                   title={`Edit permissions for ${member.displayName}`}
                                 >
                                   <Settings2 className="h-3.5 w-3.5" />
@@ -483,7 +484,7 @@ export default function ProjectMembersView({
                                   size="sm"
                                   onClick={() => handleRemoveMember(member)}
                                   disabled={removeMemberMutation.isPending}
-                                  className="h-8 gap-1 rounded-lg px-2.5 text-xs font-semibold text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                  className="h-8 gap-1 rounded-control px-2.5 text-xs font-semibold text-muted-foreground hover:border-border hover:bg-destructive-soft hover:text-destructive-content disabled:opacity-50"
                                   title={`Remove ${member.displayName}`}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -492,12 +493,12 @@ export default function ProjectMembersView({
                               )}
                             </div>
                           )}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>

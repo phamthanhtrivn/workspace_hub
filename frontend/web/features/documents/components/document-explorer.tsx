@@ -1,5 +1,6 @@
 "use client";
 
+import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { DndContext } from "@dnd-kit/core";
@@ -175,6 +176,8 @@ export function DocumentExplorer({
     isFetchingNextPage,
     fetchNextPage,
     hasNextPage,
+    refetch,
+    isFetching,
   } = useInfiniteQuery({
     queryKey: [
       "documents",
@@ -311,7 +314,7 @@ export function DocumentExplorer({
     items.length > 0 ? (
       <div
         ref={loadMoreRef}
-        className="flex min-h-8 items-center justify-center px-4 py-2 text-xs font-semibold text-slate-400"
+        className="flex min-h-8 items-center justify-center px-4 py-2 text-xs font-semibold text-muted-foreground"
       >
         {isFetchingNextPage ? "Loading more..." : null}
       </div>
@@ -319,21 +322,21 @@ export function DocumentExplorer({
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="relative flex flex-1 flex-col min-h-0 h-full overflow-hidden bg-white text-slate-800">
+      <div className="@container/explorer relative flex flex-1 flex-col min-h-0 min-w-0 h-full overflow-y-auto bg-card text-foreground">
         {/* Full Window Dropzone Overlay */}
         {isDraggingOver ? (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-blue-500/10 backdrop-blur-xs border-2 border-dashed border-blue-400">
-            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-200">
-              <UploadCloud className="h-8 w-8 animate-bounce" />
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-primary/10 border-2 border-dashed border-info-outline">
+            <div className="grid h-16 w-16 place-items-center rounded-panel bg-info-soft text-info-content ring-1 ring-ring">
+              <UploadCloud className="h-8 w-8" />
             </div>
-            <p className="mt-4 text-base font-bold text-slate-800">
+            <p className="mt-4 text-base font-semibold text-foreground">
               Drop files here to upload
             </p>
           </div>
         ) : null}
 
         {/* Explorer Header Toolbar */}
-        <div className="relative z-20 shrink-0 flex flex-col gap-3 bg-white/60 p-6 backdrop-blur-md">
+        <div className={`relative z-20 shrink-0 flex flex-col gap-3 bg-card min-w-0 p-3 @min-[640px]/explorer:p-4`}>
           <ExplorerBreadcrumbs
             path={path}
             onBreadcrumbClick={handleBreadcrumbClick}
@@ -351,8 +354,8 @@ export function DocumentExplorer({
             canEditDocuments={canEditDocuments}
           />
           {activeView === DocumentViewType.TRASH ? (
-            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-xs font-semibold text-amber-800">
-              <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <div className="flex items-start gap-2 rounded-panel border border-border bg-warning-soft px-3.5 py-3 text-xs font-semibold text-warning-content">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning-content" />
               <p>
                 Items in Trash are automatically deleted after 30 days. You can
                 permanently delete them now.
@@ -362,22 +365,23 @@ export function DocumentExplorer({
         </div>
 
         {/* Main Content Area */}
-        <div className="flex flex-1 min-h-0 overflow-hidden">
-          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+        <div data-document-canvas className={`flex flex-1 overflow-hidden @container/document-canvas relative min-h-40 min-w-0 shrink-0`}>
+          <div className="flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden">
+            {isError && items.length > 0 && <QueryFeedback label="documents" error retrying={isFetching} onRetry={() => refetch()} />}
             {/* Items View Area */}
-            <div className="flex flex-1 flex-col min-h-0 overflow-hidden px-6 mb-6">
+            <div className={`flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden @container/document-items min-w-0 px-3 mb-3 @min-[640px]/explorer:px-4 @min-[640px]/explorer:mb-4`}>
               {isLoading ? (
                 <DocumentsLoadingState
                   view={viewLayout === "GRID" ? "grid" : "list"}
                 />
-              ) : isError ? (
-                <DocumentsEmptyState
+              ) : isError && items.length === 0 ? (
+                <div className="space-y-3"><QueryFeedback label="documents" error retrying={isFetching} onRetry={() => refetch()} /><DocumentsEmptyState
                   title={accessErrorTitle}
                   description={
                     (documentError as { response?: { data?: { message?: string } } })
-                      ?.response?.data?.message || accessErrorDescription
+                      ?.response?.data?.message || ((documentError as { response?: { status?: number } })?.response?.status === 403 ? accessErrorDescription : "The document service is unavailable. Your files have not been removed.")
                   }
-                />
+                /></div>
               ) : items.length === 0 ? (
                 <DocumentsEmptyState
                   title={

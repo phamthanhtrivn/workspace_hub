@@ -34,6 +34,8 @@ import { MeetingRoomReactionOverlay } from "./meeting-room-reaction-overlay";
 import { MeetingRoomStage } from "./meeting-room-stage";
 import { MeetingRoomDesktopSidePanel } from "./side-panel/meeting-room-desktop-side-panel";
 import { MeetingRoomMobilePanelHeader } from "./side-panel/meeting-room-mobile-panel";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingRoomContentProps {
   meetingId: string;
@@ -206,42 +208,42 @@ export function MeetingRoomContent({
   const closePanel = () => setActivePanel(MeetingRoomPanel.NONE);
 
   return (
-    <div className="fixed inset-0 z-[90] flex min-h-[100dvh] flex-col overflow-hidden bg-[#070b12] text-white">
-      <header className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 bg-[#0d1420]/95 px-4 backdrop-blur sm:px-6">
+    <div className="@container/meeting-room fixed inset-0 z-[90] flex h-dvh min-h-0 min-w-0 flex-col overflow-hidden bg-card text-foreground">
+      <header className="flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-2 py-2 border-b border-border bg-card px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#0052CC] shadow-[0_12px_28px_rgba(0,82,204,0.28)]">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-secondary-foreground">
             <Video className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <h1 className="truncate text-sm font-black sm:text-base">
+            <h1 className="truncate text-sm font-semibold sm:text-base">
               Instant meeting
             </h1>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <span className="hidden rounded-md bg-emerald-500/12 px-3 py-1.5 text-xs font-black text-emerald-200 ring-1 ring-emerald-300/15 sm:inline-flex">
+          <span className="hidden rounded-md bg-success-soft px-3 py-1.5 text-xs font-semibold text-success-content ring-1 ring-success-outline/15 sm:inline-flex">
             {getRoomStatusLabel(connectionState)}
           </span>
           <MeetingRecordingBanner joinToken={joinToken} meetingId={meetingId} />
           {liveCaptions.active && (
             <span
-              className="rounded-md bg-sky-500/15 px-2 py-1.5 text-xs font-bold text-sky-200"
+              className="rounded-md bg-info-soft px-2 py-1.5 text-xs font-semibold text-info-content"
               role="status"
             >
               Live captions active
             </span>
           )}
-          <span className="rounded-md bg-white/8 px-3 py-1.5 text-xs font-black text-slate-100 ring-1 ring-white/10">
+          <span className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-muted-foreground ring-1 ring-border/10">
             {formatElapsedTime(elapsedSeconds)}
           </span>
         </div>
       </header>
 
-      <main className="flex min-h-0 flex-1">
+      <main className="relative flex min-h-0 min-w-0 flex-1">
         <section
           ref={stageContainerRef}
-          className="relative min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden"
+          className="relative min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6"
         >
           <MeetingRoomReactionOverlay
             containerRef={stageContainerRef}
@@ -270,32 +272,34 @@ export function MeetingRoomContent({
             />
             {showParticipantPagination ? (
               <div className="mt-6 shrink-0">
-                <div className="mx-auto flex w-fit items-center justify-center gap-2 rounded-md bg-black/24 px-2 py-1.5 text-xs font-black text-slate-100 ring-1 ring-white/8 backdrop-blur">
-                  <button
+                <div className="mx-auto flex w-fit items-center justify-center gap-2 rounded-md bg-muted px-2 py-1.5 text-xs font-semibold text-muted-foreground ring-1 ring-border/8">
+                  <Button variant="ghost"
                     type="button"
                     disabled={!canGoPrevious}
                     onClick={goToPreviousParticipantPage}
-                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-200 sm:w-auto sm:gap-1.5 sm:px-2.5"
+                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-control transition disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground sm:w-auto sm:gap-1.5 sm:px-2.5"
                     aria-label="Previous"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    <span className="hidden sm:inline">Previous</span>
-                  </button>
+                    <span className="hidden sm:inline">
+                      Previous
+                    </span>
+                  </Button>
 
-                  <span className="min-w-14 rounded-md bg-white/6 px-2.5 py-1.5 text-center text-slate-300 ring-1 ring-white/6">
+                  <span className="min-w-14 rounded-md bg-accent px-2.5 py-1.5 text-center text-muted-foreground ring-1 ring-border/6">
                     {currentParticipantPage} / {totalParticipantPages}
                   </span>
 
-                  <button
+                  <Button variant="ghost"
                     type="button"
                     disabled={!canGoNext}
                     onClick={goToNextParticipantPage}
-                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-200 sm:w-auto sm:gap-1.5 sm:px-2.5"
+                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-control transition disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-muted-foreground sm:w-auto sm:gap-1.5 sm:px-2.5"
                     aria-label="Next"
                   >
                     <span className="hidden sm:inline">Next</span>
                     <ChevronRight className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : null}
@@ -329,6 +333,31 @@ export function MeetingRoomContent({
           onToggleParticipantPin={toggleParticipantPin}
           onClose={closePanel}
         />
+      <MeetingRoomMobilePanelHeader
+        activePanel={activePanel}
+        joinToken={joinToken}
+        meetingId={meetingId}
+        participantRole={currentParticipantRole}
+        participantCount={participantCount}
+        autoAdmit={autoAdmit}
+        onAutoAdmitChange={setAutoAdmit}
+        chatEnabled={chatEnabled}
+        onChatEnabledChange={setChatEnabled}
+        screenShareEnabled={screenShareEnabled}
+        onScreenShareEnabledChange={setScreenShareEnabled}
+        activeScreenShareUserId={activeScreenShareUserId}
+        chatMuted={chatMuted}
+        isChatNotificationPreferencePending={
+          isChatNotificationPreferencePending
+        }
+        onChatMutedChange={setChatMuted}
+        mutedParticipantIds={mutedParticipantIds}
+        pinnedParticipantId={pinnedParticipantId}
+        isParticipantViewPreferencePending={isParticipantViewPreferencePending}
+        onToggleParticipantAudioMute={toggleParticipantAudioMute}
+        onToggleParticipantPin={toggleParticipantPin}
+        onClose={closePanel}
+      />
       </main>
 
       <MeetingRoomFooter
@@ -358,31 +387,7 @@ export function MeetingRoomContent({
         isEndPending={isEndPending}
       />
 
-      <MeetingRoomMobilePanelHeader
-        activePanel={activePanel}
-        joinToken={joinToken}
-        meetingId={meetingId}
-        participantRole={currentParticipantRole}
-        participantCount={participantCount}
-        autoAdmit={autoAdmit}
-        onAutoAdmitChange={setAutoAdmit}
-        chatEnabled={chatEnabled}
-        onChatEnabledChange={setChatEnabled}
-        screenShareEnabled={screenShareEnabled}
-        onScreenShareEnabledChange={setScreenShareEnabled}
-        activeScreenShareUserId={activeScreenShareUserId}
-        chatMuted={chatMuted}
-        isChatNotificationPreferencePending={
-          isChatNotificationPreferencePending
-        }
-        onChatMutedChange={setChatMuted}
-        mutedParticipantIds={mutedParticipantIds}
-        pinnedParticipantId={pinnedParticipantId}
-        isParticipantViewPreferencePending={isParticipantViewPreferencePending}
-        onToggleParticipantAudioMute={toggleParticipantAudioMute}
-        onToggleParticipantPin={toggleParticipantPin}
-        onClose={closePanel}
-      />
+
 
       <MeetingRoomAudioRenderer mutedParticipantIds={mutedParticipantIds} />
       <MeetingAlertDialog {...alertDialogProps} />

@@ -42,10 +42,10 @@ export function MeetingRecordingBanner({
   return (
     <span
       role="status"
-      className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-bold ${recording.status === "PAUSED" ? "bg-amber-500/15 text-amber-200" : "bg-red-500/15 text-red-200"}`}
+      className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold ${recording.status === "PAUSED" ? "bg-warning-soft text-warning-content" : "bg-destructive-soft text-destructive-content"}`}
     >
       <span
-        className={`h-2 w-2 rounded-full ${recording.status === "PAUSED" ? "bg-amber-500" : "bg-red-500"}`}
+        className={`h-2 w-2 rounded-full ${recording.status === "PAUSED" ? "bg-warning-content" : "bg-destructive-content"}`}
       />
       {recording.status === "RECORDING"
         ? `REC ${formatElapsedTime(elapsed)}`

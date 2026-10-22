@@ -15,6 +15,8 @@ import {
   getAuthenticatedHomePath,
   getReturnToFromSearch,
 } from "../utils/auth-redirect";
+import { Button } from "@/components/ui/button";
+
 
 const SocialLoginButtons = React.memo(function SocialLoginButtons() {
   const dispatch = useDispatch<AppDispatch>();
@@ -68,11 +70,11 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
 
   return (
     <div className="flex justify-between items-center gap-2 ">
-      <button
+      <Button variant="unstyled"
         type="button"
         onClick={() => login()}
         disabled={socialLoginMutation.isPending}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer disabled:opacity-70"
+        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-5 text-sm font-bold text-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:bg-background active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer disabled:opacity-70"
       >
         <Image
           src="https://thesvg.org/icons/google/default.svg"
@@ -81,7 +83,7 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
           height={20}
         />
         Google
-      </button>
+      </Button>
     </div>
   );
 });

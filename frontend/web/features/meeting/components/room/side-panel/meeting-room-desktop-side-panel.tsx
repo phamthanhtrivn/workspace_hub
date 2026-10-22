@@ -1,11 +1,14 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import { X } from "lucide-react";
 import { MeetingRoomPanel } from "../../../types/meeting.types";
 import type { MeetingRoomSidePanelProps } from "../../../types/meeting.types";
 import { MeetingRoomPanelContent } from "./meeting-room-panel-content";
 import { getPanelTitle } from "@/features/meeting/utils/meeting-room.utils";
 import { MeetingChatNotificationToggleButton } from "./meeting-chat-notification-toggle-button";
+
 
 export function MeetingRoomDesktopSidePanel({
   activePanel,
@@ -33,9 +36,9 @@ export function MeetingRoomDesktopSidePanel({
   if (activePanel === MeetingRoomPanel.NONE) return null;
 
   return (
-    <aside className="hidden min-h-0 w-100 shrink-0 flex-col border-l border-white/10 bg-[#0d1420] p-4 lg:flex">
+    <aside className="hidden min-h-0 min-w-0 w-[400px] shrink-0 flex-col overflow-hidden border-l border-border bg-card p-4 @min-[1060px]/meeting-room:flex">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-black">
+        <h2 className="text-section-title font-semibold">
           {getPanelTitle(activePanel)}
         </h2>
         <div className="flex shrink-0 items-center gap-2">
@@ -44,17 +47,17 @@ export function MeetingRoomDesktopSidePanel({
               muted={chatMuted}
               disabled={isChatNotificationPreferencePending}
               onMutedChange={onChatMutedChange}
-              className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg bg-white/8 text-slate-300 transition hover:bg-white/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-not-allowed disabled:opacity-60"
+              className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg bg-accent text-muted-foreground transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
             />
           ) : null}
-          <button
+          <IconButton label="Close" showTooltip={false} size="icon-sm"
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg bg-white/8 text-slate-300 transition hover:bg-white/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-control bg-accent text-muted-foreground transition hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="h-4 w-4" />
-          </button>
+          </IconButton>
         </div>
       </div>
 

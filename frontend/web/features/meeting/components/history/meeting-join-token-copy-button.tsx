@@ -5,6 +5,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { copyTextFallback } from "../../utils/meeting-history.utils";
+import { Button } from "@/components/ui/button";
+
 
 interface MeetingJoinTokenCopyButtonProps {
   joinToken: string;
@@ -38,11 +40,11 @@ export function MeetingJoinTokenCopyButton({
   const copyLabel = `Copy join token ${joinToken}`;
 
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={handleCopy}
       className={cn(
-        "flex min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-md text-xs font-bold text-slate-500 transition hover:text-[#0052CC] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2",
+        "flex min-w-0 max-w-full cursor-pointer items-center gap-2 rounded-md text-xs font-semibold text-muted-foreground transition hover:text-info-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         className,
       )}
       aria-label={copyLabel}
@@ -50,14 +52,14 @@ export function MeetingJoinTokenCopyButton({
     >
       {copied ? (
         <Check
-          className={cn("h-4 w-4 shrink-0 text-emerald-600", iconClassName)}
+          className={cn("h-4 w-4 shrink-0 text-success-content", iconClassName)}
         />
       ) : (
         <Hash
-          className={cn("h-4 w-4 shrink-0 text-[#0052CC]", iconClassName)}
+          className={cn("h-4 w-4 shrink-0 text-info-content", iconClassName)}
         />
       )}
       <span className="truncate font-mono">{joinToken}</span>
-    </button>
+    </Button>
   );
 }

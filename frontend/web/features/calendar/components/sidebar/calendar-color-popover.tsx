@@ -1,107 +1,24 @@
 "use client";
 
-import { Check, MoreVertical, Plus } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CustomColorPicker } from "@/components/ui/custom/custom-color-picker";
 import { CALENDAR_COLOR_CHOICES } from "../../types/calendar.constants";
 
-export function CalendarColorPopover({
-  value,
-  label,
-  pending = false,
-  triggerClassName,
-  onChange,
-}: {
-  value: string;
-  label: string;
-  pending?: boolean;
-  triggerClassName?: string;
+export function CalendarColorPopover({ value, label, pending = false, triggerClassName, onChange }: {
+  value: string; label: string; pending?: boolean; triggerClassName?: string;
   onChange: (color: string) => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const closeOnOutsidePress = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-
-    document.addEventListener("pointerdown", closeOnOutsidePress);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePress);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [open]);
-
-  const selectColor = (color: string) => {
-    void Promise.resolve(onChange(color)).finally(() => setOpen(false));
-  };
-
-  return (
-    <div ref={rootRef} className="relative">
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={() => setOpen((current) => !current)}
-        className={cn(
-          "grid h-6 w-6 cursor-pointer place-items-center rounded-md text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
-          triggerClassName,
-          open && "!opacity-100 bg-slate-100 text-slate-700",
-        )}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        aria-label={label}
-      >
-        <MoreVertical className="h-3.5 w-3.5" />
-      </Button>
-
-      {open && (
-        <div
-          role="dialog"
-          aria-label={label}
-          className="absolute right-0 top-[calc(100%+0.1rem)] z-30 w-[12.5rem] rounded-lg border border-slate-200 bg-white p-3 shadow-[0_6px_18px_rgba(15,23,42,0.2)]"
-        >
-          <div className="grid grid-cols-6 gap-2">
-            {CALENDAR_COLOR_CHOICES.map((color) => (
-              <Button
-                key={color}
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={pending}
-                onClick={() => selectColor(color)}
-                className="grid h-6 w-6 cursor-pointer place-items-center rounded-full ring-1 ring-black/5 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-wait disabled:opacity-60"
-                style={{ backgroundColor: color }}
-                aria-label={color}
-              >
-                {value.toLowerCase() === color.toLowerCase() && (
-                  <Check className="h-3.5 w-3.5 text-white" />
-                )}
-              </Button>
-            ))}
-            <label className="relative grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-slate-100 text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-200 focus-within:ring-2 focus-within:ring-blue-500">
-              <Plus className="h-3.5 w-3.5" />
-              <Input
-                type="color"
-                defaultValue={value}
-                disabled={pending}
-                onChange={(event) => selectColor(event.target.value)}
-                className="absolute inset-0 cursor-pointer opacity-0"
-                aria-label={label}
-              />
-            </label>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  return <Popover open={open} onOpenChange={setOpen}>
+    <PopoverTrigger asChild><Button type="button" variant="ghost" size="icon-sm" aria-label={label} disabled={pending} className={triggerClassName}>
+      <MoreVertical aria-hidden className="size-4" />
+    </Button></PopoverTrigger>
+    <PopoverContent align="end" className="max-w-[calc(100vw-1rem)] p-3" aria-label={label}>
+      <CustomColorPicker key={value} value={value} options={CALENDAR_COLOR_CHOICES} ariaLabel={label} disabled={pending}
+        onChange={(color) => { void Promise.resolve(onChange(color)).then(() => setOpen(false), () => {}); }} />
+    </PopoverContent>
+  </Popover>;
 }

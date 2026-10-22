@@ -4,13 +4,16 @@ import React, { useEffect, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { UserTheme, UserTimezone } from "../types/settings.enums";
+import { USER_SETTING_SAVE_ERROR, UserTheme } from "../types/settings.enums";
 import { UserSettings } from "../types/user-setting.types";
 import {
   useUpdateUserSettingsMutation,
   useUserSettingsQuery,
 } from "../hooks/useUserSettingQueries";
 import { getUserSettingErrorMessage } from "../utils/user-setting-error";
+import { QueryFeedback } from "@/components/common/query-feedback";
+import { useSettingsDraft } from "../hooks/use-settings-draft";
+import { UserSettingTab } from "../types/settings.enums";
 import { SettingSelect, SettingSwitchCard } from "./ui/setting-form-controls";
 
 const THEME_OPTIONS = [
@@ -18,24 +21,19 @@ const THEME_OPTIONS = [
   { value: UserTheme.DARK, label: "Dark" },
 ];
 
-const TIMEZONE_OPTIONS = [
-  {
-    value: UserTimezone.ASIA_HO_CHI_MINH,
-    label: "Asia/Ho_Chi_Minh (GMT+7)",
-  },
-  { value: UserTimezone.UTC, label: "UTC" },
-];
-
 const SettingsTab = React.memo(function SettingsTab() {
-  const { data: settingsResponse, isLoading } = useUserSettingsQuery();
+  const settingsQuery = useUserSettingsQuery();
+  const { data: settingsResponse, isLoading } = settingsQuery;
   const settingsMutation = useUpdateUserSettingsMutation();
   const [settingsForm, setSettingsForm] = useState<UserSettings | null>(null);
 
+  const [savedValue, setSavedValue] = useState("null");
+  const dirty = settingsForm !== null && JSON.stringify(settingsForm) !== savedValue;
   useEffect(() => {
-    if (settingsResponse?.data) {
-      setSettingsForm(settingsResponse.data);
+    if (settingsResponse?.data && !dirty) {
+      setSettingsForm(settingsResponse.data); setSavedValue(JSON.stringify(settingsResponse.data));
     }
-  }, [settingsResponse]);
+  }, [settingsResponse, dirty]);
 
   const updateLocalSetting = <Key extends keyof UserSettings>(
     key: Key,
@@ -51,46 +49,44 @@ const SettingsTab = React.memo(function SettingsTab() {
     );
   };
 
-  const handleSaveSettings = () => {
-    if (!settingsForm) return;
-
-    settingsMutation.mutate(
-      {
-        theme: settingsForm.theme,
-        language: settingsForm.language,
-        timezone: settingsForm.timezone,
-        allowNewDirectMessages: settingsForm.allowNewDirectMessages,
-        muteNotification: settingsForm.muteNotification,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Settings saved successfully");
-        },
-        onError: (error) => {
-          toast.error(
-            getUserSettingErrorMessage(error, "Failed to save settings"),
-          );
-        },
-      },
-    );
+  const handleSaveSettings = async () => {
+    if (!settingsForm || settingsMutation.isPending) return false;
+    try {
+      const response = await settingsMutation.mutateAsync({
+        theme: settingsForm.theme, language: settingsForm.language, timezone: settingsForm.timezone,
+        allowNewDirectMessages: settingsForm.allowNewDirectMessages, muteNotification: settingsForm.muteNotification,
+      });
+      setSettingsForm(response.data); setSavedValue(JSON.stringify(response.data));
+      toast.success("Settings saved successfully");
+      return true;
+    } catch (error) { toast.error(getUserSettingErrorMessage(error, USER_SETTING_SAVE_ERROR)); return false; }
   };
+  useSettingsDraft(UserSettingTab.GENERAL, {
+    dirty, pending: settingsMutation.isPending, save: handleSaveSettings,
+    discard: () => { setSettingsForm(settingsResponse?.data ?? null); setSavedValue(JSON.stringify(settingsResponse?.data ?? null)); },
+  });
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[var(--color-primary)]" />
-      </div>
-    );
-  }
-
-  if (!settingsForm) return null;
+  if (!settingsForm) return <QueryFeedback label="preferences" pending={isLoading} error={settingsQuery.isError} retrying={settingsQuery.isFetching} onRetry={() => settingsQuery.refetch()} />;
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
-      <h3 className="text-2xl font-black text-slate-800">Preferences</h3>
+    <form onSubmit={event => { event.preventDefault(); void handleSaveSettings(); }} className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+      <QueryFeedback label="preferences" error={settingsQuery.isError} retrying={settingsQuery.isFetching} onRetry={() => settingsQuery.refetch()} />
+      <h3 className="text-section-title font-semibold text-foreground">Preferences</h3>
 
       <div className="space-y-4">
-        <h4 className="text-lg font-bold text-slate-800">Notifications</h4>
+        <SettingSelect
+          label="Appearance"
+          ariaLabel="Theme"
+          value={settingsForm.theme}
+          options={THEME_OPTIONS}
+          onChange={(theme) => updateLocalSetting("theme", theme)}
+          disabled={settingsMutation.isPending}
+        />
+        <p className="text-sm text-muted-foreground">
+          Choose Light or Dark, then save your settings to apply it.
+        </p>
+
+        <h4 className="text-lg font-semibold text-foreground">Notifications</h4>
 
         <SettingSwitchCard
           title="Mute Notifications"
@@ -102,8 +98,8 @@ const SettingsTab = React.memo(function SettingsTab() {
           disabled={settingsMutation.isPending}
         />
 
-        <hr className="my-4 border-slate-200" />
-        <h4 className="text-lg font-bold text-slate-800">Privacy</h4>
+        <hr className="my-4 border-border" />
+        <h4 className="text-lg font-semibold text-foreground">Privacy</h4>
 
         <SettingSwitchCard
           title="Allow New Direct Messages"
@@ -116,9 +112,9 @@ const SettingsTab = React.memo(function SettingsTab() {
         />
 
         <Button
-          onClick={handleSaveSettings}
+          type="submit"
           disabled={settingsMutation.isPending}
-          className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-dark)] text-sm font-bold text-white shadow-md transition hover:bg-[var(--color-primary)] cursor-pointer"
+          className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary cursor-pointer"
         >
           {settingsMutation.isPending ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -128,7 +124,7 @@ const SettingsTab = React.memo(function SettingsTab() {
           Save Settings
         </Button>
       </div>
-    </div>
+    </form>
   );
 });
 

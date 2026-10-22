@@ -11,27 +11,31 @@ import {
   updateScheduledMeeting,
 } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
+import { MEETING_LIST_PAGE_SIZE } from "../types/meeting.constants";
 import type {
   JoinMeetingPayload,
   ScheduledMeetingPayload,
   UpdateScheduledMeetingPayload,
 } from "../types/meeting.types";
 
-export const upcomingMeetingsPageSize = 9;
+export const upcomingMeetingsPageSize = MEETING_LIST_PAGE_SIZE;
 
 export function useUpcomingMeetings({
   page = 1,
   limit = upcomingMeetingsPageSize,
   enabled = true,
+  refetchOnWindowFocus = false,
 }: {
   page?: number;
   limit?: number;
   enabled?: boolean;
+  refetchOnWindowFocus?: boolean;
 }) {
   return useQuery({
     queryKey: meetingKeys.upcoming(page, limit),
     queryFn: () => getUpcomingMeetings({ page, limit }),
     enabled,
+    refetchOnWindowFocus,
   });
 }
 

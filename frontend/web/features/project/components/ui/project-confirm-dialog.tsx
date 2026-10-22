@@ -34,17 +34,17 @@ const iconByVariant = {
 };
 
 const iconBgByVariant: Record<ProjectConfirmVariant, string> = {
-  danger: "bg-red-50 text-red-600 ring-1 ring-red-100",
-  warning: "bg-amber-50 text-amber-600 ring-1 ring-amber-100",
-  info: "bg-blue-50 text-[#0052CC] ring-1 ring-blue-100",
-  question: "bg-blue-50 text-[#0052CC] ring-1 ring-blue-100",
+  danger: "bg-destructive-soft text-destructive-content ring-1 ring-destructive-outline",
+  warning: "bg-warning-soft text-warning-content ring-1 ring-warning-outline",
+  info: "bg-info-soft text-info-content ring-1 ring-ring",
+  question: "bg-info-soft text-info-content ring-1 ring-ring",
 };
 
 const confirmButtonClassByVariant: Record<ProjectConfirmVariant, string> = {
-  danger: "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500",
-  warning: "bg-amber-600 text-white hover:bg-amber-700 focus-visible:ring-amber-500",
-  info: "bg-[#0052CC] text-white hover:bg-[#0747A6] focus-visible:ring-blue-500",
-  question: "bg-[#0052CC] text-white hover:bg-[#0747A6] focus-visible:ring-blue-500",
+  danger: "bg-destructive text-destructive-foreground hover:bg-destructive focus-visible:ring-ring",
+  warning: "bg-warning text-warning-foreground hover:bg-warning focus-visible:ring-ring",
+  info: "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:ring-ring",
+  question: "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:ring-ring",
 };
 
 export function ProjectConfirmDialog({
@@ -64,25 +64,25 @@ export function ProjectConfirmDialog({
     <AlertDialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isLoading && onCancel()}>
       <AlertDialogContent
         role="alertdialog"
-        className="max-w-md rounded-2xl border-slate-100 bg-white p-6 text-slate-800 shadow-xl sm:rounded-2xl"
+        className="max-w-md rounded-panel border-border bg-card p-6 text-foreground sm:rounded-panel"
         showCloseButton={false}
       >
         <AlertDialogHeader className="text-left">
           <div className="flex items-start gap-4">
             <div
               className={cn(
-                "grid h-10 w-10 shrink-0 place-items-center rounded-xl",
+                "grid h-10 w-10 shrink-0 place-items-center rounded-panel",
                 iconBgByVariant[variant]
               )}
             >
               <IconComponent className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <AlertDialogTitle className="text-base font-bold leading-6 text-slate-900">
+              <AlertDialogTitle className="text-base font-semibold leading-6 text-foreground">
                 {title}
               </AlertDialogTitle>
               {description ? (
-                <AlertDialogDescription className="mt-1.5 text-sm font-medium leading-relaxed text-slate-500">
+                <AlertDialogDescription className="mt-1.5 text-sm font-medium leading-relaxed text-muted-foreground">
                   {description}
                 </AlertDialogDescription>
               ) : null}
@@ -96,7 +96,7 @@ export function ProjectConfirmDialog({
             variant="outline"
             disabled={isLoading}
             onClick={onCancel}
-            className="h-9 cursor-pointer rounded-lg border-slate-200 px-4 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-800 disabled:opacity-50"
+            className="h-9 cursor-pointer rounded-control border-border px-4 text-xs font-semibold text-muted-foreground hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             {cancelLabel}
           </Button>
@@ -105,7 +105,7 @@ export function ProjectConfirmDialog({
             disabled={isLoading}
             onClick={() => void onConfirm()}
             className={cn(
-              "h-9 cursor-pointer rounded-lg px-4 text-xs font-bold shadow-sm transition disabled:opacity-50",
+              "h-9 cursor-pointer rounded-control px-4 text-xs font-semibold transition disabled:opacity-50",
               confirmButtonClassByVariant[variant]
             )}
           >

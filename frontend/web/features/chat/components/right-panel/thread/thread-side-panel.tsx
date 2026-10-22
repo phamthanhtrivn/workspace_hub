@@ -12,6 +12,8 @@ import {
   useActiveThreadRootMessage,
 } from "../../../hooks/useChatQueries";
 import ThreadDetailView from "./thread-detail-view";
+import { Button } from "@/components/ui/button";
+
 
 function getMessageConversationId(
   message: Partial<ChatMessageResponse> | null | undefined,
@@ -45,19 +47,19 @@ export default function ThreadSidePanel() {
   }
 
   return (
-    <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
-      <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between shrink-0">
-        <h2 className="font-semibold text-gray-800">
+    <div className="w-full h-full min-h-0 min-w-0 bg-card border-l border-border flex flex-col">
+      <div className="min-h-16 shrink-0 flex-wrap gap-2 py-2 px-4 border-b border-border flex items-center justify-between shrink-0">
+        <h2 className="font-semibold text-foreground">
           Thread Discussion
         </h2>
-        <button
+        <Button variant="unstyled" aria-label="Close"
           onClick={handleClose}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-muted rounded-full text-muted-foreground transition"
         >
           <X size={20} />
-        </button>
+        </Button>
       </div>
-      <div className="flex-1 min-h-0 flex items-center justify-center text-xs font-medium text-gray-400">
+      <div className="flex-1 min-h-0 flex items-center justify-center text-xs font-medium text-muted-foreground">
         Loading thread...
       </div>
     </div>

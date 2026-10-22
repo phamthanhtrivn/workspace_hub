@@ -2,12 +2,16 @@
 
 import React, { useRef, useState, KeyboardEvent, ClipboardEvent } from "react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 interface OtpInputProps {
   length?: number;
   value: string;
   onChange: (value: string) => void;
   className?: string;
+  label?: string;
+  error?: string;
+  description?: string;
 }
 
 export const OtpInput = React.memo(function OtpInput({
@@ -15,7 +19,11 @@ export const OtpInput = React.memo(function OtpInput({
   value,
   onChange,
   className,
+  label = "Verification code",
+  error,
+  description,
 }: OtpInputProps) {
+  const id = React.useId();
   const [activeInput, setActiveInput] = useState(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -49,7 +57,16 @@ export const OtpInput = React.memo(function OtpInput({
     const val = e.target.value;
     if (!/^[0-9]*$/.test(val)) return; // Only allow numbers
 
-    // Get only the last character entered
+    // Native one-time-code autofill may enter the full code into one cell.
+    if (val.length > 1) {
+      const prefix = value.slice(0, index);
+      const next = (prefix + val).slice(0, length);
+      onChange(next);
+      focusInput(Math.min(next.length, length - 1));
+      return;
+    }
+
+    // Ordinary typing replaces the current digit.
     const char = val.slice(-1);
 
     const newValue = value.split("");
@@ -81,31 +98,38 @@ export const OtpInput = React.memo(function OtpInput({
   };
 
   return (
+    <div role="group" aria-label={label} aria-describedby={error || description ? `${id}-description` : undefined}>
     <div className={cn("flex justify-between items-center gap-2", className)}>
       {Array.from({ length }, (_, index) => (
-        <input
+        <Input
           key={index}
           ref={(el) => {
             inputRefs.current[index] = el;
           }}
           type="text"
+          autoFocus={index === 0}
+          aria-label={`${label}, digit ${index + 1} of ${length}`}
+          aria-invalid={Boolean(error) || undefined}
+          aria-describedby={error || description ? `${id}-description` : undefined}
           inputMode="numeric"
           autoComplete="one-time-code"
-          maxLength={2}
+          maxLength={length}
           value={value[index] || ""}
           onChange={(e) => handleChange(e, index)}
           onKeyDown={(e) => handleKeyDown(e, index)}
           onPaste={handlePaste}
           onFocus={() => setActiveInput(index)}
           className={cn(
-            "w-12 h-14 text-center text-2xl font-semibold border-2 rounded-xl bg-transparent transition-all outline-none",
-            "focus:border-primary focus:ring-2 focus:ring-primary/20",
+            "min-w-0 w-12 h-14 text-center text-2xl font-semibold border-2 rounded-xl bg-transparent transition-all outline-none",
+            "focus:border-primary focus:ring-2 focus:ring-ring",
             activeInput === index
               ? "border-primary"
-              : "border-gray-300 dark:border-gray-700",
+              : "border-input dark:border-input",
           )}
         />
       ))}
+    </div>
+    {(error || description) && <p id={`${id}-description`} role={error ? "alert" : undefined} className={cn("mt-2 text-xs", error ? "text-destructive-content" : "text-muted-foreground")}>{error || description}</p>}
     </div>
   );
 });

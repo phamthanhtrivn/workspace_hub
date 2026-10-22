@@ -103,12 +103,12 @@ function CalendarTaskRow({
       onMouseDown={(mouseEvent) => listeners?.onMouseDown?.(mouseEvent)}
       onTouchStart={(touchEvent) => listeners?.onTouchStart?.(touchEvent)}
       className={cn(
-        "group flex flex-col cursor-grab touch-pan-y rounded-xl border bg-white transition-[border-color,background-color,opacity,box-shadow] duration-200 active:cursor-grabbing",
+        "group flex flex-col cursor-grab touch-pan-y rounded-panel border bg-card transition-[border-color,background-color,opacity,box-shadow] duration-200 active:cursor-grabbing",
         isActive
-          ? "border-blue-300 bg-blue-50/70 shadow-2xs"
-          : "border-slate-200/90 hover:border-slate-300 hover:bg-slate-50/40",
-        isOver && !isDragging && "border-blue-400 bg-blue-50/70",
-        isDragging && "z-10 opacity-60 shadow-md",
+          ? "border-info-outline bg-info-soft/70"
+          : "border-border hover:border-input hover:bg-background",
+        isOver && !isDragging && "border-info-outline bg-info-soft/70",
+        isDragging && "z-10 opacity-60",
       )}
     >
       <div className="flex items-stretch">
@@ -118,7 +118,7 @@ function CalendarTaskRow({
           disabled={isSaving}
           aria-label={`Drag task ${event.title} to reorder`}
           title="Drag to reorder · use ↑/↓ keys"
-          className="h-auto px-0 flex w-8 shrink-0 items-center justify-center rounded-l-xl text-slate-400 transition-colors hover:bg-slate-100/70 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-300 disabled:cursor-wait disabled:opacity-40"
+          className="h-auto px-0 flex w-8 shrink-0 items-center justify-center rounded-l-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:cursor-wait disabled:opacity-40"
           {...attributes}
           onKeyDown={handleKeyDown}
         >
@@ -131,20 +131,20 @@ function CalendarTaskRow({
           onClick={onSelect}
           title={note ? `${event.title} — ${note}` : event.title}
           className={cn(
-            "h-auto whitespace-normal rounded-none px-0 shadow-none flex min-w-0 flex-1 flex-col justify-center py-2 pl-1 text-left text-xs transition-colors hover:bg-blue-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-300",
+            "h-auto whitespace-normal rounded-none px-0 shadow-none flex min-w-0 flex-1 flex-col justify-center py-2 pl-1 text-left text-xs transition-colors hover:bg-info-soft/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
             "pr-1.5",
           )}
         >
           <div className="flex w-full items-center justify-between gap-2">
-            <span className="truncate font-semibold text-slate-800">
+            <span className="truncate font-semibold text-foreground">
               {event.title}
             </span>
             <span
               className={cn(
-                "shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-medium tabular-nums transition-colors",
+                "shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums transition-colors",
                 isActive
-                  ? "bg-blue-100/80 text-blue-800"
-                  : "bg-slate-100 text-slate-500 group-hover:bg-slate-200/60",
+                  ? "bg-info-soft/80 text-info-content"
+                  : "bg-muted text-muted-foreground group-hover:bg-accent/60",
               )}
             >
               {new Date(event.startAt).toLocaleTimeString(POMODORO_DISPLAY_LOCALE, {
@@ -155,9 +155,9 @@ function CalendarTaskRow({
           </div>
 
           {note && !isNoteExpanded && (
-            <div className="mt-1 flex w-full items-center gap-1.5 text-[11px] text-slate-500">
+            <div className="mt-1 flex w-full items-center gap-1.5 text-xs text-muted-foreground">
               <StickyNote
-                className="size-3 shrink-0 text-amber-500"
+                className="size-3 shrink-0 text-warning-content"
                 aria-hidden="true"
               />
               <span className="truncate leading-snug">{note}</span>
@@ -182,8 +182,8 @@ function CalendarTaskRow({
               isNoteExpanded ? "Collapse notes" : `Show all notes: ${note}`
             }
             className={cn(
-              "px-0 mr-1.5 my-auto flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300",
-              isNoteExpanded && "bg-amber-50 text-amber-600",
+              "px-0 mr-1.5 my-auto flex size-7 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-warning-soft hover:text-warning-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              isNoteExpanded && "bg-warning-soft text-warning-content",
             )}
           >
             <ChevronDown
@@ -203,7 +203,7 @@ function CalendarTaskRow({
               onTouchStart={(event) => event.stopPropagation()}
               aria-label={`Actions for task ${event.title}`}
               title="Actions"
-              className="px-0 my-auto mr-1 flex size-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+              className="px-0 my-auto mr-1 flex size-7 shrink-0 items-center justify-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <EllipsisVertical className="size-4" />
             </Button>
@@ -213,7 +213,7 @@ function CalendarTaskRow({
             aria-label={`Actions for task ${event.title}`}
             align="end"
             sideOffset={6}
-            className="z-[120] w-40 rounded-xl border-slate-200 p-1.5 shadow-lg"
+            className="w-40 rounded-panel border-border p-1.5"
           >
             <Button variant="ghost"
               type="button"
@@ -222,7 +222,7 @@ function CalendarTaskRow({
                 setIsMenuOpen(false);
                 onRequestDelete();
               }}
-              className="h-auto justify-start whitespace-normal px-0 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200"
+              className="h-auto justify-start whitespace-normal px-0 flex w-full items-center gap-2 rounded-control px-2.5 py-2 text-left text-xs font-semibold text-destructive-content transition-colors hover:bg-destructive-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Trash2 className="size-3.5" />
               Delete task
@@ -232,9 +232,9 @@ function CalendarTaskRow({
       </div>
 
       {note && isNoteExpanded && (
-        <div className="mx-2.5 mb-2.5 mt-0.5 rounded-lg border border-amber-200/70 bg-amber-50/50 px-3 py-2 text-[11px] leading-relaxed text-slate-700">
-          <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
-            <StickyNote className="size-3 text-amber-500" aria-hidden="true" />
+        <div className="mx-2.5 mb-2.5 mt-0.5 rounded-lg border border-border bg-warning-soft/50 px-3 py-2 text-xs leading-relaxed text-foreground">
+          <div className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-warning-content">
+            <StickyNote className="size-3 text-warning-content" aria-hidden="true" />
             <span>Task notes</span>
           </div>
           <p className="whitespace-pre-wrap break-words">{note}</p>
@@ -325,21 +325,21 @@ export function PomodoroCalendarTaskList({
         <AlertDialogContent
           role="alertdialog"
           showCloseButton={false}
-          className="max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl"
+          className="max-w-sm rounded-panel border border-border bg-card p-5"
         >
           <div className="flex items-start gap-3.5">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-red-100 bg-red-50 text-red-600">
+            <span className="grid size-10 shrink-0 place-items-center rounded-panel border border-border bg-destructive-soft text-destructive-content">
               <AlertTriangle className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <AlertDialogTitle className="text-base font-bold leading-snug text-slate-900">
+              <AlertDialogTitle className="text-base font-semibold leading-snug text-foreground">
                 Delete task?
               </AlertDialogTitle>
-              <AlertDialogDescription className="mt-1.5 text-xs font-medium leading-relaxed text-slate-500">
+              <AlertDialogDescription className="mt-1.5 text-xs font-medium leading-relaxed text-muted-foreground">
                 Are you sure you want to delete “{deleteCandidate?.title}” from Calendar?
               </AlertDialogDescription>
               {deleteError && (
-                <p role="alert" className="mt-2 text-xs font-medium text-red-600">
+                <p role="alert" className="mt-2 text-xs font-medium text-destructive-content">
                   {deleteError}
                 </p>
               )}
@@ -354,7 +354,7 @@ export function PomodoroCalendarTaskList({
                 setDeleteCandidate(null);
                 setDeleteError("");
               }}
-              className="h-9 rounded-full border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-9 rounded-full border border-input bg-card px-4 text-xs font-semibold text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
             </Button>
@@ -362,7 +362,7 @@ export function PomodoroCalendarTaskList({
               type="button"
               disabled={isDeleting}
               onClick={() => void handleDelete()}
-              className="h-9 rounded-full bg-red-600 px-4 text-xs font-semibold text-white transition hover:bg-red-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              className="h-9 rounded-full bg-destructive px-4 text-xs font-semibold text-destructive-foreground transition hover:bg-destructive disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isDeleting ? "Deleting..." : "Delete task"}
             </Button>

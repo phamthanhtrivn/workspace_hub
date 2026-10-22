@@ -26,7 +26,7 @@ export default function MessageReadReceipts({
           return (
             <div
               key={userId}
-              className="w-4 h-4 rounded-full bg-slate-200 border-2 border-white overflow-hidden relative cursor-pointer shadow-sm hover:z-10 transition-transform hover:scale-105"
+              className="w-4 h-4 rounded-full bg-accent border-2 border-border overflow-hidden relative cursor-pointer hover:z-10 transition-transform"
               title={`${readerProfile?.fullName || "User"} viewed`}
             >
               {readerProfile?.avatarUrl ? (
@@ -39,16 +39,16 @@ export default function MessageReadReceipts({
                   className="w-full h-full object-cover animate-fade-in"
                 />
               ) : (
-                <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-slate-100 to-slate-200">
-                  <User size={10} className="text-slate-400" />
+                <div className="flex items-center justify-center w-full h-full bg-muted">
+                  <User size={10} className="text-muted-foreground" />
                 </div>
               )}
             </div>
           );
         })}
         {otherReaders.length > 5 && (
-          <div className="w-4 h-4 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center hover:z-10 relative z-0 shadow-sm">
-            <span className="text-[7px] text-slate-600 font-bold leading-none">
+          <div className="w-4 h-4 rounded-full bg-muted border-2 border-border flex items-center justify-center hover:z-10 relative z-0">
+            <span className="text-[7px] text-muted-foreground font-semibold leading-none">
               +{otherReaders.length - 5}
             </span>
           </div>

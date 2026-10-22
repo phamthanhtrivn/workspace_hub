@@ -17,6 +17,8 @@ import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import SeeAllButton from "../see-all-button";
 import { logApiError } from "@/lib/interceptors";
 import ThreadSnippetPreview from "./thread-snippet-preview";
+import { Button } from "@/components/ui/button";
+
 
 interface ThreadsSectionProps {
   conversationId: string;
@@ -78,29 +80,29 @@ export default function ThreadsSection({
 
   return (
     <div>
-      <button
+      <Button variant="unstyled"
         onClick={onToggle}
-        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
-        <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-          <MessageCircle size={18} className="text-gray-500" />
+        <div className="flex items-center gap-3 text-foreground font-medium text-sm">
+          <MessageCircle size={18} className="text-muted-foreground" />
           Threads
         </div>
         {isExpanded ? (
-          <ChevronDown size={16} className="text-gray-400" />
+          <ChevronDown size={16} className="text-muted-foreground" />
         ) : (
-          <ChevronRight size={16} className="text-gray-400" />
+          <ChevronRight size={16} className="text-muted-foreground" />
         )}
-      </button>
+      </Button>
 
       {isExpanded && (
         <div className="px-4 pb-3">
           {isLoading ? (
-            <div className="text-xs text-gray-400 py-2">
+            <div className="text-xs text-muted-foreground py-2">
               Loading threads...
             </div>
           ) : previewThreads.length === 0 ? (
-            <div className="text-xs text-gray-400 py-2">
+            <div className="text-xs text-muted-foreground py-2">
               No threads yet
             </div>
           ) : (
@@ -115,12 +117,12 @@ export default function ThreadsSection({
                   : null;
 
                 return (
-                  <button
+                  <Button variant="unstyled"
                     key={message.id}
                     onClick={() => onOpenThread(message)}
-                    className="w-full cursor-pointer flex items-start gap-2 rounded-lg p-2 text-left hover:bg-gray-100 transition"
+                    className="w-full cursor-pointer flex items-start gap-2 rounded-control p-2 text-left hover:bg-muted transition"
                   >
-                    <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-gray-100 flex items-center justify-center">
+                    <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-muted flex items-center justify-center">
                       {profile?.avatarUrl ? (
                         <Image
                           src={profile.avatarUrl}
@@ -130,25 +132,25 @@ export default function ThreadsSection({
                           className="h-7 w-7 rounded-full object-cover"
                         />
                       ) : (
-                        <User size={13} className="text-gray-400" />
+                        <User size={13} className="text-muted-foreground" />
                       )}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs font-semibold text-gray-800">
+                      <span className="block truncate text-xs font-semibold text-foreground">
                         {name}
                       </span>
                       <ThreadSnippetPreview content={message.content} />
-                      <span className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-blue-600">
+                      <span className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-info-content">
                         <MessageSquare size={11} />
                         {`${message.threadReplyCount} ${message.threadReplyCount === 1 ? "reply" : "replies"}`}
                         {lastReplyTime && (
-                          <span className="font-normal text-gray-400">
+                          <span className="font-normal text-muted-foreground">
                             · {lastReplyTime}
                           </span>
                         )}
                       </span>
                     </span>
-                  </button>
+                  </Button>
                 );
               })}
               {hasMore && (
@@ -161,7 +163,7 @@ export default function ThreadsSection({
         </div>
       )}
 
-      <div className="h-px bg-gray-100 mx-4 my-1" />
+      <div className="h-px bg-muted mx-4 my-1" />
     </div>
   );
 }

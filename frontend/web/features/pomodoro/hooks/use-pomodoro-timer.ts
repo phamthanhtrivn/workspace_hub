@@ -28,6 +28,8 @@ import { focusSessionTaskId, normalizeFocusTask } from "../utils/focus-task";
 import { prepareFocusTask } from "../api/focus-tasks.api";
 import { POMODORO_TASK_MESSAGES } from "../constants/pomodoro-task";
 
+import { usePomodoroDocumentTitle } from "./use-pomodoro-document-title";
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type PendingTimerState = Omit<Parameters<typeof saveCalendarPomodoroTimerState>[0], "expectedVersion">;
@@ -59,6 +61,8 @@ export function usePomodoroTimer(userId: string) {
   const [isTaskActionPending, setIsTaskActionPending] = useState(false);
   const taskActionInProgressRef = useRef(false);
   const [timeLeft, setTimeLeft] = useState<number>(25 * 60);
+  usePomodoroDocumentTitle(status, mode, timeLeft);
+
   const [totalDuration, setTotalDurationState] = useState<number>(25 * 60);
   const totalDurationRef = useRef(totalDuration);
   const setTotalDuration = useCallback((seconds: number) => {
@@ -92,7 +96,6 @@ export function usePomodoroTimer(userId: string) {
 
   const targetEndTimeRef = useRef<number | null>(null);
   const sessionStartTimeRef = useRef<number | null>(null);
-  const initialTitleRef = useRef<string>("");
   const isHydratedRef = useRef<boolean>(false);
   const stateVersionRef = useRef(0);
   const pendingStateRef = useRef<PendingTimerState | null>(null);
@@ -112,9 +115,6 @@ export function usePomodoroTimer(userId: string) {
   // Configuration is shared; this hook only restores the timer snapshot.
   useEffect(() => {
     mountedRef.current = true;
-    if (typeof document !== "undefined") {
-      initialTitleRef.current = document.title || "WorkSpaceHub";
-    }
 
     let mounted = true;
     const localTimerState = loadLocalPomodoroTimerState(userId);
@@ -174,7 +174,6 @@ export function usePomodoroTimer(userId: string) {
     return () => {
       mounted = false;
       mountedRef.current = false;
-      document.title = initialTitleRef.current;
       isHydratedRef.current = false;
       pendingStateRef.current = null;
     };
@@ -515,28 +514,10 @@ export function usePomodoroTimer(userId: string) {
 
         setTimeLeft(diff);
 
-        // Update Document Title with remaining time
-        if (typeof document !== "undefined") {
-          const m = Math.floor(diff / 60);
-          const s = diff % 60;
-          const timeFormatted = `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-          const modeTag =
-            mode === "FOCUS"
-              ? "🎯 Focus"
-              : mode === "SHORT_BREAK"
-                ? "☕ Short Break"
-                : "🌴 Long Break";
-          document.title = `(${timeFormatted}) ${modeTag} - WorkSpaceHub`;
-        }
-
         if (diff <= 0) {
           void handleSessionComplete();
         }
       }, 1000);
-    } else {
-      if (typeof document !== "undefined") {
-        document.title = initialTitleRef.current || "WorkSpaceHub";
-      }
     }
 
     return () => {

@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React from "react";
 import { AlertTriangle, Trash2, Info } from "lucide-react";
 import {
@@ -10,6 +12,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
 
 export type DocumentsConfirmVariant = "danger" | "warning" | "info";
 
@@ -32,15 +36,15 @@ const iconByVariant = {
 };
 
 const iconBgByVariant = {
-  danger: "bg-red-50 text-red-600 ring-1 ring-red-100",
-  warning: "bg-amber-50 text-amber-600 ring-1 ring-amber-100",
-  info: "bg-blue-50 text-blue-600 ring-1 ring-blue-100",
+  danger: "bg-destructive-soft text-destructive-content ring-1 ring-destructive-outline",
+  warning: "bg-warning-soft text-warning-content ring-1 ring-warning-outline",
+  info: "bg-info-soft text-info-content ring-1 ring-ring",
 };
 
 const confirmButtonClassByVariant = {
-  danger: "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500",
-  warning: "bg-amber-600 text-white hover:bg-amber-700 focus-visible:ring-amber-500",
-  info: "bg-blue-600 text-white hover:bg-blue-700 focus-visible:ring-blue-500",
+  danger: "bg-destructive text-destructive-foreground hover:bg-destructive focus-visible:ring-ring",
+  warning: "bg-warning text-warning-foreground hover:bg-warning focus-visible:ring-ring",
+  info: "bg-primary text-primary-foreground hover:bg-primary focus-visible:ring-ring",
 };
 
 export function DocumentsConfirmDialog({
@@ -60,19 +64,19 @@ export function DocumentsConfirmDialog({
     <AlertDialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isLoading && onCancel()}>
       <AlertDialogContent
         role="alertdialog"
-        className="max-w-md border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl"
+        className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}
         showCloseButton={false}
       >
         <div className="flex items-start gap-4">
-          <div className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-2xl", iconBgByVariant[variant])}>
+          <div className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-panel", iconBgByVariant[variant])}>
             <IconComponent className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <AlertDialogTitle className="text-base font-black leading-6 text-slate-800">
+            <AlertDialogTitle className="text-base font-semibold leading-6 text-foreground">
               {title}
             </AlertDialogTitle>
             {description ? (
-              <AlertDialogDescription className="mt-1.5 text-sm font-semibold leading-relaxed text-slate-500">
+              <AlertDialogDescription className="mt-1.5 text-sm font-semibold leading-relaxed text-muted-foreground">
                 {description}
               </AlertDialogDescription>
             ) : null}
@@ -80,25 +84,25 @@ export function DocumentsConfirmDialog({
         </div>
 
         <AlertDialogFooter className="mt-6 flex items-center justify-end gap-3 border-t-0 p-0">
-          <button
+          <Button variant="unstyled"
             type="button"
             disabled={isLoading}
             onClick={onCancel}
-            className="h-10 cursor-pointer rounded-2xl border border-slate-200 bg-white px-5 text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:text-slate-800 disabled:opacity-50"
+            className="h-10 cursor-pointer rounded-control border border-border bg-card px-5 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-foreground disabled:opacity-50"
           >
             {cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             type="button"
             disabled={isLoading}
             onClick={onConfirm}
             className={cn(
-              "h-10 cursor-pointer rounded-2xl px-5 text-xs font-bold transition shadow-md disabled:opacity-50",
+              "h-10 cursor-pointer rounded-control px-5 text-xs font-semibold transition disabled:opacity-50",
               confirmButtonClassByVariant[variant]
             )}
           >
             {isLoading ? "..." : confirmLabel}
-          </button>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

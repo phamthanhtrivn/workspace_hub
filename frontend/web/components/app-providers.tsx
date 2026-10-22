@@ -2,7 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { Toaster } from "sonner";
+import { ThemeProvider, ThemeToaster } from "@/components/common/theme-provider";
+import { AccountThemeSync } from "@/features/user-setting/components/account-theme-sync";
 import StoreProvider from "@/store/store-provider";
 import QueryProvider from "@/store/query-provider";
 import NotificationManagers from "@/features/notification/components/notification-managers";
@@ -18,14 +19,17 @@ export function AppProviders({
   // Egress authenticates with its room token and must render only meeting media.
   if (pathname === "/recording-template") return <>{children}</>;
   return (
-    <GoogleOAuthProvider clientId={googleClientId}>
-      <QueryProvider>
-        <StoreProvider>
-          {children}
-          <NotificationManagers />
-        </StoreProvider>
-      </QueryProvider>
-      <Toaster richColors position="top-right" />
-    </GoogleOAuthProvider>
+    <ThemeProvider>
+      <GoogleOAuthProvider clientId={googleClientId}>
+        <QueryProvider>
+          <StoreProvider>
+            <AccountThemeSync />
+            {children}
+            <NotificationManagers />
+          </StoreProvider>
+        </QueryProvider>
+        <ThemeToaster />
+      </GoogleOAuthProvider>
+    </ThemeProvider>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
-import { UploadCloud, Loader2, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { UploadCloud, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { UploadState } from "../../types/documents.enums";
 
 interface VersionUploaderProps {
@@ -39,50 +41,50 @@ export function VersionUploader({
         className="hidden"
       />
       {uploadState === UploadState.IDLE ? (
-        <div
+        <Button variant="unstyled" type="button"
           onClick={onTriggerFileSelect}
-          className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-2xl p-6 hover:bg-slate-50/50 hover:border-blue-400 cursor-pointer transition-all duration-200 group"
+          className="w-full text-left flex flex-col items-center justify-center border-2 border-dashed border-border rounded-panel p-6 hover:bg-background hover:border-info-outline cursor-pointer transition-all duration-200 group"
         >
-          <div className="p-3 bg-slate-50 text-slate-400 rounded-2xl group-hover:bg-blue-50 group-hover:text-blue-500 transition-all duration-200 mb-3">
+          <div className="p-3 bg-background text-muted-foreground rounded-panel group-hover:bg-info-soft group-hover:text-info-content transition-all duration-200 mb-3">
             <UploadCloud size={24} />
           </div>
-          <span className="text-sm font-black text-slate-700">
+          <span className="text-sm font-semibold text-foreground">
             Upload new version
           </span>
-          <span className="text-xs text-slate-400 font-bold mt-1">
+          <span className="text-xs text-muted-foreground font-semibold mt-1">
             Old versions will be kept safely in history
           </span>
-        </div>
+        </Button>
       ) : (
-        <div className="border border-slate-100 rounded-2xl p-5 bg-slate-50/30">
+        <div className="border border-border rounded-panel p-5 bg-background">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 min-w-0">
               {uploadState === UploadState.SUCCESS ? (
                 <CheckCircle2
                   size={16}
-                  className="text-green-500 shrink-0"
+                  className="text-success-content shrink-0"
                 />
-              ) : (
+              ) : uploadState === UploadState.ERROR ? <AlertCircle size={16} className="shrink-0 text-destructive-content" /> : (
                 <Loader2
                   size={16}
-                  className="text-blue-500 animate-spin shrink-0"
+                  className="text-info-content animate-spin shrink-0"
                 />
               )}
-              <span className="text-xs font-black text-slate-700 truncate max-w-xs">
+              <span className="text-xs font-semibold text-foreground truncate max-w-xs">
                 {uploadingFileName}
               </span>
             </div>
-            <span className="text-xs font-black text-slate-500">
+            <span className="text-xs font-semibold text-muted-foreground">
               {uploadProgress}%
             </span>
           </div>
-          <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+          <Progress value={uploadState === UploadState.ERROR ? null : uploadProgress} aria-label="Version upload progress" className="w-full bg-muted h-1.5 rounded-full overflow-hidden">
             <div
-              className="bg-blue-500 h-full rounded-full transition-all duration-300"
+              className="bg-link h-full rounded-full transition-all duration-200"
               style={{ width: `${uploadProgress}%` }}
             />
-          </div>
-          <p className="text-[10px] text-slate-400 font-bold mt-2">
+          </Progress>
+          <p role={uploadState === UploadState.ERROR ? "alert" : "status"} className="text-xs text-muted-foreground font-semibold mt-2">
             {statusMessage}
           </p>
         </div>

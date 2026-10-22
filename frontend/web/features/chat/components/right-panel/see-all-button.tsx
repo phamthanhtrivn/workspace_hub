@@ -1,4 +1,5 @@
-import { ChevronRight } from "lucide-react";
+import { ViewAllAction } from "@/components/common/view-all-action";
+import { cn } from "@/lib/utils";
 
 interface SeeAllButtonProps {
   children: React.ReactNode;
@@ -12,13 +13,11 @@ export default function SeeAllButton({
   className = "",
 }: SeeAllButtonProps) {
   return (
-    <button
-      type="button"
+    <ViewAllAction
+      label={children}
+      appearance="row"
       onClick={onClick}
-      className={`mt-3 flex w-full cursor-pointer items-center justify-between rounded-lg bg-blue-50 px-3 py-2 text-sm font-medium text-blue-600 transition hover:bg-blue-100 ${className}`}
-    >
-      <span className="truncate">{children}</span>
-      <ChevronRight size={15} className="shrink-0" />
-    </button>
+      className={cn("mt-3", className)}
+    />
   );
 }

@@ -89,6 +89,7 @@ export interface RecordingPermission {
 
 export interface RecordingQuery {
   page?: number;
+  limit?: number;
   search?: string;
   scope?: "owned" | "shared" | "all";
   status?: RecordingStatus;

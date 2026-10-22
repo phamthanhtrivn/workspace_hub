@@ -1,17 +1,14 @@
-import type { Metadata } from "next";
+import { createRootMetadata } from "@/lib/seo";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/components/app-providers";
 
 const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-inter",
 });
 
-export const metadata: Metadata = {
-  title: "WorkspaceHub",
-  description:
-    "Smart platform for tasks management, files management, learning, scheduling, collaboration and productivity with AI assistance.",
-};
+export const metadata = createRootMetadata();
 
 export default function RootLayout({
   children,
@@ -19,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={inter.className}>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-screen">
         <AppProviders
           googleClientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}

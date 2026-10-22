@@ -1,6 +1,7 @@
 import React from "react";
 import { UploadState } from "../../types/documents.enums";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
 
 interface UploadProgressProps {
   uploadState: UploadState;
@@ -35,33 +36,33 @@ function UploadProgress({
   };
 
   return (
-    <div className="absolute bottom-6 right-6 z-50 bg-white/90 backdrop-blur-md border border-slate-200/50 shadow-2xl p-5 rounded-2xl w-80 animate-in slide-in-from-bottom-5 duration-300">
+    <div className="absolute bottom-6 right-6 z-50 bg-card border border-border p-5 rounded-panel w-80 max-w-[calc(100vw-1.5rem)] animate-in slide-in-from-bottom-5 duration-200 shadow-panel">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-black uppercase tracking-wider text-slate-400">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {getStatusLabel()}
         </span>
-        <span className="text-xs font-extrabold text-[#0052CC]">
+        <span className="text-xs font-semibold text-info-content">
           {uploadProgress}%
         </span>
       </div>
 
-      <div className="text-sm font-bold text-slate-700 truncate mb-3">
+      <div className="text-sm font-semibold text-foreground truncate mb-3">
         {uploadingFileName}
       </div>
 
-      <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/20">
+      <Progress value={uploadProgress} className="w-full bg-muted rounded-full h-2 overflow-hidden border border-border">
         <div
           className={cn(
-            "h-full rounded-full transition-all duration-300",
+            "h-full rounded-full transition-all duration-200",
             uploadState === UploadState.ERROR
-              ? "bg-red-500"
+              ? "bg-destructive-content"
               : uploadState === UploadState.SUCCESS
-                ? "bg-green-500"
-                : "bg-[#0052CC]",
+                ? "bg-success-content"
+                : "bg-link",
           )}
           style={{ width: `${uploadProgress}%` }}
         />
-      </div>
+      </Progress>
     </div>
   );
 }

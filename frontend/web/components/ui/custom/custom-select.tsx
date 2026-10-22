@@ -22,7 +22,8 @@ export interface CustomSelectOption<TValue extends string = string> {
 interface CustomSelectProps<TValue extends string = string> {
   id?: string;
   value: TValue;
-  options: CustomSelectOption<TValue>[];
+  options?: CustomSelectOption<TValue>[];
+  children?: React.ReactNode;
   onChange: (value: TValue) => void;
   ariaLabel: string;
   placeholder?: string;
@@ -31,6 +32,8 @@ interface CustomSelectProps<TValue extends string = string> {
   className?: string;
   triggerClassName?: string;
   contentClassName?: string;
+  triggerLabel?: React.ReactNode;
+  descriptionId?: string;
 }
 
 const INTERNAL_EMPTY_VALUE = "__CUSTOM_SELECT_EMPTY__";
@@ -38,7 +41,8 @@ const INTERNAL_EMPTY_VALUE = "__CUSTOM_SELECT_EMPTY__";
 export function CustomSelect<TValue extends string = string>({
   id,
   value,
-  options,
+  options: suppliedOptions,
+  children,
   onChange,
   ariaLabel,
   placeholder,
@@ -47,7 +51,10 @@ export function CustomSelect<TValue extends string = string>({
   className,
   triggerClassName,
   contentClassName,
+  triggerLabel,
+  descriptionId,
 }: CustomSelectProps<TValue>) {
+  const options = suppliedOptions ?? optionsFromChildren(children) as CustomSelectOption<TValue>[];
   const selectedOption = options.find((option) => option.value === value);
   const internalValue = value === "" ? INTERNAL_EMPTY_VALUE : value;
 
@@ -64,17 +71,18 @@ export function CustomSelect<TValue extends string = string>({
           id={id}
           aria-label={ariaLabel}
           aria-invalid={invalid || undefined}
+          aria-describedby={descriptionId}
           className={cn(
-            "h-9 cursor-pointer rounded-lg border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 data-[state=open]:border-blue-300 data-[state=open]:ring-2 data-[state=open]:ring-blue-500/15",
-            invalid && "border-red-300 ring-2 ring-red-500/15",
+            "h-9 cursor-pointer rounded-control border-input bg-background px-3 text-sm font-medium text-foreground hover:bg-accent data-[state=open]:ring-2 data-[state=open]:ring-ring",
+            invalid && "border-destructive-outline ring-2 ring-destructive-outline/15",
             triggerClassName,
           )}
         >
           <SelectValue placeholder={placeholder}>
-            {selectedOption ? <OptionLabel option={selectedOption} /> : placeholder}
+            {triggerLabel ?? (selectedOption ? <OptionLabel option={selectedOption} /> : placeholder)}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent className={cn("rounded-lg border-slate-200", contentClassName)}>
+        <SelectContent className={cn("rounded-control border-border", contentClassName)}>
           {options.map((option) => {
             const itemValue = option.value === "" ? INTERNAL_EMPTY_VALUE : option.value;
             return (
@@ -94,6 +102,16 @@ export function CustomSelect<TValue extends string = string>({
   );
 }
 
+/** Compatibility for existing option declarations; only shared Select renders DOM. */
+function optionsFromChildren(children: React.ReactNode): CustomSelectOption[] {
+  return React.Children.toArray(children).flatMap((child) => {
+    if (!React.isValidElement<{ value?: string | number; disabled?: boolean; children?: React.ReactNode }>(child)) return [];
+    if (child.type === React.Fragment) return optionsFromChildren(child.props.children);
+    if (child.type !== "option") return [];
+    return [{ value: String(child.props.value ?? child.props.children ?? ""), label: child.props.children, disabled: child.props.disabled }];
+  });
+}
+
 function OptionLabel<TValue extends string>({
   option,
 }: {
@@ -102,13 +120,13 @@ function OptionLabel<TValue extends string>({
   return (
     <span className="flex min-w-0 items-center gap-2">
       {option.icon ? (
-        <span className="grid size-4 shrink-0 place-items-center text-slate-500">
+        <span className="grid size-4 shrink-0 place-items-center text-muted-foreground">
           {option.icon}
         </span>
       ) : null}
       <span className="truncate">{option.label}</span>
       {typeof option.count === "number" && option.count > 0 ? (
-        <span className="ml-auto inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-slate-100 px-1 text-[10px] font-black text-slate-600">
+        <span className="ml-auto inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-muted px-1 text-xs font-semibold text-muted-foreground">
           {option.count > 99 ? "99+" : option.count}
         </span>
       ) : null}

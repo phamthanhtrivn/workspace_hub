@@ -33,7 +33,7 @@ export function MeetingHistoryAvatarStack({
             key={participant.id}
             aria-label={displayName}
             role="img"
-            className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center ring-1 ring-[#15192a]"
+            className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center ring-1 ring-ring"
             style={{
               backgroundImage: `url("${avatarUrl}")`,
               marginLeft: index === 0 ? 0 : -10,
@@ -44,7 +44,7 @@ export function MeetingHistoryAvatarStack({
           <AvatarFallback
             key={participant.id}
             label={displayName}
-            className="h-9 w-9 bg-slate-200 ring-1 ring-[#15192a]"
+            className="h-9 w-9 bg-accent ring-1 ring-ring"
             iconClassName="h-4 w-4"
             style={{
               marginLeft: index === 0 ? 0 : -10,
@@ -55,7 +55,7 @@ export function MeetingHistoryAvatarStack({
       })}
       {overflowCount > 0 ? (
         <span
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#273266] text-xs font-black text-white ring-2 ring-[#15192a]"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-card text-xs font-semibold text-foreground ring-2 ring-ring"
           style={{ marginLeft: -10 }}
         >
           +{overflowCount}

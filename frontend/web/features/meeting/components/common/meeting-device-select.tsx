@@ -38,23 +38,24 @@ export function MeetingDeviceSelect({
   return (
     <div
       className={cn(
-        "group flex h-[68px] min-w-0 items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus-within:border-[#0052CC] focus-within:bg-white focus-within:ring-4 focus-within:ring-[#0052CC]/10",
-        isDisabled && "cursor-not-allowed bg-slate-50 opacity-70 hover:bg-slate-50",
+        "group flex h-[68px] min-w-0 items-center gap-3 rounded-control border border-input bg-card px-3 transition-colors duration-150 hover:bg-accent focus-within:border-ring focus-within:ring-2 focus-within:ring-ring",
+        isDisabled && "cursor-not-allowed bg-background opacity-70 hover:bg-background",
       )}
     >
       <span
         className={cn(
-          "grid h-10 w-10 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-600 transition group-focus-within:bg-blue-50 group-focus-within:text-[#0052CC]",
-          isDisabled && "text-slate-400",
+          "grid h-10 w-10 shrink-0 place-items-center rounded-control bg-secondary text-secondary-foreground",
+          isDisabled && "text-muted-foreground",
         )}
       >
         <Icon className="h-4 w-4" />
       </span>
       <span className="relative min-w-0 flex-1 pr-7">
-        <span className="block text-[11px] font-black uppercase tracking-wide text-slate-400">
+        <span className="block text-xs font-medium text-muted-foreground">
           {label}
         </span>
         <MeetingSelect
+          id={id}
           value={value}
           options={options}
           disabled={isDisabled}
@@ -62,8 +63,8 @@ export function MeetingDeviceSelect({
           ariaLabel={label}
           placeholder={displayLabel}
           triggerClassName={cn(
-            "mt-1 h-5 border-0 bg-transparent px-0 py-0 text-sm font-black shadow-none hover:bg-transparent focus:ring-0 data-[state=open]:ring-0 [&>svg]:right-0",
-            isDisabled && "text-slate-400",
+            "mt-1 h-5 border-0 bg-transparent px-0 py-0 text-sm font-normal shadow-none hover:bg-transparent focus:ring-0 data-[state=open]:ring-0 [&>svg]:right-0",
+            isDisabled && "text-muted-foreground",
           )}
         />
       </span>

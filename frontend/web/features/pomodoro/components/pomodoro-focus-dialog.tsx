@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { ArrowLeft, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useModalDialog } from "@/features/calendar/hooks/use-modal-dialog";
+
 import { usePomodoroSessionActions } from "./pomodoro-session-provider";
 import { PomodoroTaskPicker } from "./pomodoro-task-picker";
 import { PomodoroCalendarTaskForm } from "./pomodoro-calendar-task-form";
@@ -20,6 +20,7 @@ export function PomodoroFocusDialog({ initialView, focusDurationMinutes, onClose
   const { busy, pendingFocusTarget, cancelFocusSwitch, setFocusDialogOpen } = usePomodoroSessionActions();
   const [savingTask, setSavingTask] = useState(false);
   const locked = busy || savingTask;
+  const dialogId = useId();
   const close = useCallback(() => {
     if (locked) return;
     cancelFocusSwitch();
@@ -31,14 +32,15 @@ export function PomodoroFocusDialog({ initialView, focusDurationMinutes, onClose
   }, [setFocusDialogOpen]);
 
   return <Dialog open onOpenChange={(open) => { if (!open) close(); }}>
-    <DialogContent role="presentation" aria-modal={undefined} showCloseButton={false} className="flex max-w-[40rem] flex-col rounded-2xl border-slate-200 bg-white">
-      <FocusDialogContent initialView={initialView} focusDurationMinutes={focusDurationMinutes} onClose={close}
+    <DialogContent aria-labelledby={`${dialogId}-title`} aria-describedby={`${dialogId}-description`} showCloseButton={false} className="flex max-w-[40rem] flex-col rounded-dialog border-border bg-card">
+      <FocusDialogContent dialogId={dialogId} initialView={initialView} focusDurationMinutes={focusDurationMinutes} onClose={close}
         onCreated={onClose} onSavingChange={setSavingTask} locked={locked} confirming={Boolean(pendingFocusTarget)} />
     </DialogContent>
   </Dialog>;
 }
 
-function FocusDialogContent({ initialView, focusDurationMinutes, onClose, onCreated, onSavingChange, locked, confirming }: {
+function FocusDialogContent({ dialogId, initialView, focusDurationMinutes, onClose, onCreated, onSavingChange, locked, confirming }: {
+  dialogId: string;
   initialView: PomodoroFocusDialogView;
   focusDurationMinutes: number;
   onClose: () => void;
@@ -49,18 +51,16 @@ function FocusDialogContent({ initialView, focusDurationMinutes, onClose, onCrea
 }) {
   const [view, setView] = useState(initialView);
   const [formOpened, setFormOpened] = useState(initialView === "create");
-  const dialogRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const id = useId();
-  useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
+  const id = dialogId;
+
   useEffect(() => {
     headingRef.current?.focus({ preventScroll: true });
   }, [view, confirming]);
   const openCreate = () => { setFormOpened(true); setView("create"); };
 
-  return <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={`${id}-title`}
-    aria-describedby={`${id}-description`} className="flex min-h-0 flex-col">
-    <DialogHeader className="shrink-0 border-b border-slate-100 pr-16">
+  return <div className="flex min-h-0 flex-col">
+    <DialogHeader className="shrink-0 border-b border-border pr-16">
       <DialogTitle id={`${id}-title`} ref={headingRef} tabIndex={-1} className="outline-none">
         {confirming ? "Confirm focus switch" : view === "create" ? "New task" : "Change focus"}
       </DialogTitle>

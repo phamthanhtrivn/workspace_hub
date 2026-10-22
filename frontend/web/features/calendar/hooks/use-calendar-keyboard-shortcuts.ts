@@ -30,6 +30,8 @@ export function useCalendarKeyboardShortcuts({
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
       if (
+        event.defaultPrevented || event.repeat ||
+        Boolean(document.querySelector('[aria-modal="true"]:not([aria-hidden="true"]),[data-slot="dropdown-menu-content"],[data-slot="popover-content"]')) ||
         isEditableTarget(event.target) ||
         event.ctrlKey ||
         event.metaKey ||

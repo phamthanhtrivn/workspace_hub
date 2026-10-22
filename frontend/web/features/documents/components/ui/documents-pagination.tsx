@@ -39,11 +39,11 @@ export function DocumentsPagination({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between",
         className
       )}
     >
-      <span className="text-xs font-bold text-slate-500">
+      <span className="text-xs font-semibold text-muted-foreground">
         {summaryText
           ? summaryText
           : total > 0
@@ -58,7 +58,7 @@ export function DocumentsPagination({
           size="sm"
           disabled={safePage === 1 || isLoading}
           onClick={() => onPageChange(Math.max(1, safePage - 1))}
-          className="h-9 gap-1.5 rounded-lg border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
+          className="h-9 gap-1.5 rounded-control border-border bg-card px-3 text-xs font-semibold text-foreground hover:bg-background cursor-pointer disabled:opacity-50"
           aria-label="Previous"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -67,25 +67,25 @@ export function DocumentsPagination({
 
         {pageNumbers.map((pageNumber, index) =>
           typeof pageNumber === "number" ? (
-            <button
+            <Button variant="unstyled"
               key={`${pageNumber}-${index}`}
               type="button"
               disabled={isLoading}
               onClick={() => onPageChange(pageNumber)}
               className={cn(
-                "h-9 min-w-9 cursor-pointer rounded-lg px-3 text-xs font-black transition",
+                "h-9 min-w-9 cursor-pointer rounded-control px-3 text-xs font-semibold transition",
                 pageNumber === safePage
-                  ? "bg-[#0052CC] text-white shadow-xs"
-                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-card text-muted-foreground hover:bg-background"
               )}
               aria-current={pageNumber === safePage ? "page" : undefined}
             >
               {pageNumber}
-            </button>
+            </Button>
           ) : (
             <span
               key={`ellipsis-${index}`}
-              className="grid h-9 min-w-9 place-items-center px-1 text-xs font-black text-slate-400"
+              className="grid h-9 min-w-9 place-items-center px-1 text-xs font-semibold text-muted-foreground"
               aria-hidden="true"
             >
               ...
@@ -99,7 +99,7 @@ export function DocumentsPagination({
           size="sm"
           disabled={safePage >= totalPages || isLoading}
           onClick={() => onPageChange(Math.min(totalPages, safePage + 1))}
-          className="h-9 gap-1.5 rounded-lg border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
+          className="h-9 gap-1.5 rounded-control border-border bg-card px-3 text-xs font-semibold text-foreground hover:bg-background cursor-pointer disabled:opacity-50"
           aria-label="Next"
         >
           <span>Next</span>

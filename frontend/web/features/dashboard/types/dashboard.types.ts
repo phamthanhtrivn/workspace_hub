@@ -1,13 +1,17 @@
+import type { PomodoroActiveTask } from "@/features/pomodoro/types/pomodoro";
+
 export interface DashboardTask {
   key: string;
   title: string;
   href: string;
   source: "calendar" | "project";
   sourceId: string;
+  projectId?: string;
   projectName?: string;
   dueAt: string | null;
   dateOnly: boolean;
   priority: string;
+  focusTask?: PomodoroActiveTask;
 }
 
 export interface DayItem {

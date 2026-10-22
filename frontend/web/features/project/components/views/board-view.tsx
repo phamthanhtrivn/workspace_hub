@@ -35,37 +35,37 @@ const COLUMNS: {
   {
     status: TaskStatus.TODO,
     label: "TO DO",
-    headerColor: "text-[#5E6C84]",
-    badgeBg: "bg-[#DFE1E6]",
-    badgeText: "text-[#42526E]",
+    headerColor: "text-muted-foreground",
+    badgeBg: "bg-muted",
+    badgeText: "text-muted-foreground",
   },
   {
     status: TaskStatus.IN_PROGRESS,
     label: "IN PROGRESS",
-    headerColor: "text-[#0052CC]",
-    badgeBg: "bg-[#DEEBFF]",
-    badgeText: "text-[#0747A6]",
+    headerColor: "text-info-content",
+    badgeBg: "bg-primary-soft",
+    badgeText: "text-info-content",
   },
   {
     status: TaskStatus.IN_REVIEW,
     label: "IN REVIEW",
-    headerColor: "text-[#FF8B00]",
-    badgeBg: "bg-[#FFF0B3]",
-    badgeText: "text-[#A54800]",
+    headerColor: "text-warning-content",
+    badgeBg: "bg-warning-soft",
+    badgeText: "text-warning-content",
   },
   {
     status: TaskStatus.DONE,
     label: "DONE",
-    headerColor: "text-[#006644]",
-    badgeBg: "bg-[#E3FCEF]",
-    badgeText: "text-[#006644]",
+    headerColor: "text-success-content",
+    badgeBg: "bg-success-soft",
+    badgeText: "text-success-content",
   },
   {
     status: TaskStatus.CANCELLED,
     label: "CANCELLED",
-    headerColor: "text-red-600",
-    badgeBg: "bg-red-100",
-    badgeText: "text-red-700",
+    headerColor: "text-destructive-content",
+    badgeBg: "bg-destructive-soft",
+    badgeText: "text-destructive-content",
   },
 ];
 
@@ -129,8 +129,8 @@ export default function BoardView({
 
   return (
     <>
-      <div className="h-full min-h-[520px] overflow-x-auto pb-2">
-        <div className="grid h-full min-h-0 grid-cols-1 items-start gap-3.5 sm:grid-cols-2 xl:min-w-[1180px] xl:grid-cols-[repeat(5,minmax(220px,1fr))]">
+      <div className="h-full min-h-0 min-w-0 overflow-x-auto overscroll-x-contain pb-2" role="region" aria-label="Kanban board" tabIndex={0}>
+        <div className="grid h-full min-h-0 grid-cols-[repeat(5,minmax(200px,1fr))] gap-[12px]">
           {COLUMNS.map((col) => {
             const columnTasks = getTasksByStatus(tasks, col.status);
             const canCreateInColumn = col.status === TaskStatus.TODO;
@@ -138,7 +138,7 @@ export default function BoardView({
             return (
               <div
                 key={col.status}
-                className="flex min-h-[380px] max-h-[min(72vh,680px)] flex-col overflow-hidden rounded-2xl bg-[#F4F5F7] p-2.5 sm:min-h-[460px] xl:h-full xl:min-h-0 xl:max-h-none"
+                className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-panel bg-muted p-2.5"
                 onDragOver={(e) => {
                   if (onTaskMove) e.preventDefault();
                 }}
@@ -148,15 +148,15 @@ export default function BoardView({
                 }}
               >
                 {/* Column header */}
-                <div className="sticky top-0 z-10 -mx-2.5 flex items-center justify-between rounded-t-2xl bg-[#F4F5F7] px-4 pb-2.5 pt-1">
+                <div className="z-10 -mx-2.5 flex shrink-0 items-center justify-between gap-2 rounded-t-2xl bg-muted px-3 pb-2.5 pt-1">
                   <div className="flex items-center gap-2">
                     <h3
-                      className={`text-xs font-bold tracking-wider ${col.headerColor}`}
+                      className={`text-xs font-semibold tracking-wider ${col.headerColor}`}
                     >
                       {col.label}
                     </h3>
                     <span
-                      className={`inline-flex items-center justify-center h-5 px-1.5 rounded-full text-[10px] font-bold ${col.badgeBg} ${col.badgeText}`}
+                      className={`inline-flex items-center justify-center h-5 px-1.5 rounded-full text-xs font-semibold ${col.badgeBg} ${col.badgeText}`}
                     >
                       {columnTasks.length}
                     </span>
@@ -167,7 +167,7 @@ export default function BoardView({
                       variant="ghost"
                       size="icon"
                       onClick={() => onAddTask(col.status)}
-                      className="h-6 w-6 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition cursor-pointer"
+                      className="h-6 w-6 rounded-control text-muted-foreground hover:bg-accent hover:text-foreground transition cursor-pointer"
                       title={`Create task in ${col.label}`}
                     >
                       <Plus className="h-4 w-4" strokeWidth={2} />
@@ -176,7 +176,7 @@ export default function BoardView({
                 </div>
 
                 {/* Task cards list */}
-                <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain pr-1">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain pr-1 [&>div]:shrink-0">
                   {columnTasks.map((task) => (
                     <TaskCard
                       key={task.id}
@@ -196,7 +196,7 @@ export default function BoardView({
                   ))}
 
                   {columnTasks.length === 0 && (
-                    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 py-10 text-xs font-medium text-slate-400 bg-slate-50/50">
+                    <div className="flex flex-1 flex-col items-center justify-center rounded-panel border border-dashed border-input py-10 text-xs font-medium text-muted-foreground bg-background">
                       <span>No tasks</span>
                       {onAddTask && canCreateInColumn && (
                         <Button
@@ -204,7 +204,7 @@ export default function BoardView({
                           variant="link"
                           size="sm"
                           onClick={() => onAddTask(col.status)}
-                          className="mt-2 h-auto p-0 inline-flex items-center gap-1 font-semibold text-[#0052CC] hover:underline cursor-pointer"
+                          className="mt-2 h-auto p-0 inline-flex items-center gap-1 font-semibold text-info-content hover:underline cursor-pointer"
                         >
                           <Plus className="h-3 w-3" strokeWidth={2.5} />
                           Add Task
@@ -221,7 +221,7 @@ export default function BoardView({
                     variant="ghost"
                     size="sm"
                     onClick={() => onAddTask(col.status)}
-                    className="mt-2 flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-semibold rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition cursor-pointer text-left px-2"
+                    className="mt-2 flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-semibold rounded-control text-muted-foreground hover:bg-accent hover:text-foreground transition cursor-pointer text-left px-2"
                   >
                     <Plus className="h-3.5 w-3.5" strokeWidth={2} />
                     <span>Create Task</span>

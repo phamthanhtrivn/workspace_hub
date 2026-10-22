@@ -1,7 +1,8 @@
 "use client";
+import { CustomDateField } from "@/components/ui/custom/custom-date-time-picker";
+
 
 import { CalendarDays } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { CustomCheckbox } from "@/components/ui/custom/custom-checkbox";
 
 interface TaskDateRangeFieldsProps {
@@ -24,13 +25,13 @@ export function TaskDateRangeFields({
   disabled = false,
 }: TaskDateRangeFieldsProps) {
   return (
-    <section className="border-t border-slate-100 pt-5">
+    <section className="border-t border-border pt-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-bold text-slate-900">
+          <p className="text-sm font-semibold text-foreground">
             Schedule & Dates
           </p>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-muted-foreground">
             Set target timelines for starting and completing this task.
           </p>
         </div>
@@ -39,43 +40,47 @@ export function TaskDateRangeFields({
           disabled={disabled}
           onCheckedChange={(checked) => onAllDayChange(Boolean(checked))}
           label="All Day Event"
-          className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200/60 bg-slate-50 px-3 py-1.5"
-          checkboxClassName="cursor-pointer data-[state=checked]:bg-[#0052CC] data-[state=checked]:border-[#0052CC]"
-          labelClassName="text-xs font-bold text-slate-600"
+          className="inline-flex cursor-pointer items-center gap-2 rounded-panel border border-border bg-background px-3 py-1.5"
+          checkboxClassName="cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+          labelClassName="text-xs font-semibold text-muted-foreground"
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold text-slate-600">
+          <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
             <CalendarDays
-              className="h-3.5 w-3.5 text-slate-400"
+              className="h-3.5 w-3.5 text-muted-foreground"
               strokeWidth={2}
             />
             {allDay ? "Start Date" : "Start Date & Time"}
           </span>
-          <Input
-            type={allDay ? "date" : "datetime-local"}
+          <CustomDateField
+            dateOnly={allDay}
             value={startDate}
             disabled={disabled}
-            onChange={(event) => onStartDateChange(event.target.value)}
-            className="h-11 w-full rounded-xl border-slate-200 text-xs font-semibold text-slate-700 disabled:bg-slate-50"
+            onChange={nextValue => onStartDateChange(nextValue)}
+            className="h-11 w-full rounded-control border-input text-xs font-semibold text-foreground disabled:bg-background"
+            ariaLabel="Task start date"
+            allowClear
           />
         </label>
         <label className="block">
-          <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold text-slate-600">
+          <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
             <CalendarDays
-              className="h-3.5 w-3.5 text-slate-400"
+              className="h-3.5 w-3.5 text-muted-foreground"
               strokeWidth={2}
             />
             {allDay ? "Due Date" : "Due Date & Time"}
           </span>
-          <Input
-            type={allDay ? "date" : "datetime-local"}
+          <CustomDateField
+            dateOnly={allDay}
             value={dueDate}
             disabled={disabled}
-            onChange={(event) => onDueDateChange(event.target.value)}
-            className="h-11 w-full rounded-xl border-slate-200 text-xs font-semibold text-slate-700 disabled:bg-slate-50"
+            onChange={nextValue => onDueDateChange(nextValue)}
+            className="h-11 w-full rounded-control border-input text-xs font-semibold text-foreground disabled:bg-background"
+            ariaLabel="Task due date"
+            allowClear
           />
         </label>
       </div>

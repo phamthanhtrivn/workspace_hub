@@ -67,10 +67,10 @@ export default function PendingInvitationsList({
   };
 
   return (
-    <div className="mt-4 border-t border-slate-100 pt-4">
+    <div className="mt-4 border-t border-border pt-4">
       <div className="mb-2 flex items-center gap-2 px-2">
-        <Clock3 className="h-3.5 w-3.5 text-amber-500" />
-        <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">
+        <Clock3 className="h-3.5 w-3.5 text-warning-content" />
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Pending Invitations ({invitations.length})
         </p>
       </div>
@@ -92,7 +92,7 @@ export default function PendingInvitationsList({
           return (
             <div
               key={invitation.id}
-              className="group flex items-center gap-3 rounded-xl border border-dashed border-amber-200 bg-amber-50/40 px-3 py-2.5"
+              className="group flex items-center gap-3 rounded-panel border border-dashed border-border bg-warning-soft/40 px-3 py-2.5"
             >
               {user.avatarUrl ? (
                 <Image
@@ -104,15 +104,15 @@ export default function PendingInvitationsList({
                   className="h-9 w-9 rounded-full object-cover grayscale-[20%]"
                 />
               ) : (
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-slate-400 shadow-xs">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-card text-muted-foreground">
                   <User className="h-4 w-4" />
                 </span>
               )}
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-slate-700">
+                <p className="truncate text-sm font-semibold text-foreground">
                   {displayName}
                 </p>
-                <p className="truncate text-[11px] text-slate-400">
+                <p className="truncate text-xs text-muted-foreground">
                   {user.email || "Awaiting response"} • Expires: {expiryText}
                 </p>
               </div>
@@ -123,7 +123,7 @@ export default function PendingInvitationsList({
                   size="icon"
                   onClick={() => void handleResend(invitation)}
                   disabled={isCancelling || resendMutation.isPending}
-                  className="h-8 w-8 cursor-pointer rounded-lg text-slate-400 transition hover:bg-white hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground transition hover:bg-card hover:text-info-content disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label={`Resend invitation for ${displayName}`}
                   title="Resend invitation"
                 >
@@ -137,7 +137,7 @@ export default function PendingInvitationsList({
                   size="icon"
                   onClick={() => handleCancel(invitation)}
                   disabled={isResending || cancelMutation.isPending}
-                  className="h-8 w-8 cursor-pointer rounded-lg text-slate-400 transition hover:bg-white hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground transition hover:bg-card hover:text-destructive-content disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label={`Revoke invitation for ${displayName}`}
                   title="Revoke invitation"
                 >

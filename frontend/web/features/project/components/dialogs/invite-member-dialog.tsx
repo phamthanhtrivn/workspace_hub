@@ -104,30 +104,30 @@ export default function InviteMemberDialog({
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-2xl">
-        <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-slate-100">
-          <DialogTitle className="text-lg font-bold text-slate-900">
+      <DialogContent className="flex max-w-lg flex-col p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card">
+        <DialogHeader className="shrink-0 px-5 pt-5 pb-4 pr-12 text-left border-b border-border">
+          <DialogTitle className="text-section-title font-semibold text-foreground">
             Invite Project Member
           </DialogTitle>
-          <DialogDescription className="mt-1 text-xs font-semibold text-slate-500">
+          <DialogDescription className="mt-1 text-xs font-semibold text-muted-foreground">
             Search for colleagues by name or email to invite them to this project.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-6 py-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
           {successMessage && (
-            <div className="mb-4 flex gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-xs font-semibold text-emerald-700">
+            <div className="mb-4 flex gap-2.5 rounded-panel border border-border bg-success-soft px-3.5 py-3 text-xs font-semibold text-success-content">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{successMessage}</span>
             </div>
           )}
 
           <label className="block">
-            <span className="mb-1.5 block text-xs font-bold text-slate-600">
+            <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">
               Name or Email
             </span>
             <span className="relative block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 ref={inputRef}
                 type="text"
@@ -144,7 +144,7 @@ export default function InviteMemberDialog({
                   }
                 }}
                 placeholder="Type at least 2 characters to search..."
-                className="w-full rounded-xl border-slate-200 py-2.5 pl-9 pr-9 text-xs font-semibold placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-[#0052CC]/15"
+                className="w-full rounded-control border-input py-2.5 pl-9 pr-9 text-xs font-semibold placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-ring"
                 autoComplete="off"
               />
               {query && (
@@ -158,7 +158,7 @@ export default function InviteMemberDialog({
                     setResults([]);
                     inputRef.current?.focus();
                   }}
-                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 rounded-md text-slate-400 hover:bg-slate-100 cursor-pointer"
+                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 rounded-control text-muted-foreground hover:bg-muted cursor-pointer"
                   aria-label="Clear search"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -169,8 +169,8 @@ export default function InviteMemberDialog({
 
           <div className="mt-3 min-h-28 max-h-60 overflow-y-auto pr-1">
             {query.trim().length < 2 && (
-              <div className="grid min-h-28 place-items-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-5 text-center">
-                <p className="text-xs font-semibold leading-5 text-slate-400">
+              <div className="grid min-h-28 place-items-center rounded-panel border border-dashed border-border bg-background px-5 text-center">
+                <p className="text-xs font-semibold leading-5 text-muted-foreground">
                   Search by full name or email address to find people in your organization.
                 </p>
               </div>
@@ -178,18 +178,18 @@ export default function InviteMemberDialog({
             {isSearching && (
               <div className="space-y-2" aria-label="Searching users...">
                 {[0, 1].map((item) => (
-                  <div key={item} className="flex animate-pulse items-center gap-3 rounded-xl border border-slate-100 p-3">
-                    <span className="h-9 w-9 rounded-full bg-slate-100" />
+                  <div key={item} className="flex animate-pulse items-center gap-3 rounded-panel border border-border p-3">
+                    <span className="h-9 w-9 rounded-full bg-muted" />
                     <span className="flex-1 space-y-2">
-                      <span className="block h-3 w-1/3 rounded bg-slate-100" />
-                      <span className="block h-2.5 w-1/2 rounded bg-slate-100" />
+                      <span className="block h-3 w-1/3 rounded bg-muted" />
+                      <span className="block h-2.5 w-1/2 rounded bg-muted" />
                     </span>
                   </div>
                 ))}
               </div>
             )}
             {!isSearching && searchError && query.trim().length >= 2 && (
-              <div className="grid min-h-28 place-items-center rounded-xl bg-slate-50 px-5 text-center text-xs font-semibold text-slate-400">
+              <div className="grid min-h-28 place-items-center rounded-panel bg-background px-5 text-center text-xs font-semibold text-muted-foreground">
                 {searchError}
               </div>
             )}
@@ -206,12 +206,12 @@ export default function InviteMemberDialog({
                       onClick={() => !isPending && setSelectedUser(user)}
                       disabled={isPending}
                       className={cn(
-                        "flex h-auto w-full cursor-pointer items-center justify-start gap-3 rounded-xl border p-3 text-left transition duration-150 font-normal",
+                        "flex h-auto w-full cursor-pointer items-center justify-start gap-3 rounded-control border p-3 text-left transition duration-150 font-normal",
                         isPending
-                          ? "cursor-default border-amber-100 bg-amber-50/60 hover:bg-amber-50/60"
+                          ? "cursor-default border-border bg-warning-soft/60 hover:bg-warning-soft/60"
                           : isSelected
-                            ? "border-[#0052CC] bg-blue-50 shadow-xs hover:bg-blue-50"
-                            : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                            ? "border-primary bg-info-soft hover:bg-info-soft"
+                            : "border-border hover:border-input hover:bg-background"
                       )}
                     >
                       {user.avatarUrl ? (
@@ -224,29 +224,29 @@ export default function InviteMemberDialog({
                           className="h-9 w-9 rounded-full object-cover shrink-0"
                         />
                       ) : (
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
                           <User className="h-4 w-4" />
                         </span>
                       )}
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-bold text-slate-700">
+                        <span className="block truncate text-sm font-semibold text-foreground">
                           {user.fullName || "User"}
                         </span>
-                        <span className="block truncate text-xs text-slate-400">
+                        <span className="block truncate text-xs text-muted-foreground">
                           {user.email}
                         </span>
                       </span>
                       {isPending ? (
                         <Badge
                           variant="outline"
-                          className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 border-amber-200"
+                          className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning-content border-border"
                         >
                           <Clock3 className="h-3 w-3" /> Pending
                         </Badge>
                       ) : isSelected ? (
                         <Badge
                           variant="outline"
-                          className="border-[#0052CC] bg-[#0052CC] text-white text-[10px] font-bold"
+                          className="border-primary bg-primary text-primary-foreground text-xs font-semibold"
                         >
                           Selected
                         </Badge>
@@ -259,8 +259,8 @@ export default function InviteMemberDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
-          <p className="text-[11px] font-semibold text-slate-400">
+        <DialogFooter className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-5 py-4">
+          <p className="text-xs font-semibold text-muted-foreground">
             {pendingInvitations.length === 1
               ? "1 pending invitation"
               : `${pendingInvitations.length} pending invitations`}
@@ -270,7 +270,7 @@ export default function InviteMemberDialog({
               type="button"
               variant="outline"
               onClick={onClose}
-              className="cursor-pointer rounded-xl font-bold text-slate-600 hover:bg-slate-100"
+              className="cursor-pointer rounded-control font-semibold text-muted-foreground hover:bg-muted"
             >
               Close
             </Button>
@@ -278,7 +278,7 @@ export default function InviteMemberDialog({
               type="button"
               onClick={() => void handleSubmit()}
               disabled={!selectedUser || createInvitationMutation.isPending}
-              className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-40"
+              className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-40"
             >
               {createInvitationMutation.isPending ? "Sending..." : "Send Invitation"}
             </Button>

@@ -62,12 +62,12 @@ const RevokeSessionModal = React.memo(function RevokeSessionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-sm rounded-2xl p-6">
+      <DialogContent className="max-w-sm rounded-dialog p-6">
         <DialogHeader className="p-0 space-y-1">
-          <DialogTitle className="text-lg font-black text-slate-800">
+          <DialogTitle className="text-section-title font-semibold text-foreground">
             Confirm sign out
           </DialogTitle>
-          <DialogDescription className="text-sm text-slate-500 font-medium">
+          <DialogDescription className="text-sm text-muted-foreground font-medium">
             Enter your password to confirm this action.
           </DialogDescription>
         </DialogHeader>
@@ -105,7 +105,7 @@ const RevokeSessionModal = React.memo(function RevokeSessionModal({
               variant="ghost"
               onClick={onClose}
               disabled={isSubmitting}
-              className="rounded-xl px-4 py-2 text-sm font-bold text-slate-500 hover:bg-slate-100 transition cursor-pointer disabled:opacity-50"
+              className="rounded-control px-4 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted transition cursor-pointer disabled:opacity-50"
             >
               Cancel
             </Button>
@@ -113,7 +113,7 @@ const RevokeSessionModal = React.memo(function RevokeSessionModal({
               type="submit"
               variant="destructive"
               disabled={isSubmitting || !password.trim()}
-              className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 transition cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-2 rounded-control bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground hover:bg-destructive transition cursor-pointer disabled:opacity-50"
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
               Confirm

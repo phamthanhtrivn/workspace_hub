@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
@@ -42,6 +44,7 @@ export function DocumentsInputModal({
   onConfirm,
   onCancel,
 }: DocumentsInputModalProps) {
+  const fieldId = React.useId();
   const [value, setValue] = useState(defaultValue);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -71,26 +74,26 @@ export function DocumentsInputModal({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isLoading && onCancel()}>
       <DialogContent
-        className="max-w-md border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl"
+        className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}
         showCloseButton={!isLoading}
       >
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info-content ring-1 ring-ring">
             <Icon className="h-5 w-5" />
           </div>
           <div>
-            <DialogTitle className="text-base font-black text-slate-800">
+            <DialogTitle className="text-base font-semibold text-foreground">
               {title}
             </DialogTitle>
             {description ? (
-              <p className="mt-0.5 text-xs text-slate-400 font-bold">{description}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground font-semibold">{description}</p>
             ) : null}
           </div>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
-            <Input
+            <Input id={fieldId} aria-label={title} aria-invalid={Boolean(error) || undefined} aria-describedby={error ? `${fieldId}-error` : undefined}
               ref={inputRef}
               value={value}
               onChange={(e) => {
@@ -100,12 +103,12 @@ export function DocumentsInputModal({
               placeholder={placeholder}
               disabled={isLoading}
               className={cn(
-                "h-11 rounded-2xl border border-slate-200 bg-slate-50/50 px-4 text-sm font-semibold text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-hidden",
-                error && "border-red-400 focus-visible:ring-red-400"
+                "h-11 rounded-control border border-input bg-background px-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:border-info-outline focus:bg-card focus:outline-hidden",
+                error && "border-destructive-outline focus-visible:ring-ring"
               )}
             />
             {error ? (
-              <p className="mt-1.5 text-xs font-bold text-red-500">{error}</p>
+              <p id={`${fieldId}-error`} role="alert" className="mt-1.5 text-xs font-semibold text-destructive-content">{error}</p>
             ) : null}
           </div>
 
@@ -115,14 +118,14 @@ export function DocumentsInputModal({
               variant="ghost"
               disabled={isLoading}
               onClick={onCancel}
-              className="h-10 rounded-2xl border border-slate-200 bg-white px-5 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-800"
+              className="h-10 rounded-control border border-border bg-card px-5 text-xs font-semibold text-muted-foreground hover:bg-background hover:text-foreground"
             >
               {cancelLabel}
             </Button>
             <Button
               type="submit"
               disabled={isLoading || !value.trim()}
-              className="h-10 rounded-2xl bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] px-5 text-xs font-bold text-white shadow-md shadow-blue-500/10 disabled:opacity-50"
+              className="h-10 rounded-control bg-primary hover:bg-primary px-5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
             >
               {isLoading ? "..." : confirmLabel}
             </Button>

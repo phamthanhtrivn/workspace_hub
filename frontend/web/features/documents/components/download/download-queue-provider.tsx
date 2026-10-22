@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import React, {
   createContext,
   useContext,
@@ -17,6 +19,8 @@ import {
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { DownloadStatus } from "@/features/documents/types/documents.enums";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
+import { Button } from "@/components/ui/button";
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,51 +153,51 @@ export function DownloadQueueProvider({
       {children}
 
       {/* ── Fixed Bottom Bar ── */}
-      <div className="fixed bottom-4 right-4 z-50 w-80 rounded-2xl bg-slate-800 shadow-2xl shadow-black/30 border border-slate-700/50 overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
+      <div className="fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-1.5rem)] rounded-panel bg-card text-card-foreground border border-input overflow-hidden animate-in slide-in-from-bottom-4 duration-200 shadow-panel">
         {/* Header */}
         <div
-          className="flex items-center justify-between px-4 py-3 hover:bg-slate-700/40 transition-colors cursor-pointer"
-          onClick={() => setIsCollapsed((c) => !c)}
+          className="flex items-center justify-between px-4 py-3 hover:bg-muted transition-colors cursor-pointer"
         >
-          <div className="flex items-center gap-2.5">
-            <Download size={15} className="text-blue-400 shrink-0" />
-            <span className="text-sm font-bold text-white">
+          <Button variant="unstyled" type="button" aria-expanded={!isCollapsed} onClick={() => setIsCollapsed(value => !value)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+            <Download size={15} className="text-info-content shrink-0" />
+            <span className="text-sm font-semibold text-foreground">
               {activeCount > 0
                 ? `Downloading ${activeCount} item${activeCount > 1 ? "s" : ""}...`
                 : "Download completed"}
             </span>
-          </div>
+          </Button>
           <div className="flex items-center gap-1">
             {tasks.some(
               (t) =>
                 t.status === DownloadStatus.DONE ||
                 t.status === DownloadStatus.ERROR,
             ) && (
-              <button
+              <Button variant="secondary"
                 onClick={(e) => {
                   e.stopPropagation();
                   clearDone();
                 }}
-                className="text-[10px] font-bold text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded hover:bg-slate-700 transition-colors cursor-pointer"
+                className="text-xs font-semibold px-2 py-0.5 rounded transition-colors cursor-pointer"
               >
                 Clear all
-              </button>
+              </Button>
             )}
-            <button
+            <Button variant="unstyled"
               onClick={(e) => {
                 e.stopPropagation();
                 setIsCollapsed((c) => !c);
               }}
-              className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-colors text-xs font-bold cursor-pointer"
+              aria-label={isCollapsed ? "Expand downloads" : "Collapse downloads"} aria-expanded={!isCollapsed}
+              className="w-6 h-6 flex items-center justify-center rounded-control hover:bg-muted text-muted-foreground hover:text-foreground transition-colors text-xs font-semibold cursor-pointer"
             >
               {isCollapsed ? <FaAngleUp /> : <FaAngleDown />}
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Task List */}
         {!isCollapsed && (
-          <div className="max-h-56 overflow-y-auto divide-y divide-slate-700/40">
+          <div className="max-h-56 overflow-y-auto divide-y divide-input/40">
             {tasks.map((task) => (
               <DownloadTaskRow
                 key={task.id}
@@ -223,27 +227,27 @@ function DownloadTaskRow({
     <div className="px-4 py-3 flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <FolderArchive size={14} className="text-amber-400 shrink-0" />
-          <span className="text-xs font-semibold text-slate-200 truncate max-w-[180px]">
+          <FolderArchive size={14} className="text-warning-content shrink-0" />
+          <span className="text-xs font-semibold text-muted-foreground truncate max-w-[180px]">
             {task.folderName}.zip
           </span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {task.status === DownloadStatus.DONE && (
-            <CheckCircle2 size={14} className="text-green-400" />
+            <CheckCircle2 size={14} className="text-success-content" />
           )}
           {task.status === DownloadStatus.ERROR && (
-            <AlertCircle size={14} className="text-red-400" />
+            <AlertCircle size={14} className="text-destructive-content" />
           )}
           {(task.status === DownloadStatus.DONE ||
             task.status === DownloadStatus.ERROR) && (
-            <button
+            <IconButton label="Remove download" showTooltip={false} size="icon-sm"
               onClick={() => onRemove(task.id)}
               aria-label="Remove download"
-              className="text-slate-500 hover:text-slate-300 transition-colors"
+              className="text-muted-foreground hover:text-muted-foreground transition-colors"
             >
               <X size={13} />
-            </button>
+            </IconButton>
           )}
         </div>
       </div>
@@ -251,19 +255,19 @@ function DownloadTaskRow({
       {/* Progress Bar */}
       {(task.status === DownloadStatus.DOWNLOADING ||
         task.status === DownloadStatus.QUEUED) && (
-        <div className="h-1 w-full bg-slate-700 rounded-full overflow-hidden">
+        <div className="h-1 w-full bg-muted ring-1 ring-inset ring-input rounded-full overflow-hidden">
           {isIndeterminate ? (
-            <div className="h-full bg-blue-500 rounded-full animate-pulse w-1/2" />
+            <div className="h-full bg-link rounded-full animate-pulse w-1/2" />
           ) : (
             <div
-              className="h-full bg-blue-500 rounded-full transition-all duration-300"
+              className="h-full bg-link rounded-full transition-all duration-200"
               style={{ width: `${task.progress}%` }}
             />
           )}
         </div>
       )}
       {task.status === DownloadStatus.ERROR && (
-        <p className="text-[10px] text-red-400 font-medium truncate">
+        <p className="text-xs text-destructive-content font-medium truncate">
           {task.error}
         </p>
       )}

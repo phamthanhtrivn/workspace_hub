@@ -56,28 +56,28 @@ export default function SummaryView({
   } = useProjectSummaryMetrics(tasks, members, { isSoftware: false });
 
   return (
-    <div className="w-full space-y-4 pb-8">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 sm:gap-4">
+    <div className="min-w-0 w-full space-y-4 pb-4">
+      <div className="grid grid-cols-1 gap-3 @min-[480px]/project-detail:grid-cols-2 @min-[960px]/project-detail:grid-cols-4 @min-[640px]/project-detail:gap-4">
         <ProjectMetricCard
           icon={ListChecks}
           value={rootTasks.length}
           label="Tasks"
           sublabel={`+${createdRecently.length} created this week`}
-          color="bg-blue-50 text-blue-600"
+          color="bg-info-soft text-info-content"
         />
         <ProjectMetricCard
           icon={Activity}
           value={subtasks.length}
           label="Subtasks"
           sublabel={`${subtaskCompletionPercent}% completed`}
-          color="bg-violet-50 text-violet-600"
+          color="bg-info-soft text-info-content"
         />
         <ProjectMetricCard
           icon={CheckCircle2}
           value={completed.length}
           label="Completed"
           sublabel={`+${completedRecently.length} done this week`}
-          color="bg-emerald-50 text-emerald-600"
+          color="bg-success-soft text-success-content"
         />
         <ProjectMetricCard
           icon={CircleAlert}
@@ -88,35 +88,35 @@ export default function SummaryView({
               ? `${dueSoon.length} due in next 7 days`
               : "All deadlines on track"
           }
-          color="bg-red-50 text-red-600"
+          color="bg-destructive-soft text-destructive-content"
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 @min-[720px]/project-detail:grid-cols-2 @min-[1200px]/project-detail:grid-cols-3">
         <ProjectSummaryPanel
           title="Work Progress"
           description="Overall completion percentage and status breakdown."
         >
-          <div className="flex flex-col items-center gap-5 sm:flex-row">
+          <div className="flex flex-wrap items-center justify-center gap-5">
             <div
               className="grid h-32 w-32 shrink-0 place-items-center rounded-full"
               style={{
-                background: `conic-gradient(#36B37E ${completionPercent}%, #E2E8F0 ${completionPercent}% 100%)`,
+                background: `conic-gradient(var(--success-content) ${completionPercent}%, var(--border) ${completionPercent}% 100%)`,
               }}
             >
-              <div className="grid h-24 w-24 place-items-center rounded-full bg-white text-center">
-                <strong className="text-2xl text-[#172B4D]">
+              <div className="grid h-24 w-24 place-items-center rounded-full bg-card text-center">
+                <strong className="text-2xl text-foreground">
                   {completionPercent}%
                 </strong>
               </div>
             </div>
-            <div className="w-full space-y-2">
+            <div className="min-w-0 flex-1 basis-40 space-y-2">
               {statusItems.map((item) => (
                 <div
                   key={item.label}
                   className="flex items-center justify-between text-xs"
                 >
-                  <span className="flex items-center gap-2 text-slate-600">
+                  <span className="flex items-center gap-2 text-muted-foreground">
                     <span
                       className="h-2.5 w-2.5 rounded-sm"
                       style={{ backgroundColor: item.color }}
@@ -135,7 +135,7 @@ export default function SummaryView({
           description="Tasks that are approaching their due dates soon."
         >
           {dueSoon.length === 0 ? (
-            <p className="py-8 text-center text-xs font-semibold text-slate-400">
+            <p className="py-8 text-center text-xs font-semibold text-muted-foreground">
               No upcoming deadlines in the near future.
             </p>
           ) : (
@@ -143,12 +143,12 @@ export default function SummaryView({
               {dueSoon.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center gap-3 rounded border border-slate-100 px-3 py-2"
+                  className="flex items-center gap-3 rounded border border-border px-3 py-2"
                 >
-                  <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-700">
+                  <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
                     {task.title}
                   </span>
-                  <span className="shrink-0 text-[11px] font-bold text-amber-600">
+                  <span className="shrink-0 text-xs font-semibold text-warning-content">
                     {formatDate(task.dueDate)}
                   </span>
                   <TaskStatusBadge status={task.status} compact />
@@ -175,7 +175,7 @@ export default function SummaryView({
           <MemberWorkloadList
             items={workload}
             maxCount={maxWorkload}
-            barColor="bg-blue-500"
+            barColor="bg-link"
             emptyMessage="No assigned workload to display."
           />
         </ProjectSummaryPanel>
@@ -185,12 +185,12 @@ export default function SummaryView({
           description="Tasks missing a start date or due date."
         >
           <div className="flex items-center gap-3">
-            <CalendarClock className="h-8 w-8 text-slate-400" />
+            <CalendarClock className="h-8 w-8 text-muted-foreground" />
             <div>
-              <p className="text-2xl font-bold text-[#172B4D]">
+              <p className="text-2xl font-semibold text-foreground">
                 {unscheduled.length}
               </p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Tasks needing scheduling in Roadmap or Schedule.
               </p>
             </div>
@@ -202,7 +202,7 @@ export default function SummaryView({
           description="Recently updated or modified tasks."
         >
           {recentTasks.length === 0 ? (
-            <p className="py-8 text-center text-xs font-semibold text-slate-400">
+            <p className="py-8 text-center text-xs font-semibold text-muted-foreground">
               No recent task activity.
             </p>
           ) : (
@@ -210,13 +210,13 @@ export default function SummaryView({
               {recentTasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center gap-3 border-b border-slate-100 pb-2 last:border-0"
+                  className="flex items-center gap-3 border-b border-border pb-2 last:border-0"
                 >
-                  <span className="h-2 w-2 rounded-full bg-blue-500" />
-                  <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-700">
+                  <span className="h-2 w-2 rounded-full bg-link" />
+                  <span className="min-w-0 flex-1 truncate text-xs font-semibold text-foreground">
                     {task.title}
                   </span>
-                  <span className="text-[10px] font-semibold text-slate-400">
+                  <span className="text-xs font-semibold text-muted-foreground">
                     {formatTimeAgo(task.updatedAt || task.createdAt)}
                   </span>
                 </div>

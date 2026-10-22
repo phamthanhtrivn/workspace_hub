@@ -1,7 +1,11 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import React, { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+
 import { X, Loader2, Search, Hash, Check, Globe, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -12,6 +16,10 @@ import { chatKeys } from "@/features/chat/types/chat.constant";
 import { useSpaceChannelsQuery } from "@/features/chat/hooks/useChatQueries";
 import { disbandChannel, joinChannel } from "@/features/chat/api/channel.api";
 import { removeChannelFromCaches } from "@/features/chat/utils/chat-cache";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { DialogSurface } from "@/components/ui/dialog";
+
 
 interface BrowseChannelsModalProps {
   isOpen: boolean;
@@ -133,47 +141,46 @@ export default function BrowseChannelsModal({
 
   if (!isOpen || !mounted) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col h-[600px] max-h-[100vh]">
+  return <DialogSurface onClose={onClose}>{<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay/40 animate-fade-in">
+      <div className={`${dialogLayout.surface} w-full max-w-lg bg-card rounded-panel overflow-hidden border border-border flex flex-col h-[600px] max-h-[100vh]`}>
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Globe className="text-blue-500" size={20} />
-            <h2 className="text-lg font-bold text-gray-800">
+            <Globe className="text-info-content" size={20} />
+            <h2 className="text-section-title font-semibold text-foreground">
               Browse Channels
             </h2>
           </div>
-          <button
+          <IconButton label="Close" showTooltip={false} size="icon-sm" aria-label="Close"
             onClick={onClose}
-            className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
+            className="p-1 rounded-control text-muted-foreground hover:text-muted-foreground hover:bg-muted transition cursor-pointer"
           >
             <X size={20} />
-          </button>
+          </IconButton>
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+        <div className="p-4 border-b border-border bg-background">
           <div className="relative">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
               size={16}
             />
-            <input
+            <Input aria-label="Search channels by name" unstyled
               type="text"
               placeholder="Search channels by name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 rounded-xl text-sm outline-none transition duration-150 shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 bg-card border border-input focus:border-info-outline focus:ring-4 focus:ring-ring rounded-control text-sm outline-none transition duration-150"
             />
           </div>
         </div>
 
         {/* Channel List */}
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-250 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-4 flex flex-col gap-2`}>
           {isLoading ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-2">
-              <Loader2 className="animate-spin text-blue-500" size={24} />
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
+              <Loader2 className="animate-spin text-info-content" size={24} />
               <span className="text-xs">Loading channels...</span>
             </div>
           ) : filteredChannels.length > 0 ? (
@@ -186,20 +193,20 @@ export default function BrowseChannelsModal({
               return (
                 <div
                   key={channel.id}
-                  className="flex items-center justify-between p-3.5 hover:bg-slate-50 border border-gray-100 hover:border-blue-100/50 rounded-xl transition duration-150"
+                  className="flex items-center justify-between p-3.5 hover:bg-background border border-border hover:border-border rounded-panel transition duration-150"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-panel bg-muted text-muted-foreground">
                       <Hash size={18} />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">
+                      <p className="text-sm font-semibold text-foreground truncate">
                         {channel.name}
                       </p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">
+                      <p className="text-xs text-muted-foreground mt-0.5">
                         {`${memberCount} members`}
                         {channel.isDefault && (
-                          <span className="ml-2 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-bold">
+                          <span className="ml-2 px-1.5 py-0.5 bg-info-soft text-info-content rounded text-xs font-semibold">
                             Default
                           </span>
                         )}
@@ -209,32 +216,32 @@ export default function BrowseChannelsModal({
 
                   <div className="flex shrink-0 items-center gap-2">
                     {isJoined ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-lg border border-emerald-100/50">
+                      <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-success-content bg-success-soft rounded-lg border border-border">
                         <Check size={14} />
                         Joined
                       </span>
                     ) : (
-                      <button
+                      <Button variant="default"
                         onClick={() => joinMutation.mutate(channel.id)}
                         disabled={joinMutation.isPending}
-                        className="px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg shadow-sm shadow-blue-50 transition cursor-pointer flex items-center gap-1"
+                        className="px-4 py-1.5 text-xs font-semibold disabled:bg-primary rounded-control transition cursor-pointer flex items-center gap-1"
                       >
                         {joinMutation.isPending &&
                         joinMutation.variables === channel.id ? (
                           <Loader2 size={12} className="animate-spin" />
                         ) : null}
                         Join
-                      </button>
+                      </Button>
                     )}
                     {(isSpaceAdmin ||
                       (channel.createdBy === currentUserId &&
                         allowMemberDeleteOwnChannel)) &&
                       !channel.isDefault && (
-                        <button
+                        <Button variant="unstyled"
                           type="button"
                           onClick={() => handleDeleteChannel(channel.id)}
                           disabled={deleteMutation.isPending}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-control border border-border bg-destructive-soft text-destructive-content hover:bg-destructive-soft hover:text-destructive-content disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition"
                           title="Delete Channel"
                         >
                           {deleteMutation.isPending &&
@@ -243,32 +250,30 @@ export default function BrowseChannelsModal({
                           ) : (
                             <Trash2 size={14} />
                           )}
-                        </button>
+                        </Button>
                       )}
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 italic text-xs py-10">
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground italic text-xs py-10">
               No channels found
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
-          <button
+        <div className="px-6 py-4 border-t border-border bg-background flex justify-end">
+          <Button variant="unstyled"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl transition cursor-pointer"
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-card hover:bg-muted border border-border rounded-control transition cursor-pointer"
           >
             Close
-          </button>
+          </Button>
         </div>
       </div>
       <ChatConfirmDialog {...confirmDialogProps} />
-    </div>,
-    document.body,
-  );
+    </div>}</DialogSurface>;
 }
 

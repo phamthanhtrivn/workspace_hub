@@ -1,6 +1,9 @@
 "use client";
+import { CustomDateField } from "@/components/ui/custom/custom-date-time-picker";
 
-import { useEffect, useRef, useState } from "react";
+import { useId as useControlledPopupId } from "react";
+
+import { useRef, useState } from "react";
 import { CalendarDays, ChevronDown, Layers } from "lucide-react";
 import {
   type ProjectMember,
@@ -20,9 +23,10 @@ import {
 import { Avatar } from "../ui/avatar-stack";
 import { getPriorityIcon } from "../ui/task-card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { CustomCheckbox } from "@/components/ui/custom/custom-checkbox";
 import { ProjectSelect } from "../ui/project-form-controls";
+import { AnchoredPopover, AnchoredMenu } from "@/components/ui/anchored-popup";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface TaskPropertiesPanelProps {
   task: Task;
@@ -53,6 +57,7 @@ export default function TaskPropertiesPanel({
   onStartDateChange,
   onDueDateChange,
 }: TaskPropertiesPanelProps) {
+  const controlledPopupId = useControlledPopupId();
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
 
@@ -88,24 +93,7 @@ export default function TaskPropertiesPanel({
     ? taskDateKey(task.dueDate, true)
     : toDateTimeInput(task.dueDate);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        assigneeDropdownRef.current &&
-        !assigneeDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowAssigneeDropdown(false);
-      }
-      if (
-        priorityDropdownRef.current &&
-        !priorityDropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowPriorityDropdown(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   const taskAssignee = task.assignees[0];
   const assignedMember = taskAssignee
@@ -131,30 +119,30 @@ export default function TaskPropertiesPanel({
   };
 
   return (
-    <div className="select-none overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xs">
-      <div className="border-b border-slate-100 bg-slate-50 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-700">
+    <div className="select-none overflow-hidden rounded-panel border border-border bg-card">
+      <div className="border-b border-border bg-background px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wide text-foreground">
         Task Details
       </div>
-      <div className="divide-y divide-slate-100 text-xs">
+      <div className="divide-y divide-border text-xs">
         {/* Assignee */}
         <div
           className="flex flex-col gap-1 px-3.5 py-2.5"
           ref={assigneeDropdownRef}
         >
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Assignee
           </span>
           <div className="relative">
-            <div
+            <Button aria-controls={`${controlledPopupId}-showAssigneeDropdown`} variant="unstyled" type="button" disabled={isReadOnly} aria-expanded={showAssigneeDropdown} aria-haspopup="dialog"
               onClick={
                 isReadOnly
                   ? undefined
                   : () => setShowAssigneeDropdown((prev) => !prev)
               }
-              className={`-ml-1 flex items-center justify-between rounded-lg p-1.5 transition ${
+              className={`w-full text-left -ml-1 flex items-center justify-between rounded-lg p-1.5 transition ${
                 isReadOnly
                   ? "cursor-default"
-                  : "cursor-pointer hover:bg-slate-50"
+                  : "cursor-pointer hover:bg-background"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -168,28 +156,28 @@ export default function TaskPropertiesPanel({
                       }}
                       size="xs"
                     />
-                    <span className="font-semibold text-slate-800">
+                    <span className="font-semibold text-foreground">
                       {assignedUser.displayName}
                     </span>
                   </>
                 ) : (
                   <>
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-slate-300 bg-slate-50 text-[10px] font-bold text-slate-400">
+                    <div className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-input bg-background text-xs font-semibold text-muted-foreground">
                       ?
                     </div>
-                    <span className="font-medium italic text-slate-400">
+                    <span className="font-medium italic text-muted-foreground">
                       Unassigned
                     </span>
                   </>
                 )}
               </div>
               {!isReadOnly && (
-                <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
               )}
-            </div>
+            </Button>
 
             {showAssigneeDropdown && !isReadOnly && (
-              <div className="absolute left-0 z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+              <AnchoredPopover id={`${controlledPopupId}-showAssigneeDropdown`} onClose={() => setShowAssigneeDropdown(false)} side="bottom" align="start" aria-label="Task assignee" className="max-h-48 w-[var(--radix-popover-trigger-width)] overflow-y-auto rounded-panel border border-border bg-card py-1 shadow-panel">
                 <Button
                   type="button"
                   variant="ghost"
@@ -198,7 +186,7 @@ export default function TaskPropertiesPanel({
                     setShowAssigneeDropdown(false);
                     void onAssigneeChange(null);
                   }}
-                  className="flex w-full h-auto justify-start rounded-none cursor-pointer items-center px-3 py-1.5 text-left text-xs font-semibold italic text-slate-500 hover:bg-slate-50"
+                  className="flex w-full h-auto justify-start rounded-none cursor-pointer items-center px-3 py-1.5 text-left text-xs font-semibold italic text-muted-foreground hover:bg-background"
                 >
                   Unassign
                 </Button>
@@ -212,7 +200,7 @@ export default function TaskPropertiesPanel({
                       setShowAssigneeDropdown(false);
                       void onAssigneeChange(member.userId);
                     }}
-                    className="flex w-full h-auto justify-start rounded-none cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    className="flex w-full h-auto justify-start rounded-none cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs font-semibold text-foreground hover:bg-background"
                   >
                     <Avatar
                       user={{
@@ -225,7 +213,7 @@ export default function TaskPropertiesPanel({
                     <span>{member.displayName}</span>
                   </Button>
                 ))}
-              </div>
+              </AnchoredPopover>
             )}
           </div>
         </div>
@@ -235,59 +223,59 @@ export default function TaskPropertiesPanel({
           className="flex flex-col gap-1 px-3.5 py-2.5"
           ref={priorityDropdownRef}
         >
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Priority
           </span>
           <div className="relative">
-            <div
+            <Button aria-controls={`${controlledPopupId}-showPriorityDropdown`} variant="unstyled" type="button" disabled={isReadOnly} aria-expanded={showPriorityDropdown} aria-haspopup="menu"
               onClick={
                 isReadOnly
                   ? undefined
                   : () => setShowPriorityDropdown((prev) => !prev)
               }
-              className={`-ml-1 flex items-center justify-between rounded-lg p-1.5 transition ${
+              className={`w-full text-left -ml-1 flex items-center justify-between rounded-lg p-1.5 transition ${
                 isReadOnly
                   ? "cursor-default"
-                  : "cursor-pointer hover:bg-slate-50"
+                  : "cursor-pointer hover:bg-background"
               }`}
             >
               <div className="flex items-center gap-2">
                 {getPriorityIcon(task.priority)}
-                <span className="font-semibold text-slate-700">
+                <span className="font-semibold text-foreground">
                   {TASK_PRIORITY_LABELS[task.priority]}
                 </span>
               </div>
               {!isReadOnly && (
-                <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
               )}
-            </div>
+            </Button>
 
             {showPriorityDropdown && !isReadOnly && (
-              <div className="absolute left-0 z-20 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+              <AnchoredMenu id={`${controlledPopupId}-showPriorityDropdown`} onClose={() => setShowPriorityDropdown(false)} side="bottom" align="start" aria-label="Task priority" className="w-[var(--anchor-width)] overflow-hidden rounded-panel border border-border bg-card py-1 shadow-panel">
                 {TASK_DRAWER_PRIORITY_OPTIONS.map((opt) => (
-                  <Button
+                  <DropdownMenuItem closeOnClick={false}
                     key={opt.value}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
+
+
+
                     onClick={() => {
                       setShowPriorityDropdown(false);
                       void onPriorityChange(opt.value);
                     }}
-                    className="flex w-full h-auto justify-start rounded-none cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                    className="flex w-full h-auto justify-start rounded-none cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs font-semibold text-foreground hover:bg-background"
                   >
                     {getPriorityIcon(opt.value)}
                     <span>{opt.label}</span>
-                  </Button>
+                  </DropdownMenuItem>
                 ))}
-              </div>
+              </AnchoredMenu>
             )}
           </div>
         </div>
 
         {/* Parent Task */}
         <div className="flex flex-col gap-1 px-3.5 py-2.5">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <Layers className="h-3 w-3" strokeWidth={2} />
             Parent Task
           </span>
@@ -311,58 +299,62 @@ export default function TaskPropertiesPanel({
             onCheckedChange={(checked) => void onAllDayChange(Boolean(checked))}
             label="All Day Event"
             description="Switch between date-only and date-time scheduling."
-            className="items-start gap-2 rounded-lg border border-slate-200/70 bg-slate-50 px-2.5 py-2"
-            checkboxClassName="mt-0.5 cursor-pointer data-[state=checked]:bg-[#0052CC] data-[state=checked]:border-[#0052CC]"
-            labelClassName="text-xs font-bold text-slate-700"
-            descriptionClassName="text-[10px]"
+            className="items-start gap-2 rounded-lg border border-border bg-background px-2.5 py-2"
+            checkboxClassName="mt-0.5 cursor-pointer data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            labelClassName="text-xs font-semibold text-foreground"
+            descriptionClassName="text-xs"
           />
         </div>
 
         {/* Start Date */}
         <div className="flex flex-col gap-1 px-3.5 py-2.5">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <CalendarDays className="h-3 w-3" strokeWidth={2} />
             {task.allDay ? "Start Date" : "Start Date & Time"}
           </span>
-          <Input
-            type={task.allDay ? "date" : "datetime-local"}
+          <CustomDateField
+            ariaLabel="Task start date"
+            dateOnly={task.allDay}
             value={startDateValue}
-            onChange={(e) => void onStartDateChange(e.target.value)}
+            onChange={nextValue => void onStartDateChange(nextValue)}
             disabled={isReadOnly}
-            className="h-8 w-full rounded-lg border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700"
+            className="h-8 w-full rounded-control border-input bg-card px-2.5 text-xs font-semibold text-foreground"
+            allowClear
           />
         </div>
 
         {/* Due Date */}
         <div className="flex flex-col gap-1 px-3.5 py-2.5">
-          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <CalendarDays className="h-3 w-3" strokeWidth={2} />
             {task.allDay ? "Due Date" : "Due Date & Time"}
           </span>
-          <Input
-            type={task.allDay ? "date" : "datetime-local"}
+          <CustomDateField
+            ariaLabel="Task due date"
+            dateOnly={task.allDay}
             value={dueDateValue}
-            onChange={(e) => void onDueDateChange(e.target.value)}
+            onChange={nextValue => void onDueDateChange(nextValue)}
             disabled={isReadOnly}
-            className="h-8 w-full rounded-lg border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700"
+            className="h-8 w-full rounded-control border-input bg-card px-2.5 text-xs font-semibold text-foreground"
+            allowClear
           />
         </div>
 
         {/* Reporter */}
         <div className="flex flex-col gap-1 px-3.5 py-2.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Reporter
           </span>
           <div className="-ml-1 flex items-center gap-2 rounded-lg p-1.5">
             <Avatar user={reporterUser} size="xs" />
-            <span className="font-semibold text-slate-700">
+            <span className="font-semibold text-foreground">
               {reporterName}
             </span>
           </div>
         </div>
 
         {/* Timestamps */}
-        <div className="flex flex-col gap-0.5 bg-slate-50/50 px-3.5 py-2.5 text-[10px] font-semibold text-slate-400">
+        <div className="flex flex-col gap-0.5 bg-background px-3.5 py-2.5 text-xs font-semibold text-muted-foreground">
           <div>
             Created: {formatTaskDateTime(task.createdAt)}
           </div>

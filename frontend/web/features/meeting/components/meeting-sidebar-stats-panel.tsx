@@ -1,192 +1,103 @@
 "use client";
 
-import type { ComponentType } from "react";
-import {
-  BarChart3,
-  CalendarDays,
-  Clock3,
-  Radio,
-  ShieldCheck,
-  Video,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { CalendarDays, Clock3, RefreshCw, UserRound } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useMeetingHistorySummary } from "../hooks/useMeetingHistory";
-import {
-  formatMeetingSummaryLastMeetingAt,
-  formatMeetingSummaryMinutes,
-} from "../utils/meeting-summary.utils";
+import type { MeetingHistorySummaryResponse } from "../types/meeting.types";
+import { formatMeetingSummaryLastMeetingAt, formatMeetingSummaryMinutes } from "../utils/meeting-summary.utils";
 
-const zeroSummary = {
-  totalMeetings: 0,
-  liveMeetings: 0,
-  endedMeetings: 0,
-  hostedMeetings: 0,
-  totalMinutes: 0,
-  lastMeetingAt: null,
-};
-
-function MeetingSidebarStatsSkeleton() {
+function MeetingStatsSkeleton() {
   return (
-    <div className="space-y-3">
-      <div className="rounded-lg bg-slate-100 p-4">
-        <div className="h-4 w-24 rounded-md bg-slate-200" />
-        <div className="mt-4 h-9 w-16 rounded-md bg-slate-200" />
-        <div className="mt-3 h-3 w-36 rounded-md bg-slate-200" />
-      </div>
-      <div className="grid grid-cols-3 gap-1.5">
-        <div className="h-16 rounded-md bg-slate-100" />
-        <div className="h-16 rounded-md bg-slate-100" />
-        <div className="h-16 rounded-md bg-slate-100" />
-      </div>
-      <div className="rounded-md border border-slate-200 bg-white">
-        <div className="h-11 border-b border-slate-100" />
-        <div className="h-11" />
+    <div role="status" aria-label="Loading meeting stats" className="mt-4">
+      <span className="sr-only">Loading meeting stats...</span>
+      <div aria-hidden="true">
+        <Skeleton className="h-4 w-24 motion-reduce:animate-none" />
+        <Skeleton className="mt-1 h-9 w-20 motion-reduce:animate-none" />
+        <div className="mt-3 flex gap-2">
+          <Skeleton className="h-6 w-16 motion-reduce:animate-none" />
+          <Skeleton className="h-6 w-20 motion-reduce:animate-none" />
+        </div>
+        <div className="mt-4 space-y-3 border-t border-border pt-4">
+          {["hosted", "total-time", "last-meeting"].map((stat) => (
+            <div key={stat} className="flex items-center justify-between gap-3">
+              <Skeleton className="h-4 w-24 motion-reduce:animate-none" />
+              <Skeleton className="h-4 w-14 motion-reduce:animate-none" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-interface MeetingSidebarMetricProps {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  value: number | string;
-  tone?: "blue" | "emerald" | "slate";
-}
+function MeetingStatsSummary({ summary }: { summary: MeetingHistorySummaryResponse }) {
+  const details = [
+    { label: "Hosted", icon: UserRound, value: summary.hostedMeetings },
+    { label: "Total time", icon: Clock3, value: formatMeetingSummaryMinutes(summary.totalMinutes) },
+    { label: "Last meeting", icon: CalendarDays, value: formatMeetingSummaryLastMeetingAt(summary.lastMeetingAt, "Never") },
+  ];
 
-function MeetingSidebarMetric({
-  icon: Icon,
-  label,
-  value,
-  tone = "slate",
-}: MeetingSidebarMetricProps) {
   return (
-    <div className="min-w-0 rounded-md border border-slate-200 bg-white p-2.5 shadow-[0_8px_18px_rgba(15,40,84,0.04)]">
-      <div
-        className={cn(
-          "grid h-7 w-7 place-items-center rounded-md ring-1",
-          tone === "blue" && "bg-blue-50 text-[#0052CC] ring-blue-100",
-          tone === "emerald" &&
-            "bg-emerald-50 text-emerald-700 ring-emerald-100",
-          tone === "slate" && "bg-slate-100 text-slate-600 ring-slate-200",
-        )}
-      >
-        <Icon className="h-3.5 w-3.5" />
+    <>
+      <dl className="mt-4">
+        <dt className="text-xs text-muted-foreground">Total meetings</dt>
+        <dd className="mt-1 break-words text-3xl font-semibold leading-9 text-foreground tabular-nums [overflow-wrap:anywhere]">
+          {summary.totalMeetings}
+        </dd>
+      </dl>
+      <div className="mt-3 flex min-w-0 flex-wrap gap-2">
+        <Badge variant="secondary" className="max-w-full whitespace-normal bg-success-soft font-medium text-success-content">
+          Live <span className="min-w-0 font-semibold tabular-nums [overflow-wrap:anywhere]">{summary.liveMeetings}</span>
+        </Badge>
+        <Badge variant="secondary" className="max-w-full whitespace-normal font-medium">
+          Ended <span className="min-w-0 font-semibold tabular-nums [overflow-wrap:anywhere]">{summary.endedMeetings}</span>
+        </Badge>
       </div>
-      <p className="mt-2 text-base font-black leading-none text-[#172B4D]">
-        {value}
-      </p>
-      <p className="mt-1 truncate text-[0.68rem] font-bold leading-none text-slate-500">
-        {label}
-      </p>
-    </div>
-  );
-}
-
-interface MeetingSidebarStatsRowProps {
-  icon: ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-}
-
-function MeetingSidebarStatsRow({
-  icon: Icon,
-  label,
-  value,
-}: MeetingSidebarStatsRowProps) {
-  return (
-    <div className="flex min-w-0 items-center justify-between gap-3 px-3 py-2.5">
-      <div className="flex min-w-0 items-center gap-2 text-slate-500">
-        <Icon className="h-4 w-4 shrink-0" />
-        <span className="truncate text-xs font-bold">{label}</span>
-      </div>
-      <span className="min-w-0 truncate text-right text-sm font-black text-[#172B4D]">
-        {value}
-      </span>
-    </div>
+      <dl className="mt-4 space-y-3 border-t border-border pt-4 text-xs">
+        {details.map(({ label, icon: Icon, value }) => (
+          <div key={label} className="flex min-w-0 items-center justify-between gap-3">
+            <dt className="flex shrink-0 items-center gap-2 text-muted-foreground">
+              <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+              {label}
+            </dt>
+            <dd className="min-w-0 break-words text-right font-medium text-foreground tabular-nums [overflow-wrap:anywhere]">
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </>
   );
 }
 
 export function MeetingSidebarStatsPanel() {
   const summaryQuery = useMeetingHistorySummary();
-  const summary = summaryQuery.data?.data ?? zeroSummary;
-  const isEmpty = !summaryQuery.isLoading && summary.totalMeetings === 0;
-  const lastMeetingLabel = formatMeetingSummaryLastMeetingAt(
-    summary.lastMeetingAt,
-    "Never",
-  );
+  const summary = summaryQuery.data?.data;
 
   return (
-    <section className="mt-auto hidden overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_18px_38px_rgba(15,40,84,0.08)] xl:block">
-      {summaryQuery.isLoading ? (
-        <div className="p-3">
-          <MeetingSidebarStatsSkeleton />
-        </div>
-      ) : summaryQuery.isError ? (
-        <div className="m-3 rounded-md border border-dashed border-red-200 bg-red-50 px-3 py-4 text-sm font-bold text-red-600">
-          Could not load meeting stats.
+    <section className="mt-auto hidden min-w-0 shrink-0 rounded-panel border border-border bg-card p-4 @min-[1120px]/meetings:block" aria-label="Meeting statistics">
+      <h2 className="text-sm font-semibold text-foreground">Meeting stats</h2>
+      {summaryQuery.isPending ? (
+        <MeetingStatsSkeleton />
+      ) : summaryQuery.isError || !summary ? (
+        <div className="mt-4 space-y-3">
+          <p role="alert" className="text-xs leading-5 text-destructive-content">Could not load meeting stats.</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={summaryQuery.isFetching}
+            onClick={() => void summaryQuery.refetch()}
+            className="max-w-full whitespace-normal motion-reduce:transition-none"
+          >
+            <RefreshCw aria-hidden="true" />
+            {summaryQuery.isFetching ? "Retrying..." : "Retry"}
+          </Button>
         </div>
       ) : (
-        <div>
-          <div className="bg-[#172B4D] p-4 text-white">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-xs font-black text-blue-100">
-                  Meeting stats
-                </p>
-                <p className="mt-3 text-4xl font-black leading-none">
-                  {summary.totalMeetings}
-                </p>
-              </div>
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-white/14 text-white ring-1 ring-white/18">
-                <BarChart3 className="h-5 w-5" />
-              </div>
-            </div>
-
-            <p className="mt-3 text-xs font-bold leading-5 text-blue-100">
-              {isEmpty
-                ? "Your meeting stats will appear here."
-                : `${summary.totalMeetings} total ${
-                    summary.totalMeetings === 1 ? "meeting" : "meetings"
-                  }`}
-            </p>
-          </div>
-
-          <div className="space-y-3 bg-slate-50 p-3">
-            <div className="grid grid-cols-3 gap-1.5">
-              <MeetingSidebarMetric
-                icon={Radio}
-                label="Live"
-                value={summary.liveMeetings}
-                tone="emerald"
-              />
-              <MeetingSidebarMetric
-                icon={Video}
-                label="Ended"
-                value={summary.endedMeetings}
-                tone="slate"
-              />
-              <MeetingSidebarMetric
-                icon={ShieldCheck}
-                label="Hosted"
-                value={summary.hostedMeetings}
-                tone="blue"
-              />
-            </div>
-
-            <div className="divide-y divide-slate-100 rounded-md border border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,40,84,0.04)]">
-              <MeetingSidebarStatsRow
-                icon={Clock3}
-                label="Total time"
-                value={formatMeetingSummaryMinutes(summary.totalMinutes)}
-              />
-              <MeetingSidebarStatsRow
-                icon={CalendarDays}
-                label="Last meeting"
-                value={lastMeetingLabel}
-              />
-            </div>
-          </div>
-        </div>
+        <MeetingStatsSummary summary={summary} />
       )}
     </section>
   );

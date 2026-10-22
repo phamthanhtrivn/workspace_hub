@@ -26,7 +26,7 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "inline-flex h-9 w-fit items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+        "inline-flex h-9 w-fit items-center justify-center rounded-control bg-muted p-1 text-muted-foreground",
         className,
       )}
       {...props}
@@ -36,13 +36,16 @@ function TabsList({
 
 function TabsTrigger({
   className,
+  unstyled = false,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+}: React.ComponentProps<typeof TabsPrimitive.Trigger> & { unstyled?: boolean }) {
   return (
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "inline-flex h-7 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-2.5 text-sm font-semibold outline-none transition disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm focus-visible:ring-2 focus-visible:ring-ring/40",
+        unstyled
+          ? "touch-target cursor-pointer outline-none disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-ring"
+          : "touch-target inline-flex h-7 shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-2.5 text-sm font-semibold outline-none transition disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
         className,
       )}
       {...props}
@@ -57,7 +60,7 @@ function TabsContent({
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
-      className={cn("outline-none focus-visible:ring-2 focus-visible:ring-ring/40", className)}
+      className={cn("outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}
       {...props}
     />
   );

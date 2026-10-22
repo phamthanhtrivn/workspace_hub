@@ -14,7 +14,7 @@ export const renderAudioPlayer = (media: any, isMe: boolean) => {
   return (
     <div
       key={media.id}
-      className={`p-2 rounded-2xl ${isMe ? "bg-[#DBEAFE]" : "bg-gray-100"}`}
+      className={`p-2 rounded-panel ${isMe ? "bg-primary-soft" : "bg-muted"}`}
     >
       <audio controls src={media.fileUrl} className="h-10 max-w-[240px]" />
     </div>

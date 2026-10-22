@@ -53,6 +53,16 @@ Create the GitHub **production** environment and restrict deployment branches to
 | Variable | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | public Google browser client ID |
 | Variable | `NEXT_PUBLIC_NOMINATIM_URL` | geocoding URL |
 | Variable | `NEXT_PUBLIC_ASSET_HOST` | optional asset hostname, without scheme |
+| Variable | `SITE_URL` | optional public HTTPS frontend origin; leave unset until a production domain exists |
+| Variable | `SITE_INDEXABLE` | `false` by default; enable only for the public production domain |
+
+SEO is currently disabled because no production domain is configured. Leave
+`SITE_URL` unset and `SITE_INDEXABLE=false`. Every page remains `noindex` and the
+sitemap is empty. See [SEO metadata configuration](seo-metadata.md) before enabling
+indexing. These two values are embedded in both the web build and the resulting
+image environment; changing them requires a new web image/commit. Do not override
+them only at container startup or promote a production-indexable image to a preview
+host. Trial image builds always leave `SITE_URL` empty and indexing disabled.
 
 Expose public build values at repository level too if PR builds should use them.
 Remove obsolete workflow settings `AWS_ROLE_ARN`, `DEPLOY_ARTIFACT_BUCKET`,

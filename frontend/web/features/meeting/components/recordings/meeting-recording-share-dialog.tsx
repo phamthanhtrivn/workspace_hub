@@ -1,5 +1,7 @@
 "use client";
 
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -15,6 +17,8 @@ import { recordingApi } from "../../api/meeting-recording.api";
 import { recordingErrorMessage } from "../../utils/recording-errors";
 import type { MeetingRecording } from "../../types/meeting-recording.types";
 import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
+import { Checkbox } from "@/components/ui/checkbox";
+
 
 export function MeetingRecordingShareDialog({
   recording,
@@ -52,7 +56,7 @@ export function MeetingRecordingShareDialog({
       }}
     >
       <DialogContent
-        className="max-h-[85dvh] overflow-y-auto p-6"
+        className={`${dialogLayout.surface} max-h-[85dvh] overflow-y-auto p-6`}
         aria-labelledby="recording-share-title"
       >
         <DialogTitle id="recording-share-title">Share recording</DialogTitle>
@@ -61,10 +65,10 @@ export function MeetingRecordingShareDialog({
           Previously issued links expire within five minutes.
         </DialogDescription>
         <label className="mt-4 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+          <Checkbox
+
             checked={canDownload}
-            onChange={(event) => setCanDownload(event.target.checked)}
+            onCheckedChange={nextChecked => setCanDownload(nextChecked)}
           />
           Allow download when granting access
         </label>
@@ -93,7 +97,7 @@ export function MeetingRecordingShareDialog({
           <p className="mt-2 text-sm text-muted-foreground">Searching…</p>
         )}
         {users.isError && (
-          <p role="alert" className="mt-2 text-sm text-destructive">
+          <p role="alert" className="mt-2 text-sm text-destructive-content">
             Could not search accounts.
           </p>
         )}

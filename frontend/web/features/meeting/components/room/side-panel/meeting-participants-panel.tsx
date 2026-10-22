@@ -61,18 +61,18 @@ export function MeetingParticipantsPanel({
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search by name or email..."
-          containerClassName="border-white/10 bg-white/8 focus-within:border-white/20 focus-within:ring-white/10"
-          className="text-slate-100 placeholder:text-slate-500"
+          containerClassName="border-border bg-accent focus-within:border-border focus-within:ring-border/10"
+          className="text-muted-foreground placeholder:text-muted-foreground"
         />
 
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
           {participantsQuery.isLoading ? (
-            <div className="flex h-40 items-center justify-center text-sm font-bold text-slate-400">
+            <div className="flex h-40 items-center justify-center text-sm font-semibold text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Loading participants...
             </div>
           ) : !hasParticipants ? (
-            <div className="rounded-lg bg-white/6 p-4 text-center text-sm font-semibold leading-6 text-slate-400 ring-1 ring-white/8">
+            <div className="rounded-lg bg-accent p-4 text-center text-sm font-semibold leading-6 text-muted-foreground ring-1 ring-border/8">
               No participants in the room.
             </div>
           ) : (
@@ -103,13 +103,13 @@ export function MeetingParticipantsPanel({
         </div>
 
         {shouldShowPagination ? (
-          <div className="mt-auto flex items-center justify-between gap-2 rounded-lg bg-white/6 px-2 py-2 text-xs font-black text-slate-300 ring-1 ring-white/8">
+          <div className="mt-auto flex items-center justify-between gap-2 rounded-lg bg-accent px-2 py-2 text-xs font-semibold text-muted-foreground ring-1 ring-border/8">
             <MeetingIconButton
               label="Previous"
               icon={ChevronLeft}
               disabled={page <= 1}
               onClick={() => setPage((current) => Math.max(1, current - 1))}
-              className="size-8 text-slate-300 hover:bg-white/10"
+              className="size-8 text-muted-foreground hover:bg-accent"
             />
             <span>
               {page} / {totalPages}
@@ -121,7 +121,7 @@ export function MeetingParticipantsPanel({
               onClick={() =>
                 setPage((current) => Math.min(totalPages, current + 1))
               }
-              className="size-8 text-slate-300 hover:bg-white/10"
+              className="size-8 text-muted-foreground hover:bg-accent"
             />
           </div>
         ) : null}
