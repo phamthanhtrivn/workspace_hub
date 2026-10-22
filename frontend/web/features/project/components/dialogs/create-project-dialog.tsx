@@ -240,7 +240,7 @@ export default function CreateProjectDialog({
             {/* Color Picker */}
             <fieldset>
               <legend className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Theme Color
+                Project Color
               </legend>
               <div className="mt-2 flex flex-wrap gap-2.5">
                 {PROJECT_COLOR_OPTIONS.map((color) => {

@@ -7,6 +7,7 @@ import CreateProjectDialog from "@/features/project/components/dialogs/create-pr
 import ProjectSettingsDialog from "@/features/project/components/dialogs/project-settings-dialog";
 import { Avatar } from "@/features/project/components/ui/avatar-stack";
 import { ProjectStatusBadge } from "@/features/project/components/ui/status-badge";
+import { ProjectColorDot, ProjectIdentityIcon } from "@/features/project/components/ui/project-identity";
 import {
   useArchiveProject,
   useCreateProject,
@@ -277,19 +278,14 @@ export default function ProjectsScreen() {
                     >
                       <TableCell unstyled className="px-6 py-3.5">
                         <div className="flex min-w-0 items-center gap-3">
-                          <span
-                            className="grid h-10 w-10 shrink-0 place-items-center rounded-panel text-xl border border-border font-semibold"
-                            style={{
-                              backgroundColor: `${project.color}14`,
-                              color: "var(--foreground)",
-                            }}
-                          >
-                            {project.icon || "📁"}
-                          </span>
+                          <ProjectIdentityIcon icon={project.icon} color={project.color} />
                           <div className="min-w-0 flex-1">
-                            <span title={project.name} className="block truncate text-sm font-semibold text-info-content group-hover:underline">
-                              {project.name}
-                            </span>
+                            <div className="flex min-w-0 items-center gap-2">
+                              <ProjectColorDot color={project.color} />
+                              <span title={project.name} className="truncate text-sm font-semibold text-info-content group-hover:underline">
+                                {project.name}
+                              </span>
+                            </div>
                             {projectIdSuffix ? (
                               <div className="mt-0.5">
                                 <span
