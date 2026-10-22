@@ -154,7 +154,7 @@ services:
   - name: notebook-ai-service
     url: http://notebook-api:8087
     connect_timeout: 5000
-    read_timeout: 90000
+    read_timeout: 120000
     write_timeout: 10000
     retries: 0
     routes:
@@ -189,6 +189,9 @@ plugins:
         - X-Requested-With
         - Cookie
         - Idempotency-Key
+        - X-File-Size
+        - X-Upload-Count
+        - X-Upload-Bytes
       exposed_headers:
         - Set-Cookie
       credentials: true
@@ -217,6 +220,11 @@ plugins:
   # ==========================================
 
   # user-routes
+  - name: request-size-limiting
+    route: notebook-ai-routes
+    config:
+      allowed_payload_size: 20 # One transient file check; persistent files still use Document Service.
+
   - name: jwt
     route: user-routes
     config:

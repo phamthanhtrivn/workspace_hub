@@ -23,6 +23,7 @@ import {
   SharePermission,
   LinkAccess,
   DocumentShare,
+  Prisma,
 } from '@prisma/client';
 import { DocumentRole, DocumentSortBy } from '../../common/enums/document.enum';
 import { QuotaService } from '../quota/quota.service';
@@ -127,9 +128,33 @@ export class DocumentService {
     name: string;
     type: ItemType;
   }) {
-    throw new ConflictException(
-      `${conflict.type === ItemType.FOLDER ? 'A folder' : 'A file'} named "${conflict.name}" already exists in this location`,
+    throw new ConflictException({
+      message: `${conflict.type === ItemType.FOLDER ? 'A folder' : 'A file'} named "${conflict.name}" already exists in this location`,
+      code: 'DOCUMENT_NAME_CONFLICT',
+    });
+  }
+
+  private async lockAvailableName(
+    tx: Prisma.TransactionClient,
+    ownerUserId: string,
+    name: string,
+    parentFolderId: string | null,
+    projectId: string | null,
+  ) {
+    if (!name) throw new BadRequestException('Name cannot be empty');
+    const scope = JSON.stringify(
+      this.buildSiblingScopeWhere(ownerUserId, parentFolderId, projectId),
     );
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${scope}, 8085))::text AS locked`;
+    const conflict = await tx.documentItem.findFirst({
+      where: {
+        ...this.buildSiblingScopeWhere(ownerUserId, parentFolderId, projectId),
+        isArchived: false,
+        name: { equals: name, mode: 'insensitive' },
+      },
+      select: { name: true, type: true },
+    });
+    if (conflict) this.throwDuplicateNameConflict(conflict);
   }
 
   private async assertNoActiveSiblingWithName(
@@ -485,6 +510,13 @@ export class DocumentService {
 
     // Create DocumentItem and first Version in Database
     const item = await this.prisma.$transaction(async (tx) => {
+      await this.lockAvailableName(
+        tx,
+        userId,
+        normalizedName,
+        parentFolder?.id ?? null,
+        projectId,
+      );
       const createdItem = await tx.documentItem.create({
         data: {
           name: normalizedName,
@@ -852,23 +884,25 @@ export class DocumentService {
     // Inherit project ID from parent if not specified
     const projectId = parentFolder?.projectId || dto.projectId || null;
     const normalizedName = this.normalizeItemName(dto.name);
-    await this.assertNoActiveSiblingWithName(
-      userId,
-      normalizedName,
-      parentFolder?.id ?? null,
-      projectId,
-    );
-
-    const folder = await this.prisma.documentItem.create({
-      data: {
-        name: normalizedName,
-        type: ItemType.FOLDER,
-        ownerUserId: userId,
-        ownerEmail: userEmail,
-        parentFolderId: parentFolder?.id ?? null,
+    const folder = await this.prisma.$transaction(async (tx) => {
+      await this.lockAvailableName(
+        tx,
+        userId,
+        normalizedName,
+        parentFolder?.id ?? null,
         projectId,
-        sizeBytes: BigInt(0),
-      },
+      );
+      return tx.documentItem.create({
+        data: {
+          name: normalizedName,
+          type: ItemType.FOLDER,
+          ownerUserId: userId,
+          ownerEmail: userEmail,
+          parentFolderId: parentFolder?.id ?? null,
+          projectId,
+          sizeBytes: BigInt(0),
+        },
+      });
     });
 
     await this.publishProjectDocumentEvent(folder, userId, 'CREATED');

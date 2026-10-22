@@ -1,0 +1,727 @@
+{
+  "description": "Synthetic fixtures, not user documents. Candidate reranking only.",
+  "documents": [
+    {
+      "id": "budget",
+      "text": "Dự án Green Park trồng 100 cây trong công viên. Ngân sách budget 500 USD. Hạn chót deadline tháng 12 năm 2026. Người phụ trách coordinator Linh. Kinh phí bao gồm cây giống và vận chuyển."
+    },
+    {
+      "id": "calendar",
+      "text": "Lịch làm việc work schedule: thứ Hai tới thứ Bảy, 9:00–11:00. Nghỉ Chủ nhật Sunday. Ngày lễ 30/4 và 1/5. Nghỉ phép annual leave từ 5/5 tới 8/5. Extra Time ngoài giờ 18:00–21:00 thứ Hai tới thứ Sáu."
+    },
+    {
+      "id": "architecture",
+      "text": "Kiến trúc architecture Modular Monolith cho nhóm 6 lập trình viên. SQL lưu Order và Payment với strong consistency. Inventory chấp nhận eventual consistency. Frontend giao tiếp HTTP REST, tác vụ nền dùng event message. Không dùng Saga phức tạp."
+    },
+    {
+      "id": "travel",
+      "text": "Mekong travel du lịch cộng đồng ở đồng bằng sông Cửu Long. Chủ nhà hosts người địa phương tổ chức hành trình riêng private journeys. Khách guests tìm hiểu đời sống real life, không xem biểu diễn dàn dựng. Tour ưu tiên trải nghiệm chân thực và văn hóa bản địa."
+    },
+    {
+      "id": "privacy",
+      "text": "Quyền truy cập access tài liệu được kiểm tra trước khi xem hoặc tải download. Link chia sẻ sharing hết hạn expiry sau 24 giờ. Thu hồi revoke quyền khiến trích dẫn không còn truy cập được. Bản gốc original file không bị xóa khi xóa notebook. Khóa credentials không đưa lên frontend."
+    }
+  ],
+  "queries": [
+    {
+      "id": "q1",
+      "question": "Ngân sách dự án là bao nhiêu?",
+      "relevant": [
+        "budget"
+      ],
+      "candidates": [
+        "budget",
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy"
+      ]
+    },
+    {
+      "id": "q2",
+      "question": "Dự án trồng bao nhiêu cây?",
+      "relevant": [
+        "budget"
+      ],
+      "candidates": [
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy",
+        "budget"
+      ]
+    },
+    {
+      "id": "q3",
+      "question": "Ai phụ trách dự án?",
+      "relevant": [
+        "budget"
+      ],
+      "candidates": [
+        "architecture",
+        "travel",
+        "privacy",
+        "budget",
+        "calendar"
+      ]
+    },
+    {
+      "id": "q4",
+      "question": "Hạn chót dự án Green Park?",
+      "relevant": [
+        "budget"
+      ],
+      "candidates": [
+        "travel",
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture"
+      ]
+    },
+    {
+      "id": "q5",
+      "question": "Kinh phí bao gồm những gì?",
+      "relevant": [
+        "budget"
+      ],
+      "candidates": [
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture",
+        "travel"
+      ]
+    },
+    {
+      "id": "q6",
+      "question": "Green Park trồng cây ở đâu?",
+      "relevant": [
+        "budget"
+      ],
+      "candidates": [
+        "budget",
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy"
+      ]
+    },
+    {
+      "id": "q7",
+      "question": "What is the project budget?",
+      "relevant": [
+        "budget"
+      ],
+      "candidates": [
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy",
+        "budget"
+      ]
+    },
+    {
+      "id": "q8",
+      "question": "What is the deadline?",
+      "relevant": [
+        "budget"
+      ],
+      "candidates": [
+        "architecture",
+        "travel",
+        "privacy",
+        "budget",
+        "calendar"
+      ]
+    },
+    {
+      "id": "q9",
+      "question": "Who is the coordinator?",
+      "relevant": [
+        "budget"
+      ],
+      "candidates": [
+        "travel",
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture"
+      ]
+    },
+    {
+      "id": "q10",
+      "question": "ngan sach du an Green Park",
+      "relevant": [
+        "budget"
+      ],
+      "candidates": [
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture",
+        "travel"
+      ]
+    },
+    {
+      "id": "q11",
+      "question": "Lịch làm việc các ngày trong tuần?",
+      "relevant": [
+        "calendar"
+      ],
+      "candidates": [
+        "budget",
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy"
+      ]
+    },
+    {
+      "id": "q12",
+      "question": "Mấy giờ bắt đầu work schedule?",
+      "relevant": [
+        "calendar"
+      ],
+      "candidates": [
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy",
+        "budget"
+      ]
+    },
+    {
+      "id": "q13",
+      "question": "Có nghỉ Chủ nhật không?",
+      "relevant": [
+        "calendar"
+      ],
+      "candidates": [
+        "architecture",
+        "travel",
+        "privacy",
+        "budget",
+        "calendar"
+      ]
+    },
+    {
+      "id": "q14",
+      "question": "Ngày nghỉ lễ là ngày nào?",
+      "relevant": [
+        "calendar"
+      ],
+      "candidates": [
+        "travel",
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture"
+      ]
+    },
+    {
+      "id": "q15",
+      "question": "Thời gian nghỉ phép bao lâu?",
+      "relevant": [
+        "calendar"
+      ],
+      "candidates": [
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture",
+        "travel"
+      ]
+    },
+    {
+      "id": "q16",
+      "question": "Lịch Extra Time ra sao?",
+      "relevant": [
+        "calendar"
+      ],
+      "candidates": [
+        "budget",
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy"
+      ]
+    },
+    {
+      "id": "q17",
+      "question": "When is annual leave?",
+      "relevant": [
+        "calendar"
+      ],
+      "candidates": [
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy",
+        "budget"
+      ]
+    },
+    {
+      "id": "q18",
+      "question": "What is the work schedule?",
+      "relevant": [
+        "calendar"
+      ],
+      "candidates": [
+        "architecture",
+        "travel",
+        "privacy",
+        "budget",
+        "calendar"
+      ]
+    },
+    {
+      "id": "q19",
+      "question": "Is Sunday a working day?",
+      "relevant": [
+        "calendar"
+      ],
+      "candidates": [
+        "travel",
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture"
+      ]
+    },
+    {
+      "id": "q20",
+      "question": "lich lam viec Extra Time",
+      "relevant": [
+        "calendar"
+      ],
+      "candidates": [
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture",
+        "travel"
+      ]
+    },
+    {
+      "id": "q21",
+      "question": "Dùng kiến trúc nào cho hệ thống?",
+      "relevant": [
+        "architecture"
+      ],
+      "candidates": [
+        "budget",
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy"
+      ]
+    },
+    {
+      "id": "q22",
+      "question": "Nhóm có bao nhiêu lập trình viên?",
+      "relevant": [
+        "architecture"
+      ],
+      "candidates": [
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy",
+        "budget"
+      ]
+    },
+    {
+      "id": "q23",
+      "question": "Order và Payment lưu trong SQL thế nào?",
+      "relevant": [
+        "architecture"
+      ],
+      "candidates": [
+        "architecture",
+        "travel",
+        "privacy",
+        "budget",
+        "calendar"
+      ]
+    },
+    {
+      "id": "q24",
+      "question": "Inventory dùng consistency nào?",
+      "relevant": [
+        "architecture"
+      ],
+      "candidates": [
+        "travel",
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture"
+      ]
+    },
+    {
+      "id": "q25",
+      "question": "Frontend gọi backend qua HTTP REST?",
+      "relevant": [
+        "architecture"
+      ],
+      "candidates": [
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture",
+        "travel"
+      ]
+    },
+    {
+      "id": "q26",
+      "question": "Tác vụ nền dùng cơ chế event nào?",
+      "relevant": [
+        "architecture"
+      ],
+      "candidates": [
+        "budget",
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy"
+      ]
+    },
+    {
+      "id": "q27",
+      "question": "Có sử dụng Saga phức tạp không?",
+      "relevant": [
+        "architecture"
+      ],
+      "candidates": [
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy",
+        "budget"
+      ]
+    },
+    {
+      "id": "q28",
+      "question": "What is the architecture?",
+      "relevant": [
+        "architecture"
+      ],
+      "candidates": [
+        "architecture",
+        "travel",
+        "privacy",
+        "budget",
+        "calendar"
+      ]
+    },
+    {
+      "id": "q29",
+      "question": "Explain strong consistency for Payment",
+      "relevant": [
+        "architecture"
+      ],
+      "candidates": [
+        "travel",
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture"
+      ]
+    },
+    {
+      "id": "q30",
+      "question": "kien truc Modular Monolith",
+      "relevant": [
+        "architecture"
+      ],
+      "candidates": [
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture",
+        "travel"
+      ]
+    },
+    {
+      "id": "q31",
+      "question": "Du lịch Mekong nói về gì?",
+      "relevant": [
+        "travel"
+      ],
+      "candidates": [
+        "budget",
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy"
+      ]
+    },
+    {
+      "id": "q32",
+      "question": "Ai là chủ nhà trong tour?",
+      "relevant": [
+        "travel"
+      ],
+      "candidates": [
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy",
+        "budget"
+      ]
+    },
+    {
+      "id": "q33",
+      "question": "Hành trình private journeys được tổ chức thế nào?",
+      "relevant": [
+        "travel"
+      ],
+      "candidates": [
+        "architecture",
+        "travel",
+        "privacy",
+        "budget",
+        "calendar"
+      ]
+    },
+    {
+      "id": "q34",
+      "question": "Du khách tìm hiểu đời sống ra sao?",
+      "relevant": [
+        "travel"
+      ],
+      "candidates": [
+        "travel",
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture"
+      ]
+    },
+    {
+      "id": "q35",
+      "question": "Có biểu diễn dàn dựng không?",
+      "relevant": [
+        "travel"
+      ],
+      "candidates": [
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture",
+        "travel"
+      ]
+    },
+    {
+      "id": "q36",
+      "question": "Tour ưu tiên trải nghiệm nào?",
+      "relevant": [
+        "travel"
+      ],
+      "candidates": [
+        "budget",
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy"
+      ]
+    },
+    {
+      "id": "q37",
+      "question": "Where is Mekong travel?",
+      "relevant": [
+        "travel"
+      ],
+      "candidates": [
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy",
+        "budget"
+      ]
+    },
+    {
+      "id": "q38",
+      "question": "Who are the local hosts?",
+      "relevant": [
+        "travel"
+      ],
+      "candidates": [
+        "architecture",
+        "travel",
+        "privacy",
+        "budget",
+        "calendar"
+      ]
+    },
+    {
+      "id": "q39",
+      "question": "What do guests experience?",
+      "relevant": [
+        "travel"
+      ],
+      "candidates": [
+        "travel",
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture"
+      ]
+    },
+    {
+      "id": "q40",
+      "question": "du lich cong dong Mekong",
+      "relevant": [
+        "travel"
+      ],
+      "candidates": [
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture",
+        "travel"
+      ]
+    },
+    {
+      "id": "q41",
+      "question": "Quyền truy cập tài liệu được kiểm tra khi nào?",
+      "relevant": [
+        "privacy"
+      ],
+      "candidates": [
+        "budget",
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy"
+      ]
+    },
+    {
+      "id": "q42",
+      "question": "Link chia sẻ hết hạn sau bao lâu?",
+      "relevant": [
+        "privacy"
+      ],
+      "candidates": [
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy",
+        "budget"
+      ]
+    },
+    {
+      "id": "q43",
+      "question": "Thu hồi quyền có ảnh hưởng trích dẫn không?",
+      "relevant": [
+        "privacy"
+      ],
+      "candidates": [
+        "architecture",
+        "travel",
+        "privacy",
+        "budget",
+        "calendar"
+      ]
+    },
+    {
+      "id": "q44",
+      "question": "Xóa notebook có xóa bản gốc không?",
+      "relevant": [
+        "privacy"
+      ],
+      "candidates": [
+        "travel",
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture"
+      ]
+    },
+    {
+      "id": "q45",
+      "question": "Có đưa credentials lên frontend không?",
+      "relevant": [
+        "privacy"
+      ],
+      "candidates": [
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture",
+        "travel"
+      ]
+    },
+    {
+      "id": "q46",
+      "question": "Ai được download tài liệu?",
+      "relevant": [
+        "privacy"
+      ],
+      "candidates": [
+        "budget",
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy"
+      ]
+    },
+    {
+      "id": "q47",
+      "question": "When does the sharing link expire?",
+      "relevant": [
+        "privacy"
+      ],
+      "candidates": [
+        "calendar",
+        "architecture",
+        "travel",
+        "privacy",
+        "budget"
+      ]
+    },
+    {
+      "id": "q48",
+      "question": "What happens when access is revoked?",
+      "relevant": [
+        "privacy"
+      ],
+      "candidates": [
+        "architecture",
+        "travel",
+        "privacy",
+        "budget",
+        "calendar"
+      ]
+    },
+    {
+      "id": "q49",
+      "question": "Is the original file deleted?",
+      "relevant": [
+        "privacy"
+      ],
+      "candidates": [
+        "travel",
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture"
+      ]
+    },
+    {
+      "id": "q50",
+      "question": "quyen truy cap tai lieu",
+      "relevant": [
+        "privacy"
+      ],
+      "candidates": [
+        "privacy",
+        "budget",
+        "calendar",
+        "architecture",
+        "travel"
+      ]
+    }
+  ]
+}

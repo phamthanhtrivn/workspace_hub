@@ -2,11 +2,13 @@
 
 Mã mới, không phục hồi Python AI service cũ. Frontend `/ai` → notebook → ba vùng Nguồn / Hỏi đáp / Studio. Không có flashcard/quiz. Chỉ có notebook cá nhân và một dòng lịch sử hỏi đáp/notebook ở MVP.
 
+Cấu trúc mã Node.js theo feature module và ranh giới hạ tầng/jobs: [backend/ai-service/README.md](../../backend/ai-service/README.md). Entry point/lệnh Docker, env và endpoint không đổi sau refactor.
+
 ## Thành phần
 
 - NestJS API `backend/ai-service`: danh tính do Kong xác thực/chuyển tiếp, notebook CRUD, quyền nguồn, SSE chat, notes, summary cache.
-- BullMQ worker riêng: lập chỉ mục, cleanup, tóm tắt có checkpoint; không đưa chat vào hàng đợi parse.
-- `backend/rag-worker`: Docling cho PDF/DOCX, LlamaIndex SentenceSplitter, embedding đa ngôn ngữ, Qdrant dense + lexical fusion. Qdrant chỉ tìm trong notebook và các source ID do API xác minh.
+- BullMQ trong process jobs: hai queue/consumer riêng cho index+cleanup và tóm tắt có checkpoint; không đưa chat vào hàng đợi parse.
+- `backend/rag-worker`: pypdf cho PDF văn bản, Docling cho DOCX, LlamaIndex SentenceSplitter, embedding đa ngôn ngữ, Qdrant dense + lexical fusion. Qdrant chỉ tìm trong notebook và các source ID do API xác minh.
 - PostgreSQL riêng `notebook_db`, schema `notebook_ai`. Không đụng `ai_db`/volume cũ. Redis riêng AOF/noeviction. File gốc vẫn thuộc Document Service/S3; xóa notebook không xóa file gốc.
 
 ## Khởi động local
@@ -41,6 +43,34 @@ Migration chạy một lần trước API/worker, chỉ tạo schema/bảng/inde
 
 ## Embedding và parser
 
+### Tóm tắt và giới hạn câu trả lời
+
+Chat nhận yêu cầu tóm tắt toàn bộ file/tài liệu sẽ tạo tác vụ `SUMMARY` cho đúng các nguồn đang chọn. Tin nhắn được liên kết với tác vụ, tự cập nhật thành bản tóm tắt và trích dẫn ngay trong cuộc trò chuyện khi hoàn tất; không cần chuyển sang Studio. Không cho lưu tin nhắn đang chờ thành ghi chú. Tác vụ tách từng file, xử lý toàn bộ đoạn chỉ mục, lưu checkpoint và chờ khi chạm hạn mức model theo phút trước khi gửi request. Kết quả viết tự nhiên theo nội dung/tên file, không hiển thị số phần xử lý hoặc số đoạn chỉ mục. Không tự phát lại lời gọi đã nhận nội dung hoặc không rõ kết quả; hạn mức ngày vẫn trả lỗi để người dùng kiểm tra.
+
+Mặc định `LLM_MAX_TOKENS=4096`, `LLM_TIMEOUT_MS=90000`; Docker đọc `deploy/ai/.env`, host đọc `backend/ai-service/.env`. Đây là giới hạn đầu ra của từng lời gọi, không phải cam kết model hỗ trợ mọi mức token. Gateway chờ đọc 120 giây, frontend chờ tối đa 150 giây. Nếu provider kết thúc vì `length`, chat giữ phần đã hiển thị với nhãn chưa hoàn tất, không lưu như câu trả lời thành công. Log `ai_model` ghi model, giới hạn, finish reason, số ký tự nội dung/lập luận và thời gian; không ghi nội dung hay khóa.
+
+PDF có lớp văn bản dùng pypdf theo từng trang, không nạp model bố cục/bảng Docling để giảm RAM; đổi lại không cam kết giữ cấu trúc bảng/cột phức tạp. Trang chỉ có ảnh bị chặn vì OCR chưa bật. DOCX vẫn dùng Docling. Pipeline `text-pdf-v2` tách collection mới; nguồn cũ cần lập lại chỉ mục, không tự xóa collection cũ. Mỗi consumer chạy một job/lần; Python vẫn tuần tự hóa index và chỉ tải một model embedding. Docker chỉ cấp ~3,83 GiB đã ghi nhận OOM khi dùng Docling PDF; `mem_limit: 6g` không thể tăng RAM VM Docker. Cần tăng RAM Docker nếu dùng parser bố cục nặng.
+
+Image CPU ghim cặp `torch==2.14.1+cpu` / `torchvision==0.29.1+cpu` từ PyTorch CPU index, theo [hướng dẫn cài đặt PyTorch](https://pytorch.org/get-started/locally/). Không trộn Torch CPU với TorchVision lấy ngẫu nhiên từ PyPI: có thể import lỗi `torchvision::nms`. Build chạy `pip check`, import Docling/SentenceTransformers và gọi NMS thật để phát hiện sớm lỗi native dependency. RAG `/ready` kiểm tra Qdrant mỗi lần và warm-up bằng embedding thật một lần/process; warm-up lỗi trả 503, không tải nhiều bản model đồng thời. API/jobs chờ RAG healthy khi khởi động. Điều này chưa kiểm chứng parser/LLM/quota trên mọi tài liệu; sau đổi image vẫn phải smoke test nguồn thật.
+
+## Bảo vệ vận hành
+
+### Tối ưu ingestion và đo thời gian
+
+- Giữ nguyên giới hạn và kiểm tra trước upload. RAG tái sử dụng **parse/chunk**, không tái sử dụng quyền hay kết quả tìm kiếm: cache trong RAM theo notebook + SHA-256 bytes + đuôi file + pipeline collection, 16 mục/ngân sách dữ liệu 8 MiB/TTL5 phút. Hai bước kiểm tra rồi index có thể chỉ parse/chunk một lần. Nội dung thay đổi, notebook/pipeline/định dạng khác hoặc hết TTL phải parse lại. Không lưu cache plaintext ra disk; cleanup nguồn/notebook xóa cache của notebook. Index thay thế vectors nội bộ không tự xóa cache vừa kiểm tra. Sau restart cache mất; embedding thật và quyền nguồn vẫn kiểm tra như trước.
+- API/worker **vẫn tải lại bytes từ Document Service/S3 để xác minh**, không tin token/cache do trình duyệt gửi. Cache không loại bỏ chi phí mạng tải file. Duplicate add một nguồn READY không enqueue embedding lại; thao tác “Lập lại chỉ mục” vẫn là yêu cầu chủ động tái tạo vector.
+- Job index/cleanup giữ queue `notebook-jobs`, summary mới dùng `notebook-summary-jobs`, cùng Redis và cùng process jobs. Mỗi lane concurrency1, không nhân thêm model Python. Nhờ vậy summary chờ LLM không giữ slot index mới. Vẫn có cạnh tranh CPU/model lock/Qdrant giữa retrieval và index; đây không phải cách ly tài nguyên tuyệt đối. Summary legacy còn active/waiting/delayed ở queue cũ được để chạy xong, không sao chép/replay sang queue mới. Khi nâng cấp phải restart API **và** jobs cùng phiên bản; rollback về worker cũ chỉ sau khi summary queue mới đã drain, không xóa Redis/DB để rollback.
+- API `/ready` kiểm cả hai queue và heartbeat `ready:split-v1` của cả hai consumer; không nhận heartbeat `ready` của worker phiên bản cũ. Recovery tìm cả job legacy và queue summary mới. Shutdown hai consumer/queue; lặp tín hiệu shutdown không đóng DB hai lần. Lỗi startup dọn kết nối và đặt exit code lỗi.
+- Log JSON `event=ai_pipeline`: index có `authorize_ms`, `download_ms`, `encode_ms`, `rag_ms`, `finalize_ms`; job có `processing_ms`, `job_age_ms`, `attempt`. `queue_wait_ms` chỉ có ở lần chạy đầu, không gán nhầm tổng tuổi job/retry/backoff thành thời gian chờ thuần. Preflight ghi encode/RAG RPC.
+- Log JSON `event=rag_pipeline`: `parse_ms`, `chunk_ms`, `embedding_ms`, `qdrant_ms`, `decode_hash_ms`, `index_lock_ms`, `prepare_cache_hit`, `chunk_count`, `embedding_chunks_per_sec`, `total_ms`, `status`. Warm-up embedding có operation riêng. Giá trị stage không chạy do cache hit là0; không cộng các duration lồng nhau để suy tổng. Metrics không chứa tên/nội dung file, URL, hash nội dung, user/notebook ID hay key. Log rotation hiện có tiếp tục giới hạn dung lượng log.
+- Benchmark local trên PDF **mẫu** 12 trang,13.407 ký tự,12 chunk: phần parse/chunk cho3 lượt xử lý median88,63ms →31,70ms (6 mẫu mỗi cách, cache bắt đầu trống). Đây chỉ là giảm xử lý lặp của parser, **không phải** tổng upload→READY, embedding thật hoặc file BT_Buoi1.pdf. Docker chưa chạy nên chưa có số đo S3/Qdrant/embedding và E2E hai queue thật của bản này; cần benchmark nguồn thật sau rebuild/restart.
+
+- API `/health` chỉ là liveness. `/ready` kiểm tra SQL, Redis, RAG đã warm-up, heartbeat worker (TTL45s, cập nhật 10s) và endpoint nội bộ Document Service bằng khóa AI; Document chết/sai khóa trả 503. Probe dùng body rỗng hợp lệ về transport, kỳ vọng validation400, không truy xuất tài liệu. Chưa kiểm tra LLM trên health để tránh sinh chi phí/quota.
+- Quét recovery30s: nguồn INDEXING quá6 phút hoặc summary RUNNING quá10 phút **và** BullMQ job đã failed/completed/missing được chuyển FAILED có mã lỗi. Không giành job active/waiting/delayed; BullMQ xử lý stalled lock. Không tự replay LLM, giữ checkpoint cho người dùng chủ động tiếp tục.
+- Giới hạn RAG mặc định2GiB (`RAG_MEMORY_LIMIT`), một job/lần, log API/jobs/RAG tối đa3 file×10MiB/container. Giới hạn này bảo vệ máy nhưng DOCX lớn/model embedding khác có thể cần thêm RAM và đo lại; không bảo đảm mọi file20MiB đều xử lý được trong2GiB.
+- Lỗi nguồn hợp lệ hóa trả422 `INVALID_SOURCE`; lỗi model/Qdrant trả503 `RAG_DEPENDENCY_FAILED`, MemoryError trả `RAG_MEMORY_PRESSURE`. OS OOM kill không thể bắt bằng Python; Docker restart count/OOM events mới là bằng chứng. Log chỉ operation/loại exception, không ghi exception message chứa nội dung/key/URL.
+- `restart: unless-stopped` tự khởi động lại container khi process chết, **không** tự restart khi chỉ unhealthy. Document/User đang chạy host phải được giữ chạy bằng IDE/process manager; Docker health không quản lý chúng. Khi có503: kiểm tra Document, heartbeat, RAG health, Docker memory/restarts trước khi thử lại. Không tăng retry LLM mù quáng hoặc xóa volume để chữa lỗi.
+
 Mặc định dùng `intfloat/multilingual-e5-small` CPU để có baseline nhẹ hơn BGE-M3. Model tải lần đầu và cache tại volume `notebook-models`; không giả lập vector trong production. Muốn dùng BGE-M3: đổi `EMBEDDING_MODEL=BAAI/bge-m3`, đo RAM/tốc độ/chất lượng, rồi lập lại chỉ mục. Chưa triển khai sparse multi-vector riêng của BGE-M3; hybrid hiện dùng dense + lexical fusion.
 
 Có thể dùng API embedding bằng `EMBEDDING_PROVIDER=api`, `EMBEDDING_BASE_URL`, `EMBEDDING_API_KEY`, `EMBEDDING_MODEL`. Base URL phải có endpoint `/embeddings`. **Không mặc định coi VIBI chat endpoint có embedding.** Với API cần kiểm tra giới hạn batch/quota thực tế trước khi dùng.
@@ -51,7 +81,13 @@ PDF chỉ nhận văn bản, không mã hóa, ≤100 trang. OCR tắt ở MVP. D
 
 ## Giới hạn, thời gian chờ và tính đúng đắn
 
+- Tối ưu nội bộ: nguồn còn hợp lệ kiểm quyền theo batch1–5 file/lần, chỉ tách kiểm từng file sau403 để xác định nguồn mất quyền; không cache quyền và không fan-out sau lỗi503. Lịch sử/notes/artifacts đọc song song sau kiểm quyền. Index không embedding lại chunk đầu. Query vector cache128 mục/120s trong RAM, khóa băm; cache **không** giữ kết quả tìm kiếm, nội dung nguồn hoặc quyết định quyền. Mỗi lần vẫn query Qdrant theo notebook/source và kiểm quyền ở API.
+- Benchmark local cùng BT_Buoi1.pdf/câu hỏi: retrieval warm median52ms trước sửa →16ms sau (5 lượt sau lượt đầu), lượt đầu sau restart123ms. Cả6 lượt sau sửa trả8 đoạn đúng source. Đây chỉ là số đo nhỏ cho câu hỏi lặp, không phải cam kết mọi query nhanh hơn hay tổng thời gian LLM. Chạy lại từ gốc repo: `node backend/scripts/benchmark-ai.mjs BT_Buoi1.pdf` khi tên nguồn READY là duy nhất. Script chỉ in thời gian/số kết quả, xác minh quyền từng lượt và không gọi LLM.
+
 - 5 nguồn/notebook, 20 MiB/file, 50 MiB/notebook; 40.000 token sau parse/file, tối đa 2.000 chunk/file. Giới hạn token đo bằng tokenizer của LlamaIndex; không suy từ kích thước byte file.
+- Luồng tải file AI kiểm tra toàn bộ lô trước khi lưu vào Document Service/S3: trình duyệt kiểm tra tên/định dạng, file rỗng, 20 MiB/file, số nguồn và tổng 50 MiB (bao gồm nguồn đã có). `POST /api/ai/notebooks/:id/upload-checks?name=...` nhận bytes `application/octet-stream` tạm thời, header `X-File-Size`, `X-Upload-Count`, `X-Upload-Bytes`; kiểm quyền notebook trước khi đọc, giới hạn đọc 20 MiB/30s rồi gọi RAG `/validate` (45s). Đây là truyền dữ liệu tạm để kiểm tra, **không phải lưu vào thư viện hoặc embedding**. PDF scan/mã hóa/>100 trang, >40.000 token, file hỏng bị từ chối trước upload lưu trữ. Nếu một file không hợp lệ, cả lô chưa bắt đầu lưu file. Giao diện hiển thị “Đang kiểm tra file…” riêng với bước tải/lưu.
+- Thêm file có sẵn từ thư viện và thao tác thử lại cũng kiểm tra bytes thật trước khi tạo nguồn/đưa job vào queue. Không tin kết quả do client tự khai. Kiểm tra quota cuối vẫn nằm trong khóa SQL notebook để chống thêm đồng thời. Giữ kiểm tra trong worker làm lớp phòng vệ; file hợp lệ vẫn có thể gặp sự cố mạng/model ở bước xử lý, không coi kiểm tra sớm là bảo đảm dịch vụ luôn thành công. Quá trình kiểm tra chỉ nhận 1 lượt/API process, bận trả429; RAG đang index trả503 `RAG_BUSY`, không xếp thêm công việc parse nặng.
+- Cần triển khai lại API, RAG và **render/restart Kong từ template mới** để có CORS cho 3 header trên và override payload 20 MiB riêng AI route (global các route khác vẫn 10 MiB). Giữ JSON API ở64 KiB. Khi có race quota hoặc lỗi mạng sau bước kiểm tra, file đã lưu vẫn nằm trong Tài liệu để chọn thêm lại; không tự xóa file gốc của người dùng.
 - Chat: chỉ READY sources, top-8 với ngân sách 16.000 byte đoạn trích; retrieval timeout 20s, LLM mặc định 45s, client deadline 75s. Một chat đang chạy/notebook, tối đa 2 chat đồng thời/user, 10 yêu cầu bắt đầu/phút/user. Quota provider toàn cục bảo vệ nhiều tab/user cùng sử dụng.
 - Rate budget provider là ước lượng bảo thủ theo byte + output cap, **không phải** hóa đơn/tokenizer chính xác của provider. Điều chỉnh quota theo tài khoản thực.
 - Stream hiển thị là **chưa hoàn tất** tới khi provider trả `finish_reason=stop` và trích dẫn được kiểm tra. Không ghi câu trả lời lỗi/cắt dở như kết quả hoàn chỉnh, không tự gửi lại khi không biết provider đã nhận/chạy hay chưa.
@@ -74,6 +110,8 @@ Kiểm quyền khi add, xử lý nền, hỏi, finalize, preview và đọc lị
 Các kiểm tra này là fail-closed khi Document Service không sẵn sàng. Poll UI3s và permission check khi stream có cửa sổ trễ; không thể thu hồi dữ liệu đã được người dùng hợp lệ đọc/lưu trước đó. Cần test thu hồi thực tế với hai tài khoản trước rollout.
 
 ## Kiểm thử
+
+Đợt ổn định:29 test AI +13 test Python đạt; image API/jobs/RAG build và triển khai thành công. Readiness thực tế chuyển503 khi tắt job worker và trở lại200 sau bật; BT_Buoi1.pdf READY20 chunk, retrieval8 kết quả đúng source. RAG khoảng967MiB dưới cap2GiB, restart0 trong lượt xác minh ngắn. Chưa phải soak test/tải nhiều user hoặc chứng minh mọi PDF/DOCX/LLM đều ổn định; recovery orphan mới kiểm bằng fixture, chưa crash-test giữa provider call thật.
 
 Kiểm tra bảo mật gồm HTTP guard AI (giả mạo context bị 401), chạy mã Lua plugin trong WASM với Kong PDK giả lập, tách khóa/rotation, kiểm quyền Document, batch Calendar và script setup idempotent. Đây là kiểm chứng local/fixture, **không phải E2E qua Kong thật** hay đánh giá model thật. Docker Desktop chưa chạy nên chưa build image/chạy E2E; không coi việc YAML hợp lệ là stack đã hoạt động.
 
@@ -99,6 +137,18 @@ python -m unittest discover -s tests -v
 ```
 
 AI tests dùng PostgreSQL WASM/PGlite trong bộ nhớ, Python dùng Qdrant in-memory và embedding fixture ghi rõ trong test. Không gửi tài liệu thật, không dùng key/model thật và không chạm DB cũ. Cần chạy thêm Docker build, server Qdrant (full-text index không hoạt động như server ở in-memory), PDF/DOCX thật, E2E hai user, revoke/version/delete khi đang stream, benchmark 1/2/5 file, crash recovery và backup/restore. Chưa có CI/production rollout cho stack mới. Không tick nghiệm thu các hạng mục này chỉ vì unit test đã qua.
+
+## OCR và đọc hình
+
+`VISUAL_ENABLED=true` bật ảnh PNG/JPEG/WebP, OCR cục bộ bằng Tesseract Việt–Anh, và Vision cho trang/hình cần phân tích. Bật flag chỉ sau khi chủ triển khai chấp thuận gửi ảnh tài liệu tới `https://vibi.top/v1/chat/completions`; cấu hình hiện tại giới hạn đích này. RAG worker không có LLM key; chỉ AI API/jobs gọi nhà cung cấp. `VISION_MAX_TOKENS=2048` là ngân sách đầu ra mỗi lần đọc hình, dùng chung sổ hạn mức với chat/tóm tắt.
+
+Preflight chỉ kiểm tra cấu trúc/kích thước; OCR/Vision chạy nền. Giới hạn: 20 triệu pixel/ảnh gốc, ảnh gửi tối đa 1 MiB, 24 hình/trang cần Vision và 16 MiB dữ liệu ảnh đã mã hóa/file, OCR tối đa 180 giây/file. Vượt giới hạn được báo rõ, không âm thầm bỏ phần. PDF scan thuần chữ có thể chỉ cần OCR. Các trang có hình/sơ đồ vector được render từng trang, tối đa cạnh 2.000 pixel. Hình DOCX được giữ cùng nội dung OCR; chưa nhận PPTX/video.
+
+Ảnh, kết quả trích xuất và checkpoint Vision được lưu trong PostgreSQL theo nguồn/phiên bản. Cache mô tả còn phụ thuộc hash ảnh, ngữ cảnh, model và phiên bản prompt. Xóa nguồn/notebook xóa dữ liệu phát sinh bằng foreign-key cascade. Đọc ảnh trong trích dẫn xác minh lại quyền và phiên bản; phản hồi đặt `Cache-Control: no-store`. Câu hỏi có yêu cầu xem hình chỉ đính kèm tối đa 2 ảnh từ các đoạn trích thuộc nguồn đang chọn; câu hỏi thông thường dùng chỉ mục đã có.
+
+Sau khi đổi flag, build/restart RAG worker và AI API/jobs, chạy migration hiện có. Nguồn READY cũ vẫn đọc được; dùng **Lập lại chỉ mục** để bổ sung OCR/hình. Các bản tóm tắt đã tạo là checkpoint cũ, cần tạo lại sau khi thêm nội dung hình.
+
+Kiểm thử bổ sung: `node --test test/visual-ingestion.test.cjs` trong AI service; `python -m unittest discover -s tests -v` trong image RAG đã build. Bộ mẫu tạo ảnh tiếng Việt, PDF scan, sơ đồ vector để kiểm chứng OCR và trích xuất mà không dùng tài liệu người dùng.
 
 ## Rollback an toàn
 

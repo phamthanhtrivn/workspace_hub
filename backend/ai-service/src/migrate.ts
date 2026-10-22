@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { db } from "./db";
+import { db } from "./infrastructure/database/database";
 void db
   .query(
     readFileSync(join(__dirname, "../migrations/001_notebooks.sql"), "utf8"),

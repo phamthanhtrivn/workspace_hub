@@ -46,5 +46,21 @@ CREATE TABLE IF NOT EXISTS notebook_ai.model_calls (
  created_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE notebook_ai.artifacts ADD COLUMN IF NOT EXISTS in_flight boolean NOT NULL DEFAULT false;
+ALTER TABLE notebook_ai.sources ADD COLUMN IF NOT EXISTS index_version text NOT NULL DEFAULT 'text-v1';
+ALTER TABLE notebook_ai.messages ADD COLUMN IF NOT EXISTS artifact_id uuid REFERENCES notebook_ai.artifacts(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS notebook_model_usage ON notebook_ai.model_calls(model,created_at);
+CREATE TABLE IF NOT EXISTS notebook_ai.source_visuals (
+ source_id uuid NOT NULL REFERENCES notebook_ai.sources(id) ON DELETE CASCADE,
+ revision text NOT NULL, image_id text NOT NULL, image_hash text NOT NULL,
+ context_hash text NOT NULL DEFAULT '', model text NOT NULL DEFAULT '', prompt_version text NOT NULL DEFAULT '',
+ page int, data_url text NOT NULL CHECK (length(data_url)<=1400000),
+ context text NOT NULL DEFAULT '', description text NOT NULL DEFAULT '', created_at timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(source_id,revision,image_id)
+);
+CREATE INDEX IF NOT EXISTS source_visual_cache ON notebook_ai.source_visuals(source_id,revision,image_hash,context_hash,model,prompt_version);
+CREATE TABLE IF NOT EXISTS notebook_ai.source_extractions (
+ source_id uuid NOT NULL REFERENCES notebook_ai.sources(id) ON DELETE CASCADE,
+ revision text NOT NULL, pipeline text NOT NULL, payload jsonb NOT NULL,
+ PRIMARY KEY(source_id,revision,pipeline)
+);
 COMMIT;

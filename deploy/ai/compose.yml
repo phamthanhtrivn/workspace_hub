@@ -1,4 +1,9 @@
 name: wh-notebook
+x-logging: &bounded-logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 services:
   notebook-db:
     image: postgres:17-alpine
@@ -41,12 +46,20 @@ services:
       EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-}
       EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
       INDEX_PIPELINE_VERSION: ${INDEX_PIPELINE_VERSION:-notebook-v1}
+      VISUAL_ENABLED: ${VISUAL_ENABLED:-false}
       OMP_NUM_THREADS: ${OMP_NUM_THREADS:-2}
       TOKENIZERS_PARALLELISM: ${TOKENIZERS_PARALLELISM:-false}
     volumes: [notebook-models:/models]
     depends_on: [notebook-qdrant]
     restart: unless-stopped
-    mem_limit: 6g
+    mem_limit: ${RAG_MEMORY_LIMIT:-2g}
+    logging: *bounded-logs
+    healthcheck:
+      test: [CMD, python, -c, "import os,urllib.request; r=urllib.request.Request('http://127.0.0.1:8088/ready',headers={'x-internal-service-key':os.environ['RAG_SERVICE_KEY']}); urllib.request.urlopen(r,timeout=10).close()"]
+      interval: 30s
+      timeout: 12s
+      retries: 3
+      start_period: 180s
   migrate:
     build: ../../backend/ai-service
     env_file: .env
@@ -63,8 +76,15 @@ services:
     depends_on:
       migrate: { condition: service_completed_successfully }
       notebook-redis: { condition: service_healthy }
-      rag-worker: { condition: service_started }
+      rag-worker: { condition: service_healthy }
     restart: unless-stopped
+    logging: *bounded-logs
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:8087/ready',{signal:AbortSignal.timeout(8000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
   notebook-jobs:
     build: ../../backend/ai-service
     env_file: .env
@@ -74,8 +94,9 @@ services:
     depends_on:
       migrate: { condition: service_completed_successfully }
       notebook-redis: { condition: service_healthy }
-      rag-worker: { condition: service_started }
+      rag-worker: { condition: service_healthy }
     restart: unless-stopped
+    logging: *bounded-logs
 volumes:
   notebook-postgres:
   notebook-redis:

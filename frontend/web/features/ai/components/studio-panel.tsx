@@ -64,12 +64,11 @@ export function StudioPanel({ notebook, saving, run }: Props) {
             </p>
           ) : (
             <>
-              {artifact.content && (
-                <div className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed">
-                  {artifact.content}
-                </div>
-              )}
-              <Citations notebookId={notebook.id} items={artifact.citations} />
+              <Citations
+                notebookId={notebook.id}
+                items={artifact.citations}
+                content={artifact.content || undefined}
+              />
               {artifact.error && (
                 <p className="mt-2 text-xs text-red-700">{artifact.error}</p>
               )}
@@ -93,6 +92,9 @@ export function StudioPanel({ notebook, saving, run }: Props) {
                       notebooksApi.artifact(
                         notebook.id,
                         artifact.kind as "SUMMARY" | "OVERVIEW",
+                        artifact.sources.length
+                          ? artifact.sources.map((source) => source.id)
+                          : undefined,
                       ),
                     )
                   }

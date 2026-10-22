@@ -10,6 +10,7 @@ import { useAppSelector } from "@/store/store";
 import { notebooksApi } from "../api/notebooks.api";
 import { useNotebook, useNotebookChat } from "../hooks/use-notebook";
 import { Citations } from "./citations";
+import { AnswerContent } from "./answer-content";
 import { SourcePanel } from "./source-panel";
 import { StudioPanel } from "./studio-panel";
 
@@ -217,40 +218,77 @@ function Workspace({ id }: { id: string }) {
                   </p>
                 ) : (
                   <>
-                    <div className="whitespace-pre-wrap break-words text-sm leading-7">
-                      {message.content}
-                    </div>
-                    <Citations items={message.citations} notebookId={id} />
-                    {message.role === "ASSISTANT" && (
-                      <Button
-                        className="mt-3"
-                        size="sm"
-                        variant="outline"
-                        disabled={query.saving}
-                        onClick={() =>
-                          run(() =>
-                            notebooksApi.note(id, {
-                              title: "Đã lưu từ hỏi đáp",
-                              messageId: message.id,
-                            }),
-                          )
-                        }
-                      >
-                        Lưu vào ghi chú
-                      </Button>
-                    )}
+                    <Citations
+                      items={message.citations}
+                      notebookId={id}
+                      markdown={message.role !== "USER"}
+                      content={
+                        ["FAILED", "CANCELLED"].includes(
+                          message.summary_status || "",
+                        )
+                          ? "Bản tóm tắt chưa hoàn tất. Bạn có thể thử lại."
+                          : message.content
+                      }
+                    />
+                    {message.artifact_id &&
+                      ["FAILED", "CANCELLED"].includes(
+                        message.summary_status || "",
+                      ) && (
+                        <Button
+                          className="mt-3"
+                          size="sm"
+                          variant="outline"
+                          disabled={query.saving}
+                          onClick={() =>
+                            run(() =>
+                              notebooksApi.artifact(
+                                id,
+                                "SUMMARY",
+                                message.sources.map((source) => source.id),
+                              ),
+                            )
+                          }
+                        >
+                          Thử tóm tắt lại
+                        </Button>
+                      )}
+                    {message.role === "ASSISTANT" &&
+                      (!message.artifact_id ||
+                        message.summary_status === "COMPLETED") && (
+                        <Button
+                          className="mt-3"
+                          size="sm"
+                          variant="outline"
+                          disabled={query.saving}
+                          onClick={() =>
+                            run(() =>
+                              notebooksApi.note(id, {
+                                title: "Đã lưu từ hỏi đáp",
+                                messageId: message.id,
+                              }),
+                            )
+                          }
+                        >
+                          Lưu vào ghi chú
+                        </Button>
+                      )}
                   </>
                 )}
               </article>
             ))}
-            {chat.busy && visibleDraft && (
+            {(chat.busy || chat.error) && visibleDraft && (
               <article className="rounded-lg border p-4">
                 <p className="mb-2 text-xs text-muted-foreground">
-                  {chat.stage} · Chưa hoàn tất
+                  {chat.busy ? chat.stage : "Phần trả lời đã nhận được"} · Chưa
+                  hoàn tất
                 </p>
-                <div className="whitespace-pre-wrap break-words text-sm leading-7">
-                  {chat.draft?.text || chat.draft?.question}
-                </div>
+                {chat.draft?.text ? (
+                  <AnswerContent content={chat.draft.text} />
+                ) : (
+                  <div className="whitespace-pre-wrap break-words text-sm leading-7">
+                    {chat.draft?.question}
+                  </div>
+                )}
               </article>
             )}
             {chat.error && (

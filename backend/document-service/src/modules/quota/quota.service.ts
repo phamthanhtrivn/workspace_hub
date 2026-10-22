@@ -11,7 +11,7 @@ export class QuotaService {
    * Fetch a user's storage quota. If it doesn't exist, create a default 5GB quota.
    */
   async getOrCreateQuota(userId: string) {
-    let quota = await this.prisma.userStorageQuota.findUnique({
+    const quota = await this.prisma.userStorageQuota.findUnique({
       where: { userId },
     });
 
@@ -20,12 +20,16 @@ export class QuotaService {
       const defaultMaxBytes =
         BigInt(QuotaConstants.DEFAULT_MAX_GB) *
         BigInt(QuotaConstants.BYTES_PER_GB);
-      quota = await this.prisma.userStorageQuota.create({
+      await this.prisma.userStorageQuota.createMany({
         data: {
           userId,
           maxBytes: defaultMaxBytes,
           usedBytes: BigInt(0),
         },
+        skipDuplicates: true,
+      });
+      return this.prisma.userStorageQuota.findUniqueOrThrow({
+        where: { userId },
       });
     }
 

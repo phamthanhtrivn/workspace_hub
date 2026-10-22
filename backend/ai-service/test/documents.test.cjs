@@ -2,6 +2,8 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { randomUUID } = require("node:crypto");
 Object.assign(process.env, {
+  DOTENV_CONFIG_PATH: "test/no-env-file",
+  VISUAL_ENABLED: "false",
   NODE_ENV: "test",
   INTERNAL_SERVICE_KEY: "",
   AI_GATEWAY_KEY: "fixture-gateway-proof-not-production-000",
@@ -15,8 +17,11 @@ Object.assign(process.env, {
   LLM_API_KEY: "test-only",
   LLM_MODEL: "fixture",
 });
-const { resolveDocuments, authorizeSources } = require("../dist/documents");
-const { rag } = require("../dist/rag");
+const {
+  resolveDocuments,
+  authorizeSources,
+} = require("../dist/infrastructure/integrations/document.client");
+const { rag } = require("../dist/infrastructure/integrations/rag.client");
 const actor = { id: randomUUID(), email: "owner@example.test" };
 const source = {
   document_id: randomUUID(),

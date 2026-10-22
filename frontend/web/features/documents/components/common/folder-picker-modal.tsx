@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
 import { Folder, ChevronRight, Loader2 } from "lucide-react";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAppSelector } from "@/store/store";
 
 interface FolderPickerModalProps {
   open?: boolean;
@@ -26,9 +27,20 @@ interface FolderPickerModalProps {
   projectId?: string;
   projectRootFolderId?: string | null;
   rootLabel?: string;
+  confirmLabel?: string;
 }
 
-export function FolderPickerModal({
+export function FolderPickerModal(props: FolderPickerModalProps) {
+  if (!(props.open ?? props.isOpen ?? false)) return null;
+  return (
+    <FolderPickerContent
+      key={`${props.initialFolderId}:${props.projectId}:${props.projectRootFolderId}`}
+      {...props}
+    />
+  );
+}
+
+function FolderPickerContent({
   open,
   isOpen,
   onClose,
@@ -38,7 +50,9 @@ export function FolderPickerModal({
   projectId,
   projectRootFolderId = null,
   rootLabel,
+  confirmLabel = "Move here",
 }: FolderPickerModalProps) {
+  const userId = useAppSelector((state) => state.auth.userId);
   const isModalOpen = open ?? isOpen ?? false;
   const pickerRootFolderId = projectId ? projectRootFolderId : null;
   const pickerRootName = rootLabel || NavigationLabel.ROOT;
@@ -53,48 +67,48 @@ export function FolderPickerModal({
     { id: pickerRootFolderId, name: pickerRootName },
   ]);
 
-  useEffect(() => {
-    if (!isModalOpen) return;
-    setCurrentFolderId(getInitialPickerFolderId());
-    setPath([{ id: pickerRootFolderId, name: pickerRootName }]);
-  }, [
-    getInitialPickerFolderId,
-    isModalOpen,
-    pickerRootFolderId,
-    pickerRootName,
-  ]);
-
   const { data: response, isLoading } = useQuery({
-    queryKey: ["folder-picker", currentFolderId, projectId, pickerRootFolderId],
+    queryKey: [
+      "folder-picker",
+      userId,
+      currentFolderId,
+      projectId,
+      pickerRootFolderId,
+    ],
     queryFn: () =>
       documentsApi.getDocuments({
         folderId: currentFolderId || undefined,
         projectId: projectId && !currentFolderId ? projectId : undefined,
         limit: 1000,
       }),
-    enabled: isModalOpen && (!projectId || Boolean(pickerRootFolderId)),
+    enabled:
+      isModalOpen && !!userId && (!projectId || Boolean(pickerRootFolderId)),
+    gcTime: 0,
   });
 
   const items = response?.data || [];
   const folders = items.filter(
     (item: DocumentItem) =>
-      item.type === DocumentItemType.FOLDER && item.id !== movingItemId
+      item.type === DocumentItemType.FOLDER && item.id !== movingItemId,
   );
 
-  const handleNavigate = useCallback((folderId: string | null, name: string) => {
-    setCurrentFolderId(folderId);
-    if (folderId === null) {
-      setPath([{ id: pickerRootFolderId, name: pickerRootName }]);
-    } else {
-      setPath((prev) => {
-        const index = prev.findIndex((p) => p.id === folderId);
-        if (index !== -1) {
-          return prev.slice(0, index + 1);
-        }
-        return [...prev, { id: folderId, name }];
-      });
-    }
-  }, [pickerRootFolderId, pickerRootName]);
+  const handleNavigate = useCallback(
+    (folderId: string | null, name: string) => {
+      setCurrentFolderId(folderId);
+      if (folderId === null) {
+        setPath([{ id: pickerRootFolderId, name: pickerRootName }]);
+      } else {
+        setPath((prev) => {
+          const index = prev.findIndex((p) => p.id === folderId);
+          if (index !== -1) {
+            return prev.slice(0, index + 1);
+          }
+          return [...prev, { id: folderId, name }];
+        });
+      }
+    },
+    [pickerRootFolderId, pickerRootName],
+  );
 
   const handlePathClick = useCallback((index: number) => {
     setPath((prev) => {
@@ -107,7 +121,10 @@ export function FolderPickerModal({
   if (!isModalOpen) return null;
 
   return (
-    <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+    <Dialog
+      open={isModalOpen}
+      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+    >
       <DialogContent className="max-w-md border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-2xl">
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-amber-100">
@@ -127,13 +144,17 @@ export function FolderPickerModal({
         <div className="mt-3 flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-2.5 text-xs font-semibold">
           {path.map((p, idx) => (
             <React.Fragment key={p.id ?? "root"}>
-              {idx > 0 && <ChevronRight className="h-3.5 w-3.5 text-slate-300" />}
+              {idx > 0 && (
+                <ChevronRight className="h-3.5 w-3.5 text-slate-300" />
+              )}
               <button
                 type="button"
                 onClick={() => handlePathClick(idx)}
                 className={cn(
                   "transition hover:text-[#0052CC] cursor-pointer",
-                  idx === path.length - 1 ? "text-slate-800 font-bold" : "text-slate-400"
+                  idx === path.length - 1
+                    ? "text-slate-800 font-bold"
+                    : "text-slate-400",
                 )}
               >
                 {p.name === NavigationLabel.ROOT ? "My files" : p.name}
@@ -190,7 +211,7 @@ export function FolderPickerModal({
             }}
             className="h-9 rounded-md bg-[#0052CC] hover:bg-[#0043A8] px-5 text-xs font-bold text-white shadow-[0_8px_20px_rgba(0,82,204,0.22)]"
           >
-            Move here
+            {confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

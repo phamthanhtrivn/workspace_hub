@@ -83,7 +83,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
       text: "",
       refs: sources.map((s) => ({ id: s.id, revision: s.revision })),
     });
-    const timeout = setTimeout(() => request.controller.abort(), 75000);
+    const timeout = setTimeout(() => request.controller.abort(), 150000);
     try {
       await notebooksApi.answer(
         id,
@@ -109,7 +109,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
       }
     } catch (cause) {
       if (active.current === request) {
-        setDraft(null);
+        setDraft((current) => (current?.text ? current : null));
         setError(
           request.controller.signal.aborted
             ? "Đã hết thời gian chờ; yêu cầu không tự gửi lại."

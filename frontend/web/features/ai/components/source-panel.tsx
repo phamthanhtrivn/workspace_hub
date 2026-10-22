@@ -9,6 +9,8 @@ import { documentsApi } from "@/features/documents/api/documents.api";
 import { useAppSelector } from "@/store/store";
 import { notebooksApi } from "../api/notebooks.api";
 import type { Source } from "../types";
+import { useSourceUpload } from "../hooks/use-source-upload";
+import { uploadError } from "../upload";
 
 const states: Record<string, string> = {
   QUEUED: "Chờ xử lý",
@@ -38,42 +40,13 @@ export function SourcePanel({
 }: Props) {
   const upload = useRef<HTMLInputElement>(null);
   const [picker, setPicker] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState("");
-  const uploadFiles = async (files: File[]) => {
-    setError("");
-    if (!files.length) return;
-    if (
-      files.length + sources.length > 5 ||
-      files.some(
-        (file) =>
-          file.size > 20 * 1024 * 1024 ||
-          !/\.(pdf|docx|txt|md)$/i.test(file.name),
-      )
-    ) {
-      setError("Tối đa 5 nguồn; chỉ nhận PDF/DOCX/TXT/MD, mỗi file ≤20 MiB.");
-      return;
-    }
-    setUploading(true);
-    try {
-      // Preserve Document Service quota, storage and versioning; do not create a second upload store.
-      for (const file of files) {
-        const document = await documentsApi.uploadFile(file);
-        try {
-          await notebooksApi.add(id, [document.id]);
-        } catch {
-          throw new Error(
-            "File đã được lưu ở Tài liệu nhưng chưa thêm vào notebook. Dùng Chọn từ Tài liệu để thử lại.",
-          );
-        }
-      }
-    } catch (cause) {
-      setError((cause as Error).message || "Không tải được tài liệu.");
-    } finally {
-      setUploading(false);
-      await refresh();
-    }
-  };
+  const [pickerBusy, setPickerBusy] = useState(false);
+  const { uploadFiles, uploading, stage, error } = useSourceUpload(
+    id,
+    sources,
+    refresh,
+  );
+  const sourceBusy = busy || uploading || pickerBusy;
   return (
     <section className="flex h-full flex-col gap-4" aria-label="Nguồn tài liệu">
       <header className="flex items-center justify-between">
@@ -85,15 +58,21 @@ export function SourcePanel({
       <div className="grid gap-2">
         <Button
           variant="outline"
-          disabled={uploading || sources.length >= 5}
+          disabled={sourceBusy || sources.length >= 5}
           onClick={() => upload.current?.click()}
         >
           <Upload />
-          {uploading ? "Đang tải file…" : "Tải file"}
+          {stage === "CHECKING"
+            ? "Đang kiểm tra file…"
+            : stage === "ADDING"
+              ? "Đang thêm nguồn…"
+              : uploading
+                ? "Đang tải file…"
+                : "Tải file"}
         </Button>
         <Button
           variant="outline"
-          disabled={sources.length >= 5}
+          disabled={sourceBusy || sources.length >= 5}
           onClick={() => setPicker((value) => !value)}
         >
           {picker ? "Đóng danh sách" : "Chọn từ Tài liệu"}
@@ -103,7 +82,7 @@ export function SourcePanel({
         hidden
         ref={upload}
         type="file"
-        accept=".pdf,.docx,.txt,.md"
+        accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp"
         multiple
         onChange={(event) => {
           void uploadFiles(Array.from(event.target.files || []));
@@ -111,8 +90,10 @@ export function SourcePanel({
         }}
       />
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Tối đa 5 nguồn, 20 MiB/file, 50 MiB/notebook, 40.000 token/file. PDF văn
-        bản ≤100 trang; chưa bật OCR.
+        Tối đa 5 nguồn, 20 MiB/file, 50 MiB/notebook, 40.000 token/file. Nhận
+        PDF ≤100 trang, DOCX, TXT, MD và ảnh PNG/JPEG/WebP. Trang scan được OCR;
+        tối đa 24 trang/hình cần AI đọc ảnh mỗi file. Nội dung hình được xử lý
+        một lần khi thêm nguồn.
       </p>
       {error && (
         <p role="alert" className="text-xs text-red-700">
@@ -124,6 +105,8 @@ export function SourcePanel({
           notebookId={id}
           addedIds={sources.map((source) => source.document_id)}
           onAdded={refresh}
+          disabled={busy || uploading}
+          onPending={setPickerBusy}
         />
       )}
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
@@ -140,7 +123,7 @@ export function SourcePanel({
                 type="checkbox"
                 className="mt-1 accent-blue-800"
                 checked={selected.includes(source.id)}
-                disabled={source.status !== "READY" || busy}
+                disabled={source.status !== "READY" || sourceBusy}
                 onChange={() => toggle(source.id)}
               />
               <span className="min-w-0 break-words">{source.name}</span>
@@ -151,7 +134,12 @@ export function SourcePanel({
             </p>
             {source.status === "INDEXING" && (
               <p role="status" className="mt-1 text-xs">
-                Lần đầu có thể cần tải model embedding/parser.
+                {source.progress < 40
+                  ? "Đang đọc tài liệu và nhận diện chữ…"
+                  : source.progress < 85
+                    ? "Đang phân tích hình và lưu kết quả…"
+                    : "Đang tạo chỉ mục tìm kiếm…"}
+                {` ${source.progress}%`}
               </p>
             )}
             {source.error && (
@@ -164,6 +152,7 @@ export function SourcePanel({
                 <Button
                   size="sm"
                   variant="outline"
+                  disabled={sourceBusy}
                   onClick={() =>
                     run(() => notebooksApi.source(id, source.id, "retry"))
                   }
@@ -175,7 +164,7 @@ export function SourcePanel({
                 <Button
                   size="sm"
                   variant="ghost"
-                  disabled={busy}
+                  disabled={sourceBusy}
                   onClick={() =>
                     run(() => notebooksApi.source(id, source.id, "retry"))
                   }
@@ -186,7 +175,7 @@ export function SourcePanel({
               <Button
                 size="sm"
                 variant="ghost"
-                disabled={busy}
+                disabled={sourceBusy}
                 onClick={() =>
                   run(() => notebooksApi.source(id, source.id, "remove"))
                 }
@@ -209,10 +198,14 @@ function DocumentPicker({
   notebookId,
   addedIds,
   onAdded,
+  disabled,
+  onPending,
 }: {
   notebookId: string;
   addedIds: string[];
   onAdded: () => Promise<unknown>;
+  disabled: boolean;
+  onPending: (value: boolean) => void;
 }) {
   const userId = useAppSelector((state) => state.auth.userId);
   const [shared, setShared] = useState(false);
@@ -245,17 +238,18 @@ function DocumentPicker({
     gcTime: 0,
   });
   const add = async (documentId: string) => {
+    if (pending || disabled) return;
     setPending(true);
+    onPending(true);
     setError("");
     try {
       await notebooksApi.add(notebookId, [documentId]);
       await onAdded();
-    } catch {
-      setError(
-        "Không thêm được nguồn; kiểm tra quyền, phiên bản, định dạng và giới hạn notebook.",
-      );
+    } catch (cause) {
+      setError(uploadError(cause));
     } finally {
       setPending(false);
+      onPending(false);
     }
   };
   return (
@@ -354,7 +348,10 @@ function DocumentPicker({
                 size="sm"
                 variant="outline"
                 disabled={
-                  pending || addedIds.includes(file.id) || addedIds.length >= 5
+                  pending ||
+                  disabled ||
+                  addedIds.includes(file.id) ||
+                  addedIds.length >= 5
                 }
                 onClick={() => void add(file.id)}
               >

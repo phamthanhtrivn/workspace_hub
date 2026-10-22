@@ -4,6 +4,8 @@ const { randomUUID } = require("node:crypto");
 const { readFileSync } = require("node:fs");
 const { spawnSync } = require("node:child_process");
 Object.assign(process.env, {
+  DOTENV_CONFIG_PATH: "test/no-env-file",
+  VISUAL_ENABLED: "false",
   AI_ENABLED: "true",
   NODE_ENV: "test",
   JWT_SECRET_KEY: "fixture-jwt-key-not-production-0000",
@@ -19,10 +21,10 @@ Object.assign(process.env, {
   LLM_API_KEY: "test-only",
   LLM_MODEL: "fixture",
 });
-const { AuthGuard } = require("../dist/auth");
+const { AuthGuard } = require("../dist/common/auth/auth.guard");
 const { Controller, Get, Req, Module, UseGuards } = require("@nestjs/common");
 const { NestFactory } = require("@nestjs/core");
-const { config } = require("../dist/config");
+const { config } = require("../dist/config/env.config");
 const actorId = randomUUID();
 const identity = {
   "x-workspace-gateway-key": process.env.AI_GATEWAY_KEY,
@@ -179,7 +181,7 @@ test("enabled config requires dedicated keys in every environment, with no JWT o
       process.execPath,
       [
         "-e",
-        `try { const {config}=require('./dist/config'); console.log(JSON.stringify({ hasJwt: 'JWT_SECRET_KEY' in config, hasSharedKey: 'INTERNAL_SERVICE_KEY' in config })); } catch { process.exitCode=1; }`,
+        `try { const {config}=require('./dist/config/env.config'); console.log(JSON.stringify({ hasJwt: 'JWT_SECRET_KEY' in config, hasSharedKey: 'INTERNAL_SERVICE_KEY' in config })); } catch { process.exitCode=1; }`,
       ],
       {
         env: {

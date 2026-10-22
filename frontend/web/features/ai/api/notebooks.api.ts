@@ -2,6 +2,7 @@ import { api } from "@/lib/axios";
 import { store } from "@/store/store";
 import { notebookListSchema, notebookSchema } from "../types";
 import { readAnswer, type StreamEvent } from "./stream";
+import type { UploadBatch } from "../upload";
 
 const path = (id: string) => `/api/ai/notebooks/${id}`;
 export const notebooksApi = {
@@ -13,6 +14,17 @@ export const notebooksApi = {
     (await api.post("/api/ai/notebooks", { title })).data.data,
   rename: (id: string, title: string) => api.patch(path(id), { title }),
   remove: (id: string) => api.delete(path(id)),
+  checkUpload: (id: string, file: File, batch: UploadBatch) =>
+    api.post(`${path(id)}/upload-checks`, file, {
+      params: { name: file.name },
+      timeout: 80000,
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-File-Size": String(file.size),
+        "X-Upload-Count": String(batch.count),
+        "X-Upload-Bytes": String(batch.bytes),
+      },
+    }),
   add: (id: string, documentIds: string[]) =>
     api.post(`${path(id)}/sources`, {
       refs: documentIds.map((documentId) => ({ documentId })),
@@ -23,6 +35,13 @@ export const notebooksApi = {
     action: "remove" | "retry" | "preview",
   ): Promise<{ url?: string }> =>
     (await api.post(`${path(id)}/sources/${sourceId}/${action}`)).data.data,
+  sourceImage: async (
+    id: string,
+    sourceId: string,
+    imageId: string,
+  ): Promise<{ dataUrl: string; description: string }> =>
+    (await api.post(`${path(id)}/sources/${sourceId}/images/${imageId}`)).data
+      .data,
   note: (
     id: string,
     data: {
@@ -34,8 +53,8 @@ export const notebooksApi = {
   ) => api.post(`${path(id)}/notes`, data),
   deleteNote: (id: string, noteId: string) =>
     api.delete(`${path(id)}/notes/${noteId}`),
-  artifact: (id: string, kind: "OVERVIEW" | "SUMMARY") =>
-    api.post(`${path(id)}/artifacts`, { kind }),
+  artifact: (id: string, kind: "OVERVIEW" | "SUMMARY", sourceIds?: string[]) =>
+    api.post(`${path(id)}/artifacts`, { kind, sourceIds }),
   cancel: (requestId: string) =>
     api.post(`/api/ai/requests/${requestId}/cancel`),
   answer: async (

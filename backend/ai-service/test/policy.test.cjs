@@ -6,7 +6,7 @@ const {
   citeEvidence,
   validateCitations,
   summaryGroups,
-} = require("../dist/policy");
+} = require("../dist/common/evidence-policy");
 const source = {
   id: "one",
   revision: "r1",
@@ -17,7 +17,7 @@ const source = {
 };
 
 test("background artifacts use their saved snapshot, never newly added notebook sources", () => {
-  const { snapshotSources } = require("../dist/policy");
+  const { snapshotSources } = require("../dist/common/evidence-policy");
   const added = { ...source, id: "later-source", revision: "r2" };
   assert.deepEqual(
     snapshotSources(
@@ -83,4 +83,20 @@ test("whole-text summary grouping preserves every chunk in order", () => {
     chunks.map((c) => c.id),
   );
   assert.throws(() => summaryGroups([]));
+});
+
+test("summary batches never combine different files", () => {
+  const chunks = [
+    { sourceId: "a", text: "a" },
+    { sourceId: "a", text: "b" },
+    { sourceId: "b", text: "c" },
+  ];
+  const groups = summaryGroups(chunks);
+  assert.equal(groups.length, 2);
+  assert.deepEqual(groups.flat(), chunks);
+  assert.ok(
+    groups.every(
+      (group) => new Set(group.map((item) => item.sourceId)).size === 1,
+    ),
+  );
 });
