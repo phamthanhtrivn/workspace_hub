@@ -6,46 +6,13 @@ import {
   TaskStatus,
   type TaskDependency,
 } from "@/features/project/types/project";
-import { taskDateKey } from "@/features/project/utils/task-dates";
+import type { GanttBarGeometry, GanttZoomMode } from "../types/gantt";
+import { GANTT_LABEL_WIDTH, GANTT_MIN_LABEL_WIDTH, GANTT_LABEL_WIDTH_RATIO, GANTT_ZOOM_CONFIG } from "../constants/gantt.constants";
+import { addDays, dateKey, dayDifference, taskStart, taskEnd, toLocalDate, getInitialGanttAnchor, getGanttRange, getGanttDatePosition, getGanttBarGeometry, navigateGanttAnchor } from "../utils/gantt-timeline.utils";
 
-export type GanttZoomMode = "day" | "week" | "month";
-
-export const GANTT_ZOOM_CONFIG: Record<
-  GanttZoomMode,
-  {
-    dayWidth: number;
-    spanDays: number;
-    shiftDays: number;
-    weekWidth: number;
-    monthWidth: number;
-  }
-> = {
-  day: {
-    dayWidth: 100,
-    spanDays: 14,
-    shiftDays: 7,
-    weekWidth: 700,
-    monthWidth: 700,
-  },
-  week: {
-    dayWidth: 32,
-    spanDays: 28,
-    shiftDays: 7,
-    weekWidth: 224,
-    monthWidth: 896,
-  },
-  month: {
-    dayWidth: 3.15,
-    spanDays: 365,
-    shiftDays: 365,
-    weekWidth: 22,
-    monthWidth: 96,
-  },
-};
-
-export const GANTT_LABEL_WIDTH = 280;
-const GANTT_MIN_LABEL_WIDTH = 120;
-const GANTT_LABEL_WIDTH_RATIO = 0.35;
+export type { GanttZoomMode } from "../types/gantt";
+export { GANTT_ZOOM_CONFIG, GANTT_LABEL_WIDTH } from "../constants/gantt.constants";
+export { addDays, dateKey, dayDifference, taskStart, taskEnd, toLocalDate } from "../utils/gantt-timeline.utils";
 
 export interface GanttMonthColumn {
   isoKey: string;
@@ -79,7 +46,7 @@ export interface GanttDayColumn {
   isToday: boolean;
 }
 
-export interface GanttTaskItem {
+export interface GanttTaskItem extends GanttBarGeometry {
   task: Task;
   start: Date;
   end: Date;
@@ -97,24 +64,6 @@ export interface UseGanttTimelineParams {
   dayWidth?: number;
   initialZoom?: GanttZoomMode;
   containerWidth?: number;
-}
-
-export function toLocalDate(value: string): Date {
-  return new Date(`${value.slice(0, 10)}T00:00:00`);
-}
-
-export function dateKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-export function addDays(date: Date, amount: number): Date {
-  const next = new Date(date);
-  next.setDate(next.getDate() + amount);
-  return next;
-}
-
-export function dayDifference(from: Date, to: Date): number {
-  return Math.round((to.getTime() - from.getTime()) / 86_400_000);
 }
 
 export function formatDay(date: Date): string {
@@ -138,7 +87,10 @@ export function formatMonthYear(date: Date): string {
 }
 
 export function formatRange(start: Date, end: Date): string {
-  return `${start.toLocaleDateString("en-US", { day: "2-digit", month: "short" })} – ${end.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}`;
+  const startLabel = start.toLocaleDateString("en-US", {
+    day: "2-digit", month: "short", ...(start.getFullYear() !== end.getFullYear() ? { year: "numeric" } : {}),
+  });
+  return `${startLabel} ? ${end.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}`;
 }
 
 export function formatWeekRange(startDate: Date, endDate: Date): string {
@@ -147,16 +99,6 @@ export function formatWeekRange(startDate: Date, endDate: Date): string {
 
 export function formatWeekNumber(index: number): string {
   return `Week ${index}`;
-}
-
-export function taskStart(task: Task): Date | undefined {
-  const value = task.startDate || task.dueDate;
-  return value ? toLocalDate(taskDateKey(value, task.allDay)) : undefined;
-}
-
-export function taskEnd(task: Task): Date | undefined {
-  const value = task.dueDate || task.startDate;
-  return value ? toLocalDate(taskDateKey(value, task.allDay)) : undefined;
 }
 
 export function getGanttBarColor(status: TaskStatus): string {
@@ -184,7 +126,9 @@ export function useGanttTimeline({
   containerWidth,
 }: UseGanttTimelineParams) {
   const [zoomMode, setZoomMode] = useState<GanttZoomMode>(initialZoom);
-  const [offsetDays, setOffsetDays] = useState<number>(0);
+  const [anchorDate, setAnchorDate] = useState(() =>
+    getInitialGanttAnchor(tasks, toLocalDate(dateKey(new Date()))),
+  );
 
   const labelWidth = containerWidth
     ? Math.min(
@@ -235,7 +179,7 @@ export function useGanttTimeline({
     for (const task of activeTasks) {
       const start = taskStart(task);
       const end = taskEnd(task);
-      if (start && end) {
+      if (start && end && Number.isFinite(start.getTime()) && Number.isFinite(end.getTime())) {
         dated.push({ task, start, end });
       } else {
         unscheduled.push(task);
@@ -260,54 +204,9 @@ export function useGanttTimeline({
     return map;
   }, [activeTasks, dependencies]);
 
-  // Determine anchor date: prefer todayDate when tasks are within +/- 30 days of today
-  const todayDate = useMemo(() => toLocalDate(dateKey(new Date())), []);
-
-  const anchorDate = useMemo(() => {
-    if (datedTasksRaw.length === 0) return todayDate;
-
-    const minStart = Math.min(...datedTasksRaw.map((t) => t.start.getTime()));
-    const maxEnd = Math.max(...datedTasksRaw.map((t) => t.end.getTime()));
-
-    // Anchor around today if today is within active project horizon
-    if (
-      todayDate.getTime() >= minStart - 30 * 86_400_000 &&
-      todayDate.getTime() <= maxEnd + 30 * 86_400_000
-    ) {
-      return todayDate;
-    }
-
-    return new Date(minStart);
-  }, [datedTasksRaw, todayDate]);
-
-  // Compute adaptive range based on zoomMode
-  const range = useMemo(() => {
-    const targetAnchor = addDays(anchorDate, offsetDays);
-
-    if (zoomMode === "month") {
-      // Full 12 calendar months of targetAnchor year
-      const year = targetAnchor.getFullYear();
-      const start = new Date(year, 0, 1);
-      const end = new Date(year, 11, 31);
-      return { start, end };
-    }
-
-    // Day or Week mode: Aligned to week Mondays
-    const dayOfWeek = (targetAnchor.getDay() + 6) % 7; // Monday = 0
-    const weekMonday = addDays(targetAnchor, -dayOfWeek);
-
-    if (zoomMode === "day") {
-      // 14 days (2 full weeks: Monday through Sunday of target anchor week + next week)
-      const start = weekMonday;
-      const end = addDays(weekMonday, 13);
-      return { start, end };
-    }
-
-    // Week mode: 28 days (4 full weeks: starts from weekMonday of targetAnchor)
-    const start = weekMonday;
-    const end = addDays(weekMonday, 27);
-    return { start, end };
-  }, [anchorDate, offsetDays, zoomMode]);
+  const todayKey = dateKey(new Date());
+  const todayDate = useMemo(() => toLocalDate(todayKey), [todayKey]);
+  const range = useMemo(() => getGanttRange(anchorDate, zoomMode), [anchorDate, zoomMode]);
 
   const days: GanttDayColumn[] = useMemo(() => {
     if (zoomMode === "month") return [];
@@ -417,99 +316,18 @@ export function useGanttTimeline({
     return todayOffset >= 0 && todayOffset < days.length;
   }, [zoomMode, todayDate, range.start, todayOffset, days.length]);
 
-  const todayLeft = useMemo(() => {
-    if (!hasToday) return 0;
-    if (zoomMode === "month") {
-      const baseYear = range.start.getFullYear();
-      const monthDiff = todayDate.getMonth();
-      const daysInMonth = new Date(baseYear, monthDiff + 1, 0).getDate();
-      const fraction = (todayDate.getDate() - 0.5) / daysInMonth;
-      return (monthDiff + fraction) * monthWidth;
-    }
-    return todayOffset * dayWidth + dayWidth / 2;
-  }, [
-    hasToday,
-    zoomMode,
-    todayDate,
-    range.start,
-    monthWidth,
-    todayOffset,
-    dayWidth,
-  ]);
+  const scale = useMemo(() => ({ range, zoomMode, dayWidth, monthWidth }), [range, zoomMode, dayWidth, monthWidth]);
+  const todayLeft = hasToday ? getGanttDatePosition(todayDate, scale, 0.5) : 0;
 
-  const datedGanttItems: GanttTaskItem[] = useMemo(() => {
-    const baseYear = range.start.getFullYear();
-
-    return datedTasksRaw.map(({ task, start, end }) => {
-      let left: number;
-      let width: number;
-
-      if (zoomMode === "month") {
-        const startMonthDiff =
-          (start.getFullYear() - baseYear) * 12 + start.getMonth();
-        const startDaysInMonth = new Date(
-          start.getFullYear(),
-          start.getMonth() + 1,
-          0,
-        ).getDate();
-        const startFraction = Math.max(
-          0,
-          Math.min(1, (start.getDate() - 1) / startDaysInMonth),
-        );
-        left = Math.max(0, (startMonthDiff + startFraction) * monthWidth) + 4;
-
-        const endMonthDiff =
-          (end.getFullYear() - baseYear) * 12 + end.getMonth();
-        const endDaysInMonth = new Date(
-          end.getFullYear(),
-          end.getMonth() + 1,
-          0,
-        ).getDate();
-        const endFraction = Math.max(
-          0,
-          Math.min(1, end.getDate() / endDaysInMonth),
-        );
-        const right = (endMonthDiff + endFraction) * monthWidth;
-
-        width = Math.max(28, right - left - 4);
-      } else {
-        const offsetDays = dayDifference(range.start, start);
-        left = Math.max(0, offsetDays) * dayWidth + 4;
-        const durationDays = Math.max(1, dayDifference(start, end) + 1);
-
-        if (offsetDays < 0) {
-          const visibleDays = Math.max(1, dayDifference(range.start, end) + 1);
-          width = Math.max(28, visibleDays * dayWidth - 8);
-        } else {
-          width = Math.max(28, durationDays * dayWidth - 8);
-        }
-      }
-
-      const durationDays = Math.max(1, dayDifference(start, end) + 1);
-      const isSubtask = Boolean(task.parentTaskId);
-      const predecessors = predecessorsBySuccessor.get(task.id) || [];
-      const dateRangeFormatted = formatRange(start, end);
-
-      return {
-        task,
-        start,
-        end,
-        left,
-        width,
-        durationDays,
-        isSubtask,
-        predecessors,
-        dateRangeFormatted,
-      };
-    });
-  }, [
-    datedTasksRaw,
-    range.start,
-    dayWidth,
-    monthWidth,
-    zoomMode,
-    predecessorsBySuccessor,
-  ]);
+  const datedGanttItems: GanttTaskItem[] = useMemo(() =>
+    datedTasksRaw.map(({ task, start, end }) => ({
+      task, start, end,
+      ...getGanttBarGeometry(start, end, scale),
+      durationDays: Math.max(1, dayDifference(start, end) + 1),
+      isSubtask: Boolean(task.parentTaskId),
+      predecessors: predecessorsBySuccessor.get(task.id) || [],
+      dateRangeFormatted: formatRange(start, end),
+    })), [datedTasksRaw, scale, predecessorsBySuccessor]);
 
   const rangeFormatted = useMemo(
     () => formatRange(range.start, range.end),
@@ -517,12 +335,13 @@ export function useGanttTimeline({
   );
 
   const navigate = (direction: -1 | 1) => {
-    const shift = GANTT_ZOOM_CONFIG[zoomMode].shiftDays;
-    setOffsetDays((prev) => prev + direction * shift);
+    setAnchorDate((current) => navigateGanttAnchor(current, zoomMode, direction));
   };
 
-  const jumpToToday = () => {
-    setOffsetDays(0);
+  const jumpToToday = () => setAnchorDate(toLocalDate(dateKey(new Date())));
+  const jumpToTask = (task: Task) => {
+    const start = taskStart(task);
+    if (start && Number.isFinite(start.getTime())) setAnchorDate(new Date(start));
   };
 
   return {
@@ -546,6 +365,8 @@ export function useGanttTimeline({
     setZoomMode,
     navigate,
     jumpToToday,
+    jumpToTask,
+    anchorDate,
     hasToday,
   };
 }
