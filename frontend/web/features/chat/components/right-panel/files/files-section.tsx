@@ -1,4 +1,6 @@
 import { toast } from "sonner";
+
+import { IconButton } from "@/components/ui/icon-button";
 import React from "react";
 import {
   ChevronDown,
@@ -146,13 +148,13 @@ export default function FilesSection({
                       </span>
                     </span>
                     </Button>{item.fileUrl && (
-                      <Button variant="unstyled" type="button" aria-label="Download file"
+                      <IconButton label="Download file" showTooltip={false} size="icon-sm" type="button" aria-label="Download file"
                         onClick={(e) => handleDownload(e, item)}
                         className="rounded-md p-1.5 text-muted-foreground opacity-0 transition hover:bg-info-soft hover:text-info-content group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100"
                         title="Download"
                       >
                         <Download size={15} />
-                      </Button>
+                      </IconButton>
                     )}
                   </div>
                 ))}

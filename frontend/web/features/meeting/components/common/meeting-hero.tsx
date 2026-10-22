@@ -22,7 +22,7 @@ export function MeetingHero({ dateLabel, timeLabel, upcomingMeetingCount, onUpco
           <span className="font-medium tabular-nums text-foreground">{timeLabel}</span>
         </p>
       </div>
-      <Button variant="unstyled" type="button" onClick={onUpcomingClick} className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+      <Button variant="outline" type="button" onClick={onUpcomingClick} className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-control border border-input px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
         <Clock3 className="size-4" aria-hidden />
         {upcomingMeetingCount === undefined
           ? "View upcoming meetings"

@@ -350,6 +350,11 @@ export function CalendarWorkspace() {
 
         <CalendarTasksDrawer
           open={tasksDrawerOpen}
+          coveredByModal={Boolean(
+            calendar.detailEvent || calendar.draft || calendar.editingEvent ||
+            calendar.pendingEventMove || createCalendarOpen ||
+            (selectedProject && selectedProjectTask)
+          )}
           tasks={allTasks}
           projectTaskEvents={domainProjectTaskEvents}
           projects={projects}

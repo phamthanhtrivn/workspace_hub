@@ -62,7 +62,7 @@ export function OverviewTab({
             maxLength={50}
           />
           {isOwner && (
-            <Button variant="unstyled"
+            <Button variant="default"
               type="button"
               disabled={
                 isSaving ||
@@ -70,7 +70,7 @@ export function OverviewTab({
                 spaceName.trim() === originalName
               }
               onClick={onSave}
-              className="px-4 py-2 rounded-control bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="px-4 py-2 rounded-control text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSaving ? "Saving..." : "Save"}
             </Button>

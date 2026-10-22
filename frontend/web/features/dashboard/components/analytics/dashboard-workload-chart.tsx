@@ -8,7 +8,7 @@ import type { ProjectWorkload } from "../../types/dashboard-analytics.types";
 export default function DashboardWorkloadChart({ projects }: { projects: ProjectWorkload[] }) {
   const names = new Map(projects.map((project) => [project.projectId, project.projectName]));
   return (
-    <ChartContainer config={WORKLOAD_CHART_CONFIG} className="h-64 w-full" role="group" aria-label="Top five projects by open tasks assigned to you">
+    <ChartContainer config={WORKLOAD_CHART_CONFIG} className="h-52 w-full @min-[640px]/dashboard:h-60" role="group" aria-label="Top five projects by open tasks assigned to you">
       <BarChart data={projects} layout="vertical" margin={{ top: 4, right: 36, left: 0, bottom: 0 }} accessibilityLayer>
         <CartesianGrid horizontal={false} strokeDasharray="3 4" />
         <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tickMargin={8} />

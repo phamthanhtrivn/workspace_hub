@@ -56,19 +56,19 @@ export function StartMeetingConfirmModal({
         </div>
 
         <div className="mt-6 flex items-center justify-end gap-3 pt-2">
-          <Button variant="unstyled"
+          <Button variant="secondary"
             type="button"
             disabled={isCreating}
             onClick={onClose}
-            className="cursor-pointer rounded-control bg-muted px-4 py-2.5 text-xs md:text-sm font-semibold text-foreground hover:bg-accent active:bg-border transition focus-visible:outline-none disabled:opacity-50"
+            className="cursor-pointer rounded-control px-4 py-2.5 text-xs md:text-sm font-semibold transition focus-visible:outline-none disabled:opacity-50"
           >
             Cancel
           </Button>
-          <Button variant="unstyled"
+          <Button variant="default"
             type="button"
             disabled={isCreating}
             onClick={onConfirm}
-            className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-control bg-primary px-5 py-2.5 text-xs md:text-sm font-semibold text-primary-foreground hover:bg-primary active:bg-primary transition focus-visible:outline-none disabled:opacity-50"
+            className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-control px-5 py-2.5 text-xs md:text-sm font-semibold active:bg-primary transition focus-visible:outline-none disabled:opacity-50"
           >
             {isCreating ? (
               <Loader2 className="h-4 w-4 animate-spin" />

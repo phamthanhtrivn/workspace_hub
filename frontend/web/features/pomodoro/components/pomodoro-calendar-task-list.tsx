@@ -213,7 +213,7 @@ function CalendarTaskRow({
             aria-label={`Actions for task ${event.title}`}
             align="end"
             sideOffset={6}
-            className="z-[120] w-40 rounded-panel border-border p-1.5"
+            className="w-40 rounded-panel border-border p-1.5"
           >
             <Button variant="ghost"
               type="button"

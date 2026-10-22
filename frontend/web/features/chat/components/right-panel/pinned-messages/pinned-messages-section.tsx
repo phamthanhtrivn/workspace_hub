@@ -1,4 +1,6 @@
 import { QueryFeedback } from "@/components/common/query-feedback";
+
+import { IconButton } from "@/components/ui/icon-button";
 import { ChevronDown, ChevronRight, Pin } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -171,7 +173,7 @@ export default function PinnedMessagesSection({
                       {getPinnedPreviewText(message)}
                     </span>
                   </span>
-                  </Button><Button variant="unstyled" type="button" aria-label="Unpin message"
+                  </Button><IconButton label="Unpin message" showTooltip={false} size="icon-sm" type="button" aria-label="Unpin message"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleUnpin(message.id);
@@ -180,7 +182,7 @@ export default function PinnedMessagesSection({
                     title="Unpin"
                   >
                     <Pin size={13} className="mt-1 shrink-0 text-info-content" />
-                  </Button>
+                  </IconButton>
                 </div>
               ))}
               {data?.nextCursor && (

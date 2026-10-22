@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -19,7 +21,7 @@ import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import { logApiError } from "@/lib/interceptors";
 import ThreadSnippetPreview from "./thread-snippet-preview";
 import { Button } from "@/components/ui/button";
-import { NativeSelect } from "@/components/ui/native-select";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
 
 
 interface ThreadsListViewProps {
@@ -127,12 +129,12 @@ export default function ThreadsListView({
             Threads
           </h3>
         </div>
-        <Button variant="unstyled" aria-label="Close"
+        <IconButton label="Close" showTooltip={false} size="icon-sm" aria-label="Close"
           onClick={onClose}
           className="p-1 hover:bg-muted rounded-control text-muted-foreground hover:text-muted-foreground transition cursor-pointer"
         >
           <X size={18} />
-        </Button>
+        </IconButton>
       </div>
 
       {isError && threads.length > 0 && <QueryFeedback label="conversation threads" error retrying={isFetching} onRetry={() => refetch()} />}
@@ -142,10 +144,11 @@ export default function ThreadsListView({
             <Filter size={13} />
             Sender
           </label>
-          <NativeSelect unstyled aria-label="Filter by sender"
+          <CustomSelect
+            ariaLabel="Filter by sender"
             value={senderId}
-            onChange={(event) => setSenderId(event.target.value)}
-            className="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info-outline focus:ring-1 focus:ring-ring cursor-pointer"
+            onChange={nextValue => setSenderId(nextValue)}
+            triggerClassName="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info-outline focus:ring-1 focus:ring-ring cursor-pointer"
           >
             <option value="">
               All Senders
@@ -155,7 +158,7 @@ export default function ThreadsListView({
                 {sender.label}
               </option>
             ))}
-          </NativeSelect>
+          </CustomSelect>
         </div>
       )}
 

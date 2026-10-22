@@ -1,4 +1,6 @@
 "use client";
+import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
+
 
 import { useState } from "react";
 import { Archive } from "lucide-react";
@@ -122,22 +124,26 @@ export default function ProjectSettingsDialog({
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block text-xs font-semibold text-muted-foreground">
                     Start Date
-                    <Input
-                      type="date"
+                    <CustomDatePicker
+                      disabled={isBusy}
                       value={startDate}
-                      onChange={(event) => setStartDate(event.target.value)}
+                      onChange={nextValue => setStartDate(nextValue)}
                       max={dueDate || undefined}
-                      className="mt-1 h-10 rounded-control border-input text-xs font-semibold"
+                      triggerClassName="mt-1 h-10 rounded-control border-input text-xs font-semibold"
+                      ariaLabel="Start date"
+                      allowClear
                     />
                   </label>
                   <label className="block text-xs font-semibold text-muted-foreground">
                     Due Date
-                    <Input
-                      type="date"
+                    <CustomDatePicker
+                      disabled={isBusy}
                       value={dueDate}
-                      onChange={(event) => setDueDate(event.target.value)}
+                      onChange={nextValue => setDueDate(nextValue)}
                       min={startDate || undefined}
-                      className="mt-1 h-10 rounded-control border-input text-xs font-semibold"
+                      triggerClassName="mt-1 h-10 rounded-control border-input text-xs font-semibold"
+                      ariaLabel="Due date"
+                      allowClear
                     />
                   </label>
                 </div>

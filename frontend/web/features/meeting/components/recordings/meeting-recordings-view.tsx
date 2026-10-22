@@ -17,7 +17,7 @@ import { MeetingAlertDialog } from "../common/meeting-alert-dialog";
 import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
 import { MeetingRecordingPlayer } from "./meeting-recording-player";
 import { MeetingRecordingShareDialog } from "./meeting-recording-share-dialog";
-import { NativeSelect } from "@/components/ui/native-select";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { MEETING_LIST_PAGE_SIZE } from "../../types/meeting.constants";
 
 
@@ -84,22 +84,22 @@ export function MeetingRecordingsView() {
           }
           className="max-w-sm bg-card"
         />
-        <NativeSelect unstyled
-          aria-label="Recording access filter"
-          className="h-10 cursor-pointer rounded-control border border-input bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          value={params.scope}
-          onChange={(event) =>
+        <CustomSelect
+          ariaLabel="Recording access filter"
+          triggerClassName="h-10 cursor-pointer rounded-control border border-input bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          value={params.scope ?? "all"}
+          onChange={nextValue =>
             setParams((current) => ({
               ...current,
               page: 1,
-              scope: event.target.value as RecordingQuery["scope"],
+              scope: nextValue as RecordingQuery["scope"],
             }))
           }
         >
           <option value="all">All accessible</option>
           <option value="owned">Owned by me</option>
           <option value="shared">Shared with me</option>
-        </NativeSelect>
+        </CustomSelect>
         <MeetingButton tone="outline" onClick={refresh}>
           Refresh
         </MeetingButton>

@@ -1,4 +1,6 @@
 import { SpaceInvitation } from "@/features/chat/types/chat.types";
+
+import { IconButton } from "@/components/ui/icon-button";
 import { RefreshCw, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -30,10 +32,10 @@ export function InvitationsTab({
           Manage pending space invitations and invite new members.
         </p>
       </div>
-      <Button variant="unstyled"
+      <Button variant="default"
         type="button"
         onClick={onInvite}
-        className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-control bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary"
+        className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-control px-3 py-2 text-xs font-semibold transition"
       >
         <UserPlus size={14} />
         Invite Members
@@ -83,7 +85,7 @@ export function InvitationsTab({
               </p>
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="unstyled"
+              <IconButton label="Resend Invitation" showTooltip={false} size="icon-sm"
                 type="button"
                 title="Resend Invitation"
                 disabled={isMutating}
@@ -91,8 +93,8 @@ export function InvitationsTab({
                 className="p-2 rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft disabled:opacity-50 cursor-pointer"
               >
                 <RefreshCw size={16} />
-              </Button>
-              <Button variant="unstyled"
+              </IconButton>
+              <IconButton label="Cancel Invitation" showTooltip={false} size="icon-sm"
                 type="button"
                 title="Cancel Invitation"
                 disabled={isMutating}
@@ -100,7 +102,7 @@ export function InvitationsTab({
                 className="p-2 rounded-control text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft disabled:opacity-50 cursor-pointer"
               >
                 <X size={16} />
-              </Button>
+              </IconButton>
             </div>
           </div>
         ))}

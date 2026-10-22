@@ -20,24 +20,10 @@ type MeetingButtonTone =
   | "ghost"
   | "danger";
 
-const meetingButtonToneClass: Record<MeetingButtonTone, string> = {
-  primary:
-    "bg-primary text-primary-foreground hover:text-primary-foreground hover:bg-primary-hover",
-  secondary:
-    "bg-muted text-foreground hover:text-foreground hover:bg-accent",
-  outline:
-    "border border-input bg-card text-foreground hover:bg-accent hover:text-accent-foreground",
-  ghost:
-    "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
-  danger:
-    "border border-destructive-outline bg-destructive-soft text-destructive-content hover:border-destructive-content hover:bg-destructive-soft hover:text-destructive-content",
-};
-
-const meetingButtonSizeClass: Record<MeetingControlSize, string> = {
-  sm: "h-8 rounded-control px-3 text-xs",
-  md: "h-9 rounded-control px-4 text-xs font-semibold",
-  lg: "h-10 rounded-control px-5 text-sm font-semibold",
-};
+const meetingButtonVariant = {
+  primary: "default", secondary: "secondary", outline: "outline", ghost: "ghost", danger: "destructive-soft",
+} as const;
+const meetingButtonSize = { sm: "sm", md: "default", lg: "lg" } as const;
 
 interface MeetingButtonProps
   extends Omit<ComponentProps<typeof Button>, "variant" | "size"> {
@@ -53,13 +39,9 @@ export function MeetingButton({
 }: MeetingButtonProps) {
   return (
     <Button
-      variant="ghost"
-      className={cn(
-        "cursor-pointer font-semibold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60",
-        meetingButtonToneClass[tone],
-        meetingButtonSizeClass[controlSize],
-        className,
-      )}
+      variant={meetingButtonVariant[tone]}
+      size={meetingButtonSize[controlSize]}
+      className={className}
       {...props}
     />
   );
@@ -83,8 +65,7 @@ export function MeetingInput({
       <Input
         aria-invalid={invalid || undefined}
         className={cn(
-          "h-10 rounded-control border-input bg-card text-sm font-normal text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring",
-          invalid && "border-destructive-outline focus-visible:ring-ring",
+          "h-10",
           className,
         )}
         {...props}
@@ -95,7 +76,7 @@ export function MeetingInput({
   return (
     <span
       className={cn(
-        "flex h-10 min-w-0 items-center gap-2 rounded-control border border-input bg-card px-3 transition-colors duration-150 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring",
+        "flex h-10 min-w-0 items-center gap-2 rounded-control border border-input bg-background px-3 transition-colors duration-150 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring",
         invalid && "border-destructive-outline focus-within:ring-ring",
         containerClassName,
       )}
@@ -126,8 +107,7 @@ export function MeetingTextarea({
     <Textarea
       aria-invalid={invalid || undefined}
       className={cn(
-        "min-h-24 rounded-control border-input bg-card text-sm font-normal text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring",
-        invalid && "border-destructive-outline focus-visible:ring-ring",
+        "min-h-24 font-normal",
         className,
       )}
       {...props}
@@ -157,10 +137,10 @@ export function MeetingSelect<TValue extends string = string>({
   return (
     <CustomSelect
       triggerClassName={cn(
-        "h-10 rounded-control border-input bg-card text-sm font-normal text-foreground hover:bg-accent data-[state=open]:border-ring data-[state=open]:ring-ring",
+        "h-10 font-normal",
         triggerClassName,
       )}
-      contentClassName={cn("rounded-control border-border", contentClassName)}
+      contentClassName={contentClassName}
       {...props}
     />
   );

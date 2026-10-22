@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import React, { useEffect, useState, useCallback } from "react";
 
 import { Notification } from "../types/notification.types";
@@ -9,7 +11,6 @@ import { X } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
 import { markReadSuccess } from "@/store/notification/notification.slice";
 import { markAsRead } from "../api/notification.api";
-import { Button } from "@/components/ui/button";
 import { DialogSurface } from "@/components/ui/dialog";
 
 
@@ -62,12 +63,12 @@ const NotificationDetailModal = React.memo(function NotificationDetailModal({
       <div className="relative bg-card rounded-panel w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background">
           <h2 className="font-semibold text-foreground">Notification Details</h2>
-          <Button variant="unstyled" aria-label="Close"
+          <IconButton label="Close" showTooltip={false} size="icon-sm" aria-label="Close"
             onClick={onClose}
             className="p-1 rounded-control text-muted-foreground hover:bg-accent hover:text-muted-foreground transition cursor-pointer"
           >
             <X size={18} />
-          </Button>
+          </IconButton>
         </div>
         <div className="max-h-[80vh] overflow-y-auto">
           <ModalContent

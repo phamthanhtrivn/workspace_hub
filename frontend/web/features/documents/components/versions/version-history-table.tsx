@@ -1,11 +1,12 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import React from "react";
 import { DocumentItem, DocumentVersion } from "../../types/documents.types";
 import { formatBytes, formatDateShort } from "../../utils/documents.utils";
 import { ORIGINAL_VERSION_ID } from "../../types/documents.constants";
 import { Eye, Download, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 
 
@@ -84,7 +85,7 @@ export function VersionHistoryTable({
                 </TableCell>
                 <TableCell unstyled className="px-5 py-4 text-right">
                   <div className="flex items-center justify-end gap-1.5">
-                    <Button variant="unstyled"
+                    <IconButton label="Preview version" showTooltip={false} size="icon-sm"
                       onClick={() =>
                         onPreviewVersion(
                           item,
@@ -95,14 +96,14 @@ export function VersionHistoryTable({
                       className="p-1.5 hover:bg-muted text-muted-foreground hover:text-info-content rounded-control cursor-pointer transition-colors"
                     >
                       <Eye size={15} />
-                    </Button>
-                    <Button variant="unstyled"
+                    </IconButton>
+                    <IconButton label="Download version" showTooltip={false} size="icon-sm"
                       onClick={() => onDownload(version.id)}
                       title="Download version"
                       className="p-1.5 hover:bg-muted text-muted-foreground hover:text-info-content rounded-control cursor-pointer transition-colors"
                     >
                       <Download size={15} />
-                    </Button>
+                    </IconButton>
                   </div>
                 </TableCell>
               </TableRow>

@@ -2,7 +2,7 @@ import { useId, type CSSProperties } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { DashboardActivity } from "../../utils/dashboard-activity.utils";
 import styles from "./dashboard-activity-calendar.module.css";
-import { DashboardDisclosure } from "../common/dashboard-disclosure";
+import { DashboardDisclosureContent } from "../common/dashboard-disclosure";
 
 const ACTIVITY_LEVELS = [0, 1, 2, 3, 4];
 const WEEKDAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
@@ -56,7 +56,7 @@ export function DashboardActivityCalendar({ activity }: { activity: DashboardAct
           <span className="ml-1">More</span>
         </span>
       </div>
-      <DashboardDisclosure title="Daily totals" className="text-xs text-muted-foreground">
+      <DashboardDisclosureContent>
         <ul className="mt-2 grid min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
           {activity.days.filter((day) => day.inRange).map((day) => (
             <li key={day.date} className="min-w-0 break-words tabular-nums">
@@ -64,7 +64,7 @@ export function DashboardActivityCalendar({ activity }: { activity: DashboardAct
             </li>
           ))}
         </ul>
-      </DashboardDisclosure>
+      </DashboardDisclosureContent>
     </figure>
   );
 }

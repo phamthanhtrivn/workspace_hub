@@ -7,7 +7,7 @@ import type { TaskCompletionDay } from "../../types/dashboard-analytics.types";
 
 export default function DashboardCompletionChart({ days }: { days: TaskCompletionDay[] }) {
   return (
-    <ChartContainer config={COMPLETION_CHART_CONFIG} className="h-60 w-full" role="group" aria-label={`Daily completed tasks over the last ${days.length} days`}>
+    <ChartContainer config={COMPLETION_CHART_CONFIG} className="h-36 w-full @min-[320px]/dashboard:h-44 @min-[640px]/dashboard:h-60" role="group" aria-label={`Daily completed tasks over the last ${days.length} days`}>
       <LineChart data={days} margin={{ top: 16, right: 16, left: -20, bottom: 0 }} accessibilityLayer>
         <CartesianGrid vertical={false} strokeDasharray="3 4" />
         <XAxis dataKey="date" axisLine={false} tickLine={false} tickMargin={12} minTickGap={32} tickFormatter={(date: string) => days.find((day) => day.date === date)?.label ?? date} />

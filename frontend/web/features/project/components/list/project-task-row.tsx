@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+
 import { Calendar, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,8 +74,6 @@ export default function ProjectTaskRow({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
       draggable={isDraggable}
       onDragStart={() => {
         if (isDraggable) onDragStart?.(task.id);
@@ -90,16 +88,16 @@ export default function ProjectTaskRow({
           onDrop?.(task.id);
         }
       }}
-      onClick={() => onTaskClick?.(task)}
-      onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
-        if (event.target !== event.currentTarget) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onTaskClick?.(task);
-        }
-      }}
-      className={`group relative grid ${BACKLOG_LAYOUT.minWidth} ${BACKLOG_LAYOUT.columns} items-center border-b border-border bg-card px-4 py-[7px] text-left transition-colors hover:z-20 hover:bg-background focus-within:z-20 focus-visible:bg-info-soft/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring cursor-pointer`}
+      className={`relative [&>:not([data-primary-action]):not(.sticky)]:relative [&>:not([data-primary-action])]:z-10 [&>:not([data-primary-action])]:pointer-events-none [&_button]:pointer-events-auto [&_a]:pointer-events-auto group grid ${BACKLOG_LAYOUT.minWidth} ${BACKLOG_LAYOUT.columns} items-center border-b border-border bg-card px-4 py-[7px] text-left transition-colors hover:z-20 hover:bg-background focus-within:z-20 focus-visible:bg-info-soft/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring cursor-pointer`}
     >
+      <Button
+        data-primary-action
+        type="button"
+        variant="unstyled"
+        aria-label={`Open ${task.title}`}
+        onClick={() => onTaskClick?.(task)}
+        className="absolute inset-0 z-0 h-full w-full rounded-[inherit] focus-visible:ring-inset"
+      />
       <div
         className="flex min-w-0 items-center gap-2"
         style={{ paddingLeft: level > 0 ? 32 : 0 }}

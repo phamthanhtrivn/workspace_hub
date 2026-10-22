@@ -2,6 +2,7 @@
 
 import { CalendarPlus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 import { WorkspaceCalendar } from "../../types/calendar.types";
 import type { Project } from "@/features/project/types/project";
@@ -9,6 +10,8 @@ import { CalendarListItem } from "./calendar-list-item";
 import { MiniCalendar } from "./mini-calendar";
 import { ProjectCalendarsSection } from "./project-calendars-section";
 import { TasksCalendarListItem } from "./tasks-calendar-list-item";
+
+const CALENDAR_SCROLL_THRESHOLD = 4;
 
 export function CalendarSidebar({
   calendars,
@@ -105,6 +108,7 @@ export function CalendarSidebar({
         </div>
         {(() => {
           const personalCalendars = calendars.filter((c) => !c.projectId);
+          const scrollable = personalCalendars.length >= CALENDAR_SCROLL_THRESHOLD;
 
           return (
             <>
@@ -114,17 +118,24 @@ export function CalendarSidebar({
                 </div>
               ) : (
                 <div className="shrink-0 space-y-1">
-                  {personalCalendars.map((calendar) => {
-                    const selected = selectedCalendarIds.has(calendar.id);
-                    return (
-                      <CalendarListItem
-                        key={calendar.id}
-                        calendar={calendar}
-                        selected={selected}
-                        onToggle={() => onToggleCalendar(calendar.id)}
-                      />
-                    );
-                  })}
+                  <div
+                    role={scrollable ? "region" : undefined}
+                    aria-label={scrollable ? "My calendars list" : undefined}
+                    tabIndex={scrollable ? 0 : undefined}
+                    className={cn("space-y-1", scrollable && "max-h-32 overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-gutter:stable] focus-visible:rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [@media(pointer:coarse)]:max-h-44")}
+                  >
+                    {personalCalendars.map((calendar) => {
+                      const selected = selectedCalendarIds.has(calendar.id);
+                      return (
+                        <CalendarListItem
+                          key={calendar.id}
+                          calendar={calendar}
+                          selected={selected}
+                          onToggle={() => onToggleCalendar(calendar.id)}
+                        />
+                      );
+                    })}
+                  </div>
                   <TasksCalendarListItem
                     selected={tasksVisible}
                     color={tasksColor}

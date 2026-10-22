@@ -22,7 +22,8 @@ export interface CustomSelectOption<TValue extends string = string> {
 interface CustomSelectProps<TValue extends string = string> {
   id?: string;
   value: TValue;
-  options: CustomSelectOption<TValue>[];
+  options?: CustomSelectOption<TValue>[];
+  children?: React.ReactNode;
   onChange: (value: TValue) => void;
   ariaLabel: string;
   placeholder?: string;
@@ -31,6 +32,8 @@ interface CustomSelectProps<TValue extends string = string> {
   className?: string;
   triggerClassName?: string;
   contentClassName?: string;
+  triggerLabel?: React.ReactNode;
+  descriptionId?: string;
 }
 
 const INTERNAL_EMPTY_VALUE = "__CUSTOM_SELECT_EMPTY__";
@@ -38,7 +41,8 @@ const INTERNAL_EMPTY_VALUE = "__CUSTOM_SELECT_EMPTY__";
 export function CustomSelect<TValue extends string = string>({
   id,
   value,
-  options,
+  options: suppliedOptions,
+  children,
   onChange,
   ariaLabel,
   placeholder,
@@ -47,7 +51,10 @@ export function CustomSelect<TValue extends string = string>({
   className,
   triggerClassName,
   contentClassName,
+  triggerLabel,
+  descriptionId,
 }: CustomSelectProps<TValue>) {
+  const options = suppliedOptions ?? optionsFromChildren(children) as CustomSelectOption<TValue>[];
   const selectedOption = options.find((option) => option.value === value);
   const internalValue = value === "" ? INTERNAL_EMPTY_VALUE : value;
 
@@ -64,14 +71,15 @@ export function CustomSelect<TValue extends string = string>({
           id={id}
           aria-label={ariaLabel}
           aria-invalid={invalid || undefined}
+          aria-describedby={descriptionId}
           className={cn(
-            "h-9 cursor-pointer rounded-control border-input bg-card px-3 text-sm font-semibold text-foreground hover:bg-background data-[state=open]:border-info-outline data-[state=open]:ring-2 data-[state=open]:ring-ring/15",
+            "h-9 cursor-pointer rounded-control border-input bg-background px-3 text-sm font-medium text-foreground hover:bg-accent data-[state=open]:ring-2 data-[state=open]:ring-ring",
             invalid && "border-destructive-outline ring-2 ring-destructive-outline/15",
             triggerClassName,
           )}
         >
           <SelectValue placeholder={placeholder}>
-            {selectedOption ? <OptionLabel option={selectedOption} /> : placeholder}
+            {triggerLabel ?? (selectedOption ? <OptionLabel option={selectedOption} /> : placeholder)}
           </SelectValue>
         </SelectTrigger>
         <SelectContent className={cn("rounded-control border-border", contentClassName)}>
@@ -92,6 +100,16 @@ export function CustomSelect<TValue extends string = string>({
       </Select>
     </div>
   );
+}
+
+/** Compatibility for existing option declarations; only shared Select renders DOM. */
+function optionsFromChildren(children: React.ReactNode): CustomSelectOption[] {
+  return React.Children.toArray(children).flatMap((child) => {
+    if (!React.isValidElement<{ value?: string | number; disabled?: boolean; children?: React.ReactNode }>(child)) return [];
+    if (child.type === React.Fragment) return optionsFromChildren(child.props.children);
+    if (child.type !== "option") return [];
+    return [{ value: String(child.props.value ?? child.props.children ?? ""), label: child.props.children, disabled: child.props.disabled }];
+  });
 }
 
 function OptionLabel<TValue extends string>({

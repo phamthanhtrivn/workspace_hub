@@ -39,6 +39,7 @@ import {
   QuickRow,
 } from "./quick-create-time-section";
 import { CalendarTaskDeadlineFields } from "./calendar-task-deadline-fields";
+import { CalendarTaskTitleField } from "./calendar-task-title-field";
 import { ReminderEditor } from "./reminder-editor";
 import { formatReminderSummary } from "../../utils/calendar-reminder.utils";
 import { DialogSurface } from "@/components/ui/dialog";
@@ -191,6 +192,10 @@ export function QuickCreateModal({
 
         {/* Title and Tabs */}
         <div className="shrink-0 px-5 pt-5 sm:px-7">
+          {kind === "task" ? (
+            <CalendarTaskTitleField {...register("title")} id="calendar-quick-create-title" data-modal-initial-focus
+              wrapperClassName="ml-12" error={formState.errors.title?.message} />
+          ) : <>
           <Input
             {...register("title")}
             data-modal-initial-focus
@@ -205,6 +210,7 @@ export function QuickCreateModal({
               {copy.requiredFields}
             </p>
           )}
+          </>}
 
           {!isEditing && (
             <div
@@ -245,6 +251,7 @@ export function QuickCreateModal({
           <div className="space-y-2.5">
             {/* Time & Recurrence Section */}
             <QuickCreateTimeSection
+              disabled={submitting || formState.isSubmitting}
               form={controller.form}
               kind={kind}
               recurrencePreset={controller.recurrencePreset}
@@ -273,7 +280,7 @@ export function QuickCreateModal({
               />
             )}
 
-            {kind === "task" && <CalendarTaskDeadlineFields value={deadline} onChange={setDeadline} />}
+            {kind === "task" && <CalendarTaskDeadlineFields value={deadline} onChange={setDeadline} disabled={submitting} />}
 
             {/* Description */}
             <QuickRow icon={<AlignLeft className="h-5 w-5" />}>

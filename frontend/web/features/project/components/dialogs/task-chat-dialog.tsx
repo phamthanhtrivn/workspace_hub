@@ -61,11 +61,11 @@ export default function TaskChatDialog({
             </DialogDescription>
           </div>
           {(onOpenTaskThread || onOpenTaskChannel) && (
-            <Button variant="unstyled"
+            <Button variant="info-soft"
               type="button"
               disabled={isOpeningChannel}
               onClick={handleChatClick}
-              className="inline-flex items-center gap-1.5 rounded-control bg-info-soft px-3 py-1.5 text-xs font-semibold text-info-content hover:bg-info-soft transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
               title="Open real-time discussion thread in Space Chat"
             >
               <MessageSquare size={13} />

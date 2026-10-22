@@ -1,4 +1,6 @@
 "use client";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 import { CheckCircle, AlertCircle, FastForward, StickyNote, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -53,10 +55,10 @@ export function PomodoroSessionHistoryItem({ session, showDates = false }: Pomod
   }[session.sessionType];
 
   return (
-    <details
+    <Collapsible
       className="group rounded-panel border border-border bg-background text-xs transition-all hover:border-border open:border-border"
     >
-      <summary
+      <CollapsibleTrigger render={<Button type="button" variant="ghost" className="group h-auto w-full justify-between whitespace-normal text-left" />}
         aria-label={`View session details for ${taskTitle} at ${startTime}${showDates ? ` on ${new Date(session.startedAt).toLocaleDateString(POMODORO_DISPLAY_LOCALE)}` : ""}`}
         className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 rounded-panel p-3 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden"
       >
@@ -105,9 +107,10 @@ export function PomodoroSessionHistoryItem({ session, showDates = false }: Pomod
             <StatusIcon className="size-3" />
             <span>{statusBadge.label}</span>
           </Badge>
-          <ChevronDown aria-hidden="true" className="size-3.5 text-muted-foreground transition-transform group-open:rotate-180" />
+          <ChevronDown aria-hidden="true" className="size-3.5 text-muted-foreground transition-transform group-data-[panel-open]:rotate-180" />
         </div>
-      </summary>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
       <div className="space-y-3 border-t border-border/70 px-3 py-3">
         <dl className="space-y-1.5 text-muted-foreground">
           <div>
@@ -140,6 +143,7 @@ export function PomodoroSessionHistoryItem({ session, showDates = false }: Pomod
           )}
         </div>
       </div>
-    </details>
+    </CollapsibleContent>
+    </Collapsible>
   );
 }

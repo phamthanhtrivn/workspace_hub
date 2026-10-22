@@ -1,4 +1,6 @@
 import { QueryFeedback } from "@/components/common/query-feedback";
+
+import { IconButton } from "@/components/ui/icon-button";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Filter, Pin, Search } from "lucide-react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -17,7 +19,7 @@ import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NativeSelect } from "@/components/ui/native-select";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
 
 
 interface PinnedMessagesDetailViewProps {
@@ -215,10 +217,11 @@ export default function PinnedMessagesDetailView({
               <Filter size={13} />
               Sender
             </label>
-            <NativeSelect unstyled aria-label="Filter by sender"
+            <CustomSelect
+              ariaLabel="Filter by sender"
               value={senderId}
-              onChange={(event) => setSenderId(event.target.value)}
-              className="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info-outline focus:ring-1 focus:ring-ring cursor-pointer"
+              onChange={nextValue => setSenderId(nextValue)}
+              triggerClassName="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info-outline focus:ring-1 focus:ring-ring cursor-pointer"
             >
               <option value="">
                 All Senders
@@ -228,7 +231,7 @@ export default function PinnedMessagesDetailView({
                   {sender.label}
                 </option>
               ))}
-            </NativeSelect>
+            </CustomSelect>
           </div>
         )}
       </div>
@@ -282,13 +285,13 @@ export default function PinnedMessagesDetailView({
                     </span>
                   </div>
                 </Button>
-                <Button variant="unstyled"
+                <IconButton label="Unpin" showTooltip={false} size="icon-sm"
                   onClick={() => handleUnpin(message.id)}
                   className="cursor-pointer rounded-control p-1.5 text-muted-foreground hover:bg-destructive-soft hover:text-destructive-content transition"
                   title="Unpin"
                 >
                   <Pin size={15} className="mt-1 shrink-0 text-info-content" />
-                </Button>
+                </IconButton>
               </div>
             ))}
             <div

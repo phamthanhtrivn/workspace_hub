@@ -1,4 +1,6 @@
 import { useId as useControlledPopupId } from "react";
+
+import { IconButton } from "@/components/ui/icon-button";
 import React, { useRef, useState } from "react";
 import {
   Bell,
@@ -120,7 +122,7 @@ const ChannelItem = React.memo(function ChannelItem({
         ) : null}
 
         <div ref={menuRef} className="relative">
-          <Button aria-expanded={isMenuOpen} aria-controls={`${controlledPopupId}-isMenuOpen`} aria-haspopup="menu" variant="unstyled"
+          <IconButton aria-expanded={isMenuOpen} aria-controls={`${controlledPopupId}-isMenuOpen`} aria-haspopup="menu" label="Channel options" showTooltip={false} size="icon-sm"
             type="button"
             onClick={(event) => {
               event.stopPropagation();
@@ -130,7 +132,7 @@ const ChannelItem = React.memo(function ChannelItem({
             title="Channel options"
           >
             <MoreVertical size={14} />
-          </Button>
+          </IconButton>
 
           {isMenuOpen && (
             <AnchoredMenu id={`${controlledPopupId}-isMenuOpen`} onClose={() => setIsMenuOpen(false)} side="bottom" align="end" aria-label="Channel actions"

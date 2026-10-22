@@ -373,19 +373,21 @@ export default function GanttView({
                       key={task.id}
                       onMouseEnter={() => setHoveredTaskId(task.id)}
                       onMouseLeave={() => setHoveredTaskId(null)}
-                      onClick={() => onTaskClick?.(task)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(event) => {
-                        if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); onTaskClick?.(task); }
-                      }}
-                      className={`group grid cursor-pointer text-left transition-colors duration-150 ${
+                      className={`relative [&>:not([data-primary-action]):not(.sticky)]:relative [&>:not([data-primary-action])]:z-10 [&>:not([data-primary-action])]:pointer-events-none [&_button]:pointer-events-auto [&_a]:pointer-events-auto group grid cursor-pointer text-left transition-colors duration-150 ${
                         isHovered ? "bg-info-soft/40" : "hover:bg-background"
                       }`}
                       style={{
                         gridTemplateColumns: `${labelWidth}px ${timelineWidth}px`,
                       }}
                     >
+                      <Button
+                        data-primary-action
+                        type="button"
+                        variant="unstyled"
+                        aria-label={`Open ${task.title}`}
+                        onClick={() => onTaskClick?.(task)}
+                        className="absolute inset-0 z-0 h-full w-full rounded-[inherit] focus-visible:ring-inset"
+                      />
                       <div
                         title={task.title}
                         className={`@container/gantt-label sticky left-0 z-10 flex h-12 min-w-0 items-center justify-between gap-2 border-r border-border px-2 transition-colors ${

@@ -29,7 +29,7 @@ export function CalendarToolbar({
 
 
   return (
-    <div className="flex min-h-14 min-w-0 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 @min-[640px]/calendar-canvas:px-5">
+    <div className="flex min-h-14 min-w-0 shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border bg-card px-3 py-2 @min-[640px]/calendar-canvas:px-1">
       <div className="flex min-w-0 max-w-full flex-1 flex-wrap items-center gap-1 @min-[640px]/calendar-canvas:gap-2">
         <Button
           type="button"

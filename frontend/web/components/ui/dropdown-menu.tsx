@@ -4,6 +4,7 @@ import * as React from "react";
 import { Menu } from "@base-ui/react/menu";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
+import { POPUP_LAYER_CLASS } from "./popup-layer";
 
 export const DropdownMenu = Menu.Root;
 export const DropdownMenuGroup = Menu.Group;
@@ -21,7 +22,7 @@ type MenuContentProps = Omit<Menu.Popup.Props, "className"> & {
 };
 
 export function DropdownMenuContent({ className, side = "bottom", align = "end", sideOffset = 6, ...props }: MenuContentProps) {
-  return <Menu.Portal><Menu.Positioner side={side} align={align} sideOffset={sideOffset} className="z-[120] max-w-[calc(100vw-1rem)]">
+  return <Menu.Portal><Menu.Positioner side={side} align={align} sideOffset={sideOffset} className={cn(POPUP_LAYER_CLASS, "max-w-[calc(100vw-1rem)]")}>
     <Menu.Popup data-slot="dropdown-menu-content" className={cn("max-h-[var(--available-height)] min-w-40 overflow-y-auto rounded-panel border border-border bg-popover p-1 text-sm text-popover-foreground shadow-panel outline-none", className)} {...props} />
   </Menu.Positioner></Menu.Portal>;
 }

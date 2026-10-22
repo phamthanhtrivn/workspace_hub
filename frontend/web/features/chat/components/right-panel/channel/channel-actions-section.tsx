@@ -160,11 +160,11 @@ export default function ChannelActionsSection({
                 Leave Channel
               </Button>
             )}
-            <Button variant="unstyled"
+            <Button variant="destructive"
               type="button"
               onClick={confirmDeleteChannel}
               disabled={deleteMutation.isPending || leaveMutation.isPending}
-              className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-control bg-destructive px-3 py-2 text-sm font-semibold text-destructive-foreground transition hover:bg-destructive disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-control px-3 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Trash2 size={15} />
               Delete Channel

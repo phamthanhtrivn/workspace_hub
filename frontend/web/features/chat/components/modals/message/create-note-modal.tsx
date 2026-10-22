@@ -87,10 +87,10 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
           </div>
 
           <div className="pt-2">
-            <Button variant="unstyled"
+            <Button variant="warning"
               type="submit"
               disabled={!title.trim() || !content.trim()}
-              className="w-full bg-warning hover:bg-warning text-warning-foreground font-medium py-2.5 rounded-control transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full font-medium py-2.5 rounded-control transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               Create Note
             </Button>

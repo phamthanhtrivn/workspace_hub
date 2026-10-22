@@ -30,7 +30,7 @@ export function ProjectSearchInput({
       placeholder={placeholder}
       aria-label={ariaLabel || placeholder}
       containerClassName={cn("relative flex-1 min-w-[180px]", className)}
-      className="h-9 rounded-control border border-input bg-background pl-9 pr-8 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden transition-all"
+      className="h-9 text-xs"
     />
   );
 }
@@ -59,10 +59,10 @@ export function ProjectSelect<TValue extends string = string>({
       ariaLabel={ariaLabel || placeholder || "Select option"}
       placeholder={placeholder}
       triggerClassName={cn(
-        "h-9 rounded-control border border-input bg-card px-3 text-xs font-semibold text-foreground hover:border-input transition-colors cursor-pointer",
+        "h-9 text-xs",
         triggerClassName
       )}
-      contentClassName={cn("rounded-control border-border", contentClassName)}
+      contentClassName={contentClassName}
       {...props}
     />
   );

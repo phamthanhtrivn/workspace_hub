@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
@@ -256,7 +258,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                           </p>
                         </div>
                       </Button>
-                      <Button variant="unstyled"
+                      <IconButton label="Send Message" showTooltip={false} size="icon-sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleMessage(user);
@@ -265,7 +267,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                         title="Send Message"
                       >
                         <MessageCircle size={20} />
-                      </Button>
+                      </IconButton>
                     </div>
                   ))}
                 </div>
@@ -332,9 +334,9 @@ const SearchUserModal = React.memo(function SearchUserModal({
                   </div>
                 </div>
 
-                <Button variant="unstyled"
+                <Button variant="default"
                   onClick={() => handleMessage(selectedUser)}
-                  className="cursor-pointer w-full bg-primary text-primary-foreground font-semibold py-3 rounded-control transform transition-all duration-200"
+                  className="cursor-pointer w-full font-semibold py-3 rounded-control transform transition-all duration-200"
                 >
                   Send Message
                 </Button>

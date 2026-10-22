@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useState, useEffect } from "react";
@@ -139,12 +141,12 @@ export default function InviteSpaceMembersModal({
           <h2 className="text-section-title font-semibold text-foreground">
             Invite Members to Space
           </h2>
-          <Button variant="unstyled" aria-label="Close"
+          <IconButton label="Close" showTooltip={false} size="icon-sm" aria-label="Close"
             onClick={onClose}
             className="p-1 rounded-control text-muted-foreground hover:text-muted-foreground hover:bg-muted transition cursor-pointer"
           >
             <X size={20} />
-          </Button>
+          </IconButton>
         </div>
 
         {/* Content */}
@@ -160,13 +162,13 @@ export default function InviteSpaceMembersModal({
                   <span>
                     {user.fullName} ({user.email})
                   </span>
-                  <Button variant="unstyled" aria-label="Remove selected member"
+                  <IconButton label="Remove selected member" showTooltip={false} size="icon-sm" aria-label="Remove selected member"
                     type="button"
                     onClick={() => handleRemoveUser(user.id)}
                     className="hover:bg-info-soft rounded text-info-content hover:text-info-content p-0.5 cursor-pointer"
                   >
                     <X size={12} />
-                  </Button>
+                  </IconButton>
                 </div>
               ))}
             </div>
@@ -240,18 +242,18 @@ export default function InviteSpaceMembersModal({
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-border flex justify-end gap-3 bg-background">
-          <Button variant="unstyled"
+          <Button variant="secondary"
             type="button"
             onClick={onClose}
             disabled={isInviting}
-            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground bg-muted hover:bg-accent rounded-control transition cursor-pointer"
+            className="px-4 py-2 text-sm font-medium rounded-control transition cursor-pointer"
           >
             Cancel
           </Button>
-          <Button variant="unstyled"
+          <Button variant="default"
             onClick={handleInvite}
             disabled={isInviting || selectedUsers.length === 0}
-            className="px-5 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary disabled:bg-primary rounded-control transition flex items-center gap-1.5 cursor-pointer"
+            className="px-5 py-2 text-sm font-medium disabled:bg-primary rounded-control transition flex items-center gap-1.5 cursor-pointer"
           >
             {isInviting && <Loader2 size={16} className="animate-spin" />}
             Send Invitation

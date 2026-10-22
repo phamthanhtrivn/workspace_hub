@@ -1,12 +1,13 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import { X } from "lucide-react";
 import { MeetingRoomPanel } from "../../../types/meeting.types";
 import type { MeetingRoomSidePanelProps } from "../../../types/meeting.types";
 import { MeetingRoomPanelContent } from "./meeting-room-panel-content";
 import { getPanelTitle } from "@/features/meeting/utils/meeting-room.utils";
 import { MeetingChatNotificationToggleButton } from "./meeting-chat-notification-toggle-button";
-import { Button } from "@/components/ui/button";
 
 
 export function MeetingRoomMobilePanelHeader({
@@ -47,14 +48,14 @@ export function MeetingRoomMobilePanelHeader({
               className="grid h-8 w-8 cursor-pointer place-items-center rounded-md bg-accent text-muted-foreground transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
             />
           ) : null}
-          <Button variant="unstyled"
+          <IconButton label="Close" showTooltip={false} size="icon-sm"
             type="button"
             onClick={onClose}
             className="grid h-8 w-8 cursor-pointer place-items-center rounded-control bg-accent"
             aria-label="Close"
           >
             <X className="h-4 w-4" />
-          </Button>
+          </IconButton>
         </div>
       </div>
       <MeetingRoomPanelContent

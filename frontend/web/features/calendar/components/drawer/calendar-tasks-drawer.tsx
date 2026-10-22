@@ -7,7 +7,7 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 
@@ -21,11 +21,12 @@ import {
   TaskTimeFilter,
 } from "../../utils/calendar-tasks.utils";
 import { CalendarTaskList } from "./calendar-task-list";
-import { SheetPanel } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface CalendarTasksDrawerProps {
   open: boolean;
+  coveredByModal?: boolean;
   tasks: CalendarEvent[];
   projectTaskEvents?: CalendarEvent[];
   projects?: Project[];
@@ -46,6 +47,7 @@ type TasksDrawerTab = "personal" | "project";
 
 export function CalendarTasksDrawer({
   open,
+  coveredByModal = false,
   tasks,
   projectTaskEvents = [],
   projects = [],
@@ -61,6 +63,21 @@ export function CalendarTasksDrawer({
   onToggleTask,
   onSelectTask,
 }: CalendarTasksDrawerProps) {
+  const openerRef = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    // Retain the original trigger while Calendar modals temporarily replace the sheet.
+    if (open) {
+      openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      return;
+    }
+    const opener = openerRef.current;
+    if (!opener) return;
+    const frame = requestAnimationFrame(() => {
+      if (opener.isConnected) opener.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [open]);
+
   const [activeTab, setActiveTab] = useState<TasksDrawerTab>("personal");
   const [timeFilter, setTimeFilter] = useState<TaskTimeFilter>("all");
   const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>(() =>
@@ -118,31 +135,12 @@ export function CalendarTasksDrawer({
   }>;
 
   return (
-    <>
-      {open && (
-        <Button
-          type="button"
-          variant="ghost"
-          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-overlay/30 p-0 @min-[1040px]/calendar-canvas:hidden"
-          onClick={onClose}
-          aria-label="Close"
-        />
-      )}
-
-      <SheetPanel open={open} onClose={onClose} modalBelow={1040} modalContainerSelector="[data-calendar-canvas]"
-        className={cn(
-          "z-50 flex min-h-0 min-w-0 flex-col border-l border-border bg-card transition-all duration-200 ease-in-out @min-[1040px]/calendar-canvas:static @min-[1040px]/calendar-canvas:z-auto @min-[1040px]/calendar-canvas:h-full @min-[1040px]/calendar-canvas:shadow-none",
-          // Mobile: fixed overlay from right
-          "fixed inset-y-0 right-0 w-full max-w-[400px] @min-[1040px]/calendar-canvas:w-[400px]",
-          open ? "visible translate-x-0" : "invisible translate-x-full @min-[1040px]/calendar-canvas:translate-x-0",
-          // Desktop: in-flow flex child that pushes the calendar
-          open
-            ? "@min-[1040px]/calendar-canvas:w-[400px] @min-[1040px]/calendar-canvas:opacity-100"
-            : "@min-[1040px]/calendar-canvas:w-0 @min-[1040px]/calendar-canvas:overflow-hidden @min-[1040px]/calendar-canvas:opacity-0 @min-[1040px]/calendar-canvas:border-none pointer-events-none",
-        )}
-
+    <Sheet open={open && !coveredByModal} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
+      <SheetContent
+        showCloseButton={false}
+        overlayClassName="bg-overlay/20 transition-opacity"
+        className="flex h-dvh min-h-0 min-w-0 w-full max-w-[400px] flex-col overflow-hidden border-0 border-l border-border bg-card shadow-none motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200"
         aria-label="Tasks"
-        aria-hidden={!open}
       >
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TasksDrawerTab)} className="flex h-full min-h-0 min-w-0 w-full flex-col gap-0">
           <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/80 px-3 sm:px-4">
@@ -318,8 +316,8 @@ export function CalendarTasksDrawer({
             )}
           </TabsContent>
         </Tabs>
-      </SheetPanel>
-    </>
+      </SheetContent>
+    </Sheet>
   );
 }
 

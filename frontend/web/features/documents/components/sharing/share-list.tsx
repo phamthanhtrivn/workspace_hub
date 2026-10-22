@@ -1,5 +1,7 @@
 "use client";
 
+import { IconButton } from "@/components/ui/icon-button";
+
 import React, { useCallback, useMemo } from "react";
 import { Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -9,8 +11,7 @@ import { DocumentShare } from "../../types/documents.types";
 import { SharePermission } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
 import { useBulkUserProfilesByEmailsQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
-import { NativeSelect } from "@/components/ui/native-select";
-import { Button } from "@/components/ui/button";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
 
 
 interface ShareModalListProps {
@@ -201,30 +202,31 @@ export function ShareModalList({
                 <div className="flex items-center gap-1 shrink-0">
                   {isOwner ? (
                     <>
-                      <NativeSelect unstyled aria-label="Share permission"
+                      <CustomSelect
+                        ariaLabel="Share permission"
                         value={share.permission}
-                        onChange={(e) =>
+                        onChange={nextValue =>
                           void handleUpdateSharePermission(
                             share.shareWithEmail,
-                            e.target.value as SharePermission,
+                            nextValue as SharePermission,
                           )
                         }
-                        className="bg-transparent hover:bg-background border-0 rounded-lg py-1 px-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground outline-hidden transition-all cursor-pointer"
+                        triggerClassName="bg-transparent hover:bg-background border-0 rounded-lg py-1 px-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground outline-hidden transition-all cursor-pointer"
                       >
                         {Object.values(SharePermission).map((value) => (
                           <option key={value} value={value}>
                             {permissionLabel(value)}
                           </option>
                         ))}
-                      </NativeSelect>
-                      <Button variant="unstyled" aria-label="Remove sharing access"
+                      </CustomSelect>
+                      <IconButton label="Remove sharing access" showTooltip={false} size="icon-sm" aria-label="Remove sharing access"
                         onClick={() =>
                           handleRemoveShare(share.id, share.shareWithEmail)
                         }
                         className="p-1.5 text-muted-foreground hover:text-destructive-content hover:bg-destructive-soft/50 rounded-control transition-colors cursor-pointer"
                       >
                         <Trash2 size={14} />
-                      </Button>
+                      </IconButton>
                     </>
                   ) : (
                     <span className="text-xs font-semibold text-muted-foreground bg-muted rounded-lg px-2.5 py-1 uppercase tracking-wide">

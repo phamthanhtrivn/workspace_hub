@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { formatTimeAgo } from "@/lib/date";
 import type { Notification } from "../../types/notification.types";
 import { getCalendarReminderTitle } from "../../utils/notification-display.utils";
-import { NotificationCategoryIcon } from "../notification-category-icon";
+import { NotificationListRow } from "../notification-list-row";
 import { Button } from "@/components/ui/button";
 
 
@@ -16,33 +16,7 @@ export function CalendarReminderListItemRenderer({
   notification: Notification;
   onClick: () => void;
 }) {
-  return (
-    <Button variant="unstyled"
-      type="button"
-      onClick={onClick}
-      className={`flex w-full cursor-pointer items-start gap-3 border-b border-border p-3 text-left transition last:border-0 hover:bg-info-soft/50 ${
-        notification.isRead ? "bg-card" : "bg-info-soft/60"
-      }`}
-    >
-      <NotificationCategoryIcon notification={notification} />
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-semibold text-foreground">
-            {getCalendarReminderTitle(notification)}
-          </span>
-          <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-            {formatTimeAgo(new Date(notification.createdAt))}
-          </span>
-        </span>
-        <span className="mt-0.5 block truncate text-xs font-semibold text-muted-foreground">
-          {notification.content}
-        </span>
-      </span>
-      {!notification.isRead && (
-        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
-      )}
-    </Button>
-  );
+  return <NotificationListRow notification={notification} onClick={onClick} title={getCalendarReminderTitle(notification)} description={notification.content} />;
 }
 
 export function CalendarReminderModalRenderer({
@@ -78,7 +52,7 @@ export function CalendarReminderModalRenderer({
       </div>
 
       {canOpenCalendar ? (
-        <Button variant="unstyled"
+        <Button variant="default"
           type="button"
           onClick={() => {
             onClose();
@@ -86,17 +60,17 @@ export function CalendarReminderModalRenderer({
             const sep = rawLink.includes("?") ? "&" : "?";
             router.push(`${rawLink}${sep}t=${Date.now()}`);
           }}
-          className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary"
+          className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-control text-sm font-semibold transition"
         >
           <CalendarClock className="h-4 w-4" />
           Open in Calendar
         </Button>
       ) : null}
 
-      <Button variant="unstyled"
+      <Button variant="ghost"
         type="button"
         onClick={onClose}
-        className="mt-3 w-full cursor-pointer rounded-control py-2 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-muted-foreground"
+        className="mt-3 w-full cursor-pointer rounded-control py-2 text-xs font-semibold transition"
       >
         Close
       </Button>

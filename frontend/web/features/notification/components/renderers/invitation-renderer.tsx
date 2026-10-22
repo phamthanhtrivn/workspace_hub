@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Notification,
@@ -15,13 +15,12 @@ import {
   XCircle,
 } from "lucide-react";
 import Image from "next/image";
-import { formatTimeAgo } from "@/lib/date";
 import {
   acceptInvitation,
   declineInvitation,
   getPendingInvitations,
 } from "@/features/chat/api/chat.api";
-import Swal from "sweetalert2";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppDispatch } from "@/store/store";
@@ -30,7 +29,7 @@ import {
   getNotificationApiErrorMessage,
   getSpaceInvitationInitials,
 } from "../../utils/notification-display.utils";
-import { NotificationCategoryIcon } from "../notification-category-icon";
+import { NotificationListRow } from "../notification-list-row";
 import { Button } from "@/components/ui/button";
 
 
@@ -70,42 +69,11 @@ export const InvitationListItemRenderer: React.FC<{
   const spaceName = metadata?.spaceName || metadata?.conversationName || "space";
 
   return (
-    <Button variant="unstyled"
-      type="button"
-      onClick={onClick}
-      className={`group flex w-full cursor-pointer gap-3 border-b border-border p-3 text-left transition last:border-0 hover:bg-info-soft/45 ${
-        !notification.isRead ? "bg-info-soft/60" : "bg-card"
-      }`}
-    >
-      <NotificationCategoryIcon notification={notification} />
-
-      <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center gap-2">
-          <span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info-content">
-            Space invite
-          </span>
-          <span className="text-xs font-semibold text-muted-foreground">
-            {formatTimeAgo(new Date(notification.createdAt))}
-          </span>
-        </div>
-
-        <p className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">
-          <span className="text-foreground">
-            {notification.senderName || "Someone"}
-          </span>{" "}
-          invited you to{" "}
-          <span className="text-info-content">{spaceName}</span>
-        </p>
-
-        <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-          {notification.content}
-        </p>
-      </div>
-
-      {!notification.isRead && (
-        <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-link" />
-      )}
-    </Button>
+    <NotificationListRow notification={notification} onClick={onClick}
+      badge={<span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info-content">Space invite</span>}
+      title={<>{notification.senderName || "Someone"} invited you to <span className="text-info-content">{spaceName}</span></>}
+      description={notification.content}
+    />
   );
 };
 
@@ -119,6 +87,8 @@ export const InvitationModalRenderer: React.FC<{
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"accept" | "decline" | null>(null);
+  const responseInFlight = useRef(false);
   const [isResponded, setIsResponded] = useState(false);
   const spaceName = metadata?.spaceName || metadata?.conversationName || "this space";
 
@@ -145,21 +115,8 @@ export const InvitationModalRenderer: React.FC<{
 
     const successText =
       action === "accept" ? "Invitation accepted successfully" : "Invitation declined";
-    const result = await Swal.fire({
-      title: action === "accept" ? "Join this space?" : "Decline invitation?",
-      text:
-        action === "accept"
-          ? `You will join ${spaceName} and see its chat channels.`
-          : `This invitation to ${spaceName} will be dismissed.`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: action === "accept" ? "var(--primary)" : "var(--destructive)",
-      cancelButtonColor: "var(--muted)",
-      confirmButtonText: action === "accept" ? "Join space" : "Decline",
-      cancelButtonText: "Cancel",
-    });
-
-    if (!result.isConfirmed) return;
+    if (responseInFlight.current) return;
+    responseInFlight.current = true;
 
     try {
       setIsProcessing(true);
@@ -175,6 +132,7 @@ export const InvitationModalRenderer: React.FC<{
 
       toast.success(successText);
       setIsResponded(true);
+      setPendingAction(null);
       onMarkAsRead(notification.id);
 
       if (action === "accept") {
@@ -186,6 +144,7 @@ export const InvitationModalRenderer: React.FC<{
     } catch (error) {
       toast.error(getNotificationApiErrorMessage(error, "Action failed"));
     } finally {
+      responseInFlight.current = false;
       setIsProcessing(false);
     }
   };
@@ -239,16 +198,16 @@ export const InvitationModalRenderer: React.FC<{
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="unstyled"
-              onClick={() => handleResponse("decline")}
+            <Button variant="outline"
+              onClick={() => setPendingAction("decline")}
               disabled={isProcessing}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-control border border-border bg-card px-4 text-sm font-semibold text-muted-foreground transition hover:border-border hover:bg-destructive-soft hover:text-destructive-content disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
               <XCircle size={16} />
               Decline
             </Button>
-            <Button variant="unstyled"
-              onClick={() => handleResponse("accept")}
+            <Button
+              onClick={() => setPendingAction("accept")}
               disabled={isProcessing}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
@@ -262,13 +221,27 @@ export const InvitationModalRenderer: React.FC<{
           </div>
         )}
 
-        <Button variant="unstyled"
+        <Button variant="ghost"
           onClick={onClose}
-          className="w-full rounded-control py-2 text-xs font-semibold text-muted-foreground transition hover:bg-background hover:text-muted-foreground cursor-pointer"
+          className="w-full rounded-control py-2 text-xs font-semibold transition cursor-pointer"
         >
           Close
         </Button>
       </div>
+      <AlertDialog open={Boolean(pendingAction)} onOpenChange={(open) => { if (!open && !isProcessing) setPendingAction(null); }} closeOnEscape={!isProcessing} closeOnOutsideClick={!isProcessing}>
+        <AlertDialogContent showCloseButton={!isProcessing}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{pendingAction === "accept" ? "Join this space?" : "Decline invitation?"}</AlertDialogTitle>
+            <AlertDialogDescription>{pendingAction === "accept" ? `You will join ${spaceName} and see its chat channels.` : `This invitation to ${spaceName} will be dismissed.`}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button type="button" variant="outline" disabled={isProcessing} onClick={() => setPendingAction(null)}>Cancel</Button>
+            <Button type="button" variant={pendingAction === "decline" ? "destructive" : "default"} disabled={isProcessing} onClick={() => { if (pendingAction) void handleResponse(pendingAction); }}>
+              {isProcessing ? "Saving…" : pendingAction === "accept" ? "Join space" : "Decline"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

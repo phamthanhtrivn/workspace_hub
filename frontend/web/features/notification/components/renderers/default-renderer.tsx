@@ -5,7 +5,7 @@ import { Notification } from "../../types/notification.types";
 import { Bell } from "lucide-react";
 import Image from "next/image";
 import { formatTimeAgo } from "@/lib/date";
-import { NotificationCategoryIcon } from "../notification-category-icon";
+import { NotificationListRow } from "../notification-list-row";
 import { Button } from "@/components/ui/button";
 
 
@@ -13,33 +13,7 @@ export const DefaultListItemRenderer: React.FC<{
   notification: Notification;
   onClick: () => void;
 }> = ({ notification, onClick }) => {
-  return (
-    <Button variant="unstyled" type="button"
-      onClick={onClick}
-      className={`flex items-start gap-3 p-3 hover:bg-background cursor-pointer transition border-b border-border last:border-0 ${!notification.isRead ? "bg-info-soft/50" : ""}`}
-    >
-      <NotificationCategoryIcon
-        notification={notification}
-        className="h-10 w-10"
-      />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-foreground line-clamp-2">
-          {notification.title}
-        </p>
-        {notification.content && (
-          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-            {notification.content}
-          </p>
-        )}
-        <p className="text-xs font-medium text-muted-foreground mt-1">
-          {formatTimeAgo(new Date(notification.createdAt))}
-        </p>
-      </div>
-      {!notification.isRead && (
-        <div className="w-2 h-2 rounded-full bg-link mt-1.5 flex-shrink-0"></div>
-      )}
-    </Button>
-  );
+  return <NotificationListRow notification={notification} onClick={onClick} title={notification.title} description={notification.content} />;
 };
 
 export const DefaultModalRenderer: React.FC<{
@@ -72,9 +46,9 @@ export const DefaultModalRenderer: React.FC<{
         {notification.content}
       </div>
       <div className="flex justify-end">
-        <Button variant="unstyled"
+        <Button variant="secondary"
           onClick={onClose}
-          className="px-4 py-2 bg-muted hover:bg-accent text-foreground rounded-control text-sm font-semibold transition cursor-pointer"
+          className="px-4 py-2 rounded-control text-sm font-semibold transition cursor-pointer"
         >
           Close
         </Button>
