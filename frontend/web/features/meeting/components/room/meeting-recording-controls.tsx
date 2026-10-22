@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Circle, Square } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Circle, Square, Pause, Play, Hand } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,11 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { useAppSelector } from "@/store/store";
 import { useMeetingRecording } from "../../hooks/useMeetingRecording";
-import type { RecordingLayout } from "../../types/meeting-recording.types";
+import { useMeetingTabCapture } from "../../hooks/useMeetingTabCapture";
 import { MeetingRoomControlButton } from "../common/meeting-room-control-button";
 import { MeetingButton } from "../ui/meeting-form-controls";
-import { CustomSelect } from "@/components/ui/custom/custom-select";
-
+import { MeetingRecordingRequests } from "./meeting-recording-requests";
 
 export function MeetingRecordingControls({
   joinToken,
@@ -23,30 +23,71 @@ export function MeetingRecordingControls({
   joinToken: string;
   meetingId: string;
 }) {
-  const { query, start, stop } = useMeetingRecording(joinToken, meetingId);
+  const {
+    query,
+    start,
+    stop,
+    pause,
+    resume,
+    requestPermission,
+    answerPermissionRequest,
+  } = useMeetingRecording(joinToken, meetingId);
   const userId = useAppSelector((state) => state.auth.userId);
   const [dialog, setDialog] = useState<"start" | "stop" | null>(null);
-  const [layout, setLayout] = useState<RecordingLayout>("speaker");
   const state = query.data;
   const active = Boolean(state?.recording);
+  const [capturing, setCapturing] = useState(false);
+  const { capture, release } = useMeetingTabCapture(joinToken, () => {
+    if (state?.recording && !state.recording.stopRequestedAt)
+      stop.mutate({ id: state.recording.id, key: crypto.randomUUID() });
+  });
+  useEffect(() => {
+    if (!active) void release();
+  }, [active, release]);
   const canStop = state?.capabilities.canStop;
+  const needsPermission = state?.needsRecordingPermission;
+  const requesting = state?.recordingRequest?.status === "PENDING";
   const disabled =
     query.isLoading ||
+    capturing ||
     query.isError ||
     start.isPending ||
     stop.isPending ||
-    !(active ? canStop : state?.capabilities.canStart);
-  const label = state?.recording?.stopRequestedAt
-    ? "Processing"
-    : active
-      ? "Stop recording"
-      : "Record";
+    pause.isPending ||
+    resume.isPending ||
+    (needsPermission
+      ? requestPermission.isPending ||
+        !state?.canRequestRecording ||
+        !state?.recordingAvailable
+      : !(active ? canStop : state?.capabilities.canStart));
+  const label = needsPermission
+    ? requesting
+      ? "Request pending"
+      : "Ask to record"
+    : state?.recording?.stopRequestedAt
+      ? "Processing"
+      : active
+        ? "Stop"
+        : "Record";
 
-  const submit = () => {
-    if (dialog === "start") start.mutate({ layout, key: crypto.randomUUID() });
-    else if (state?.recording)
+  const submit = async () => {
+    if (dialog === "start") {
+      setCapturing(true);
+      try {
+        const captureTrackSid = await capture();
+        await start.mutateAsync({ layout: "grid", captureTrackSid, key: crypto.randomUUID() });
+        setDialog(null);
+      } catch (error) {
+        await release();
+        if (error instanceof Error)
+          toast.error(error.name === "NotAllowedError"
+            ? "Tab recording was cancelled. Choose this Meeting tab to start."
+            : error.message);
+      } finally { setCapturing(false); }
+    } else if (state?.recording) {
       stop.mutate({ id: state.recording.id, key: crypto.randomUUID() });
-    setDialog(null);
+      setDialog(null);
+    }
   };
 
   return (
@@ -59,12 +100,58 @@ export function MeetingRecordingControls({
       >
         <MeetingRoomControlButton
           label={label}
-          icon={active ? Square : Circle}
-          active={active}
+          ariaLabel={
+            active && !state?.recording?.stopRequestedAt && !needsPermission
+              ? "Stop recording"
+              : label
+          }
+          icon={needsPermission ? Hand : active ? Square : Circle}
+          active={active && !needsPermission}
           disabled={disabled}
-          onClick={() => setDialog(active ? "stop" : "start")}
+          onClick={() => {
+            if (needsPermission) {
+              requestPermission.mutate();
+              return;
+            }
+            setDialog(active ? "stop" : "start");
+          }}
         />
       </span>
+      {state && (
+        <MeetingRecordingRequests
+          state={state}
+          saving={answerPermissionRequest.isPending}
+          onAnswer={(id, approve) =>
+            answerPermissionRequest.mutate({ id, approve })
+          }
+        />
+      )}
+      {active && state?.pauseAvailable && (
+        <MeetingRoomControlButton
+          label={
+            state.recording?.status === "PAUSED"
+              ? "Resume"
+              : state.recording?.status === "PAUSING"
+                ? "Pausing…"
+                : "Pause"
+          }
+          icon={state.recording?.status === "PAUSED" ? Play : Pause}
+          disabled={
+            pause.isPending ||
+            resume.isPending ||
+            !(state.capabilities.canPause || state.capabilities.canResume)
+          }
+          onClick={() => {
+            if (!state.recording) return;
+            const command = {
+              id: state.recording.id,
+              key: crypto.randomUUID(),
+            };
+            if (state.capabilities.canResume) resume.mutate(command);
+            else pause.mutate(command);
+          }}
+        />
+      )}
       <Dialog
         open={dialog !== null}
         onOpenChange={(open) => {
@@ -81,24 +168,8 @@ export function MeetingRecordingControls({
           <DialogDescription className="mt-3">
             {dialog === "stop"
               ? "The recording will be processed and saved. The meeting will continue."
-              : `Camera, shared screens and meeting audio will be recorded. Everyone will be notified. ${state?.ownerId === userId ? "You own the recording and can share it afterwards." : "The meeting creator owns the recording and can give you access afterwards."}`}
+              : `Choose this Meeting tab in the browser picker. The full application view, including shared content and open panels, will be recorded with meeting audio. Everyone will be notified. ${state?.ownerId === userId ? "You own the recording and can share it afterwards." : "The meeting creator owns the recording and can give you access afterwards."}`}
           </DialogDescription>
-          {dialog === "start" && (
-            <label className="mt-4 block text-sm">
-              Recording layout
-              <CustomSelect
-                ariaLabel="Recording layout"
-                value={layout}
-                onChange={nextValue =>
-                  setLayout(nextValue as RecordingLayout)
-                }
-                triggerClassName="mt-2 block h-10 w-full rounded-md border bg-background px-3"
-              >
-                <option value="speaker">Active speaker + shared screen</option>
-                <option value="grid">Gallery + shared screen</option>
-              </CustomSelect>
-            </label>
-          )}
           <div className="mt-6 flex justify-end gap-2">
             <MeetingButton tone="secondary" onClick={() => setDialog(null)}>
               Cancel
@@ -106,6 +177,7 @@ export function MeetingRecordingControls({
             <MeetingButton
               tone={dialog === "stop" ? "danger" : "primary"}
               onClick={submit}
+              disabled={capturing || start.isPending || stop.isPending}
             >
               {dialog === "stop" ? "Stop recording" : "Start recording"}
             </MeetingButton>

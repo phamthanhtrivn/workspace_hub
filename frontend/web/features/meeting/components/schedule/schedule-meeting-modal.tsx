@@ -224,6 +224,8 @@ function createDefaultScheduleValues(): ScheduleMeetingValues {
     hasExistingPassword: false,
     autoAdmit: false,
     chatEnabled: true,
+    autoRecord: false,
+    recordingLayout: "grid",
     screenShareEnabled: true,
   };
 }
@@ -253,6 +255,8 @@ function createScheduleValuesFromMeeting(
     hasExistingPassword: meeting.requiresPassword,
     autoAdmit: meeting.autoAdmit,
     chatEnabled: meeting.chatEnabled,
+    autoRecord: meeting.autoRecord ?? false,
+    recordingLayout: "grid",
     screenShareEnabled: meeting.screenShareEnabled,
   };
 }
@@ -387,6 +391,8 @@ export function ScheduleMeetingModal({
         password,
         autoAdmit: formValues.autoAdmit,
         chatEnabled: formValues.chatEnabled,
+        autoRecord: formValues.autoRecord,
+        recordingLayout: "grid" as const,
         screenShareEnabled: formValues.screenShareEnabled,
       };
 
@@ -649,6 +655,11 @@ export function ScheduleMeetingModal({
                     })
                   }
                 />
+                <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
+                  <input type="checkbox" checked={values.autoRecord}
+                    onChange={(event) => form.setValue("autoRecord", event.target.checked, { shouldDirty: true })} />
+                  Automatically record when the host joins
+                </label>
               </div>
             ) : null}
           </section>

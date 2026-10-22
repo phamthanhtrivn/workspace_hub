@@ -23,35 +23,49 @@ export class ResourceAccessService {
       );
     }
 
-    await Promise.all(
-      uniqueDocumentIds.map((documentId) =>
-        this.assertAuthorized(
-          `${this.documentServiceUrl}/api/documents/${documentId}/access`,
-          { 'x-user-id': userId, 'x-user-email': userEmail },
-          CALENDAR_ERROR_MESSAGES.DOCUMENT_ACCESS_DENIED,
-        ),
-      ),
-    );
+    const key = process.env.CALENDAR_DOCUMENT_SERVICE_KEY?.trim();
+    if (!key || key.length < 32)
+      throw new ServiceUnavailableException(
+        'Calendar document credentials are not configured',
+      );
+    for (let offset = 0; offset < uniqueDocumentIds.length; offset += 50) {
+      await this.assertAuthorized(
+        `${this.documentServiceUrl}/internal/document-access/resolve`,
+        {
+          userId,
+          userEmail,
+          documentIds: uniqueDocumentIds.slice(offset, offset + 50),
+        },
+        key,
+      );
+    }
   }
 
   private async assertAuthorized(
     url: string,
-    headers: Record<string, string>,
-    forbiddenMessage: string,
+    body: { userId: string; userEmail: string; documentIds: string[] },
+    key: string,
   ) {
     let response: globalThis.Response;
     try {
       response = await fetch(url, {
-        method: 'GET',
-        headers,
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-internal-service-key': key,
+        },
+        body: JSON.stringify(body),
         signal: AbortSignal.timeout(5000),
+        redirect: 'error',
       });
     } catch {
       throw new ServiceUnavailableException('Dependent service unavailable');
     }
 
-    if ([401, 403, 404].includes(response.status)) {
-      throw new ForbiddenException(forbiddenMessage);
+    if ([403, 404].includes(response.status)) {
+      throw new ForbiddenException(
+        CALENDAR_ERROR_MESSAGES.DOCUMENT_ACCESS_DENIED,
+      );
     }
     if (!response.ok) {
       throw new ServiceUnavailableException('Dependent service unavailable');

@@ -9,7 +9,7 @@ import type { RecordingQuery } from "../types/meeting-recording.types";
 import {
   recordingErrorMessage,
   recordingErrorIsPermanent,
-} from "./useMeetingRecording";
+} from "../utils/recording-errors";
 import { useRecordingEvents } from "./useRecordingEvents";
 
 export function useMeetingRecordings(params: RecordingQuery) {
@@ -29,7 +29,7 @@ export function useMeetingRecordings(params: RecordingQuery) {
       if (query.state.error) return 30_000;
       if (
         query.state.data?.items.some((item) =>
-          ["STARTING", "PROCESSING"].includes(item.status),
+          ["STARTING", "PAUSING", "PROCESSING"].includes(item.status),
         )
       )
         return 5000;

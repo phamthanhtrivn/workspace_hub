@@ -43,6 +43,8 @@ services:
     shm_size: 1gb
     mem_limit: 4g
     cpus: 4
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./config/egress.yaml:/etc/egress.yaml:ro
       - recording_backup:/backup

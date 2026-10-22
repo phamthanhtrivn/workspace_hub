@@ -7,6 +7,8 @@ import type {
   RecordingPermission,
   RecordingQuery,
   RecordingRoomStatus,
+  RecordingSettings,
+  RecordingPermissionRequest,
 } from "../types/meeting-recording.types";
 
 const root = "/api/meetings";
@@ -14,14 +16,30 @@ const file = (id: string) => `${root}/recordings/${encodeURIComponent(id)}`;
 const room = (token: string) => `${root}/${encodeURIComponent(token)}`;
 
 export const recordingApi = {
+  requestPermission: async (token: string) =>
+    normalizeApiResponse<RecordingPermissionRequest>(
+      (await api.post(`${room(token)}/recordings/permission-requests`)).data,
+    ).data,
+  answerPermissionRequest: async (
+    token: string,
+    requestId: string,
+    approve: boolean,
+  ) =>
+    api.patch(
+      `${room(token)}/recordings/permission-requests/${encodeURIComponent(requestId)}`,
+      { approve },
+    ),
   status: async (token: string) =>
     normalizeApiResponse<RecordingRoomStatus>(
       (await api.get(`${room(token)}/recordings/status`)).data,
     ).data,
-  start: async (token: string, layout: RecordingLayout, key: string) =>
+  capturePermission: (token: string, enabled: boolean) => enabled
+    ? api.post(`${room(token)}/recordings/capture-permission`)
+    : api.delete(`${room(token)}/recordings/capture-permission`),
+  start: async (token: string, layout: RecordingLayout, key: string, captureTrackSid?: string) =>
     api.post(
       `${room(token)}/recordings`,
-      { layout },
+      { layout, ...(captureTrackSid ? { captureTrackSid } : {}) },
       { headers: { "Idempotency-Key": key } },
     ),
   stop: async (token: string, id: string, key: string) =>
@@ -30,6 +48,20 @@ export const recordingApi = {
       {},
       { headers: { "Idempotency-Key": key } },
     ),
+  pause: async (token: string, id: string, key: string) =>
+    api.post(
+      `${room(token)}/recordings/${encodeURIComponent(id)}/pause`,
+      {},
+      { headers: { "Idempotency-Key": key } },
+    ),
+  resume: async (token: string, id: string, key: string) =>
+    api.post(
+      `${room(token)}/recordings/${encodeURIComponent(id)}/resume`,
+      {},
+      { headers: { "Idempotency-Key": key } },
+    ),
+  configure: async (token: string, settings: RecordingSettings) =>
+    api.patch(`${room(token)}/recordings/settings`, settings),
   grant: async (token: string, userId: string, canRecord: boolean) =>
     api.patch(
       `${room(token)}/participants/${encodeURIComponent(userId)}/recording-permission`,

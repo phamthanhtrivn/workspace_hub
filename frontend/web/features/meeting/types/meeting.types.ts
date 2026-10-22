@@ -1,4 +1,5 @@
 import type { MeetingRoomReactionEmoji } from "./meeting.constants";
+import type { RecordingLayout } from "./meeting-recording.types";
 
 export enum MeetingFlowStep {
   DASHBOARD = "dashboard",
@@ -39,6 +40,8 @@ export interface MeetingDeviceOption {
 }
 
 export interface MeetingPreJoinSettings {
+  autoRecord?: boolean;
+  recordingLayout?: RecordingLayout;
   cameraEnabled: boolean;
   microphoneEnabled: boolean;
   cameraDeviceId: string;
@@ -48,6 +51,8 @@ export interface MeetingPreJoinSettings {
 }
 
 export interface CreateInstantMeetingPayload {
+  autoRecord?: boolean;
+  recordingLayout?: RecordingLayout;
   password?: string;
   autoAdmit?: boolean;
   chatEnabled?: boolean;
@@ -355,6 +360,8 @@ export type MeetingHistoryResponse =
   MeetingPaginatedResponse<MeetingHistoryItem>;
 
 export interface ScheduledMeetingPayload {
+  autoRecord?: boolean;
+  recordingLayout?: RecordingLayout;
   title: string;
   scheduledStartAt: string;
   scheduledEndAt: string;
@@ -370,6 +377,8 @@ export interface ScheduledMeetingPayload {
 export type UpdateScheduledMeetingPayload = Partial<ScheduledMeetingPayload>;
 
 export interface ScheduledMeetingResponse {
+  autoRecord: boolean;
+  recordingLayout: RecordingLayout;
   id: string;
   joinToken: string;
   title: string;
@@ -393,6 +402,8 @@ export interface ScheduledMeetingInvitationResponse {
 }
 
 export interface UpcomingMeetingItem {
+  autoRecord: boolean;
+  recordingLayout: RecordingLayout;
   id: string;
   joinToken: string;
   title: string;

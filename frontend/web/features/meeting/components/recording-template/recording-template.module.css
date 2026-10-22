@@ -1,0 +1,97 @@
+.room {
+  width: 100vw;
+  height: 100vh;
+  background: #101826;
+  color: #fff;
+  overflow: hidden;
+}
+:global(body):has(.room) :global(nextjs-portal) {
+  display: none;
+}
+.stage {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.appStage { padding: 0; }
+.appStage .tile { border-radius: 0; }
+.tile {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1d293b;
+  border-radius: 8px;
+}
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.screen {
+  background: #000;
+}
+.name {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 4px;
+  background: #101826db;
+  padding: 4px 8px;
+  font-size: 14px;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #334a68;
+  font-size: 26px;
+}
+.sidebar {
+  position: relative;
+  width: 22%;
+  display: grid;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 10px;
+}
+.gallery {
+  position: relative;
+  flex: 1;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.overflow {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 12px;
+  background: #101826e6;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #b8c5d8;
+  font-size: 24px;
+}

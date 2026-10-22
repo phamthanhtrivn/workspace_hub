@@ -30,6 +30,8 @@ export function useCreateInstantMeeting(options?: UseCreateInstantMeetingOptions
       createInstantMeeting({
         autoAdmit: settings.autoAdmin ?? true,
         chatEnabled: settings.chatEnabled ?? true,
+        autoRecord: settings.autoRecord ?? false,
+        recordingLayout: settings.recordingLayout ?? "speaker",
         title: settings.title,
         channelId: settings.channelId,
         conversationId: settings.conversationId,

@@ -5,7 +5,10 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  CopyObjectCommand,
 } from '@aws-sdk/client-s3';
+import { createWriteStream } from 'fs';
+import { pipeline } from 'stream/promises';
 import {
   RecordingMultipartUploader,
   RecordingUploadOptions,
@@ -59,6 +62,40 @@ export class S3Service {
       url: await getSignedUrl(this.s3Client, command, { expiresIn }),
       expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
     };
+  }
+
+  async copyRecording(source: string, target: string, signal?: AbortSignal) {
+    await this.s3Client.send(
+      new CopyObjectCommand({
+        Bucket: this.bucketName,
+        Key: target,
+        CopySource: `${this.bucketName}/${source.split('/').map(encodeURIComponent).join('/')}`,
+        ContentType: 'video/mp4',
+        MetadataDirective: 'REPLACE',
+      }),
+      { abortSignal: signal },
+    );
+  }
+
+  async downloadRecording(
+    key: string,
+    path: string,
+    expectedSize: bigint,
+    signal: AbortSignal,
+  ) {
+    const result = await this.s3Client.send(
+      new GetObjectCommand({ Bucket: this.bucketName, Key: key }),
+      { abortSignal: signal },
+    );
+    if (!result.Body) throw new Error('Recording segment body is missing');
+    const stream = result.Body.transformToWebStream();
+    if (BigInt(result.ContentLength ?? 0) !== expectedSize) {
+      await stream.cancel().catch(() => {});
+      throw new Error('Recording segment size mismatch');
+    }
+    await pipeline(stream, createWriteStream(path, { flags: 'wx' }), {
+      signal,
+    });
   }
 
   uploadRecordingBackup(

@@ -53,10 +53,7 @@ export class MeetingScheduleService {
     private readonly meetingRealtimeService: MeetingRealtimeService,
   ) {}
 
-  async createScheduledMeeting({
-    userId,
-    dto,
-  }: CreateScheduledMeetingParams) {
+  async createScheduledMeeting({ userId, dto }: CreateScheduledMeetingParams) {
     if (!userId) {
       throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
     }
@@ -93,6 +90,8 @@ export class MeetingScheduleService {
           passwordHash: hashMeetingPassword(dto.password),
           autoAdmit: dto.autoAdmit ?? false,
           chatEnabled: dto.chatEnabled ?? true,
+          autoRecord: dto.autoRecord ?? false,
+          recordingLayout: dto.recordingLayout ?? 'speaker',
           screenShareEnabled: dto.screenShareEnabled ?? true,
         },
       });
@@ -288,7 +287,9 @@ export class MeetingScheduleService {
         ? undefined
         : this.normalizeInviteeIds(meeting.hostId, dto.inviteeIds);
     const passwordHash =
-      dto.password === undefined ? undefined : hashMeetingPassword(dto.password);
+      dto.password === undefined
+        ? undefined
+        : hashMeetingPassword(dto.password);
 
     const updatedMeeting = await this.prisma.$transaction(async (tx) => {
       await tx.meeting.update({
@@ -304,6 +305,8 @@ export class MeetingScheduleService {
           passwordHash,
           autoAdmit: dto.autoAdmit,
           chatEnabled: dto.chatEnabled,
+          autoRecord: dto.autoRecord,
+          recordingLayout: dto.recordingLayout,
           screenShareEnabled: dto.screenShareEnabled,
         },
       });
@@ -335,8 +338,12 @@ export class MeetingScheduleService {
     });
 
     const nextUserIds = updatedMeeting.participants.map((p) => p.userId);
-    const addedUserIds = nextUserIds.filter((id) => !previousUserIds.includes(id));
-    const removedUserIds = previousUserIds.filter((id) => !nextUserIds.includes(id));
+    const addedUserIds = nextUserIds.filter(
+      (id) => !previousUserIds.includes(id),
+    );
+    const removedUserIds = previousUserIds.filter(
+      (id) => !nextUserIds.includes(id),
+    );
     const keptUserIds = nextUserIds.filter(
       (id) => previousUserIds.includes(id) && id !== meeting.hostId,
     );
@@ -354,7 +361,11 @@ export class MeetingScheduleService {
         this.meetingRealtimeService.emitUserEvent(
           removedId,
           MeetingEvent.PARTICIPANT_REMOVED,
-          { meetingId: meeting.id, joinToken: meeting.joinToken, userId: removedId },
+          {
+            meetingId: meeting.id,
+            joinToken: meeting.joinToken,
+            userId: removedId,
+          },
         );
       }
     }
@@ -367,19 +378,18 @@ export class MeetingScheduleService {
       );
     }
 
-    const titleChanged = Boolean(dto.title && dto.title.trim() !== meeting.title);
+    const titleChanged = Boolean(
+      dto.title && dto.title.trim() !== meeting.title,
+    );
     const timeChanged = Boolean(
       (dto.scheduledStartAt &&
         new Date(dto.scheduledStartAt).getTime() !==
           meeting.scheduledStartAt?.getTime()) ||
-        (dto.scheduledEndAt &&
-          new Date(dto.scheduledEndAt).getTime() !==
-            meeting.scheduledEndAt?.getTime()),
+      (dto.scheduledEndAt &&
+        new Date(dto.scheduledEndAt).getTime() !==
+          meeting.scheduledEndAt?.getTime()),
     );
-    const changes = [
-      titleChanged ? 'title' : '',
-      timeChanged ? 'time' : '',
-    ]
+    const changes = [titleChanged ? 'title' : '', timeChanged ? 'time' : '']
       .filter(Boolean)
       .join(' & ');
 
@@ -487,7 +497,9 @@ export class MeetingScheduleService {
       throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_CANCELLED);
     }
     if (meeting.status === MeetingStatus.ENDED) {
-      throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED);
+      throw new BadRequestException(
+        MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED,
+      );
     }
 
     const respondedAt = new Date();
@@ -702,8 +714,9 @@ export class MeetingScheduleService {
   }
 
   private async getPublisherProfile(userId: string) {
-    const profiles =
-      await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
+    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds(
+      [userId],
+    );
     const profile = profiles.get(userId);
 
     return {
@@ -724,6 +737,8 @@ export class MeetingScheduleService {
       scheduledEndAt: meeting.scheduledEndAt?.toISOString() ?? null,
       autoAdmit: meeting.autoAdmit,
       chatEnabled: meeting.chatEnabled,
+      autoRecord: meeting.autoRecord,
+      recordingLayout: meeting.recordingLayout,
       screenShareEnabled: meeting.screenShareEnabled,
       requiresPassword: Boolean(meeting.passwordHash),
       participants: meeting.participants.map((participant) =>
@@ -761,14 +776,17 @@ export class MeetingScheduleService {
       hostUserId: meeting.hostId,
       hostProfile: hostProfile ?? null,
       myParticipant:
-        enrichedParticipants.find((participant) => participant.userId === userId) ??
-        null,
+        enrichedParticipants.find(
+          (participant) => participant.userId === userId,
+        ) ?? null,
       participants: visibleParticipants.map((participant) =>
         this.meetingPresenterService.toMeetingParticipantListItem(participant),
       ),
       participantCount: visibleParticipants.length,
       autoAdmit: meeting.autoAdmit,
       chatEnabled: meeting.chatEnabled,
+      autoRecord: meeting.autoRecord,
+      recordingLayout: meeting.recordingLayout,
       screenShareEnabled: meeting.screenShareEnabled,
       requiresPassword: Boolean(meeting.passwordHash),
     };

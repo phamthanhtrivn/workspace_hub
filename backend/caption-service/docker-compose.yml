@@ -1,0 +1,33 @@
+services:
+  caption-service:
+    build:
+      context: .
+    image: wh_caption_service
+    container_name: wh_caption_service
+    profiles: [captions]
+    environment:
+      LIVEKIT_URL: ws://livekit:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      CAPTION_SERVICE_TOKEN: ${CAPTION_SERVICE_TOKEN:-}
+      CAPTION_MODEL: ${CAPTION_MODEL:-small}
+      CAPTION_LANGUAGE: vi
+      CAPTION_CHUNK_SECONDS: ${CAPTION_CHUNK_SECONDS:-0.25}
+      CAPTION_COALESCE_SECONDS: ${CAPTION_COALESCE_SECONDS:-1.0}
+      CAPTION_MAX_ROOMS: "2"
+      CAPTION_MAX_SPEAKERS: "4"
+      CAPTION_LEASE_SECONDS: "90"
+    volumes:
+      - caption_models:/models
+    mem_limit: 4g
+    cpus: 4
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8095/health')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 180s
+      retries: 20
+    networks: [wh_network]
+    restart: unless-stopped
+volumes:
+  caption_models:

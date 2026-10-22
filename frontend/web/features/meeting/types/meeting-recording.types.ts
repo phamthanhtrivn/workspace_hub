@@ -1,6 +1,18 @@
 export type RecordingStatus =
-  "STARTING" | "RECORDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "DELETED";
-export type RecordingLayout = "speaker" | "grid";
+  | "STARTING"
+  | "RECORDING"
+  | "PAUSING"
+  | "PAUSED"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "FAILED"
+  | "DELETED";
+export type RecordingLayout = "speaker" | "grid" | "screen";
+export type RecordingTemplateLayout = RecordingLayout | `app:TR_${string}`;
+export interface RecordingSettings {
+  autoRecord: boolean;
+  layout: RecordingLayout;
+}
 
 export interface MeetingRecording {
   id: string;
@@ -22,10 +34,17 @@ export interface MeetingRecording {
 }
 
 export interface RecordingRoomStatus {
+  needsRecordingPermission?: boolean;
+  canRequestRecording?: boolean;
+  recordingRequest?: RecordingPermissionRequest | null;
+  recordingRequests?: RecordingPermissionRequest[];
   meetingId: string;
   ownerId: string;
   recordingAvailable: boolean;
   unavailableReason: string | null;
+  settings: RecordingSettings;
+  pauseAvailable: boolean;
+  customLayoutsAvailable: boolean;
   recording: {
     id: string;
     status: RecordingStatus;
@@ -33,12 +52,26 @@ export interface RecordingRoomStatus {
     stoppedAt: string | null;
     stopRequestedAt: string | null;
     version: number;
+    layout: RecordingLayout;
+    recordedSeconds: number;
+    segmentStartedAt: string | null;
   } | null;
   capabilities: {
     canStart: boolean;
     canStop: boolean;
     canGrantRecord: boolean;
+    canPause: boolean;
+    canResume: boolean;
   };
+}
+
+export interface RecordingPermissionRequest {
+  id: string;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
+  requestedAt: string;
+  expiresAt: string;
+  userId?: string;
+  displayName?: string;
 }
 
 export interface RecordingPage {

@@ -8,7 +8,6 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
-import * as path from 'path';
 import { Readable } from 'stream';
 import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
 
@@ -18,16 +17,33 @@ export class S3Service {
   private readonly bucketName: string;
 
   async describeAiSource(key: string, withDownload: boolean) {
-    const object = await this.s3Client.send(new HeadObjectCommand({ Bucket: this.bucketName, Key: key }));
+    const object = await this.s3Client.send(
+      new HeadObjectCommand({ Bucket: this.bucketName, Key: key }),
+    );
     if (!object.ETag || object.ContentLength === undefined) {
-      throw new InternalServerErrorException('Document object metadata is incomplete');
+      throw new InternalServerErrorException(
+        'Document object metadata is incomplete',
+      );
     }
-    const downloadUrl = withDownload ? await getSignedUrl(this.s3Client, new GetObjectCommand({
-      Bucket: this.bucketName, Key: key, VersionId: object.VersionId, IfMatch: object.ETag,
-    }), { expiresIn: 120 }) : undefined;
-    return { etag: object.ETag, sizeBytes: object.ContentLength,
+    const downloadUrl = withDownload
+      ? await getSignedUrl(
+          this.s3Client,
+          new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: key,
+            VersionId: object.VersionId,
+            IfMatch: object.ETag,
+          }),
+          { expiresIn: 120 },
+        )
+      : undefined;
+    return {
+      etag: object.ETag,
+      sizeBytes: object.ContentLength,
       mimeType: object.ContentType ?? DOCUMENT_CONSTANTS.DEFAULT_MIME_TYPE,
-      objectVersionId: object.VersionId, downloadUrl };
+      objectVersionId: object.VersionId,
+      downloadUrl,
+    };
   }
 
   constructor() {
@@ -52,7 +68,6 @@ export class S3Service {
     folder = DOCUMENT_CONSTANTS.S3_FOLDER,
   ): Promise<{ presignedUrl: string; s3Key: string }> {
     try {
-      const extension = path.extname(fileName);
       const cleanFileName = fileName.replace(/\s+/g, '_');
       const uniqueFileName = `${uuidv4()}_${cleanFileName}`;
       const s3Key = `${folder}/${userId}/${uniqueFileName}`;
@@ -117,14 +132,22 @@ export class S3Service {
       .replace(/"/g, '\\"'); // Escape double quotes
   }
 
-  async generatePresignedDownloadUrl(s3Key: string, filename?: string): Promise<string> {
+  async generatePresignedDownloadUrl(
+    s3Key: string,
+    filename?: string,
+    expiresIn = 3600,
+    inline = false,
+  ): Promise<string> {
     try {
       let contentDisposition: string | undefined;
 
       if (filename) {
         const asciiFilename = this.getAsciiFilename(filename);
-        const encodedFilename = encodeURIComponent(filename).replace(/'/g, '%27');
-        contentDisposition = `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`;
+        const encodedFilename = encodeURIComponent(filename).replace(
+          /'/g,
+          '%27',
+        );
+        contentDisposition = `${inline ? 'inline' : 'attachment'}; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`;
       }
 
       const command = new GetObjectCommand({
@@ -136,7 +159,7 @@ export class S3Service {
       });
 
       return await getSignedUrl(this.s3Client, command, {
-        expiresIn: 3600, // 1 hour
+        expiresIn,
       });
     } catch (error) {
       console.error('Error generating presigned download URL:', error);

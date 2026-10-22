@@ -78,6 +78,8 @@ enum MeetingParticipantStatus {
 enum MeetingRecordingStatus {
   STARTING
   RECORDING
+  PAUSING
+  PAUSED
   PROCESSING
   COMPLETED
   FAILED
@@ -563,6 +565,8 @@ model Meeting {
   autoAdmit                Boolean                 @default(false) @map("auto_admit")
   chatEnabled              Boolean                 @default(true) @map("chat_enabled")
   screenShareEnabled       Boolean                 @default(true) @map("screen_share_enabled")
+  autoRecord               Boolean                 @default(false) @map("auto_record")
+  recordingLayout          String                  @default("speaker") @map("recording_layout")
   activeScreenShareUserId  String?                 @map("active_screen_share_user_id") @db.Uuid
   screenShareStartedAt     DateTime?               @map("screen_share_started_at")
   createdAt                DateTime                @default(now()) @map("created_at")
@@ -608,6 +612,9 @@ model MeetingParticipant {
   handRaisedAt      DateTime?                @map("hand_raised_at")
   canRecord         Boolean                  @default(false) @map("can_record")
   recordGrantedBy   String?                   @map("record_granted_by") @db.Uuid
+  recordingRequestId String?                  @unique @map("recording_request_id") @db.Uuid
+  recordingRequestedAt DateTime?              @map("recording_requested_at")
+  recordingRequestState String?               @map("recording_request_state")
   createdAt         DateTime                 @default(now()) @map("created_at")
   updatedAt         DateTime                 @updatedAt @map("updated_at")
 
@@ -616,6 +623,7 @@ model MeetingParticipant {
   @@unique([meetingId, userId])
   @@index([userId])
   @@index([meetingId, status])
+  @@index([meetingId, recordingRequestState, recordingRequestedAt], map: "meeting_participants_recording_requests_idx")
   @@map("meeting_participants")
 }
 
@@ -710,6 +718,12 @@ model MeetingRecording {
   ownerId         String                 @map("owner_id") @db.Uuid
   title           String                 @default("Meeting recording")
   layout          String                 @default("speaker")
+  segmentKey      String?                @map("segment_key")
+  segmentIndex    Int                    @default(0) @map("segment_index")
+  segmentStartedAt DateTime?             @map("segment_started_at")
+  segmentDurationSeconds Float?            @map("segment_duration_seconds")
+  pauseRequestedAt DateTime?             @map("pause_requested_at")
+  controlRequestedBy String?             @map("control_requested_by") @db.Uuid
   status          MeetingRecordingStatus
   livekitEgressId String?                @unique @map("livekit_egress_id")
   s3Key           String?                @map("s3_key")
@@ -731,11 +745,28 @@ model MeetingRecording {
   meeting         Meeting                @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   permissions     MeetingRecordingPermission[]
   jobs            MeetingRecordingJob[]
+  segments        MeetingRecordingSegment[]
 
   @@index([meetingId, startedAt])
   @@index([status])
   @@index([ownerId, requestedAt])
   @@map("meeting_recordings")
+}
+
+model MeetingRecordingSegment {
+  id              String @id @default(uuid()) @db.Uuid
+  recordingId     String @map("recording_id") @db.Uuid
+  index           Int
+  s3Key           String @unique @map("s3_key")
+  livekitEgressId  String @unique @map("livekit_egress_id")
+  sizeBytes       BigInt @map("size_bytes")
+  durationSeconds Float @map("duration_seconds")
+  startedAt       DateTime? @map("started_at")
+  stoppedAt       DateTime @map("stopped_at")
+  recording       MeetingRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
+
+  @@unique([recordingId, index])
+  @@map("meeting_recording_segments")
 }
 
 model MeetingRecordingPermission {
@@ -792,5 +823,6 @@ model MeetingEvent {
   meeting   Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
   @@index([meetingId, createdAt])
+  @@index([meetingId, actorId, type, createdAt], map: "meeting_events_recording_attendees_idx")
   @@map("meeting_events")
 }

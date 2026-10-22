@@ -1,6 +1,8 @@
 "use client";
 
 import { CalendarClock } from "lucide-react";
+import Link from "next/link";
+import { MEETING_ROUTES } from "../../types/meeting.constants";
 import { MeetingStatusTag } from "../common/meeting-status-tag";
 import type { MeetingHistoryItem } from "../../types/meeting.types";
 import { MeetingHistoryAvatarStack } from "./meeting-history-avatar-stack";
@@ -16,7 +18,14 @@ interface MeetingHistoryCardProps {
 
 export function MeetingHistoryCard({ meeting }: MeetingHistoryCardProps) {
   return (
-    <article className="flex min-w-0 flex-col overflow-hidden rounded-panel border border-border bg-card p-4 text-card-foreground">
+    <article className="relative flex min-w-0 flex-col overflow-hidden rounded-panel border border-border bg-card p-4 text-card-foreground">
+      {meeting.status === "LIVE" && (
+        <Link
+          href={MEETING_ROUTES.room(meeting.joinToken)}
+          aria-label={`Join ${getMeetingHistoryTitle(meeting)}`}
+          className="absolute inset-0 z-10 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+        />
+      )}
       <div className="flex items-center gap-3">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-control bg-secondary text-secondary-foreground">
           <CalendarClock className="h-5 w-5" aria-hidden />
@@ -35,7 +44,9 @@ export function MeetingHistoryCard({ meeting }: MeetingHistoryCardProps) {
             <p className="text-xs tabular-nums text-muted-foreground">
               {formatMeetingHistoryStartTime(meeting.startedAt)}
             </p>
-            <MeetingJoinTokenCopyButton joinToken={meeting.joinToken} />
+            <div className="relative z-20 w-fit">
+              <MeetingJoinTokenCopyButton joinToken={meeting.joinToken} />
+            </div>
           </div>
           <div className="shrink-0 pb-0.5">
             <MeetingHistoryAvatarStack

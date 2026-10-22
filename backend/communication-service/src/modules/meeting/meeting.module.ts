@@ -25,6 +25,11 @@ import { MeetingScreenShareService } from './services/meeting-screen-share.servi
 import { MeetingRecordingController } from './meeting-recording.controller';
 import { MeetingRecordingService } from './services/meeting-recording.service';
 import { MeetingRecordingWorker } from './services/meeting-recording.worker';
+import { MeetingRecordingMediaService } from './services/meeting-recording-media.service';
+import { MeetingRecordingSegmentsService } from './services/meeting-recording-segments.service';
+import { MeetingRecordingRequestsService } from './services/meeting-recording-requests.service';
+import { MeetingCaptionsController } from './meeting-captions.controller';
+import { MeetingCaptionsService } from './services/meeting-captions.service';
 
 @Module({
   imports: [
@@ -37,12 +42,17 @@ import { MeetingRecordingWorker } from './services/meeting-recording.worker';
     DirectMessagePermissionModule,
   ],
   controllers: [
+    MeetingCaptionsController,
     MeetingRecordingController,
     MeetingController,
     MeetingLiveKitWebhookController,
   ],
   providers: [
+    MeetingCaptionsService,
+    MeetingRecordingRequestsService,
     MeetingRecordingService,
+    MeetingRecordingMediaService,
+    MeetingRecordingSegmentsService,
     MeetingRecordingWorker,
     MeetingService,
     MeetingRoomService,

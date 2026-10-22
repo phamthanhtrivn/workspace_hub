@@ -66,7 +66,7 @@ graph TD
 - **Web Client:** \[Next.js\](file:///d:/HK1(2026-2027)/GraduationThesis/workspace_hub/frontend/web) (TypeScript, Tailwind CSS, App Router).
   - **Modules implemented:**
     - `(auth)`: Login, Signup, Forgot password, onboarding.
-    - `(workspace)`: Workspace dashboard, Project management, Task board, Shared documentation, Real-time chat, Pomodoro timers, Calendars, AI assistant.
+    - `(workspace)`: Workspace dashboard, Project management, Task board, Shared documentation, Real-time chat, Pomodoro timers, Calendars.
 - **Mobile Client:** \[mobile\](file:///d:/HK1(2026-2027)/GraduationThesis/workspace_hub/frontend/mobile) (Folder created, ready for development).
 
 ### 3. Backend Microservices
@@ -84,8 +84,7 @@ graph TD
 - **\[Notification Service\](file:///d:/HK1(2026-2027)/GraduationThesis/workspace_hub/backend/notification-service) (TypeScript, NestJS 11):**
   - Event-driven notification service that processes events from the system message broker to push real-time alerts.
   - _Tech stack:_ NestJS Microservices (Kafka), MongoDB (Mongoose).
-- **\[Document Service\](file:///d:/HK1(2026-2027)/GraduationThesis/workspace_hub/backend/document-service) & \[AI Service\](file:///d:/HK1(2026-2027)/GraduationThesis/workspace_hub/backend/ai-service):**
-  - Services planned to handle shared document collaboration and AI features (summarization, question-answering, flashcard generation, quiz maker).
+- **Document Service:** Shared document collaboration and storage.
 
 ---
 
@@ -144,7 +143,6 @@ workspace_hub/
 │   ├── communication-service/     # NestJS Real-time Chat Service
 │   ├── notification-service/      # NestJS Kafka Notification Service
 │   ├── document-service/          # [Planned] Shared Document Service
-│   └── ai-service/                # [Planned] AI Processing Service
 ├── frontend/                      # Client Interfaces
 │   ├── web/                       # Next.js Web App Front-end
 │   └── mobile/                    # [Planned] React Native/Flutter Mobile App
@@ -157,7 +155,7 @@ workspace_hub/
 
 ### Local setup
 
-Run frontend, backend services and AI API/worker on the host. Docker runs
+Run frontend, backend services on the host. Docker runs
 PostgreSQL, Redis, Kafka, Kong and LiveKit only:
 
 ```powershell

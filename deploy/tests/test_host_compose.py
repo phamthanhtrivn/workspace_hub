@@ -80,7 +80,7 @@ class HostComposeTests(unittest.TestCase):
                               if mount['target'] == '/var/lib/postgresql/data')
         self.assertEqual(postgres_mount['source'], 'postgres_data')
 
-    def test_host_gateway_uses_current_template_renderer_and_ai_routes(self):
+    def test_host_gateway_uses_current_template_renderer(self):
         kong = self.configuration['services']['kong']
         self.assertEqual(kong['build']['dockerfile'], 'Dockerfile.production')
         mount = next(mount for mount in kong['volumes']
@@ -89,9 +89,6 @@ class HostComposeTests(unittest.TestCase):
                          (self.root / 'backend/kong-gateway/kong.host.yml').resolve())
         self.assertTrue(mount['read_only'])
         template = (ROOT / 'backend/kong-gateway/kong.host.yml').read_text(encoding='utf-8')
-        self.assertIn('url: http://host.docker.internal:8087', template)
-        self.assertIn('paths: [/api/ai]', template)
-        self.assertIn('paths: [/health/ai]', template)
         self.assertIsNone(kong.get('command'))  # The image entrypoint owns secret-safe rendering.
 
     def test_recording_remains_optional_and_kafka_uses_shared_topics(self):

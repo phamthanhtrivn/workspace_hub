@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:screen-share": "node --test scripts/screen-share.test.mjs",
+    "test:captions": "node --test scripts/captions.test.mjs",
+    "test:auth": "node --test scripts/auth-refresh.test.mjs",
+    "test:ai-answer": "node --test scripts/answer-content.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -21,6 +25,7 @@
     "@hookform/resolvers": "^5.9.1",
     "@livekit/components-react": "^2.9.24",
     "@livekit/components-styles": "^1.2.0",
+    "@livekit/egress-sdk": "^0.2.1",
     "@radix-ui/react-checkbox": "^1.3.11",
     "@radix-ui/react-popover": "^1.1.23",
     "@radix-ui/react-select": "^2.3.7",
@@ -48,9 +53,11 @@
     "react-icons": "^5.7.0",
     "react-intersection-observer": "^10.0.3",
     "react-is": "19.2.4",
+    "react-markdown": "^10.1.0",
     "react-redux": "^9.3.0",
     "react-toastify": "^11.1.0",
     "recharts": "^3.10.1",
+    "remark-gfm": "^4.0.1",
     "rrule": "^2.8.1",
     "shadcn": "^4.11.0",
     "socket.io-client": "^4.8.3",
@@ -63,6 +70,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/file-saver": "^2.0.7",
+    "@types/hast": "^3.0.5",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

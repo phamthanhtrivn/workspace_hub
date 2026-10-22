@@ -1,0 +1,10 @@
+services:
+  caption-service:
+    build:
+      args:
+        ENABLE_CUDA: "1"
+    gpus: all
+    environment:
+      CAPTION_DEVICE: cuda
+      CAPTION_COMPUTE_TYPE: int8_float16
+      CAPTION_COALESCE_SECONDS: ${CAPTION_COALESCE_SECONDS:-0.5}

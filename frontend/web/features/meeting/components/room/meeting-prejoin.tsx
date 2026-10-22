@@ -15,6 +15,7 @@ import type {
   MeetingDeviceOption,
   MeetingPreJoinSettings,
 } from "../../types/meeting.types";
+import { NativeCheckbox } from "@/components/ui/checkbox";
 import { DialogSurface } from "@/components/ui/dialog";
 import { MeetingAutoAdmitToggle } from "../common/meeting-auto-admit-toggle";
 import { MeetingDeviceSelect } from "../common/meeting-device-select";
@@ -216,6 +217,12 @@ export function MeetingPreJoin({
                     updateSettings({ chatEnabled: checked })
                   }
                 />
+                <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
+                  <NativeCheckbox checked={settings.autoRecord ?? false}
+                    onChange={(event) => updateSettings({ autoRecord: event.target.checked })} />
+                  Automatically record this meeting
+                </label>
+                <p className="text-xs text-muted-foreground">Cloud recording starts when you connect. Everyone will be notified.</p>
               </div>
             ) : null}
 

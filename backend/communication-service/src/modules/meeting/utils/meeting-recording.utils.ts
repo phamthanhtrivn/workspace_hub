@@ -8,8 +8,22 @@ import {
 export const ACTIVE_RECORDING_STATUSES: MeetingRecordingStatus[] = [
   MeetingRecordingStatus.STARTING,
   MeetingRecordingStatus.RECORDING,
+  MeetingRecordingStatus.PAUSING,
+  MeetingRecordingStatus.PAUSED,
   MeetingRecordingStatus.PROCESSING,
 ];
+
+export const RECORDING_CAPACITY_STATUSES = ACTIVE_RECORDING_STATUSES.filter(
+  (status) => status !== MeetingRecordingStatus.PAUSED,
+);
+
+export function recordingSegmentKey(
+  meetingId: string,
+  recordingId: string,
+  index: number,
+) {
+  return `recordings/${meetingId}/${recordingId}/part-${index.toString().padStart(4, '0')}.mp4`;
+}
 
 export function recordingError(
   status: number,

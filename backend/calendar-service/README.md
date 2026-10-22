@@ -7,7 +7,7 @@ NestJS + Prisma service for WorkspaceHub calendars, events, attendees, recurring
 - Stores recurring events as queryable occurrences and supports `THIS`, `THIS_AND_FOLLOWING`, and `ALL` update/cancel scopes.
 - Dispatches due reminders to `calendar-reminder-events`; Notification Service delivers `ALERT`, `PUSH`, or `EMAIL`.
 - Enforces private/public visibility and returns per-user event permissions.
-- Verifies project and document access through their owning services.
+- Verifies document access through Document Service; project-task fields remain snapshots, not a live Project authorization integration.
 - Keeps read-only project-task presentation fields for a future integration, but does not currently consume Project events.
 - Validates date/UUID filters and paginates event range queries.
 - Owns Pomodoro preferences, completed sessions, daily statistics, and optional cross-device timer state.
@@ -44,6 +44,8 @@ npm run start:dev
 ```
 
 Calendar runs on the host at port 8086, backed by calendar_db. Kong forwards public calls. USER_SERVICE_URL and DOCUMENT_SERVICE_URL override localhost defaults in every environment. See [local setup](../../docs/local-development.md).
+
+Document attachments use `POST /internal/document-access/resolve` with the actor and up to 50 distinct document IDs per batch. Set a dedicated `CALENDAR_DOCUMENT_SERVICE_KEY` (at least 32 random characters) in both Calendar and Document Service. The receiver still checks resource permissions, archived state and file type. No public fallback, permission cache or automatic retry; missing/mismatched credentials fail closed with 503 at Calendar. From repository root, `node backend/scripts/configure-ai-security.mjs --apply` provisions existing local env files without changing legacy credentials. See `security.env.example`; restart both services after configuration changes.
 
 ## Kafka topics
 

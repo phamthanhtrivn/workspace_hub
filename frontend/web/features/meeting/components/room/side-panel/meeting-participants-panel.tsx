@@ -7,6 +7,7 @@ import { useMeetingParticipantsPanel } from "@/features/meeting/hooks/useMeeting
 import type { MeetingParticipantRole } from "@/features/meeting/types/meeting.types";
 import { MeetingInput } from "@/features/meeting/components/ui/meeting-form-controls";
 import { MeetingIconButton } from "@/features/meeting/components/ui/meeting-icon-button";
+import { MeetingRoomShareLink } from "./meeting-room-share-link";
 
 interface MeetingParticipantsPanelProps {
   joinToken: string;
@@ -124,6 +125,9 @@ export function MeetingParticipantsPanel({
             />
           </div>
         ) : null}
+        <div className="shrink-0">
+          <MeetingRoomShareLink joinToken={joinToken} />
+        </div>
       </div>
       <MeetingAlertDialog {...alertDialogProps} />
     </>

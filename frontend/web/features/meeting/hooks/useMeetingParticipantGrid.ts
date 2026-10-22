@@ -10,6 +10,7 @@ import {
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { cn } from "@/lib/utils";
+import { isCaptionWorker } from "../utils/meeting-captions";
 import { MeetingRoomPanel } from "../types/meeting.types";
 
 const participantPageSize = 16;
@@ -161,7 +162,13 @@ export function useMeetingParticipantGrid(
   );
   const sortedCameraTracks = useMemo(
     () =>
-      sortCameraTracks(cameraTracks, activeSpeakerRanks, pinnedParticipantId),
+      sortCameraTracks(
+        cameraTracks.filter(
+          (track) => !isCaptionWorker(track.participant.identity),
+        ),
+        activeSpeakerRanks,
+        pinnedParticipantId,
+      ),
     [cameraTracks, activeSpeakerRanks, pinnedParticipantId],
   );
   const activeScreenShareTrack =
@@ -216,7 +223,9 @@ export function useMeetingParticipantGrid(
     currentParticipantPage: safeParticipantPage,
     goToNextParticipantPage,
     goToPreviousParticipantPage,
-    participantCount: participants.length,
+    participantCount: participants.filter(
+      (participant) => !isCaptionWorker(participant.identity),
+    ).length,
     participantGridClassName,
     participantTileFrameClassName,
     activeScreenShareTrack,

@@ -8,6 +8,10 @@ for _, key in ipairs({'JWT_SECRET_KEY', 'FRONTEND_URL'}) do
   local quoted = require('cjson').encode(value)
   config = config:gsub('%$' .. key, function() return quoted end)
 end
+-- Missing AI configuration disables only the AI upstream proof, not other routes.
+config = config:gsub('%$AI_GATEWAY_KEY', function()
+  return require('cjson').encode(os.getenv('AI_GATEWAY_KEY') or 'disabled')
+end)
 local destination = assert(io.open('/tmp/kong.yml', 'w'))
 destination:write(config)
 destination:close()

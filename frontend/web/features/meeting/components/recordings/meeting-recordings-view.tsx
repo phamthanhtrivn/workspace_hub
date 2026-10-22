@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Download, Play, Radio, Share2, Trash2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { recordingApi } from "../../api/meeting-recording.api";
 import { useMeetingRecordings } from "../../hooks/useMeetingRecordings";
 import { useMeetingConfirmDialog } from "../../hooks/useMeetingConfirmDialog";
-import { recordingErrorMessage } from "../../hooks/useMeetingRecording";
+import { recordingErrorMessage } from "../../utils/recording-errors";
 import type {
   MeetingRecording,
   RecordingQuery,
@@ -22,12 +22,24 @@ import { MEETING_LIST_PAGE_SIZE } from "../../types/meeting.constants";
 
 
 export function MeetingRecordingsView() {
+  const [search, setSearch] = useState("");
   const [params, setParams] = useState<RecordingQuery>({
     page: 1,
     limit: MEETING_LIST_PAGE_SIZE,
     scope: "all",
   });
   const { query, remove, refresh } = useMeetingRecordings(params);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setParams((current) => current.search === search.trim() ? current : {
+        ...current, page: 1, search: search.trim(),
+      });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+  if (query.data && !query.isFetching && (params.page ?? 1) > query.data.totalPages) {
+    setParams((current) => ({ ...current, page: Math.max(1, query.data!.totalPages) }));
+  }
   const [watch, setWatch] = useState<MeetingRecording | null>(null);
   const [share, setShare] = useState<MeetingRecording | null>(null);
   const [rename, setRename] = useState<MeetingRecording | null>(null);
@@ -74,14 +86,8 @@ export function MeetingRecordingsView() {
         <MeetingInput
           aria-label="Search recordings"
           placeholder="Search recordings…"
-          value={params.search ?? ""}
-          onChange={(event) =>
-            setParams((current) => ({
-              ...current,
-              page: 1,
-              search: event.target.value,
-            }))
-          }
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
           className="max-w-sm bg-card"
         />
         <CustomSelect
@@ -136,6 +142,8 @@ export function MeetingRecordingsView() {
                     ? "Recording"
                     : recording.status === "STARTING"
                       ? "Starting"
+                      : recording.status === "PAUSING" ? "Pausing"
+                      : recording.status === "PAUSED" ? "Paused"
                       : recording.status === "PROCESSING"
                         ? "Processing"
                         : recording.status === "FAILED"
@@ -255,7 +263,7 @@ export function MeetingRecordingsView() {
       {share && (
         <MeetingRecordingShareDialog
           key={share.id}
-          recording={share}
+          recording={query.data?.items.find((item) => item.id === share.id) ?? share}
           onClose={() => setShare(null)}
         />
       )}

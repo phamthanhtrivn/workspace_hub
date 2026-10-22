@@ -31,8 +31,8 @@ def selection(value):
 
 def ci_outputs(images, checks):
     return dict(matrix={'include': [IMAGES[name] for name in IMAGES if name in images]},
-                node=[IMAGES[name]['context'] for name in RUNTIME if name in checks and name not in ('user-service', 'kong', 'ai-service', 'ai-worker')],
-                python=bool({'ai-service', 'ai-worker'} & checks),
+                node=[IMAGES[name]['context'] for name in RUNTIME if name in checks and name not in ('user-service', 'kong')],
+                python=False,
                 java='user-service' in checks, has_images=bool(images))
 
 

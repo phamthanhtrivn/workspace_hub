@@ -17,10 +17,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let errors: any = null;
+    let code: string | undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse: any = exception.getResponse();
+      if (
+        status === HttpStatus.CONFLICT &&
+        exceptionResponse?.code === 'DOCUMENT_NAME_CONFLICT'
+      )
+        code = 'DOCUMENT_NAME_CONFLICT';
 
       if (
         status === HttpStatus.BAD_REQUEST &&
@@ -55,6 +61,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message: message,
       data: null,
       errors: errors,
+      ...(code ? { code } : {}),
       timestamp: new Date().toISOString(),
     });
   }

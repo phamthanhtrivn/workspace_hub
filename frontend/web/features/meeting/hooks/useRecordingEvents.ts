@@ -58,6 +58,10 @@ export function useRecordingEvents(
     const roomEvents = [
       "meeting:recording_updated",
       "meeting:host_transferred",
+      "meeting:recording_request_updated",
+      "meeting:participant_left",
+      "meeting:participant_removed",
+      "meeting:ended",
     ];
     const userEvents = [
       "meeting:recording_ready",

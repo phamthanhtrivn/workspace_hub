@@ -11,18 +11,36 @@ import {
   MaxLength,
   Min,
   MinLength,
+  Matches,
 } from 'class-validator';
 import { MeetingRecordingStatus } from '@prisma/client';
 
 export class StartMeetingRecordingDto {
   @IsOptional()
-  @IsIn(['speaker', 'grid'])
-  layout?: 'speaker' | 'grid';
+  @IsIn(['speaker', 'grid', 'screen'])
+  layout?: 'speaker' | 'grid' | 'screen';
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^TR_[A-Za-z0-9]+$/)
+  @MaxLength(80)
+  captureTrackSid?: string;
+}
+
+export class RecordingSettingsDto extends StartMeetingRecordingDto {
+  @IsOptional()
+  @IsBoolean()
+  autoRecord?: boolean;
 }
 
 export class RecordingPermissionDto {
   @IsBoolean()
   canRecord: boolean;
+}
+
+export class RecordingRequestDecisionDto {
+  @IsBoolean()
+  approve: boolean;
 }
 
 export class ShareRecordingDto {

@@ -7,7 +7,7 @@ it needs neither a Git checkout nor application build tools.
 
 | Host | Runtime directory | Services |
 | --- | --- | --- |
-| APP | `/opt/workspacehub/app` | web, Kong, user, project, communication, document, calendar, notification, AI API/worker |
+| APP | `/opt/workspacehub/app` | web, Kong, user, project, communication, document, calendar, notification |
 | REALTIME | `/opt/workspacehub/realtime` | LiveKit, Egress |
 | INFRA | `/opt/workspacehub/infra` | PostgreSQL, Redis, Kafka, topic initializer |
 
@@ -22,10 +22,9 @@ Production retains image build/push, EC2 pull/run, migrations and rollback.
 
 ## Images and GitHub configuration
 
-Production publishes ten application repositories: `workspacehub-web`,
+Production publishes eight application repositories: `workspacehub-web`,
 `workspacehub-kong`, and `workspacehub-{user,project,communication,document,calendar,notification}-service`.
-`workspacehub-ai-service` and `workspacehub-ai-worker` provide document QA.
-Seven `workspacehub-<service>-migration` repositories contain migration tools.
+Six `workspacehub-<service>-migration` repositories contain migration tools.
 Each image uses `sha-<full Git commit SHA>` for its own last build. Unchanged images
 retain their previous tags, so one APP release can contain different SHA tags.
 Enable immutable SHA tags in Docker Hub;
@@ -179,7 +178,19 @@ or include them in a deployment bundle.
 Optional APP names: `AWS_CLOUDFRONT_URL`, `MAIL_FROM`, `MAIL_PORT` (587),
 `FRONTEND_PORT` (3000), `KONG_PORT` (8000). Match PostgreSQL credentials on APP/INFRA
 and LiveKit credentials on APP/REALTIME. Use a shared JWT secret of at least 32
-random characters. Internal credentials are shared by the services on APP.
+random characters. Legacy internal credentials remain shared by existing APP services.
+
+Before deploying the Calendar/Document security update, provision a **separate**
+`CALENDAR_DOCUMENT_SERVICE_KEY` of at least 32 random characters in the APP operator
+env. It is required by both Compose and runtime preflight; the old shared internal
+key is no longer accepted for Calendar document authorization. Document Service
+optionally accepts `CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS` during key rotation.
+Deploy the receiver and caller together (or update Document first, then Calendar).
+For Notebook AI, optional `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY` and
+`AI_DOCUMENT_SERVICE_KEY_PREVIOUS` are forwarded to Kong/Document; configure matching
+keys in the separate AI stack before enabling it. Do not reuse Calendar/legacy
+keys, publish internal endpoints, or copy local runtime secrets into Git. The new
+AI stack is not yet part of the production image/release catalog.
 Generate valid VAPID keys with your notification service's web-push dependency.
 Match backend Google client ID to the frontend build variable.
 

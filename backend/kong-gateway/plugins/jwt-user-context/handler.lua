@@ -28,6 +28,14 @@ function JwtUserContextHandler:access(config)
   kong.service.request.clear_header(config.header_user_role)
   kong.service.request.clear_header(config.header_user_name)
   kong.service.request.clear_header(config.header_user_avatar)
+  kong.service.request.clear_header("X-Workspace-Gateway-Key")
+
+  -- Never certify a decoded-only token if the official authentication plugin is missing.
+  local use_gateway_proof = type(config.gateway_service_key) == "string" and #config.gateway_service_key >= 32
+  if use_gateway_proof
+    and not kong.client.get_credential() then
+    return kong.response.exit(401, { message = "Unauthorized: Verified credentials required" })
+  end
 
   -- 2. Extract JWT from Authorization header
   local auth_header = kong.request.get_header("Authorization")
@@ -92,6 +100,9 @@ function JwtUserContextHandler:access(config)
   end
   if avatar_url then
     kong.service.request.set_header(config.header_user_avatar, tostring(avatar_url))
+  end
+  if use_gateway_proof then
+    kong.service.request.set_header("X-Workspace-Gateway-Key", config.gateway_service_key)
   end
 end
 

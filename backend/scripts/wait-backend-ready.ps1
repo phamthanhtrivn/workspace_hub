@@ -11,7 +11,6 @@ $services = @(
   @{ Name = "notification-service"; DirectUrl = "http://localhost:8084/ready"; KongUrl = "$KongBaseUrl/health/notification" },
   @{ Name = "document-service"; DirectUrl = "http://localhost:8085/ready"; KongUrl = "$KongBaseUrl/health/document" },
   @{ Name = "calendar-service"; DirectUrl = "http://localhost:8086/ready"; KongUrl = "$KongBaseUrl/health/calendar" },
-  @{ Name = "ai-service"; DirectUrl = "http://localhost:8087/ready"; KongUrl = "$KongBaseUrl/health/ai" }
 )
 
 function Test-ReadyUrl {

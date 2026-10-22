@@ -101,13 +101,26 @@ function redirectToLoginIfNeeded() {
   );
 }
 
+async function endSession() {
+  store.dispatch(clearCredentials());
+  try {
+    await axios.post(
+      `${api.defaults.baseURL}/api/auth/logout`,
+      {},
+      { withCredentials: true },
+    );
+  } catch (error) {
+    console.error("Lỗi xóa cookie:", error);
+  }
+  redirectToLoginIfNeeded();
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Only handle 401 errors and avoid infinite loop
-    if (error.response?.status !== 401 || originalRequest?._retry) {
+    if (error.response?.status !== 401 || !originalRequest) {
       logApiError(error);
       return Promise.reject(error);
     }
@@ -117,10 +130,21 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const hasAuthToken = Boolean(store.getState().auth.accessToken);
-    if (!hasAuthToken) {
+    if (originalRequest._retry) {
+      await endSession();
+      return Promise.reject(error);
+    }
+
+    const currentToken = store.getState().auth.accessToken;
+    if (!currentToken) {
       redirectToLoginIfNeeded();
       return Promise.reject(error);
+    }
+
+    originalRequest._retry = true;
+    if (originalRequest.headers.Authorization !== `Bearer ${currentToken}`) {
+      originalRequest.headers.Authorization = `Bearer ${currentToken}`;
+      return api(originalRequest);
     }
 
     if (isRefreshing) {
@@ -130,12 +154,12 @@ api.interceptors.response.use(
       }).then(() => {
         // After refresh completes, retry with new token
         const newToken = store.getState().auth.accessToken;
+        if (!newToken) return Promise.reject(error);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       });
     }
 
-    originalRequest._retry = true;
     isRefreshing = true;
 
     try {
@@ -164,19 +188,7 @@ api.interceptors.response.use(
       return api(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError);
-      store.dispatch(clearCredentials());
-
-      try {
-        await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`,
-          {},
-          { withCredentials: true },
-        );
-      } catch (e) {
-        console.error("Lỗi xóa cookie:", e);
-      }
-
-      redirectToLoginIfNeeded();
+      await endSession();
 
       return Promise.reject(refreshError);
     } finally {

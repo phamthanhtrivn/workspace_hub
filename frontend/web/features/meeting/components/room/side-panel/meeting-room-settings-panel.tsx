@@ -8,7 +8,6 @@ import {
 } from "../../common/meeting-auto-admit-toggle";
 import { MeetingParticipantChatToggle } from "../../common/meeting-participant-chat-toggle";
 import { MeetingScreenShareToggle } from "../../common/meeting-screen-share-toggle";
-import { MeetingRoomShareLink } from "./meeting-room-share-link";
 import { canManageMeetingAdmission } from "@/features/meeting/utils/meeting-room.utils";
 
 export function MeetingRoomSettingsPanel({
@@ -75,7 +74,6 @@ export function MeetingRoomSettingsPanel({
           />
         </div>
       )}
-      <MeetingRoomShareLink joinToken={joinToken} />
     </div>
   );
 }
