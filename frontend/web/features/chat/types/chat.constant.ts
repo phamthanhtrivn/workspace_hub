@@ -14,6 +14,8 @@ export const CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS = 300;
 export const SPACE_MEMBER_SEARCH_DEBOUNCE_MS = 300;
 export const CHANNEL_MEMBER_SEARCH_PAGE_SIZE = 500;
 export const SPACE_MEMBER_SEARCH_PAGE_SIZE = 500;
+export const DEFAULT_CHANNEL_NAME_LOCKED_MESSAGE =
+  "Default channels cannot be renamed.";
 
 // ─── Message Display Timing ────────────────────────────────────────────────
 

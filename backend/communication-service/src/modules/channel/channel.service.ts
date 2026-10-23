@@ -687,6 +687,12 @@ export class ChannelService {
       throw new ForbiddenException(CHANNEL_ERROR_MESSAGES.UPDATE_ACCESS_DENIED);
     }
 
+    if (channel.isDefault) {
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.DEFAULT_CHANNEL_RENAME_PREVENTED,
+      );
+    }
+
     if (!data.name || data.name.trim().length === 0) {
       throw new BadRequestException(
         CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,

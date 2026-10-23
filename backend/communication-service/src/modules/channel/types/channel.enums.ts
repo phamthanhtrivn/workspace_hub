@@ -11,6 +11,7 @@ export enum CHANNEL_ERROR_MESSAGES {
   NOT_MEMBER_OF_CHANNEL = 'You are not a member of this channel',
   NOT_MEMBER_OF_SPACE = 'You are not a member of this space',
   DEFAULT_CHANNEL_DELETE_PREVENTED = 'Default channels cannot be deleted',
+  DEFAULT_CHANNEL_RENAME_PREVENTED = 'Default channels cannot be renamed',
   DISBAND_ACCESS_DENIED = 'You are not allowed to disband this channel',
   UPDATE_ACCESS_DENIED = 'You are not allowed to update this channel',
   KICK_ACCESS_DENIED = 'You are not allowed to remove this member',

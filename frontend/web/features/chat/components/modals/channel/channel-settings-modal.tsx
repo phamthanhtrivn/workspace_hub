@@ -19,7 +19,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
 import { ChannelResponse } from "@/features/chat/types/chat.types";
 import { getSpaceDetails } from "@/features/chat/api/space.api";
-import { chatKeys } from "@/features/chat/types/chat.constant";
+import {
+  chatKeys,
+  DEFAULT_CHANNEL_NAME_LOCKED_MESSAGE,
+} from "@/features/chat/types/chat.constant";
 import {
   updateChannelInfo,
   updateChannelSettings,
@@ -69,7 +72,8 @@ export default function ChannelSettingsModal({
     (member) => member.userId === currentUserId,
   );
   const isSpaceAdmin = currentMember?.role === "ADMIN";
-  const canEditName = isSpaceAdmin || isChannelCreator || isOwner;
+  const canEditName =
+    !channel.isDefault && (isSpaceAdmin || isChannelCreator || isOwner);
   const canEditSettings = isSpaceAdmin || isOwner;
 
   useEffect(() => {
@@ -159,7 +163,9 @@ export default function ChannelSettingsModal({
                     {channelName}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Only channel creators or admins can edit channel settings.
+                    {channel.isDefault
+                      ? DEFAULT_CHANNEL_NAME_LOCKED_MESSAGE
+                      : "Only channel creators or admins can edit channel settings."}
                   </p>
                 </div>
               </div>
@@ -223,7 +229,7 @@ export default function ChannelSettingsModal({
           >
             Cancel
           </Button>
-          {canEditName && (
+          {(canEditName || canEditSettings) && (
             <Button loading={isSaving} variant="default"
               onClick={handleSave}
               disabled={isSaving}
