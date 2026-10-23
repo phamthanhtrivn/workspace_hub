@@ -9,6 +9,7 @@ import { SpaceRole } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
 import { UpdateChannelSettingDto } from './dto/update-channel-setting.dto';
+import { SPACE_ERROR_MESSAGES } from '../space/types/space.enums';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { getMediaUrl } from 'src/common/utils/file.util';
@@ -587,12 +588,17 @@ export class ChannelService {
     }
     const space = await this.prisma.space.findUnique({
       where: { id: channel.spaceId },
-      select: { createdBy: true },
+      select: { createdBy: true, projectId: true },
     });
     const isOwner = space?.createdBy === userId;
     const isAdmin = requester.role === SpaceRole.ADMIN;
     if (!space || (!isOwner && !isAdmin)) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.KICK_ACCESS_DENIED);
+    }
+    if (space.projectId) {
+      throw new BadRequestException(
+        SPACE_ERROR_MESSAGES.PROJECT_SPACE_MANAGED_BY_PROJECT,
+      );
     }
     if (memberId === space.createdBy) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.OWNER_KICK_DENIED);
@@ -806,12 +812,28 @@ export class ChannelService {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE);
     }
 
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { createdBy: true, projectId: true },
+    });
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+    if (space.projectId) {
+      throw new BadRequestException(
+        SPACE_ERROR_MESSAGES.PROJECT_SPACE_MANAGED_BY_PROJECT,
+      );
+    }
+    if (space.createdBy === userId) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.OWNER_CANNOT_LEAVE);
+    }
+
     if (spaceMember.role === SpaceRole.ADMIN) {
       const adminCount = await this.prisma.spaceMember.count({
         where: { spaceId, role: SpaceRole.ADMIN },
       });
       if (adminCount <= 1) {
-        throw new BadRequestException('Space must have at least one admin');
+        throw new BadRequestException(SPACE_ERROR_MESSAGES.LAST_ADMIN);
       }
     }
 

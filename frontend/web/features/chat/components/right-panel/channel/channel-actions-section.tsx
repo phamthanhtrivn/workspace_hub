@@ -19,6 +19,7 @@ import { getErrorMessage } from "../../../types/space-settings/space-settings.ty
 import ChatConfirmDialog from "@/features/chat/components/ui/chat-confirm-dialog";
 import { useChatConfirmDialog } from "@/features/chat/hooks/useChatConfirmDialog";
 import { Button } from "@/components/ui/button";
+import { canLeaveSpaceChannel } from "../../../utils/channel-membership-permissions";
 
 
 interface ChannelActionsSectionProps {
@@ -53,7 +54,11 @@ export default function ChannelActionsSection({
   const canDeleteChannel =
     !activeChannel.isDefault &&
     (isAdmin || (isCreator && allowMemberDeleteOwnChannel));
-  const canLeaveChannel = !activeChannel.isDefault || !isAdmin;
+  const canLeaveChannel = canLeaveSpaceChannel(
+    activeChannel,
+    currentUserId,
+    spaceDetail,
+  );
   const actionLabel = activeChannel.isDefault
     ? "Leave Space"
     : "Leave Channel";
@@ -112,6 +117,7 @@ export default function ChannelActionsSection({
   });
 
   const confirmLeaveChannel = async () => {
+    if (!canLeaveChannel) return;
     const confirmed = await confirmAction({
       title: `${actionLabel}?`,
       description: activeChannel.isDefault

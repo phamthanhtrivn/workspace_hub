@@ -86,6 +86,7 @@ import {
   updateChannelsCache,
 } from "../../utils/chat-cache";
 import { canMembersCreateChannels } from "../../utils/space-setting-utils";
+import { canLeaveSpaceChannel } from "../../utils/channel-membership-permissions";
 import FollowedThreadsModal, {
   fetchFollowedThreads,
 } from "./followed-threads-modal";
@@ -249,6 +250,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   });
 
   const handleLeaveChannel = async (channel: ChannelResponse) => {
+    const channelSpace =
+      spaceDetail?.id === channel.spaceId ? spaceDetail : activeSpace;
+    if (!canLeaveSpaceChannel(channel, currentUserId, channelSpace)) return;
     const isDefault = channel.isDefault;
     const actionLabel = isDefault ? "Leave space" : "Leave channel";
     const confirmed = await confirmAction({
@@ -918,11 +922,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 <LoadingState label="Loading channels..." className="text-xs text-muted-foreground italic px-3 py-1" />
               ) : joinedChannels.length > 0 ? (
                 joinedChannels.map((channel: ChannelResponse) => {
-                  const channelMember = channel.members?.find(
-                    (m) => m.userId === currentUserId,
-                  );
-                  const isChannelAdmin =
-                    channelMember?.role === SpaceRole.ADMIN;
                   const isCreator = channel.createdBy === currentUserId;
                   const allowMemberDeleteOwnChannel =
                     spaceDetail?.setting?.allowMemberDeleteOwnChannel ?? false;
@@ -932,7 +931,13 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                     (isActiveSpaceAdmin ||
                       (isCreator && allowMemberDeleteOwnChannel));
 
-                  const canLeave = !channel.isDefault || !isChannelAdmin;
+                  const channelSpace =
+                    spaceDetail?.id === channel.spaceId ? spaceDetail : activeSpace;
+                  const canLeave = canLeaveSpaceChannel(
+                    channel,
+                    currentUserId,
+                    channelSpace,
+                  );
 
                   return (
                     <ChannelItem
