@@ -285,7 +285,7 @@ export default function CreateProjectDialog({
             >
               Cancel
             </Button>
-            <Button
+            <Button loading={isSubmitting}
               type="submit"
               disabled={
                 !name.trim() ||

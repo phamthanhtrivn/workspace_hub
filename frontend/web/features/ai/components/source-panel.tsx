@@ -11,6 +11,9 @@ import { notebooksApi } from "../api/notebooks.api";
 import type { Source } from "../types";
 import { useSourceUpload } from "../hooks/use-source-upload";
 import { uploadError } from "../upload";
+import { LoadingState } from "@/components/ui/loading-state";
+import { Spinner } from "@/components/ui/spinner";
+import type { NotebookActionKey, NotebookActionRunner } from "../types";
 
 const states: Record<string, string> = {
   QUEUED: "Chờ xử lý",
@@ -25,7 +28,8 @@ type Props = {
   selected: string[];
   toggle: (id: string) => void;
   busy: boolean;
-  run: (action: () => Promise<unknown>) => void;
+  run: NotebookActionRunner;
+  pendingAction?: NotebookActionKey | null;
   refresh: () => Promise<unknown>;
 };
 
@@ -36,6 +40,7 @@ export function SourcePanel({
   toggle,
   busy,
   run,
+  pendingAction,
   refresh,
 }: Props) {
   const upload = useRef<HTMLInputElement>(null);
@@ -56,7 +61,7 @@ export function SourcePanel({
         </span>
       </header>
       <div className="grid gap-2">
-        <Button
+        <Button loading={uploading}
           variant="outline"
           disabled={sourceBusy || sources.length >= 5}
           onClick={() => upload.current?.click()}
@@ -133,7 +138,8 @@ export function SourcePanel({
               {source.status === "READY" ? ` · ${source.chunk_count} đoạn` : ""}
             </p>
             {source.status === "INDEXING" && (
-              <p role="status" className="mt-1 text-xs">
+              <p role="status" className="mt-1 flex items-center gap-2 text-xs">
+                <Spinner size={14} />
                 {source.progress < 40
                   ? "Đang đọc tài liệu và nhận diện chữ…"
                   : source.progress < 85
@@ -150,11 +156,12 @@ export function SourcePanel({
             <div className="mt-2 flex gap-2">
               {source.status === "FAILED" && (
                 <Button
+                  loading={pendingAction === `retry:${source.id}`}
                   size="sm"
                   variant="outline"
                   disabled={sourceBusy}
                   onClick={() =>
-                    run(() => notebooksApi.source(id, source.id, "retry"))
+                    run(() => notebooksApi.source(id, source.id, "retry"), `retry:${source.id}`)
                   }
                 >
                   Thử lại
@@ -162,22 +169,24 @@ export function SourcePanel({
               )}
               {source.status === "READY" && (
                 <Button
+                  loading={pendingAction === `retry:${source.id}`}
                   size="sm"
                   variant="ghost"
                   disabled={sourceBusy}
                   onClick={() =>
-                    run(() => notebooksApi.source(id, source.id, "retry"))
+                    run(() => notebooksApi.source(id, source.id, "retry"), `retry:${source.id}`)
                   }
                 >
                   Lập lại chỉ mục
                 </Button>
               )}
               <Button
+                loading={pendingAction === `remove:${source.id}`}
                 size="sm"
                 variant="ghost"
                 disabled={sourceBusy}
                 onClick={() =>
-                  run(() => notebooksApi.source(id, source.id, "remove"))
+                  run(() => notebooksApi.source(id, source.id, "remove"), `remove:${source.id}`)
                 }
               >
                 <X />
@@ -214,6 +223,7 @@ function DocumentPicker({
   const [search, setSearch] = useState("");
   const [term, setTerm] = useState("");
   const [pending, setPending] = useState(false);
+  const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const folderId = folders.at(-1);
   const query = useQuery({
@@ -240,6 +250,7 @@ function DocumentPicker({
   const add = async (documentId: string) => {
     if (pending || disabled) return;
     setPending(true);
+    setPendingDocumentId(documentId);
     onPending(true);
     setError("");
     try {
@@ -249,6 +260,7 @@ function DocumentPicker({
       setError(uploadError(cause));
     } finally {
       setPending(false);
+      setPendingDocumentId(null);
       onPending(false);
     }
   };
@@ -309,9 +321,7 @@ function DocumentPicker({
         </Button>
       )}
       {query.isPending && (
-        <p role="status" className="text-xs">
-          Đang tải…
-        </p>
+        <LoadingState label="Đang tải…" className="text-xs" />
       )}
       {query.isError && (
         <p role="alert" className="text-xs text-red-700">
@@ -347,6 +357,7 @@ function DocumentPicker({
               <Button
                 size="sm"
                 variant="outline"
+                loading={pending && pendingDocumentId === file.id}
                 disabled={
                   pending ||
                   disabled ||

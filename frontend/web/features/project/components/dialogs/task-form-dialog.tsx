@@ -206,7 +206,7 @@ export default function TaskFormDialog({
               >
                 Cancel
               </Button>
-              <Button
+              <Button loading={isSubmitting}
                 type="submit"
                 disabled={!title.trim() || isSubmitting}
                 className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"

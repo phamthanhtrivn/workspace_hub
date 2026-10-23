@@ -199,6 +199,7 @@ export default function ProjectMembersPanel({
                       size="icon"
                       onClick={() => handleRemoveMember(member)}
                       disabled={removeMemberMutation.isPending}
+                  loading={removeMemberMutation.isPending && removeMemberMutation.variables === member.userId}
                       className="h-8 w-8 cursor-pointer rounded-control text-muted-foreground opacity-0 transition hover:bg-destructive-soft hover:text-destructive-content group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 disabled:opacity-40"
                       aria-label={`Remove member ${member.displayName}`}
                       title="Remove member"

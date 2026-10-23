@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { taskActionErrorMessage } from "../hooks/use-pomodoro-task-actions";
 import type { PomodoroActiveTask, PomodoroStatus, PomodoroTaskAction } from "../types/pomodoro";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface PomodoroTaskActionsProps {
   task: PomodoroActiveTask;
@@ -36,11 +37,11 @@ export function PomodoroTaskActions({ task, timerStatus, disabled, onAction }: P
   return (
     <div className="mt-3 space-y-2 border-t border-border pt-3">
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void submitForReview()}>
+        <Button loading={pending} type="button" size="sm" variant="outline" disabled={busy} onClick={() => void submitForReview()}>
           {hasSession ? "Stop session & submit for review" : "Submit for review"}
         </Button>
       </div>
-      {pending && <p role="status" className="text-xs text-muted-foreground">Saving the session and updating the task...</p>}
+      {pending && <LoadingState label="Saving the session and updating the task..." className="text-xs text-muted-foreground" />}
       {error && <p role="alert" className="text-xs text-destructive-content">{error}</p>}
     </div>
   );

@@ -45,7 +45,7 @@ export default function DashboardQuickTaskDialog({ zone, onClose, onCreated }: {
           {error && <p role="alert" className="px-5 pb-4 text-sm text-destructive-content">{error}</p>}
           <DialogFooter className="flex-wrap">
             <Button type="button" variant="outline" disabled={isPending} onClick={close} className="min-h-11">Cancel</Button>
-            <Button type="submit" disabled={isPending} className="min-h-11"><Plus aria-hidden className="size-4" />{isPending ? "Creating…" : "Create task"}</Button>
+            <Button loading={isPending} type="submit" disabled={isPending} className="min-h-11"><Plus aria-hidden className="size-4" />{isPending ? "Creating…" : "Create task"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

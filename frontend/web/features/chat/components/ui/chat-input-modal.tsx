@@ -122,12 +122,12 @@ export function ChatInputModal({
             >
               {cancelLabel}
             </Button>
-            <Button
+            <Button loading={isLoading}
               type="submit"
               disabled={isLoading || !value.trim()}
               className="h-10 cursor-pointer rounded-control bg-primary hover:bg-primary-hover px-5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
             >
-              {isLoading ? "..." : confirmLabel}
+              {confirmLabel}
             </Button>
           </DialogFooter>
         </form>

@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import {
-  Loader2,
   Mic,
   MicOff,
   Video,
@@ -22,6 +21,7 @@ import { MeetingDeviceSelect } from "../common/meeting-device-select";
 import { MeetingParticipantChatToggle } from "../common/meeting-participant-chat-toggle";
 import { MeetingButton } from "../ui/meeting-form-controls";
 import { MeetingIconButton } from "../ui/meeting-icon-button";
+import { Spinner } from "@/components/ui/spinner";
 
 interface MeetingPreJoinProps {
   mode?: MeetingPreJoinMode;
@@ -107,7 +107,7 @@ export function MeetingPreJoin({
                 <div className="flex h-full min-h-[min(240px,40dvh)] flex-col items-center justify-center gap-4 bg-media-background px-6 text-center">
                   <span className="grid h-20 w-20 place-items-center rounded-full bg-media-surface text-media-foreground">
                     {isPreviewLoading ? (
-                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <Spinner size={32} tone="inherit" />
                     ) : settings.cameraEnabled ? (
                       <Video className="h-8 w-8" />
                     ) : (

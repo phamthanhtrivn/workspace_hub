@@ -5,7 +5,6 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 import { useCallback, useMemo, useState } from "react";
 
 import {
-  Loader2,
   MessageSquare,
   MessageSquareText,
   Search,
@@ -34,6 +33,7 @@ import ThreadSnippetPreview, {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DialogSurface } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 
 
 const EMPTY_THREADS: FollowedThreadResponse[] = [];
@@ -182,8 +182,8 @@ export default function FollowedThreadsModal({
 
         <div className={`${dialogLayout.body} flex-1 min-h-0 overflow-y-auto p-3 bg-card`}>
           {isLoading ? (
-            <div className="h-48 flex flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Loader2 size={24} className="animate-spin text-info-content" />
+            <div role="status" className="h-48 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Spinner size={24} />
               <p className="text-sm font-medium">
                 Loading threads...
               </p>

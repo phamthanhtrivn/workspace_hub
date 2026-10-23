@@ -70,18 +70,18 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
 
   return (
     <div className="flex justify-between items-center gap-2 ">
-      <Button variant="unstyled"
+      <Button loading={socialLoginMutation.isPending} variant="unstyled"
         type="button"
         onClick={() => login()}
         disabled={socialLoginMutation.isPending}
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-5 text-sm font-bold text-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:bg-background active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer disabled:opacity-70"
       >
-        <Image
+        {!socialLoginMutation.isPending && <Image
           src="https://thesvg.org/icons/google/default.svg"
           alt="Google"
           width={20}
           height={20}
-        />
+        />}
         Google
       </Button>
     </div>

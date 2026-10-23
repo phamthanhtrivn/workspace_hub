@@ -108,6 +108,7 @@ export function MeetingRecordingControls({
           icon={needsPermission ? Hand : active ? Square : Circle}
           active={active && !needsPermission}
           disabled={disabled}
+          loading={capturing || start.isPending || stop.isPending || requestPermission.isPending}
           onClick={() => {
             if (needsPermission) {
               requestPermission.mutate();
@@ -121,6 +122,7 @@ export function MeetingRecordingControls({
         <MeetingRecordingRequests
           state={state}
           saving={answerPermissionRequest.isPending}
+          pendingAnswer={answerPermissionRequest.variables}
           onAnswer={(id, approve) =>
             answerPermissionRequest.mutate({ id, approve })
           }
@@ -136,6 +138,7 @@ export function MeetingRecordingControls({
                 : "Pause"
           }
           icon={state.recording?.status === "PAUSED" ? Play : Pause}
+          loading={pause.isPending || resume.isPending}
           disabled={
             pause.isPending ||
             resume.isPending ||
@@ -174,7 +177,7 @@ export function MeetingRecordingControls({
             <MeetingButton tone="secondary" onClick={() => setDialog(null)}>
               Cancel
             </MeetingButton>
-            <MeetingButton
+            <MeetingButton loading={capturing || start.isPending || stop.isPending}
               tone={dialog === "stop" ? "danger" : "primary"}
               onClick={submit}
               disabled={capturing || start.isPending || stop.isPending}

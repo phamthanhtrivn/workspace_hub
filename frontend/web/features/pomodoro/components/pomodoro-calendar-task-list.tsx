@@ -131,7 +131,7 @@ export function PomodoroCalendarTaskList({
             >
               Cancel
             </Button>
-            <Button variant="ghost"
+            <Button loading={isDeleting} variant="ghost"
               type="button"
               disabled={isDeleting || isSaving}
               onClick={() => void handleDelete()}

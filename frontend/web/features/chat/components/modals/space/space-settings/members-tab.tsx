@@ -9,6 +9,7 @@ import {
 } from "@/features/chat/types/chat.types";
 import { getSpaceMemberName } from "@/features/chat/types/space-settings/space-settings.types";
 import { Input } from "@/components/ui/input";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface MembersTabProps {
@@ -60,9 +61,7 @@ export function MembersTab({
 
       <div className="space-y-1">
         {isLoading ? (
-          <div className="py-8 text-center text-xs text-muted-foreground">
-            Loading members...
-          </div>
+          <LoadingState label="Loading members..." layout="centered" className="py-8 text-center text-xs text-muted-foreground" />
         ) : members.length === 0 ? (
           <div className="py-8 text-center text-xs text-muted-foreground">
             No members found

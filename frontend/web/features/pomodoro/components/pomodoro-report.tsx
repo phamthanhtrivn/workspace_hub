@@ -1,6 +1,6 @@
 "use client";
 import { useId, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ import {
   buildPomodoroReport, formatReportRange, getPomodoroReportDays,
 } from "../utils/pomodoro-report";
 import type { PomodoroSessionRecord } from "../types/pomodoro";
+import { Spinner } from "@/components/ui/spinner";
 
 const EMPTY_SESSIONS: PomodoroSessionRecord[] = [];
 
@@ -85,7 +86,7 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <p id={`${id}-hint`} className="text-xs leading-relaxed text-muted-foreground">{copy.rangeHint}</p>
           {query.isFetching && !query.isPending && !query.isError && <p role="status" className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Loader2 aria-hidden="true" className="size-3.5 animate-spin" />{copy.updating}
+            <Spinner size={14} />{copy.updating}
           </p>}
         </div>
         <p className="mt-2 text-xs font-medium text-foreground">{copy.appliedRange}: {formatReportRange(range)}</p>
@@ -96,7 +97,7 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
         <p role="status" className="mt-2 text-xs leading-relaxed text-muted-foreground">{selection.notice}</p>
         {query.validationError ? <p id={`${id}-error`} role="alert" className="mt-3 text-xs text-destructive-content">{query.validationError}</p>
           : query.isError ? <div role="alert" className="mt-3 text-xs text-destructive-content">{copy.loadFailed} <Button variant="link" type="button" onClick={() => void query.refetch()}>{copy.retry}</Button></div>
-          : query.isPending ? <p role="status" className="mt-4 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 aria-hidden="true" className="size-4 animate-spin" />{copy.loading}</p> : null}
+          : query.isPending ? <p role="status" className="mt-4 flex items-center gap-2 text-sm text-muted-foreground"><Spinner />{copy.loading}</p> : null}
         {ready && report && (
           <>
             <PomodoroReportSummary summary={report.summary} />

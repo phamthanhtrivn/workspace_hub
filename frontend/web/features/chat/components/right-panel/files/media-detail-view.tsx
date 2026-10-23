@@ -29,6 +29,7 @@ import MediaLightbox from "../../message/media-lightbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 const FILE_FILTERS = [
@@ -303,9 +304,7 @@ export default function MediaDetailView({
       <div className="flex-1 overflow-y-auto p-3">
         {isError && allItems.length > 0 && <QueryFeedback label="conversation files" error retrying={isFetching} onRetry={() => refetch()} />}
         {isError && allItems.length === 0 ? <QueryFeedback label="conversation files" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
-          <div className="text-center text-sm text-muted-foreground py-4">
-            Loading files...
-          </div>
+          <LoadingState label="Loading files..." layout="centered" className="text-center text-sm text-muted-foreground py-4" />
         ) : allItems.length === 0 ? (
           <div className="text-center text-sm text-muted-foreground py-4">
             No files available
@@ -366,9 +365,7 @@ export default function MediaDetailView({
               className="h-8 flex items-center justify-center"
             >
               {isFetchingNextPage && (
-                <span className="text-xs text-muted-foreground">
-                  Loading more...
-                </span>
+                <LoadingState label="Loading more..." className="text-xs text-muted-foreground" />
               )}
             </div>
           </div>

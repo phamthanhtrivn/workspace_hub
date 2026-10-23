@@ -8,6 +8,7 @@ import {
 import ChatMessage from "./chat-message";
 import TimeDivider from "./time-divider";
 import { RenderableChatMessage, MemberProfilesMap } from "./chat-message.types";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface MessageListProps {
   messages: RenderableChatMessage[];
@@ -85,9 +86,7 @@ export default function MessageList({
 }: MessageListProps) {
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-full text-muted-foreground">
-        Loading...
-      </div>
+      <LoadingState label="Loading..." layout="centered" className="flex justify-center items-center h-full text-muted-foreground" />
     );
   }
 
@@ -254,9 +253,7 @@ export default function MessageList({
         className="h-6 w-full flex justify-center items-center my-2"
       >
         {isFetchingNextPage && (
-          <span className="text-xs text-muted-foreground">
-            Loading more messages...
-          </span>
+          <LoadingState label="Loading more messages..." className="text-xs text-muted-foreground" />
         )}
       </div>,
     );
@@ -269,9 +266,7 @@ export default function MessageList({
         className="h-6 w-full flex justify-center items-center my-2 shrink-0"
       >
         {isFetchingPreviousPage && (
-          <span className="text-xs text-muted-foreground">
-            Loading new messages...
-          </span>
+          <LoadingState label="Loading new messages..." className="text-xs text-muted-foreground" />
         )}
       </div>,
     );

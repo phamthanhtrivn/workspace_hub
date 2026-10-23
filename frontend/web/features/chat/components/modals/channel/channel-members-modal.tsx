@@ -4,7 +4,7 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useEffect, useMemo, useState } from "react";
 
-import { Loader2, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import ChannelMembersList from "./channel-members-list";
@@ -12,6 +12,8 @@ import { useChannelMembersSearch } from "@/features/chat/hooks/useChannelMembers
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DialogSurface } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface ChannelMembersModalProps {
@@ -98,8 +100,8 @@ export default function ChannelMembersModal({
 
         <div className={`${dialogLayout.body} min-h-0 flex-1 overflow-y-auto bg-card px-4 py-4`}>
           {isLoading ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3 text-sm font-medium text-muted-foreground">
-              <Loader2 size={24} className="animate-spin text-info-content" />
+            <div role="status" className="flex h-full flex-col items-center justify-center gap-3 text-sm font-medium text-muted-foreground">
+              <Spinner size={24} />
               <span>Loading members...</span>
             </div>
           ) : isError ? (
@@ -122,9 +124,7 @@ export default function ChannelMembersModal({
         </div>
 
         {isFetching && !isLoading ? (
-          <div className="border-t border-border bg-card px-6 py-2 text-xs font-medium text-muted-foreground">
-            Loading members...
-          </div>
+          <LoadingState label="Loading members..." className="border-t border-border bg-card px-6 py-2 text-xs font-medium text-muted-foreground" />
         ) : null}
       </div>
     </div>}</DialogSurface>;

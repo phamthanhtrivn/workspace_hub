@@ -13,7 +13,7 @@ export function CalendarColorPopover({ value, label, pending = false, triggerCla
 }) {
   const [open, setOpen] = useState(false);
   return <Popover open={open} onOpenChange={setOpen}>
-    <PopoverTrigger asChild><Button type="button" variant="ghost" size="icon-sm" aria-label={label} disabled={pending} className={triggerClassName}>
+    <PopoverTrigger asChild><Button loading={pending} type="button" variant="ghost" size="icon-sm" aria-label={label} disabled={pending} className={triggerClassName}>
       <MoreVertical aria-hidden className="size-4" />
     </Button></PopoverTrigger>
     <PopoverContent align="end" className="max-w-[calc(100vw-1rem)] p-3" aria-label={label}>

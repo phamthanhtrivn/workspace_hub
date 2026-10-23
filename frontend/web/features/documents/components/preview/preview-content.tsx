@@ -13,10 +13,10 @@ import {
   Music,
   Image as ImageIcon,
   File as FileIcon,
-  Loader2,
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface PreviewContentProps {
@@ -44,11 +44,8 @@ export const PreviewContent = React.memo(function PreviewContent({
 }: PreviewContentProps) {
   if (isUrlLoading || (previewType === PreviewFileType.TEXT && loadingText)) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground py-20">
-        <Loader2
-          className="animate-spin text-info-content"
-          size={36}
-        />
+      <div role="status" className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground py-20">
+        <Spinner size={32} />
         <span className="text-sm font-semibold">
           Loading preview...
         </span>

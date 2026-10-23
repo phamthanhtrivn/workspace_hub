@@ -381,7 +381,7 @@ export function QuickCreateModal({
             >
               {copy.cancel}
             </Button>
-            <Button
+            <Button loading={submitting}
               type="submit"
               disabled={submitting || formState.isSubmitting}
               className="h-9 cursor-pointer rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"

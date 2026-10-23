@@ -666,7 +666,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             />
             <div className="flex min-w-0 items-center justify-end py-2">
               {tab === "READ" && hasCategoryData ? (
-                <Button
+                <Button loading={deleteNotificationsMutation.isPending}
                   type="button"
                   variant="outline"
                   size="sm"

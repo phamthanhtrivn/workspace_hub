@@ -62,6 +62,7 @@ export default function TaskChatDialog({
           </div>
           {(onOpenTaskThread || onOpenTaskChannel) && (
             <Button variant="info-soft"
+              loading={isOpeningChannel}
               type="button"
               disabled={isOpeningChannel}
               onClick={handleChatClick}

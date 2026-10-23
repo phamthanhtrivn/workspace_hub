@@ -23,7 +23,7 @@ export function PomodoroSessionConfirmation({ action, busy, onCancel, onConfirm 
       </AlertDialogHeader>
       <AlertDialogFooter>
         <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>{copy.keep}</Button>
-        <Button type="button" disabled={busy} onClick={() => void onConfirm()}>{busy ? copy.savingAction : message.confirm}</Button>
+        <Button loading={busy} type="button" disabled={busy} onClick={() => void onConfirm()}>{busy ? copy.savingAction : message.confirm}</Button>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>;

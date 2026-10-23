@@ -136,7 +136,7 @@ export function ChatConfirmDialog({
           >
             {cancelLabel}
           </Button>
-          <Button variant="unstyled"
+          <Button loading={isLoading} variant="unstyled"
             type="button"
             disabled={isConfirmDisabled}
             onClick={onConfirm}
@@ -145,7 +145,7 @@ export function ChatConfirmDialog({
               confirmButtonClassByVariant[variant],
             )}
           >
-            {isLoading ? "..." : confirmLabel}
+            {confirmLabel}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

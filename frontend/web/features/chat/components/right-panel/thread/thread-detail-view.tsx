@@ -50,6 +50,7 @@ import MessageAvatar from "../../message/message-avatar";
 import { upsertMessageById } from "../../../utils/message-state-utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface ThreadDetailViewProps {
@@ -636,9 +637,7 @@ export default function ThreadDetailView({
         {/* Loading / Replies */}
         {threadQuery.isError && replies.length > 0 && <QueryFeedback label="thread replies" error retrying={threadQuery.isFetching} onRetry={() => threadQuery.refetch()} />}
         {threadQuery.isError && replies.length === 0 ? <QueryFeedback label="thread replies" error retrying={threadQuery.isFetching} onRetry={() => threadQuery.refetch()} /> : isLoading ? (
-          <div className="text-center text-xs text-muted-foreground py-4">
-            Loading comments...
-          </div>
+          <LoadingState label="Loading comments..." layout="centered" className="text-center text-xs text-muted-foreground py-4" />
         ) : (
           <div className="space-y-4">
             {replies.map((reply: any) => {

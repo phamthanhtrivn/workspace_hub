@@ -22,6 +22,7 @@ import type { ChannelResponse } from "@/features/chat/types/chat.types";
 import type { Task } from "@/features/project/types/project";
 import { useAppSelector } from "@/store/store";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface SelectTaskChannelDialogProps {
@@ -139,9 +140,7 @@ export default function SelectTaskChannelDialog({
                 </span>
               </div>
             ) : loadingChannels ? (
-              <div className="h-11 w-full rounded-panel border border-border bg-background px-3.5 flex items-center text-xs text-muted-foreground font-medium">
-                Loading your space channels...
-              </div>
+              <LoadingState label="Loading your space channels..." className="h-11 w-full rounded-panel border border-border bg-background px-3.5 flex items-center text-xs text-muted-foreground font-medium" />
             ) : channels.length === 0 ? (
               <div className="rounded-panel border border-border bg-warning-soft/80 p-3.5 text-xs text-warning-content font-medium flex flex-col gap-1">
                 <span className="font-semibold flex items-center gap-1.5 text-warning-content">
@@ -190,7 +189,7 @@ export default function SelectTaskChannelDialog({
             >
               Cancel
             </Button>
-            <Button variant="default"
+            <Button loading={isSubmitting} variant="default"
               type="submit"
               disabled={!spaceId || isSubmitting || loadingChannels || channels.length === 0}
               className="flex items-center gap-1.5 rounded-control px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"

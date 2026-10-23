@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -13,6 +14,15 @@ import { usePomodoroSessionActions } from "./pomodoro-session-provider";
 
 export function TaskFocusButton({ target, compact = false }: { target: PomodoroActiveTask; compact?: boolean }) {
   const { startFocus, activeTask, status, busy, isReady } = usePomodoroSessionActions();
+  const [starting, setStarting] = useState(false);
+  const focus = async () => {
+    setStarting(true);
+    try {
+      await startFocus(target);
+    } finally {
+      setStarting(false);
+    }
+  };
   const current = sameFocusTask(activeTask, target);
   const label = current && status === "RUNNING" ? "Focusing" : current && status === "PAUSED" ? "Resume focus" : "Start focus";
   const disabled = !isReady || busy || (current && status === "RUNNING");
@@ -21,15 +31,15 @@ export function TaskFocusButton({ target, compact = false }: { target: PomodoroA
       <Popover>
         <PopoverTrigger asChild><Button type="button" size="sm" variant="ghost" disabled={disabled} aria-label={`Focus actions: ${target.title}`} title={label} className="size-7 rounded-control p-1 text-info-content"><Timer className="size-3.5" /></Button></PopoverTrigger>
         <PopoverContent align="end" className="w-44 p-1">
-          <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => void startFocus(target)} className="w-full justify-start gap-2 text-xs"><Timer className="size-3.5" />{label}</Button>
+          <Button loading={starting} type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => void focus()} className="w-full justify-start gap-2 text-xs"><Timer className="size-3.5" />{label}</Button>
         </PopoverContent>
       </Popover>
     </span>
   );
   return (
     <span data-card-interactive="true" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
-      <Button type="button" size="sm" variant="outline" disabled={disabled}
-        title={label} aria-label={`${label}: ${target.title}`} onClick={(event) => { event.stopPropagation(); void startFocus(target); }}
+      <Button loading={starting} type="button" size="sm" variant="outline" disabled={disabled}
+        title={label} aria-label={`${label}: ${target.title}`} onClick={(event) => { event.stopPropagation(); void focus(); }}
         className="h-8 gap-1.5 rounded-control text-xs">
         <Timer className="size-3.5" />{label}
       </Button>

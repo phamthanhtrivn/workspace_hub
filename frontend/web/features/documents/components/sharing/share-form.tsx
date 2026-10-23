@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { Plus, Mail, Loader2 } from "lucide-react";
+import { Plus, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SharePermission } from "../../types/documents.enums";
@@ -12,6 +12,7 @@ import { ShareSuggestionsDropdown } from "./share-suggestions-dropdown";
 import { Combobox, ComboboxInput } from "@/components/ui/combobox";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface ShareModalFormProps {
@@ -166,10 +167,7 @@ export function ShareModalForm({
             onOpenChange={setShowSuggestions}
           >
           {isSearching ? (
-            <Loader2
-              size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground animate-spin"
-            />
+            <Spinner className="absolute left-3.5 top-1/2 -translate-y-1/2" />
           ) : (
             <Mail
               size={16}
@@ -206,13 +204,13 @@ export function ShareModalForm({
           <option value={SharePermission.VIEWER}>Can view</option>
           <option value={SharePermission.EDITOR}>Can edit</option>
         </CustomSelect>
-        <Button variant="default"
+        <Button aria-busy={addShareMutation.isPending || undefined} variant="default"
           type="submit"
           disabled={addShareMutation.isPending}
           className="flex items-center justify-center p-2.5 rounded-control transition-all disabled:opacity-50 cursor-pointer"
         >
           {addShareMutation.isPending ? (
-            <Loader2 size={16} className="animate-spin" />
+            <Spinner tone="inherit" />
           ) : (
             <Plus size={16} />
           )}

@@ -10,7 +10,6 @@ import {
   ChevronDown,
   Eye,
   EyeOff,
-  Loader2,
   Lock,
   Search,
   User,
@@ -55,6 +54,8 @@ import type {
   UpcomingMeetingItem,
 } from "../../types/meeting.types";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface MeetingTimeOption {
@@ -516,9 +517,7 @@ export function ScheduleMeetingModal({
             {inviteeQuery.trim() ? (
               <div className="max-h-44 overflow-y-auto rounded-lg border border-border">
                 {isFetching ? (
-                  <div className="px-3 py-3 text-sm font-semibold text-muted-foreground">
-                    Searching...
-                  </div>
+                  <LoadingState label="Searching..." className="px-3 py-3 text-sm font-semibold text-muted-foreground" />
                 ) : inviteeResults.length === 0 ? (
                   <div className="px-3 py-3 text-sm font-semibold text-muted-foreground">
                     No results
@@ -674,12 +673,12 @@ export function ScheduleMeetingModal({
           >
             Cancel
           </MeetingButton>
-          <MeetingButton
+          <MeetingButton aria-busy={isSubmitting || undefined}
             type="submit"
             disabled={isSubmitting}
             className="cursor-pointer"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {isSubmitting ? <Spinner tone="inherit" /> : null}
             {isEditing ? "Update" : "Schedule"}
           </MeetingButton>
         </DialogFooter>

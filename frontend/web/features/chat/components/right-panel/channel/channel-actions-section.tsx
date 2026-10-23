@@ -150,7 +150,7 @@ export default function ChannelActionsSection({
         {canDeleteChannel ? (
           <div className="flex flex-col gap-2">
             {canLeaveChannel && (
-              <Button variant="unstyled"
+              <Button loading={leaveMutation.isPending} variant="unstyled"
                 type="button"
                 onClick={confirmLeaveChannel}
                 disabled={leaveMutation.isPending || deleteMutation.isPending}
@@ -160,7 +160,7 @@ export default function ChannelActionsSection({
                 Leave Channel
               </Button>
             )}
-            <Button variant="destructive"
+            <Button loading={deleteMutation.isPending} variant="destructive"
               type="button"
               onClick={confirmDeleteChannel}
               disabled={deleteMutation.isPending || leaveMutation.isPending}
@@ -171,7 +171,7 @@ export default function ChannelActionsSection({
             </Button>
           </div>
         ) : (
-          <Button variant="unstyled"
+          <Button loading={leaveMutation.isPending} variant="unstyled"
             type="button"
             onClick={confirmLeaveChannel}
             disabled={leaveMutation.isPending}

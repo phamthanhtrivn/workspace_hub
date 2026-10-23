@@ -6,7 +6,7 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useState, useEffect } from "react";
 
-import { Search, X, Loader2, User } from "lucide-react";
+import { Search, X, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 import Image from "next/image";
@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DialogSurface } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface InviteSpaceMembersModalProps {
@@ -192,8 +193,8 @@ export default function InviteSpaceMembersModal({
           {/* Results List */}
           <div className="min-h-[120px] max-h-[200px] overflow-y-auto flex flex-col gap-1 border border-border rounded-panel p-1">
             {loading ? (
-              <div className="flex justify-center items-center py-6 text-muted-foreground text-xs gap-1.5">
-                <Loader2 size={14} className="animate-spin text-info-content" />
+              <div role="status" className="flex justify-center items-center py-6 text-muted-foreground text-xs gap-1.5">
+                <Spinner size={14} />
                 Searching...
               </div>
             ) : results.length > 0 ? (
@@ -250,12 +251,12 @@ export default function InviteSpaceMembersModal({
           >
             Cancel
           </Button>
-          <Button variant="default"
+          <Button aria-busy={isInviting || undefined} variant="default"
             onClick={handleInvite}
             disabled={isInviting || selectedUsers.length === 0}
             className="px-5 py-2 text-sm font-medium disabled:bg-primary rounded-control transition flex items-center gap-1.5 cursor-pointer"
           >
-            {isInviting && <Loader2 size={16} className="animate-spin" />}
+            {isInviting && <Spinner tone="inherit" />}
             Send Invitation
           </Button>
         </div>

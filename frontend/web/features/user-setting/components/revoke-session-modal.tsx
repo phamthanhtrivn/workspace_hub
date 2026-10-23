@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Eye, EyeOff, Loader2, Lock } from "lucide-react";
+import { Eye, EyeOff, Lock } from "lucide-react";
 import InputField from "@/components/common/input-field";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { getUserSettingErrorMessage } from "../utils/user-setting-error";
+import { Spinner } from "@/components/ui/spinner";
 
 interface RevokeSessionModalProps {
   isOpen: boolean;
@@ -109,13 +110,13 @@ const RevokeSessionModal = React.memo(function RevokeSessionModal({
             >
               Cancel
             </Button>
-            <Button
+            <Button aria-busy={isSubmitting || undefined}
               type="submit"
               variant="destructive"
               disabled={isSubmitting || !password.trim()}
               className="flex items-center gap-2 rounded-control bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground hover:bg-destructive transition cursor-pointer disabled:opacity-50"
             >
-              {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isSubmitting && <Spinner tone="inherit" />}
               Confirm
             </Button>
           </div>

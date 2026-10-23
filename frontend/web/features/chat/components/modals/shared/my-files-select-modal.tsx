@@ -13,6 +13,7 @@ import { DocumentItemType } from "@/features/documents/types/documents.enums";
 import { formatFileSize } from "@/lib/format-file-size";
 import { Button } from "@/components/ui/button";
 import { DialogSurface } from "@/components/ui/dialog";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface MyFilesSelectModalProps {
@@ -201,13 +202,9 @@ export default function MyFilesSelectModal({
         {/* Content List Area */}
         <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-4 space-y-1.5 min-h-[220px]`}>
           {isLoading ? (
-            <div
-              className={`flex items-center justify-center h-full text-xs font-semibold ${
+            <LoadingState label="Loading files..." layout="centered" className={`flex items-center justify-center h-full text-xs font-semibold ${
                 isDarkTone ? "text-muted-foreground" : "text-muted-foreground"
-              }`}
-            >
-              Loading files...
-            </div>
+              }`} />
           ) : items.length === 0 ? (
             <div
               className={`flex flex-col items-center justify-center h-full text-xs font-semibold space-y-2 py-8 ${

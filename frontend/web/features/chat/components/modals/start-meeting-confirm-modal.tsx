@@ -4,9 +4,10 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React from "react";
 
-import { Video, Loader2 } from "lucide-react";
+import { Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DialogSurface } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface StartMeetingConfirmModalProps {
@@ -64,14 +65,14 @@ export function StartMeetingConfirmModal({
           >
             Cancel
           </Button>
-          <Button variant="default"
+          <Button aria-busy={isCreating || undefined} variant="default"
             type="button"
             disabled={isCreating}
             onClick={onConfirm}
             className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-control px-5 py-2.5 text-xs md:text-sm font-semibold active:bg-primary transition focus-visible:outline-none disabled:opacity-50"
           >
             {isCreating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner tone="inherit" />
             ) : (
               <Video className="h-4 w-4" />
             )}

@@ -6,7 +6,7 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
 
-import { X, Loader2, Search, Hash, Check, Globe, Trash2 } from "lucide-react";
+import { X, Search, Hash, Check, Globe, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import ChatConfirmDialog from "@/features/chat/components/ui/chat-confirm-dialog";
@@ -19,6 +19,7 @@ import { removeChannelFromCaches } from "@/features/chat/utils/chat-cache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DialogSurface } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface BrowseChannelsModalProps {
@@ -179,8 +180,8 @@ export default function BrowseChannelsModal({
         {/* Channel List */}
         <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-4 flex flex-col gap-2`}>
           {isLoading ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
-              <Loader2 className="animate-spin text-info-content" size={24} />
+            <div role="status" className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
+              <Spinner size={24} />
               <span className="text-xs">Loading channels...</span>
             </div>
           ) : filteredChannels.length > 0 ? (
@@ -221,14 +222,15 @@ export default function BrowseChannelsModal({
                         Joined
                       </span>
                     ) : (
-                      <Button variant="default"
+                      <Button aria-busy={joinMutation.isPending &&
+                        joinMutation.variables === channel.id || undefined} variant="default"
                         onClick={() => joinMutation.mutate(channel.id)}
                         disabled={joinMutation.isPending}
                         className="px-4 py-1.5 text-xs font-semibold disabled:bg-primary rounded-control transition cursor-pointer flex items-center gap-1"
                       >
                         {joinMutation.isPending &&
                         joinMutation.variables === channel.id ? (
-                          <Loader2 size={12} className="animate-spin" />
+                          <Spinner size={14} tone="inherit" />
                         ) : null}
                         Join
                       </Button>
@@ -237,7 +239,8 @@ export default function BrowseChannelsModal({
                       (channel.createdBy === currentUserId &&
                         allowMemberDeleteOwnChannel)) &&
                       !channel.isDefault && (
-                        <Button variant="unstyled"
+                        <Button aria-busy={deleteMutation.isPending &&
+                          deleteMutation.variables === channel.id || undefined} variant="unstyled"
                           type="button"
                           onClick={() => handleDeleteChannel(channel.id)}
                           disabled={deleteMutation.isPending}
@@ -246,7 +249,7 @@ export default function BrowseChannelsModal({
                         >
                           {deleteMutation.isPending &&
                           deleteMutation.variables === channel.id ? (
-                            <Loader2 size={13} className="animate-spin" />
+                            <Spinner size={14} />
                           ) : (
                             <Trash2 size={14} />
                           )}

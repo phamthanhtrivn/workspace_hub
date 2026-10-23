@@ -1,4 +1,5 @@
 "use client";
+import { Button } from "@/components/ui/button";
 
 import { useId, useState } from "react";
 import Image from "next/image";
@@ -170,14 +171,16 @@ function SourceImage({
           className="h-auto w-full rounded-md border bg-white"
         />
       ) : (
-        <button
+        <Button
+          loading={pending}
+          variant="unstyled"
           type="button"
           disabled={pending}
           onClick={load}
-          className="text-primary underline disabled:opacity-50"
+          className="inline-flex items-center gap-2 text-primary underline disabled:opacity-50"
         >
           {pending ? "Đang mở hình…" : "Xem hình trích xuất"}
-        </button>
+        </Button>
       )}
       {error && (
         <p role="alert" className="text-red-700">

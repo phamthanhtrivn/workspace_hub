@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import vm from "node:vm";
 import { createElement } from "react";
@@ -9,11 +9,13 @@ import ts from "typescript";
 
 const require = createRequire(import.meta.url);
 function loadComponent(name, mocks = {}, globals = {}) {
+  return loadSource(new URL(`../features/ai/components/${name}.tsx`, import.meta.url), mocks, globals);
+}
+function loadSource(url, mocks, globals, cache = new Map()) {
+  if (cache.has(url.href)) return cache.get(url.href);
   const exports = {};
-  const source = readFileSync(
-    new URL(`../features/ai/components/${name}.tsx`, import.meta.url),
-    "utf8",
-  );
+  cache.set(url.href, exports);
+  const source = readFileSync(url, "utf8");
   vm.runInNewContext(
     ts.transpileModule(source, {
       compilerOptions: {
@@ -22,7 +24,14 @@ function loadComponent(name, mocks = {}, globals = {}) {
         esModuleInterop: true,
       },
     }).outputText,
-    { exports, require: (name) => mocks[name] ?? require(name), ...globals },
+    { exports, require: (name) => {
+      if (Object.hasOwn(mocks, name)) return mocks[name];
+      if (!name.startsWith(".") && !name.startsWith("@/")) return require(name);
+      const base = name.startsWith("@/") ? new URL(`../${name.slice(2)}`, import.meta.url) : new URL(name, url);
+      const resolved = [base, ...[".tsx", ".ts"].map(extension => new URL(base.href + extension))].find(existsSync);
+      if (!resolved) throw new Error(`Cannot resolve ${name}`);
+      return loadSource(resolved, mocks, globals, cache);
+    }, ...globals },
   );
   return exports;
 }

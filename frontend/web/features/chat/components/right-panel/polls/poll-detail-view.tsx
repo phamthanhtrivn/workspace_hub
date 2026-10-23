@@ -1,11 +1,12 @@
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState, useEffect } from "react";
-import { ArrowLeft, BarChart2, Loader2, Search } from "lucide-react";
+import { ArrowLeft, BarChart2, Search } from "lucide-react";
 import ViewPollModal from "../../modals/message/view-poll-modal";
 import { usePolls } from "../../../hooks/usePolls";
 import { PollOptionResponse, PollResponse } from "../../../types/chat.types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface PollDetailViewProps {
@@ -71,9 +72,9 @@ export default function PollDetailView({
       <div className="flex-1 overflow-y-auto p-4">
         {isError && polls.length > 0 && <QueryFeedback label="polls" error retrying={retrying} onRetry={() => retry()} />}
           {isError && polls.length === 0 ? <QueryFeedback label="polls" error retrying={retrying} onRetry={() => retry()} /> : loading ? (
-          <div className="text-center py-4 flex justify-center">
-            <Loader2 className="animate-spin text-muted-foreground" size={24} />
-          </div>
+          <div role="status" className="text-center py-4 flex justify-center">
+            <Spinner size={24} />
+          <span className="sr-only">Loading…</span></div>
         ) : polls.length === 0 ? (
           <div className="text-center text-sm text-muted-foreground py-4">
             {searchQuery

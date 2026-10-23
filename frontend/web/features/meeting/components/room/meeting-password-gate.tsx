@@ -1,9 +1,10 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { KeyRound, Loader2, LockKeyhole } from "lucide-react";
+import { KeyRound, LockKeyhole } from "lucide-react";
 import { MeetingFullscreenPortal } from "./meeting-fullscreen-overlay";
 import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
+import { Spinner } from "@/components/ui/spinner";
 
 interface MeetingPasswordGateProps {
   meetingTitle?: string | null;
@@ -97,14 +98,14 @@ export function MeetingPasswordGate({
             >
               Back to meetings
             </MeetingButton>
-            <MeetingButton
+            <MeetingButton aria-busy={isSubmitting || undefined}
               type="submit"
               tone="secondary"
               controlSize="lg"
               disabled={isSubmitting}
               className="flex-1 bg-card font-semibold text-foreground hover:bg-muted"
             >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {isSubmitting ? <Spinner /> : null}
               Continue
             </MeetingButton>
           </div>

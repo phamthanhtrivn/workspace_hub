@@ -93,6 +93,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface ChatSidebarProps {
@@ -914,9 +915,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
               )}
             >
               {loadingChannels ? (
-                <div className="text-xs text-muted-foreground italic px-3 py-1">
-                  Loading channels...
-                </div>
+                <LoadingState label="Loading channels..." className="text-xs text-muted-foreground italic px-3 py-1" />
               ) : joinedChannels.length > 0 ? (
                 joinedChannels.map((channel: ChannelResponse) => {
                   const channelMember = channel.members?.find(

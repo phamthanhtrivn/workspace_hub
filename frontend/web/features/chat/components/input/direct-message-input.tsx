@@ -11,7 +11,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { FileText, Image as ImageIcon, Loader2, Mic, Paperclip, Send, Smile, Trash2, Type, Voicemail, X, UploadCloud, Folder } from "lucide-react";
+import { FileText, Image as ImageIcon, Mic, Paperclip, Send, Smile, Trash2, Type, Voicemail, X, UploadCloud, Folder } from "lucide-react";
 import { toast } from "sonner";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import EmojiPickerPopover from "./emoji-picker-popover";
@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/ui/spinner";
 
 
 export interface DirectMessageInputProps {
@@ -573,10 +574,7 @@ const DirectMessageInput = React.memo(
                       </span>
                     </div>
                     {media.status === "uploading" && (
-                      <Loader2
-                        size={14}
-                        className="text-info-content animate-spin ml-1 flex-shrink-0"
-                      />
+                      <Spinner size={14} className="ml-1 flex-shrink-0" />
                     )}
                     <IconButton label="Remove file" showTooltip={false} size="icon-sm"
                       type="button"

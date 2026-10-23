@@ -18,7 +18,6 @@ import {
   Smile,
   Plus,
   X,
-  Loader2,
   Mic,
   Trash2,
   Voicemail,
@@ -62,6 +61,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface ThreadChatInputProps {
@@ -636,10 +636,7 @@ const ThreadChatInput = React.memo(
                   </div>
 
                   {media.status === "uploading" && (
-                    <Loader2
-                      size={14}
-                      className="text-info-content animate-spin ml-1 flex-shrink-0"
-                    />
+                    <Spinner size={14} className="ml-1 flex-shrink-0" />
                   )}
 
                   <IconButton label={

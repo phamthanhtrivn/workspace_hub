@@ -130,15 +130,23 @@ test("dashboard preserves overdue/review tasks while offering focus only for eli
 
 test("task focus delegates to the shared session and reflects running/paused state", async () => {
   const started = [];
+  let renderedButton;
   const target = { id: "task", source: "PROJECT_TASK", projectId: "project", title: "Thesis task" };
   const session = { startFocus: async (task) => { started.push(task); }, activeTask: null, status: "IDLE", busy: false, isReady: true };
   const load = featureLoader({
     "./pomodoro-session-provider": { usePomodoroSessionActions: () => session },
+    "@/components/ui/button": { Button: (props) => {
+      renderedButton = props;
+      return React.createElement("button", null, props.children);
+    } },
     "@/store/store": {},
     "@/features/project/hooks/use-projects": {},
   });
   const { TaskFocusButton } = load("features/pomodoro/components/task-focus-button.tsx");
-  const button = () => TaskFocusButton({ target }).props.children.props;
+  const button = () => {
+    renderToStaticMarkup(React.createElement(TaskFocusButton, { target }));
+    return renderedButton;
+  };
   assert.equal(button().disabled, false);
   await button().onClick({ stopPropagation() {} });
   assert.deepEqual(started, [target]);
