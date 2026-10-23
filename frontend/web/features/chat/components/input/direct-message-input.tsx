@@ -658,7 +658,7 @@ const DirectMessageInput = React.memo(
                 onPaste={handlePaste}
                 placeholder={resolvedPlaceholder}
                 disabled={isUploading}
-                className={`flex-1 min-w-0 bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto ${
+                className={`flex-1 min-w-0 bg-transparent resize-none outline-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto ${
                   compact
                     ? "px-1 py-1 text-xs min-h-[24px]"
                     : "px-2 py-2 text-sm min-h-[36px]"

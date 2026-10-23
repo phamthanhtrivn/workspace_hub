@@ -876,7 +876,7 @@ const ThreadChatInput = React.memo(
                 }}
                 placeholder="Reply in thread..."
                 disabled={isUploading}
-                className="w-full bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px]"
+                className="w-full bg-transparent resize-none outline-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px]"
                 rows={1}
                 onKeyDown={(e) => {
                   if (mentionQuery !== null && filteredMembers.length > 0) {

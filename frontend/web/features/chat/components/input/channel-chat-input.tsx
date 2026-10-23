@@ -1030,7 +1030,7 @@ const ChannelChatInput = React.memo(
                       : "Type @ to mention, message " + activeChannel?.name
                   }
                   disabled={isUploading}
-                  className="w-full bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px]"
+                  className="w-full bg-transparent resize-none outline-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px]"
                   rows={1}
                   onKeyDown={(e) => {
                     if (mentionQuery !== null && filteredMembers.length > 0) {
