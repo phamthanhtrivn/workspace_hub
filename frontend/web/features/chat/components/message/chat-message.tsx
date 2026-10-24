@@ -242,7 +242,7 @@ const ChatMessage = React.memo(function ChatMessage({
           onClick={openSenderProfile}
         />
 
-        <div className="min-w-0 max-w-[calc(100%-3rem)] @min-[480px]/message:max-w-[calc(100%-13rem)] @min-[720px]/message:max-w-[70%] flex flex-col gap-1 relative group/bubble items-start">
+        <div className="min-w-0 max-w-[calc(100%-3rem)] @min-[480px]/message:max-w-[calc(100%-10rem)] @min-[720px]/message:max-w-[70%] flex flex-col gap-1 relative group/bubble items-start">
           {showSenderName && (
             <div className="flex items-baseline gap-2 px-1 mt-0.5 mb-0.5 min-w-0">
               <Button variant="unstyled"
@@ -350,15 +350,6 @@ const ChatMessage = React.memo(function ChatMessage({
 
           {!msg.recalled && (
             <div className="mt-2 flex w-max flex-nowrap items-center gap-1.5 opacity-100 @min-[480px]/message:absolute @min-[480px]/message:top-1/2 @min-[480px]/message:-translate-y-1/2 @min-[480px]/message:left-full @min-[480px]/message:ml-3 @min-[480px]/message:mt-0 @min-[480px]/message:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-all duration-200 z-10">
-              <Button variant="unstyled"
-                type="button"
-                onClick={() => onThreadReply?.(msg)}
-                title="Reply to thread"
-                className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
-              >
-                <MessageSquare size={14} />
-              </Button>
-
               <div className="relative">
                 <Button aria-expanded={showReactionPicker} aria-controls={`${controlledPopupId}-showReactionPicker`} aria-haspopup="dialog" variant="unstyled" aria-label="Add reaction"
                   type="button"
@@ -432,6 +423,7 @@ const ChatMessage = React.memo(function ChatMessage({
         canEdit={msg.type === "TEXT" && isWithin24Hours && hasText}
         canRecall={isWithin24Hours}
         isPinned={msg.pinned}
+        onThreadReply={onThreadReply ? () => onThreadReply(msg) : undefined}
         onEdit={() => onEditMessage?.(msg)}
         onRecall={() => onRecallMessage?.(msg)}
         onPin={() => onPinMessage?.(msg)}

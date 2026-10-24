@@ -1,6 +1,6 @@
 
 import React, { useRef } from "react";
-import { Edit2, Pin, Trash2 } from "lucide-react";
+import { Edit2, MessageSquare, Pin, Trash2 } from "lucide-react";
 
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -14,6 +14,7 @@ interface MessageOptionsDropdownProps {
   onClose: () => void;
   buttonRect: DOMRect | null;
   isMe: boolean;
+  onThreadReply?: () => void;
   onEdit?: () => void;
   onPin?: () => void;
   onRecall?: () => void;
@@ -28,6 +29,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   onClose,
   buttonRect,
   isMe,
+  onThreadReply,
   onEdit,
   onPin,
   onRecall,
@@ -44,6 +46,19 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
 
 
   return typeof document === "undefined" ? null : <AnchoredMenu id={id} aria-label="Message options" ref={menuRef} onClose={onClose} anchorRect={buttonRect} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="start" alignOffset={isMe ? buttonRect.width + VIEWPORT_GAP_PX : 0} className="z-50 w-[180px] max-w-[calc(100vw-1.5rem)] overflow-y-auto bg-card border border-border rounded-panel py-1 text-sm text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel">
+      {onThreadReply && (
+        <DropdownMenuItem closeOnClick={false}
+          onClick={() => {
+            onThreadReply();
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 hover:bg-background flex items-center gap-2 cursor-pointer transition-colors"
+        >
+          <MessageSquare size={16} />
+          <span>Reply in thread</span>
+        </DropdownMenuItem>
+      )}
+
       {isMe && canEdit && (
         <DropdownMenuItem closeOnClick={false}
           onClick={() => {
