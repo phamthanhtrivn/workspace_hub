@@ -2,6 +2,15 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model ProjectTaskSnapshot {
+  taskId    String @id @map("task_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  version   BigInt
+  payload   Json
+
+  @@map("project_task_snapshots")
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")

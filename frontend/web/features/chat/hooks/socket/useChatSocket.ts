@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
   setActiveConversation,
   setActiveSpaceId,
+  patchActiveThreadRootMessage,
 } from "@/store/chat/chat-slice";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
@@ -42,6 +43,7 @@ import {
   updateChannelsCache,
   updateDirectMessagesCache,
 } from "../../utils/chat-cache";
+import { mergeChatMessageUpdate, patchThreadMessageCaches } from '../../utils/message-update-cache';
 
 function isChannelPayload(payload: {
   chatType?: ChatContextType;
@@ -250,6 +252,8 @@ export function useChatSocket() {
     const handleMessageUpdated = (message: ChatSocketMessagePayload) => {
       const chatId = getMessageChatId(message);
       if (!chatId) return;
+      patchThreadMessageCaches(queryClient, message);
+      dispatch(patchActiveThreadRootMessage(message));
 
       queryClient.setQueriesData<{ pages?: PaginatedMessagesResponse[] }>({ queryKey: [ChatQueryRoot.MESSAGES] }, (oldData) => {
         if (!oldData) return oldData;
@@ -262,7 +266,7 @@ export function useChatSocket() {
               return {
                 ...page,
                 messages: page.messages.map((m) =>
-                  m.id === message.id ? { ...m, ...message } : m,
+                  mergeChatMessageUpdate(m, message),
                 ),
               };
             }),
@@ -279,7 +283,7 @@ export function useChatSocket() {
       if (isChannelPayload(message)) {
         updateChannelsCache(queryClient, chatId, (channel) =>
           channel.messages?.[0]?.id === message.id
-            ? { ...channel, messages: [message] }
+            ? { ...channel, messages: [mergeChatMessageUpdate(channel.messages[0], message)] }
             : channel,
         );
         return;
@@ -290,7 +294,7 @@ export function useChatSocket() {
         currentUserId,
         (directMessage) =>
           directMessage.messages?.[0]?.id === message.id
-            ? { ...directMessage, messages: [message] }
+            ? { ...directMessage, messages: [mergeChatMessageUpdate(directMessage.messages[0], message)] }
             : directMessage,
         chatId,
       );
@@ -626,6 +630,9 @@ export function useChatSocket() {
     };
 
     const handleSocketConnect = () => {
+      for (const queryKey of [chatKeys.allMessages(), chatKeys.allThreadMessages(), chatKeys.allFollowedThreads(), chatKeys.allThreads(), chatKeys.allPinnedMessagesPreview(), chatKeys.allPinnedMessagesDetail()]) {
+        void queryClient.invalidateQueries({ queryKey });
+      }
       queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
       queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
       queryClient.invalidateQueries({ queryKey: chatKeys.allChannelMembers() });

@@ -138,6 +138,7 @@ export class ProjectSpaceClient {
     status?: string,
     priority?: string,
     dueDate?: string,
+    version?: string,
   ): Promise<{
     spaceId: string;
     channelId: string;
@@ -158,7 +159,7 @@ export class ProjectSpaceClient {
       url: `${this.config.communicationServiceUrl}/api/spaces/internal/project/${projectId}/task-thread`,
       method: 'POST',
       headers: this.internalHeaders(),
-      body: { taskId, taskTitle, actorId, channelId, status, priority, dueDate },
+      body: { taskId, taskTitle, actorId, channelId, status, priority, dueDate, version },
     });
     return response.data;
   }

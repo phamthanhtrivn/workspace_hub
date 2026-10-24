@@ -337,8 +337,8 @@ export class ProjectService {
   ) {
     await this.access.requireReadAccess(userId, projectId);
     const task = await this.prisma.task.findFirst({
-      where: { id: taskId, projectId },
-      select: { id: true, title: true, status: true, priority: true, dueDate: true },
+        where: { id: taskId, projectId, deletedAt: null },
+        select: { id: true, title: true, status: true, priority: true, dueDate: true, version: true },
     });
     if (!task) {
       throw new NotFoundException('Task not found in project');
@@ -356,6 +356,7 @@ export class ProjectService {
         task.status,
         task.priority,
         task.dueDate ? task.dueDate.toISOString() : undefined,
+          task.version.toString(),
       );
     } catch {
       throw new BadGatewayException('Unable to open task discussion thread');

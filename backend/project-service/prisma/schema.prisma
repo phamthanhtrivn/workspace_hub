@@ -2,6 +2,20 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model TaskSyncOutbox {
+  id            String    @id @default(uuid()) @db.Uuid
+  taskId        String    @map("task_id") @db.Uuid
+  version       BigInt
+  payload       Json
+  deliveredAt   DateTime? @map("delivered_at")
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at")
+  attemptCount  Int       @default(0) @map("attempt_count")
+
+  @@unique([taskId, version])
+  @@index([deliveredAt, nextAttemptAt])
+  @@map("task_sync_outbox")
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")

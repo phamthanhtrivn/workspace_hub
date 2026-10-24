@@ -118,6 +118,7 @@ export class SpaceController {
       status?: string;
       priority?: string;
       dueDate?: string;
+      version?: string;
     },
   ) {
     this.assertInternalServiceKey(serviceKey);
@@ -130,6 +131,7 @@ export class SpaceController {
       body.status,
       body.priority,
       body.dueDate,
+      body.version,
     );
     return {
       message: 'Task thread retrieved successfully',

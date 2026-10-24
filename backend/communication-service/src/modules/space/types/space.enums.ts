@@ -24,6 +24,8 @@ export enum SPACE_SUCCESS_MESSAGES_LABEL {
 }
 
 export enum SPACE_ERROR_MESSAGES {
+  INVALID_TASK_VERSION = 'Invalid task version',
+  TASK_THREAD_ACCESS_DENIED = 'You cannot open a task discussion in this channel',
   MISSING_USER_ID = 'Missing userId',
   MISSING_SPACE_ID = 'Missing spaceId',
   MISSING_REQUIRED_INFO = 'Missing required information',

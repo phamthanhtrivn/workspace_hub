@@ -767,7 +767,11 @@ export class SpaceService {
     status?: string,
     priority?: string,
     dueDate?: string,
+    version?: string,
   ) {
+    if (version !== undefined && (!/^(0|[1-9]\d{0,18})$/.test(version) || BigInt(version) > 9223372036854775807n)) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.INVALID_TASK_VERSION);
+    }
     const space = await this.prisma.space.findFirst({
       where: { projectId },
     });
@@ -776,7 +780,7 @@ export class SpaceService {
     }
 
     const senderId = actorId || space.createdBy;
-    let targetChannel: { id: string; name: string } | null = null;
+    let targetChannel: { id: string; name: string; visibility: ChannelVisibility } | null = null;
 
     if (channelId) {
       const channelCandidate = await this.prisma.channel.findFirst({
@@ -790,13 +794,16 @@ export class SpaceService {
           const spaceMem = await this.prisma.spaceMember.findUnique({
             where: { spaceId_userId: { spaceId: space.id, userId: senderId } },
           });
-          canPost = spaceMem?.role === SpaceRole.ADMIN || space.createdBy === senderId;
+          canPost = channelCandidate.visibility === ChannelVisibility.PRIVATE
+            ? channelCandidate.ownerId === senderId
+            : spaceMem?.role === SpaceRole.ADMIN || space.createdBy === senderId;
         }
 
         if (canPost) {
-          targetChannel = { id: channelCandidate.id, name: channelCandidate.name };
+          targetChannel = { id: channelCandidate.id, name: channelCandidate.name, visibility: channelCandidate.visibility };
         }
       }
+      if (!targetChannel) throw new ForbiddenException(SPACE_ERROR_MESSAGES.TASK_THREAD_ACCESS_DENIED);
     }
 
     if (!targetChannel) {
@@ -804,15 +811,16 @@ export class SpaceService {
         where: {
           spaceId: space.id,
           name: { equals: 'task-discussions', mode: 'insensitive' },
+          visibility: ChannelVisibility.PUBLIC,
         },
-        select: { id: true, name: true },
+        select: { id: true, name: true, visibility: true },
       });
     }
 
     if (!targetChannel) {
       const defaultChannel = await this.prisma.channel.findFirst({
         where: { spaceId: space.id, isDefault: true },
-        select: { id: true, name: true },
+        select: { id: true, name: true, visibility: true },
         orderBy: { createdAt: 'asc' },
       });
       targetChannel = defaultChannel;
@@ -825,7 +833,7 @@ export class SpaceService {
           name: 'task-discussions',
           createdBy: senderId,
         },
-        select: { id: true, name: true },
+        select: { id: true, name: true, visibility: true },
       });
     }
 
@@ -833,7 +841,7 @@ export class SpaceService {
       where: { spaceId: space.id },
       select: { userId: true },
     });
-    if (spaceMembers.length > 0) {
+    if (targetChannel.visibility === ChannelVisibility.PUBLIC && spaceMembers.length > 0) {
       await this.prisma.channelMember.createMany({
         data: spaceMembers.map((m) => ({
           channelId: targetChannel!.id,
@@ -844,19 +852,25 @@ export class SpaceService {
     }
 
     const taskTag = `[Task #${taskId.slice(0, 8)}]`;
-    let rootMessage = await this.prisma.message.findFirst({
-      where: {
-        channelId: targetChannel.id,
-        threadParentId: null,
-        OR: [
-          { content: { contains: taskId } },
-          { content: { contains: taskTag } },
-        ],
-      },
-    });
+    const rootMessage = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${taskId}, 0))`;
+      const latest = await tx.projectTaskSnapshot.findUnique({ where: { taskId } });
+      const existing = await tx.message.findFirst({
+        where: {
+          channelId: targetChannel.id,
+          threadParentId: null,
+          deletedAt: null,
+          recalled: false,
+          OR: [
+            { content: { contains: taskId } },
+            { content: { contains: taskTag } },
+          ],
+        },
+      });
 
-    if (!rootMessage) {
-      const messageContent = JSON.stringify({
+      if (existing) return existing;
+      const messageContent = JSON.stringify(latest && latest.projectId === projectId &&
+        (!version || latest.version >= BigInt(version)) ? latest.payload : {
         type: 'TASK',
         title: taskTitle,
         taskId,
@@ -865,9 +879,11 @@ export class SpaceService {
         priority: priority || undefined,
         dueDate: dueDate || undefined,
         tag: taskTag,
+        taskVersion: version,
+        deleted: false,
       });
 
-      rootMessage = await this.prisma.message.create({
+      return tx.message.create({
         data: {
           channelId: targetChannel.id,
           senderId,
@@ -876,7 +892,7 @@ export class SpaceService {
           threadParentId: null,
         },
       });
-    }
+    });
 
     return {
       spaceId: space.id,

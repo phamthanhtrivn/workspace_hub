@@ -10,6 +10,7 @@ import {
   TaskStatusBadge,
 } from "@/features/project/components/ui/status-badge";
 import { TaskPriority, TaskStatus } from "@/features/project/types/project";
+import { Button } from '@/components/ui/button';
 
 interface TaskCardMessageProps {
   content: string;
@@ -29,6 +30,7 @@ export default function TaskCardMessage({
     if (!content) {
       return {
         title: "Task Discussion",
+        deleted: false,
         taskId: "",
         projectId: propProjectId || "",
         status: "",
@@ -44,6 +46,7 @@ export default function TaskCardMessage({
         const json = JSON.parse(trimmed);
         return {
           title: json.title || "Task Discussion",
+          deleted: json.deleted === true,
           taskId: json.taskId || "",
           projectId: json.projectId || propProjectId || "",
           status: json.status || "",
@@ -68,6 +71,7 @@ export default function TaskCardMessage({
 
     return {
       title: title || "Task Discussion",
+      deleted: false,
       taskId,
       projectId: propProjectId || "",
       status: "",
@@ -127,7 +131,8 @@ export default function TaskCardMessage({
           {parsed.title}
         </h4>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {parsed.deleted && <p role="status" className="text-xs font-medium text-destructive-content">This task has been deleted.</p>}
+        {!parsed.deleted && <div className="flex flex-wrap items-center gap-2">
           {parsed.status && (
             status ? (
               <TaskStatusBadge status={status} compact />
@@ -157,7 +162,7 @@ export default function TaskCardMessage({
               <span>Due: {formatDateTime(parsed.dueDate)}</span>
             </span>
           )}
-        </div>
+        </div>}
       </div>
 
       {targetUrl && (
@@ -169,7 +174,11 @@ export default function TaskCardMessage({
             <FolderGit2 size={12} className={cn("text-success-content", isThread && "shrink-0")} />
             <span>Project Task</span>
           </span>
-          <Link
+          {parsed.deleted ? (
+            <Button disabled variant="secondary" size="sm" className={cn('text-xs', isThread && 'w-full')}>
+              View Task Detail
+            </Button>
+          ) : <Link
             href={targetUrl}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-panel bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground hover:bg-success transition-colors cursor-pointer",
@@ -178,7 +187,7 @@ export default function TaskCardMessage({
           >
             <span>View Task Detail</span>
             <ExternalLink size={12} className={isThread ? "shrink-0" : undefined} />
-          </Link>
+          </Link>}
         </div>
       )}
     </div>

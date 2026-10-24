@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { TaskSyncModule } from './modules/task-sync/task-sync.module';
 import { ChannelAccessModule } from './modules/channel/access/channel-access.module';
 import { PrivateChannelModule } from './modules/channel/private-channel.module';
 import { AppController } from './app.controller';
@@ -22,6 +23,7 @@ import { RuntimeConfigModule } from './common/config/runtime-config.module';
 
 @Module({
   imports: [
+    TaskSyncModule,
     RuntimeConfigModule,
     PrismaModule,
     ChannelAccessModule,
