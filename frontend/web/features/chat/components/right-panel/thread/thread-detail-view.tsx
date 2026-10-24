@@ -46,6 +46,7 @@ import ThreadChatInput, {
 } from "../../input/thread-chat-input";
 import { renderMessageContent } from "../../../utils/message-formatter";
 import TaskCardMessage from "../../message/task-card-message";
+import { isTaskCardMessage } from "../../../utils/task-card-message";
 import MediaLightbox from "../../message/media-lightbox";
 import MessageAvatar from "../../message/message-avatar";
 import { upsertMessageById } from "../../../utils/message-state-utils";
@@ -605,13 +606,11 @@ export default function ThreadDetailView({
                   {formatDateTime(activeRootMessage.createdAt)}
                 </span>
               </div>
-              {activeRootMessage.type === "TASK" ||
-              (activeRootMessage.content &&
-                (activeRootMessage.content.includes("[Task #") ||
-                  activeRootMessage.content.trim().startsWith('{"title":'))) ? (
+              {isTaskCardMessage(activeRootMessage) ? (
                 <TaskCardMessage
                   content={activeRootMessage.content || ""}
                   projectId={spaceDetail?.projectId}
+                  variant="thread"
                   className="max-w-full"
                 />
               ) : (
