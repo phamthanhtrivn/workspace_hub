@@ -1,10 +1,15 @@
 "use client";
 
 import { useMemo } from "react";
-import { CheckSquare, ExternalLink, FolderGit2, Clock, AlertCircle } from "lucide-react";
+import { CheckSquare, ExternalLink, FolderGit2, Clock } from "lucide-react";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/date";
 import { cn } from "@/lib/utils";
+import {
+  TaskPriorityBadge,
+  TaskStatusBadge,
+} from "@/features/project/components/ui/status-badge";
+import { TaskPriority, TaskStatus } from "@/features/project/types/project";
 
 interface TaskCardMessageProps {
   content: string;
@@ -12,21 +17,6 @@ interface TaskCardMessageProps {
   className?: string;
   variant?: "default" | "thread";
 }
-
-const statusBadgeStyles: Record<string, string> = {
-  TODO: "bg-muted text-foreground border-border",
-  IN_PROGRESS: "bg-info-soft text-info-content border-border",
-  IN_REVIEW: "bg-info-soft text-info-content border-border",
-  DONE: "bg-success-soft text-success-content border-border",
-  CANCELLED: "bg-destructive-soft text-destructive-content border-border",
-};
-
-const priorityBadgeStyles: Record<string, string> = {
-  URGENT: "bg-destructive-soft text-destructive-content font-semibold",
-  HIGH: "bg-warning-soft text-warning-content font-semibold",
-  MEDIUM: "bg-info-soft text-info-content font-medium",
-  LOW: "bg-muted text-muted-foreground font-medium",
-};
 
 export default function TaskCardMessage({
   content,
@@ -87,6 +77,8 @@ export default function TaskCardMessage({
     };
   }, [content, propProjectId]);
 
+  const status = Object.values(TaskStatus).find((value) => value === parsed.status);
+  const priority = Object.values(TaskPriority).find((value) => value === parsed.priority);
   const targetUrl =
     parsed.projectId && parsed.taskId
       ? `/projects/${parsed.projectId}?taskId=${parsed.taskId}`
@@ -137,24 +129,23 @@ export default function TaskCardMessage({
 
         <div className="flex flex-wrap items-center gap-2">
           {parsed.status && (
-            <span
-              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold border ${
-                statusBadgeStyles[parsed.status] || "bg-muted text-foreground border-border"
-              }`}
-            >
-              {parsed.status.replace("_", " ")}
-            </span>
+            status ? (
+              <TaskStatusBadge status={status} compact />
+            ) : (
+              <span className="inline-flex items-center rounded-md border border-border bg-muted px-2 py-0.5 text-xs font-semibold text-foreground">
+                {String(parsed.status).replace(/_/g, " ")}
+              </span>
+            )
           )}
 
           {parsed.priority && (
-            <span
-              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs uppercase ${
-                priorityBadgeStyles[parsed.priority] || "bg-muted text-muted-foreground"
-              }`}
-            >
-              <AlertCircle size={11} />
-              {parsed.priority}
-            </span>
+            priority ? (
+              <TaskPriorityBadge priority={priority} compact />
+            ) : (
+              <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                {String(parsed.priority)}
+              </span>
+            )
           )}
 
           {parsed.dueDate && (
