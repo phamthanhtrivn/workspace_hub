@@ -11,7 +11,7 @@ describe('Channel routes that remove space membership', () => {
   function createService({
     projectId = null as string | null,
     isDefault = true,
-    role = SpaceRole.MEMBER,
+    role = SpaceRole.MEMBER as SpaceRole,
     isOwner = false,
     adminCount = 2,
   } = {}) {
@@ -63,6 +63,7 @@ describe('Channel routes that remove space membership', () => {
         getProfilesByUserIds: jest.fn().mockResolvedValue(new Map()),
       } as unknown as Dependencies[3],
       {} as Dependencies[4],
+      {} as never,
     );
     return { service, prisma, publisher };
   }

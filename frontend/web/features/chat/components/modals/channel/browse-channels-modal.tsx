@@ -1,4 +1,5 @@
 "use client";
+import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
 
 import { IconButton } from "@/components/ui/icon-button";
 
@@ -6,7 +7,8 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
 
-import { X, Search, Hash, Check, Globe, Trash2 } from "lucide-react";
+import { X, Search, Hash, Lock, Globe, Trash2 } from "lucide-react";
+import ChannelJoinedBadge from "../../ui/channel-joined-badge";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import ChatConfirmDialog from "@/features/chat/components/ui/chat-confirm-dialog";
@@ -198,7 +200,7 @@ export default function BrowseChannelsModal({
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-panel bg-muted text-muted-foreground">
-                      <Hash size={18} />
+                      {isPrivateChannel(channel) ? <Lock size={18} aria-label="Private channel" /> : <Hash size={18} />}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">
@@ -217,10 +219,7 @@ export default function BrowseChannelsModal({
 
                   <div className="flex shrink-0 items-center gap-2">
                     {isJoined ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-success-content bg-success-soft rounded-lg border border-border">
-                        <Check size={14} />
-                        Joined
-                      </span>
+                      <ChannelJoinedBadge />
                     ) : (
                       <Button aria-busy={joinMutation.isPending &&
                         joinMutation.variables === channel.id || undefined} variant="default"
@@ -235,9 +234,9 @@ export default function BrowseChannelsModal({
                         Join
                       </Button>
                     )}
-                    {(isSpaceAdmin ||
+                    {(isPrivateChannel(channel) ? isPrivateChannelOwner(channel, currentUserId) : (isSpaceAdmin ||
                       (channel.createdBy === currentUserId &&
-                        allowMemberDeleteOwnChannel)) &&
+                        allowMemberDeleteOwnChannel))) &&
                       !channel.isDefault && (
                         <Button aria-busy={deleteMutation.isPending &&
                           deleteMutation.variables === channel.id || undefined} variant="unstyled"

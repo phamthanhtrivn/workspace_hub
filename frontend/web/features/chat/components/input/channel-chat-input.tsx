@@ -1,5 +1,6 @@
 "use client";
 
+import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { IconButton } from "@/components/ui/icon-button";
 import { useId as useControlledPopupId } from "react";
 
@@ -134,11 +135,12 @@ const ChannelChatInput = React.memo(
       const currentMember = activeChannel?.members?.find(
         (member) => member.userId === authUserId,
       );
-      const isMember = currentMember?.role === "MEMBER";
+      const isPrivate = activeChannel && "spaceId" in activeChannel && isPrivateChannel(activeChannel);
+      const isMember = isPrivate ? activeChannel.ownerId !== authUserId : currentMember?.role === "MEMBER";
       const allowCreateTask =
         Boolean(currentMember) &&
         (!isMember ||
-          spaceDetail?.createdBy === authUserId ||
+          (!isPrivate && spaceDetail?.createdBy === authUserId) ||
           activeChannel?.setting?.allowCreateTask !== false);
 
       const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -703,7 +705,7 @@ const ChannelChatInput = React.memo(
         return (
           <div className="p-4 bg-card border-t border-border">
             <div className="flex items-center justify-center p-3 bg-background rounded-panel border border-border text-muted-foreground text-sm">
-              Only admins can send messages
+              {isPrivate ? "Only the channel owner can send messages" : "Only admins can send messages"}
             </div>
           </div>
         );

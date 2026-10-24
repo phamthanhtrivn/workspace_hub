@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import type { PrivateChannelMembersResponse } from "../types/chat.types";
 import {
   ApiResponse,
   ChannelResponse,
@@ -27,6 +28,23 @@ export const getChannelMembers = async (
     params: { search, limit },
   });
   return normalizeApiResponse<ChannelMembersListResponse>(response.data);
+};
+
+export const addChannelMembers = async (channelId: string, userIds: string[]) => {
+  const response = await api.post(`/api/channels/${channelId}/members`, { userIds });
+  return normalizeApiResponse<{ count: number }>(response.data);
+};
+
+export const getPrivateChannelMemberDirectory = async (
+  channelId: string,
+  params: { page: number; search?: string },
+  signal?: AbortSignal,
+): Promise<ApiResponse<PrivateChannelMembersResponse>> => {
+  const response = await api.get(`/api/channels/${channelId}/member-directory`, {
+    params: { ...params, search: params.search || undefined },
+    signal,
+  });
+  return normalizeApiResponse<PrivateChannelMembersResponse>(response.data);
 };
 
 export const inviteMembers = async (

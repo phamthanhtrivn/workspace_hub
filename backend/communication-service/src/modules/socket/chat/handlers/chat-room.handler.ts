@@ -5,14 +5,16 @@ import {
   CHAT_RESPONSE_STATUS,
 } from '../../../../common/types/chat.enums';
 import { ChatSocketPublisher } from '../chat-socket.publisher';
+import { ChannelAccessService } from '../../../channel/access/channel-access.service';
 
 @Injectable()
 export class ChatRoomHandler {
-  constructor(private readonly chatSocketPublisher: ChatSocketPublisher) {}
+  constructor(private readonly chatSocketPublisher: ChatSocketPublisher, private readonly access: ChannelAccessService) {}
 
-  handleJoinConversation(data: { channelId: string }, client: Socket) {
+  async handleJoinConversation(data: { channelId: string }, client: Socket) {
     if (data.channelId) {
-      client.join(data.channelId);
+      await this.access.assertPrivateAccess(data.channelId, client.data.userId as string | undefined);
+      await client.join(data.channelId);
       return {
         status: CHAT_RESPONSE_STATUS.JOINED,
         chatId: data.channelId,
@@ -45,6 +47,7 @@ export class ChatRoomHandler {
     if (!userId || !data.channelId) return;
 
     try {
+      await this.access.assertPrivateAccess(data.channelId, userId as string);
       await this.chatSocketPublisher.publishTyping(
         CHAT_CONTEXT_TYPE.CHANNEL,
         data.channelId,

@@ -11,6 +11,7 @@ import {
 } from "../../../api/chat.api";
 import MediaLightbox from "../../message/media-lightbox";
 import ChannelSettingsSection from "./channel-settings-section";
+import ChannelOwnerSection from "./channel-owner-section";
 import ChannelActionsSection from "./channel-actions-section";
 import FilesSection from "../files/files-section";
 import PollsSection from "../polls/polls-section";
@@ -363,6 +364,8 @@ export default function ChannelRightPanel({
             </Button>
           </div>
         </div>
+
+        <ChannelOwnerSection channel={activeChannel} />
 
         {/* Accordions */}
         <div className="py-2">

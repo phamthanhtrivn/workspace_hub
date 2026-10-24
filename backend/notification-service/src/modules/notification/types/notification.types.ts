@@ -20,6 +20,9 @@ const CATEGORY_TYPES: Record<
     NotificationType.PROJECT_SPRINT_STARTED,
   ],
   CHAT: [
+    NotificationType.CHANNEL_MEMBER_ADDED,
+    NotificationType.CHANNEL_MEMBER_REMOVED,
+    NotificationType.CHANNEL_OWNERSHIP_TRANSFERRED,
     NotificationType.SPACE_INVITATION,
     NotificationType.SPACE_INVITATION_ACCEPTED,
     NotificationType.SPACE_INVITATION_DECLINED,

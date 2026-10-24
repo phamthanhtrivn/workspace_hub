@@ -9,7 +9,7 @@ describe('Channel name updates', () => {
 
   function createService({
     isDefault = false,
-    role = SpaceRole.MEMBER,
+    role = SpaceRole.MEMBER as SpaceRole,
     isOwner = false,
     isCreator = false,
     isMember = true,
@@ -49,6 +49,7 @@ describe('Channel name updates', () => {
       {} as Dependencies[2],
       profiles as unknown as Dependencies[3],
       {} as Dependencies[4],
+      {} as never,
     );
     return { service, prisma, publisher, profiles };
   }

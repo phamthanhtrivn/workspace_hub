@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageSquare, Sparkles, UserCheck, Hash, AlertCircle } from "lucide-react";
+import { MessageSquare, Sparkles, UserCheck, Hash, Lock, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getSpaceChannels } from "@/features/chat/api/space.api";
-import { SpaceRole } from "@/features/chat/types/chat.enums";
+import { ChannelVisibility, SpaceRole } from "@/features/chat/types/chat.enums";
 import type { ChannelResponse } from "@/features/chat/types/chat.types";
 import type { Task } from "@/features/project/types/project";
 import { useAppSelector } from "@/store/store";
@@ -70,7 +70,7 @@ export default function SelectTaskChannelDialog({
           if (setting && setting.allowSendMessage === false) {
             const userMember = c.members?.find((m) => m.userId === currentUserId);
             const isUserAdmin =
-              userMember?.role === SpaceRole.ADMIN || c.createdBy === currentUserId;
+              c.visibility === ChannelVisibility.PRIVATE ? c.ownerId === currentUserId : userMember?.role === SpaceRole.ADMIN || c.createdBy === currentUserId;
             if (!isUserAdmin) return false;
           }
 
@@ -166,7 +166,7 @@ export default function SelectTaskChannelDialog({
                       className="cursor-pointer text-xs py-2.5 px-3 focus:bg-info-soft focus:text-info-content font-medium rounded-lg"
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <Hash size={14} className="text-info-content shrink-0" />
+                        {channel.visibility === ChannelVisibility.PRIVATE ? <Lock size={14} className="text-info-content shrink-0" aria-label="Private channel" /> : <Hash size={14} className="text-info-content shrink-0" />}
                         <span className="truncate">{channel.name}</span>
                         {channel.isDefault && (
                           <span className="text-xs bg-info-soft text-info-content px-1.5 py-0.2 rounded-full font-medium ml-1">

@@ -1,4 +1,10 @@
 export enum CHANNEL_ERROR_MESSAGES {
+  PRIVATE_ACCESS_DENIED = 'This channel is not available to you',
+  PRIVATE_OWNER_REQUIRED = 'Only the private channel owner can perform this action',
+  PRIVATE_ROLE_CHANGE_DISABLED = 'Private channel members do not have editable space roles',
+  PRIVATE_JOIN_DENIED = 'Private channels require the owner to add you',
+  INVALID_MEMBERS = 'Channel members must belong to this space',
+  OWNER_CANNOT_BE_REMOVED = 'The channel owner cannot be removed',
   SELF_CONVERSATION = 'Cannot create a conversation with yourself',
   CHANNEL_NOT_FOUND = 'Channel not found',
   SETTINGS_ACCESS_DENIED = 'You are not allowed to change channel settings',
@@ -40,3 +46,22 @@ export enum CHANNEL_SUCCESS_MESSAGES {
 
 export const CHANNEL_MEMBER_SEARCH_DEFAULT_LIMIT = 500;
 export const CHANNEL_MEMBER_SEARCH_MAX_LIMIT = 500;
+export const PRIVATE_CHANNEL_MEMBER_PAGE_SIZE = 10;
+export const PRIVATE_CHANNEL_REMOVAL_NOTIFICATION = {
+  TITLE: 'Removed from a private channel',
+  CONTENT: (actorName: string, channelName: string, spaceName: string) =>
+    `${actorName} removed you from ${channelName} in ${spaceName}. You no longer have access to this channel.`,
+} as const;
+export const PRIVATE_CHANNEL_OWNERSHIP_NOTIFICATION = {
+  TITLE: 'You are now a private channel owner',
+  CONTENT: (
+    channelName: string,
+    spaceName: string,
+    previousOwnerName: string,
+  ) =>
+    `You are now the owner of ${channelName} in ${spaceName} because ${previousOwnerName} is no longer in the channel. You can manage its members and settings.`,
+} as const;
+
+export enum PRIVATE_CHANNEL_EVENT_TYPE {
+  MEMBERS_CHANGED = 'channel_members_changed',
+}

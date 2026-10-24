@@ -33,6 +33,28 @@ export class SpaceNotificationEvent {
       return;
     }
 
+    if (
+      payload.type === KAFKA_EVENTS.NOTIFICATION.CHANNEL_MEMBER_ADDED ||
+      payload.type === KAFKA_EVENTS.NOTIFICATION.CHANNEL_MEMBER_REMOVED ||
+      payload.type === KAFKA_EVENTS.NOTIFICATION.CHANNEL_OWNERSHIP_TRANSFERRED
+    ) {
+      const metadata = payload.metadata;
+      if (!payload.recipientId || !payload.senderId || !payload.title || !payload.content ||
+        !metadata || ['channelId', 'channelName', 'spaceId', 'spaceName'].some(key => typeof metadata[key] !== 'string' || !metadata[key])) {
+        throw new BadRequestException('Invalid channel membership notification payload');
+      }
+    }
+
+    if (payload.type === KAFKA_EVENTS.NOTIFICATION.CHANNEL_OWNERSHIP_TRANSFERRED) {
+      const metadata = payload.metadata;
+      if (typeof metadata?.previousOwnerId !== 'string' ||
+        !metadata.previousOwnerId || metadata.previousOwnerId !== payload.senderId ||
+        metadata.newOwnerId !== payload.recipientId ||
+        metadata.previousOwnerId === metadata.newOwnerId) {
+        throw new BadRequestException('Invalid channel ownership notification payload');
+      }
+    }
+
     await this.spaceInvitationHandler.handle(payload);
   }
 
@@ -42,6 +64,9 @@ export class SpaceNotificationEvent {
 
   private isSupportedNotification(payload: KafkaNotificationPayload): boolean {
     return (
+      payload.type === KAFKA_EVENTS.NOTIFICATION.CHANNEL_MEMBER_ADDED ||
+      payload.type === KAFKA_EVENTS.NOTIFICATION.CHANNEL_MEMBER_REMOVED ||
+      payload.type === KAFKA_EVENTS.NOTIFICATION.CHANNEL_OWNERSHIP_TRANSFERRED ||
       payload.type === KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION ||
       payload.type === KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION_ACCEPTED ||
       payload.type === KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION_DECLINED ||

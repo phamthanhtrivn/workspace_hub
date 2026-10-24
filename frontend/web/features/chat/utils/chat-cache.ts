@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { chatKeys } from "../types/chat.constant";
+import { chatKeys, ChatQueryRoot, ChatScope } from "../types/chat.constant";
 import {
   ChatEntity,
   ChatMessageResponse,
@@ -98,6 +98,35 @@ export function removeChannelFromCaches(
   );
 }
 
+export async function cleanupRemovedChannelCaches(
+  queryClient: QueryClient,
+  channelId: string,
+) {
+  const scopedRoots: string[] = [
+    ChatQueryRoot.MESSAGES,
+    ChatQueryRoot.CHANNEL_MEMBERS,
+    ChatQueryRoot.READ_RECEIPTS,
+    ChatQueryRoot.PINNED_MESSAGES_PREVIEW,
+    ChatQueryRoot.PINNED_MESSAGES_DETAIL,
+    ChatQueryRoot.MEDIA,
+    ChatQueryRoot.THREADS,
+    ChatQueryRoot.NOTES,
+    ChatQueryRoot.POLLS,
+  ];
+  const filter = {
+    predicate: (query: { queryKey: readonly unknown[] }) =>
+      (scopedRoots.includes(String(query.queryKey[0])) &&
+        query.queryKey.includes(channelId)) ||
+      (query.queryKey[0] === ChatQueryRoot.THREAD_MESSAGES &&
+        query.queryKey[1] === ChatScope.CHANNEL) ||
+      query.queryKey[0] === ChatQueryRoot.FOLLOWED_THREADS,
+  };
+  removeChannelFromCaches(queryClient, channelId);
+  await queryClient.cancelQueries(filter);
+  queryClient.removeQueries(filter);
+  removeChannelFromCaches(queryClient, channelId);
+}
+
 export function removeSpaceFromCaches(
   queryClient: QueryClient,
   spaceId: string,
@@ -122,6 +151,7 @@ export function removeSpaceFromCaches(
   queryClient.removeQueries({ queryKey: chatKeys.channels(spaceId) });
   queryClient.removeQueries({ queryKey: chatKeys.spaceDetails(spaceId) });
   queryClient.removeQueries({ queryKey: chatKeys.spaceMembers(spaceId) });
+  queryClient.removeQueries({ queryKey: chatKeys.spaceMemberCandidatesForSpace(spaceId) });
   queryClient.removeQueries({ queryKey: chatKeys.spaceInvitations(spaceId) });
 }
 
@@ -133,6 +163,7 @@ export async function cleanupRemovedSpaceCaches(
     queryClient.cancelQueries({ queryKey: chatKeys.channels(spaceId) }),
     queryClient.cancelQueries({ queryKey: chatKeys.spaceDetails(spaceId) }),
     queryClient.cancelQueries({ queryKey: chatKeys.spaceMembers(spaceId) }),
+    queryClient.cancelQueries({ queryKey: chatKeys.spaceMemberCandidatesForSpace(spaceId) }),
     queryClient.cancelQueries({ queryKey: chatKeys.spaceInvitations(spaceId) }),
   ];
 

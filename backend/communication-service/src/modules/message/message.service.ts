@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
-import { MessageType, Prisma, SpaceRole } from '@prisma/client';
+import { ChannelVisibility, MessageType, Prisma, SpaceRole } from '@prisma/client';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { getMediaType, mapMediaWithUrl } from '../../common/utils/file.util';
 import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
@@ -82,8 +82,7 @@ export class MessageService {
         }
 
         if (
-          spaceMember.role === SpaceRole.MEMBER &&
-          member.channel.space.createdBy !== senderId &&
+          (member.channel.visibility === ChannelVisibility.PRIVATE ? member.channel.ownerId !== senderId : spaceMember.role === SpaceRole.MEMBER && member.channel.space.createdBy !== senderId) &&
           member.channel.setting
         ) {
           const setting = member.channel.setting;
@@ -114,7 +113,7 @@ export class MessageService {
         const parentMsg = await tx.message.findUnique({
           where: { id: threadParentId },
         });
-        if (!parentMsg) {
+        if (!parentMsg || parentMsg.channelId !== channelId) {
           throw new BadRequestException(
             MESSAGE_ERROR_MESSAGES.PARENT_NOT_FOUND,
           );
@@ -372,7 +371,7 @@ export class MessageService {
 
       const [targetMessage, olderMessages, newerMessages] = await Promise.all([
         this.prisma.message.findUnique({
-          where: { id: cursor },
+          where: { id: cursor, channelId },
           include: includeQuery,
         }),
         this.prisma.message.findMany({
@@ -1063,8 +1062,7 @@ export class MessageService {
           },
         });
         if (
-          spaceMember?.role === SpaceRole.MEMBER &&
-          channelMember.channel.space.createdBy !== userId
+          (channelMember.channel.visibility === ChannelVisibility.PRIVATE ? channelMember.channel.ownerId !== userId : spaceMember?.role === SpaceRole.MEMBER && channelMember.channel.space.createdBy !== userId)
         ) {
           throw new BadRequestException(MESSAGE_ERROR_MESSAGES.TASK_DISABLED);
         }
@@ -1217,7 +1215,7 @@ export class MessageService {
     }
 
     if (
-      spaceMember.role === SpaceRole.MEMBER &&
+      (member.channel.visibility === ChannelVisibility.PRIVATE ? member.channel.ownerId !== userId : spaceMember.role === SpaceRole.MEMBER) &&
       member.channel.setting &&
       !member.channel.setting.allowPinMessage
     ) {
@@ -1285,7 +1283,7 @@ export class MessageService {
     }
 
     if (
-      spaceMember.role === SpaceRole.MEMBER &&
+      (member.channel.visibility === ChannelVisibility.PRIVATE ? member.channel.ownerId !== userId : spaceMember.role === SpaceRole.MEMBER) &&
       member.channel.setting &&
       !member.channel.setting.allowPinMessage
     ) {
@@ -1392,7 +1390,10 @@ export class MessageService {
       where: { messageId },
       select: { userId: true },
     });
-    return followers.map((f) => f.userId);
+    const message = await this.prisma.message.findUnique({ where: { id: messageId }, select: { channelId: true } });
+    if (!message?.channelId) return followers.map((f) => f.userId);
+    const members = await this.prisma.channelMember.findMany({ where: { channelId: message.channelId, userId: { in: followers.map(f => f.userId) } }, select: { userId: true } });
+    return members.map(member => member.userId);
   }
 
   async addThreadFollower(messageId: string, userId: string): Promise<void> {

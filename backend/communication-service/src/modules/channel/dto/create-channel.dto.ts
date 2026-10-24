@@ -1,22 +1,28 @@
 import {
-  IsNotEmpty,
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
+  IsEnum,
   IsOptional,
   IsString,
-  IsArray,
   IsUUID,
+  Length,
 } from 'class-validator';
+import { ChannelVisibility } from '@prisma/client';
 
 export class CreateChannelDto {
-  @IsOptional()
   @IsString()
-  name?: string;
+  @Length(1, 80)
+  name!: string;
 
   @IsOptional()
-  @IsString()
-  avatarUrl?: string;
+  @IsEnum(ChannelVisibility)
+  visibility?: ChannelVisibility;
 
+  @IsOptional()
   @IsArray()
-  @IsUUID('all', { each: true })
-  @IsNotEmpty()
-  participantIds: string[];
+  @ArrayUnique()
+  @ArrayMaxSize(500)
+  @IsUUID('4', { each: true })
+  memberUserIds?: string[];
 }

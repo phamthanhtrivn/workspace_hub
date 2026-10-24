@@ -39,6 +39,7 @@ describe('Channel task permission', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as never,
     );
     return { service, prisma, publisher };
   }

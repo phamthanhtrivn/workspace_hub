@@ -56,6 +56,7 @@ describe('SpaceService project-linked spaces', () => {
       chatSocketPublisher,
       { getProfilesByUserIds: jest.fn().mockResolvedValue(new Map()) } as any,
       projectNames,
+      {} as never,
     );
   });
 

@@ -1,3 +1,4 @@
+import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
 import { Settings } from "lucide-react";
 import { ChannelResponse } from "../../../types/chat.types";
 import { useQuery } from "@tanstack/react-query";
@@ -31,7 +32,7 @@ export default function ChannelSettingsSection({
     (member) => member.userId === currentUserId,
   );
   const isSpaceAdmin = currentMember?.role === "ADMIN";
-  const canOpenSettings = isSpaceAdmin || isChannelCreator || isOwner;
+  const canOpenSettings = isPrivateChannel(activeChannel) ? isPrivateChannelOwner(activeChannel, currentUserId) : isSpaceAdmin || isChannelCreator || isOwner;
 
   return canOpenSettings ? (
     <div>

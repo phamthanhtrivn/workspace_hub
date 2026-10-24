@@ -1,4 +1,6 @@
 "use client";
+import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
+
 
 import { IconButton } from "@/components/ui/icon-button";
 import { useId as useControlledPopupId } from "react";
@@ -259,7 +261,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       title: `${actionLabel}?`,
       description: isDefault
         ? "Leaving the default channel will remove you from this space."
-        : "Are you sure you want to leave this channel?",
+        : isPrivateChannelOwner(channel, currentUserId) ? "Ownership will pass to the earliest remaining member. If no members remain, this channel and its history will be permanently deleted." : "Are you sure you want to leave this channel?",
       variant: "warning",
       confirmLabel: actionLabel,
       cancelLabel: "Cancel",
@@ -928,8 +930,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
                   const canDelete =
                     !channel.isDefault &&
-                    (isActiveSpaceAdmin ||
-                      (isCreator && allowMemberDeleteOwnChannel));
+                    (isPrivateChannel(channel) ? isPrivateChannelOwner(channel, currentUserId) : (isActiveSpaceAdmin ||
+                      (isCreator && allowMemberDeleteOwnChannel)));
 
                   const channelSpace =
                     spaceDetail?.id === channel.spaceId ? spaceDetail : activeSpace;

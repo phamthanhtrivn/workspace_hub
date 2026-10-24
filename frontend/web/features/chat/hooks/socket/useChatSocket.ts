@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
@@ -12,6 +13,7 @@ import {
   ChatContextType,
   SpaceRole,
   SpaceSettingResponse,
+  PaginatedMessagesResponse,
 } from "../../types/chat.types";
 import {
   ChatSocketMemberPayload,
@@ -27,6 +29,7 @@ import {
 } from "../../types/chat-socket.types";
 import {
   cleanupRemovedSpaceCaches,
+  cleanupRemovedChannelCaches,
   clearChatUnread,
   getMessageChatId,
   patchChannelMemberRolesInCaches,
@@ -91,13 +94,15 @@ export function useChatSocket() {
     (state) => state.auth,
   );
   const activeChatId = useAppSelector((state) => state.chat.activeChatId);
+  const pathname = usePathname();
+  const isChatVisible = pathname === "/chat" || Boolean(pathname?.startsWith("/chat/"));
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const activeChatIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    activeChatIdRef.current = activeChatId ?? null;
-  }, [activeChatId]);
+    activeChatIdRef.current = isChatVisible ? activeChatId : null;
+  }, [activeChatId, isChatVisible]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -246,17 +251,17 @@ export function useChatSocket() {
       const chatId = getMessageChatId(message);
       if (!chatId) return;
 
-      queryClient.setQueriesData({ queryKey: [ChatQueryRoot.MESSAGES] }, (oldData: any) => {
+      queryClient.setQueriesData<{ pages?: PaginatedMessagesResponse[] }>({ queryKey: [ChatQueryRoot.MESSAGES] }, (oldData) => {
         if (!oldData) return oldData;
 
         if (oldData.pages && Array.isArray(oldData.pages)) {
           return {
             ...oldData,
-            pages: oldData.pages.map((page: any) => {
+            pages: oldData.pages.map((page) => {
               if (!page?.messages || !Array.isArray(page.messages)) return page;
               return {
                 ...page,
-                messages: page.messages.map((m: any) =>
+                messages: page.messages.map((m) =>
                   m.id === message.id ? { ...m, ...message } : m,
                 ),
               };
@@ -324,6 +329,7 @@ export function useChatSocket() {
     };
 
     const handleMemberJoin = (data: ChatSocketMemberPayload) => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaceMemberCandidates() });
       const chatId = getMessageChatId(data);
       if (!chatId) return;
       if (data.spaceId && data.member?.userId === currentUserId) {
@@ -382,13 +388,14 @@ export function useChatSocket() {
     };
 
     const handleMemberKickedOrLeft = (data: ChatSocketMemberPayload) => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaceMemberCandidates() });
       const chatId = getMessageChatId(data);
       const affectsCurrentUser =
         data.userId === currentUserId ||
         data.affectedUserIds?.includes(currentUserId);
 
       if (isChannelPayload(data)) {
-        if (data.spaceId && data.userId) {
+        if (data.leftSpace && data.spaceId && data.userId) {
           removeSpaceMemberFromCaches(queryClient, data.spaceId, data.userId);
         }
 
@@ -413,8 +420,9 @@ export function useChatSocket() {
             queryKey: chatKeys.spaceDetails(data.spaceId),
           });
         }
-        if (affectsCurrentUser) {
-          dispatch(setActiveConversation(null));
+        if (affectsCurrentUser && chatId) {
+          if (activeChatIdRef.current === chatId) dispatch(setActiveConversation(null));
+          void cleanupRemovedChannelCaches(queryClient, chatId);
         }
         return;
       }
@@ -482,6 +490,7 @@ export function useChatSocket() {
     const handleChannelSettingUpdated = (
       data: ChatSocketSettingUpdatedPayload,
     ) => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaceMemberCandidates() });
       const chatId = getMessageChatId(data);
       if (data.spaceId) {
         if (
@@ -503,6 +512,7 @@ export function useChatSocket() {
           queryKey: chatKeys.allChannels(),
         });
       }
+      if (chatId) queryClient.invalidateQueries({ queryKey: [ChatQueryRoot.CHANNEL_MEMBERS, chatId] });
       if (!chatId || !data.setting) return;
       if (data.eventType === "space_setting_updated") return;
 
@@ -616,6 +626,10 @@ export function useChatSocket() {
     };
 
     const handleSocketConnect = () => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+      queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+      queryClient.invalidateQueries({ queryKey: chatKeys.allChannelMembers() });
+      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaceMemberCandidates() });
       queryClient.invalidateQueries({
         queryKey: [ChatQueryRoot.DIRECT_MESSAGE_SEND_PERMISSION],
       });
@@ -641,6 +655,8 @@ export function useChatSocket() {
       ChatEvent.CONVERSATION_MUTE_UPDATED,
       handleConversationMuteUpdated,
     );
+
+    if (socket.connected) handleSocketConnect();
 
     return () => {
       socket.off("connect", handleSocketConnect);

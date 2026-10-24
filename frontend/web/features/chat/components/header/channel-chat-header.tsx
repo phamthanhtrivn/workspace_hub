@@ -1,9 +1,11 @@
+import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { useState } from "react";
-import { ArrowLeft, Globe, Hash, Info, Search, User, Video } from "lucide-react";
+import { ArrowLeft, Globe, Hash, Lock, Info, Search, User, Video } from "lucide-react";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { useQuery } from "@tanstack/react-query";
 import { getSpaceDetails } from "../../api/chat.api";
 import { chatKeys } from "../../types/chat.constant";
+import PrivateChannelMembersModal from "../modals/channel/private-channel-members-modal";
 import ChannelMembersModal from "../modals/channel/channel-members-modal";
 import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
 import StartMeetingConfirmModal from "../modals/start-meeting-confirm-modal";
@@ -43,6 +45,10 @@ export default function ChannelChatHeader({
   const isDefaultChannel =
     !!activeChannel && "isDefault" in activeChannel && activeChannel.isDefault;
 
+  const privateChannel = activeChannel && "spaceId" in activeChannel && isPrivateChannel(activeChannel)
+    ? activeChannel
+    : null;
+
   const handleStartMeeting = () => {
     if (activeChannel?.id) {
       createMeeting({
@@ -73,6 +79,8 @@ export default function ChannelChatHeader({
           <div className="w-5 h-5 bg-muted rounded-full flex items-center justify-center font-semibold overflow-hidden shrink-0">
             {isDefaultChannel ? (
               <Globe size={20} className="text-muted-foreground" />
+            ) : privateChannel ? (
+              <Lock size={20} className="text-muted-foreground" aria-label="Private channel" />
             ) : (
               <Hash size={20} className="text-muted-foreground" />
             )}
@@ -121,7 +129,14 @@ export default function ChannelChatHeader({
           <Info size={20} />
         </Button>
       </div>
-      {activeChannel?.id ? (
+      {privateChannel ? (
+        <PrivateChannelMembersModal
+          key={privateChannel.id}
+          channel={privateChannel}
+          isOpen={isMembersModalOpen}
+          onClose={() => setIsMembersModalOpen(false)}
+        />
+      ) : activeChannel?.id ? (
         <ChannelMembersModal
           channelId={activeChannel.id}
           fallbackMemberCount={memberCount}

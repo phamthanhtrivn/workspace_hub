@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ChannelAccessModule } from './modules/channel/access/channel-access.module';
+import { PrivateChannelModule } from './modules/channel/private-channel.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ChannelModule } from './modules/channel/channel.module';
@@ -22,6 +24,8 @@ import { RuntimeConfigModule } from './common/config/runtime-config.module';
   imports: [
     RuntimeConfigModule,
     PrismaModule,
+    ChannelAccessModule,
+    PrivateChannelModule,
     ChannelModule,
     SpaceModule,
     InvitationModule,

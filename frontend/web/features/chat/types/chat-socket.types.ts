@@ -76,7 +76,7 @@ export interface ChatSocketSettingUpdatedPayload extends Partial<ChatContextPayl
   spaceId?: string;
   spaceName?: string | null;
   affectedUserIds?: string[];
-  setting: ConversationSetting | SpaceSettingResponse;
+  setting?: ConversationSetting | SpaceSettingResponse;
 }
 
 export interface ChatSocketUpdatedPayload extends Partial<ChatContextPayload> {

@@ -1,4 +1,6 @@
 "use client";
+import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
+
 
 import { LogOut, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -53,7 +55,7 @@ export default function ChannelActionsSection({
 
   const canDeleteChannel =
     !activeChannel.isDefault &&
-    (isAdmin || (isCreator && allowMemberDeleteOwnChannel));
+    (isPrivateChannel(activeChannel) ? isPrivateChannelOwner(activeChannel, currentUserId) : (isAdmin || (isCreator && allowMemberDeleteOwnChannel)));
   const canLeaveChannel = canLeaveSpaceChannel(
     activeChannel,
     currentUserId,
@@ -122,7 +124,7 @@ export default function ChannelActionsSection({
       title: `${actionLabel}?`,
       description: activeChannel.isDefault
         ? "Leaving the default channel will also remove you from this space."
-        : "Are you sure you want to leave this channel?",
+        : isPrivateChannelOwner(activeChannel, currentUserId) ? "Ownership will pass to the earliest remaining member. If no members remain, this channel and its history will be permanently deleted." : "Are you sure you want to leave this channel?",
       variant: "warning",
       confirmLabel: actionLabel,
       cancelLabel: "Cancel",

@@ -200,6 +200,8 @@ model Channel {
   name        String
   createdBy   String          @map("created_by") @db.Uuid
   isDefault   Boolean         @default(false) @map("is_default")
+  visibility  ChannelVisibility @default(PUBLIC)
+  ownerId     String?         @map("owner_id") @db.Uuid
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
@@ -211,6 +213,11 @@ model Channel {
 
   @@index([spaceId])
   @@map("channels")
+}
+
+enum ChannelVisibility {
+  PUBLIC
+  PRIVATE
 }
 
 /* =========================================================

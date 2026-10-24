@@ -4,9 +4,11 @@ import {
   SpaceResponse,
   SpaceSettingResponse,
   SpaceMembersListResponse,
+  SpaceMemberCandidatesResponse,
   SpaceInvitation,
   AcceptSpaceInvitationResponse,
   ChannelResponse,
+  CreateChannelOptions,
   ConversationMember,
   UserSearchResponse,
 } from "../types/chat.types";
@@ -107,6 +109,18 @@ export const getSpaceMembers = async (
   return normalizeApiResponse<SpaceMembersListResponse>(response.data);
 };
 
+export const getSpaceMemberCandidates = async (
+  spaceId: string,
+  params: { page: number; search?: string; channelId?: string },
+  signal?: AbortSignal,
+): Promise<ApiResponse<SpaceMemberCandidatesResponse>> => {
+  const response = await api.get(`/api/spaces/${spaceId}/member-candidates`, {
+    params: { ...params, search: params.search || undefined },
+    signal,
+  });
+  return normalizeApiResponse<SpaceMemberCandidatesResponse>(response.data);
+};
+
 export const updateSpaceMemberRole = async (
   spaceId: string,
   memberId: string,
@@ -148,8 +162,9 @@ export const removeSpaceMember = async (
 export const createChannel = async (
   spaceId: string,
   name: string,
+  options: CreateChannelOptions = {},
 ): Promise<ApiResponse<ChannelResponse>> => {
-  const response = await api.post(`/api/spaces/${spaceId}/channels`, { name });
+  const response = await api.post(`/api/spaces/${spaceId}/channels`, { name, ...options });
   return normalizeApiResponse<ChannelResponse>(response.data);
 };
 

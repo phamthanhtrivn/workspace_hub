@@ -1,3 +1,4 @@
+import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import React, {
   useCallback,
@@ -112,7 +113,8 @@ export default function ThreadDetailView({
     enabled: !!spaceId,
   });
 
-  const spaceCreatorId = spaceDetail?.createdBy || null;
+  const isPrivate = activeChat && "spaceId" in activeChat && isPrivateChannel(activeChat);
+  const spaceCreatorId = isPrivate ? activeChat.ownerId ?? null : spaceDetail?.createdBy || null;
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<ThreadChatInputRef>(null);
   const [followOverride, setFollowOverride] = useState<{
@@ -157,7 +159,7 @@ export default function ThreadDetailView({
   const canReplyInThread =
     isDirect ||
     activeChatType !== ChatContextType.CHANNEL ||
-    currentMember?.role !== "MEMBER" ||
+    (isPrivate ? activeChat.ownerId === currentUserId : currentMember?.role !== "MEMBER") ||
     activeChat?.setting?.allowSendMessage !== false;
 
   const handleToggleFollow = async () => {

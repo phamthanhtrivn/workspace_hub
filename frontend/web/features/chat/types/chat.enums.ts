@@ -75,3 +75,7 @@ export enum InvitationStatus {
   ACCEPTED = "ACCEPTED",
   DECLINED = "DECLINED",
 }
+export enum ChannelVisibility {
+  PUBLIC = "PUBLIC",
+  PRIVATE = "PRIVATE",
+}

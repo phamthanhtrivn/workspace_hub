@@ -7,6 +7,7 @@ import { HttpJsonClient } from '../../common/adapters/http-json.client';
 import { SpaceController } from './space.controller';
 import { ProjectNameClient } from './project-name.client';
 import { SpaceService } from './space.service';
+import { SpaceMemberCandidatesService } from './space-member-candidates.service';
 
 @Module({
   imports: [
@@ -16,7 +17,12 @@ import { SpaceService } from './space.service';
     UserProfileSnapshotModule,
   ],
   controllers: [SpaceController],
-  providers: [SpaceService, ProjectNameClient, HttpJsonClient],
+  providers: [
+    SpaceService,
+    SpaceMemberCandidatesService,
+    ProjectNameClient,
+    HttpJsonClient,
+  ],
   exports: [SpaceService],
 })
 export class SpaceModule {}

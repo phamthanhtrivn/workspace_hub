@@ -1,4 +1,6 @@
 "use client";
+import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
+
 import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
@@ -73,8 +75,8 @@ export default function ChannelSettingsModal({
   );
   const isSpaceAdmin = currentMember?.role === "ADMIN";
   const canEditName =
-    !channel.isDefault && (isSpaceAdmin || isChannelCreator || isOwner);
-  const canEditSettings = isSpaceAdmin || isOwner;
+    !channel.isDefault && (isPrivateChannel(channel) ? isPrivateChannelOwner(channel, currentUserId) : (isSpaceAdmin || isChannelCreator || isOwner));
+  const canEditSettings = isPrivateChannel(channel) ? isPrivateChannelOwner(channel, currentUserId) : isSpaceAdmin || isOwner;
 
   useEffect(() => {
     setMounted(true);
