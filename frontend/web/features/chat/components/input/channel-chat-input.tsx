@@ -12,6 +12,8 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from "react";
+import MessageComposerPreview from "./message-composer-preview";
+import { composeMessageText } from "../../utils/message-draft";
 import {
   Send,
   Image as ImageIcon,
@@ -107,6 +109,7 @@ const ChannelChatInput = React.memo(
     ) {
   const controlledPopupId = useControlledPopupId();
       const [message, setMessage] = useState("");
+      const [showPreview, setShowPreview] = useState(false);
       const [showOptions, setShowOptions] = useState(false);
       const [showFormatting, setShowFormatting] = useState(true);
       const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -660,12 +663,13 @@ const ChannelChatInput = React.memo(
         }));
 
         onSendMessage(
-          message.trim() + (interimMessage ? " " + interimMessage.trim() : ""),
+          composeMessageText(message, interimMessage),
           mediaList.length > 0 ? mediaList : undefined,
           mentions.length > 0 ? mentions : undefined,
         );
         setMessage("");
         clearInterim();
+        setShowPreview(false);
         setUploadingMedia([]);
         setMentions([]);
         setMentionQuery(null);
@@ -730,7 +734,7 @@ const ChannelChatInput = React.memo(
               </p>
             </div>
           )}
-          <div className="w-full p-4">
+          <div className="w-full p-4 [@media(max-height:30rem)]:p-2">
             {/* File Previews */}
             {uploadingMedia.length > 0 && (
               <div className="flex gap-2 flex-wrap mb-2">
@@ -808,7 +812,7 @@ const ChannelChatInput = React.memo(
               </div>
             )}
 
-            <div className="flex bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative rounded-panel p-2 gap-2 items-center">
+            <div className="@container/composer flex flex-wrap bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative rounded-panel p-2 gap-2 items-center">
               {/* Hidden Inputs */}
               <input
                 type="file"
@@ -920,7 +924,7 @@ const ChannelChatInput = React.memo(
               />
 
               {/* Textarea Area */}
-              <div className="flex-1 flex flex-col min-w-0">
+              <div className="flex-1 flex flex-col min-w-0 @max-[480px]/composer:order-first @max-[480px]/composer:basis-full">
                 {/* Formatting Toolbar */}
                 {showFormatting && (
                   <div className="flex items-center gap-0.5 pb-1.5 mb-1 border-b border-border/60 overflow-x-auto">
@@ -1003,6 +1007,7 @@ const ChannelChatInput = React.memo(
                 )}
 
                 {/* Textarea Input */}
+                <MessageComposerPreview message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} open={showPreview} onOpenChange={setShowPreview}>
                 <Textarea unstyled role="combobox" aria-label="Message channel" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
                   id="chat-input-textarea"
                   ref={textareaRef}
@@ -1032,7 +1037,7 @@ const ChannelChatInput = React.memo(
                       : "Type @ to mention, message " + activeChannel?.name
                   }
                   disabled={isUploading}
-                  className="w-full bg-transparent resize-none outline-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px]"
+                  className="w-full max-h-[min(15rem,30dvh)] bg-transparent resize-none outline-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px] [@media(max-height:30rem)]:max-h-12"
                   rows={1}
                   onKeyDown={(e) => {
                     if (mentionQuery !== null && filteredMembers.length > 0) {
@@ -1071,10 +1076,11 @@ const ChannelChatInput = React.memo(
                     }
                   }}
                 />
+                </MessageComposerPreview>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-1.5 flex-shrink-0 relative pb-1">
+              <div className="flex items-center gap-1.5 flex-shrink-0 relative pb-1 @max-[480px]/composer:ml-auto">
                 {isRecording ? (
                   <div className="flex items-center gap-2.5 px-1 animate-in fade-in">
                     <div className="w-2 h-2 rounded-full bg-destructive-content animate-pulse"></div>

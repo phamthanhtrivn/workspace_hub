@@ -6,6 +6,7 @@ import { MessageType } from "./chat.enums";
 export const MAX_UNREAD_COUNT = 99;
 export const CHAT_DEFAULT_STALE_TIME_MS = 1000 * 60 * 5;
 export const CHAT_DEFAULT_MESSAGE_PAGE_SIZE = 20;
+export const CHAT_CODE_COPY_FEEDBACK_MS = 2000;
 
 // ─── Search / Debounce ─────────────────────────────────────────────────────
 

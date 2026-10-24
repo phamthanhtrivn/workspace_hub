@@ -11,6 +11,9 @@ import React, {
   useRef,
   useState,
 } from "react";
+import MessageComposerPreview from "./message-composer-preview";
+import { composeMessageText } from "../../utils/message-draft";
+import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { FileText, Image as ImageIcon, Mic, Paperclip, Send, Smile, Trash2, Type, Voicemail, X, UploadCloud, Folder } from "lucide-react";
 import { toast } from "sonner";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
@@ -79,7 +82,9 @@ const DirectMessageInput = React.memo(
       const { activeChatId: activeConversationId, activeChatType } =
         useActiveChat();
       const resolvedPlaceholder = placeholder ?? "Type a message...";
+      const memberProfiles = useChatMemberProfiles();
       const [message, setMessage] = useState("");
+      const [showPreview, setShowPreview] = useState(false);
       const [showEmojiPicker, setShowEmojiPicker] = useState(false);
       const [showMicOptions, setShowMicOptions] = useState(false);
       const [uploadingMedia, setUploadingMedia] = useState<UploadingMedia[]>(
@@ -484,7 +489,7 @@ const DirectMessageInput = React.memo(
           }));
 
         const finalMessage =
-          message.trim() + (interimMessage ? ` ${interimMessage.trim()}` : "");
+          composeMessageText(message, interimMessage);
 
         onSendMessage(
           finalMessage.trim(),
@@ -492,6 +497,7 @@ const DirectMessageInput = React.memo(
         );
         setMessage("");
         clearInterim();
+        setShowPreview(false);
         setUploadingMedia([]);
 
         if (typingTimeoutRef.current) {
@@ -542,7 +548,7 @@ const DirectMessageInput = React.memo(
               </p>
             </div>
           )}
-          <div className={compact ? "w-full p-2" : "w-full p-4"}>
+          <div className={compact ? "w-full p-2" : "w-full p-4 [@media(max-height:30rem)]:p-2"}>
             {uploadingMedia.length > 0 && (
               <div className="flex gap-2 flex-wrap mb-2">
                 {uploadingMedia.map((media) => (
@@ -590,7 +596,7 @@ const DirectMessageInput = React.memo(
             )}
 
             <div
-              className={`flex bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative items-center ${
+              className={`@container/composer flex flex-wrap bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative items-center ${
                 compact ? "rounded-panel p-1.5 gap-1.5" : "rounded-panel p-2 gap-2"
               }`}
             >
@@ -646,6 +652,7 @@ const DirectMessageInput = React.memo(
                 )}
               </div>
 
+              <MessageComposerPreview message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} compact={compact} open={showPreview} onOpenChange={setShowPreview} className="flex-1 @max-[480px]/composer:order-first @max-[480px]/composer:basis-full">
               <Textarea unstyled aria-label="Direct message"
                 ref={textareaRef}
                 value={
@@ -658,7 +665,7 @@ const DirectMessageInput = React.memo(
                 onPaste={handlePaste}
                 placeholder={resolvedPlaceholder}
                 disabled={isUploading}
-                className={`flex-1 min-w-0 bg-transparent resize-none outline-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto ${
+                className={`flex-1 min-w-0 max-h-[min(15rem,30dvh)] bg-transparent resize-none outline-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto [@media(max-height:30rem)]:max-h-12 ${
                   compact
                     ? "px-1 py-1 text-xs min-h-[24px]"
                     : "px-2 py-2 text-sm min-h-[36px]"
@@ -671,6 +678,7 @@ const DirectMessageInput = React.memo(
                   }
                 }}
               />
+              </MessageComposerPreview>
 
               {isRecording ? (
                 <div className="flex items-center gap-2.5 px-1 animate-in fade-in">
