@@ -12,6 +12,9 @@ import React, {
   useState,
 } from "react";
 import MessageComposerPreview from "./message-composer-preview";
+import PastingMessageFiles from "./pasting-message-files";
+import { useCopiedMessagePaste } from "../../hooks/input/useCopiedMessagePaste";
+import { CHAT_ATTACHMENT_MAX_SIZE_BYTES, MESSAGE_CLIPBOARD_MESSAGES } from "../../types/message-clipboard.types";
 import { composeMessageText } from "../../utils/message-draft";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { FileText, Image as ImageIcon, Mic, Paperclip, Send, Smile, Trash2, Type, Voicemail, X, UploadCloud, Folder } from "lucide-react";
@@ -56,7 +59,6 @@ export interface DirectMessageInputRef {
   setMessage: (content: string) => void;
 }
 
-const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
 
 function formatFileSize(bytes: number) {
   if (bytes === 0) return "0 B";
@@ -109,9 +111,6 @@ const DirectMessageInput = React.memo(
         `direct-input-${Math.random().toString(36).slice(2)}`,
       );
 
-      const isUploading = uploadingMedia.some(
-        (media) => media.status === "uploading",
-      );
 
       const appendTranscript = useCallback((finalText: string) => {
         setMessage(
@@ -303,12 +302,13 @@ const DirectMessageInput = React.memo(
       );
 
       const uploadFilesList = useCallback(
-        async (files: File[]) => {
+        async (files: File[], signal?: AbortSignal) => {
+          if (signal?.aborted) return;
           const validFiles = files.filter(
-            (file) => file.size <= MAX_FILE_SIZE_BYTES,
+            (file) => file.size <= CHAT_ATTACHMENT_MAX_SIZE_BYTES,
           );
           if (validFiles.length < files.length) {
-            toast.error("File size limit exceeded (max 100MB).");
+            toast.error(MESSAGE_CLIPBOARD_MESSAGES.fileTooLarge);
           }
           if (validFiles.length === 0) return;
 
@@ -322,6 +322,8 @@ const DirectMessageInput = React.memo(
           }));
 
           setUploadingMedia((prev) => [...prev, ...newUploads]);
+          const cancelUploads = () => setUploadingMedia((prev) => prev.filter((media) => !newUploads.some((upload) => upload.id === media.id)));
+          signal?.addEventListener("abort", cancelUploads, { once: true });
 
           try {
             if (!activeConversationId) {
@@ -342,13 +344,16 @@ const DirectMessageInput = React.memo(
               })),
             });
 
-            newUploads.forEach(async (upload, index) => {
+            if (signal?.aborted) return;
+            await Promise.all(newUploads.map(async (upload, index) => {
               const presignedInfo = presignedUrls[index];
               try {
                 const success = await uploadToS3(
                   upload.file,
                   presignedInfo.presignedUrl,
+                  signal,
                 );
+                if (signal?.aborted) return;
                 setUploadingMedia((prev) =>
                   prev.map((media) =>
                     media.id === upload.id
@@ -361,6 +366,7 @@ const DirectMessageInput = React.memo(
                   ),
                 );
               } catch {
+                if (signal?.aborted) return;
                 setUploadingMedia((prev) =>
                   prev.map((media) =>
                     media.id === upload.id
@@ -369,8 +375,9 @@ const DirectMessageInput = React.memo(
                   ),
                 );
               }
-            });
+            }));
           } catch (error) {
+            if (signal?.aborted) return;
             console.error("Error initiating direct upload:", error);
             setUploadingMedia((prev) =>
               prev.map((media) =>
@@ -379,6 +386,8 @@ const DirectMessageInput = React.memo(
                   : media,
               ),
             );
+          } finally {
+            signal?.removeEventListener("abort", cancelUploads);
           }
         },
         [activeChatType, activeConversationId],
@@ -456,16 +465,23 @@ const DirectMessageInput = React.memo(
         [uploadFilesList],
       );
 
-      const handlePaste = useCallback(
-        async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-          if (e.clipboardData.files && e.clipboardData.files.length > 0) {
-            e.preventDefault();
-            const files = Array.from(e.clipboardData.files);
-            await uploadFilesList(files);
-          }
-        },
-        [uploadFilesList],
-      );
+      const copiedPaste = useCopiedMessagePaste({
+        chatId: activeConversationId,
+        chatType: activeChatType,
+        onInsertText: handleTyping,
+        uploadFiles: uploadFilesList,
+      });
+      const isUploading = uploadingMedia.some((media) => media.status === "uploading") || copiedPaste.isDownloading;
+      const hasFailedAttachments = uploadingMedia.some((media) => media.status === "error") || copiedPaste.hasFailedDownloads;
+
+      const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        if (copiedPaste.handlePaste(e)) return;
+        if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+          e.preventDefault();
+          const files = Array.from(e.clipboardData.files);
+          await uploadFilesList(files);
+        }
+      };
 
       const removeFile = useCallback((id: string) => {
         setUploadingMedia((prev) => prev.filter((media) => media.id !== id));
@@ -474,7 +490,11 @@ const DirectMessageInput = React.memo(
       const handleSend = useCallback(() => {
         if (!message.trim() && uploadingMedia.length === 0) return;
         if (isUploading) {
-          toast.warning("Please wait for files to finish uploading.");
+          toast.warning(MESSAGE_CLIPBOARD_MESSAGES.pending);
+          return;
+        }
+        if (hasFailedAttachments) {
+          toast.error(MESSAGE_CLIPBOARD_MESSAGES.failedFiles);
           return;
         }
         if (!onSendMessage) return;
@@ -511,6 +531,7 @@ const DirectMessageInput = React.memo(
         clearInterim,
         interimMessage,
         isUploading,
+        hasFailedAttachments,
         message,
         onSendMessage,
         onTypingChange,
@@ -527,7 +548,7 @@ const DirectMessageInput = React.memo(
         (message.trim() ||
           interimMessage.trim() ||
           uploadingMedia.some((media) => media.status === "success")) &&
-        !isUploading;
+        !isUploading && !hasFailedAttachments;
 
       return (
         <div
@@ -549,6 +570,7 @@ const DirectMessageInput = React.memo(
             </div>
           )}
           <div className={compact ? "w-full p-2" : "w-full p-4 [@media(max-height:30rem)]:p-2"}>
+            <PastingMessageFiles files={copiedPaste.files} onRemove={copiedPaste.removeFile} />
             {uploadingMedia.length > 0 && (
               <div className="flex gap-2 flex-wrap mb-2">
                 {uploadingMedia.map((media) => (
@@ -576,7 +598,7 @@ const DirectMessageInput = React.memo(
                         {media.name}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {formatFileSize(media.sizeBytes)}
+                        {media.status === "error" ? MESSAGE_CLIPBOARD_MESSAGES.uploadFailed : formatFileSize(media.sizeBytes)}
                       </span>
                     </div>
                     {media.status === "uploading" && (

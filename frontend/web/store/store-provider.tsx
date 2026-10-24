@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { refreshApi } from "@/features/auth/api/auth.api";
 import axios from "axios";
+import { clearCopiedMessage } from "@/features/chat/utils/message-clipboard";
 import {
   getLoginRedirectPath,
   getReturnToFromSearch,
@@ -43,6 +44,21 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
   const [isInitializing, setIsInitializing] = useState(true);
   const hasInitialized = useRef(false);
+
+  useEffect(() => {
+    let userId = store.getState().auth.userId;
+    const unsubscribe = store.subscribe(() => {
+      const nextUserId = store.getState().auth.userId;
+      if (nextUserId !== userId) {
+        clearCopiedMessage();
+        userId = nextUserId;
+      }
+    });
+    return () => {
+      unsubscribe();
+      clearCopiedMessage();
+    };
+  }, []);
 
   useEffect(() => {
     const replaceIfNeeded = (targetPath: string) => {

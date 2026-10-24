@@ -2,6 +2,9 @@ import { useId as useControlledPopupId } from "react";
 import React, { useMemo, useState } from "react";
 import { MoreHorizontal, Pin, MessageSquare, SmilePlus } from "lucide-react";
 import { MessageOptionsDropdown } from "./message-options-dropdown";
+import { toast } from "sonner";
+import { canCopyMessage, copyMessageToClipboard } from "../../utils/message-clipboard";
+import { MESSAGE_CLIPBOARD_MESSAGES } from "../../types/message-clipboard.types";
 import {
   QUICK_EMOJIS,
   UserProfileSnapshotResponse,
@@ -411,6 +414,12 @@ const ChatMessage = React.memo(function ChatMessage({
         canRecall={isWithin24Hours}
         isPinned={msg.pinned}
         onThreadReply={onThreadReply ? () => onThreadReply(msg) : undefined}
+        onCopy={canCopyMessage(msg) && currentUserId ? () => {
+          void copyMessageToClipboard(msg, currentUserId).then(
+            () => toast.success(MESSAGE_CLIPBOARD_MESSAGES.copied),
+            () => toast.error(MESSAGE_CLIPBOARD_MESSAGES.copyFailed),
+          );
+        } : undefined}
         onEdit={() => onEditMessage?.(msg)}
         onRecall={() => onRecallMessage?.(msg)}
         onPin={() => onPinMessage?.(msg)}

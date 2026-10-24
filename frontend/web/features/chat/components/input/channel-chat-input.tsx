@@ -13,6 +13,9 @@ import React, {
   forwardRef,
 } from "react";
 import MessageComposerPreview from "./message-composer-preview";
+import PastingMessageFiles from "./pasting-message-files";
+import { useCopiedMessagePaste } from "../../hooks/input/useCopiedMessagePaste";
+import { CHAT_ATTACHMENT_MAX_SIZE_BYTES, MESSAGE_CLIPBOARD_MESSAGES } from "../../types/message-clipboard.types";
 import { composeMessageText } from "../../utils/message-draft";
 import {
   Send,
@@ -163,7 +166,6 @@ const ChannelChatInput = React.memo(
       );
 
       const activeChannelId = activeChannel?.id;
-      const isUploading = uploadingMedia.some((m) => m.status === "uploading");
       const { membersResponse } = useChannelMembersSearch({
         channelId: activeChannelId,
         searchQuery: mentionQuery ?? "",
@@ -458,10 +460,11 @@ const ChannelChatInput = React.memo(
         }
       }, [activeChannelId, autoFocusOnChannelChange, onTypingChange]);
 
-      const uploadFilesList = async (files: File[]) => {
-        const validFiles = files.filter((f) => f.size <= 100 * 1024 * 1024);
+      const uploadFilesList = useCallback(async (files: File[], signal?: AbortSignal) => {
+        if (signal?.aborted) return;
+        const validFiles = files.filter((f) => f.size <= CHAT_ATTACHMENT_MAX_SIZE_BYTES);
         if (validFiles.length < files.length) {
-          toast.error("File size limit exceeded (max 100MB).");
+          toast.error(MESSAGE_CLIPBOARD_MESSAGES.fileTooLarge);
         }
         if (validFiles.length === 0) return;
 
@@ -476,6 +479,8 @@ const ChannelChatInput = React.memo(
 
         setUploadingMedia((prev) => [...prev, ...newUploads]);
         setShowOptions(false);
+        const cancelUploads = () => setUploadingMedia((prev) => prev.filter((media) => !newUploads.some((upload) => upload.id === media.id)));
+        signal?.addEventListener("abort", cancelUploads, { once: true });
 
         try {
           if (!activeChannelId) throw new Error("No active channel");
@@ -494,13 +499,16 @@ const ChannelChatInput = React.memo(
             files: presignRequests,
           });
 
-          newUploads.forEach(async (upload, idx) => {
+          if (signal?.aborted) return;
+          await Promise.all(newUploads.map(async (upload, idx) => {
             const presignedInfo = presignedUrls[idx];
             try {
               const success = await uploadToS3(
                 upload.file,
                 presignedInfo.presignedUrl,
+                signal,
               );
+              if (signal?.aborted) return;
               if (success) {
                 setUploadingMedia((prev) =>
                   prev.map((m) =>
@@ -517,14 +525,16 @@ const ChannelChatInput = React.memo(
                 );
               }
             } catch (e) {
+              if (signal?.aborted) return;
               setUploadingMedia((prev) =>
                 prev.map((m) =>
                   m.id === upload.id ? { ...m, status: "error" } : m,
                 ),
               );
             }
-          });
+          }));
         } catch (error) {
+          if (signal?.aborted) return;
           console.error("Error initiating upload:", error);
           setUploadingMedia((prev) =>
             prev.map((m) =>
@@ -533,8 +543,10 @@ const ChannelChatInput = React.memo(
                 : m,
             ),
           );
+        } finally {
+          signal?.removeEventListener("abort", cancelUploads);
         }
-      };
+      }, [activeChannelId, activeChatType]);
 
       const handleFileChange = useCallback(
         async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -609,16 +621,26 @@ const ChannelChatInput = React.memo(
         [uploadFilesList],
       );
 
-      const handlePaste = useCallback(
-        async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-          if (e.clipboardData.files && e.clipboardData.files.length > 0) {
-            e.preventDefault();
-            const files = Array.from(e.clipboardData.files);
-            await uploadFilesList(files);
-          }
+      const copiedPaste = useCopiedMessagePaste({
+        chatId: activeChannelId,
+        chatType: activeChatType,
+        onInsertText: (text, caret) => {
+          clearInterim();
+          handleTyping(text, caret);
         },
-        [uploadFilesList],
-      );
+        uploadFiles: uploadFilesList,
+      });
+      const isUploading = uploadingMedia.some((media) => media.status === "uploading") || copiedPaste.isDownloading;
+      const hasFailedAttachments = uploadingMedia.some((media) => media.status === "error") || copiedPaste.hasFailedDownloads;
+
+      const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        if (copiedPaste.handlePaste(e)) return;
+        if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+          e.preventDefault();
+          const files = Array.from(e.clipboardData.files);
+          await uploadFilesList(files);
+        }
+      };
 
       const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
@@ -646,7 +668,11 @@ const ChannelChatInput = React.memo(
         )
           return;
         if (isUploading) {
-          toast.warning("Please wait for files to finish uploading.");
+          toast.warning(MESSAGE_CLIPBOARD_MESSAGES.pending);
+          return;
+        }
+        if (hasFailedAttachments) {
+          toast.error(MESSAGE_CLIPBOARD_MESSAGES.failedFiles);
           return;
         }
         if (!onSendMessage) return;
@@ -684,6 +710,7 @@ const ChannelChatInput = React.memo(
         interimMessage,
         uploadingMedia,
         isUploading,
+        hasFailedAttachments,
         onSendMessage,
         onTypingChange,
         clearInterim,
@@ -735,6 +762,7 @@ const ChannelChatInput = React.memo(
             </div>
           )}
           <div className="w-full p-4 [@media(max-height:30rem)]:p-2">
+            <PastingMessageFiles files={copiedPaste.files} onRemove={copiedPaste.removeFile} />
             {/* File Previews */}
             {uploadingMedia.length > 0 && (
               <div className="flex gap-2 flex-wrap mb-2">
@@ -783,7 +811,7 @@ const ChannelChatInput = React.memo(
                             : "text-muted-foreground"
                         }`}
                       >
-                        {formatFileSize(media.sizeBytes)}
+                        {media.status === "error" ? MESSAGE_CLIPBOARD_MESSAGES.uploadFailed : formatFileSize(media.sizeBytes)}
                       </span>
                     </div>
 
@@ -1197,7 +1225,7 @@ const ChannelChatInput = React.memo(
                         (message.trim() ||
                           interimMessage.trim() ||
                           uploadingMedia.some((m) => m.status === "success")) &&
-                        !isUploading
+                        !isUploading && !hasFailedAttachments
                           ? "bg-primary text-primary-foreground hover:bg-primary cursor-pointer"
                           : "bg-accent text-muted-foreground"
                       }`}
@@ -1205,7 +1233,7 @@ const ChannelChatInput = React.memo(
                         (!message.trim() &&
                           !interimMessage.trim() &&
                           uploadingMedia.length === 0) ||
-                        isUploading
+                        isUploading || hasFailedAttachments
                       }
                       onClick={handleSend}
                     >

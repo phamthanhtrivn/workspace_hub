@@ -1,6 +1,6 @@
 
 import React, { useRef } from "react";
-import { Edit2, MessageSquare, Pin, Trash2 } from "lucide-react";
+import { Copy, Edit2, MessageSquare, Pin, Trash2 } from "lucide-react";
 
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -15,6 +15,7 @@ interface MessageOptionsDropdownProps {
   buttonRect: DOMRect | null;
   isMe: boolean;
   onThreadReply?: () => void;
+  onCopy?: () => void;
   onEdit?: () => void;
   onPin?: () => void;
   onRecall?: () => void;
@@ -30,6 +31,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   buttonRect,
   isMe,
   onThreadReply,
+  onCopy,
   onEdit,
   onPin,
   onRecall,
@@ -56,6 +58,19 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
         >
           <MessageSquare size={16} />
           <span>Reply in thread</span>
+        </DropdownMenuItem>
+      )}
+
+      {onCopy && (
+        <DropdownMenuItem closeOnClick={false}
+          onClick={() => {
+            onCopy();
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 hover:bg-background flex items-center gap-2 cursor-pointer transition-colors"
+        >
+          <Copy size={16} aria-hidden="true" />
+          <span>Copy message</span>
         </DropdownMenuItem>
       )}
 
