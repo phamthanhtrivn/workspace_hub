@@ -1,4 +1,7 @@
 import React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { UserProfileSnapshotResponse } from "../types/chat.types";
 
 // Helper to parse inline styles (Bold, Italic, Strikethrough, Inline Code)
@@ -350,6 +353,7 @@ export const parseBlocks = (
 
         interface BlockNode {
           type:
+            | "table"
             | "heading"
             | "quote"
             | "bullet_list"
@@ -364,7 +368,19 @@ export const parseBlocks = (
         const nodes: BlockNode[] = [];
         let currentList: BlockNode | null = null;
 
-        lines.forEach((line) => {
+        for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
+          const line = lines[lineIndex];
+          const next = lines[lineIndex + 1];
+          if (line.includes("|") && next && /^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)+\|?\s*$/.test(next)) {
+            const tableLines = [line, next];
+            lineIndex++;
+            while (lineIndex + 1 < lines.length && lines[lineIndex + 1].trim() && lines[lineIndex + 1].includes("|")) {
+              tableLines.push(lines[++lineIndex]);
+            }
+            currentList = null;
+            nodes.push({ type: "table", text: tableLines.join("\n") });
+            continue;
+          }
           const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
           const bulletMatch = line.match(/^[\-\*]\s+(.*)$/);
           const numberMatch = line.match(/^\d+\.\s+(.*)$/);
@@ -412,11 +428,28 @@ export const parseBlocks = (
               text: line,
             });
           }
-        });
+        }
 
         return (
           <div key={`text-block-${partIdx}`} className="space-y-1 w-full">
             {nodes.map((node, nodeIdx) => {
+              if (node.type === "table") {
+                return (
+                  <div key={`table-${nodeIdx}`} role="region" aria-label="Bảng trong tin nhắn" tabIndex={0}
+                    className="my-3 max-w-full overflow-x-auto rounded-lg border border-border bg-card whitespace-normal focus-visible:outline-2 focus-visible:outline-primary">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={{
+                      table: ({ children }) => <Table unstyled className="w-full min-w-[28rem] border-collapse text-left text-sm leading-relaxed">{children}</Table>,
+                      tr: ({ children }) => <TableRow unstyled>{children}</TableRow>,
+                      thead: ({ children }) => <TableHeader unstyled className="bg-muted text-foreground">{children}</TableHeader>,
+                      th: ({ children, style }) => <TableHead unstyled scope="col" style={style} className="border-b border-r border-border px-3 py-2.5 font-semibold last:border-r-0">{children}</TableHead>,
+                      td: ({ children, style }) => <TableCell unstyled style={style} className="border-b border-r border-border px-3 py-2 align-top last:border-r-0">{children}</TableCell>,
+                      tbody: ({ children }) => <TableBody unstyled className="[&_tr:nth-child(even)]:bg-muted/40 [&_tr:last-child_td]:border-b-0">{children}</TableBody>,
+                      a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-link underline underline-offset-2">{children}</a>,
+                      img: ({ alt }) => <span>{alt}</span>,
+                    }}>{node.text!}</ReactMarkdown>
+                  </div>
+                );
+              }
               if (node.type === "heading") {
                 const HeadingTag = `h${node.level}` as any;
                 const classMap: Record<number, string> = {

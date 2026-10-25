@@ -41,6 +41,10 @@ export class S3Service {
     });
   }
 
+  generateAttachmentDownloadUrl(s3Key: string): Promise<string> {
+    return getSignedUrl(this.s3Client, new GetObjectCommand({ Bucket: this.bucketName, Key: s3Key }), { expiresIn: 120 });
+  }
+
   async getFileSize(s3Key: string): Promise<bigint> {
     const result = await this.s3Client.send(
       new HeadObjectCommand({ Bucket: this.bucketName, Key: s3Key }),

@@ -1,3 +1,5 @@
+import { assertClientMessageType } from '../../common/auth/client-message-type';
+import { ConversationAiService } from '../conversation-ai/conversation-ai.service';
 import {
   BadRequestException,
   Injectable,
@@ -37,6 +39,7 @@ type DirectMessageSocketPayload = Record<string, unknown> & {
 @Injectable()
 export class DirectMessageService {
   constructor(
+    private readonly conversationAi: ConversationAiService,
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
@@ -57,7 +60,9 @@ export class DirectMessageService {
     }[],
     threadParentId?: string,
     mentions?: string[],
+    attachmentMediaId?: string,
   ) {
+    assertClientMessageType(type);
     await this.directMessagePermissionService.assertCanSend(conversationId, senderId);
     const createdMessage = await this.prisma.$transaction(async (tx) => {
       const participant = await tx.directConversationParticipant.findUnique({
@@ -167,8 +172,10 @@ export class DirectMessageService {
         },
       });
 
+      await this.conversationAi.register(message, senderId, conversationId, "DIRECT_MESSAGE", tx, attachmentMediaId);
       return this.mapDirectMessage(message);
     });
+    this.conversationAi.notify(createdMessage);
 
     const message =
       await this.userProfileSnapshotService.attachSenderProfileToMessage(

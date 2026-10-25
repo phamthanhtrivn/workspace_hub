@@ -91,11 +91,17 @@
         }
       ]
     },
-    "transformIgnorePatterns": ["node_modules/(?!uuid/)"],
+    "transformIgnorePatterns": [
+      "node_modules/(?!uuid/)"
+    ],
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "overrides": {
+    "multer": "^2.5.0",
+    "deepmerge-ts": "^8.0.0"
   }
 }

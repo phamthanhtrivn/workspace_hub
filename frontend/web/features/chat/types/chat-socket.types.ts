@@ -23,6 +23,7 @@ export type ThreadFollowerPayload =
 
 export interface ChatSocketMessagePayload
   extends ChatMessageResponse, Partial<ChatContextPayload> {
+  aiRequestId?: string;
   mentions?: string[];
   threadFollowers?: ThreadFollowerPayload[];
 }
@@ -111,6 +112,12 @@ export interface ChatSocketMediaUpdatedPayload extends Partial<ChatContextPayloa
   media: ChatMessageResponse["medias"];
 }
 
+export interface ChatSocketAiTypingPayload extends ChatContextPayload {
+  requestId: string;
+  threadParentId: string | null;
+  isTyping: boolean;
+}
+
 export interface ChatSocketTypingPayload extends Partial<ChatContextPayload> {
   userId: string;
   isTyping: boolean;
@@ -132,6 +139,7 @@ export interface SendSocketMessageMedia {
 
 export interface ServerToClientChatEvents {
   [event: string]: (...args: never[]) => void;
+  [ChatEvent.AI_TYPING]: (payload: ChatSocketAiTypingPayload) => void;
   [ChatEvent.NEW_MESSAGE]: (payload: ChatSocketMessagePayload) => void;
   [ChatEvent.DIRECT_MESSAGE_PERMISSION_UPDATED]: (
     payload: ChatSocketDirectMessagePermissionPayload,

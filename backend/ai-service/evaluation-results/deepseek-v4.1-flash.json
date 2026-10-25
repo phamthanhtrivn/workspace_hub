@@ -1,0 +1,120 @@
+{
+  "evaluatedAt": "2026-10-24T05:55:54.089Z",
+  "model": "deepseek-v4.1-flash",
+  "maxTokens": 4096,
+  "providerOrigin": "https://vibi.top",
+  "cases": [
+    {
+      "id": "summary-update",
+      "requests": 1,
+      "statuses": [
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 351,
+          "completion_tokens": 297,
+          "total_tokens": 648,
+          "prompt_tokens_details": {
+            "cached_tokens": 128
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 38
+          }
+        }
+      ],
+      "responseModels": [
+        "deepseek-v4.1-flash"
+      ],
+      "answer": "**Tóm tắt hội thoại (5 tin nhắn gần nhất, phạm vi tối đa 30 tin nhắn):**\n\n**Quyết định:**\n- Ban đầu chốt demo vào thứ Sáu lúc 17:00.\n- Sau đó Lan cập nhật: **demo chuyển sang thứ Hai lúc 09:00**, đồng thời **hủy lịch thứ Sáu 17:00**. Minh xác nhận đã rõ lịch mới.\n\n**Việc đã nhận:**\n- **Minh**: phụ trách giao diện, hoàn tất trước **thứ Năm 16:00**. Mốc này được giữ nguyên sau khi đổi lịch demo.\n\n**Vấn đề còn mở:**\n- **API thanh toán vẫn còn lỗi** (Hà báo).\n- **Chưa có người nhận sửa** lỗi API và **chưa có deadline** cho việc sửa API.\n\n**Người tham gia:** Lan, Minh, Hà.",
+      "checks": {
+        "readHistory": true,
+        "latestDemo": true,
+        "ownerAndWork": true,
+        "avoidsInventedApiCommitment": true
+      },
+      "passed": true,
+      "latencyMs": 3015,
+      "historyReads": 1
+    },
+    {
+      "id": "missing-owner",
+      "requests": 2,
+      "statuses": [
+        200,
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 454,
+          "completion_tokens": 56,
+          "total_tokens": 510,
+          "prompt_tokens_details": {
+            "cached_tokens": 384
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 31
+          }
+        },
+        {
+          "prompt_tokens": 374,
+          "completion_tokens": 279,
+          "total_tokens": 653,
+          "prompt_tokens_details": {
+            "cached_tokens": 256
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 38
+          }
+        }
+      ],
+      "responseModels": [
+        "deepseek-v4.1-flash",
+        "deepseek-v4.1-flash"
+      ],
+      "answer": "Dựa trên 30 tin nhắn gần nhất trong hội thoại: **chưa có ai nhận sửa lỗi API thanh toán và cũng chưa có deadline cụ thể cho việc này.**\n\nCụ thể, Hà đã nêu: “API thanh toán còn lỗi. Chưa ai nhận sửa, chưa có deadline sửa API.” Các tin nhắn sau đó chỉ cập nhật lịch demo (chuyển sang thứ Hai 09:00, hủy lịch thứ Sáu 17:00) và mốc giao diện của Minh (giữ nguyên, hoàn tất trước thứ Năm 16:00), không liên quan đến việc sửa API thanh toán.\n\nVì vậy, đây vẫn là một đầu việc chưa được phân công — cần giao người phụ trách và ấn định deadline nếu muốn xử lý trước buổi demo.",
+      "checks": {
+        "readHistory": true,
+        "acknowledgesUnknown": true,
+        "mentionsApi": true
+      },
+      "passed": true,
+      "latencyMs": 4731,
+      "historyReads": 1
+    },
+    {
+      "id": "schedule-reasoning",
+      "requests": 1,
+      "statuses": [
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 600,
+          "completion_tokens": 253,
+          "total_tokens": 853,
+          "prompt_tokens_details": {
+            "cached_tokens": 512
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 141
+          }
+        }
+      ],
+      "responseModels": [
+        "deepseek-v4.1-flash"
+      ],
+      "answer": "{\"gio_som_nhat\": 12, \"lich\": [{\"cong_viec\": \"A\", \"bat_dau\": 0, \"ket_thuc\": 3}, {\"cong_viec\": \"C\", \"bat_dau\": 3, \"ket_thuc\": 5}, {\"cong_viec\": \"B\", \"bat_dau\": 3, \"ket_thuc\": 8}, {\"cong_viec\": \"D\", \"bat_dau\": 8, \"ket_thuc\": 12}]}",
+      "checks": {
+        "noUnnecessaryHistory": true,
+        "validJson": true,
+        "optimalFinish": true,
+        "feasibleSchedule": true
+      },
+      "passed": true,
+      "latencyMs": 2476,
+      "historyReads": 0
+    }
+  ],
+  "note": "Small synthetic checks, not a general intelligence benchmark. Authentication and real conversation data are not used."
+}

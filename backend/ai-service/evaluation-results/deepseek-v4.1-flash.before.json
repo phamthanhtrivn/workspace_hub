@@ -1,0 +1,120 @@
+{
+  "evaluatedAt": "2026-10-24T05:50:25.652Z",
+  "model": "deepseek-v4.1-flash",
+  "maxTokens": 4096,
+  "providerOrigin": "https://vibi.top",
+  "cases": [
+    {
+      "id": "summary-update",
+      "requests": 1,
+      "statuses": [
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 325,
+          "completion_tokens": 482,
+          "total_tokens": 807,
+          "prompt_tokens_details": {
+            "cached_tokens": 256
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 277
+          }
+        }
+      ],
+      "responseModels": [
+        "deepseek-v4.1-flash"
+      ],
+      "answer": "Tóm tắt 5 tin nhắn gần nhất (trong phạm vi tối đa 30 tin nhắn gần đây):\n\n- **Quyết định:** Demo ban đầu dự kiến thứ Sáu 17:00 đã **hủy**; chuyển sang **thứ Hai lúc 09:00**.\n- **Việc đã nhận:** Minh nhận làm giao diện và hoàn tất **trước thứ Năm 16:00**; sau khi đổi lịch demo, Minh xác nhận **mốc giao diện vẫn giữ nguyên**.\n- **Vấn đề mở:** API thanh toán còn lỗi; **chưa ai nhận sửa** và **chưa có deadline sửa API**.\n- **Người tham gia:** Lan, Minh, Hà.",
+      "checks": {
+        "readHistory": true,
+        "latestDemo": true,
+        "ownerAndWork": true,
+        "avoidsInventedApiCommitment": true
+      },
+      "passed": true,
+      "latencyMs": 4714,
+      "historyReads": 1
+    },
+    {
+      "id": "missing-owner",
+      "requests": 2,
+      "statuses": [
+        200,
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 454,
+          "completion_tokens": 57,
+          "total_tokens": 511,
+          "prompt_tokens_details": {
+            "cached_tokens": 384
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 32
+          }
+        },
+        {
+          "prompt_tokens": 374,
+          "completion_tokens": 294,
+          "total_tokens": 668,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 52
+          }
+        }
+      ],
+      "responseModels": [
+        "deepseek-v4.1-flash",
+        "deepseek-v4.1-flash"
+      ],
+      "answer": "Dựa trên 5 tin nhắn gần nhất (phạm vi tối đa 30 tin nhắn gần đây), **chưa có ai nhận sửa lỗi API thanh toán và cũng chưa có deadline cụ thể**.\n\nCụ thể:\n- **Hà** cho biết API thanh toán vẫn còn lỗi, nhưng \"chưa ai nhận sửa, chưa có deadline sửa API.\"\n- Các tin nhắn sau đó chỉ bàn về lịch demo (chuyển sang thứ Hai 09:00, hủy lịch thứ Sáu 17:00) và mốc hoàn tất giao diện của **Minh** (giữ nguyên thứ Năm 16:00), không nhắc đến việc phân công sửa API.\n\nVì vậy, việc sửa lỗi API thanh toán hiện vẫn **chưa được giao** và **chưa có thời hạn**.",
+      "checks": {
+        "readHistory": true,
+        "acknowledgesUnknown": true,
+        "mentionsApi": true
+      },
+      "passed": true,
+      "latencyMs": 4838,
+      "historyReads": 1
+    },
+    {
+      "id": "schedule-reasoning",
+      "requests": 1,
+      "statuses": [
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 600,
+          "completion_tokens": 281,
+          "total_tokens": 881,
+          "prompt_tokens_details": {
+            "cached_tokens": 384
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 169
+          }
+        }
+      ],
+      "responseModels": [
+        "deepseek-v4.1-flash"
+      ],
+      "answer": "{\"gio_som_nhat\": 12, \"lich\": [{\"cong_viec\": \"A\", \"bat_dau\": 0, \"ket_thuc\": 3}, {\"cong_viec\": \"B\", \"bat_dau\": 3, \"ket_thuc\": 8}, {\"cong_viec\": \"C\", \"bat_dau\": 3, \"ket_thuc\": 5}, {\"cong_viec\": \"D\", \"bat_dau\": 8, \"ket_thuc\": 12}]}",
+      "checks": {
+        "noUnnecessaryHistory": true,
+        "validJson": true,
+        "optimalFinish": true,
+        "feasibleSchedule": true
+      },
+      "passed": true,
+      "latencyMs": 2895,
+      "historyReads": 0
+    }
+  ],
+  "note": "Small synthetic checks, not a general intelligence benchmark. Authentication and real conversation data are not used."
+}

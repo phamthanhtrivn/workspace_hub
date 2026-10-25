@@ -140,6 +140,7 @@ model TaskAssignee {
   task Task @relation(fields: [taskId, projectId], references: [id, projectId], onDelete: Cascade)
 
   @@index([projectId, userId], map: "idx_task_assignees_project_user")
+  @@index([userId], map: "idx_task_assignees_user")
   @@map("task_assignees")
 }
 

@@ -1,5 +1,7 @@
-import 'dotenv/config';
+import { loadServiceEnvironment } from './src/common/config/load-service-env';
 import { defineConfig } from 'prisma/config';
+
+loadServiceEnvironment();
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',

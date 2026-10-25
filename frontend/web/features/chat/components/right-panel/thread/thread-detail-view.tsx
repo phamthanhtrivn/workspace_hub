@@ -1,3 +1,5 @@
+import AiTypingIndicator from "../../message/ai-typing-indicator";
+import { useAiTypingIndicator } from "../../../hooks/message/useAiTypingIndicator";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import React, {
   useCallback,
@@ -150,6 +152,11 @@ export default function ThreadDetailView({
       (typeof chatId === "string" ? chatId : null)
     );
   }, [rootMessage]);
+  const aiTyping = useAiTypingIndicator(
+    rootChatId,
+    isDirect ? ChatContextType.DIRECT_MESSAGE : ChatContextType.CHANNEL,
+    rootMessage.id,
+  );
   const currentMember = activeChat?.members?.find(
     (member) => member.userId === currentUserId,
   );
@@ -684,6 +691,8 @@ export default function ThreadDetailView({
           </div>
         )}
       </div>
+
+      <AiTypingIndicator active={aiTyping} />
 
       {/* Input bar */}
       {canReplyInThread ? (

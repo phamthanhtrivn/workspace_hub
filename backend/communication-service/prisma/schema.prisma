@@ -826,3 +826,38 @@ model MeetingEvent {
   @@index([meetingId, actorId, type, createdAt], map: "meeting_events_recording_attendees_idx")
   @@map("meeting_events")
 }
+
+model ConversationAiRequest {
+  id String @id @db.Uuid
+  actorId String @map("actor_id") @db.Uuid
+  chatId String @map("chat_id") @db.Uuid
+  chatType String @map("chat_type")
+  status String @default("QUEUED")
+  token String? @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+  attachmentMediaId String? @map("attachment_media_id") @db.Uuid
+  attachmentHash String? @map("attachment_hash")
+  questionHash String? @map("question_hash")
+  dispatchAfter DateTime @default(now()) @map("dispatch_after") @db.Timestamptz
+  dispatchAttempts Int @default(0) @map("dispatch_attempts")
+  outbox ConversationAiOutbox?
+  @@index([status,dispatchAfter,createdAt],map:"conversation_ai_dispatch_due")
+  @@index([actorId,createdAt],map:"conversation_ai_actor_created")
+  @@index([status,createdAt],map:"conversation_ai_pending")
+  @@map("conversation_ai_requests")
+}
+
+model ConversationAiOutbox {
+ requestId String @id @map("request_id") @db.Uuid
+ replyId String @map("reply_id") @db.Uuid
+ status String @default("PENDING")
+ leaseToken String? @map("lease_token") @db.Uuid
+ leaseUntil DateTime? @map("lease_until") @db.Timestamptz
+ nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.Timestamptz
+ attempts Int @default(0)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+ request ConversationAiRequest @relation(fields:[requestId],references:[id],onDelete:Cascade)
+ @@index([status,nextAttemptAt],map:"conversation_ai_outbox_pending")
+ @@map("conversation_ai_outbox")
+}

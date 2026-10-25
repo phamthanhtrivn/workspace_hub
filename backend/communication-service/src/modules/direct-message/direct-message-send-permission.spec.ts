@@ -12,6 +12,7 @@ describe('direct message creation paths', () => {
       assertCanSend: jest.fn().mockRejectedValue(new ForbiddenException('DM blocked')),
     };
     const service = new DirectMessageService(
+      { register: jest.fn(), notify: jest.fn() } as any,
       prisma as any,
       {} as any,
       {} as any,

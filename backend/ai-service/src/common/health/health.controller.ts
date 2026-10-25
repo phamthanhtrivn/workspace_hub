@@ -4,6 +4,7 @@ import { db } from "../../infrastructure/database/database";
 import {
   queue,
   summaryQueue,
+  conversationQueue,
   WORKER_HEARTBEAT_VALUE,
 } from "../../infrastructure/queue/notebook.queue";
 import { checkHttpDependencies } from "./http-dependencies";
@@ -29,6 +30,14 @@ export class HealthController {
         WORKER_HEARTBEAT_VALUE
       )
         throw new Error("Notebook job worker unavailable");
+      if (config.CONVERSATION_AI_ENABLED === "true") {
+        await conversationQueue.getJobCounts("waiting");
+        if (
+          (await redis.get("wh-notebook:conversation-worker-heartbeat")) !==
+          "ready:conversation-v1"
+        )
+          throw new Error("Conversation worker unavailable");
+      }
       await checkHttpDependencies();
       return this.health();
     } catch {

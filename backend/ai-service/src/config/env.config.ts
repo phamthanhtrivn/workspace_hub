@@ -3,6 +3,19 @@ import { z } from "zod";
 
 export const config = z
   .object({
+    CONVERSATION_AI_ENABLED: z.enum(["true", "false"]).default("false"),
+    CONVERSATION_AI_MODEL: z.string().trim().min(1).optional(),
+    CONVERSATION_AI_MAX_TOKENS: z.coerce
+      .number()
+      .int()
+      .min(256)
+      .max(8192)
+      .optional(),
+    AI_COMMUNICATION_SERVICE_KEY: z.string().default(""),
+    COMMUNICATION_SERVICE_URL: z
+      .string()
+      .url()
+      .default("http://localhost:8083"),
     PORT: z.coerce.number().default(8087),
     AI_ENABLED: z.enum(["true", "false"]).default("false"),
     NODE_ENV: z
@@ -38,6 +51,15 @@ export const config = z
         code: z.ZodIssueCode.custom,
         path: ["LLM_BASE_URL"],
         message: "Visual data egress is approved only for https://vibi.top",
+      });
+    if (
+      value.CONVERSATION_AI_ENABLED === "true" &&
+      value.AI_COMMUNICATION_SERVICE_KEY.length < 32
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["AI_COMMUNICATION_SERVICE_KEY"],
+        message: "Configure a dedicated communication key",
       });
     if (value.AI_ENABLED !== "true") return;
     for (const name of [

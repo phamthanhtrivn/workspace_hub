@@ -1,0 +1,96 @@
+{
+  "evaluatedAt": "2026-10-24T05:57:22.054Z",
+  "model": "gpt-6.1-sol",
+  "maxTokens": 4096,
+  "providerOrigin": "https://vibi.top",
+  "cases": [
+    {
+      "id": "summary-update",
+      "requests": 1,
+      "statuses": [
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 331,
+          "completion_tokens": 184,
+          "total_tokens": 515
+        }
+      ],
+      "responseModels": [
+        "gpt-6.1-sol"
+      ],
+      "answer": "### Tóm tắt hội thoại\n*Phạm vi: tối đa 30 tin nhắn gần nhất; hiện có 5 tin nhắn được cung cấp.*\n\n**Quyết định đã chốt**\n- Demo chuyển sang **thứ Hai lúc 09:00**; lịch **thứ Sáu lúc 17:00 đã bị hủy**.\n- Hạn hoàn tất giao diện vẫn giữ nguyên: **trước thứ Năm lúc 16:00**.\n\n**Công việc và người phụ trách**\n- **Minh:** chuẩn bị giao diện, đã xác nhận nhận việc và giữ nguyên thời hạn.\n- **API thanh toán:** còn lỗi, **chưa có người nhận sửa và chưa có thời hạn khắc phục**.\n\n**Việc còn cần chốt**\n- Phân công người sửa API thanh toán và xác định thời hạn hoàn tất.",
+      "checks": {
+        "readHistory": true,
+        "latestDemo": true,
+        "ownerAndWork": true,
+        "avoidsInventedApiCommitment": true
+      },
+      "passed": true,
+      "latencyMs": 6036,
+      "historyReads": 1
+    },
+    {
+      "id": "missing-owner",
+      "requests": 2,
+      "statuses": [
+        200,
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 178,
+          "completion_tokens": 15,
+          "total_tokens": 193
+        },
+        {
+          "prompt_tokens": 345,
+          "completion_tokens": 78,
+          "total_tokens": 423
+        }
+      ],
+      "responseModels": [
+        "gpt-6.1-sol",
+        "gpt-6.1-sol"
+      ],
+      "answer": "Theo các tin nhắn gần đây được cung cấp (phạm vi tối đa 30 tin), **chưa ai nhận sửa lỗi API thanh toán và chưa có deadline sửa lỗi cụ thể**. Hà đã xác nhận rõ điều này.\n\nMốc **thứ Hai lúc 09:00** là lịch demo mới, **không phải deadline sửa API**.",
+      "checks": {
+        "readHistory": true,
+        "acknowledgesUnknown": true,
+        "mentionsApi": true
+      },
+      "passed": true,
+      "latencyMs": 5711,
+      "historyReads": 1
+    },
+    {
+      "id": "schedule-reasoning",
+      "requests": 1,
+      "statuses": [
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 298,
+          "completion_tokens": 93,
+          "total_tokens": 391
+        }
+      ],
+      "responseModels": [
+        "gpt-6.1-sol"
+      ],
+      "answer": "{\"gio_som_nhat\":12,\"lich\":[{\"cong_viec\":\"A\",\"bat_dau\":0,\"ket_thuc\":3},{\"cong_viec\":\"B\",\"bat_dau\":3,\"ket_thuc\":8},{\"cong_viec\":\"C\",\"bat_dau\":3,\"ket_thuc\":5},{\"cong_viec\":\"D\",\"bat_dau\":8,\"ket_thuc\":12}]}",
+      "checks": {
+        "noUnnecessaryHistory": true,
+        "validJson": true,
+        "optimalFinish": true,
+        "feasibleSchedule": true
+      },
+      "passed": true,
+      "latencyMs": 3365,
+      "historyReads": 0
+    }
+  ],
+  "note": "Small synthetic checks, not a general intelligence benchmark. Authentication and real conversation data are not used."
+}

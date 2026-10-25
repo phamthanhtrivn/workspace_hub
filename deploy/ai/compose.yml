@@ -89,6 +89,8 @@ services:
     build: ../../backend/ai-service
     env_file: .env
     command: [node, dist/worker.js]
+    # Let active model calls checkpoint and deliver before Docker stops the worker.
+    stop_grace_period: 4m
     extra_hosts: ["host.docker.internal:host-gateway"]
     networks: [default, workspace]
     depends_on:

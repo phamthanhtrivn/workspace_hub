@@ -30,6 +30,7 @@ export class MessageController {
     @Headers('x-user-id') userId: string,
     @Body()
     data: {
+      attachmentMediaId?: string;
       content?: string;
       type?: MessageType;
       medias?: {
@@ -74,6 +75,7 @@ export class MessageController {
       data.noteData,
       data.threadParentId,
       data.mentions,
+      data.attachmentMediaId,
     );
 
     return {

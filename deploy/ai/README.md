@@ -155,3 +155,16 @@ Kiểm thử bổ sung: `node --test test/visual-ingestion.test.cjs` trong AI se
 Tắt `AI_ENABLED`, restart API/jobs hoặc `docker compose stop notebook-api notebook-jobs rag-worker`. Frontend/Document Service ngoài AI tiếp tục hoạt động. Giữ nguyên các volume để bảo toàn notebook/checkpoint; không drop database/collection và không xóa file Document Service khi rollback.
 
 Không đưa `.env`, key hoặc presigned URL vào Git/log/chat. Các key đã từng dán vào hội thoại cần được thu hồi và cấp mới trước khi sử dụng.
+
+## Cập nhật worker mà vẫn giữ phản hồi đang xử lý
+
+`notebook-jobs` đặt `stop_grace_period: 4m` để SIGTERM có thời gian chờ các job
+đang chạy kết thúc và lưu checkpoint. Không dùng stop timeout ngắn hoặc kill -9
+cho cập nhật bình thường. Khi cần dừng thủ công, dùng
+`docker stop --timeout 240 wh-notebook-notebook-jobs-1` trước khi thay container.
+
+Conversation worker lưu token nhận việc vào Redis trước khi gọi model. Job
+khởi động lại có token nhưng chưa có câu trả lời sẽ gửi thông báo gián đoạn;
+job đã có câu trả lời chỉ gửi lại kết quả đó. Không gọi lại model khi kết quả
+lần gọi trước chưa xác định. Xem `backend/ai-service/CONVERSATION_AI.md` để biết
+kiểm thử khôi phục và giới hạn ở khoảng giữa SQL claim/Redis checkpoint.

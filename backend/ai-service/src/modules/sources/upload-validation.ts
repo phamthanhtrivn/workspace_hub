@@ -166,14 +166,19 @@ export async function validateContent(
   });
 }
 
-export async function downloadSource(manifest: Manifest): Promise<Buffer> {
+export async function downloadSource(
+  manifest: Pick<Manifest, "name" | "sizeBytes" | "downloadUrl">,
+  signal?: AbortSignal,
+): Promise<Buffer> {
   checkFile(manifest.name, manifest.sizeBytes);
   if (!manifest.downloadUrl)
     throw new ServiceUnavailableException("Không lấy được liên kết file gốc.");
   let response: Response;
   try {
     response = await fetch(manifest.downloadUrl, {
-      signal: AbortSignal.timeout(30000),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(30000)])
+        : AbortSignal.timeout(30000),
       redirect: "error",
     });
   } catch {

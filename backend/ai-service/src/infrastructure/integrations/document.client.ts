@@ -75,3 +75,51 @@ export async function authorizeSources(
   }
   return manifests;
 }
+
+export async function resolveChatAttachment(
+  ref: { userId: string; s3Key: string },
+  download: boolean,
+  signal: AbortSignal,
+) {
+  let response: Response;
+  try {
+    response = await fetch(
+      `${config.DOCUMENT_SERVICE_URL}/internal/notebook-documents/resolve-chat-attachment`,
+      {
+        method: "POST",
+        redirect: "error",
+        headers: {
+          "content-type": "application/json",
+          "x-internal-service-key": config.AI_DOCUMENT_SERVICE_KEY,
+        },
+        body: JSON.stringify({ ...ref, download }),
+        signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]),
+      },
+    );
+  } catch {
+    throw new ServiceUnavailableException(
+      "Không xác minh được quyền tài liệu gốc.",
+    );
+  }
+  if (!response.ok) {
+    await response.body?.cancel();
+    if (response.status === 403 || response.status === 404)
+      throw new ForbiddenException(
+        "Tài liệu gốc đã bị xóa hoặc bạn chưa có quyền đọc.",
+      );
+    throw new ServiceUnavailableException(
+      "Document Service chưa sẵn sàng xác minh file.",
+    );
+  }
+  return (
+    (await response.json()) as {
+      data: {
+        documentId: string;
+        versionId: string;
+        revision: string;
+        sizeBytes: number;
+        downloadUrl?: string;
+      };
+    }
+  ).data;
+}

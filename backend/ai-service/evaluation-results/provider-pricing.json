@@ -1,0 +1,70 @@
+{
+  "fetchedAt": "2026-10-24T05:51:38.207Z",
+  "source": "https://vibi.top/api/pricing",
+  "groupRatio": {
+    "Claude Max 20x Account": 6,
+    "auto": 1,
+    "claude": 1.1,
+    "codex plus": 0.6,
+    "codex pro": 0.8,
+    "gemini ultra": 3,
+    "grok heavy": 0.8,
+    "image - 2k": 1,
+    "image - 4k": 5.5,
+    "model - china": 0.9
+  },
+  "models": [
+    {
+      "model_name": "deepseek-v4.1-flash",
+      "vendor_id": -1005,
+      "quota_type": 0,
+      "model_ratio": 37.5,
+      "model_price": 0,
+      "owner_by": "",
+      "completion_ratio": 1,
+      "enable_groups": [
+        "model - china"
+      ],
+      "supported_endpoint_types": [
+        "openai"
+      ],
+      "billing_mode": "tiered_expr",
+      "billing_expr": "(tier(\"base\", p * 2.2 + c * 8.5 + cr * 0.3)) * (hour(\"UTC\") >= 1 && hour(\"UTC\") < 4 ? 2 : 1) * (hour(\"UTC\") >= 6 && hour(\"UTC\") < 10 ? 2 : 1)"
+    },
+    {
+      "model_name": "gpt-6.1-sol",
+      "vendor_id": -1012,
+      "quota_type": 0,
+      "model_ratio": 37.5,
+      "model_price": 0,
+      "owner_by": "",
+      "completion_ratio": 2,
+      "enable_groups": [
+        "codex pro",
+        "codex plus"
+      ],
+      "supported_endpoint_types": [
+        "openai"
+      ],
+      "billing_mode": "tiered_expr",
+      "billing_expr": "len <= 272000 ? tier(\"0_272k\", p * 2.5 + cr * 0.2 + cc * 3 + c * 10.5) : tier(\"272k_plus\", p * 4 + cr * 0.2 + cc * 5 + c * 15)"
+    },
+    {
+      "model_name": "gpt-6-astra",
+      "vendor_id": -1012,
+      "quota_type": 0,
+      "model_ratio": 37.5,
+      "model_price": 0,
+      "owner_by": "",
+      "completion_ratio": 2,
+      "enable_groups": [
+        "codex pro"
+      ],
+      "supported_endpoint_types": [
+        "openai"
+      ],
+      "billing_mode": "tiered_expr",
+      "billing_expr": "len <= 272000 ? tier(\"standard\", p * 10 + c * 50 + cr * 1 + cc * 12.5) : tier(\"long_context\", p * 20 + c * 75 + cr * 2 + cc * 25)"
+    }
+  ]
+}

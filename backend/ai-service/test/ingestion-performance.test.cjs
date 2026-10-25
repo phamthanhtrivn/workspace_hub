@@ -69,6 +69,7 @@ require.cache[require.resolve("bullmq")].exports = {
 const {
   queue,
   summaryQueue,
+  conversationQueue,
   enqueue,
   findQueuedJob,
   closeQueues,
@@ -200,18 +201,35 @@ test("index lane completes while summary lane is waiting; heartbeat requires bot
   });
   let heartbeats = 0;
   queue.client = Promise.resolve({
-    set: async (_key, value, opts) => {
-      assert.equal(value, "ready:split-v1");
+    set: async (key, value, opts) => {
+      assert.equal(
+        value,
+        key.endsWith("conversation-worker-heartbeat")
+          ? "ready:conversation-v1"
+          : "ready:split-v1",
+      );
       assert.equal(opts.EX, 45);
       heartbeats++;
     },
   });
+  config.CONVERSATION_AI_ENABLED = "true";
+  t.after(() => {
+    config.CONVERSATION_AI_ENABLED = "false";
+  });
+  let conversationHandled = 0;
+  t.mock.method(
+    require("../dist/jobs/conversation.processor"),
+    "processConversation",
+    async () => {
+      conversationHandled++;
+    },
+  );
   const previousHandlers = process.listeners("SIGTERM");
   require("../dist/worker");
   await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(
     workers.map((worker) => worker.name),
-    ["notebook-jobs", "notebook-summary-jobs"],
+    ["notebook-jobs", "notebook-summary-jobs", "conversation-ai-jobs"],
   );
   assert.ok(
     workers.every(
@@ -233,6 +251,8 @@ test("index lane completes while summary lane is waiting; heartbeat requires bot
   });
   const waitingSummary = workers[1].processor(job("summary"));
   assert.ok(release);
+  await workers[2].processor(job("conversation"));
+  assert.equal(conversationHandled, 1);
   await workers[0].processor(job("index"));
   assert.equal(reports.find((r) => r.operation === "job_index").status, "ok");
   assert.equal(
@@ -248,12 +268,12 @@ test("index lane completes while summary lane is waiting; heartbeat requires bot
   const heartbeat = timers.find((timer) => timer.ms === 10000);
   heartbeat.run();
   await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(heartbeats, 1);
-  workers[1].running = false;
+  assert.equal(heartbeats, 2);
+  workers[2].running = false;
   heartbeat.run();
   await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(heartbeats, 1);
-  workers[1].running = true;
+  assert.equal(heartbeats, 2);
+  workers[2].running = true;
   const shutdown = process
     .listeners("SIGTERM")
     .find((handler) => !previousHandlers.includes(handler));
@@ -262,4 +282,18 @@ test("index lane completes while summary lane is waiting; heartbeat requires bot
   await new Promise((resolve) => setImmediate(resolve));
   assert.ok(workers.every((worker) => !worker.running));
   assert.equal(databaseClosed, 1);
+});
+
+test("conversation jobs use a dedicated lane and preserve active legacy jobs", async () => {
+  const id = randomUUID();
+  await enqueue("conversation", id, { requestId: id });
+  assert.ok(await conversationQueue.getJob(`conversation-${id}`));
+  assert.equal(await queue.getJob(`conversation-${id}`), undefined);
+  const oldId = randomUUID();
+  queue.fixture(`conversation-${oldId}`, "active");
+  await enqueue("conversation", oldId, {});
+  assert.equal(
+    await conversationQueue.getJob(`conversation-${oldId}`),
+    undefined,
+  );
 });

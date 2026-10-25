@@ -1,0 +1,96 @@
+{
+  "evaluatedAt": "2026-10-24T06:11:41.289Z",
+  "model": "gpt-6.1-sol",
+  "maxTokens": 2048,
+  "providerOrigin": "https://vibi.top",
+  "cases": [
+    {
+      "id": "summary-update",
+      "requests": 1,
+      "statuses": [
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 362,
+          "completion_tokens": 149,
+          "total_tokens": 511
+        }
+      ],
+      "responseModels": [
+        "gpt-6.1-sol"
+      ],
+      "answer": "**Tóm tắt trong phạm vi tối đa 30 tin nhắn gần nhất** (có 5 tin nhắn được trả về):\n\n**Quyết định**\n- Demo chuyển sang **thứ Hai lúc 09:00**; lịch thứ Sáu lúc 17:00 đã hủy.\n- Hạn hoàn tất giao diện vẫn giữ nguyên: **trước thứ Năm lúc 16:00**.\n\n**Việc cần làm**\n- **Minh:** Chuẩn bị và hoàn tất giao diện theo hạn trên.\n- **API thanh toán:** Còn lỗi, **chưa có người nhận sửa và chưa có thời hạn**; cần phân công và chốt hạn xử lý.",
+      "checks": {
+        "readHistory": true,
+        "latestDemo": true,
+        "ownerAndWork": true,
+        "avoidsInventedApiCommitment": true
+      },
+      "passed": true,
+      "latencyMs": 4727,
+      "historyReads": 1
+    },
+    {
+      "id": "missing-owner",
+      "requests": 2,
+      "statuses": [
+        200,
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 209,
+          "completion_tokens": 15,
+          "total_tokens": 224
+        },
+        {
+          "prompt_tokens": 376,
+          "completion_tokens": 61,
+          "total_tokens": 437
+        }
+      ],
+      "responseModels": [
+        "gpt-6.1-sol",
+        "gpt-6.1-sol"
+      ],
+      "answer": "Theo các tin nhắn gần đây, **chưa ai nhận sửa lỗi API thanh toán và chưa có deadline sửa lỗi**. Hà đã xác nhận rõ điều này.\n\nMốc **thứ Hai lúc 09:00** là lịch demo mới, không phải hạn sửa API.",
+      "checks": {
+        "readHistory": true,
+        "acknowledgesUnknown": true,
+        "mentionsApi": true
+      },
+      "passed": true,
+      "latencyMs": 5161,
+      "historyReads": 1
+    },
+    {
+      "id": "schedule-reasoning",
+      "requests": 1,
+      "statuses": [
+        200
+      ],
+      "usage": [
+        {
+          "prompt_tokens": 329,
+          "completion_tokens": 93,
+          "total_tokens": 422
+        }
+      ],
+      "responseModels": [
+        "gpt-6.1-sol"
+      ],
+      "answer": "{\"gio_som_nhat\":12,\"lich\":[{\"cong_viec\":\"A\",\"bat_dau\":0,\"ket_thuc\":3},{\"cong_viec\":\"B\",\"bat_dau\":3,\"ket_thuc\":8},{\"cong_viec\":\"C\",\"bat_dau\":3,\"ket_thuc\":5},{\"cong_viec\":\"D\",\"bat_dau\":8,\"ket_thuc\":12}]}",
+      "checks": {
+        "noUnnecessaryHistory": true,
+        "validJson": true,
+        "optimalFinish": true,
+        "feasibleSchedule": true
+      },
+      "passed": true,
+      "latencyMs": 2963,
+      "historyReads": 0
+    }
+  ],
+  "note": "Small synthetic checks, not a general intelligence benchmark. Authentication and real conversation data are not used."
+}

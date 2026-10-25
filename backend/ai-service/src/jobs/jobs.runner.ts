@@ -1,3 +1,4 @@
+import { processConversation } from "./conversation.processor";
 import { Worker, UnrecoverableError, type Job } from "bullmq";
 import { config, connection } from "../config/env.config";
 import { db, rows } from "../infrastructure/database/database";
@@ -12,9 +13,19 @@ import { recoverInterruptedJobs } from "./job-recovery";
 import { Profile } from "../common/profiling/pipeline-profiler";
 import { indexSource } from "./index.processor";
 import { summarize } from "./summary.processor";
+async function processConversationJob(job: Job) {
+  return processConversation(job.data.requestId, {
+    answer: job.data.answer,
+    claimToken: job.data.claimToken,
+    saveClaim: async (claimToken) =>
+      job.updateData({ ...job.data, claimToken }),
+    save: async (answer) => job.updateData({ ...job.data, answer }),
+  });
+}
 async function processJob(job: Job) {
-  if (!["index", "summary", "cleanup"].includes(job.name))
+  if (!["index", "summary", "cleanup", "conversation"].includes(job.name))
     throw new UnrecoverableError("Unknown job");
+  if (job.name === "conversation") return processConversationJob(job);
   const timing = new Profile(
     `job_${job.name}` as "job_index" | "job_summary" | "job_cleanup",
   );
@@ -52,7 +63,24 @@ export function startWorkers() {
     },
     { connection, prefix: "wh-notebook", concurrency: 1, autorun: false },
   );
-  for (const current of [worker, summaryWorker]) {
+  const conversationWorker =
+    config.CONVERSATION_AI_ENABLED === "true"
+      ? new Worker(
+          "conversation-ai-jobs",
+          (job) => {
+            if (job.name !== "conversation")
+              throw new UnrecoverableError("Unknown conversation job");
+            return processConversationJob(job);
+          },
+          { connection, prefix: "wh-notebook", concurrency: 1, autorun: false },
+        )
+      : undefined;
+  const workers = [
+    worker,
+    summaryWorker,
+    ...(conversationWorker ? [conversationWorker] : []),
+  ];
+  for (const current of workers) {
     current.on("error", () =>
       console.error("Notebook queue connection failed"),
     );
@@ -61,13 +89,23 @@ export function startWorkers() {
     );
   }
   const heartbeat = setInterval(() => {
-    if (!worker.isRunning() || !summaryWorker.isRunning()) return;
+    if (workers.some((current) => !current.isRunning())) return;
     void queue.client
-      .then((client) =>
-        client.set("wh-notebook:worker-heartbeat", WORKER_HEARTBEAT_VALUE, {
-          EX: 45,
-        }),
-      )
+      .then(async (client) => {
+        if (conversationWorker)
+          await client.set(
+            "wh-notebook:conversation-worker-heartbeat",
+            "ready:conversation-v1",
+            { EX: 45 },
+          );
+        return client.set(
+          "wh-notebook:worker-heartbeat",
+          WORKER_HEARTBEAT_VALUE,
+          {
+            EX: 45,
+          },
+        );
+      })
       .catch(() => console.error("Notebook worker heartbeat unavailable"));
   }, 10000);
   async function reconcile() {
@@ -98,7 +136,7 @@ export function startWorkers() {
   }, 30000);
   if (config.AI_ENABLED === "true")
     void reconcile()
-      .then(() => Promise.all([worker.run(), summaryWorker.run()]))
+      .then(() => Promise.all(workers.map((current) => current.run())))
       .catch(() => {
         console.error("Notebook worker startup failed");
         process.exitCode = 1;
@@ -111,7 +149,7 @@ export function startWorkers() {
     stopping = true;
     clearInterval(heartbeat);
     clearInterval(sweep);
-    void Promise.all([worker.close(), summaryWorker.close()])
+    void Promise.all(workers.map((current) => current.close()))
       .then(() => Promise.all([closeQueues(), db.end()]))
       .catch(() => {
         console.error("Notebook worker shutdown failed");

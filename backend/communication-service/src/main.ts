@@ -1,8 +1,5 @@
-import * as dotenv from 'dotenv';
-dotenv.config();
-if (process.env.NODE_ENV !== 'production') {
-  dotenv.config({ path: '.env.local', override: true });
-}
+import { loadServiceEnvironment } from './common/config/load-service-env';
+loadServiceEnvironment();
 
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';

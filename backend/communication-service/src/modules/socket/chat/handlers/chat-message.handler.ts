@@ -1,3 +1,4 @@
+import { assertClientMessageType } from '../../../../common/auth/client-message-type';
 import { ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { MessageType } from '@prisma/client';
 import { Socket } from 'socket.io';
@@ -62,6 +63,7 @@ export class ChatMessageHandler {
     }
 
     try {
+      assertClientMessageType(data.type);
       const message = await this.messageService.createMessage(
         data.channelId,
         userId,
