@@ -2,13 +2,14 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { MeetingRole, MeetingStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserProfileSnapshotService } from '../../user-profile-snapshot/user-profile-snapshot.service';
-import { MEETING_ERROR_MESSAGES } from '../types/meeting.enums';
+import { MEETING_ERROR_MESSAGES, MeetingHistoryVisibility } from '../types/meeting.enums';
 import type {
   ListMeetingHistoryParams,
   ListMeetingHistorySummaryParams,
   MeetingHistorySummaryResponse,
 } from '../types/meeting.types';
 import { MeetingPresenterService } from './meeting-presenter.service';
+import { meetingHistoryMutationWhere } from '../utils/meeting-history-visibility.utils';
 import { DEFAULT_HISTORY_LIMIT, MAX_HISTORY_LIMIT, PARTICIPANT_PREVIEW_LIMIT } from '../types/meeting.constants';
 
 function normalizePositiveNumber(value: unknown, fallback: number) {
@@ -47,10 +48,17 @@ export class MeetingHistoryService {
       MAX_HISTORY_LIMIT,
       normalizePositiveNumber(query?.limit, DEFAULT_HISTORY_LIMIT),
     );
-    const meetingWhere = this.getJoinedMeetingWhere(userId);
+    const preferenceWhere = { userId, hiddenAt: { not: null } };
+    const meetingWhere: Prisma.MeetingWhereInput = {
+      ...this.getJoinedMeetingWhere(userId),
+      historyPreferences: query?.visibility === MeetingHistoryVisibility.HIDDEN
+        ? { some: preferenceWhere }
+        : { none: preferenceWhere },
+    };
 
-    const [total, meetings] = await this.prisma.$transaction([
+    const [total, actionableTotal, meetings] = await this.prisma.$transaction([
       this.prisma.meeting.count({ where: meetingWhere }),
+      this.prisma.meeting.count({ where: meetingHistoryMutationWhere(userId, query?.visibility !== MeetingHistoryVisibility.HIDDEN) }),
       this.prisma.meeting.findMany({
         where: meetingWhere,
         select: {
@@ -87,6 +95,7 @@ export class MeetingHistoryService {
         page,
         limit,
         total,
+        actionableTotal,
         totalPages: Math.max(1, Math.ceil(total / limit)),
       };
     }
@@ -156,6 +165,7 @@ export class MeetingHistoryService {
       page,
       limit,
       total,
+      actionableTotal,
       totalPages: Math.max(1, Math.ceil(total / limit)),
     };
   }

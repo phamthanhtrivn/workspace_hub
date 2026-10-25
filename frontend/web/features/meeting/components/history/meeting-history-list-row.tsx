@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarClock, UsersRound } from "lucide-react";
+import type { ReactNode } from "react";
 import { MeetingStatusTag } from "../common/meeting-status-tag";
 import type { MeetingHistoryItem } from "../../types/meeting.types";
 import { MeetingJoinTokenCopyButton } from "./meeting-join-token-copy-button";
@@ -11,12 +12,15 @@ import {
 
 interface MeetingHistoryListRowProps {
   meeting: MeetingHistoryItem;
+  actions?: ReactNode;
+  selection?: ReactNode;
 }
 
-export function MeetingHistoryListRow({ meeting }: MeetingHistoryListRowProps) {
+export function MeetingHistoryListRow({ meeting, actions, selection }: MeetingHistoryListRowProps) {
   return (
-    <article className="grid min-w-0 gap-4 rounded-panel border border-border bg-card p-4 text-card-foreground @min-[760px]/meeting-content:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.8fr)_7rem] sm:items-center">
+    <article className="grid min-w-0 gap-4 rounded-panel border border-border bg-card p-4 text-card-foreground @min-[760px]/meeting-content:grid-cols-[minmax(0,1.35fr)_minmax(11rem,0.8fr)_10rem] sm:items-center">
       <div className="flex min-w-0 items-center gap-3">
+        {selection}
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-control bg-secondary text-secondary-foreground">
           <CalendarClock className="h-5 w-5" aria-hidden />
         </span>
@@ -41,8 +45,9 @@ export function MeetingHistoryListRow({ meeting }: MeetingHistoryListRowProps) {
         </span>
       </div>
 
-      <div className="flex items-center justify-start sm:justify-end">
+      <div className="flex items-center justify-start gap-1 sm:justify-end">
         <MeetingStatusTag className="w-28" status={meeting.status} />
+        {actions}
       </div>
     </article>
   );

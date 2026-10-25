@@ -1,11 +1,13 @@
+import type { MeetingHistoryVisibility } from "./meeting.types";
+
 export const meetingKeys = {
   historyRoot: ["meeting-history"] as const,
   historySummary: ["meeting-history", "summary"] as const,
   upcomingRoot: ["meeting-upcoming"] as const,
   upcoming: (page: number, limit: number) =>
     ["meeting-upcoming", page, limit] as const,
-  history: (page: number, limit: number) =>
-    ["meeting-history", page, limit] as const,
+  history: (page: number, limit: number, visibility: MeetingHistoryVisibility = "visible") =>
+    ["meeting-history", page, limit, visibility] as const,
   access: (joinToken: string) => ["meeting-access", joinToken] as const,
   joinRequestCount: (joinToken: string) =>
     ["meeting-join-requests", joinToken, "count"] as const,

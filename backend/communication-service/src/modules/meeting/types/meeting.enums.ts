@@ -3,6 +3,16 @@ export enum MeetingSocketStatus {
   ERROR = 'error',
 }
 
+export enum MeetingHistoryVisibility {
+  VISIBLE = 'visible',
+  HIDDEN = 'hidden',
+}
+
+export enum MeetingHistoryBulkScope {
+  ALL = 'all',
+  SELECTED = 'selected',
+}
+
 export enum MEETING_SUCCESS_MESSAGES {
   INSTANT_CREATED = 'Instant meeting created successfully',
   SCHEDULED_CREATED = 'Scheduled meeting created successfully',
@@ -15,6 +25,7 @@ export enum MEETING_SUCCESS_MESSAGES {
   JOINED = 'Meeting joined successfully',
   ACCESS_CHECKED = 'Meeting access checked successfully',
   HISTORY_LISTED = 'Meeting history listed successfully',
+  HISTORY_VISIBILITY_UPDATED = 'Meeting history visibility updated successfully',
   SETTINGS_UPDATED = 'Meeting settings updated successfully',
   PARTICIPANTS_LISTED = 'Meeting participants listed successfully',
   JOIN_REQUESTED = 'Meeting join request submitted successfully',
@@ -44,6 +55,12 @@ export enum MEETING_SUCCESS_MESSAGES {
 
 export enum MEETING_ERROR_MESSAGES {
   MISSING_USER_ID = 'Missing userId',
+  HISTORY_ACCESS_REQUIRED = 'Only users who joined this meeting can manage their history',
+  HISTORY_TERMINAL_REQUIRED = 'Only ended or cancelled meetings can be hidden',
+  HISTORY_SELECTION_REQUIRED = 'Select at least one meeting',
+  HISTORY_SCOPE_INVALID = 'Meeting IDs can only be provided for selected scope',
+  HISTORY_CONFIRMATION_REQUIRED = 'Confirm the number of meetings before updating all history',
+  HISTORY_SELECTION_CHANGED = 'Meeting history changed. Review the selection and try again.',
   MEETING_NOT_FOUND = 'Meeting not found',
   MEETING_NOT_LIVE = 'Meeting is not live',
   MEETING_NOT_STARTED = 'Meeting has not started yet',

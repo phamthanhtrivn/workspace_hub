@@ -11,6 +11,9 @@ import { MeetingLiveKitWebhookController } from './meeting-livekit-webhook.contr
 import { MeetingService } from './meeting.service';
 import { MeetingAdmissionService } from './services/meeting-admission.service';
 import { MeetingHistoryService } from './services/meeting-history.service';
+import { MeetingHistoryPreferenceController } from './meeting-history-preference.controller';
+import { MeetingHistoryPreferenceService } from './services/meeting-history-preference.service';
+import { MeetingHistoryBulkService } from './services/meeting-history-bulk.service';
 import { MeetingLiveKitWebhookService } from './services/meeting-livekit-webhook.service';
 import { MeetingSchedulePublisher } from './events/meeting-schedule.publisher';
 import { MeetingScheduleService } from './services/meeting-schedule.service';
@@ -42,6 +45,7 @@ import { MeetingCaptionsService } from './services/meeting-captions.service';
     DirectMessagePermissionModule,
   ],
   controllers: [
+    MeetingHistoryPreferenceController,
     MeetingCaptionsController,
     MeetingRecordingController,
     MeetingController,
@@ -58,6 +62,8 @@ import { MeetingCaptionsService } from './services/meeting-captions.service';
     MeetingRoomService,
     MeetingLiveKitWebhookService,
     MeetingHistoryService,
+    MeetingHistoryPreferenceService,
+    MeetingHistoryBulkService,
     MeetingParticipantService,
     MeetingMessageService,
     MeetingAdmissionService,
