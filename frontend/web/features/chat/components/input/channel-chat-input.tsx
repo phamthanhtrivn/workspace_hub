@@ -1249,9 +1249,10 @@ const ChannelChatInput = React.memo(
             onClose={() => setIsMyFilesModalOpen(false)}
             onSelect={handleSelectMyFiles}
           />
-          {isTaskModalOpen && (
+          {isTaskModalOpen && spaceDetail?.projectId && (
             <TaskFormDialog
               open={isTaskModalOpen}
+              projectId={spaceDetail.projectId}
               projectName={spaceDetail?.name}
               onClose={() => setIsTaskModalOpen(false)}
               onSubmit={handleTaskSubmit}

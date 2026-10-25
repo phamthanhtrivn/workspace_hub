@@ -1,5 +1,20 @@
 import { TaskPriority, TaskStatus } from "../types/project";
 
+export const TASK_ASSIGNEE_LABELS = {
+  field: "Assignee",
+  unassigned: "Unassigned",
+  assignToMe: "Assign to me",
+  select: "Select task assignee",
+  search: "Search project members",
+  searchPlaceholder: "Search members...",
+  loading: "Loading project members...",
+  loadError: "Could not load project members.",
+  retry: "Try again",
+  empty: "No project members found.",
+  unavailable: "Selected member is no longer available",
+  hint: "Optional. Assign this task to an active project member.",
+} as const;
+
 // Header and rows share tracks; the minimum width includes 32px horizontal padding.
 export const BACKLOG_LAYOUT = {
   columns: "grid-cols-[minmax(240px,1fr)_120px_110px_72px_72px_96px]",
