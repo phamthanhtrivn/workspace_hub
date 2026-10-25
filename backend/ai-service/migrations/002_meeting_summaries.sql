@@ -14,3 +14,5 @@ CREATE TABLE IF NOT EXISTS notebook_ai.meeting_summaries (
 );
 CREATE INDEX IF NOT EXISTS meeting_summary_recovery
   ON notebook_ai.meeting_summaries(status,updated_at);
+ALTER TABLE notebook_ai.meeting_summaries
+  ADD COLUMN IF NOT EXISTS transcript_complete boolean NOT NULL DEFAULT false;

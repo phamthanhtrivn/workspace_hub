@@ -100,10 +100,33 @@ test("explicit retries preserve same-revision checkpoints and create a new run",
   await controller.start(id, key, actor);
   const first = meetingSummaryQueue.added[0].data.runId;
   await sql.exec(
-    `UPDATE notebook_ai.meeting_summaries SET status='FAILED',transcript='[{"startSeconds":0,"text":"saved"}]'`,
+    `UPDATE notebook_ai.meeting_summaries SET status='FAILED',transcript_complete=true,transcript='[{"startSeconds":0,"text":"saved"}]'`,
   );
   assert.equal((await controller.start(id, key, actor)).transcribedChunks, 1);
   assert.notEqual(meetingSummaryQueue.added[1].data.runId, first);
+  assert.equal(
+    (
+      await sql.query(
+        "SELECT transcript_complete FROM notebook_ai.meeting_summaries",
+      )
+    ).rows[0].transcript_complete,
+    true,
+  );
+});
+
+test("a new recording revision clears completed transcript and note checkpoints", async () => {
+  await controller.start(id, key, actor);
+  await sql.exec(`UPDATE notebook_ai.meeting_summaries SET status='FAILED',transcript_complete=true,
+    transcript='[{"startSeconds":0,"text":"old"}]',partials='[{"hash":"old","text":"old"}]'`);
+  source.meetingSource.mock.mockImplementation(async () => ({
+    revision: "b".repeat(64),
+  }));
+  await controller.start(id, key, actor);
+  const saved = (await sql.query("SELECT * FROM notebook_ai.meeting_summaries"))
+    .rows[0];
+  assert.equal(saved.transcript_complete, false);
+  assert.deepEqual(saved.transcript, []);
+  assert.deepEqual(saved.partials, []);
 });
 
 test("queue failures leave an explicit retryable failure rather than a stuck queued result", async (t) => {

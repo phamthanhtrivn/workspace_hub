@@ -6,6 +6,11 @@ import { config } from "../../config/env.config";
 const auth = new GoogleAuth({
   scopes: ["https://www.googleapis.com/auth/cloud-platform"],
 });
+export class SpeechRecognitionError extends Error {
+  constructor(readonly status: number) {
+    super(`Speech provider HTTP ${status}`);
+  }
+}
 const speechResponse = z.object({
   results: z
     .array(
@@ -51,7 +56,7 @@ export async function recognizeMeetingChunk(path: string, signal: AbortSignal) {
   );
   if (!response.ok) {
     await response.body?.cancel();
-    throw new Error(`Speech provider HTTP ${response.status}`);
+    throw new SpeechRecognitionError(response.status);
   }
   const result = speechResponse.parse(await response.json());
   const text = (result.results || [])

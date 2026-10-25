@@ -121,12 +121,110 @@ test("hierarchical summary retry reuses transcript and completed model notes", a
   await processMeetingSummary(id, runId);
   assert.equal((await state()).status, "FAILED");
   assert.equal((await state()).partials.length, 2);
+  assert.equal((await state()).transcript_complete, true);
+  fixture.mediaMock.mock.mockImplementation(async () =>
+    assert.fail("complete transcript must skip download and FFmpeg"),
+  );
   await sql.exec("UPDATE notebook_ai.meeting_summaries SET status='QUEUED'");
   await processMeetingSummary(id, runId);
   assert.equal((await state()).status, "COMPLETED");
   assert.equal(recognized, 2);
   assert.equal(notes, 2);
   assert.equal(finals, 2);
+});
+
+test("speech requests overlap within the configured bound and checkpoints stay in timeline order", async (t) => {
+  const fixture = mocks(t);
+  const savedConcurrency = config.MEETING_STT_CONCURRENCY;
+  config.MEETING_STT_CONCURRENCY = 2;
+  t.after(() => {
+    config.MEETING_STT_CONCURRENCY = savedConcurrency;
+  });
+  fixture.mediaMock.mock.mockImplementation(async () => [
+    "chunk0",
+    "chunk1",
+    "chunk2",
+    "chunk3",
+  ]);
+  let active = 0,
+    maximum = 0;
+  fixture.speechMock.mock.mockImplementation(async (name) => {
+    active++;
+    maximum = Math.max(maximum, active);
+    await new Promise((resolve) =>
+      setTimeout(resolve, name === "chunk0" ? 15 : 1),
+    );
+    active--;
+    return `Nội dung ${name}`;
+  });
+  await processMeetingSummary(id, runId);
+  assert.equal(maximum, 2);
+  assert.equal(active, 0);
+  const result = await state();
+  assert.equal(result.status, "COMPLETED");
+  assert.equal(result.transcript_complete, true);
+  assert.deepEqual(
+    result.transcript.map((chunk) => chunk.text),
+    [
+      "Nội dung chunk0",
+      "Nội dung chunk1",
+      "Nội dung chunk2",
+      "Nội dung chunk3",
+    ],
+  );
+});
+
+test("a failed earlier chunk preserves a later success and only retries the missing audio", async (t) => {
+  const fixture = mocks(t);
+  fixture.speechMock.mock.mockImplementation(async (name) => {
+    if (name === "chunk0") throw Error("first chunk failed");
+    await new Promise((resolve) => setImmediate(resolve));
+    return "Nội dung đoạn sau";
+  });
+  await processMeetingSummary(id, runId);
+  const failed = await state();
+  assert.equal(failed.status, "FAILED");
+  assert.equal(failed.transcript_complete, false);
+  assert.deepEqual(
+    failed.transcript.map((chunk) => chunk.startSeconds),
+    [45],
+  );
+  await sql.exec("UPDATE notebook_ai.meeting_summaries SET status='QUEUED'");
+  fixture.speechMock.mock.mockImplementation(async (name) => {
+    assert.equal(name, "chunk0");
+    return "Nội dung đoạn trước";
+  });
+  await processMeetingSummary(id, runId);
+  assert.deepEqual(
+    (await state()).transcript.map((chunk) => chunk.startSeconds),
+    [0, 45],
+  );
+  assert.equal((await state()).status, "COMPLETED");
+});
+
+test("notes cache changes with model, provider, output budget and prompt version", (t) => {
+  const model = config.CONVERSATION_AI_MODEL;
+  const provider = config.LLM_BASE_URL;
+  const budget = config.CONVERSATION_AI_MAX_TOKENS;
+  t.after(() => {
+    config.CONVERSATION_AI_MODEL = model;
+    config.LLM_BASE_URL = provider;
+    config.CONVERSATION_AI_MAX_TOKENS = budget;
+  });
+  const original = summary.meetingSummaryCacheKey("same transcript");
+  assert.equal(original, summary.meetingSummaryCacheKey("same transcript"));
+  assert.notEqual(
+    original,
+    summary.meetingSummaryCacheKey("same transcript", "next-prompt"),
+  );
+  config.CONVERSATION_AI_MODEL = "different-model";
+  assert.notEqual(original, summary.meetingSummaryCacheKey("same transcript"));
+  config.CONVERSATION_AI_MODEL = model;
+  config.LLM_BASE_URL = "https://other.invalid/v1";
+  assert.notEqual(original, summary.meetingSummaryCacheKey("same transcript"));
+  config.LLM_BASE_URL = provider;
+  config.CONVERSATION_AI_MAX_TOKENS = 512;
+  assert.notEqual(original, summary.meetingSummaryCacheKey("same transcript"));
 });
 
 test("revocation during final generation prevents publishing the answer", async (t) => {

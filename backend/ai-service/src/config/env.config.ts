@@ -3,6 +3,7 @@ import { z } from "zod";
 
 export const config = z
   .object({
+    MEETING_STT_CONCURRENCY: z.coerce.number().int().min(1).max(4).default(2),
     MEETING_SUMMARY_ENABLED: z.enum(["true", "false"]).default("false"),
     MEETING_SUMMARY_MAX_SECONDS: z.coerce
       .number()

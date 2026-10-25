@@ -1,16 +1,20 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { join, dirname, basename } from "node:path";
 import { tmpdir } from "node:os";
-import { createHash } from "node:crypto";
+import { config } from "../config/env.config";
 import { rows } from "../infrastructure/database/database";
 import { meetingSource } from "../modules/meeting-summary/source";
 import {
   prepareMeetingAudio,
   AUDIO_CHUNK_SECONDS,
 } from "../modules/meeting-summary/media";
-import { recognizeMeetingChunk } from "../modules/meeting-summary/speech.client";
+import {
+  recognizeMeetingChunk,
+  SpeechRecognitionError,
+} from "../modules/meeting-summary/speech.client";
 import {
   meetingSummaryText,
+  meetingSummaryCacheKey,
   transcriptBatches,
   type TranscriptChunk,
 } from "../modules/meeting-summary/summary";
@@ -19,6 +23,7 @@ type SummaryRow = {
   actor_id: string;
   revision: string;
   transcript: TranscriptChunk[];
+  transcript_complete: boolean;
   partials: { hash: string; text: string }[];
 };
 
@@ -47,6 +52,17 @@ export async function processMeetingSummary(
   ]);
   const started = performance.now();
   let directory: string | undefined;
+  let currentStage = "EXTRACTING";
+  const timings: Record<string, number> = {};
+  const measure = async <T>(stage: string, run: () => Promise<T>) => {
+    const start = performance.now();
+    try {
+      return await run();
+    } finally {
+      timings[stage] =
+        (timings[stage] || 0) + Math.round(performance.now() - start);
+    }
+  };
   let checking = false;
   const authorize = async () => {
     signal.throwIfAborted();
@@ -65,34 +81,76 @@ export async function processMeetingSummary(
       });
   }, 15000);
   const checkpoint = async (stage: string) => {
+    currentStage = stage;
     signal.throwIfAborted();
     const result = await rows(
       `UPDATE notebook_ai.meeting_summaries SET stage=$3,transcript=$4::jsonb,
-      partials=$5::jsonb,updated_at=now() WHERE recording_id=$1 AND run_id=$2 AND status='RUNNING' RETURNING recording_id`,
+      partials=$5::jsonb,transcript_complete=$6,updated_at=now() WHERE recording_id=$1 AND run_id=$2 AND status='RUNNING' RETURNING recording_id`,
       [
         recordingId,
         runId,
         stage,
         JSON.stringify(state.transcript),
         JSON.stringify(state.partials),
+        state.transcript_complete,
       ],
     );
     if (!result.length) throw new Error("Meeting summary run superseded");
   };
   try {
     const source = await authorize();
-    directory = await mkdtemp(join(tmpdir(), "meeting-summary-"));
-    const files = await prepareMeetingAudio(source, directory, signal);
-    if (state.transcript.length > files.length)
-      throw new Error("Invalid transcript checkpoint");
-    await checkpoint("TRANSCRIBING");
-    for (let index = state.transcript.length; index < files.length; index++) {
-      await authorize();
-      const text = await recognizeMeetingChunk(files[index], signal);
-      state.transcript.push({
-        startSeconds: index * AUDIO_CHUNK_SECONDS,
-        text,
-      });
+    if (!state.transcript_complete) {
+      directory = await mkdtemp(join(tmpdir(), "meeting-summary-"));
+      const workDirectory = directory;
+      const files = await measure("audio_ms", () =>
+        prepareMeetingAudio(source, workDirectory, signal),
+      );
+      const completed = new Set(
+        state.transcript.map(
+          (chunk) => chunk.startSeconds / AUDIO_CHUNK_SECONDS,
+        ),
+      );
+      if (
+        completed.size !== state.transcript.length ||
+        [...completed].some(
+          (index) =>
+            !Number.isInteger(index) || index < 0 || index >= files.length,
+        )
+      )
+        throw new Error("Invalid transcript checkpoint");
+      const pending = files
+        .map((_file, index) => index)
+        .filter((index) => !completed.has(index));
+      await checkpoint("TRANSCRIBING");
+      for (
+        let offset = 0;
+        offset < pending.length;
+        offset += config.MEETING_STT_CONCURRENCY
+      ) {
+        const wave = pending.slice(
+          offset,
+          offset + config.MEETING_STT_CONCURRENCY,
+        );
+        const results = await measure("speech_ms", () =>
+          Promise.allSettled(
+            wave.map(async (index) => {
+              await authorize();
+              const text = await recognizeMeetingChunk(files[index], signal);
+              signal.throwIfAborted();
+              return { startSeconds: index * AUDIO_CHUNK_SECONDS, text };
+            }),
+          ),
+        );
+        // Drain all in-flight calls before cleanup, and preserve successes even if another chunk failed.
+        for (const result of results)
+          if (result.status === "fulfilled")
+            state.transcript.push(result.value);
+        state.transcript.sort((a, b) => a.startSeconds - b.startSeconds);
+        await checkpoint("TRANSCRIBING");
+        const failed = results.find((result) => result.status === "rejected");
+        if (failed?.status === "rejected") throw failed.reason;
+      }
+      state.transcript_complete = true;
       await checkpoint("TRANSCRIBING");
     }
     let batches = transcriptBatches(state.transcript);
@@ -103,11 +161,13 @@ export async function processMeetingSummary(
       if (level >= 6) throw new Error("Meeting summary reduction limit");
       const notes: string[] = [];
       for (const batch of batches) {
-        const hash = createHash("sha256").update(batch).digest("hex");
+        const hash = meetingSummaryCacheKey(batch);
         let saved = state.partials.find((item) => item.hash === hash);
         if (!saved) {
           await authorize();
-          const text = await meetingSummaryText(batch, false, signal);
+          const text = await measure("model_ms", () =>
+            meetingSummaryText(batch, false, signal),
+          );
           if (text.length > 6000)
             throw new Error("Meeting notes did not shrink");
           saved = { hash, text };
@@ -128,7 +188,9 @@ export async function processMeetingSummary(
       if (group) batches.push(group);
     }
     await authorize();
-    const content = await meetingSummaryText(batches[0], true, signal);
+    const content = await measure("model_ms", () =>
+      meetingSummaryText(batches[0], true, signal),
+    );
     await authorize();
     signal.throwIfAborted();
     await rows(
@@ -143,6 +205,8 @@ export async function processMeetingSummary(
         recording_id: recordingId,
         chunks: state.transcript.length,
         duration_ms: Math.round(performance.now() - started),
+        timings,
+        stt_concurrency: config.MEETING_STT_CONCURRENCY,
       }),
     );
   } catch (error) {
@@ -154,6 +218,10 @@ export async function processMeetingSummary(
         error_type:
           error instanceof Error ? error.constructor.name : "UnknownError",
         aborted: signal.aborted,
+        stage: currentStage,
+        provider_status:
+          error instanceof SpeechRecognitionError ? error.status : undefined,
+        timings,
       }),
     );
     await rows(

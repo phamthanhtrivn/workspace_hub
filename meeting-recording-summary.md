@@ -19,3 +19,8 @@ FFmpeg is not installed on the host and Docker is not running. Actual FFmpeg
 execution, paid Google/Vibi recognition and browser end-to-end behavior remain
 unverified. The feature defaults to disabled until configured. Setup details:
 `backend/ai-service/MEETING_SUMMARY.md`.
+
+Follow-up optimization: bounded speech concurrency (default 2), ordered sparse
+transcript checkpoints, complete-transcript audio bypass, versioned note caches
+and per-stage timing/HTTP-status diagnostics. AI build and all 150 tests passed.
+Run the idempotent AI migration before restarting with these optimizations.

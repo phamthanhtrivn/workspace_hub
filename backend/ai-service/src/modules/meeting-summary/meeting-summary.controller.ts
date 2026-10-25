@@ -72,6 +72,7 @@ export class MeetingSummaryController {
       stage='QUEUED',content=NULL,error=NULL,updated_at=now(),
       transcript=CASE WHEN meeting_summaries.revision=$4 THEN meeting_summaries.transcript ELSE '[]'::jsonb END,
       partials=CASE WHEN meeting_summaries.revision=$4 THEN meeting_summaries.partials ELSE '[]'::jsonb END
+      ,transcript_complete=CASE WHEN meeting_summaries.revision=$4 THEN meeting_summaries.transcript_complete ELSE false END
       WHERE meeting_summaries.status='FAILED' OR
         (meeting_summaries.status='COMPLETED' AND meeting_summaries.revision<>$4)
       RETURNING run_id`,

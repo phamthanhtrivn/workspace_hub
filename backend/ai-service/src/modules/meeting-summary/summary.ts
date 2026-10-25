@@ -2,6 +2,28 @@ import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { config } from "../../config/env.config";
 import { admitConversationModel } from "../conversation-ai/model-admission";
+import { createHash } from "node:crypto";
+
+export const MEETING_PROMPT_VERSION = "meeting-summary-v1";
+export function meetingSummaryCacheKey(
+  text: string,
+  promptVersion = MEETING_PROMPT_VERSION,
+) {
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        text,
+        promptVersion,
+        model: config.CONVERSATION_AI_MODEL ?? config.LLM_MODEL,
+        provider: config.LLM_BASE_URL.replace(/\/$/, ""),
+        maxTokens: Math.min(
+          config.CONVERSATION_AI_MAX_TOKENS ?? config.LLM_MAX_TOKENS,
+          1536,
+        ),
+      }),
+    )
+    .digest("hex");
+}
 
 export type TranscriptChunk = { startSeconds: number; text: string };
 export function transcriptBatches(chunks: TranscriptChunk[], budget = 16000) {

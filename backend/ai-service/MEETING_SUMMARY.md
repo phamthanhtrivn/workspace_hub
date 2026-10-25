@@ -7,7 +7,7 @@ in Redis. Shared viewers can read summaries using the same recording permissions
 
 The dedicated `meeting-summary-jobs` worker downloads the recording to a unique
 temporary directory, uses FFmpeg to extract mono PCM WAV at 16 kHz in 45-second
-chunks, and sends chunks sequentially to Google Speech-to-Text V2 `chirp_3`,
+chunks, and sends chunks with bounded concurrency to Google Speech-to-Text V2 `chirp_3`,
 `vi-VN`. It sends the transcript to the configured Conversation/Vibi model.
 Long transcripts are summarized in batches and then merged. No tasks are created.
 
@@ -55,6 +55,21 @@ Do not commit the override's credentials. Google authentication uses the officia
   explicit retry of the same revision, completed results are reused. An interrupted
   or unknown provider outcome is never automatically replayed. Recovery marks
   missing/failed jobs as failed and leaves active jobs under BullMQ control.
+- `MEETING_STT_CONCURRENCY=2` controls concurrent speech requests per meeting
+  (range 1-4). Each wave is drained before advancing; successful chunks are
+  checkpointed even when another chunk fails, then sorted by audio position.
+  Missing chunks alone are recognized on explicit retry. Lower this to 1 if
+  Google quota is restrictive. The worker does not automatically retry paid calls.
+- A durable `transcript_complete` marker skips download and FFmpeg entirely on
+  subsequent summary-only retries. Rerun `npm run migrate` before deploying this
+  optimization; the idempotent ALTER in migration 002 upgrades existing tables.
+  Older rows without the marker are checked through the audio path once.
+- Intermediate-note cache keys include model, provider URL, output budget and
+  `MEETING_PROMPT_VERSION`; bump that constant whenever the summarization prompt
+  changes. Legacy content-only cache entries are ignored.
+- Success/failure logs include audio, speech-wave and model wall times. Failure
+  logs include the stage and Google HTTP status when available, without provider
+  response bodies, credentials, signed URLs or transcript contents.
 - Recording access/revision is rechecked before each provider request, every
   15 seconds during processing, and before saving the final answer. Reading always
   rechecks recording access in Communication Service. A deleted recording's result
