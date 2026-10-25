@@ -1,8 +1,7 @@
-import { BadRequestException } from "@nestjs/common";
-import { ChatOpenAI } from "@langchain/openai";
+import { BadRequestException, ForbiddenException } from "@nestjs/common";
+import { createChatModel } from "../../infrastructure/integrations/chat-model";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
-import { ForbiddenException } from "@nestjs/common";
 import { resolveChatAttachment } from "../../infrastructure/integrations/document.client";
 import { config } from "../../config/env.config";
 import { admitConversationModel } from "./model-admission";
@@ -123,17 +122,21 @@ export async function summarizeAttachment(
     await authorizeChat();
     await checkDocument();
   };
-  const data = await measureConversationStage("download", () => downloadSource(manifest, signal));
+  const data = await measureConversationStage("download", () =>
+    downloadSource(manifest, signal),
+  );
   const extracted = extractionSchema.parse(
-    await measureConversationStage("extract", () => rag(
-      "/extract",
-      {
-        scopeId: requestId,
-        name: manifest.name,
-        content: data.toString("base64"),
-      },
-      AbortSignal.any([signal, AbortSignal.timeout(120000)]),
-    )),
+    await measureConversationStage("extract", () =>
+      rag(
+        "/extract",
+        {
+          scopeId: requestId,
+          name: manifest.name,
+          content: data.toString("base64"),
+        },
+        AbortSignal.any([signal, AbortSignal.timeout(120000)]),
+      ),
+    ),
   );
   const { excerpts, truncated } = attachmentExcerpts(extracted.pages);
   signal.throwIfAborted();
@@ -157,16 +160,10 @@ export async function summarizeAttachment(
     signal,
   );
   signal.throwIfAborted();
-  const model = new ChatOpenAI({
-    model: modelName,
-    apiKey: config.LLM_API_KEY,
-    configuration: { baseURL: config.LLM_BASE_URL.replace(/\/$/, "") },
-    temperature: 0.1,
-    maxTokens,
-    timeout: config.LLM_TIMEOUT_MS,
-    maxRetries: 0,
-  });
-  const answer = await measureConversationStage("model", () => model.invoke(messages, { signal }));
+  const model = createChatModel(modelName, maxTokens);
+  const answer = await measureConversationStage("model", () =>
+    model.invoke(messages, { signal }),
+  );
   signal.throwIfAborted();
   await authorize();
   if (

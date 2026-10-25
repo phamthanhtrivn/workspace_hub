@@ -1,5 +1,5 @@
 import { tool } from "langchain";
-import { ChatOpenAI } from "@langchain/openai";
+import { createChatModel } from "../../infrastructure/integrations/chat-model";
 import {
   HumanMessage,
   AIMessage,
@@ -12,15 +12,39 @@ import { config } from "../../config/env.config";
 import { admitConversationModel } from "./model-admission";
 import { measureConversationStage } from "./telemetry";
 
-export function explicitTaskScope(question: string): "today" | "overdue" | "open" | undefined {
-  const plain = question.normalize("NFD").replace(/\p{M}/gu, "")
-    .replace(/đ/gi, "d").toLowerCase().trim().replace(/[.!?]+$/, "");
-  if (/^(?:show |list )?my (?:tasks|assigned tasks) (?:for )?today$/.test(plain) ||
-      /^(?:(?:cho (?:toi|minh) xem|liet ke) )?(?:task|cong viec|nhiem vu) (?:cua (?:toi|minh) hom nay|hom nay cua (?:toi|minh))$/.test(plain)) return "today";
-  if (/^(?:show |list )?my overdue tasks$/.test(plain) ||
-      /^(?:(?:cho (?:toi|minh) xem|liet ke) )?(?:task|cong viec|nhiem vu) qua han cua (?:toi|minh)$/.test(plain)) return "overdue";
-  if (/^(?:show |list )?my (?:open|unfinished) tasks$/.test(plain) ||
-      /^(?:(?:cho (?:toi|minh) xem|liet ke) )?(?:task|cong viec|nhiem vu) chua hoan thanh cua (?:toi|minh)$/.test(plain)) return "open";
+export function explicitTaskScope(
+  question: string,
+): "today" | "overdue" | "open" | undefined {
+  const plain = question
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/đ/gi, "d")
+    .toLowerCase()
+    .trim()
+    .replace(/[.!?]+$/, "");
+  if (
+    /^(?:show |list )?my (?:tasks|assigned tasks) (?:for )?today$/.test(
+      plain,
+    ) ||
+    /^(?:(?:cho (?:toi|minh) xem|liet ke) )?(?:task|cong viec|nhiem vu) (?:cua (?:toi|minh) hom nay|hom nay cua (?:toi|minh))$/.test(
+      plain,
+    )
+  )
+    return "today";
+  if (
+    /^(?:show |list )?my overdue tasks$/.test(plain) ||
+    /^(?:(?:cho (?:toi|minh) xem|liet ke) )?(?:task|cong viec|nhiem vu) qua han cua (?:toi|minh)$/.test(
+      plain,
+    )
+  )
+    return "overdue";
+  if (
+    /^(?:show |list )?my (?:open|unfinished) tasks$/.test(plain) ||
+    /^(?:(?:cho (?:toi|minh) xem|liet ke) )?(?:task|cong viec|nhiem vu) chua hoan thanh cua (?:toi|minh)$/.test(
+      plain,
+    )
+  )
+    return "open";
   return undefined;
 }
 
@@ -36,7 +60,9 @@ export async function conversationAnswer(
     async () => {
       signal.throwIfAborted();
       await authorize();
-      history ??= JSON.stringify(await measureConversationStage("history", readHistory));
+      history ??= JSON.stringify(
+        await measureConversationStage("history", readHistory),
+      );
       return history;
     },
     {
@@ -59,7 +85,9 @@ export async function conversationAnswer(
           if (taskScope && taskScope !== scope)
             throw new Error("Only one task filter per request");
           taskScope = scope;
-          taskResult ??= JSON.stringify(await measureConversationStage("tasks", () => readTasks(scope)));
+          taskResult ??= JSON.stringify(
+            await measureConversationStage("tasks", () => readTasks(scope)),
+          );
           return taskResult;
         },
         {
@@ -76,15 +104,7 @@ export async function conversationAnswer(
     : "";
   const modelName = config.CONVERSATION_AI_MODEL ?? config.LLM_MODEL;
   const maxTokens = config.CONVERSATION_AI_MAX_TOKENS ?? config.LLM_MAX_TOKENS;
-  const model = new ChatOpenAI({
-    model: modelName,
-    apiKey: config.LLM_API_KEY,
-    configuration: { baseURL: config.LLM_BASE_URL.replace(/\/$/, "") },
-    temperature: 0.1,
-    maxTokens,
-    timeout: config.LLM_TIMEOUT_MS,
-    maxRetries: 0,
-  });
+  const model = createChatModel(modelName, maxTokens);
   const currentTime = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Ho_Chi_Minh",
     weekday: "long",
@@ -123,8 +143,17 @@ export async function conversationAnswer(
     const data = await tasksTool.invoke({ scope: prefetchedScope });
     const toolCallId = "prefetched_my_tasks";
     messages.push(
-      new AIMessage({ content: "", tool_calls: [{ name: tasksTool.name,
-        args: { scope: prefetchedScope }, id: toolCallId, type: "tool_call" }] }),
+      new AIMessage({
+        content: "",
+        tool_calls: [
+          {
+            name: tasksTool.name,
+            args: { scope: prefetchedScope },
+            id: toolCallId,
+            type: "tool_call",
+          },
+        ],
+      }),
       new ToolMessage({ tool_call_id: toolCallId, content: data }),
     );
     tasksIncluded = true;
@@ -167,11 +196,13 @@ export async function conversationAnswer(
         ? !historyIncluded && !prefetchedScope
         : !tasksIncluded && !explicitSummary,
     );
-    const answer = await measureConversationStage("model", () => model
-      .bindTools(availableTools.length ? availableTools : tools, {
-        tool_choice: availableTools.length ? "auto" : "none",
-      })
-      .invoke(messages, { signal }));
+    const answer = await measureConversationStage("model", () =>
+      model
+        .bindTools(availableTools.length ? availableTools : tools, {
+          tool_choice: availableTools.length ? "auto" : "none",
+        })
+        .invoke(messages, { signal }),
+    );
     signal.throwIfAborted();
     if (answer.response_metadata.finish_reason === "length")
       throw new Error("Truncated answer");

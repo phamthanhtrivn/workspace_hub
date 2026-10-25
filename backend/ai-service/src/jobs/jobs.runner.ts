@@ -2,16 +2,14 @@ import { processConversation } from "./conversation.processor";
 import { processMeetingSummary } from "./meeting-summary.processor";
 import { Worker, UnrecoverableError, type Job } from "bullmq";
 import { config, connection } from "../config/env.config";
-import { db, rows } from "../infrastructure/database/database";
+import { db } from "../infrastructure/database/database";
 import {
-  enqueue,
   queue,
   closeQueues,
   WORKER_HEARTBEAT_VALUE,
-  meetingSummaryQueue,
 } from "../infrastructure/queue/notebook.queue";
 import { rag } from "../infrastructure/integrations/rag.client";
-import { recoverInterruptedJobs } from "./job-recovery";
+import { reconcileQueuedJobs } from "./job-recovery";
 import { Profile } from "../common/profiling/pipeline-profiler";
 import { indexSource } from "./index.processor";
 import { summarize } from "./summary.processor";
@@ -153,49 +151,19 @@ export function startWorkers() {
       })
       .catch(() => console.error("Notebook worker heartbeat unavailable"));
   }, 10000);
-  async function reconcile() {
-    if (meetingWorker) {
-      for (const item of await rows(`SELECT recording_id,run_id,status FROM notebook_ai.meeting_summaries
-        WHERE status IN ('QUEUED','RUNNING') AND updated_at<now()-interval '2 minutes'`)) {
-        const job = await meetingSummaryQueue.getJob(`meeting-${item.run_id}`);
-        const state = job ? await job.getState() : "missing";
-        if (!["missing", "failed", "completed", "unknown"].includes(state))
-          continue;
-        await rows(
-          `UPDATE notebook_ai.meeting_summaries SET status='FAILED',stage='FAILED',
-          error='Xử lý bị gián đoạn. Bạn có thể bấm thử lại.',updated_at=now()
-          WHERE recording_id=$1 AND run_id=$2 AND status IN ('QUEUED','RUNNING')`,
-          [item.recording_id, item.run_id],
-        );
-      }
-    }
-    await recoverInterruptedJobs();
-    // Redis is durable, but recover jobs stranded between the SQL commit and queue write too.
-    await rows(
-      "UPDATE notebook_ai.requests SET status='FAILED' WHERE status='RUNNING' AND created_at<now()-interval '3 minutes'",
-    );
-    for (const source of await rows(
-      "SELECT id FROM notebook_ai.sources WHERE status='QUEUED'",
-    ))
-      await enqueue("index", source.id, { sourceId: source.id });
-    for (const artifact of await rows(
-      "SELECT id FROM notebook_ai.artifacts WHERE status='QUEUED'",
-    ))
-      await enqueue("summary", artifact.id, { artifactId: artifact.id });
-  }
   let reconciling = false;
   const sweep = setInterval(() => {
     if (config.AI_ENABLED !== "true") return;
     if (reconciling) return;
     reconciling = true;
-    void reconcile()
+    void reconcileQueuedJobs(Boolean(meetingWorker))
       .catch(() => console.error("Notebook queue recovery failed"))
       .finally(() => {
         reconciling = false;
       });
   }, 30000);
   if (config.AI_ENABLED === "true")
-    void reconcile()
+    void reconcileQueuedJobs(Boolean(meetingWorker))
       .then(() => Promise.all(workers.map((current) => current.run())))
       .catch(() => {
         console.error("Notebook worker startup failed");

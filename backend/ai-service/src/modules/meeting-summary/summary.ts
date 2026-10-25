@@ -1,8 +1,9 @@
-import { ChatOpenAI } from "@langchain/openai";
+import { createChatModel } from "../../infrastructure/integrations/chat-model";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { config } from "../../config/env.config";
 import { admitConversationModel } from "../conversation-ai/model-admission";
 import { createHash } from "node:crypto";
+import { MEETING_LIMITS } from "./limits";
 
 export const MEETING_PROMPT_VERSION = "meeting-summary-v1";
 export function meetingSummaryCacheKey(
@@ -18,7 +19,7 @@ export function meetingSummaryCacheKey(
         provider: config.LLM_BASE_URL.replace(/\/$/, ""),
         maxTokens: Math.min(
           config.CONVERSATION_AI_MAX_TOKENS ?? config.LLM_MAX_TOKENS,
-          1536,
+          MEETING_LIMITS.noteTokens,
         ),
       }),
     )
@@ -26,7 +27,10 @@ export function meetingSummaryCacheKey(
 }
 
 export type TranscriptChunk = { startSeconds: number; text: string };
-export function transcriptBatches(chunks: TranscriptChunk[], budget = 16000) {
+export function transcriptBatches(
+  chunks: TranscriptChunk[],
+  budget: number = MEETING_LIMITS.batchCharacters,
+) {
   if (budget < 100) throw new Error("Summary batch budget is too small");
   const batches: string[] = [];
   let current = "";
@@ -72,7 +76,7 @@ export async function meetingSummaryText(
   ];
   const maxTokens = Math.min(
     config.CONVERSATION_AI_MAX_TOKENS ?? config.LLM_MAX_TOKENS,
-    final ? 3072 : 1536,
+    final ? MEETING_LIMITS.answerTokens : MEETING_LIMITS.noteTokens,
   );
   await admitConversationModel(
     Math.ceil(Buffer.byteLength(JSON.stringify(messages)) / 3) + maxTokens,
@@ -80,21 +84,13 @@ export async function meetingSummaryText(
     signal,
   );
   signal.throwIfAborted();
-  const model = new ChatOpenAI({
-    model: modelName,
-    apiKey: config.LLM_API_KEY,
-    configuration: { baseURL: config.LLM_BASE_URL.replace(/\/$/, "") },
-    temperature: 0.1,
-    maxTokens,
-    maxRetries: 0,
-    timeout: config.LLM_TIMEOUT_MS,
-  });
+  const model = createChatModel(modelName, maxTokens);
   const answer = await model.invoke(messages, { signal });
   if (
     answer.response_metadata.finish_reason === "length" ||
     typeof answer.content !== "string" ||
     !answer.content.trim() ||
-    answer.content.length > 18000
+    answer.content.length > MEETING_LIMITS.answerCharacters
   )
     throw new Error("Incomplete meeting summary");
   return answer.content.trim();

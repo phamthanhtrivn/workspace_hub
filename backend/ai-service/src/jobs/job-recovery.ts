@@ -1,5 +1,9 @@
 import { rows } from "../infrastructure/database/database";
-import { findQueuedJob } from "../infrastructure/queue/notebook.queue";
+import {
+  findQueuedJob,
+  enqueue,
+  meetingSummaryQueue,
+} from "../infrastructure/queue/notebook.queue";
 
 export async function recoverInterruptedJobs() {
   const candidates = await rows<{ id: string; kind: string }>(
@@ -35,4 +39,35 @@ export async function recoverInterruptedJobs() {
       );
     }
   }
+}
+
+export async function reconcileQueuedJobs(includeMeetings: boolean) {
+  if (includeMeetings) {
+    for (const item of await rows(`SELECT recording_id,run_id,status FROM notebook_ai.meeting_summaries
+      WHERE status IN ('QUEUED','RUNNING') AND updated_at<now()-interval '2 minutes'`)) {
+      const job = await meetingSummaryQueue.getJob(`meeting-${item.run_id}`);
+      const state = job ? await job.getState() : "missing";
+      if (!["missing", "failed", "completed", "unknown"].includes(state))
+        continue;
+      await rows(
+        `UPDATE notebook_ai.meeting_summaries SET status='FAILED',stage='FAILED',
+        error='Xử lý bị gián đoạn. Bạn có thể bấm thử lại.',updated_at=now()
+        WHERE recording_id=$1 AND run_id=$2 AND status IN ('QUEUED','RUNNING')`,
+        [item.recording_id, item.run_id],
+      );
+    }
+  }
+  await recoverInterruptedJobs();
+  // Redis is durable, but recover jobs stranded between the SQL commit and queue write too.
+  await rows(
+    "UPDATE notebook_ai.requests SET status='FAILED' WHERE status='RUNNING' AND created_at<now()-interval '3 minutes'",
+  );
+  for (const source of await rows(
+    "SELECT id FROM notebook_ai.sources WHERE status='QUEUED'",
+  ))
+    await enqueue("index", source.id, { sourceId: source.id });
+  for (const artifact of await rows(
+    "SELECT id FROM notebook_ai.artifacts WHERE status='QUEUED'",
+  ))
+    await enqueue("summary", artifact.id, { artifactId: artifact.id });
 }
