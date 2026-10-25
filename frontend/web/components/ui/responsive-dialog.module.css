@@ -10,10 +10,9 @@
   min-width: 0;
 }
 
-.surface > form {
-  min-height: 0;
-  max-height: inherit;
-  overflow-y: auto;
+.surface > form:not(.body) {
+  /* Let the padded surface scroll so edge-aligned focus rings stay visible. */
+  flex-shrink: 0;
 }
 
 .surface > :global([data-slot="dialog-header"]) {

@@ -45,7 +45,7 @@ export function DashboardWeather({ now, zone }: { now: string | null; zone: stri
           <h2 className="text-sm font-semibold">Local weather</h2>
           <p className="text-sm">{details}</p>
           <p className="text-xs leading-5 text-muted-foreground">{help}</p>
-          <Button type="button" variant="outline" size="sm" disabled={pending} onClick={requestLocation}>
+          <Button loading={pending} type="button" variant="outline" size="sm" disabled={pending} onClick={requestLocation}>
             <RefreshCw aria-hidden className="size-4" />
             {pending ? "Updating…" : current ? "Refresh" : "Try location"}
           </Button>

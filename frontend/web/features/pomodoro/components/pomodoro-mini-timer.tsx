@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ArrowUpRight, Pause, Play, Square, Timer } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { useAppSelector } from "@/store/store";
 import { usePomodoroSession } from "./pomodoro-session-provider";
 import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
@@ -20,7 +21,7 @@ function ActiveMiniTimer() {
         <span className="grid size-9 shrink-0 place-items-center rounded-panel bg-info-soft/80 text-info-content"><Timer className="size-4" /></span>
         <div className="min-w-0">
           <p role="status" className="mb-0.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            <span aria-hidden="true" className={`size-1.5 rounded-full ${status === "RUNNING" ? "bg-link" : "bg-warning-content"}`} />
+            {busy ? <Spinner size={14} /> : <span aria-hidden="true" className={`size-1.5 rounded-full ${status === "RUNNING" ? "bg-link" : "bg-warning-content"}`} />}
             {finished ? (completionStatus === "error" ? copy.waiting : copy.saving) : status === "PAUSED" ? "Paused" : mode === "FOCUS" ? "Focus in progress" : "Break in progress"}
           </p>
           <Link href="/pomodoro" className="block truncate text-sm font-semibold text-foreground outline-none hover:text-info-content focus-visible:ring-2 focus-visible:ring-ring" title={activeTask?.title || "Free focus"}>{activeTask?.title || "Free focus"}</Link>

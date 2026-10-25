@@ -14,6 +14,7 @@ import {
 } from "@/features/project/types/project";
 import { TaskDetailsFields } from "../forms/task-details-fields";
 import { TaskDateRangeFields } from "../forms/task-date-range-fields";
+import { TaskAssigneeField } from "../forms/task-assignee-field";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ export interface TaskFormValues {
   dueDate?: string | null;
   allDay: boolean;
   parentTaskId?: string;
+  assigneeUserId?: string;
 }
 
 function FieldLabel({
@@ -56,6 +58,7 @@ function FieldLabel({
 
 export default function TaskFormDialog({
   open,
+  projectId,
   projectName,
   parentTasks = [],
   initialParentTaskId,
@@ -67,6 +70,7 @@ export default function TaskFormDialog({
   isSubmitting = false,
 }: {
   open: boolean;
+  projectId: string;
   projectName?: string;
   parentTasks?: Task[];
   initialParentTaskId?: string;
@@ -89,6 +93,7 @@ export default function TaskFormDialog({
   const [dueDate, setDueDate] = useState("");
   const [allDay, setAllDay] = useState(initialAllDay);
   const [parentTaskId, setParentTaskId] = useState(initialParentTaskId || "");
+  const [assigneeUserId, setAssigneeUserId] = useState("");
 
   const handleClose = () => {
     if (isSubmitting) return;
@@ -108,6 +113,7 @@ export default function TaskFormDialog({
       dueDate: toApiDateTime(dueDate, allDay),
       allDay,
       parentTaskId: parentTaskId || undefined,
+      assigneeUserId: assigneeUserId || undefined,
     });
   };
 
@@ -179,6 +185,15 @@ export default function TaskFormDialog({
               parentTasks={parentTasks}
             />
 
+            {open && (
+              <TaskAssigneeField
+                projectId={projectId}
+                value={assigneeUserId}
+                onChange={setAssigneeUserId}
+                disabled={isSubmitting}
+              />
+            )}
+
             <TaskDateRangeFields
               allDay={allDay}
               onAllDayChange={handleAllDayChange}
@@ -206,7 +221,7 @@ export default function TaskFormDialog({
               >
                 Cancel
               </Button>
-              <Button
+              <Button loading={isSubmitting}
                 type="submit"
                 disabled={!title.trim() || isSubmitting}
                 className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"

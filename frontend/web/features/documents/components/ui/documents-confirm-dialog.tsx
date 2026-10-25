@@ -92,7 +92,7 @@ export function DocumentsConfirmDialog({
           >
             {cancelLabel}
           </Button>
-          <Button variant="unstyled"
+          <Button loading={isLoading} variant="unstyled"
             type="button"
             disabled={isLoading}
             onClick={onConfirm}
@@ -101,7 +101,7 @@ export function DocumentsConfirmDialog({
               confirmButtonClassByVariant[variant]
             )}
           >
-            {isLoading ? "..." : confirmLabel}
+            {confirmLabel}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

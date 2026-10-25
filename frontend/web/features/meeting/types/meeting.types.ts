@@ -343,6 +343,24 @@ export type MeetingType = "INSTANT" | "SCHEDULED";
 
 export type MeetingStatus = "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED";
 
+export type MeetingHistoryVisibility = "visible" | "hidden";
+
+export interface MeetingHistoryVisibilityResponse {
+  meetingId: string;
+  hidden: boolean;
+}
+
+export type MeetingHistoryBulkVisibilityPayload = {
+  hidden: boolean;
+  expectedCount: number;
+} & ({ scope: "all" } | { scope: "selected"; meetingIds: string[] });
+
+export interface MeetingHistoryBulkVisibilityResponse {
+  hidden: boolean;
+  affectedCount: number;
+  batchId: string | null;
+}
+
 export interface MeetingHistoryItem {
   id: string;
   joinToken: string;
@@ -357,7 +375,7 @@ export interface MeetingHistoryItem {
 }
 
 export type MeetingHistoryResponse =
-  MeetingPaginatedResponse<MeetingHistoryItem>;
+  MeetingPaginatedResponse<MeetingHistoryItem> & { actionableTotal: number };
 
 export interface ScheduledMeetingPayload {
   autoRecord?: boolean;

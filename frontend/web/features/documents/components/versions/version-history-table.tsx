@@ -6,8 +6,9 @@ import React from "react";
 import { DocumentItem, DocumentVersion } from "../../types/documents.types";
 import { formatBytes, formatDateShort } from "../../utils/documents.utils";
 import { ORIGINAL_VERSION_ID } from "../../types/documents.constants";
-import { Eye, Download, Loader2 } from "lucide-react";
+import { Eye, Download } from "lucide-react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface VersionHistoryTableProps {
@@ -27,9 +28,9 @@ export function VersionHistoryTable({
 }: VersionHistoryTableProps) {
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center py-10">
-        <Loader2 className="text-muted-foreground animate-spin" size={24} />
-      </div>
+      <div role="status" className="flex justify-center items-center py-10">
+        <Spinner size={24} />
+      <span className="sr-only">Loading…</span></div>
     );
   }
 

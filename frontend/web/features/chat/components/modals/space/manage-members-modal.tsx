@@ -40,6 +40,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DialogSurface } from "@/components/ui/dialog";
+import { canLeaveSpaceChannel } from "@/features/chat/utils/channel-membership-permissions";
 
 
 function getErrorMessage(error: unknown, fallback: string) {
@@ -99,6 +100,13 @@ export default function ManageMembersModal({
   );
   const currentUserRole = currentUserMember?.role;
   const isCurrentUserAdmin = currentUserRole === SpaceRole.ADMIN;
+  const isProjectSpace = Boolean(channel.projectId || spaceDetail?.projectId);
+  const canLeaveChannel = canLeaveSpaceChannel(
+    channel,
+    currentUserId,
+    spaceDetail,
+  );
+  const canDisbandChannel = !channel.isDefault && isCurrentUserAdmin;
   const leaveLabel = channel.isDefault ? "Leave Space" : "Leave Channel";
 
   const handleUpdateRole = async (
@@ -178,7 +186,7 @@ export default function ManageMembersModal({
   };
 
   const handleKickMember = async (memberId: string) => {
-    if (isProcessing) return;
+    if (isProcessing || !spaceDetail || isProjectSpace) return;
     const confirmed = await confirmAction({
       title: "Remove Member",
       description: "Are you sure you want to remove this member from the channel?",
@@ -208,7 +216,7 @@ export default function ManageMembersModal({
   };
 
   const handleLeaveSpace = async () => {
-    if (isProcessing) return;
+    if (isProcessing || !canLeaveChannel) return;
 
     const confirmed = await confirmAction({
       title: `Confirm: ${leaveLabel}`,
@@ -323,6 +331,9 @@ export default function ManageMembersModal({
               : name;
             const isCreator = member.userId === spaceCreatorId;
             const canCurrentUserRemove =
+              !!spaceDetail &&
+              !isProjectSpace &&
+              !isMe &&
               !isCreator &&
               (isCurrentUserOwner ||
                 (isCurrentUserAdmin && member.role === SpaceRole.MEMBER));
@@ -440,27 +451,31 @@ export default function ManageMembersModal({
           })}
         </div>
 
-        <div className="p-5 border-t border-border bg-background flex gap-3">
-          <Button variant="unstyled"
-            onClick={handleLeaveSpace}
-            disabled={isProcessing}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-destructive-content bg-card border border-border hover:bg-destructive-soft hover:border-destructive-outline rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FiLogOut size={18} />
-            {leaveLabel}
-          </Button>
+        {(canLeaveChannel || canDisbandChannel) && (
+          <div className="p-5 border-t border-border bg-background flex gap-3">
+            {canLeaveChannel && (
+              <Button variant="unstyled"
+                onClick={handleLeaveSpace}
+                disabled={isProcessing}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-destructive-content bg-card border border-border hover:bg-destructive-soft hover:border-destructive-outline rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FiLogOut size={18} />
+                {leaveLabel}
+              </Button>
+            )}
 
-          {currentUserRole === SpaceRole.ADMIN && (
-            <Button variant="destructive"
-              onClick={handleDisbandChannel}
-              disabled={isProcessing}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FiTrash2 size={18} />
-              Disband Channel
-            </Button>
-          )}
-        </div>
+            {canDisbandChannel && (
+              <Button variant="destructive"
+                onClick={handleDisbandChannel}
+                disabled={isProcessing}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <FiTrash2 size={18} />
+                Disband Channel
+              </Button>
+            )}
+          </div>
+        )}
       </div>
       <ChatConfirmDialog {...confirmDialogProps} />
     </div>}</DialogSurface>;

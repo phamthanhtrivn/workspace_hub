@@ -1,3 +1,4 @@
+import { ChannelResource } from '../channel/access/channel-resource.decorator';
 import {
   BadRequestException,
   Controller,
@@ -13,6 +14,7 @@ import { PollService } from './poll.service';
 import { POLL_ERROR_MESSAGES } from './types/poll.enums';
 
 @Controller('api/polls')
+@ChannelResource('channel', 'channelId')
 export class PollController {
   constructor(private readonly pollService: PollService) {}
 

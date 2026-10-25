@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { MeetingAlertDialog } from "@/features/meeting/components/common/meeting-alert-dialog";
 import { MeetingParticipantListItem } from "@/features/meeting/components/common/meeting-participant-list-item";
 import { useMeetingParticipantsPanel } from "@/features/meeting/hooks/useMeetingParticipantsPanel";
@@ -8,6 +8,7 @@ import type { MeetingParticipantRole } from "@/features/meeting/types/meeting.ty
 import { MeetingInput } from "@/features/meeting/components/ui/meeting-form-controls";
 import { MeetingIconButton } from "@/features/meeting/components/ui/meeting-icon-button";
 import { MeetingRoomShareLink } from "./meeting-room-share-link";
+import { Spinner } from "@/components/ui/spinner";
 
 interface MeetingParticipantsPanelProps {
   joinToken: string;
@@ -67,8 +68,8 @@ export function MeetingParticipantsPanel({
 
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
           {participantsQuery.isLoading ? (
-            <div className="flex h-40 items-center justify-center text-sm font-semibold text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <div role="status" className="flex h-40 items-center justify-center text-sm font-semibold text-muted-foreground">
+              <Spinner className="mr-2" />
               Loading participants...
             </div>
           ) : !hasParticipants ? (

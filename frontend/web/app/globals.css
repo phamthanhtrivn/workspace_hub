@@ -21,6 +21,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-loading: var(--loading);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-hover: var(--primary-hover);
   --color-primary-outline: var(--primary-outline);
@@ -113,6 +114,7 @@
   --popover: #FFFFFF;
   --popover-foreground: #3B3B3B;
   --primary: #22396F;
+  --loading: var(--primary);
   --primary-foreground: #FFFFFF;
   --primary-outline: #22396F;
   --primary-hover: #0D1C42;
@@ -180,6 +182,7 @@
   --popover: #252526;
   --popover-foreground: #CCCCCC;
   --primary: #0D1C42;
+  --loading: var(--primary-soft-foreground);
   --primary-foreground: #FFFFFF;
   --primary-outline: #637DA6;
   --primary-hover: #162B55;

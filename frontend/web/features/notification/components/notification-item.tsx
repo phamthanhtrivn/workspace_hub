@@ -4,9 +4,10 @@ import React from "react";
 import { Notification } from "../types/notification.types";
 import { getNotificationRenderer } from "./notification-registry";
 import { DefaultListItemRenderer } from "./renderers/default-renderer";
-import { Loader2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface NotificationItemProps {
@@ -35,7 +36,7 @@ const NotificationItem = React.memo(function NotificationItem({
         onClick={() => onClick(notification)}
       />
       {onDelete ? (
-        <IconButton
+        <IconButton aria-busy={isDeleting || undefined}
           label={deleteLabel}
           showTooltip={false}
           title={deleteLabel}
@@ -48,7 +49,7 @@ const NotificationItem = React.memo(function NotificationItem({
           className="absolute right-1 top-1 size-11 text-muted-foreground hover:bg-destructive-soft hover:text-destructive-content"
         >
           {isDeleting ? (
-            <Loader2 className="h-3.5 w-3.5 motion-safe:animate-spin" />
+            <Spinner size={14} />
           ) : (
             <Trash2 className="h-3.5 w-3.5" />
           )}

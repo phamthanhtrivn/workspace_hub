@@ -100,7 +100,7 @@ export function ProjectConfirmDialog({
           >
             {cancelLabel}
           </Button>
-          <Button
+          <Button loading={isLoading}
             type="button"
             disabled={isLoading}
             onClick={() => void onConfirm()}
@@ -109,7 +109,7 @@ export function ProjectConfirmDialog({
               confirmButtonClassByVariant[variant]
             )}
           >
-            {isLoading ? "..." : confirmLabel}
+            {confirmLabel}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,4 +1,6 @@
 "use client";
+import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
+
 import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
@@ -19,7 +21,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
 import { ChannelResponse } from "@/features/chat/types/chat.types";
 import { getSpaceDetails } from "@/features/chat/api/space.api";
-import { chatKeys } from "@/features/chat/types/chat.constant";
+import {
+  chatKeys,
+  DEFAULT_CHANNEL_NAME_LOCKED_MESSAGE,
+} from "@/features/chat/types/chat.constant";
 import {
   updateChannelInfo,
   updateChannelSettings,
@@ -69,8 +74,9 @@ export default function ChannelSettingsModal({
     (member) => member.userId === currentUserId,
   );
   const isSpaceAdmin = currentMember?.role === "ADMIN";
-  const canEditName = isSpaceAdmin || isChannelCreator || isOwner;
-  const canEditSettings = isSpaceAdmin || isOwner;
+  const canEditName =
+    !channel.isDefault && (isPrivateChannel(channel) ? isPrivateChannelOwner(channel, currentUserId) : (isSpaceAdmin || isChannelCreator || isOwner));
+  const canEditSettings = isPrivateChannel(channel) ? isPrivateChannelOwner(channel, currentUserId) : isSpaceAdmin || isOwner;
 
   useEffect(() => {
     setMounted(true);
@@ -159,7 +165,9 @@ export default function ChannelSettingsModal({
                     {channelName}
                   </h3>
                   <p className="text-xs text-muted-foreground">
-                    Only channel creators or admins can edit channel settings.
+                    {channel.isDefault
+                      ? DEFAULT_CHANNEL_NAME_LOCKED_MESSAGE
+                      : "Only channel creators or admins can edit channel settings."}
                   </p>
                 </div>
               </div>
@@ -223,8 +231,8 @@ export default function ChannelSettingsModal({
           >
             Cancel
           </Button>
-          {canEditName && (
-            <Button variant="default"
+          {(canEditName || canEditSettings) && (
+            <Button loading={isSaving} variant="default"
               onClick={handleSave}
               disabled={isSaving}
               className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"

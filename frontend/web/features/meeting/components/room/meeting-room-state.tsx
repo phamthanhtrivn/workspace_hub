@@ -1,14 +1,15 @@
 "use client";
 
-import { Loader2, VideoOff } from "lucide-react";
+import { VideoOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 
 export function MeetingRoomLoading({ joinToken }: { joinToken: string }) {
   return (
     <div className="fixed inset-0 z-[90] grid h-dvh min-h-0 overflow-y-auto py-4 [place-items:safe_center] bg-card px-4 text-foreground">
-      <div className="flex w-full max-w-sm flex-col items-center rounded-lg border border-border bg-accent px-6 py-8 text-center">
-        <Loader2 className="h-9 w-9 animate-spin text-info-content" />
+      <div role="status" className="flex w-full max-w-sm flex-col items-center rounded-lg border border-border bg-accent px-6 py-8 text-center">
+        <Spinner size={32} />
         <h1 className="mt-4 text-lg font-semibold">Joining meeting</h1>
         <p className="mt-2 text-sm font-semibold text-muted-foreground">
           {joinToken}

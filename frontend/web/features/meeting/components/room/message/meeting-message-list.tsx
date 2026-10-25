@@ -9,6 +9,7 @@ import type {
 } from "../../../types/meeting.types";
 import { MeetingMessageItem } from "./meeting-message-item";
 import { MeetingMessageTimeDivider } from "./meeting-message-time-divider";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const GROUP_MESSAGES_THRESHOLD_MS = 5 * 60 * 1000;
 
@@ -49,9 +50,7 @@ export function MeetingMessageList({
 
   if (isLoading) {
     return (
-      <div className="grid flex-1 place-items-center text-sm font-semibold text-muted-foreground">
-        Loading...
-      </div>
+      <LoadingState label="Loading..." className="grid flex-1 place-items-center text-sm font-semibold text-muted-foreground" />
     );
   }
 
@@ -71,7 +70,7 @@ export function MeetingMessageList({
           className="grid h-8 place-items-center text-xs font-semibold text-muted-foreground"
         >
           {isFetchingNextPage
-            ? "Loading older messages..."
+            ? <LoadingState label="Loading older messages..." size={14} className="text-xs" />
             : null}
         </div>
       )}

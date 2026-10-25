@@ -91,6 +91,31 @@ export function useNotificationSocket() {
       dispatch(addNotification(noti));
 
       if (
+        noti.type === NotificationType.CHANNEL_MEMBER_ADDED ||
+        noti.type === NotificationType.CHANNEL_MEMBER_REMOVED ||
+        noti.type === NotificationType.CHANNEL_OWNERSHIP_TRANSFERRED
+      ) {
+        const spaceId =
+          typeof noti.metadata?.spaceId === "string" ? noti.metadata.spaceId : undefined;
+        const channelId =
+          typeof noti.metadata?.channelId === "string" ? noti.metadata.channelId : undefined;
+        queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+        if (spaceId) {
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.spaceDetails(spaceId),
+          });
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.spaceMemberCandidatesForSpace(spaceId),
+          });
+        }
+        if (channelId) {
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.channelMembers(channelId).slice(0, 2),
+          });
+        }
+      }
+
+      if (
         noti.type === NotificationType.SPACE_INVITATION_ACCEPTED ||
         noti.type === NotificationType.SPACE_INVITATION_DECLINED
       ) {

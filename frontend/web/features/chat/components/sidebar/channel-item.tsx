@@ -1,3 +1,4 @@
+import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { useId as useControlledPopupId } from "react";
 
 import { IconButton } from "@/components/ui/icon-button";
@@ -7,6 +8,7 @@ import {
   BellOff,
   Globe,
   Hash,
+  Lock,
   MoreVertical,
   Pin,
   LogOut,
@@ -79,6 +81,8 @@ const ChannelItem = React.memo(function ChannelItem({
         >
           {channel.isDefault ? (
             <Globe size={13} className="opacity-90" />
+          ) : isPrivateChannel(channel) ? (
+            <Lock size={13} aria-label="Private channel" />
           ) : (
             <Hash size={13} />
           )}

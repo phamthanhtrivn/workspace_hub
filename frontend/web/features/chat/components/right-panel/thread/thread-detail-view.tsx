@@ -1,3 +1,4 @@
+import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import React, {
   useCallback,
@@ -45,11 +46,13 @@ import ThreadChatInput, {
 } from "../../input/thread-chat-input";
 import { renderMessageContent } from "../../../utils/message-formatter";
 import TaskCardMessage from "../../message/task-card-message";
+import { isTaskCardMessage } from "../../../utils/task-card-message";
 import MediaLightbox from "../../message/media-lightbox";
 import MessageAvatar from "../../message/message-avatar";
 import { upsertMessageById } from "../../../utils/message-state-utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface ThreadDetailViewProps {
@@ -111,7 +114,8 @@ export default function ThreadDetailView({
     enabled: !!spaceId,
   });
 
-  const spaceCreatorId = spaceDetail?.createdBy || null;
+  const isPrivate = activeChat && "spaceId" in activeChat && isPrivateChannel(activeChat);
+  const spaceCreatorId = isPrivate ? activeChat.ownerId ?? null : spaceDetail?.createdBy || null;
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<ThreadChatInputRef>(null);
   const [followOverride, setFollowOverride] = useState<{
@@ -156,7 +160,7 @@ export default function ThreadDetailView({
   const canReplyInThread =
     isDirect ||
     activeChatType !== ChatContextType.CHANNEL ||
-    currentMember?.role !== "MEMBER" ||
+    (isPrivate ? activeChat.ownerId === currentUserId : currentMember?.role !== "MEMBER") ||
     activeChat?.setting?.allowSendMessage !== false;
 
   const handleToggleFollow = async () => {
@@ -602,13 +606,11 @@ export default function ThreadDetailView({
                   {formatDateTime(activeRootMessage.createdAt)}
                 </span>
               </div>
-              {activeRootMessage.type === "TASK" ||
-              (activeRootMessage.content &&
-                (activeRootMessage.content.includes("[Task #") ||
-                  activeRootMessage.content.trim().startsWith('{"title":'))) ? (
+              {isTaskCardMessage(activeRootMessage) ? (
                 <TaskCardMessage
                   content={activeRootMessage.content || ""}
                   projectId={spaceDetail?.projectId}
+                  variant="thread"
                   className="max-w-full"
                 />
               ) : (
@@ -636,9 +638,7 @@ export default function ThreadDetailView({
         {/* Loading / Replies */}
         {threadQuery.isError && replies.length > 0 && <QueryFeedback label="thread replies" error retrying={threadQuery.isFetching} onRetry={() => threadQuery.refetch()} />}
         {threadQuery.isError && replies.length === 0 ? <QueryFeedback label="thread replies" error retrying={threadQuery.isFetching} onRetry={() => threadQuery.refetch()} /> : isLoading ? (
-          <div className="text-center text-xs text-muted-foreground py-4">
-            Loading comments...
-          </div>
+          <LoadingState label="Loading comments..." layout="centered" className="text-center text-xs text-muted-foreground py-4" />
         ) : (
           <div className="space-y-4">
             {replies.map((reply: any) => {

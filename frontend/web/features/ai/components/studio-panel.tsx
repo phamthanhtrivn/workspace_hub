@@ -5,15 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { notebooksApi } from "../api/notebooks.api";
-import type { Notebook } from "../types";
+import type { Notebook, NotebookActionKey, NotebookActionRunner } from "../types";
 import { Citations } from "./citations";
+import { Spinner } from "@/components/ui/spinner";
 
 type Props = {
   notebook: Notebook;
   saving: boolean;
-  run: (action: () => Promise<unknown>) => void;
+  run: NotebookActionRunner;
+  pendingAction?: NotebookActionKey | null;
 };
-export function StudioPanel({ notebook, saving, run }: Props) {
+export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
   const [content, setContent] = useState("");
   const [title, setTitle] = useState("");
   const ready =
@@ -25,18 +27,20 @@ export function StudioPanel({ notebook, saving, run }: Props) {
       <div className="grid gap-2">
         <Button
           variant="outline"
+          loading={saving && pendingAction === "OVERVIEW"}
           disabled={!ready || saving}
           onClick={() =>
-            run(() => notebooksApi.artifact(notebook.id, "OVERVIEW"))
+            run(() => notebooksApi.artifact(notebook.id, "OVERVIEW"), "OVERVIEW")
           }
         >
           Tổng quan & câu hỏi gợi ý
         </Button>
         <Button
           variant="outline"
+          loading={saving && pendingAction === "SUMMARY"}
           disabled={!ready || saving}
           onClick={() =>
-            run(() => notebooksApi.artifact(notebook.id, "SUMMARY"))
+            run(() => notebooksApi.artifact(notebook.id, "SUMMARY"), "SUMMARY")
           }
         >
           Tóm tắt toàn văn
@@ -53,6 +57,7 @@ export function StudioPanel({ notebook, saving, run }: Props) {
           open={artifact.status === "RUNNING" || artifact.status === "QUEUED"}
         >
           <summary className="cursor-pointer text-sm font-medium">
+            {["QUEUED", "RUNNING"].includes(artifact.status) && <Spinner size={14} className="mr-2 inline-block align-middle" />}
             {artifact.kind === "SUMMARY" ? "Tóm tắt toàn văn" : "Tổng quan"} ·{" "}
             {artifact.status === "COMPLETED"
               ? "Hoàn tất"
@@ -77,13 +82,15 @@ export function StudioPanel({ notebook, saving, run }: Props) {
                   size="sm"
                   variant="outline"
                   className="mt-3"
-                  onClick={() => run(() => notebooksApi.cancel(artifact.id))}
+                  loading={saving && pendingAction === `cancel:${artifact.id}`}
+                  onClick={() => run(() => notebooksApi.cancel(artifact.id), `cancel:${artifact.id}`)}
                 >
                   Hủy tác vụ
                 </Button>
               )}
               {["FAILED", "CANCELLED"].includes(artifact.status) && (
                 <Button
+                  loading={saving && pendingAction === `summary:${artifact.id}`}
                   size="sm"
                   variant="outline"
                   className="mt-3"
@@ -96,6 +103,7 @@ export function StudioPanel({ notebook, saving, run }: Props) {
                           ? artifact.sources.map((source) => source.id)
                           : undefined,
                       ),
+                      `summary:${artifact.id}`,
                     )
                   }
                 >
@@ -117,7 +125,7 @@ export function StudioPanel({ notebook, saving, run }: Props) {
             });
             setContent("");
             setTitle("");
-          });
+          }, "create-note");
         }}
       >
         <h3 className="text-sm font-semibold">Ghi chú mới</h3>
@@ -135,7 +143,7 @@ export function StudioPanel({ notebook, saving, run }: Props) {
           value={content}
           onChange={(event) => setContent(event.target.value)}
         />
-        <Button size="sm" disabled={saving || !content.trim()}>
+        <Button loading={saving && pendingAction === "create-note"} size="sm" disabled={saving || !content.trim()}>
           Lưu ghi chú
         </Button>
       </form>
@@ -155,14 +163,16 @@ export function StudioPanel({ notebook, saving, run }: Props) {
               notebookId={notebook.id}
               run={run}
               saving={saving}
+              pendingAction={pendingAction}
             />
           )}
           <Button
             size="sm"
             variant="ghost"
             className="mt-2 text-red-700"
+            loading={saving && pendingAction === `remove:${note.id}`}
             onClick={() =>
-              run(() => notebooksApi.deleteNote(notebook.id, note.id))
+              run(() => notebooksApi.deleteNote(notebook.id, note.id), `remove:${note.id}`)
             }
           >
             Xóa ghi chú
@@ -178,11 +188,13 @@ function NoteEditor({
   notebookId,
   run,
   saving,
+  pendingAction,
 }: {
   note: Notebook["notes"][number];
   notebookId: string;
   run: Props["run"];
   saving: boolean;
+  pendingAction?: NotebookActionKey | null;
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -193,6 +205,7 @@ function NoteEditor({
         event.preventDefault();
         run(() =>
           notebooksApi.note(notebookId, { title, content, noteId: note.id }),
+          `note:${note.id}`,
         );
       }}
     >
@@ -213,6 +226,7 @@ function NoteEditor({
       <Button
         size="sm"
         variant="outline"
+        loading={saving && pendingAction === `note:${note.id}`}
         disabled={saving || !content.trim() || !title.trim()}
       >
         Lưu thay đổi

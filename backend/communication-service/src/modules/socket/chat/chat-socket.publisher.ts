@@ -330,4 +330,8 @@ export class ChatSocketPublisher {
   leaveRoom(room: string): void {
     this.socketEventEmitter.leaveRoom(room);
   }
+
+  removeUserFromChannel(userId: string, channelId: string): void {
+    this.socketEventEmitter.removeUserFromRoom(userId, channelId);
+  }
 }

@@ -1,4 +1,6 @@
 "use client";
+import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
+
 
 import { LogOut, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,6 +21,7 @@ import { getErrorMessage } from "../../../types/space-settings/space-settings.ty
 import ChatConfirmDialog from "@/features/chat/components/ui/chat-confirm-dialog";
 import { useChatConfirmDialog } from "@/features/chat/hooks/useChatConfirmDialog";
 import { Button } from "@/components/ui/button";
+import { canLeaveSpaceChannel } from "../../../utils/channel-membership-permissions";
 
 
 interface ChannelActionsSectionProps {
@@ -52,8 +55,12 @@ export default function ChannelActionsSection({
 
   const canDeleteChannel =
     !activeChannel.isDefault &&
-    (isAdmin || (isCreator && allowMemberDeleteOwnChannel));
-  const canLeaveChannel = !activeChannel.isDefault || !isAdmin;
+    (isPrivateChannel(activeChannel) ? isPrivateChannelOwner(activeChannel, currentUserId) : (isAdmin || (isCreator && allowMemberDeleteOwnChannel)));
+  const canLeaveChannel = canLeaveSpaceChannel(
+    activeChannel,
+    currentUserId,
+    spaceDetail,
+  );
   const actionLabel = activeChannel.isDefault
     ? "Leave Space"
     : "Leave Channel";
@@ -112,11 +119,12 @@ export default function ChannelActionsSection({
   });
 
   const confirmLeaveChannel = async () => {
+    if (!canLeaveChannel) return;
     const confirmed = await confirmAction({
       title: `${actionLabel}?`,
       description: activeChannel.isDefault
         ? "Leaving the default channel will also remove you from this space."
-        : "Are you sure you want to leave this channel?",
+        : isPrivateChannelOwner(activeChannel, currentUserId) ? "Ownership will pass to the earliest remaining member. If no members remain, this channel and its history will be permanently deleted." : "Are you sure you want to leave this channel?",
       variant: "warning",
       confirmLabel: actionLabel,
       cancelLabel: "Cancel",
@@ -150,7 +158,7 @@ export default function ChannelActionsSection({
         {canDeleteChannel ? (
           <div className="flex flex-col gap-2">
             {canLeaveChannel && (
-              <Button variant="unstyled"
+              <Button loading={leaveMutation.isPending} variant="unstyled"
                 type="button"
                 onClick={confirmLeaveChannel}
                 disabled={leaveMutation.isPending || deleteMutation.isPending}
@@ -160,7 +168,7 @@ export default function ChannelActionsSection({
                 Leave Channel
               </Button>
             )}
-            <Button variant="destructive"
+            <Button loading={deleteMutation.isPending} variant="destructive"
               type="button"
               onClick={confirmDeleteChannel}
               disabled={deleteMutation.isPending || leaveMutation.isPending}
@@ -171,7 +179,7 @@ export default function ChannelActionsSection({
             </Button>
           </div>
         ) : (
-          <Button variant="unstyled"
+          <Button loading={leaveMutation.isPending} variant="unstyled"
             type="button"
             onClick={confirmLeaveChannel}
             disabled={leaveMutation.isPending}

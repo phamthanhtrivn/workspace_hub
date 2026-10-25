@@ -8,7 +8,6 @@ import ThreadSidePanel from "./right-panel/thread/thread-side-panel";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { MessageCircle } from "lucide-react";
 import UserProfileModal from "./modals/shared/user-profile-modal";
-import { useChatSocket } from "../hooks/socket/useChatSocket";
 import {
   setActiveChat,
   setActiveSpaceId,
@@ -21,7 +20,6 @@ import { ChatContextType } from "../types/chat.types";
 export default function ChatLayout() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const wideCanvas = useElementMinWidth(canvasRef, 1060);
-  useChatSocket();
   const dispatch = useAppDispatch();
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<"search" | null>(null);

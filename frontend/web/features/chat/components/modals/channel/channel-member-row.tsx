@@ -7,15 +7,21 @@ import {
 import { User } from "lucide-react";
 import { FaKey } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
+import type { ReactNode } from "react";
 
+type MemberProfile = Pick<
+  ChannelMemberListItem,
+  "userId" | "nickname" | "profile" | "role"
+>;
 
 interface ChannelMemberRowProps {
-  member: ChannelMemberListItem;
+  member: MemberProfile;
   onOpenProfile: (userId: string) => void;
   spaceCreatorId?: string | null;
+  actions?: ReactNode;
 }
 
-function getDisplayName(member: ChannelMemberListItem, fallback: string) {
+function getDisplayName(member: MemberProfile, fallback: string) {
   return (
     member.nickname ||
     member.profile?.fullName ||
@@ -24,7 +30,7 @@ function getDisplayName(member: ChannelMemberListItem, fallback: string) {
   );
 }
 
-function getInitial(member: ChannelMemberListItem, fallback: string) {
+function getInitial(member: MemberProfile, fallback: string) {
   return getDisplayName(member, fallback).charAt(0).toUpperCase();
 }
 
@@ -32,17 +38,19 @@ export default function ChannelMemberRow({
   member,
   onOpenProfile,
   spaceCreatorId,
+  actions,
 }: ChannelMemberRowProps) {
   const unknownUser = "Unknown User";
   const displayName = getDisplayName(member, unknownUser);
   const isAdmin = member.role === SpaceRole.ADMIN;
   const isCreator = member.userId === spaceCreatorId;
 
-  return (
-    <Button variant="unstyled"
+  const profileButton = (
+    <Button
+      variant="unstyled"
       type="button"
       onClick={() => onOpenProfile(member.userId)}
-      className="flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-control border border-transparent p-3 text-left transition-all duration-200 hover:border-border hover:bg-info-soft/50 focus:outline-none focus:ring-4 focus:ring-ring"
+      className="flex w-full min-w-0 flex-1 basis-44 cursor-pointer items-center gap-3 rounded-control border border-transparent p-3 text-left transition-all duration-200 hover:border-border hover:bg-info-soft/50 focus:outline-none focus:ring-4 focus:ring-ring"
     >
       <div className="relative h-11 w-11 shrink-0">
         <div className="h-full w-full overflow-hidden rounded-full border border-border bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
@@ -73,9 +81,9 @@ export default function ChannelMemberRow({
         ) : null}
       </div>
 
-      <span className="min-w-0">
+      <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm font-semibold text-foreground">
+          <span className="min-w-0 truncate text-sm font-semibold text-foreground">
             {displayName}
           </span>
           {isAdmin ? (
@@ -90,5 +98,14 @@ export default function ChannelMemberRow({
       </span>
     </Button>
   );
+  return actions ? (
+    <div className="flex min-w-0 flex-wrap items-center gap-x-2">
+      {profileButton}
+      <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2 px-3 pb-2 sm:pb-0">
+        {actions}
+      </div>
+    </div>
+  ) : (
+    profileButton
+  );
 }
-

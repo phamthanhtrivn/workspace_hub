@@ -26,6 +26,7 @@ import {
 } from "../../types/calendar.constants";
 import { CalendarEventMoveInfo } from "../../hooks/calendar-workspace.types";
 import { CalendarEvent, EventSourceType } from "../../types/calendar.types";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const FULL_CALENDAR_PLUGINS = [
   dayGridPlugin,
@@ -224,9 +225,7 @@ export const CalendarGrid = memo(function CalendarGrid({
       className="calendar-shell relative min-h-0 min-w-0 flex-1 overflow-auto bg-card"
     >
       {loading && (
-        <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-info-content shadow-panel">
-          Loading...
-        </div>
+        <LoadingState label="Loading..." className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-info-content shadow-panel" />
       )}
       <FullCalendar
         ref={calendarRef}

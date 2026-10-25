@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 
 import type { Project } from "@/features/project/types/project";
@@ -276,7 +277,7 @@ export function CalendarTasksDrawer({
 
             {loading ? (
               <div className="flex h-32 items-center justify-center">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-input border-t-info" />
+                <LoadingState label="Loading tasks…" layout="centered" />
               </div>
             ) : error && displayedTasks.length === 0 ? (
               <TaskLoadError onRetry={onRetry} />

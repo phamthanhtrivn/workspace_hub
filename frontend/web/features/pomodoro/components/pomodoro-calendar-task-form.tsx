@@ -121,7 +121,7 @@ export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSa
     {isError && <p role="alert" className="text-xs text-destructive-content">Unable to load your personal task list. <Button type="button" variant="link" size="sm" onClick={() => void refetch()}>Retry</Button></p>}
     {createdTask && <p role="status" className="text-xs text-muted-foreground">Task saved to My tasks. Your current focus is kept until you confirm the switch.</p>}
     {error && <p role="alert" className="text-xs text-destructive-content">{error}</p>}
-    <Button type="submit" className="w-full" disabled={creating || busy || !createdEligible || isLoading || isError || !defaultCalendarId}>
+    <Button loading={creating} type="submit" className="w-full" disabled={creating || busy || !createdEligible || isLoading || isError || !defaultCalendarId}>
       {creating ? "Preparing focus…" : createdTask ? "Start created task" : "Create task & start focus"}
     </Button>
   </form>;

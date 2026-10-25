@@ -164,7 +164,7 @@ export function ProjectLabelManager({
                       disabled={isBusy}
                       className="h-8 min-w-0 flex-1 rounded-control border-input bg-card px-2.5 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                     />
-                    <Button
+                    <Button loading={busyAction === `update-${label.id}`}
                       type="button"
                       variant="ghost"
                       size="icon"
@@ -222,7 +222,7 @@ export function ProjectLabelManager({
                         </Button>
                       ) : null}
                       {onDeleteLabel ? (
-                        <Button
+                        <Button loading={busyAction === `delete-${label.id}`}
                           type="button"
                           variant="ghost"
                           size="icon"
@@ -269,7 +269,7 @@ export function ProjectLabelManager({
               disabled={isBusy}
               className="h-9 min-w-0 flex-1 rounded-control border-input bg-card px-3 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
             />
-            <Button
+            <Button loading={busyAction === "create"}
               type="button"
               onClick={() => void handleCreateLabel()}
               disabled={!newLabel.name.trim() || isBusy}

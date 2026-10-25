@@ -9,7 +9,6 @@ import {
 import {
   ArrowRight,
   CheckCircle2,
-  Loader2,
   UserPlus,
   Users,
   XCircle,
@@ -31,6 +30,7 @@ import {
 } from "../../utils/notification-display.utils";
 import { NotificationListRow } from "../notification-list-row";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 
 function SenderAvatar({
@@ -206,13 +206,13 @@ export const InvitationModalRenderer: React.FC<{
               <XCircle size={16} />
               Decline
             </Button>
-            <Button
+            <Button aria-busy={isProcessing || undefined}
               onClick={() => setPendingAction("accept")}
               disabled={isProcessing}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
             >
               {isProcessing ? (
-                <Loader2 size={16} className="animate-spin" />
+                <Spinner tone="inherit" />
               ) : (
                 <CheckCircle2 size={16} />
               )}
@@ -236,7 +236,7 @@ export const InvitationModalRenderer: React.FC<{
           </AlertDialogHeader>
           <AlertDialogFooter>
             <Button type="button" variant="outline" disabled={isProcessing} onClick={() => setPendingAction(null)}>Cancel</Button>
-            <Button type="button" variant={pendingAction === "decline" ? "destructive" : "default"} disabled={isProcessing} onClick={() => { if (pendingAction) void handleResponse(pendingAction); }}>
+            <Button loading={isProcessing} type="button" variant={pendingAction === "decline" ? "destructive" : "default"} disabled={isProcessing} onClick={() => { if (pendingAction) void handleResponse(pendingAction); }}>
               {isProcessing ? "Saving…" : pendingAction === "accept" ? "Join space" : "Decline"}
             </Button>
           </AlertDialogFooter>

@@ -79,6 +79,7 @@ export function EventDetailModal({
   const [copiedMeeting, setCopiedMeeting] = useState(false);
   const [showDeleteScopeModal, setShowDeleteScopeModal] = useState(false);
   const [cancelScope, setCancelScope] = useState(RecurrenceScope.THIS);
+  const [pendingAction, setPendingAction] = useState<"delete" | "accept" | "decline" | "complete" | null>(null);
 
   if (!open || !event) return null;
 
@@ -97,6 +98,7 @@ export function EventDetailModal({
   const isCompletedTask = isTask && Boolean(event.completedAt);
 
   const handleDelete = () => {
+    setPendingAction("delete");
     if (isRecurring) {
       setShowDeleteScopeModal(true);
       return;
@@ -105,6 +107,7 @@ export function EventDetailModal({
   };
 
   const handleConfirmDeleteScope = () => {
+    setPendingAction("delete");
     setShowDeleteScopeModal(false);
     onCancelEvent(cancelScope);
   };
@@ -200,6 +203,7 @@ export function EventDetailModal({
                 variant="ghost"
                 size="icon"
                 onClick={handleDelete}
+                loading={busy && pendingAction === "delete"}
                 disabled={busy}
                 aria-label="Cancel event"
                 title="Cancel event"
@@ -404,7 +408,11 @@ export function EventDetailModal({
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => onRespond(AttendeeResponseStatus.ACCEPTED)}
+                loading={busy && pendingAction === "accept"}
+                onClick={() => {
+                  setPendingAction("accept");
+                  onRespond(AttendeeResponseStatus.ACCEPTED);
+                }}
                 disabled={busy}
                 className={`inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
                   myResponseStatus === AttendeeResponseStatus.ACCEPTED
@@ -420,7 +428,11 @@ export function EventDetailModal({
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => onRespond(AttendeeResponseStatus.DECLINED)}
+                loading={busy && pendingAction === "decline"}
+                onClick={() => {
+                  setPendingAction("decline");
+                  onRespond(AttendeeResponseStatus.DECLINED);
+                }}
                 disabled={busy}
                 className={`inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
                   myResponseStatus === AttendeeResponseStatus.DECLINED
@@ -441,7 +453,11 @@ export function EventDetailModal({
           <div className="flex justify-end border-t border-border bg-background px-6 py-4">
             <Button
               type="button"
-              onClick={onTaskCompletionChange}
+              loading={busy && pendingAction === "complete"}
+              onClick={() => {
+                setPendingAction("complete");
+                onTaskCompletionChange();
+              }}
               disabled={busy}
               className="cursor-pointer rounded-full bg-info-soft px-5 py-2.5 text-sm font-semibold text-info-content transition-colors hover:bg-info-soft disabled:cursor-wait disabled:opacity-60"
             >

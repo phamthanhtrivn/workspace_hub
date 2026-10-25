@@ -74,7 +74,7 @@ export default function TaskInlineCreator({
           }}
           className="h-8 flex-1 border-input bg-transparent text-xs font-semibold text-foreground placeholder:text-muted-foreground"
         />
-        <Button
+        <Button loading={isSubmitting}
           type="button"
           size="sm"
           onClick={() => void handleSubmit()}

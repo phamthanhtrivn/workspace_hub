@@ -1,4 +1,5 @@
 "use client";
+import { LoadingState } from "@/components/ui/loading-state";
 
 import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
@@ -316,7 +317,7 @@ export function DocumentExplorer({
         ref={loadMoreRef}
         className="flex min-h-8 items-center justify-center px-4 py-2 text-xs font-semibold text-muted-foreground"
       >
-        {isFetchingNextPage ? "Loading more..." : null}
+        {isFetchingNextPage ? <LoadingState label="Loading more..." size={14} className="text-xs" /> : null}
       </div>
     ) : null;
 

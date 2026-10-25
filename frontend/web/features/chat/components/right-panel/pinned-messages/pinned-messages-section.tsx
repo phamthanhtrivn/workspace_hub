@@ -13,6 +13,7 @@ import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import SeeAllButton from "../see-all-button";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface PinnedMessagesSectionProps {
@@ -137,9 +138,7 @@ export default function PinnedMessagesSection({
         <div className="px-4 pb-3">
           {isError && pinnedMessages.length > 0 && <QueryFeedback label="pinned messages" error retrying={isFetching} onRetry={() => refetch()} />}
           {isError && pinnedMessages.length === 0 ? <QueryFeedback label="pinned messages" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
-            <div className="text-xs text-muted-foreground py-2">
-              Loading pinned messages...
-            </div>
+            <LoadingState label="Loading pinned messages..." className="text-xs text-muted-foreground py-2" />
           ) : pinnedMessages.length === 0 ? (
             <div className="text-xs text-muted-foreground py-2">
               No pinned messages

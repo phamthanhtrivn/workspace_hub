@@ -2,6 +2,15 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model ProjectTaskSnapshot {
+  taskId    String @id @map("task_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  version   BigInt
+  payload   Json
+
+  @@map("project_task_snapshots")
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -200,6 +209,8 @@ model Channel {
   name        String
   createdBy   String          @map("created_by") @db.Uuid
   isDefault   Boolean         @default(false) @map("is_default")
+  visibility  ChannelVisibility @default(PUBLIC)
+  ownerId     String?         @map("owner_id") @db.Uuid
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
@@ -211,6 +222,11 @@ model Channel {
 
   @@index([spaceId])
   @@map("channels")
+}
+
+enum ChannelVisibility {
+  PUBLIC
+  PRIVATE
 }
 
 /* =========================================================
@@ -576,6 +592,7 @@ model Meeting {
   conversation             DirectConversation?     @relation(fields: [conversationId], references: [id], onDelete: SetNull)
   participants             MeetingParticipant[]
   participantViewPreferences MeetingParticipantViewPreference[]
+  historyPreferences       MeetingHistoryPreference[]
   messages                 MeetingMessage[]
   recordings               MeetingRecording[]
   events                   MeetingEvent[]
@@ -595,6 +612,20 @@ model Meeting {
 /* =========================================================
  * MEETING PARTICIPANT
  * ========================================================= */
+
+model MeetingHistoryPreference {
+  meetingId String    @map("meeting_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  hiddenAt  DateTime? @map("hidden_at")
+  hiddenBatchId String? @map("hidden_batch_id") @db.Uuid
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@id([meetingId, userId])
+  @@index([userId, hiddenAt])
+  @@index([userId, hiddenBatchId])
+  @@map("meeting_history_preferences")
+}
 
 model MeetingParticipant {
   id                String                   @id @default(uuid()) @db.Uuid

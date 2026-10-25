@@ -156,7 +156,12 @@ export class MemberService {
         );
       }
     });
-    await this.projects.syncProjectDocumentAccess(projectId);
-    await this.projects.syncProjectSpaceAccess(projectId);
+    const accessSyncResults = await Promise.allSettled([
+      this.projects.syncProjectDocumentAccess(projectId),
+      this.projects.syncProjectSpaceAccess(projectId),
+    ]);
+    for (const result of accessSyncResults) {
+      if (result.status === 'rejected') throw result.reason;
+    }
   }
 }

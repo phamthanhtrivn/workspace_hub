@@ -9,7 +9,6 @@ import {
   Download,
   FileText,
   FolderOpen,
-  Loader2,
   Paperclip,
   Trash2,
   Upload,
@@ -36,6 +35,7 @@ import {
   useDetachTaskDocument,
   useTaskDocuments,
 } from "@/features/project/hooks/use-tasks";
+import { Spinner } from "@/components/ui/spinner";
 
 type PickerMode = "MY_FILES" | "PROJECT_DOCUMENT";
 
@@ -160,7 +160,7 @@ export default function TaskDocumentsSection({
               className="hidden"
               onChange={(event) => void handleUploadFiles(event.target.files)}
             />
-            <Button
+            <Button aria-busy={isUploading || undefined}
               type="button"
               size="sm"
               variant="outline"
@@ -169,7 +169,7 @@ export default function TaskDocumentsSection({
               className="h-7 rounded-control px-2 text-xs"
             >
               {isUploading ? (
-                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                <Spinner size={14} className="mr-1" />
               ) : (
                 <Upload className="mr-1 h-3.5 w-3.5" />
               )}
@@ -200,8 +200,8 @@ export default function TaskDocumentsSection({
       </div>
 
       {documentsQuery.isLoading ? (
-        <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <div role="status" className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
+          <Spinner size={14} />
           Loading attachments...
         </div>
       ) : attachments.length === 0 ? (
@@ -237,7 +237,7 @@ export default function TaskDocumentsSection({
                 <Download className="h-3.5 w-3.5" />
               </Button>
               {!isReadOnly && (
-                <Button
+                <Button loading={detachDocument.isPending && detachDocument.variables === attachment.id}
                   type="button"
                   size="icon"
                   variant="ghost"
@@ -384,8 +384,8 @@ function TaskDocumentPickerDialog({
 
           <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
             {query.isLoading ? (
-              <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
+              <div role="status" className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
+                <Spinner />
                 Loading files...
               </div>
             ) : files.length === 0 ? (
@@ -439,14 +439,14 @@ function TaskDocumentPickerDialog({
             >
               Cancel
             </Button>
-            <Button
+            <Button aria-busy={attachDocuments.isPending || undefined}
               type="button"
               disabled={selectedIds.length === 0 || attachDocuments.isPending}
               onClick={() => void handleAttach()}
               className="h-8 rounded-control bg-primary px-3 text-xs text-primary-foreground hover:bg-primary-hover"
             >
               {attachDocuments.isPending && (
-                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                <Spinner size={14} tone="inherit" className="mr-1" />
               )}
               Attach {selectedIds.length || ""}
             </Button>

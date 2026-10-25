@@ -284,7 +284,7 @@ export default function MemberPermissionsDialog({
           >
             Cancel
           </Button>
-          <Button
+          <Button loading={isSaving}
             type="button"
             onClick={() => void onSave(permissions)}
             disabled={isSaving}

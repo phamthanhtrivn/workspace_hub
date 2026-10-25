@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Loader2, LogOut, Monitor, Smartphone } from "lucide-react";
+import { LogOut, Monitor, Smartphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UserDeviceKeyword } from "@/features/user-setting/types/settings.enums";
@@ -11,6 +11,7 @@ import {
 } from "@/features/user-setting/hooks/useUserSettingQueries";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import RevokeSessionModal from "./revoke-session-modal";
+import { Spinner } from "@/components/ui/spinner";
 
 const SessionsTab = React.memo(function SessionsTab() {
   const sessionsQuery = useUserSessionsQuery();
@@ -38,9 +39,9 @@ const SessionsTab = React.memo(function SessionsTab() {
   if (!sessionsResponse && (isLoading || sessionsQuery.isError)) return <QueryFeedback label="signed-in sessions" pending={isLoading} error={sessionsQuery.isError} retrying={sessionsQuery.isFetching} onRetry={() => sessionsQuery.refetch()} />;
   if (isLoading) {
     return (
-      <div className="flex h-full min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-link" />
-      </div>
+      <div role="status" className="flex h-full min-h-[300px] items-center justify-center">
+        <Spinner size={32} />
+      <span className="sr-only">Loading…</span></div>
     );
   }
 

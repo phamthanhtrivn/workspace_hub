@@ -39,6 +39,7 @@ import type {
 import { QueryFeedback } from "@/components/common/query-feedback";
 import NotificationList from "@/features/notification/components/notification-list";
 import NotificationDetailModal from "@/features/notification/components/notification-detail-modal";
+import { ChannelMemberAddedModalRenderer, ChannelOwnershipTransferredModalRenderer } from "@/features/notification/components/renderers/channel-member-added-renderer";
 import { registerNotificationRenderer } from "@/features/notification/components/notification-registry";
 import {
   BACKEND_HEALTH_PATHS,
@@ -137,6 +138,9 @@ const categoryConfig: Record<
 // Initialize Registry
 let isRegistryInitialized = false;
 if (!isRegistryInitialized) {
+  registerNotificationRenderer(NotificationType.CHANNEL_MEMBER_ADDED, ChannelMemberAddedModalRenderer, DefaultListItemRenderer);
+  registerNotificationRenderer(NotificationType.CHANNEL_MEMBER_REMOVED, DefaultModalRenderer, DefaultListItemRenderer);
+  registerNotificationRenderer(NotificationType.CHANNEL_OWNERSHIP_TRANSFERRED, ChannelOwnershipTransferredModalRenderer, DefaultListItemRenderer);
   registerNotificationRenderer(
     "DEFAULT",
     DefaultModalRenderer,
@@ -666,7 +670,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             />
             <div className="flex min-w-0 items-center justify-end py-2">
               {tab === "READ" && hasCategoryData ? (
-                <Button
+                <Button loading={deleteNotificationsMutation.isPending}
                   type="button"
                   variant="outline"
                   size="sm"

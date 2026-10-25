@@ -16,9 +16,9 @@ export function PomodoroNotificationSettings({ enabled, disabled, onChange }: {
     <SettingSwitchCard title={copy.notifications.title} description={copy.notifications.description}
       checked={enabled} onCheckedChange={onChange} disabled={disabled || permission === "unsupported"} />
     <p role="status" className="text-xs text-muted-foreground">{copy.notifications[permission]}</p>
-    {permission === "default" && <Button type="button" variant="outline" disabled={disabled || !enabled || pending}
+    {permission === "default" && <Button loading={pending} type="button" variant="outline" disabled={disabled || !enabled || pending}
       onClick={() => void notifications.requestPermission()}>{copy.notifications.enable}</Button>}
-    {permission === "granted" && <Button type="button" variant="outline" disabled={disabled || !enabled || pending}
+    {permission === "granted" && <Button loading={pending} type="button" variant="outline" disabled={disabled || !enabled || pending}
       onClick={notifications.testNotification}>{copy.notifications.test}</Button>}
     {error && <p role="alert" className="text-xs text-destructive-content">{error}</p>}
   </div>;

@@ -40,6 +40,7 @@ export interface UserProfileSnapshotResponse {
 // ─── Role types ────────────────────────────────────────────────────────────
 
 import { SpaceRole } from "./chat.enums";
+import { ChannelVisibility } from "./chat.enums";
 
 /** Role của member trong một channel hoặc direct conversation. */
 export type ConversationRole = SpaceRole.ADMIN | SpaceRole.MEMBER;
@@ -110,6 +111,24 @@ export interface SpaceMembersListResponse {
   nextCursor?: string | null;
 }
 
+export interface SpaceMemberCandidatesResponse {
+  members: SpaceMemberListItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface PrivateChannelMembersResponse {
+  ownerId: string | null;
+  canManage: boolean;
+  memberCount: number;
+  members: Array<SpaceMemberListItem & { nickname: string | null; joined: boolean }>;
+  pagination: SpaceMemberCandidatesResponse["pagination"];
+}
+
 // ─── Conversation / Channel entities ──────────────────────────────────────
 
 interface ChatListEntityBase {
@@ -140,6 +159,13 @@ export interface DirectMessageSendPermission {
 export interface ChannelResponse extends ChatListEntityBase {
   spaceId: string;
   isDefault?: boolean;
+  visibility?: ChannelVisibility;
+  ownerId?: string | null;
+}
+
+export interface CreateChannelOptions {
+  visibility?: ChannelVisibility;
+  memberUserIds?: string[];
 }
 
 export type ChatEntity = DirectConversationResponse | ChannelResponse;

@@ -13,6 +13,9 @@ import { Citations } from "./citations";
 import { AnswerContent } from "./answer-content";
 import { SourcePanel } from "./source-panel";
 import { StudioPanel } from "./studio-panel";
+import { LoadingState } from "@/components/ui/loading-state";
+import { Spinner } from "@/components/ui/spinner";
+import type { NotebookActionKey, NotebookActionRunner } from "../types";
 
 export function NotebookWorkspace({ id }: { id: string }) {
   const userId = useAppSelector((state) => state.auth.userId);
@@ -32,8 +35,10 @@ function Workspace({ id }: { id: string }) {
   const [question, setQuestion] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState("");
-  const run = (action: () => Promise<unknown>) => {
-    void query.action(action).catch(() => {});
+  const [pendingAction, setPendingAction] = useState<NotebookActionKey | null>(null);
+  const run: NotebookActionRunner = (action, key) => {
+    setPendingAction(key ?? null);
+    void query.action(action).catch(() => {}).finally(() => setPendingAction(null));
   };
   if (query.isError)
     return (
@@ -50,9 +55,7 @@ function Workspace({ id }: { id: string }) {
     );
   if (!query.data)
     return (
-      <p className="p-8" role="status">
-        Đang tải notebook…
-      </p>
+      <LoadingState label="Đang tải notebook…" size={32} className="p-8" />
     );
   const notebook = query.data;
   const selected = notebook.sources.filter(
@@ -98,6 +101,7 @@ function Workspace({ id }: { id: string }) {
           <Button
             variant="ghost"
             size="sm"
+            loading={query.saving && pendingAction === "remove"}
             disabled={chat.busy || query.saving}
             onClick={() => {
               if (
@@ -108,7 +112,7 @@ function Workspace({ id }: { id: string }) {
                 run(async () => {
                   await notebooksApi.remove(id);
                   router.push("/ai");
-                });
+                }, "remove");
             }}
           >
             Xóa notebook
@@ -123,7 +127,7 @@ function Workspace({ id }: { id: string }) {
             run(async () => {
               await notebooksApi.rename(id, name);
               setRenaming(false);
-            });
+            }, "rename");
           }}
         >
           <Input
@@ -132,7 +136,7 @@ function Workspace({ id }: { id: string }) {
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
-          <Button disabled={query.saving || !name.trim()}>Lưu</Button>
+          <Button loading={query.saving && pendingAction === "rename"} disabled={query.saving || !name.trim()}>Lưu</Button>
         </form>
       )}
       {query.actionError && (
@@ -165,6 +169,7 @@ function Workspace({ id }: { id: string }) {
             selected={selected.map((source) => source.id)}
             busy={chat.busy}
             run={run}
+            pendingAction={query.saving ? pendingAction : null}
             refresh={query.refresh}
             toggle={(sourceId) =>
               setExcluded((current) =>
@@ -234,7 +239,7 @@ function Workspace({ id }: { id: string }) {
                       ["FAILED", "CANCELLED"].includes(
                         message.summary_status || "",
                       ) && (
-                        <Button
+                        <Button loading={query.saving && pendingAction === `summary:${message.id}`}
                           className="mt-3"
                           size="sm"
                           variant="outline"
@@ -246,6 +251,7 @@ function Workspace({ id }: { id: string }) {
                                 "SUMMARY",
                                 message.sources.map((source) => source.id),
                               ),
+                              `summary:${message.id}`,
                             )
                           }
                         >
@@ -255,7 +261,7 @@ function Workspace({ id }: { id: string }) {
                     {message.role === "ASSISTANT" &&
                       (!message.artifact_id ||
                         message.summary_status === "COMPLETED") && (
-                        <Button
+                        <Button loading={query.saving && pendingAction === `note:${message.id}`}
                           className="mt-3"
                           size="sm"
                           variant="outline"
@@ -266,6 +272,7 @@ function Workspace({ id }: { id: string }) {
                                 title: "Đã lưu từ hỏi đáp",
                                 messageId: message.id,
                               }),
+                              `note:${message.id}`,
                             )
                           }
                         >
@@ -278,7 +285,8 @@ function Workspace({ id }: { id: string }) {
             ))}
             {(chat.busy || chat.error) && visibleDraft && (
               <article className="rounded-lg border p-4">
-                <p className="mb-2 text-xs text-muted-foreground">
+                <p role={chat.busy ? "status" : undefined} className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                  {chat.busy && <Spinner size={14} />}
                   {chat.busy ? chat.stage : "Phần trả lời đã nhận được"} · Chưa
                   hoàn tất
                 </p>
@@ -336,7 +344,7 @@ function Workspace({ id }: { id: string }) {
           </form>
         </section>
         <aside className={`${panel} ${tab === "studio" ? "block" : "hidden"}`}>
-          <StudioPanel notebook={notebook} saving={query.saving} run={run} />
+          <StudioPanel notebook={notebook} saving={query.saving} pendingAction={query.saving ? pendingAction : null} run={run} />
         </aside>
       </div>
     </main>

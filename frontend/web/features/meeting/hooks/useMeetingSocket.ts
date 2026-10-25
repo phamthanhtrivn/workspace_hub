@@ -22,9 +22,10 @@ import {
   type MeetingRoomReactionPayload,
   type ServerToClientMeetingEvents,
 } from "../types/meeting-socket.types";
-import type { MeetingMessageResponse } from "../types/meeting.types";
+import type { MeetingHistoryBulkVisibilityResponse, MeetingHistoryVisibilityResponse, MeetingMessageResponse } from "../types/meeting.types";
 
 interface MeetingSocketOptions {
+  onHistoryVisibilityUpdated?: (payload: MeetingHistoryVisibilityResponse | MeetingHistoryBulkVisibilityResponse) => void;
   meetingId?: string | null;
   onStatusUpdated?: (payload: MeetingStatusUpdatedPayload) => void;
   onMeetingStarted?: (payload: MeetingStatusUpdatedPayload) => void;
@@ -53,6 +54,7 @@ type MeetingSocket = Socket<
 >;
 
 export function useMeetingSocket({
+  onHistoryVisibilityUpdated,
   meetingId,
   onStatusUpdated,
   onMeetingStarted,
@@ -155,6 +157,10 @@ export function useMeetingSocket({
       onRoomReaction?.(payload);
     };
 
+    const handleHistoryVisibilityUpdated = (payload: MeetingHistoryVisibilityResponse | MeetingHistoryBulkVisibilityResponse) => {
+      onHistoryVisibilityUpdated?.(payload);
+    };
+    socket.on(MeetingSocketEvent.HISTORY_VISIBILITY_UPDATED, handleHistoryVisibilityUpdated);
     socket.on(MeetingSocketEvent.PARTICIPANT_JOINED, handleParticipantJoined);
     socket.on(MeetingSocketEvent.PARTICIPANT_LEFT, handleParticipantLeft);
     socket.on(MeetingSocketEvent.PARTICIPANT_UPDATED, handleParticipantUpdated);
@@ -186,6 +192,7 @@ export function useMeetingSocket({
     socket.on(MeetingSocketEvent.ROOM_REACTION, handleRoomReaction);
 
     return () => {
+      socket.off(MeetingSocketEvent.HISTORY_VISIBILITY_UPDATED, handleHistoryVisibilityUpdated);
       socket.off(
         MeetingSocketEvent.PARTICIPANT_JOINED,
         handleParticipantJoined,
@@ -226,6 +233,7 @@ export function useMeetingSocket({
       socket.off(MeetingSocketEvent.ROOM_REACTION, handleRoomReaction);
     };
   }, [
+    onHistoryVisibilityUpdated,
     accessToken,
     meetingId,
     onHostTransferred,

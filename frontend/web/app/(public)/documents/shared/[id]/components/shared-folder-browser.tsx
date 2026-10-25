@@ -8,7 +8,6 @@ import {
   FolderArchive,
   ChevronRight,
   Home,
-  Loader2,
   ArrowLeft,
 } from "lucide-react";
 import { DocumentIcon } from "@/features/documents/components/common/document-icon";
@@ -28,6 +27,7 @@ import {
   useDownloadQueue,
 } from "@/features/documents/components/download/download-queue-provider";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -170,9 +170,9 @@ function SharedFolderBrowserInner({
       {/* File/Folder List */}
       {loadError && <QueryFeedback label="shared folder contents" error retrying={isLoading} onRetry={() => loadChildren(currentFolderId)} />}
       {loadError && children.length === 0 ? null : isLoading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 size={24} className="animate-spin text-info-content" />
-        </div>
+        <div role="status" className="flex items-center justify-center py-16">
+          <Spinner size={24} />
+        <span className="sr-only">Loading…</span></div>
       ) : children.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <Folder size={40} className="text-muted-foreground mb-3" />

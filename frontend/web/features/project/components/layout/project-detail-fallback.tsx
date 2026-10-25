@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { ArrowLeft, FolderSearch } from "lucide-react";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export function ProjectDetailLoading() {
   return (
-    <div className="py-24 text-center text-sm font-semibold text-muted-foreground">
-      Loading project...
-    </div>
+    <LoadingState label="Loading project..." layout="centered" className="py-24 text-center text-sm font-semibold text-muted-foreground" />
   );
 }
 

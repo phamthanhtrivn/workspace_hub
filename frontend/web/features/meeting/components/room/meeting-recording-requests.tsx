@@ -16,10 +16,12 @@ import { MeetingRoomControlButton } from "../common/meeting-room-control-button"
 export function MeetingRecordingRequests({
   state,
   saving,
+  pendingAnswer,
   onAnswer,
 }: {
   state: RecordingRoomStatus;
   saving: boolean;
+  pendingAnswer?: { id: string; approve: boolean };
   onAnswer: (id: string, approve: boolean) => void;
 }) {
   const [deferredId, setDeferredId] = useState<string>();
@@ -86,6 +88,7 @@ export function MeetingRecordingRequests({
             </MeetingButton>
             <MeetingButton
               tone="outline"
+              loading={saving && pendingAnswer?.id === request.id && !pendingAnswer.approve}
               disabled={saving}
               onClick={() => onAnswer(request.id, false)}
             >
@@ -93,6 +96,7 @@ export function MeetingRecordingRequests({
             </MeetingButton>
             <MeetingButton
               disabled={saving}
+              loading={saving && pendingAnswer?.id === request.id && pendingAnswer.approve}
               onClick={() => onAnswer(request.id, true)}
             >
               Allow recording

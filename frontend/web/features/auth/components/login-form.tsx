@@ -158,7 +158,7 @@ const LoginForm = React.memo(function LoginForm() {
         />
       </div>
 
-      <Button variant="unstyled"
+      <Button loading={loginMutation.isPending} variant="unstyled"
         type="submit"
         disabled={loginMutation.isPending}
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-[0_16px_32px_color-mix(in_srgb,var(--primary)_22%,transparent)] transition hover:-translate-y-0.5 hover:bg-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer disabled:opacity-70"

@@ -1,12 +1,13 @@
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState, useEffect } from "react";
-import { ArrowLeft, FileText, Loader2, Search } from "lucide-react";
+import { ArrowLeft, FileText, Search } from "lucide-react";
 import ViewNoteModal from "../../modals/message/view-note-modal";
 import { useNotes } from "../../../hooks/useNotes";
 import { formatDateTime } from "@/lib/date";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface NoteDetailViewProps {
@@ -66,9 +67,9 @@ export default function NoteDetailView({
       <div className="flex-1 overflow-y-auto p-4">
         {isError && notes.length > 0 && <QueryFeedback label="notes" error retrying={retrying} onRetry={() => retry()} />}
           {isError && notes.length === 0 ? <QueryFeedback label="notes" error retrying={retrying} onRetry={() => retry()} /> : loading ? (
-          <div className="text-center py-4 flex justify-center">
-            <Loader2 className="animate-spin text-muted-foreground" size={24} />
-          </div>
+          <div role="status" className="text-center py-4 flex justify-center">
+            <Spinner size={24} />
+          <span className="sr-only">Loading…</span></div>
         ) : notes.length === 0 ? (
           <div className="text-center text-sm text-muted-foreground py-4">
             {searchQuery

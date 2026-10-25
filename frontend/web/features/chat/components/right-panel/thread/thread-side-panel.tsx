@@ -13,6 +13,7 @@ import {
 } from "../../../hooks/useChatQueries";
 import ThreadDetailView from "./thread-detail-view";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 function getMessageConversationId(
@@ -59,9 +60,7 @@ export default function ThreadSidePanel() {
           <X size={20} />
         </Button>
       </div>
-      <div className="flex-1 min-h-0 flex items-center justify-center text-xs font-medium text-muted-foreground">
-        Loading thread...
-      </div>
+      <LoadingState label="Loading thread..." layout="centered" className="flex-1 min-h-0 flex items-center justify-center text-xs font-medium text-muted-foreground" />
     </div>
   );
 }

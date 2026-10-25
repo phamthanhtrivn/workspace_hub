@@ -2,9 +2,10 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { UploadCloud, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { UploadCloud, CheckCircle2, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { UploadState } from "../../types/documents.enums";
+import { Spinner } from "@/components/ui/spinner";
 
 interface VersionUploaderProps {
   uploadState: UploadState;
@@ -65,10 +66,7 @@ export function VersionUploader({
                   className="text-success-content shrink-0"
                 />
               ) : uploadState === UploadState.ERROR ? <AlertCircle size={16} className="shrink-0 text-destructive-content" /> : (
-                <Loader2
-                  size={16}
-                  className="text-info-content animate-spin shrink-0"
-                />
+                <Spinner className="shrink-0" />
               )}
               <span className="text-xs font-semibold text-foreground truncate max-w-xs">
                 {uploadingFileName}

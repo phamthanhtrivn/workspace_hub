@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { getDailyStats } from "../api/pomodoro-server.api";
 import type { PomodoroDailyStats } from "../types/pomodoro";
 import { Progress } from "@/components/ui/progress";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface PomodoroStatsCardProps {
   lastUpdated: number;
@@ -27,7 +28,7 @@ export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({
   if (failed) return <p role="alert" className="text-xs text-destructive-content">
     Unable to load today&apos;s stats. <Button variant="ghost" type="button" className="underline" onClick={() => setRetryRevision((value) => value + 1)}>Retry</Button>
   </p>;
-  if (!stats) return <p role="status" className="text-xs text-muted-foreground">Loading stats...</p>;
+  if (!stats) return <LoadingState label="Loading stats..." className="text-xs text-muted-foreground" />;
 
   const hours = Math.floor(stats.totalFocusMinutes / 60);
   const mins = stats.totalFocusMinutes % 60;

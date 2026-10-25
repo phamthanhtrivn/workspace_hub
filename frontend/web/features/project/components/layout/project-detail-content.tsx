@@ -18,6 +18,7 @@ import {
   type Task,
   type TaskDependency,
 } from "@/features/project/types/project";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export type OpenProjectTaskForm = (
   status?: TaskStatus,
@@ -76,9 +77,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
 
     if (props.isLoading)
       return (
-        <div className="rounded-panel border border-border bg-card py-24 text-center text-sm font-semibold text-muted-foreground">
-          Loading tasks...
-        </div>
+        <LoadingState label="Loading tasks..." layout="centered" className="rounded-panel border border-border bg-card py-24 text-center text-sm font-semibold text-muted-foreground" />
       );
     if (props.isError)
       return (

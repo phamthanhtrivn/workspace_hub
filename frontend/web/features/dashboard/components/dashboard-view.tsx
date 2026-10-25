@@ -28,9 +28,10 @@ import { Card } from "@/components/ui/card";
 import { DashboardQuickActions } from "./overview/dashboard-quick-actions";
 import { DashboardWeather } from "./weather/dashboard-weather";
 import { formatScheduledRelativeTime, selectDashboardContext } from "../utils/dashboard-context.utils";
+import { LoadingState } from "@/components/ui/loading-state";
 
 const DashboardQuickTaskDialog = dynamic(() => import("./overview/dashboard-quick-task-dialog"), {
-  loading: () => <p role="status" className="text-sm text-muted-foreground">Opening task form…</p>,
+  loading: () => <LoadingState label="Opening task form…" className="text-sm text-muted-foreground" />,
 });
 
 function PersonalDashboard() {

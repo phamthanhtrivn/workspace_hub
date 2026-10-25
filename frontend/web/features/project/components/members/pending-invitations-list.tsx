@@ -117,7 +117,7 @@ export default function PendingInvitationsList({
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-1">
-                <Button
+                <Button loading={isResending}
                   type="button"
                   variant="ghost"
                   size="icon"
@@ -127,11 +127,9 @@ export default function PendingInvitationsList({
                   aria-label={`Resend invitation for ${displayName}`}
                   title="Resend invitation"
                 >
-                  <RotateCw
-                    className={`h-3.5 w-3.5 ${isResending ? "animate-spin" : ""}`}
-                  />
+                  <RotateCw className="h-3.5 w-3.5" />
                 </Button>
-                <Button
+                <Button loading={isCancelling}
                   type="button"
                   variant="ghost"
                   size="icon"

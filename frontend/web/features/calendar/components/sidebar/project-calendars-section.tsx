@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { readableTextOnColor } from "@/lib/color";
 
 import type { Project } from "@/features/project/types/project";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export function ProjectCalendarsSection({
   projects,
@@ -39,9 +40,7 @@ export function ProjectCalendarsSection({
       </div>
 
       {loading ? (
-        <p className="px-8 py-1 text-xs text-muted-foreground" role="status">
-          Loading projects...
-        </p>
+        <LoadingState label="Loading projects..." className="px-8 py-1 text-xs text-muted-foreground" />
       ) : error ? (
         <div className="px-8 py-1 text-xs text-destructive-content" role="alert">
           <p>Could not load projects</p>

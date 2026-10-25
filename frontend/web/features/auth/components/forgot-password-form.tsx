@@ -185,7 +185,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               onChange={handleEmailChange}
             />
           </div>
-          <Button variant="unstyled"
+          <Button loading={sendResetOtpMutation.isPending} variant="unstyled"
             type="submit"
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
@@ -241,7 +241,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               </Button>
             </div>
           </div>
-          <Button variant="unstyled"
+          <Button loading={verifyResetOtpMutation.isPending} variant="unstyled"
             type="submit"
             disabled={isLoading || otp.length < 6}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
@@ -309,7 +309,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               onRightClick={() => setShowConfirmPassword((prev) => !prev)}
             />
           </div>
-          <Button variant="unstyled"
+          <Button loading={resetPasswordMutation.isPending} variant="unstyled"
             type="submit"
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"

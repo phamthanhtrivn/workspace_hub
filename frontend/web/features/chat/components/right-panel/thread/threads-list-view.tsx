@@ -22,6 +22,7 @@ import { logApiError } from "@/lib/interceptors";
 import ThreadSnippetPreview from "./thread-snippet-preview";
 import { Button } from "@/components/ui/button";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface ThreadsListViewProps {
@@ -165,9 +166,7 @@ export default function ThreadsListView({
       {/* List content */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
         {isError && threads.length === 0 ? <QueryFeedback label="conversation threads" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
-          <div className="text-center py-8 text-xs text-muted-foreground italic">
-            Loading threads...
-          </div>
+          <LoadingState label="Loading threads..." layout="centered" className="text-center py-8 text-xs text-muted-foreground italic" />
         ) : threads.length > 0 ? (
           threads.map((msg: any) => {
             const sender = msg.senderProfile || memberProfiles[msg.senderId];
@@ -237,9 +236,7 @@ export default function ThreadsListView({
         )}
         <div ref={loadMoreRef} className="h-8 flex items-center justify-center">
           {isFetchingNextPage && (
-            <span className="text-xs text-muted-foreground">
-              Loading more...
-            </span>
+            <LoadingState label="Loading more..." className="text-xs text-muted-foreground" />
           )}
         </div>
       </div>

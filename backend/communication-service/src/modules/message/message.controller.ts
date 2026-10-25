@@ -11,6 +11,7 @@ import {
   Delete,
 } from '@nestjs/common';
 import { MessageService } from './message.service';
+import { ChannelResource } from '../channel/access/channel-resource.decorator';
 import { MessageType } from '@prisma/client';
 import {
   MESSAGE_DIRECTION,
@@ -21,6 +22,7 @@ import {
 } from './types/message.enums';
 
 @Controller('api/channels')
+@ChannelResource('channel')
 export class MessageController {
   constructor(private readonly messageService: MessageService) {}
 
@@ -194,6 +196,7 @@ export class MessageController {
   }
 
   @Get('messages/:id/thread')
+  @ChannelResource('message')
   async getThreadMessages(@Param('id') messageId: string) {
     if (!messageId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
@@ -206,6 +209,7 @@ export class MessageController {
   }
 
   @Patch('messages/:id')
+  @ChannelResource('message')
   async editMessage(
     @Param('id') messageId: string,
     @Headers('x-user-id') userId: string,
@@ -228,6 +232,7 @@ export class MessageController {
   }
 
   @Patch('messages/:id/recall')
+  @ChannelResource('message')
   async recallMessage(
     @Param('id') messageId: string,
     @Headers('x-user-id') userId: string,
@@ -270,6 +275,7 @@ export class MessageController {
   }
 
   @Post('messages/:id/reactions')
+  @ChannelResource('message')
   async addReaction(
     @Param('id') messageId: string,
     @Headers('x-user-id') userId: string,
@@ -292,6 +298,7 @@ export class MessageController {
   }
 
   @Delete('messages/:id/reactions')
+  @ChannelResource('message')
   async removeReaction(
     @Param('id') messageId: string,
     @Headers('x-user-id') userId: string,
@@ -314,6 +321,7 @@ export class MessageController {
   }
 
   @Patch('messages/:id/pin')
+  @ChannelResource('message')
   async pinMessage(
     @Param('id') messageId: string,
     @Headers('x-user-id') userId: string,
@@ -334,6 +342,7 @@ export class MessageController {
   }
 
   @Patch('messages/:id/unpin')
+  @ChannelResource('message')
   async unpinMessage(
     @Param('id') messageId: string,
     @Headers('x-user-id') userId: string,
@@ -366,6 +375,7 @@ export class MessageController {
   }
 
   @Post('messages/:id/thread/follow')
+  @ChannelResource('message')
   async followThread(
     @Headers('x-user-id') userId: string,
     @Param('id') messageId: string,
@@ -386,6 +396,7 @@ export class MessageController {
   }
 
   @Post('messages/:id/thread/unfollow')
+  @ChannelResource('message')
   async unfollowThread(
     @Headers('x-user-id') userId: string,
     @Param('id') messageId: string,
@@ -406,6 +417,7 @@ export class MessageController {
   }
 
   @Post('messages/:id/thread/read')
+  @ChannelResource('message')
   async markThreadAsRead(
     @Headers('x-user-id') userId: string,
     @Param('id') messageId: string,

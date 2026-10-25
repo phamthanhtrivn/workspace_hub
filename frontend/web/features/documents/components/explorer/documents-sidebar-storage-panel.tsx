@@ -2,10 +2,11 @@
 
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+
 import { documentsApi } from "../../api/documents.api";
 import { calculateQuotaStats } from "../../utils/documents.utils";
 import { cn } from "@/lib/utils";
+import { Spinner } from "@/components/ui/spinner";
 
 export function DocumentsSidebarStoragePanel() {
   const {
@@ -27,8 +28,8 @@ export function DocumentsSidebarStoragePanel() {
   if (isLoading) {
     return (
       <div className="mt-auto hidden rounded-lg border border-border bg-card p-4 @min-[960px]/documents:block">
-        <div className="flex items-center gap-3">
-          <Loader2 className="h-4 w-4 animate-spin text-info-content" />
+        <div role="status" className="flex items-center gap-3">
+          <Spinner />
           <span className="text-xs font-semibold text-muted-foreground">
             Loading storage stats...
           </span>

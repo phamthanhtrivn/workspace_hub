@@ -2,9 +2,10 @@ import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
-import { HardDrive, Loader2 } from "lucide-react";
+import { HardDrive } from "lucide-react";
 import { calculateQuotaStats } from "../../utils/documents.utils";
 import { cn } from "@/lib/utils";
+import { Spinner } from "@/components/ui/spinner";
 
 function QuotaWidget() {
   const { data: quota, isLoading, isError, isFetching, refetch } = useQuery({
@@ -21,9 +22,9 @@ function QuotaWidget() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-4">
-        <Loader2 className="animate-spin text-muted-foreground" size={16} />
-      </div>
+      <div role="status" className="flex items-center justify-center p-4">
+        <Spinner />
+      <span className="sr-only">Loading…</span></div>
     );
   }
 

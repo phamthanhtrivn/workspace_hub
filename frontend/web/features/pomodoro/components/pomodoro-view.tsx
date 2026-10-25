@@ -18,6 +18,7 @@ import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
 import { POMODORO_AUDIO_MESSAGES } from "../constants/pomodoro-audio";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export function PomodoroView() {
   const userId = useAppSelector((state) => state.auth.userId);
@@ -161,13 +162,9 @@ function UserPomodoroView({ userId }: { userId: string }) {
             onStop={() => void stopSession().catch((error) => toast.error(error instanceof Error ? error.message : copy.stopFailed))}
           />
           {!isReady && (
-            <p
-              role="status"
-              className="text-xs text-warning-content"
-            >
-              Loading Pomodoro...
-            </p>
+            <LoadingState label="Loading Pomodoro..." className="text-xs text-warning-content" />
           )}
+          {isReady && busy && <LoadingState label={copy.savingAction} className="text-xs" />}
           {isReady && loadError && (
             <p role="status" className="text-xs text-warning-content">
               Using local data. Sync will resume automatically when Calendar is available again.
@@ -212,11 +209,11 @@ function UserPomodoroView({ userId }: { userId: string }) {
             />
           </div>
           {!isAmbientReady ? (
-            <p role="status" className="text-xs text-muted-foreground">Loading audio preferences...</p>
+            <LoadingState label="Loading audio preferences..." className="text-xs text-muted-foreground" />
           ) : ambientSyncStatus === "error" ? (
             <p role="status" className="text-center text-xs text-warning-content">Audio preferences are saved locally. Account sync will retry automatically.</p>
           ) : ambientSyncStatus === "saving" ? (
-            <p role="status" className="text-xs text-muted-foreground">Saving audio preferences...</p>
+            <LoadingState label="Saving audio preferences..." className="text-xs text-muted-foreground" />
           ) : null}
           {hasPlaybackError && (
             <p role="status" className="text-center text-xs text-warning-content">{POMODORO_AUDIO_MESSAGES.playError}</p>

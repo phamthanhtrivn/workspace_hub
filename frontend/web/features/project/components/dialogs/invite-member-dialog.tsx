@@ -274,7 +274,7 @@ export default function InviteMemberDialog({
             >
               Close
             </Button>
-            <Button
+            <Button loading={createInvitationMutation.isPending}
               type="button"
               onClick={() => void handleSubmit()}
               disabled={!selectedUser || createInvitationMutation.isPending}

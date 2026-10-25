@@ -7,6 +7,7 @@ import { useAppSelector } from "@/store/store";
 import { usePomodoroSessionActions } from "./pomodoro-session-provider";
 import { useTaskFocusHistory, type TaskFocusHistoryTarget } from "../hooks/use-task-focus-history";
 import { POMODORO_TASK_SETTINGS } from "../constants/pomodoro-task";
+import { LoadingState } from "@/components/ui/loading-state";
 
 function FocusHistory({ target }: { target: TaskFocusHistoryTarget }) {
   const [page, setPage] = useState(1);
@@ -21,7 +22,7 @@ function FocusHistory({ target }: { target: TaskFocusHistoryTarget }) {
         </div>
         <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">Last {POMODORO_TASK_SETTINGS.historyDays} days</span>
       </div>
-      {isLoading ? <p role="status" className="text-xs text-muted-foreground">Loading focus history…</p> : isError ? (
+      {isLoading ? <LoadingState label="Loading focus history…" className="text-xs text-muted-foreground" /> : isError ? (
         <p role="alert" className="text-xs text-destructive-content">Unable to load focus history. <Button variant="ghost" onClick={() => void refetch()} className="underline">Retry</Button></p>
       ) : history ? <>
         <dl className="grid grid-cols-2 gap-4 rounded-panel bg-background p-4">

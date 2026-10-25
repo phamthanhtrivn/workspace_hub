@@ -1,12 +1,13 @@
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState } from "react";
-import { BarChart2, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { BarChart2, ChevronDown, ChevronRight } from "lucide-react";
 import ViewPollModal from "../../modals/message/view-poll-modal";
 import { formatDateTime } from "@/lib/date";
 import { usePolls } from "../../../hooks/usePolls";
 import SeeAllButton from "../see-all-button";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface PollsSectionProps {
@@ -51,9 +52,9 @@ export default function PollsSection({
         <div className="px-4 pb-4">
           {isError && polls.length > 0 && <QueryFeedback label="polls" error retrying={retrying} onRetry={() => retry()} />}
           {isError && polls.length === 0 ? <QueryFeedback label="polls" error retrying={retrying} onRetry={() => retry()} /> : loading ? (
-            <div className="flex justify-center py-4">
-              <Loader2 size={16} className="text-muted-foreground animate-spin" />
-            </div>
+            <div role="status" className="flex justify-center py-4">
+              <Spinner />
+            <span className="sr-only">Loading…</span></div>
           ) : polls.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-2">
               No polls available

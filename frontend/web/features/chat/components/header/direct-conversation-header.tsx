@@ -118,7 +118,7 @@ export default function DirectConversationHeader({
         >
           <Search size={20} />
         </Button>
-        <Button variant="unstyled"
+        <Button loading={isCreating} variant="unstyled"
           className="cursor-pointer p-2 hover:bg-muted hover:text-info-content rounded-full transition disabled:opacity-50"
           onClick={() => setIsConfirmModalOpen(true)}
           disabled={isCreating || !activeConversation?.id}

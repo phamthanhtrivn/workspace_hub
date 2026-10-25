@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Clock3,
   FolderKanban,
-  Loader2,
   UserRound,
   XCircle,
 } from "lucide-react";
@@ -29,6 +28,7 @@ import type {
   ProjectInvitationNotificationStatus,
 } from "../../types/notification.types";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 
 const statusClasses: Record<ProjectInvitationNotificationStatus, string> = {
@@ -204,27 +204,27 @@ export function ProjectInvitationModalRenderer({
 
       {isPending ? (
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <Button variant="unstyled"
+          <Button aria-busy={action === "decline" || undefined} variant="unstyled"
             type="button"
             onClick={() => void respond("decline")}
             disabled={action !== null}
             className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-control border border-border bg-card text-sm font-semibold text-muted-foreground transition hover:border-border hover:bg-destructive-soft hover:text-destructive-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {action === "decline" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner />
             ) : (
               <XCircle className="h-4 w-4" />
             )}
             Decline
           </Button>
-          <Button variant="default"
+          <Button aria-busy={action === "accept" || undefined} variant="default"
             type="button"
             onClick={() => void respond("accept")}
             disabled={action !== null}
             className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-control text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {action === "accept" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner tone="inherit" />
             ) : (
               <CheckCircle2 className="h-4 w-4" />
             )}

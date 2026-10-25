@@ -1,5 +1,6 @@
 "use client";
 
+import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { IconButton } from "@/components/ui/icon-button";
 import { useId as useControlledPopupId } from "react";
 
@@ -11,6 +12,11 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from "react";
+import MessageComposerPreview from "./message-composer-preview";
+import PastingMessageFiles from "./pasting-message-files";
+import { useCopiedMessagePaste } from "../../hooks/input/useCopiedMessagePaste";
+import { CHAT_ATTACHMENT_MAX_SIZE_BYTES, MESSAGE_CLIPBOARD_MESSAGES } from "../../types/message-clipboard.types";
+import { composeMessageText } from "../../utils/message-draft";
 import {
   Send,
   Image as ImageIcon,
@@ -21,7 +27,6 @@ import {
   Smile,
   Plus,
   X,
-  Loader2,
   Mic,
   Trash2,
   Voicemail,
@@ -67,6 +72,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface ChannelChatInputProps {
@@ -106,6 +112,7 @@ const ChannelChatInput = React.memo(
     ) {
   const controlledPopupId = useControlledPopupId();
       const [message, setMessage] = useState("");
+      const [showPreview, setShowPreview] = useState(false);
       const [showOptions, setShowOptions] = useState(false);
       const [showFormatting, setShowFormatting] = useState(true);
       const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -134,11 +141,12 @@ const ChannelChatInput = React.memo(
       const currentMember = activeChannel?.members?.find(
         (member) => member.userId === authUserId,
       );
-      const isMember = currentMember?.role === "MEMBER";
+      const isPrivate = activeChannel && "spaceId" in activeChannel && isPrivateChannel(activeChannel);
+      const isMember = isPrivate ? activeChannel.ownerId !== authUserId : currentMember?.role === "MEMBER";
       const allowCreateTask =
         Boolean(currentMember) &&
         (!isMember ||
-          spaceDetail?.createdBy === authUserId ||
+          (!isPrivate && spaceDetail?.createdBy === authUserId) ||
           activeChannel?.setting?.allowCreateTask !== false);
 
       const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -158,7 +166,6 @@ const ChannelChatInput = React.memo(
       );
 
       const activeChannelId = activeChannel?.id;
-      const isUploading = uploadingMedia.some((m) => m.status === "uploading");
       const { membersResponse } = useChannelMembersSearch({
         channelId: activeChannelId,
         searchQuery: mentionQuery ?? "",
@@ -453,10 +460,11 @@ const ChannelChatInput = React.memo(
         }
       }, [activeChannelId, autoFocusOnChannelChange, onTypingChange]);
 
-      const uploadFilesList = async (files: File[]) => {
-        const validFiles = files.filter((f) => f.size <= 100 * 1024 * 1024);
+      const uploadFilesList = useCallback(async (files: File[], signal?: AbortSignal) => {
+        if (signal?.aborted) return;
+        const validFiles = files.filter((f) => f.size <= CHAT_ATTACHMENT_MAX_SIZE_BYTES);
         if (validFiles.length < files.length) {
-          toast.error("File size limit exceeded (max 100MB).");
+          toast.error(MESSAGE_CLIPBOARD_MESSAGES.fileTooLarge);
         }
         if (validFiles.length === 0) return;
 
@@ -471,6 +479,8 @@ const ChannelChatInput = React.memo(
 
         setUploadingMedia((prev) => [...prev, ...newUploads]);
         setShowOptions(false);
+        const cancelUploads = () => setUploadingMedia((prev) => prev.filter((media) => !newUploads.some((upload) => upload.id === media.id)));
+        signal?.addEventListener("abort", cancelUploads, { once: true });
 
         try {
           if (!activeChannelId) throw new Error("No active channel");
@@ -489,13 +499,16 @@ const ChannelChatInput = React.memo(
             files: presignRequests,
           });
 
-          newUploads.forEach(async (upload, idx) => {
+          if (signal?.aborted) return;
+          await Promise.all(newUploads.map(async (upload, idx) => {
             const presignedInfo = presignedUrls[idx];
             try {
               const success = await uploadToS3(
                 upload.file,
                 presignedInfo.presignedUrl,
+                signal,
               );
+              if (signal?.aborted) return;
               if (success) {
                 setUploadingMedia((prev) =>
                   prev.map((m) =>
@@ -512,14 +525,16 @@ const ChannelChatInput = React.memo(
                 );
               }
             } catch (e) {
+              if (signal?.aborted) return;
               setUploadingMedia((prev) =>
                 prev.map((m) =>
                   m.id === upload.id ? { ...m, status: "error" } : m,
                 ),
               );
             }
-          });
+          }));
         } catch (error) {
+          if (signal?.aborted) return;
           console.error("Error initiating upload:", error);
           setUploadingMedia((prev) =>
             prev.map((m) =>
@@ -528,8 +543,10 @@ const ChannelChatInput = React.memo(
                 : m,
             ),
           );
+        } finally {
+          signal?.removeEventListener("abort", cancelUploads);
         }
-      };
+      }, [activeChannelId, activeChatType]);
 
       const handleFileChange = useCallback(
         async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -604,16 +621,26 @@ const ChannelChatInput = React.memo(
         [uploadFilesList],
       );
 
-      const handlePaste = useCallback(
-        async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-          if (e.clipboardData.files && e.clipboardData.files.length > 0) {
-            e.preventDefault();
-            const files = Array.from(e.clipboardData.files);
-            await uploadFilesList(files);
-          }
+      const copiedPaste = useCopiedMessagePaste({
+        chatId: activeChannelId,
+        chatType: activeChatType,
+        onInsertText: (text, caret) => {
+          clearInterim();
+          handleTyping(text, caret);
         },
-        [uploadFilesList],
-      );
+        uploadFiles: uploadFilesList,
+      });
+      const isUploading = uploadingMedia.some((media) => media.status === "uploading") || copiedPaste.isDownloading;
+      const hasFailedAttachments = uploadingMedia.some((media) => media.status === "error") || copiedPaste.hasFailedDownloads;
+
+      const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        if (copiedPaste.handlePaste(e)) return;
+        if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+          e.preventDefault();
+          const files = Array.from(e.clipboardData.files);
+          await uploadFilesList(files);
+        }
+      };
 
       const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60);
@@ -641,7 +668,11 @@ const ChannelChatInput = React.memo(
         )
           return;
         if (isUploading) {
-          toast.warning("Please wait for files to finish uploading.");
+          toast.warning(MESSAGE_CLIPBOARD_MESSAGES.pending);
+          return;
+        }
+        if (hasFailedAttachments) {
+          toast.error(MESSAGE_CLIPBOARD_MESSAGES.failedFiles);
           return;
         }
         if (!onSendMessage) return;
@@ -658,12 +689,13 @@ const ChannelChatInput = React.memo(
         }));
 
         onSendMessage(
-          message.trim() + (interimMessage ? " " + interimMessage.trim() : ""),
+          composeMessageText(message, interimMessage),
           mediaList.length > 0 ? mediaList : undefined,
           mentions.length > 0 ? mentions : undefined,
         );
         setMessage("");
         clearInterim();
+        setShowPreview(false);
         setUploadingMedia([]);
         setMentions([]);
         setMentionQuery(null);
@@ -678,6 +710,7 @@ const ChannelChatInput = React.memo(
         interimMessage,
         uploadingMedia,
         isUploading,
+        hasFailedAttachments,
         onSendMessage,
         onTypingChange,
         clearInterim,
@@ -703,7 +736,7 @@ const ChannelChatInput = React.memo(
         return (
           <div className="p-4 bg-card border-t border-border">
             <div className="flex items-center justify-center p-3 bg-background rounded-panel border border-border text-muted-foreground text-sm">
-              Only admins can send messages
+              {isPrivate ? "Only the channel owner can send messages" : "Only admins can send messages"}
             </div>
           </div>
         );
@@ -728,7 +761,8 @@ const ChannelChatInput = React.memo(
               </p>
             </div>
           )}
-          <div className="w-full p-4">
+          <div className="w-full p-4 [@media(max-height:30rem)]:p-2">
+            <PastingMessageFiles files={copiedPaste.files} onRemove={copiedPaste.removeFile} />
             {/* File Previews */}
             {uploadingMedia.length > 0 && (
               <div className="flex gap-2 flex-wrap mb-2">
@@ -777,15 +811,12 @@ const ChannelChatInput = React.memo(
                             : "text-muted-foreground"
                         }`}
                       >
-                        {formatFileSize(media.sizeBytes)}
+                        {media.status === "error" ? MESSAGE_CLIPBOARD_MESSAGES.uploadFailed : formatFileSize(media.sizeBytes)}
                       </span>
                     </div>
 
                     {media.status === "uploading" && (
-                      <Loader2
-                        size={14}
-                        className="text-info-content animate-spin ml-1 flex-shrink-0"
-                      />
+                      <Spinner size={14} className="ml-1 flex-shrink-0" />
                     )}
 
                     <IconButton label={
@@ -809,7 +840,7 @@ const ChannelChatInput = React.memo(
               </div>
             )}
 
-            <div className="flex bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative rounded-panel p-2 gap-2 items-center">
+            <div className="@container/composer flex flex-wrap bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative rounded-panel p-2 gap-2 items-center">
               {/* Hidden Inputs */}
               <input
                 type="file"
@@ -921,7 +952,7 @@ const ChannelChatInput = React.memo(
               />
 
               {/* Textarea Area */}
-              <div className="flex-1 flex flex-col min-w-0">
+              <div className="flex-1 flex flex-col min-w-0 @max-[480px]/composer:order-first @max-[480px]/composer:basis-full">
                 {/* Formatting Toolbar */}
                 {showFormatting && (
                   <div className="flex items-center gap-0.5 pb-1.5 mb-1 border-b border-border/60 overflow-x-auto">
@@ -1004,6 +1035,7 @@ const ChannelChatInput = React.memo(
                 )}
 
                 {/* Textarea Input */}
+                <MessageComposerPreview message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} open={showPreview} onOpenChange={setShowPreview}>
                 <Textarea unstyled role="combobox" aria-label="Message channel" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
                   id="chat-input-textarea"
                   ref={textareaRef}
@@ -1033,7 +1065,7 @@ const ChannelChatInput = React.memo(
                       : "Type @ to mention, message " + activeChannel?.name
                   }
                   disabled={isUploading}
-                  className="w-full bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px]"
+                  className="w-full max-h-[min(15rem,30dvh)] bg-transparent resize-none outline-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px] [@media(max-height:30rem)]:max-h-12"
                   rows={1}
                   onKeyDown={(e) => {
                     if (mentionQuery !== null && filteredMembers.length > 0) {
@@ -1072,10 +1104,11 @@ const ChannelChatInput = React.memo(
                     }
                   }}
                 />
+                </MessageComposerPreview>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-1.5 flex-shrink-0 relative pb-1">
+              <div className="flex items-center gap-1.5 flex-shrink-0 relative pb-1 @max-[480px]/composer:ml-auto">
                 {isRecording ? (
                   <div className="flex items-center gap-2.5 px-1 animate-in fade-in">
                     <div className="w-2 h-2 rounded-full bg-destructive-content animate-pulse"></div>
@@ -1192,7 +1225,7 @@ const ChannelChatInput = React.memo(
                         (message.trim() ||
                           interimMessage.trim() ||
                           uploadingMedia.some((m) => m.status === "success")) &&
-                        !isUploading
+                        !isUploading && !hasFailedAttachments
                           ? "bg-primary text-primary-foreground hover:bg-primary cursor-pointer"
                           : "bg-accent text-muted-foreground"
                       }`}
@@ -1200,7 +1233,7 @@ const ChannelChatInput = React.memo(
                         (!message.trim() &&
                           !interimMessage.trim() &&
                           uploadingMedia.length === 0) ||
-                        isUploading
+                        isUploading || hasFailedAttachments
                       }
                       onClick={handleSend}
                     >
@@ -1216,9 +1249,10 @@ const ChannelChatInput = React.memo(
             onClose={() => setIsMyFilesModalOpen(false)}
             onSelect={handleSelectMyFiles}
           />
-          {isTaskModalOpen && (
+          {isTaskModalOpen && spaceDetail?.projectId && (
             <TaskFormDialog
               open={isTaskModalOpen}
+              projectId={spaceDetail.projectId}
               projectName={spaceDetail?.name}
               onClose={() => setIsTaskModalOpen(false)}
               onSubmit={handleTaskSubmit}

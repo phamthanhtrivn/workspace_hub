@@ -27,6 +27,11 @@ export interface ChatSocketMessagePayload
   threadFollowers?: ThreadFollowerPayload[];
 }
 
+/** Updates may contain only the changed fields, such as a task card snapshot. */
+export interface ChatSocketMessageUpdatePayload extends Partial<ChatSocketMessagePayload> {
+  id: string;
+}
+
 export interface ChatSocketReadPayload extends Partial<ChatContextPayload> {
   userId: string;
   messageId: string;
@@ -76,7 +81,7 @@ export interface ChatSocketSettingUpdatedPayload extends Partial<ChatContextPayl
   spaceId?: string;
   spaceName?: string | null;
   affectedUserIds?: string[];
-  setting: ConversationSetting | SpaceSettingResponse;
+  setting?: ConversationSetting | SpaceSettingResponse;
 }
 
 export interface ChatSocketUpdatedPayload extends Partial<ChatContextPayload> {
@@ -137,7 +142,7 @@ export interface ServerToClientChatEvents {
     payload: ChatSocketDirectMessagePermissionPayload,
   ) => void;
   [ChatEvent.MESSAGE_MOVED]: (payload: ChatSocketMessagePayload) => void;
-  [ChatEvent.MESSAGE_UPDATED]: (payload: ChatSocketMessagePayload) => void;
+  [ChatEvent.MESSAGE_UPDATED]: (payload: ChatSocketMessageUpdatePayload) => void;
   [ChatEvent.REACTION_UPDATED]: (payload: ChatSocketMessagePayload) => void;
   [ChatEvent.MESSAGE_PINNED]: (payload: ChatSocketMessagePayload) => void;
   [ChatEvent.MESSAGE_UNPINNED]: (payload: ChatSocketMessagePayload) => void;

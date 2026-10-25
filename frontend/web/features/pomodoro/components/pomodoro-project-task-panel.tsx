@@ -8,6 +8,7 @@ import type { Project, Task } from "@/features/project/types/project";
 import { PomodoroProjectTaskItem } from "./pomodoro-project-task-item";
 import { PomodoroTaskEmptyState, PomodoroTaskFilterControls, type PomodoroTaskFilters } from "./pomodoro-task-filters";
 import { isProjectFocusEligible } from "../utils/focus-task";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface PomodoroProjectTaskPanelProps {
   tasks: { task: Task; project: Project }[];
@@ -41,7 +42,7 @@ export function PomodoroProjectTaskPanel({ tasks, userId, filters, onFiltersChan
       <PomodoroTaskFilterControls sourceLabel="Project" filters={filters} onChange={onFiltersChange} />
       <CustomSelect ariaLabel="Filter by project" value={selectedProjectId} onChange={onProjectChange} disabled={busy || !isReady || isLoading}
         options={[{ value: "", label: "All projects" }, ...projects.map((project) => ({ value: project.id, label: project.name }))]} />
-      {isLoading && <p role="status" className="text-xs text-muted-foreground">Loading Project tasks…</p>}
+      {isLoading && <LoadingState label="Loading Project tasks…" className="text-xs text-muted-foreground" />}
       {isError && <p role="alert" className="text-xs text-destructive-content">Unable to load Project tasks. <Button type="button" variant="link" size="sm" onClick={onRetry}>Retry</Button></p>}
       {!isLoading && !isError && matching.length === 0 && <PomodoroTaskEmptyState sourceLabel="Project" filters={filters} onChange={onFiltersChange} />}
       {matching.length > 0 && <ul aria-label="Project tasks" className="max-h-72 space-y-2 overflow-y-auto p-1">

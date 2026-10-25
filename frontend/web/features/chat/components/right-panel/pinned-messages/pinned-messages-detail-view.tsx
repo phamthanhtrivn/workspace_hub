@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface PinnedMessagesDetailViewProps {
@@ -238,9 +239,7 @@ export default function PinnedMessagesDetailView({
 
       <div className="flex-1 overflow-y-auto p-4">
         {isError && pinnedMessages.length === 0 ? <QueryFeedback label="pinned messages" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
-          <div className="text-center text-xs text-muted-foreground py-6">
-            Loading pinned messages...
-          </div>
+          <LoadingState label="Loading pinned messages..." layout="centered" className="text-center text-xs text-muted-foreground py-6" />
         ) : pinnedMessages.length === 0 ? (
           <div className="text-center text-xs text-muted-foreground py-6">
             {searchQuery
@@ -299,9 +298,7 @@ export default function PinnedMessagesDetailView({
               className="h-8 flex items-center justify-center"
             >
               {isFetchingNextPage && (
-                <span className="text-xs text-muted-foreground">
-                  Loading more...
-                </span>
+                <LoadingState label="Loading more..." className="text-xs text-muted-foreground" />
               )}
             </div>
           </div>

@@ -3,6 +3,7 @@ import { SpaceInvitation } from "@/features/chat/types/chat.types";
 import { IconButton } from "@/components/ui/icon-button";
 import { RefreshCw, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface InvitationsTabProps {
@@ -47,9 +48,7 @@ export function InvitationsTab({
     return (
       <>
         {header}
-        <div className="py-8 text-center text-xs text-muted-foreground">
-          Loading invitations...
-        </div>
+        <LoadingState label="Loading invitations..." layout="centered" className="py-8 text-center text-xs text-muted-foreground" />
       </>
     );
   }
