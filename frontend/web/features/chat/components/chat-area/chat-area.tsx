@@ -32,6 +32,7 @@ import {
 } from "../../types/chat.types";
 import {
   ChatSocketMessagePayload,
+  ChatSocketMessageUpdatePayload,
   ChatSocketMemberPayload,
   ChatSocketRoleUpdatedPayload,
   ChatSocketSettingUpdatedPayload,
@@ -57,6 +58,7 @@ import { useChatTypingIndicator } from "../../hooks/message/useChatTypingIndicat
 import { useChatMessageList } from "../../hooks/message/useChatMessageList";
 import { useChatMessageActions } from "../../hooks/message/useChatMessageActions";
 import { upsertMessageById } from "../../utils/message-state-utils";
+import { mergeChatMessageUpdate } from "../../utils/message-update-cache";
 import { getDirectMessageInputNotice } from "../../utils/direct-message-permission";
 import {
   cleanupRemovedSpaceCaches,
@@ -516,12 +518,14 @@ export default function ChatArea({
         }
       };
 
-      const handleMessageUpdated = (msg: ChatSocketMessagePayload) => {
+      const handleMessageUpdated = (msg: ChatSocketMessageUpdatePayload) => {
         if (
           getEventChannelId(msg as Record<string, unknown>) ===
           activeConversation.id
         ) {
-          updateMessageInState(msg.id, () => msg);
+          updateMessageInState(msg.id, (message) =>
+            mergeChatMessageUpdate(message, msg),
+          );
         }
       };
 

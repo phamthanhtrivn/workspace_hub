@@ -19,6 +19,7 @@ import {
 import {
   ChatSocketMemberPayload,
   ChatSocketMessagePayload,
+  ChatSocketMessageUpdatePayload,
   ChatSocketDisbandedPayload,
   ChatSocketMuteUpdatedPayload,
   ChatSocketReadPayload,
@@ -249,7 +250,7 @@ export function useChatSocket() {
       }
     };
 
-    const handleMessageUpdated = (message: ChatSocketMessagePayload) => {
+    const handleMessageUpdated = (message: ChatSocketMessageUpdatePayload) => {
       const chatId = getMessageChatId(message);
       if (!chatId) return;
       patchThreadMessageCaches(queryClient, message);

@@ -51,7 +51,6 @@ export enum MessageType {
 export const NO_AVATAR_MESSAGE_TYPES: MessageType[] = [
   MessageType.POLL,
   MessageType.NOTE,
-  MessageType.TASK,
   MessageType.SYSTEM,
   MessageType.EVENT,
 ];

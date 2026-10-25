@@ -54,7 +54,6 @@ export const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡"] a
 export const NO_AVATAR_TYPES: string[] = [
   MessageType.POLL,
   MessageType.NOTE,
-  MessageType.TASK,
   MessageType.SYSTEM,
   MessageType.EVENT,
 ];
