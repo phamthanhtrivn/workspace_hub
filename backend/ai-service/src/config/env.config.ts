@@ -3,7 +3,36 @@ import { z } from "zod";
 
 export const config = z
   .object({
+    MEETING_SUMMARY_ENABLED: z.enum(["true", "false"]).default("false"),
+    MEETING_SUMMARY_MAX_SECONDS: z.coerce
+      .number()
+      .int()
+      .min(60)
+      .max(14400)
+      .default(7200),
+    MEETING_SUMMARY_MAX_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1048576)
+      .max(2147483648)
+      .default(1073741824),
+    MEETING_FFMPEG_PATH: z.string().min(1).default("ffmpeg"),
+    MEETING_MEDIA_HOSTS: z.string().default(""),
+    GOOGLE_CLOUD_PROJECT: z.string().default(""),
+    GOOGLE_STT_LOCATION: z.enum(["us", "eu"]).default("us"),
     CONVERSATION_AI_ENABLED: z.enum(["true", "false"]).default("false"),
+    CONVERSATION_AI_CONCURRENCY: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(8)
+      .default(2),
+    CONVERSATION_AI_QUOTA_WAIT_MS: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(60000)
+      .default(60000),
     CONVERSATION_AI_MODEL: z.string().trim().min(1).optional(),
     CONVERSATION_AI_MAX_TOKENS: z.coerce
       .number()
@@ -43,6 +72,18 @@ export const config = z
     LLM_REQUESTS_PER_DAY: z.coerce.number().int().min(1).default(100),
   })
   .superRefine((value, context) => {
+    if (
+      value.MEETING_SUMMARY_ENABLED === "true" &&
+      (!value.GOOGLE_CLOUD_PROJECT ||
+        !value.MEETING_MEDIA_HOSTS ||
+        value.AI_COMMUNICATION_SERVICE_KEY.length < 32)
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["MEETING_SUMMARY_ENABLED"],
+        message:
+          "Configure Google project, allowed media hosts and communication service key",
+      });
     if (
       value.VISUAL_ENABLED === "true" &&
       new URL(value.LLM_BASE_URL).origin !== "https://vibi.top"

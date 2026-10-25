@@ -30,6 +30,10 @@ import { MeetingRecordingSegmentsService } from './services/meeting-recording-se
 import { MeetingRecordingRequestsService } from './services/meeting-recording-requests.service';
 import { MeetingCaptionsController } from './meeting-captions.controller';
 import { MeetingCaptionsService } from './services/meeting-captions.service';
+import {
+  MeetingSummaryController,
+  MeetingSummarySourceController,
+} from './meeting-summary.controller';
 
 @Module({
   imports: [
@@ -42,6 +46,8 @@ import { MeetingCaptionsService } from './services/meeting-captions.service';
     DirectMessagePermissionModule,
   ],
   controllers: [
+    MeetingSummaryController,
+    MeetingSummarySourceController,
     MeetingCaptionsController,
     MeetingRecordingController,
     MeetingController,

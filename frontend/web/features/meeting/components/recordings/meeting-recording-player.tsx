@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { recordingApi } from "../../api/meeting-recording.api";
 import type { MeetingRecording } from "../../types/meeting-recording.types";
 import { MeetingButton } from "../ui/meeting-form-controls";
+import { MeetingRecordingSummary } from "./meeting-recording-summary";
 
 export function MeetingRecordingPlayer({
   recording,
@@ -88,7 +89,7 @@ export function MeetingRecordingPlayer({
       }}
     >
       <DialogContent
-        className="max-w-4xl p-5"
+        className="max-h-[90vh] max-w-4xl overflow-y-auto p-5"
         aria-labelledby="recording-player-title"
       >
         <DialogTitle id="recording-player-title" className="pr-10">
@@ -164,6 +165,7 @@ export function MeetingRecordingPlayer({
             </>
           )
         )}
+        <MeetingRecordingSummary key={recording.id} recordingId={recording.id} />
       </DialogContent>
     </Dialog>
   );

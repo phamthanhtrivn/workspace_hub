@@ -6,6 +6,7 @@ import {
   summaryQueue,
   conversationQueue,
   WORKER_HEARTBEAT_VALUE,
+  meetingSummaryQueue,
 } from "../../infrastructure/queue/notebook.queue";
 import { checkHttpDependencies } from "./http-dependencies";
 @Controller()
@@ -25,6 +26,14 @@ export class HealthController {
         summaryQueue.getJobCounts("waiting"),
       ]);
       const redis = await queue.client;
+      if (config.MEETING_SUMMARY_ENABLED === "true") {
+        await meetingSummaryQueue.getJobCounts("waiting");
+        if (
+          (await redis.get("wh-notebook:meeting-summary-worker-heartbeat")) !==
+          "ready:meeting-v1"
+        )
+          throw new Error("Meeting summary worker unavailable");
+      }
       if (
         (await redis.get("wh-notebook:worker-heartbeat")) !==
         WORKER_HEARTBEAT_VALUE

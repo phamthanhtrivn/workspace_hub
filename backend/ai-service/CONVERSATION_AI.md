@@ -329,3 +329,30 @@ node --dns-result-order=ipv4first test/conversation-ai-live.cjs --run --existing
 ```
 
 Local activation also pinned Communication’s DB hostname to `127.0.0.1` through `.env.local` after repeated startup P1001 failures with `localhost`. Credentials and the target database were unchanged. Drain the worker before service restarts.
+
+## Performance and reliability controls
+
+- `CONVERSATION_AI_CONCURRENCY=2`: active conversation jobs per worker process
+  (validated range 1-8). This lets a short chat progress while an attachment is
+  extracting. Both slots may still be occupied by attachments; this is not a
+  separate attachment queue. Multiple worker replicas multiply concurrency.
+- `CONVERSATION_AI_QUOTA_WAIT_MS=60000`: maximum local minute-quota admission
+  wait per model call (range 0-60000; 0 disables waiting). The existing 180-second
+  request deadline still applies. Permission polling remains active while waiting.
+  Daily quota, provider errors, partial responses and unknown provider outcomes
+  are never automatically retried by this admission loop.
+- Exact personal task requests such as `My tasks today`, `My overdue tasks`,
+  and `Công việc của tôi hôm nay` prefetch the authorized tool result, saving
+  the model turn used to choose a tool. Negations, mixed requests and other
+  identities keep normal tool routing.
+- Structured logs: `ai_pipeline` / `job_conversation` reports queue wait and
+  processing time; `conversation_stage` reports history, tasks, download,
+  extraction and model duration, plus model token usage when provided by the
+  SDK. `conversation_quota_wait` reports admission wait and retries.
+  `conversation_generation_failed` records request ID, error class and abort
+  status without logging prompts, credentials, document text or provider messages.
+
+Keep the concurrency low until queue-wait, model latency and quota-wait logs
+have been measured under representative load. Higher concurrency does not
+increase provider quota. Configure the same values on API/jobs deployments,
+then rebuild and restart to apply; no database migration is needed for these controls.

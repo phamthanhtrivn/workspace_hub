@@ -13,7 +13,8 @@ type Operation =
   | "preflight"
   | "job_index"
   | "job_summary"
-  | "job_cleanup";
+  | "job_cleanup"
+  | "job_conversation";
 
 export class Profile {
   private readonly started = performance.now();

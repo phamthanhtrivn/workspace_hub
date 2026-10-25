@@ -9,7 +9,20 @@ import {
 } from "@langchain/core/messages";
 import { z } from "zod";
 import { config } from "../../config/env.config";
-import { admitModel } from "../../infrastructure/integrations/llm.client";
+import { admitConversationModel } from "./model-admission";
+import { measureConversationStage } from "./telemetry";
+
+export function explicitTaskScope(question: string): "today" | "overdue" | "open" | undefined {
+  const plain = question.normalize("NFD").replace(/\p{M}/gu, "")
+    .replace(/đ/gi, "d").toLowerCase().trim().replace(/[.!?]+$/, "");
+  if (/^(?:show |list )?my (?:tasks|assigned tasks) (?:for )?today$/.test(plain) ||
+      /^(?:(?:cho (?:toi|minh) xem|liet ke) )?(?:task|cong viec|nhiem vu) (?:cua (?:toi|minh) hom nay|hom nay cua (?:toi|minh))$/.test(plain)) return "today";
+  if (/^(?:show |list )?my overdue tasks$/.test(plain) ||
+      /^(?:(?:cho (?:toi|minh) xem|liet ke) )?(?:task|cong viec|nhiem vu) qua han cua (?:toi|minh)$/.test(plain)) return "overdue";
+  if (/^(?:show |list )?my (?:open|unfinished) tasks$/.test(plain) ||
+      /^(?:(?:cho (?:toi|minh) xem|liet ke) )?(?:task|cong viec|nhiem vu) chua hoan thanh cua (?:toi|minh)$/.test(plain)) return "open";
+  return undefined;
+}
 
 export async function conversationAnswer(
   question: string,
@@ -23,7 +36,7 @@ export async function conversationAnswer(
     async () => {
       signal.throwIfAborted();
       await authorize();
-      history ??= JSON.stringify(await readHistory());
+      history ??= JSON.stringify(await measureConversationStage("history", readHistory));
       return history;
     },
     {
@@ -46,7 +59,7 @@ export async function conversationAnswer(
           if (taskScope && taskScope !== scope)
             throw new Error("Only one task filter per request");
           taskScope = scope;
-          taskResult ??= JSON.stringify(await readTasks(scope));
+          taskResult ??= JSON.stringify(await measureConversationStage("tasks", () => readTasks(scope)));
           return taskResult;
         },
         {
@@ -105,6 +118,17 @@ export async function conversationAnswer(
     );
   let historyIncluded = false;
   let tasksIncluded = false;
+  const prefetchedScope = tasksTool ? explicitTaskScope(question) : undefined;
+  if (tasksTool && prefetchedScope) {
+    const data = await tasksTool.invoke({ scope: prefetchedScope });
+    const toolCallId = "prefetched_my_tasks";
+    messages.push(
+      new AIMessage({ content: "", tool_calls: [{ name: tasksTool.name,
+        args: { scope: prefetchedScope }, id: toolCallId, type: "tool_call" }] }),
+      new ToolMessage({ tool_call_id: toolCallId, content: data }),
+    );
+    tasksIncluded = true;
+  }
   if (explicitSummary) {
     const data = await historyTool.invoke({});
     if (data === "[]")
@@ -132,20 +156,22 @@ export async function conversationAnswer(
     signal.throwIfAborted();
     await authorize();
     signal.throwIfAborted();
-    await admitModel(
+    await admitConversationModel(
       Math.ceil(Buffer.byteLength(JSON.stringify(messages)) / 3) + maxTokens,
       modelName,
+      signal,
     );
+    signal.throwIfAborted();
     const availableTools = tools.filter((current) =>
       current === historyTool
-        ? !historyIncluded
+        ? !historyIncluded && !prefetchedScope
         : !tasksIncluded && !explicitSummary,
     );
-    const answer = await model
+    const answer = await measureConversationStage("model", () => model
       .bindTools(availableTools.length ? availableTools : tools, {
         tool_choice: availableTools.length ? "auto" : "none",
       })
-      .invoke(messages, { signal });
+      .invoke(messages, { signal }));
     signal.throwIfAborted();
     if (answer.response_metadata.finish_reason === "length")
       throw new Error("Truncated answer");

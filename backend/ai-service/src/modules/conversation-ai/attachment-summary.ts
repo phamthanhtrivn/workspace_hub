@@ -5,7 +5,8 @@ import { z } from "zod";
 import { ForbiddenException } from "@nestjs/common";
 import { resolveChatAttachment } from "../../infrastructure/integrations/document.client";
 import { config } from "../../config/env.config";
-import { admitModel } from "../../infrastructure/integrations/llm.client";
+import { admitConversationModel } from "./model-admission";
+import { measureConversationStage } from "./telemetry";
 import { rag } from "../../infrastructure/integrations/rag.client";
 import { downloadSource } from "../sources/upload-validation";
 
@@ -122,9 +123,9 @@ export async function summarizeAttachment(
     await authorizeChat();
     await checkDocument();
   };
-  const data = await downloadSource(manifest, signal);
+  const data = await measureConversationStage("download", () => downloadSource(manifest, signal));
   const extracted = extractionSchema.parse(
-    await rag(
+    await measureConversationStage("extract", () => rag(
       "/extract",
       {
         scopeId: requestId,
@@ -132,7 +133,7 @@ export async function summarizeAttachment(
         content: data.toString("base64"),
       },
       AbortSignal.any([signal, AbortSignal.timeout(120000)]),
-    ),
+    )),
   );
   const { excerpts, truncated } = attachmentExcerpts(extracted.pages);
   signal.throwIfAborted();
@@ -150,9 +151,10 @@ export async function summarizeAttachment(
       JSON.stringify({ fileName: manifest.name, truncated, excerpts }),
     ),
   ];
-  await admitModel(
+  await admitConversationModel(
     Math.ceil(Buffer.byteLength(JSON.stringify(messages)) / 3) + maxTokens,
     modelName,
+    signal,
   );
   signal.throwIfAborted();
   const model = new ChatOpenAI({
@@ -164,7 +166,7 @@ export async function summarizeAttachment(
     timeout: config.LLM_TIMEOUT_MS,
     maxRetries: 0,
   });
-  const answer = await model.invoke(messages, { signal });
+  const answer = await measureConversationStage("model", () => model.invoke(messages, { signal }));
   signal.throwIfAborted();
   await authorize();
   if (

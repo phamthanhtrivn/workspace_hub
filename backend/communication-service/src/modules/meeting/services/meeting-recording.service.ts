@@ -724,6 +724,39 @@ export class MeetingRecordingService {
     return this.s3.generateRecordingUrl(recording.s3Key, download);
   }
 
+  async summarySource(id: string, userId: string) {
+    const recording = await this.assertOwner(id, userId);
+    if (
+      recording.status !== 'COMPLETED' ||
+      !recording.s3Key ||
+      !recording.sizeBytes ||
+      !recording.durationSeconds
+    )
+      recordingError(
+        409,
+        'RECORDING_NOT_READY',
+        'A completed recording is required',
+      );
+    const revision = createHash('sha256')
+      .update(
+        JSON.stringify([
+          recording.id,
+          recording.s3Key,
+          String(recording.sizeBytes),
+          recording.durationSeconds,
+          recording.completedAt,
+        ]),
+      )
+      .digest('hex');
+    return {
+      recordingId: id,
+      revision,
+      sizeBytes: Number(recording.sizeBytes),
+      durationSeconds: recording.durationSeconds,
+      ...(await this.s3.generateRecordingUrl(recording.s3Key, false)),
+    };
+  }
+
   async rename(id: string, userId: string, title: string) {
     await this.assertOwner(id, userId);
     if (!title.trim())

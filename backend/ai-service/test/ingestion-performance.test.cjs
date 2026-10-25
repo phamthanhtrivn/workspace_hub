@@ -231,11 +231,9 @@ test("index lane completes while summary lane is waiting; heartbeat requires bot
     workers.map((worker) => worker.name),
     ["notebook-jobs", "notebook-summary-jobs", "conversation-ai-jobs"],
   );
-  assert.ok(
-    workers.every(
-      (worker) => worker.options.concurrency === 1 && worker.running,
-    ),
-  );
+  assert.deepEqual(workers.map(worker => worker.options.concurrency),
+    [1, 1, config.CONVERSATION_AI_CONCURRENCY]);
+  assert.ok(workers.every(worker => worker.running));
   let release;
   database.rows = async (sql) =>
     sql.includes("SELECT a.*,n.owner_id")
@@ -253,6 +251,9 @@ test("index lane completes while summary lane is waiting; heartbeat requires bot
   assert.ok(release);
   await workers[2].processor(job("conversation"));
   assert.equal(conversationHandled, 1);
+  const conversationReport = reports.find(r => r.operation === "job_conversation");
+  assert.equal(conversationReport.status, "ok");
+  assert.ok(conversationReport.queue_wait_ms >= 0);
   await workers[0].processor(job("index"));
   assert.equal(reports.find((r) => r.operation === "job_index").status, "ok");
   assert.equal(

@@ -19,8 +19,9 @@ const options = {
 export const queue = new Queue("notebook-jobs", options);
 export const conversationQueue = new Queue("conversation-ai-jobs", options);
 export const summaryQueue = new Queue("notebook-summary-jobs", options);
+export const meetingSummaryQueue = new Queue("meeting-summary-jobs", options);
 let lastError = 0;
-for (const current of [queue, summaryQueue, conversationQueue])
+for (const current of [queue, summaryQueue, conversationQueue, meetingSummaryQueue])
   current.on("error", () => {
     if (Date.now() - lastError > 30000) {
       lastError = Date.now();
@@ -69,5 +70,6 @@ export async function closeQueues() {
     queue.close(),
     summaryQueue.close(),
     conversationQueue.close(),
+    meetingSummaryQueue.close(),
   ]);
 }

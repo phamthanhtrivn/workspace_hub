@@ -18,7 +18,39 @@ const { ChatOpenAI } = require("@langchain/openai");
 const { AIMessage } = require("@langchain/core/messages");
 const {
   conversationAnswer,
+  explicitTaskScope,
 } = require("../dist/modules/conversation-ai/conversation-agent");
+
+test("explicit personal task filters prefetch authorized data and use one model call", async t => {
+  for (const [question, scope] of [["Công việc của tôi hôm nay", "today"],
+    ["My overdue tasks", "overdue"], ["Liệt kê nhiệm vụ chưa hoàn thành của mình", "open"]]) {
+    let calls = 0, reads = 0;
+    t.mock.method(ChatOpenAI.prototype, "bindTools", (_tools, options) => ({
+      invoke: async messages => {
+        calls++; assert.equal(reads, 1); assert.equal(options.tool_choice, "none");
+        assert.ok(messages.some(m => m.getType() === "tool" && m.content.includes("actual task")));
+        return new AIMessage("Task answer");
+      },
+    }));
+    await conversationAnswer(question, async () => assert.fail("must not read history"),
+      new AbortController().signal, async () => {}, async filter => {
+        reads++; assert.equal(filter, scope); return { tasks: [{ title: "actual task" }] };
+      });
+    assert.equal(calls, 1); assert.equal(reads, 1);
+  }
+});
+
+test("negations, other users and mixed task requests are not prefetched", () => {
+  for (const question of ["Do not list my overdue tasks", "My overdue tasks and decisions",
+    "Công việc của An hôm nay", "Đừng liệt kê công việc của tôi hôm nay", "My tasks today or overdue"])
+    assert.equal(explicitTaskScope(question), undefined);
+});
+
+test("denied task prefetch cannot call the provider", async t => {
+  t.mock.method(ChatOpenAI.prototype, "bindTools", () => assert.fail("must not call provider"));
+  await assert.rejects(conversationAnswer("My tasks today", async () => [], new AbortController().signal,
+    async () => { throw Error("revoked"); }, async () => assert.fail("must not read tasks")), /revoked/);
+});
 after(() => require("../dist/infrastructure/database/database").db.end());
 test("general questions do not read history", async (t) => {
   t.mock.method(ChatOpenAI.prototype, "bindTools", () => ({
