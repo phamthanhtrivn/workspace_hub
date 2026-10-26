@@ -18,6 +18,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import CreatePollModal from "../modals/message/create-poll-modal";
 import CreateNoteModal from "../modals/message/create-note-modal";
 import TypingIndicator from "../message/typing-indicator";
+import AiTypingIndicator from "../message/ai-typing-indicator";
+import { useAiTypingIndicator } from "../../hooks/message/useAiTypingIndicator";
 import {
   setHighlightMessageId,
   setActiveConversation,
@@ -227,6 +229,8 @@ export default function ChatArea({
     memberProfiles,
     activeConversation?.id,
   );
+
+  const aiTyping = useAiTypingIndicator(activeConversation?.id, activeChatType);
 
   // ─── Editing state ────────────────────────────────────────────────────────
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
@@ -889,6 +893,8 @@ export default function ChatArea({
           }}
         />
       )}
+
+      <AiTypingIndicator active={aiTyping} />
 
       {/* Typing Indicator */}
       {typingUsers.length > 0 && <TypingIndicator typingUsers={typingUsers} />}

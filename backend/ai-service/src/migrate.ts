@@ -5,6 +5,14 @@ void db
   .query(
     readFileSync(join(__dirname, "../migrations/001_notebooks.sql"), "utf8"),
   )
+  .then(() =>
+    db.query(
+      readFileSync(
+        join(__dirname, "../migrations/002_meeting_summaries.sql"),
+        "utf8",
+      ),
+    ),
+  )
   .then(() => console.log("Notebook schema ready (legacy tables untouched)"))
   .catch(() => {
     console.error("Migration failed; check database and credentials");

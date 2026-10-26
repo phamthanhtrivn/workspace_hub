@@ -5,7 +5,7 @@ import { transaction } from "../database/database";
 import type { Citation, VisualInput } from "../../common/types";
 import { ModelMinuteQuotaException } from "../../common/errors/model-quota.exception";
 
-export async function admitModel(input: number) {
+export async function admitModel(input: number, model = config.LLM_MODEL) {
   await transaction(async (client) => {
     await client.query("SELECT pg_advisory_xact_lock(8087002)");
     const {
@@ -15,7 +15,7 @@ export async function admitModel(input: number) {
       count(*) FILTER (WHERE created_at > now()-interval '1 minute')::int rpm,
       coalesce(sum(input_tokens) FILTER (WHERE created_at > now()-interval '1 minute'),0)::int tokens,
       count(*)::int daily FROM notebook_ai.model_calls WHERE model=$1 AND created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`,
-      [config.LLM_MODEL],
+      [model],
     );
     if (
       input > config.LLM_TOKENS_PER_MINUTE ||
@@ -31,7 +31,7 @@ export async function admitModel(input: number) {
       throw new ModelMinuteQuotaException();
     await client.query(
       "INSERT INTO notebook_ai.model_calls(id,model,input_tokens) VALUES($1,$2,$3)",
-      [randomUUID(), config.LLM_MODEL, input],
+      [randomUUID(), model, input],
     );
   });
 }

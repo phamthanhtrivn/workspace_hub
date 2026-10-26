@@ -1,3 +1,4 @@
+import { ConversationAiModule } from '../conversation-ai/conversation-ai.module';
 import { Module, forwardRef } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { S3Module } from '../../infrastructure/s3/s3.module';
@@ -10,6 +11,7 @@ import { DirectMessagePermissionModule } from './direct-message-permission.modul
 
 @Module({
   imports: [
+    forwardRef(() => ConversationAiModule),
     PrismaModule,
     S3Module,
     KafkaProducerModule,

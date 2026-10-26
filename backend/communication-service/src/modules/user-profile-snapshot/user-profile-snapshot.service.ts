@@ -79,7 +79,7 @@ export class UserProfileSnapshotService {
       },
     });
 
-    return new Map(
+    const profileMap = new Map(
       snapshots.map((snapshot) => [
         snapshot.userId,
         {
@@ -91,6 +91,9 @@ export class UserProfileSnapshotService {
         },
       ]),
     );
+    const botId = '00000000-0000-4000-8000-0000000000a1';
+    if (uniqueUserIds.includes(botId)) profileMap.set(botId, {id:botId,userId:botId,fullName:'AI',email:null,avatarUrl:null});
+    return profileMap;
   }
 
   async attachProfilesToMembers<T extends { userId: string }>(

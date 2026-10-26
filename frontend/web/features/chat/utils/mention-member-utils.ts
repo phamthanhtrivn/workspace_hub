@@ -34,7 +34,15 @@ export function getChannelMentionOptions(
     .filter((member) => member.userId !== currentUserId)
     .map(toChannelMentionOption);
 
-  const limitedMembers = options.includeAll ? members.slice(0, limit - 1) : members.slice(0, limit);
+  const aiOption = "ai".includes(
+    (options.searchQuery ?? "").trim().toLowerCase(),
+  )
+    ? [{ id: "ai", name: "ai" }]
+    : [];
+  members.unshift(...aiOption);
+  const limitedMembers = options.includeAll
+    ? members.slice(0, limit - 1)
+    : members.slice(0, limit);
 
   if (
     options.includeAll &&
@@ -63,18 +71,23 @@ export function getCachedMentionOptions(
 ): MentionMemberOption[] {
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
-  return (members ?? [])
-    .filter((member) => member.userId !== currentUserId)
-    .map((member) => {
-      const profile = profiles[member.userId];
-      return {
-        id: member.userId,
-        name: getDisplayName(member.nickname, profile, member.userId),
-        avatarUrl: profile?.avatarUrl,
-      };
-    })
-    .filter((member) => member.name.toLowerCase().includes(normalizedQuery))
-    .slice(0, limit);
+  return [
+    ...("ai".includes(normalizedQuery)
+      ? [{ id: "ai", name: "ai", avatarUrl: undefined }]
+      : []),
+    ...(members ?? [])
+      .filter((member) => member.userId !== currentUserId)
+      .map((member) => {
+        const profile = profiles[member.userId];
+        return {
+          id: member.userId,
+          name: getDisplayName(member.nickname, profile, member.userId),
+          avatarUrl: profile?.avatarUrl,
+        };
+      })
+      .filter((member) => member.name.toLowerCase().includes(normalizedQuery))
+      .slice(0, limit),
+  ].slice(0, limit);
 }
 
 function toChannelMentionOption(

@@ -1,3 +1,5 @@
+import { assertClientMessageType } from '../../common/auth/client-message-type';
+import { ConversationAiService } from '../conversation-ai/conversation-ai.service';
 import {
   Injectable,
   BadRequestException,
@@ -22,6 +24,7 @@ import { isTaskCardContent } from './utils/is-task-card-content';
 @Injectable()
 export class MessageService {
   constructor(
+    @Inject(forwardRef(() => ConversationAiService)) private readonly conversationAi: ConversationAiService,
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
@@ -52,7 +55,9 @@ export class MessageService {
       content: string;
     },
     threadParentId?: string,
+    attachmentMediaId?: string,
   ): Promise<any> {
+    assertClientMessageType(type, true);
     const createdMessage = await this.prisma.$transaction(async (tx) => {
       if (type !== MessageType.SYSTEM) {
         const member = (await tx.channelMember.findUnique({
@@ -113,7 +118,7 @@ export class MessageService {
         const parentMsg = await tx.message.findUnique({
           where: { id: threadParentId },
         });
-        if (!parentMsg || parentMsg.channelId !== channelId) {
+        if (!parentMsg || parentMsg.channelId !== channelId || parentMsg.deletedAt || parentMsg.recalled) {
           throw new BadRequestException(
             MESSAGE_ERROR_MESSAGES.PARENT_NOT_FOUND,
           );
@@ -231,8 +236,10 @@ export class MessageService {
         });
       }
 
+      await this.conversationAi.register(message, senderId, channelId, "CHANNEL", tx, attachmentMediaId);
       return message;
     });
+    this.conversationAi.notify(createdMessage);
 
     return this.userProfileSnapshotService.attachSenderProfileToMessage(
       createdMessage,
@@ -263,7 +270,9 @@ export class MessageService {
     },
     threadParentId?: string,
     mentions?: string[],
+    attachmentMediaId?: string,
   ) {
+    assertClientMessageType(type);
     const message = await this.createMessage(
       channelId,
       senderId,
@@ -273,6 +282,7 @@ export class MessageService {
       pollData,
       noteData,
       threadParentId,
+      attachmentMediaId,
     );
 
     const threadFollowers = threadParentId

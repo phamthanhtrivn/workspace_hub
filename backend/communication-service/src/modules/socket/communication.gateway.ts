@@ -55,15 +55,7 @@ export class CommunicationGateway
     }
 
     try {
-      const payloadBase64 = String(token).split('.')[1];
-      const decoded = JSON.parse(
-        Buffer.from(payloadBase64, 'base64').toString(),
-      ) as Record<string, unknown>;
-      const userId =
-        process.env.JWT_SECRET_KEY ||
-        process.env.MEETING_RECORDING_ENABLED === 'true'
-          ? verifyRecordingUserToken(String(token))
-          : decoded.sub || decoded.id;
+      const userId = verifyRecordingUserToken(token);
 
       if (typeof userId !== 'string' || !userId) {
         client.disconnect();

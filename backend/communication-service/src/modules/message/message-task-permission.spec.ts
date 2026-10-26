@@ -24,6 +24,7 @@ describe('MessageService task card permission', () => {
     const prisma = { $transaction: jest.fn((callback) => callback(tx)) };
     const profiles = { attachSenderProfileToMessage: jest.fn((message) => message) };
     const service = new MessageService(
+      { register: jest.fn(), notify: jest.fn() } as any,
       prisma as any,
       {} as any,
       profiles as any,

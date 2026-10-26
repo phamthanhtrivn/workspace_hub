@@ -1,6 +1,14 @@
 
 import React, { useRef } from "react";
-import { Copy, Edit2, MessageSquare, Pin, Trash2 } from "lucide-react";
+import {
+  Copy,
+  Edit2,
+  Loader2,
+  MessageSquare,
+  Pin,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -22,6 +30,9 @@ interface MessageOptionsDropdownProps {
   canEdit?: boolean;
   canRecall?: boolean;
   isPinned?: boolean;
+  summaryFiles?: { id: string; name: string }[];
+  onSummarize?: (file: { id: string; name: string }) => void;
+  isSummarizing?: boolean;
 }
 
 export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
@@ -38,6 +49,9 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   canEdit = false,
   canRecall = true,
   isPinned = false,
+  summaryFiles = [],
+  onSummarize,
+  isSummarizing = false,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -99,6 +113,23 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
           {isPinned ? "Unpin message" : "Pin message"}
         </span>
       </DropdownMenuItem>
+
+      {onSummarize && summaryFiles.map((file) => (
+        <DropdownMenuItem
+          key={file.id}
+          closeOnClick={false}
+          disabled={isSummarizing}
+          onClick={() => {
+            onSummarize(file);
+            onClose();
+          }}
+          className="w-full text-left px-4 py-2 hover:bg-background flex items-center gap-2 cursor-pointer transition-colors disabled:opacity-50"
+          title={file.name}
+        >
+          {isSummarizing ? <Loader2 size={16} className="shrink-0 motion-safe:animate-spin" /> : <Sparkles size={16} className="shrink-0" />}
+          <span className="min-w-0 break-words">{summaryFiles.length === 1 ? "Tóm tắt bằng AI" : `Tóm tắt: ${file.name}`}</span>
+        </DropdownMenuItem>
+      ))}
 
       {isMe && canRecall && (
         <>

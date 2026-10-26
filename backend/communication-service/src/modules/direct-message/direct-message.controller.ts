@@ -31,6 +31,7 @@ export class DirectMessageController {
     @Headers('x-user-id') userId: string,
     @Body()
     data: {
+      attachmentMediaId?: string;
       content?: string;
       type?: MessageType;
       medias?: {
@@ -59,6 +60,7 @@ export class DirectMessageController {
       data.medias,
       data.threadParentId,
       data.mentions,
+      data.attachmentMediaId,
     );
 
     return {

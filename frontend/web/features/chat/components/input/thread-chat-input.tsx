@@ -259,7 +259,7 @@ const ThreadChatInput = React.memo(
       if (mentionQuery === null) return [];
 
       if (activeChatType === ChatContextType.CHANNEL) {
-        return getChannelMentionOptions(membersResponse, authUserId);
+        return getChannelMentionOptions(membersResponse, authUserId, {searchQuery: mentionQuery});
       }
 
       return getCachedMentionOptions(

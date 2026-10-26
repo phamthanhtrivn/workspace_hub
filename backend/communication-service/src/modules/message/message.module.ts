@@ -1,3 +1,4 @@
+import { ConversationAiModule } from '../conversation-ai/conversation-ai.module';
 import { Module, forwardRef } from '@nestjs/common';
 import { MessageController } from './message.controller';
 
@@ -10,6 +11,7 @@ import { SocketModule } from '../socket/socket.module';
 
 @Module({
   imports: [
+    forwardRef(() => ConversationAiModule),
     PrismaModule,
     S3Module,
     UserProfileSnapshotModule,

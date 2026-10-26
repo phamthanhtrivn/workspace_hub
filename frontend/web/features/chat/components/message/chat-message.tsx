@@ -1,6 +1,8 @@
 import { useId as useControlledPopupId } from "react";
 import React, { useMemo, useState } from "react";
 import { MoreHorizontal, Pin, MessageSquare, SmilePlus } from "lucide-react";
+import { useAttachmentSummary } from "../../hooks/message/useAttachmentSummary";
+import { summaryAttachments } from "../../utils/attachment-summary";
 import { MessageOptionsDropdown } from "./message-options-dropdown";
 import { toast } from "sonner";
 import { canCopyMessage, copyMessageToClipboard } from "../../utils/message-clipboard";
@@ -88,6 +90,8 @@ const ChatMessage = React.memo(function ChatMessage({
   onPinMessage,
   onThreadReply,
 }: ChatMessageProps) {
+  const { summarize, isRequesting } = useAttachmentSummary(msg);
+  const summaryFiles = msg.recalled ? [] : summaryAttachments(msg.medias);
   const controlledPopupId = useControlledPopupId();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -126,7 +130,7 @@ const ChatMessage = React.memo(function ChatMessage({
 
   const hasText =
     msg.type !== CHAT_MESSAGE_TYPES.DOCUMENT && !!msg.content?.trim();
-  const senderName = memberProfile?.fullName || "User";
+  const senderName = msg.type === "AI" && msg.senderId === "00000000-0000-4000-8000-0000000000a1" ? "AI" : memberProfile?.fullName || "User";
   const currentUserId = currentUser?.userId;
 
   const openSenderProfile = () => {
@@ -412,6 +416,9 @@ const ChatMessage = React.memo(function ChatMessage({
         isMe={isMe}
         canEdit={msg.type === "TEXT" && isWithin24Hours && hasText}
         canRecall={isWithin24Hours}
+        summaryFiles={summaryFiles}
+        onSummarize={(file) => void summarize(file)}
+        isSummarizing={isRequesting}
         isPinned={msg.pinned}
         onThreadReply={onThreadReply ? () => onThreadReply(msg) : undefined}
         onCopy={canCopyMessage(msg) && currentUserId ? () => {
