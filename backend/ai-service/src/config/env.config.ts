@@ -48,6 +48,18 @@ export const config = z
       .default("http://localhost:8083"),
     PORT: z.coerce.number().default(8087),
     AI_ENABLED: z.enum(["true", "false"]).default("false"),
+    AI_SHUTDOWN_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(1000)
+      .max(900000)
+      .default(210000),
+    CHAT_CANCEL_POLL_MS: z.coerce
+      .number()
+      .int()
+      .min(500)
+      .max(10000)
+      .default(2000),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),

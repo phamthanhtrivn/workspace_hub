@@ -29,6 +29,7 @@ require.cache[require.resolve("../dist/infrastructure/queue/notebook.queue")] =
     exports: { enqueue: async (...args) => jobs.push(args) },
   };
 const database = require("../dist/infrastructure/database/database");
+const { config } = require("../dist/config/env.config");
 const documents = require("../dist/infrastructure/integrations/document.client");
 const uploads = require("../dist/modules/sources/upload-validation");
 const {
@@ -363,7 +364,10 @@ test("PostgreSQL migration, notebook ownership, masking, cache and provider cont
       const started = performance.now();
       await chat.cancel(actor, cancelledId);
       await pending;
-      assert.ok(performance.now() - started < 2000);
+      assert.ok(
+        performance.now() - started < config.CHAT_CANCEL_POLL_MS + 1000,
+        "Cancellation must finish within one poll interval plus database latency",
+      );
       assert.doesNotMatch(cancelled.text, /event: done/);
       assert.equal(
         (

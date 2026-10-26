@@ -70,6 +70,7 @@ services:
   notebook-api:
     build: ../../backend/ai-service
     env_file: .env
+    stop_grace_period: 4m
     ports: ["127.0.0.1:8087:8087"]
     extra_hosts: ["host.docker.internal:host-gateway"]
     networks: [default, workspace]

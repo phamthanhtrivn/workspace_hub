@@ -1,5 +1,14 @@
 # Notebook AI Service
 
+## Stability and shutdown
+
+- Recovery scans use keyset batches of 100. A failed job or scan is logged and other jobs/stages continue; the next sweep retries outstanding work. Active, waiting and delayed BullMQ jobs are left to BullMQ.
+- `ai_recovery` reports checked/recovered/failed counts and duration. For queued work, recovered counts successful enqueue checks, including jobs already present in Redis.
+- API shutdown stops accepting connections and drains requests before closing Nest, queues and PostgreSQL. Worker shutdown stops new recovery work, drains active jobs, heartbeat writes and in-flight recovery before closing queues/PostgreSQL. Startup recovery and periodic sweeps cannot overlap.
+- `AI_SHUTDOWN_TIMEOUT_MS` defaults to `210000` (3.5 minutes; allowed range 1000–900000). The process exits with code 1 when the deadline is exceeded. Both Compose services allow 4 minutes; keep the container stop grace period longer than the configured application deadline. Interrupted paid model calls still require the existing checkpoint/manual retry policy.
+- `CHAT_CANCEL_POLL_MS` defaults to `2000` (allowed range 500–10000). Remote cancellation is observed on the next poll, plus database latency. Disconnect cancellation remains immediate, and the permission check interval remains 3 seconds.
+- Worker errors include queue/job IDs, error type, allowlisted error codes, attempts and elapsed times. Logs omit error messages, stacks, prompts, credentials and upstream response bodies.
+
 NestJS API và BullMQ jobs. Hướng dẫn cấu hình/chạy toàn stack: [deploy/ai/README.md](../../deploy/ai/README.md).
 
 ## Cấu trúc

@@ -13,6 +13,8 @@ import { reconcileQueuedJobs } from "./job-recovery";
 import { Profile } from "../common/profiling/pipeline-profiler";
 import { indexSource } from "./index.processor";
 import { summarize } from "./summary.processor";
+import { logError } from "../common/errors/error-log";
+import { createShutdownHandler, settleAll } from "../common/shutdown";
 async function processConversationJob(job: Job) {
   const timing = new Profile("job_conversation");
   timing.set("job_age_ms", Date.now() - job.timestamp);
@@ -118,16 +120,56 @@ export function startWorkers() {
     ...(meetingWorker ? [meetingWorker] : []),
   ];
   for (const current of workers) {
-    current.on("error", () =>
-      console.error("Notebook queue connection failed"),
+    current.on("error", (error) =>
+      logError("ai_worker_error", error, { queue: current.name }),
     );
-    current.on("failed", (job) =>
-      console.error("Notebook job failed", { type: job?.name, id: job?.id }),
+    current.on("failed", (job, error) =>
+      logError("ai_job_failed", error, {
+        queue: current.name,
+        kind: job?.name,
+        id: job?.id,
+        attempts_made: job?.attemptsMade,
+        attempts_limit: job?.opts.attempts,
+        job_age_ms: job ? Date.now() - job.timestamp : undefined,
+        processing_ms: job?.processedOn
+          ? Date.now() - job.processedOn
+          : undefined,
+      }),
+    );
+    current.on("stalled", (id) =>
+      console.warn(
+        JSON.stringify({
+          event: "ai_job_stalled",
+          queue: current.name,
+          id,
+        }),
+      ),
     );
   }
+  let stopping = false;
+  const recoveryAbort = new AbortController();
+  let recovery: Promise<unknown> | undefined;
+  let heartbeatTask: Promise<unknown> | undefined;
+  function reconcile() {
+    if (stopping) return Promise.resolve();
+    if (!recovery) {
+      recovery = reconcileQueuedJobs(
+        Boolean(meetingWorker),
+        recoveryAbort.signal,
+      ).finally(() => {
+        recovery = undefined;
+      });
+    }
+    return recovery;
+  }
   const heartbeat = setInterval(() => {
-    if (workers.some((current) => !current.isRunning())) return;
-    void queue.client
+    if (
+      stopping ||
+      heartbeatTask ||
+      workers.some((current) => !current.isRunning())
+    )
+      return;
+    heartbeatTask = queue.client
       .then(async (client) => {
         if (meetingWorker)
           await client.set(
@@ -149,40 +191,49 @@ export function startWorkers() {
           },
         );
       })
-      .catch(() => console.error("Notebook worker heartbeat unavailable"));
-  }, 10000);
-  let reconciling = false;
-  const sweep = setInterval(() => {
-    if (config.AI_ENABLED !== "true") return;
-    if (reconciling) return;
-    reconciling = true;
-    void reconcileQueuedJobs(Boolean(meetingWorker))
-      .catch(() => console.error("Notebook queue recovery failed"))
+      .catch((error) => logError("ai_worker_heartbeat_failed", error))
       .finally(() => {
-        reconciling = false;
+        heartbeatTask = undefined;
       });
+  }, 10000);
+  const sweep = setInterval(() => {
+    if (config.AI_ENABLED !== "true" || stopping || recovery) return;
+    void reconcile().catch((error) => logError("ai_recovery_failed", error));
   }, 30000);
-  if (config.AI_ENABLED === "true")
-    void reconcileQueuedJobs(Boolean(meetingWorker))
-      .then(() => Promise.all(workers.map((current) => current.run())))
-      .catch(() => {
-        console.error("Notebook worker startup failed");
-        process.exitCode = 1;
-        shutdown();
-      });
-  else console.log("Notebook worker disabled");
-  let stopping = false;
+  const finishShutdown = createShutdownHandler(
+    "worker",
+    async () => {
+      try {
+        await settleAll([
+          ...workers.map((current) => current.close()),
+          ...(recovery ? [recovery] : []),
+          ...(heartbeatTask ? [heartbeatTask] : []),
+        ]);
+      } finally {
+        await settleAll([closeQueues(), db.end()]);
+      }
+    },
+    config.AI_SHUTDOWN_TIMEOUT_MS,
+  );
   function shutdown() {
-    if (stopping) return;
     stopping = true;
+    recoveryAbort.abort();
     clearInterval(heartbeat);
     clearInterval(sweep);
-    void Promise.all(workers.map((current) => current.close()))
-      .then(() => Promise.all([closeQueues(), db.end()]))
-      .catch(() => {
-        console.error("Notebook worker shutdown failed");
-        process.exitCode = 1;
-      });
+    return finishShutdown();
   }
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, shutdown);
+  if (config.AI_ENABLED === "true")
+    void reconcile()
+      .then(() =>
+        stopping
+          ? undefined
+          : Promise.all(workers.map((current) => current.run())),
+      )
+      .catch((error) => {
+        logError("ai_worker_startup_failed", error);
+        process.exitCode = 1;
+        void shutdown();
+      });
+  else console.log("Notebook worker disabled");
 }

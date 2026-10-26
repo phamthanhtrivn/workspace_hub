@@ -12,6 +12,7 @@ import {
 } from "../../common/evidence-policy";
 import { retrieve } from "../../infrastructure/integrations/rag.client";
 import type { Actor, Source } from "../../common/types";
+import { config } from "../../config/env.config";
 
 import { immediateReply, generateChatResponse } from "./chat-response";
 import { visualEvidence } from "./visual-evidence";
@@ -82,7 +83,7 @@ export class ChatService {
         .finally(() => {
           checking = false;
         });
-    }, 500);
+    }, config.CHAT_CANCEL_POLL_MS);
     let authorizing = false;
     const permissions = setInterval(() => {
       if (authorizing) return;
