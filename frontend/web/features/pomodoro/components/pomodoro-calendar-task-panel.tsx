@@ -11,6 +11,7 @@ import { usePomodoroSessionActions } from "./pomodoro-session-provider";
 import { PomodoroCalendarTaskList } from "./pomodoro-calendar-task-list";
 import { PomodoroTaskEmptyState, PomodoroTaskFilterControls, type PomodoroTaskFilters } from "./pomodoro-task-filters";
 import { isCalendarFocusEligible, toCalendarFocusTask } from "../utils/focus-task";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface PomodoroCalendarTaskPanelProps {
   tasks: CalendarEvent[];
@@ -66,7 +67,7 @@ export function PomodoroCalendarTaskPanel({ tasks, userId, filters, onFiltersCha
         </Button>
       </div>
       <PomodoroTaskFilterControls sourceLabel="Calendar" filters={filters} onChange={onFiltersChange} />
-      {isLoading && <p role="status" className="text-xs text-muted-foreground">Loading Calendar tasks…</p>}
+      {isLoading && <LoadingState label="Loading Calendar tasks…" className="text-xs text-muted-foreground" />}
       {isError && <p role="alert" className="text-xs text-destructive-content">Unable to load Calendar tasks. <Button variant="ghost" onClick={onRetry} className="underline">Retry</Button></p>}
       {!isLoading && !isError && matching.length === 0 && <PomodoroTaskEmptyState sourceLabel="Calendar" filters={filters} onChange={onFiltersChange} />}
       {matching.length > 0 && <PomodoroCalendarTaskList tasks={matching} activeEventId={activeTask?.calendarEventId} isSaving={savingOrder || busy || !isReady}

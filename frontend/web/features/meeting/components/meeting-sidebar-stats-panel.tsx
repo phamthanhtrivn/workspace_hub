@@ -7,11 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMeetingHistorySummary } from "../hooks/useMeetingHistory";
 import type { MeetingHistorySummaryResponse } from "../types/meeting.types";
 import { formatMeetingSummaryLastMeetingAt, formatMeetingSummaryMinutes } from "../utils/meeting-summary.utils";
+import { LoadingState } from "@/components/ui/loading-state";
 
 function MeetingStatsSkeleton() {
   return (
     <div role="status" aria-label="Loading meeting stats" className="mt-4">
-      <span className="sr-only">Loading meeting stats...</span>
+      <LoadingState label="Loading meeting stats..." className="sr-only" />
       <div aria-hidden="true">
         <Skeleton className="h-4 w-24 motion-reduce:animate-none" />
         <Skeleton className="mt-1 h-9 w-20 motion-reduce:animate-none" />

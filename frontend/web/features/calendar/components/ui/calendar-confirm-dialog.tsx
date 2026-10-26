@@ -116,7 +116,7 @@ export function CalendarConfirmDialog({
           >
             {cancelLabel}
           </Button>
-          <Button
+          <Button loading={isLoading}
             type="button"
             disabled={isLoading}
             onClick={() => void onConfirm()}
@@ -125,7 +125,7 @@ export function CalendarConfirmDialog({
               confirmButtonClassByVariant[variant],
             )}
           >
-            {isLoading ? "..." : confirmLabel}
+            {confirmLabel}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

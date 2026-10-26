@@ -19,6 +19,7 @@ interface MeetingRoomControlButtonProps {
   badgeCount?: number;
   danger?: boolean;
   disabled?: boolean;
+  loading?: boolean;
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
 
@@ -30,6 +31,7 @@ export function MeetingRoomControlButton({
   badgeCount = 0,
   danger = false,
   disabled = false,
+  loading = false,
   onClick,
 }: MeetingRoomControlButtonProps) {
   const shouldShowBadge = badgeCount >= MIN_VISIBLE_BADGE_COUNT;
@@ -38,6 +40,7 @@ export function MeetingRoomControlButton({
 
   return (
     <Button variant="unstyled"
+      loading={loading}
       type="button"
       aria-label={ariaLabel}
       onClick={onClick}

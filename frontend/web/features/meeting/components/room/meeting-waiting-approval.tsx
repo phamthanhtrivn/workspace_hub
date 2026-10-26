@@ -1,12 +1,13 @@
 "use client";
 
-import { Loader2, ShieldCheck, XCircle } from "lucide-react";
+import { ShieldCheck, XCircle } from "lucide-react";
 import {
   MeetingParticipantStatusValue,
   type MeetingParticipantStatus,
 } from "../../types/meeting.types";
 import { MeetingFullscreenPortal } from "./meeting-fullscreen-overlay";
 import { MeetingButton } from "../ui/meeting-form-controls";
+import { Spinner } from "@/components/ui/spinner";
 
 interface MeetingWaitingApprovalProps {
   status: MeetingParticipantStatus | null;
@@ -39,8 +40,8 @@ export function MeetingWaitingApproval({
               : "A host or co-host needs to approve your request before you can enter this meeting."}
           </p>
           {!isRejected ? (
-            <div className="mt-5 inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-muted-foreground ring-1 ring-border/10">
-              <Loader2 className="h-4 w-4 animate-spin" />
+            <div role="status" className="mt-5 inline-flex items-center gap-2 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-muted-foreground ring-1 ring-border/10">
+              <Spinner />
               Request sent
             </div>
           ) : null}

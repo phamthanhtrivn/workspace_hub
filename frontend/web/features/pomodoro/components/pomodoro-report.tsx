@@ -1,157 +1,110 @@
 "use client";
-import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
-
-
 import { useId, useMemo, useState } from "react";
-import { Download } from "lucide-react";
-import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { cn } from "@/lib/utils";
 import { usePomodoroReport } from "../hooks/use-pomodoro-report";
-import { POMODORO_REPORT_PAGE_SIZE } from "../constants/pomodoro-report";
+import { usePomodoroReportRange } from "../hooks/use-pomodoro-report-range";
+import { usePomodoroReportFilters } from "../hooks/use-pomodoro-report-filters";
+import { POMODORO_REPORT_COPY as copy, POMODORO_REPORT_PAGE_SIZE, POMODORO_REPORT_PRESETS } from "../constants/pomodoro-report";
 import { getPomodoroPagination } from "../utils/pomodoro-pagination";
 import { PomodoroDailyStats } from "./pomodoro-daily-stats";
 import { PomodoroSessionHistory } from "./pomodoro-session-history";
+import { PomodoroReportDateFilters, PomodoroReportSessionFilters } from "./pomodoro-report-filters";
+import { PomodoroReportSummary } from "./pomodoro-report-summary";
 import {
-  buildPomodoroReport, createReportExport, formatFocusTime, presetReportRange, reportFilterOptions,
-  type PomodoroReportFilters, type PomodoroReportPreset, type PomodoroReportRange,
+  buildPomodoroReport, formatReportRange, getPomodoroReportDays,
 } from "../utils/pomodoro-report";
 import type { PomodoroSessionRecord } from "../types/pomodoro";
+import { Spinner } from "@/components/ui/spinner";
 
 const EMPTY_SESSIONS: PomodoroSessionRecord[] = [];
-const INPUT_CLASS = "mt-1 inline-block h-auto w-full min-w-0 rounded-lg border border-input bg-card px-2 py-2 text-xs text-foreground shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-const PRESETS: [PomodoroReportPreset, string][] = [["today", "Today"], ["week", "This week"], ["month", "This month"]];
 
 export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
   const id = useId();
-  const [range, setRange] = useState(() => presetReportRange("week"));
-  const [filters, setFilters] = useState<PomodoroReportFilters>({ project: "", task: "" });
+  const dates = usePomodoroReportRange();
+  const range = dates.applied;
+  const [hideEmptyDays, setHideEmptyDays] = useState(false);
   const [dailyPage, setDailyPage] = useState(1);
   const [sessionPage, setSessionPage] = useState(1);
-  const query = usePomodoroReport(range, lastUpdated);
+  const query = usePomodoroReport(range, lastUpdated, dates.today);
+  const selection = usePomodoroReportFilters(query.data, query.isSuccess && !query.isFetching);
+  const filters = selection.filters;
   const sessions = query.data ?? EMPTY_SESSIONS;
-  const options = useMemo(() => reportFilterOptions(sessions, filters.project), [sessions, filters.project]);
   const report = useMemo(() => query.validationError ? null : buildPomodoroReport(sessions, range, filters),
     [sessions, range, filters, query.validationError]);
   const ready = !query.validationError && !query.isPending && !query.isError;
-  const dailyPagination = getPomodoroPagination(report?.daily.length ?? 0, dailyPage, POMODORO_REPORT_PAGE_SIZE);
+  const visibleDays = getPomodoroReportDays(report?.daily ?? [], hideEmptyDays);
+  const dailyPagination = getPomodoroPagination(visibleDays.length, dailyPage, POMODORO_REPORT_PAGE_SIZE);
   const sessionPagination = getPomodoroPagination(report?.sessions.length ?? 0, sessionPage, POMODORO_REPORT_PAGE_SIZE);
+  const contextKey = `${range.startDate}/${range.endDate}/${filters.source}/${filters.project}/${filters.task}`;
+  const [previousContext, setPreviousContext] = useState(contextKey);
 
-  // Keep stored pages valid after refreshed data shrinks, without resetting during loading.
-  if (ready && dailyPage !== dailyPagination.currentPage) setDailyPage(dailyPagination.currentPage);
-  if (ready && sessionPage !== sessionPagination.currentPage) setSessionPage(sessionPagination.currentPage);
+  if (previousContext !== contextKey) {
+    setPreviousContext(contextKey);
+    setDailyPage(1);
+    setSessionPage(1);
+  } else {
+    // Keep pages valid after refreshed data shrinks, without resetting during loading.
+    if (ready && dailyPage !== dailyPagination.currentPage) setDailyPage(dailyPagination.currentPage);
+    if (ready && sessionPage !== sessionPagination.currentPage) setSessionPage(sessionPagination.currentPage);
+  }
 
   const resetPages = () => {
     setDailyPage(1);
     setSessionPage(1);
   };
 
-  const changeRange = (next: PomodoroReportRange) => {
-    setRange(next);
-    setFilters({ project: "", task: "" });
-    resetPages();
-  };
-
-  const exportReport = () => {
-    if (!ready || query.isFetching || !report) return;
-    try {
-      const blob = new Blob([JSON.stringify(createReportExport(report, range, filters), null, 2)], { type: "application/json;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `pomodoro_${range.startDate}_${range.endDate}.json`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch {
-      toast.error("Unable to export the report. Please try again.");
-    }
-  };
-
   return (
     <section className="space-y-4" aria-label="Pomodoro history and reports">
-      <Card className="block text-inherit rounded-panel border border-border bg-card p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">History & reports</h3>
-          <Button type="button" variant="outline" size="sm" disabled={!ready || query.isFetching} onClick={exportReport}>
-            <Download aria-hidden="true" className="mr-1.5 size-3.5" /> Export JSON
-          </Button>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Quick date ranges">
-          {PRESETS.map(([preset, label]) => {
-            const value = presetReportRange(preset);
-            const selected = value.startDate === range.startDate && value.endDate === range.endDate;
-            return <Button key={preset} type="button" size="sm" variant={selected ? "default" : "outline"} aria-pressed={selected} onClick={() => changeRange(value)}>{label}</Button>;
+      <Card className="block min-w-0 rounded-panel border-border bg-card p-4 text-foreground sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h3 className="text-section-title font-semibold">{copy.title}</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{copy.description}</p>
+          </div>
+          <div className="flex max-w-full flex-wrap items-center gap-1 rounded-control bg-muted p-1" role="group" aria-label={copy.dateRanges}>
+          {POMODORO_REPORT_PRESETS.map(({ value: preset, label }) => {
+            const selected = dates.preset === preset;
+            return <Button key={preset} type="button" size="sm" variant="ghost" aria-pressed={selected}
+              className={cn("h-8 px-3 text-xs", selected && "bg-card font-semibold text-foreground shadow-sm hover:bg-card")}
+              onClick={() => { dates.choosePreset(preset); selection.clearNotice(); resetPages(); }}>{label}</Button>;
           })}
+          </div>
         </div>
-        <div className="mt-3 grid grid-cols-1 gap-3 @min-[480px]/pomodoro:grid-cols-2 @min-[960px]/pomodoro:grid-cols-4">
-          <label htmlFor={`${id}-start`} className="min-w-0 text-xs font-semibold text-muted-foreground">
-            From date
-            <CustomDatePicker
-              id={`${id}-start`}
-              value={range.startDate}
-              onChange={nextValue => changeRange({ ...range, startDate: nextValue })}
-              triggerClassName={INPUT_CLASS}
-              ariaLabel="From date"
-              allowClear
-            />
-          </label>
-          <label htmlFor={`${id}-end`} className="min-w-0 text-xs font-semibold text-muted-foreground">
-            To date
-            <CustomDatePicker
-              id={`${id}-end`}
-              value={range.endDate}
-              onChange={nextValue => changeRange({ ...range, endDate: nextValue })}
-              triggerClassName={INPUT_CLASS}
-              ariaLabel="To date"
-              allowClear
-            />
-          </label>
-          <label htmlFor={`${id}-project`} className="min-w-0 text-xs font-semibold text-muted-foreground">
-            Project
-            <CustomSelect
-              id={`${id}-project`}
-              value={filters.project}
-              disabled={!ready}
-              ariaLabel="Project"
-              options={[{ value: "", label: "All projects / personal" }, ...options.projects.map(([value, label]) => ({ value, label }))]}
-              className="mt-1"
-              triggerClassName="h-auto px-2 py-2 text-xs font-normal shadow-none"
-              onChange={(project) => { setFilters({ project, task: "" }); resetPages(); }}
-            />
-          </label>
-          <label htmlFor={`${id}-task`} className="min-w-0 text-xs font-semibold text-muted-foreground">
-            Task
-            <CustomSelect
-              id={`${id}-task`}
-              value={filters.task}
-              disabled={!ready}
-              ariaLabel="Task"
-              options={[{ value: "", label: "All tasks" }, ...options.tasks.map(([value, label]) => ({ value, label }))]}
-              className="mt-1"
-              triggerClassName="h-auto px-2 py-2 text-xs font-normal shadow-none"
-              onChange={(task) => { setFilters({ ...filters, task }); resetPages(); }}
-            />
-          </label>
+        <fieldset className="mt-5 min-w-0">
+        <legend className="text-sm font-semibold text-foreground">{copy.dateRange}</legend>
+        <PomodoroReportDateFilters id={id} range={dates.draft} today={dates.today}
+          errors={dates.errors} onRangeChange={dates.setDraft} />
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button type="button" size="sm" disabled={!dates.dirty || Object.keys(dates.errors).length > 0}
+            onClick={() => { dates.apply(); selection.clearNotice(); resetPages(); }}>{copy.apply}</Button>
+          <Button type="button" variant="ghost" size="sm" disabled={!dates.dirty} onClick={dates.cancel}>{copy.cancel}</Button>
+          <p role="status" className="text-xs text-muted-foreground">{dates.dirty ? copy.unapplied : ""}</p>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">Up to 93 days. Sessions are counted by their start date in local time.</p>
-        {query.validationError ? <p role="alert" className="mt-3 text-xs text-destructive-content">{query.validationError}</p>
-          : query.isError ? <div role="alert" className="mt-3 text-xs text-destructive-content">Unable to load the report. <Button variant="ghost" type="button" className="underline" onClick={() => void query.refetch()}>Retry</Button></div>
-          : query.isPending ? <p role="status" className="mt-3 text-xs text-muted-foreground">Loading history...</p> : null}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p id={`${id}-hint`} className="text-xs leading-relaxed text-muted-foreground">{copy.rangeHint}</p>
+          {query.isFetching && !query.isPending && !query.isError && <p role="status" className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Spinner size={14} />{copy.updating}
+          </p>}
+        </div>
+        <p className="mt-2 text-xs font-medium text-foreground">{copy.appliedRange}: {formatReportRange(range)}</p>
+        </fieldset>
+        <PomodoroReportSessionFilters id={id} filters={filters} options={selection.options}
+          disabled={!ready || query.isFetching}
+          onFiltersChange={next => { selection.changeFilters(next); resetPages(); }} />
+        <p role="status" className="mt-2 text-xs leading-relaxed text-muted-foreground">{selection.notice}</p>
+        {query.validationError ? <p id={`${id}-error`} role="alert" className="mt-3 text-xs text-destructive-content">{query.validationError}</p>
+          : query.isError ? <div role="alert" className="mt-3 text-xs text-destructive-content">{copy.loadFailed} <Button variant="link" type="button" onClick={() => void query.refetch()}>{copy.retry}</Button></div>
+          : query.isPending ? <p role="status" className="mt-4 flex items-center gap-2 text-sm text-muted-foreground"><Spinner />{copy.loading}</p> : null}
         {ready && report && (
           <>
-            <dl className="mt-4 grid grid-cols-1 gap-3 @min-[400px]/pomodoro:grid-cols-2 @min-[960px]/pomodoro:grid-cols-4">
-              {[
-                ["Focus time", formatFocusTime(report.summary.focusSeconds)],
-                ["Completed focus sessions", report.summary.completedFocusSessions],
-                ["Stopped focus sessions", report.summary.stoppedFocusSessions],
-                ["Total sessions", report.summary.totalSessions],
-              ].map(([label, value]) => <div key={label} className="rounded-panel bg-background p-3"><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-sm font-semibold text-foreground">{value}</dd></div>)}
-            </dl>
+            <PomodoroReportSummary summary={report.summary} />
             <PomodoroDailyStats
-              days={report.daily.slice(dailyPagination.startIndex, dailyPagination.endIndex)}
+              days={visibleDays.slice(dailyPagination.startIndex, dailyPagination.endIndex)}
+              visibleDayCount={visibleDays.length} totalDays={report.daily.length} hideEmptyDays={hideEmptyDays}
+              onHideEmptyDaysChange={hide => { setHideEmptyDays(hide); setDailyPage(1); }}
               page={dailyPagination.currentPage} totalPages={dailyPagination.totalPages} onPageChange={setDailyPage}
             />
           </>

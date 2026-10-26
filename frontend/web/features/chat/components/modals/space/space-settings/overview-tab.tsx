@@ -62,7 +62,7 @@ export function OverviewTab({
             maxLength={50}
           />
           {isOwner && (
-            <Button variant="default"
+            <Button loading={isSaving} variant="default"
               type="button"
               disabled={
                 isSaving ||

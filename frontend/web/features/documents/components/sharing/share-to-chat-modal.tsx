@@ -225,7 +225,7 @@ export function ShareToChatModal({
             >
               Cancel
             </Button>
-            <Button
+            <Button loading={isSubmitting || isLoadingProjectSpace}
               type="button"
               disabled={
                 isSubmitting ||

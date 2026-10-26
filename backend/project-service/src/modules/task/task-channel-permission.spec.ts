@@ -13,6 +13,7 @@ describe('TaskService channel permission', () => {
       {} as any,
       {} as any,
       projectSpace as any,
+      {} as any,
     );
     return { service, prisma, access, projectSpace };
   }

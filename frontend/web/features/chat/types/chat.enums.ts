@@ -51,7 +51,6 @@ export enum MessageType {
 export const NO_AVATAR_MESSAGE_TYPES: MessageType[] = [
   MessageType.POLL,
   MessageType.NOTE,
-  MessageType.TASK,
   MessageType.SYSTEM,
   MessageType.EVENT,
 ];
@@ -74,4 +73,8 @@ export enum InvitationStatus {
   PENDING = "PENDING",
   ACCEPTED = "ACCEPTED",
   DECLINED = "DECLINED",
+}
+export enum ChannelVisibility {
+  PUBLIC = "PUBLIC",
+  PRIVATE = "PRIVATE",
 }

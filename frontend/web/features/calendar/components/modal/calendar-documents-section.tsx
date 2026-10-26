@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import {
   Download,
   FileText,
-  Loader2,
   Paperclip,
   Trash2,
   Upload,
@@ -15,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { formatBytes } from "@/features/documents/utils/documents.utils";
 import { CalendarDocumentPickerDialog } from "./calendar-document-picker-dialog";
+import { Spinner } from "@/components/ui/spinner";
 
 interface CalendarDocumentsSectionProps {
   documentIds: string[];
@@ -127,7 +127,7 @@ export function CalendarDocumentsSection({
                 className="hidden"
                 onChange={(event) => void handleUploadFiles(event.target.files)}
               />
-              <Button
+              <Button aria-busy={isUploading || undefined}
                 type="button"
                 size="sm"
                 variant="outline"
@@ -136,7 +136,7 @@ export function CalendarDocumentsSection({
                 className="h-7 rounded-control px-2 text-xs"
               >
                 {isUploading ? (
-                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                  <Spinner size={14} className="mr-1" />
                 ) : (
                   <Upload className="mr-1 h-3.5 w-3.5" />
                 )}

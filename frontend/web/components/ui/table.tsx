@@ -5,13 +5,14 @@ import { cn } from "@/lib/utils";
 interface TableProps extends React.ComponentProps<"table"> {
   containerClassName?: string;
   containerRef?: React.Ref<HTMLDivElement>;
+  containerProps?: Omit<React.ComponentProps<"div">, "className" | "children" | "ref">;
   unstyled?: boolean;
 }
 
-function Table({ className, containerClassName, containerRef, unstyled = false, ...props }: TableProps) {
+function Table({ className, containerClassName, containerRef, containerProps, unstyled = false, ...props }: TableProps) {
   if (unstyled) return <table data-slot="table" className={className} {...props} />;
   return (
-    <div ref={containerRef} data-slot="table-container" className={cn("relative w-full overflow-x-auto", containerClassName)}>
+    <div {...containerProps} ref={containerRef} data-slot="table-container" className={cn("relative w-full overflow-x-auto", containerClassName)}>
       <table data-slot="table" className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   );

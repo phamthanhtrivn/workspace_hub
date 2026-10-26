@@ -17,9 +17,13 @@ import { Textarea } from "@/components/ui/textarea";
 import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import {
   PROJECT_COLOR_OPTIONS,
+  PROJECT_DATE_MESSAGES,
   PROJECT_ICON_OPTIONS,
 } from "@/features/project/constants/project-form.constants";
-import { getTodayDateValue } from "@/features/project/utils/project-date.utils";
+import {
+  getCreateProjectDateErrors,
+  getTodayDateValue,
+} from "@/features/project/utils/project-date.utils";
 import ProjectPreviewCard from "../ui/project-preview-card";
 import { cn } from "@/lib/utils";
 
@@ -38,7 +42,8 @@ export default function CreateProjectDialog({
 }: CreateProjectDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState(getTodayDateValue);
+  const [today, setToday] = useState(() => getTodayDateValue());
+  const [startDate, setStartDate] = useState(() => getTodayDateValue());
   const [dueDate, setDueDate] = useState("");
   const [selectedColor, setSelectedColor] = useState<string>(
     PROJECT_COLOR_OPTIONS[0],
@@ -46,11 +51,21 @@ export default function CreateProjectDialog({
   const [selectedIcon, setSelectedIcon] = useState<string>(
     PROJECT_ICON_OPTIONS[0],
   );
+  const dateErrors = getCreateProjectDateErrors(startDate, dueDate, today);
+  const hasDateErrors = Boolean(dateErrors.startDate || dateErrors.dueDate);
+
+  const handleStartDateChange = (nextValue: string) => {
+    setStartDate(nextValue);
+    if (!nextValue) setDueDate("");
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim() || isSubmitting) return;
-    if (startDate && dueDate && startDate > dueDate) return;
+    const currentToday = getTodayDateValue();
+    setToday(currentToday);
+    const currentErrors = getCreateProjectDateErrors(startDate, dueDate, currentToday);
+    if (currentErrors.startDate || currentErrors.dueDate) return;
 
     await onSubmit?.({
       name: name.trim(),
@@ -70,7 +85,11 @@ export default function CreateProjectDialog({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && onClose()}>
       <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card text-foreground sm:rounded-dialog">
-        <form onSubmit={handleSubmit} className="flex flex-col">
+        <form
+          onSubmit={handleSubmit}
+          onFocusCapture={() => setToday(getTodayDateValue())}
+          className="flex flex-col"
+        >
           <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-border">
             <DialogTitle className="text-section-title font-semibold tracking-tight text-foreground">
               Create Project
@@ -128,44 +147,62 @@ export default function CreateProjectDialog({
 
             <div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <label
-                  htmlFor="project-start-date"
-                  className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                >
-                  Start Date <span className="font-semibold normal-case text-muted-foreground">(Optional)</span>
+                <div>
+                  <label
+                    htmlFor="project-start-date"
+                    className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                  >
+                    Start Date <span className="font-semibold normal-case text-muted-foreground">(Optional)</span>
+                  </label>
                   <CustomDatePicker
                     disabled={isSubmitting}
                     id="project-start-date"
                     value={startDate}
-                    onChange={nextValue => setStartDate(nextValue)}
+                    onChange={handleStartDateChange}
+                    min={today}
                     max={dueDate || undefined}
+                    invalid={Boolean(dateErrors.startDate)}
+                    descriptionId={dateErrors.startDate ? "project-start-date-error" : undefined}
                     triggerClassName="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                     ariaLabel="Start date"
                     allowClear
                   />
-                </label>
-                <label
-                  htmlFor="project-due-date"
-                  className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
-                >
-                  End Date <span className="font-semibold normal-case text-muted-foreground">(Optional)</span>
+                  {dateErrors.startDate && (
+                    <p id="project-start-date-error" role="alert" className="mt-2 text-xs font-semibold text-destructive-content">
+                      {dateErrors.startDate}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label
+                    htmlFor="project-due-date"
+                    className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+                  >
+                    End Date <span className="font-semibold normal-case text-muted-foreground">(Optional)</span>
+                  </label>
                   <CustomDatePicker
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !startDate}
                     id="project-due-date"
                     value={dueDate}
                     onChange={nextValue => setDueDate(nextValue)}
                     min={startDate || undefined}
+                    invalid={Boolean(dateErrors.dueDate)}
+                    descriptionId={dateErrors.dueDate || !startDate ? "project-due-date-description" : undefined}
                     triggerClassName="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                     ariaLabel="End date"
                     allowClear
                   />
-                </label>
+                  {(dateErrors.dueDate || !startDate) && (
+                    <p
+                      id="project-due-date-description"
+                      role={dateErrors.dueDate ? "alert" : undefined}
+                      className={cn("mt-2 text-xs", dateErrors.dueDate ? "font-semibold text-destructive-content" : "text-muted-foreground")}
+                    >
+                      {dateErrors.dueDate || PROJECT_DATE_MESSAGES.startDateRequiredForEndDate}
+                    </p>
+                  )}
+                </div>
               </div>
-              {startDate && dueDate && startDate > dueDate ? (
-                <p className="mt-2 text-xs font-semibold text-destructive-content">
-                  Start date cannot be after end date.
-                </p>
-              ) : null}
             </div>
 
             {/* Icon Picker */}
@@ -203,7 +240,7 @@ export default function CreateProjectDialog({
             {/* Color Picker */}
             <fieldset>
               <legend className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Theme Color
+                Project Color
               </legend>
               <div className="mt-2 flex flex-wrap gap-2.5">
                 {PROJECT_COLOR_OPTIONS.map((color) => {
@@ -248,12 +285,12 @@ export default function CreateProjectDialog({
             >
               Cancel
             </Button>
-            <Button
+            <Button loading={isSubmitting}
               type="submit"
               disabled={
                 !name.trim() ||
                 isSubmitting ||
-                Boolean(startDate && dueDate && startDate > dueDate)
+                hasDateErrors
               }
               className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
             >

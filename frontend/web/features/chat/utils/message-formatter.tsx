@@ -2,6 +2,7 @@ import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import MessageCodeBlock from "../components/message/message-code-block";
 import { UserProfileSnapshotResponse } from "../types/chat.types";
 
 // Helper to parse inline styles (Bold, Italic, Strikethrough, Inline Code)
@@ -304,14 +305,14 @@ export const parseBlocks = (
 ): React.ReactNode => {
   if (!content) return null;
 
-  const codeBlockRegex = /```(?:[a-zA-Z0-9]+)?\n([\s\S]*?)```/g;
-  const parts: { type: "text" | "code"; content: string }[] = [];
+  const codeBlockRegex = /```([^\r\n`]*)\r?\n([\s\S]*?)```/g;
+  const parts: { type: "text" | "code"; content: string; language?: string }[] = [];
   let lastIndex = 0;
   let match;
 
   while ((match = codeBlockRegex.exec(content)) !== null) {
     const matchIndex = match.index;
-    const codeContent = match[1];
+    const codeContent = match[2];
 
     if (matchIndex > lastIndex) {
       parts.push({
@@ -323,6 +324,7 @@ export const parseBlocks = (
     parts.push({
       type: "code",
       content: codeContent,
+      language: match[1].trim().split(/\s+/)[0] || undefined,
     });
 
     lastIndex = codeBlockRegex.lastIndex;
@@ -340,12 +342,11 @@ export const parseBlocks = (
       {parts.map((part, partIdx) => {
         if (part.type === "code") {
           return (
-            <pre
+            <MessageCodeBlock
               key={`block-code-${partIdx}`}
-              className="bg-primary text-primary-foreground font-mono text-[11px] p-3 rounded-lg overflow-x-auto max-w-full my-1.5 border border-input leading-normal select-text"
-            >
-              <code>{part.content.trim()}</code>
-            </pre>
+              code={part.content}
+              language={part.language}
+            />
           );
         }
 

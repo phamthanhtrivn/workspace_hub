@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Save, Volume2 } from "lucide-react";
+import { Save, Volume2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { SettingInput, SettingSelect, SettingSlider, SettingSwitchCard } from "@/features/user-setting/components/ui/setting-form-controls";
@@ -14,6 +14,8 @@ import { fromPomodoroSettingsForm, pomodoroSettingsSchema, toPomodoroSettingsFor
 import { useSettingsDraft } from "@/features/user-setting/hooks/use-settings-draft";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { playPomodoroSound } from "../utils/sound";
+import { PomodoroNotificationSettings } from "./pomodoro-notification-settings";
+import { Spinner } from "@/components/ui/spinner";
 
 interface PomodoroSettingsFormProps {
   config: PomodoroConfig;
@@ -91,8 +93,7 @@ export function PomodoroSettingsForm({ config, syncStatus, onSave }: PomodoroSet
           )} />
         </div>
         <Controller name="notificationEnabled" control={control} render={({ field }) => (
-          <SettingSwitchCard title="Browser notifications" description="Notify you while you are in another tab or app."
-            checked={field.value} onCheckedChange={field.onChange} disabled={disabled} />
+          <PomodoroNotificationSettings enabled={field.value} onChange={field.onChange} disabled={disabled} />
         )} />
       </fieldset>
 
@@ -108,9 +109,9 @@ export function PomodoroSettingsForm({ config, syncStatus, onSave }: PomodoroSet
         )} />
       </fieldset>
       {syncStatus === "error" && <p role="alert" className="text-xs text-warning-content">{errors.root?.server?.message ?? POMODORO_SETTINGS_MESSAGES.pending}</p>}
-      <Button type="submit" disabled={disabled}
+      <Button aria-busy={disabled || undefined} type="submit" disabled={disabled}
         className="flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary">
-        {disabled ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+        {disabled ? <Spinner tone="inherit" /> : <Save className="h-4 w-4" />}
         {disabled ? "Saving settings..." : "Save settings"}
       </Button>
     </form>

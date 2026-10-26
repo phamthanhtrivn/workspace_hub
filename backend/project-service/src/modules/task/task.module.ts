@@ -10,9 +10,11 @@ import { NotificationOutboxModule } from "../notification-outbox/notification-ou
 import { UserProfileSnapshotModule } from "../user-profile-snapshot/user-profile-snapshot.module";
 import { HttpJsonClient } from "../../common/adapters/http-json.client";
 import { TaskDocumentClient } from "./task-document.client";
+import { TaskSyncModule } from "../task-sync/task-sync.module";
 
 @Module({
   imports: [
+    TaskSyncModule,
     forwardRef(() => ProjectModule),
     forwardRef(() => ActivityModule),
     forwardRef(() => NotificationOutboxModule),

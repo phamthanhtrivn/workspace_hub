@@ -79,20 +79,26 @@ export default function ProjectSettingsDialog({
     project.startDate?.slice(0, 10) || "",
   );
   const [dueDate, setDueDate] = useState(project.dueDate?.slice(0, 10) || "");
+  const [pendingAction, setPendingAction] = useState<"save" | "archive" | null>(null);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!canEditProject || !name.trim() || isBusy) return;
     if (startDate && dueDate && startDate > dueDate) return;
-    await onSave({
-      name: name.trim(),
-      color: selectedColor,
-      icon: selectedIcon,
-      description: description.trim(),
-      status,
-      startDate: startDate || null,
-      dueDate: dueDate || null,
-    });
+    setPendingAction("save");
+    try {
+      await onSave({
+        name: name.trim(),
+        color: selectedColor,
+        icon: selectedIcon,
+        description: description.trim(),
+        status,
+        startDate: startDate || null,
+        dueDate: dueDate || null,
+      });
+    } finally {
+      setPendingAction(null);
+    }
   };
 
   return (
@@ -208,7 +214,7 @@ export default function ProjectSettingsDialog({
 
                 <fieldset>
                   <legend className="block text-xs font-semibold text-muted-foreground">
-                    Theme Color
+                    Project Color
                   </legend>
                   <div className="mt-2 flex flex-wrap gap-2.5">
                     {PROJECT_COLOR_OPTIONS.map((color) => {
@@ -274,8 +280,12 @@ export default function ProjectSettingsDialog({
               <Button
                 type="button"
                 variant="ghost"
+                loading={isBusy && pendingAction === "archive"}
                 disabled={isBusy}
-                onClick={() => void onArchive()}
+                onClick={() => {
+                  setPendingAction("archive");
+                  void onArchive().finally(() => setPendingAction(null));
+                }}
                 className="cursor-pointer inline-flex items-center gap-1.5 rounded-control px-3 text-xs font-semibold text-destructive-content hover:bg-destructive-soft hover:text-destructive-content disabled:opacity-50"
               >
                 <Archive className="h-3.5 w-3.5" /> Archive Project
@@ -293,12 +303,12 @@ export default function ProjectSettingsDialog({
                 Cancel
               </Button>
               {canEditProject && (
-                <Button
+                <Button loading={isBusy && pendingAction === "save"}
                   type="submit"
                   disabled={isBusy || !name.trim()}
                   className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
                 >
-                  {isBusy ? "Saving..." : "Save Changes"}
+                  {isBusy && pendingAction === "save" ? "Saving..." : "Save Changes"}
                 </Button>
               )}
             </div>

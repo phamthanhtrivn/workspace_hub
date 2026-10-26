@@ -484,6 +484,7 @@ export default function ProjectMembersView({
                                   size="sm"
                                   onClick={() => handleRemoveMember(member)}
                                   disabled={removeMemberMutation.isPending}
+                          loading={removeMemberMutation.isPending && removeMemberMutation.variables === member.userId}
                                   className="h-8 gap-1 rounded-control px-2.5 text-xs font-semibold text-muted-foreground hover:border-border hover:bg-destructive-soft hover:text-destructive-content disabled:opacity-50"
                                   title={`Remove ${member.displayName}`}
                                 >

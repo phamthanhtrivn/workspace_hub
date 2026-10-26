@@ -1,12 +1,13 @@
 "use client";
 
-import { MapPin, Loader2 } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Combobox, ComboboxInput, ComboboxContent, ComboboxList, ComboboxItem } from "@/components/ui/combobox";
 import {
   LocationSuggestion,
   searchLocationSuggestions,
 } from "../../api/calendar-location.api";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface LocationPickerInputProps {
@@ -101,7 +102,7 @@ export function LocationPickerInput({
           }
         />
         {loading && (
-          <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+          <Spinner className="absolute right-3 top-2.5" />
         )}
       </div>
 

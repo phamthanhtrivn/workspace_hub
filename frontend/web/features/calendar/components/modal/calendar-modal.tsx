@@ -221,7 +221,7 @@ export function CalendarModal(props: CalendarModalProps) {
             >
               Cancel
             </Button>
-            <Button
+            <Button loading={props.pending}
               type="submit"
               disabled={props.pending}
               className="cursor-pointer rounded-control bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:bg-primary disabled:cursor-wait disabled:opacity-60"

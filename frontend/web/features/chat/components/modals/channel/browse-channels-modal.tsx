@@ -1,4 +1,5 @@
 "use client";
+import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
 
 import { IconButton } from "@/components/ui/icon-button";
 
@@ -6,7 +7,8 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
 
-import { X, Loader2, Search, Hash, Check, Globe, Trash2 } from "lucide-react";
+import { X, Search, Hash, Lock, Globe, Trash2 } from "lucide-react";
+import ChannelJoinedBadge from "../../ui/channel-joined-badge";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import ChatConfirmDialog from "@/features/chat/components/ui/chat-confirm-dialog";
@@ -19,6 +21,7 @@ import { removeChannelFromCaches } from "@/features/chat/utils/chat-cache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DialogSurface } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface BrowseChannelsModalProps {
@@ -179,8 +182,8 @@ export default function BrowseChannelsModal({
         {/* Channel List */}
         <div className={`${dialogLayout.body} flex-1 overflow-y-auto p-4 flex flex-col gap-2`}>
           {isLoading ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
-              <Loader2 className="animate-spin text-info-content" size={24} />
+            <div role="status" className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-2">
+              <Spinner size={24} />
               <span className="text-xs">Loading channels...</span>
             </div>
           ) : filteredChannels.length > 0 ? (
@@ -197,7 +200,7 @@ export default function BrowseChannelsModal({
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-panel bg-muted text-muted-foreground">
-                      <Hash size={18} />
+                      {isPrivateChannel(channel) ? <Lock size={18} aria-label="Private channel" /> : <Hash size={18} />}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-foreground truncate">
@@ -216,28 +219,27 @@ export default function BrowseChannelsModal({
 
                   <div className="flex shrink-0 items-center gap-2">
                     {isJoined ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-success-content bg-success-soft rounded-lg border border-border">
-                        <Check size={14} />
-                        Joined
-                      </span>
+                      <ChannelJoinedBadge />
                     ) : (
-                      <Button variant="default"
+                      <Button aria-busy={joinMutation.isPending &&
+                        joinMutation.variables === channel.id || undefined} variant="default"
                         onClick={() => joinMutation.mutate(channel.id)}
                         disabled={joinMutation.isPending}
                         className="px-4 py-1.5 text-xs font-semibold disabled:bg-primary rounded-control transition cursor-pointer flex items-center gap-1"
                       >
                         {joinMutation.isPending &&
                         joinMutation.variables === channel.id ? (
-                          <Loader2 size={12} className="animate-spin" />
+                          <Spinner size={14} tone="inherit" />
                         ) : null}
                         Join
                       </Button>
                     )}
-                    {(isSpaceAdmin ||
+                    {(isPrivateChannel(channel) ? isPrivateChannelOwner(channel, currentUserId) : (isSpaceAdmin ||
                       (channel.createdBy === currentUserId &&
-                        allowMemberDeleteOwnChannel)) &&
+                        allowMemberDeleteOwnChannel))) &&
                       !channel.isDefault && (
-                        <Button variant="unstyled"
+                        <Button aria-busy={deleteMutation.isPending &&
+                          deleteMutation.variables === channel.id || undefined} variant="unstyled"
                           type="button"
                           onClick={() => handleDeleteChannel(channel.id)}
                           disabled={deleteMutation.isPending}
@@ -246,7 +248,7 @@ export default function BrowseChannelsModal({
                         >
                           {deleteMutation.isPending &&
                           deleteMutation.variables === channel.id ? (
-                            <Loader2 size={13} className="animate-spin" />
+                            <Spinner size={14} />
                           ) : (
                             <Trash2 size={14} />
                           )}

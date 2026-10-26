@@ -1,3 +1,4 @@
+import { ChannelResource } from '../channel/access/channel-resource.decorator';
 import {
   BadRequestException,
   Controller,
@@ -12,6 +13,7 @@ import { NoteService } from './note.service';
 import { NOTE_ERROR_MESSAGES } from './types/note.enums';
 
 @Controller('api/notes')
+@ChannelResource('channel', 'channelId')
 export class NoteController {
   constructor(private readonly noteService: NoteService) {}
 

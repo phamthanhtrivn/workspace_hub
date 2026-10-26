@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { KeyRound, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
+import { KeyRound, ShieldAlert, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { OTP_RESEND_COOLDOWN_SEC } from "../types/settings.enums";
@@ -17,6 +17,7 @@ import { useSettingsDraft } from "../hooks/use-settings-draft";
 import { UserSettingTab } from "../types/settings.enums";
 import PasswordInput from "./password-input";
 import { SettingInput } from "./ui/setting-form-controls";
+import { Spinner } from "@/components/ui/spinner";
 
 interface PasswordForm {
   currentPassword: string;
@@ -177,9 +178,9 @@ const PasswordTab = React.memo(function PasswordTab() {
   if (!profileResponse?.data) return <QueryFeedback label="account security" pending={isLoading} error={profileQuery.isError} retrying={profileQuery.isFetching} onRetry={() => profileQuery.refetch()} />;
   if (isLoading) {
     return (
-      <div className="flex h-full min-h-[300px] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-link" />
-      </div>
+      <div role="status" className="flex h-full min-h-[300px] items-center justify-center">
+        <Spinner size={32} />
+      <span className="sr-only">Loading…</span></div>
     );
   }
 
@@ -242,14 +243,14 @@ const PasswordTab = React.memo(function PasswordTab() {
             placeholder="Re-enter new password"
             error={pwErrors.confirmPassword}
           />
-          <Button
+          <Button aria-busy={updatePasswordMutation.isPending || undefined}
             id="update-password-btn"
             onClick={handleUpdatePassword}
             disabled={updatePasswordMutation.isPending}
             className="flex h-11 w-full items-center justify-center gap-2 rounded-control border border-primary bg-card text-sm font-semibold text-link transition hover:bg-primary hover:text-primary-foreground disabled:opacity-70 cursor-pointer"
           >
             {updatePasswordMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner tone="inherit" />
             ) : (
               <KeyRound className="h-4 w-4" />
             )}
@@ -269,7 +270,7 @@ const PasswordTab = React.memo(function PasswordTab() {
 
           {/* OTP trigger / countdown */}
           <div className="flex items-center gap-3">
-            <Button
+            <Button aria-busy={sendOtpMutation.isPending || undefined}
               id="send-otp-btn"
               type="button"
               variant="outline"
@@ -278,7 +279,7 @@ const PasswordTab = React.memo(function PasswordTab() {
               className="flex shrink-0 items-center gap-2 rounded-control border border-input bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-primary hover:text-link disabled:opacity-60 cursor-pointer"
             >
               {sendOtpMutation.isPending && (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner />
               )}
               {otpCooldown > 0
                 ? `Resend in ${otpCooldown}s`
@@ -329,14 +330,14 @@ const PasswordTab = React.memo(function PasswordTab() {
             error={pwErrors.confirmPassword}
           />
 
-          <Button
+          <Button aria-busy={setFirstPasswordMutation.isPending || undefined}
             id="set-password-btn"
             onClick={handleSetFirstPassword}
             disabled={setFirstPasswordMutation.isPending || !otpSent}
             className="flex h-11 w-full items-center justify-center gap-2 rounded-control bg-warning px-4 py-2.5 text-sm font-semibold text-warning-foreground transition hover:bg-warning disabled:opacity-60 cursor-pointer"
           >
             {setFirstPasswordMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner tone="inherit" />
             ) : (
               <ShieldCheck className="h-4 w-4" />
             )}

@@ -2,6 +2,7 @@
 
 import { CalendarClock } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { MEETING_ROUTES } from "../../types/meeting.constants";
 import { MeetingStatusTag } from "../common/meeting-status-tag";
 import type { MeetingHistoryItem } from "../../types/meeting.types";
@@ -14,9 +15,11 @@ import {
 
 interface MeetingHistoryCardProps {
   meeting: MeetingHistoryItem;
+  actions?: ReactNode;
+  selection?: ReactNode;
 }
 
-export function MeetingHistoryCard({ meeting }: MeetingHistoryCardProps) {
+export function MeetingHistoryCard({ meeting, actions, selection }: MeetingHistoryCardProps) {
   return (
     <article className="relative flex min-w-0 flex-col overflow-hidden rounded-panel border border-border bg-card p-4 text-card-foreground">
       {meeting.status === "LIVE" && (
@@ -27,6 +30,7 @@ export function MeetingHistoryCard({ meeting }: MeetingHistoryCardProps) {
         />
       )}
       <div className="flex items-center gap-3">
+        {selection}
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-control bg-secondary text-secondary-foreground">
           <CalendarClock className="h-5 w-5" aria-hidden />
         </span>
@@ -35,7 +39,10 @@ export function MeetingHistoryCard({ meeting }: MeetingHistoryCardProps) {
             {getMeetingHistoryTitle(meeting)}
           </h3>
         </div>
-        <MeetingStatusTag status={meeting.status} />
+        <div className="flex shrink-0 items-center gap-1">
+          <MeetingStatusTag status={meeting.status} />
+          {actions}
+        </div>
       </div>
 
       <div className="mt-4 border-t border-border pt-3">

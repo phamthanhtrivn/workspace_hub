@@ -19,6 +19,7 @@ import { MeetingRecordingPlayer } from "./meeting-recording-player";
 import { MeetingRecordingShareDialog } from "./meeting-recording-share-dialog";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { MEETING_LIST_PAGE_SIZE } from "../../types/meeting.constants";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 export function MeetingRecordingsView() {
@@ -111,7 +112,7 @@ export function MeetingRecordingsView() {
         </MeetingButton>
       </div>
       {query.isLoading ? (
-        <p className="py-12 text-center">Loading recordings…</p>
+        <LoadingState label="Loading recordings…" layout="centered" className="py-12 text-center" />
       ) : query.isError ? (
         <div role="alert" className="rounded-panel border border-border bg-card p-6 text-card-foreground">
           <p>Could not load recordings.</p>
@@ -175,7 +176,7 @@ export function MeetingRecordingsView() {
                   Watch
                 </MeetingButton>
                 {recording.capabilities.canDownload && (
-                  <MeetingButton
+                  <MeetingButton loading={download.isPending && download.variables === recording.id}
                     tone="outline"
                     disabled={
                       recording.status !== "COMPLETED" || download.isPending
@@ -204,7 +205,7 @@ export function MeetingRecordingsView() {
                     >
                       Rename
                     </MeetingButton>
-                    <MeetingButton
+                    <MeetingButton loading={remove.isPending && remove.variables === recording.id}
                       tone="danger"
                       disabled={
                         remove.isPending ||
@@ -291,7 +292,7 @@ export function MeetingRecordingsView() {
               value={title}
               onChange={(event) => setTitle(event.target.value)}
             />
-            <MeetingButton
+            <MeetingButton loading={edit.isPending}
               type="submit"
               disabled={edit.isPending || !title.trim()}
             >

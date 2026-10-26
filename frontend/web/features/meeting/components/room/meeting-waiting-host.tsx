@@ -1,8 +1,9 @@
 "use client";
 
-import { CalendarClock, Loader2, Play, UsersRound } from "lucide-react";
+import { CalendarClock, Play, UsersRound } from "lucide-react";
 import type { MeetingAccessResponse } from "../../types/meeting.types";
 import { MeetingButton } from "../ui/meeting-form-controls";
+import { Spinner } from "@/components/ui/spinner";
 
 interface MeetingWaitingHostProps {
   access: MeetingAccessResponse;
@@ -67,7 +68,7 @@ export function MeetingWaitingHost({
             Back to meetings
           </MeetingButton>
           {access.canStart ? (
-            <MeetingButton
+            <MeetingButton aria-busy={isStarting || undefined}
               type="button"
               tone="secondary"
               controlSize="lg"
@@ -76,7 +77,7 @@ export function MeetingWaitingHost({
               className="bg-card font-semibold text-foreground hover:bg-muted"
             >
               {isStarting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner />
               ) : (
                 <Play className="h-4 w-4" />
               )}

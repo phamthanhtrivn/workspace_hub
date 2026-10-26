@@ -88,7 +88,7 @@ export default function ProjectTaskRow({
           onDrop?.(task.id);
         }
       }}
-      className={`relative [&>:not([data-primary-action]):not(.sticky)]:relative [&>:not([data-primary-action])]:z-10 [&>:not([data-primary-action])]:pointer-events-none [&_button]:pointer-events-auto [&_a]:pointer-events-auto group grid ${BACKLOG_LAYOUT.minWidth} ${BACKLOG_LAYOUT.columns} items-center border-b border-border bg-card px-4 py-[7px] text-left transition-colors hover:z-20 hover:bg-background focus-within:z-20 focus-visible:bg-info-soft/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring cursor-pointer`}
+      className={`relative isolate [&>:not([data-primary-action]):not(.sticky)]:relative [&>:not([data-primary-action])]:z-10 [&>:not([data-primary-action])]:pointer-events-none [&_button]:pointer-events-auto [&_a]:pointer-events-auto group grid ${BACKLOG_LAYOUT.minWidth} ${BACKLOG_LAYOUT.columns} items-center border-b border-border bg-card px-4 py-[7px] text-left transition-colors hover:bg-background focus-visible:bg-info-soft/50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring cursor-pointer`}
     >
       <Button
         data-primary-action

@@ -8,7 +8,7 @@ import {
   DocumentRole,
 } from "@/features/documents/types/documents.enums";
 import { getPreviewFileType } from "@/features/documents/utils/documents.utils";
-import { Loader2 } from "lucide-react";
+
 import { toast } from "sonner";
 import { MAX_TEXT_PREVIEW_SIZE } from "@/features/documents/types/documents.constants";
 import { useAppSelector } from "@/store/store";
@@ -22,6 +22,7 @@ import { SharedDetails } from "./shared-details";
 import { SharedPreview } from "./shared-preview";
 import { SharedFolderBrowser } from "./shared-folder-browser";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
+import { Spinner } from "@/components/ui/spinner";
 
 export default function SharedDocumentView({ id }: { id: string }) {
   const isLoggedIn = useAppSelector((state) => !!state.auth.accessToken);
@@ -167,8 +168,8 @@ export default function SharedDocumentView({ id }: { id: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background gap-3 text-muted-foreground">
-        <Loader2 className="animate-spin text-info-content" size={36} />
+      <div role="status" className="flex min-h-screen flex-col items-center justify-center bg-background gap-3 text-muted-foreground">
+        <Spinner size={32} />
         <span className="text-sm font-semibold">
           Loading document details...
         </span>

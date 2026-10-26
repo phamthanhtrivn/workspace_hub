@@ -210,6 +210,7 @@ export default function SpaceSettingsModal({
   };
 
   const confirmLeaveSpace = () => {
+    if (isProjectSpace) return;
     openConfirm({
       title: "Leave Space",
       description:

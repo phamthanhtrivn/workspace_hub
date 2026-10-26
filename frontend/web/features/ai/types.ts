@@ -67,3 +67,19 @@ export const notebookSchema = z.object({
 export type Notebook = z.infer<typeof notebookSchema>;
 export type Source = z.infer<typeof sourceSchema>;
 export type Citation = z.infer<typeof citationSchema>;
+export type NotebookActionKey =
+  | "rename"
+  | "remove"
+  | "OVERVIEW"
+  | "SUMMARY"
+  | "create-note"
+  | `note:${string}`
+  | `summary:${string}`
+  | `cancel:${string}`
+  | `retry:${string}`
+  | `remove:${string}`;
+
+export type NotebookActionRunner = (
+  action: () => Promise<unknown>,
+  key?: NotebookActionKey,
+) => void;

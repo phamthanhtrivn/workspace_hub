@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DialogSurface } from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface SearchUserModalProps {
@@ -196,8 +197,8 @@ const SearchUserModal = React.memo(function SearchUserModal({
 
             <div className="p-4 overflow-y-auto flex-1 bg-card">
               {loading && (
-                <div className="flex flex-col items-center justify-center py-8 gap-3">
-                  <div className="w-8 h-8 border-4 border-border border-t-info rounded-full animate-spin"></div>
+                <div role="status" className="flex flex-col items-center justify-center py-8 gap-3">
+                  <Spinner size={32} />
                   <p className="text-sm font-medium text-muted-foreground">
                     Searching...
                   </p>
@@ -277,8 +278,8 @@ const SearchUserModal = React.memo(function SearchUserModal({
         ) : (
           <div className="p-6 overflow-y-auto flex-1 bg-card">
             {loadingProfile ? (
-              <div className="flex flex-col items-center justify-center py-10 gap-3">
-                <div className="w-8 h-8 border-4 border-border border-t-info rounded-full animate-spin"></div>
+              <div role="status" className="flex flex-col items-center justify-center py-10 gap-3">
+                <Spinner size={32} />
                 <p className="text-sm font-medium text-muted-foreground">
                   Loading profile...
                 </p>

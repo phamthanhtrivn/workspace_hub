@@ -1,7 +1,8 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 
 interface QueryFeedbackProps {
   label: string;
@@ -15,10 +16,10 @@ interface QueryFeedbackProps {
 export function QueryFeedback({ label, pending, error, retrying, onRetry }: QueryFeedbackProps) {
   if (error) return <div role="alert" className="flex min-w-0 flex-wrap items-center gap-3 rounded-control bg-destructive-soft p-3 text-sm text-destructive-content">
     <span className="min-w-0 flex-1 break-words">Could not load {label}. Please try again.</span>
-    {onRetry && <Button type="button" variant="outline" size="sm" disabled={retrying} onClick={() => void onRetry()}>
-      <RefreshCw aria-hidden className={retrying ? "animate-spin" : undefined} />{retrying ? "Retrying…" : "Retry"}
+    {onRetry && <Button loading={retrying} type="button" variant="outline" size="sm" disabled={retrying} onClick={() => void onRetry()}>
+      <RefreshCw aria-hidden />{retrying ? "Retrying…" : "Retry"}
     </Button>}
   </div>;
-  if (pending) return <p role="status" className="flex items-center gap-2 p-3 text-sm text-muted-foreground"><Loader2 aria-hidden className="size-4 animate-spin" />Loading {label}…</p>;
+  if (pending) return <p role="status" className="flex items-center gap-2 p-3 text-sm text-muted-foreground"><Spinner />Loading {label}…</p>;
   return null;
 }

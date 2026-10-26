@@ -19,6 +19,7 @@ import {
   useDirectMessagesQuery,
 } from "../../hooks/useChatQueries";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 const EMPTY_DIRECT_MESSAGES: DirectMessage[] = [];
@@ -180,9 +181,7 @@ export default function DirectConversationsSection({
           )}
         >
           {isLoading ? (
-            <div className="text-xs text-muted-foreground italic px-3 py-1">
-              Loading...
-            </div>
+            <LoadingState label="Loading..." className="text-xs text-muted-foreground italic px-3 py-1" />
           ) : directMessages.length > 0 ? (
             directMessages.map((directMessage) => (
               <DirectConversationItem

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Camera, Loader2, Save, User } from "lucide-react";
+import { Camera, Save, User } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
@@ -21,6 +21,7 @@ import { QueryFeedback } from "@/components/common/query-feedback";
 import { useSettingsDraft } from "../hooks/use-settings-draft";
 import { UserSettingTab } from "../types/settings.enums";
 import { SettingInput, SettingTextarea } from "./ui/setting-form-controls";
+import { Spinner } from "@/components/ui/spinner";
 
 const draftValue = (profile: UserProfile | null) => JSON.stringify(profile ? [profile.fullName, profile.phoneNumber, profile.dob, profile.bio] : null);
 
@@ -139,14 +140,14 @@ const ProfileTab = React.memo(function ProfileTab() {
               <User size={30} className="text-foreground" />
             )}
           </div>
-          <Button variant="unstyled"
+          <Button aria-busy={uploadAvatarMutation.isPending || undefined} variant="unstyled"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadAvatarMutation.isPending}
             className="absolute inset-0 bg-overlay/80 text-media-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer disabled:opacity-50"
             aria-label="Upload avatar"
           >
             {uploadAvatarMutation.isPending ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <Spinner size={24} />
             ) : (
               <Camera className="h-6 w-6" />
             )}
@@ -211,13 +212,13 @@ const ProfileTab = React.memo(function ProfileTab() {
         error={errors.bio}
       />
 
-      <Button
+      <Button aria-busy={updateProfileMutation.isPending || undefined}
         type="submit"
         disabled={updateProfileMutation.isPending || uploadAvatarMutation.isPending}
         className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary disabled:opacity-70 cursor-pointer"
       >
         {updateProfileMutation.isPending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Spinner tone="inherit" />
         ) : (
           <Save className="h-4 w-4" />
         )}

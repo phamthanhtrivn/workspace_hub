@@ -11,7 +11,7 @@ import {
 } from "react";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { useTheme } from "next-themes";
-import { Folder, Loader2, Paperclip, Send, Smile, X } from "lucide-react";
+import { Folder, Paperclip, Send, Smile, X } from "lucide-react";
 import { toast } from "sonner";
 import MyFilesSelectModal from "@/features/chat/components/modals/shared/my-files-select-modal";
 import { formatFileSize } from "@/lib/file";
@@ -28,6 +28,7 @@ import { MeetingIconButton } from "../../ui/meeting-icon-button";
 
 import { AnchoredPopover, AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { Spinner } from "@/components/ui/spinner";
 
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
@@ -247,7 +248,7 @@ export const MeetingMessageInput = forwardRef<
                 {upload.name} - {formatFileSize(upload.sizeBytes)}
               </span>
               {upload.status === "uploading" ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-info-content" />
+                <Spinner className="shrink-0" />
               ) : (
                 <MeetingIconButton
                   label="Remove upload"

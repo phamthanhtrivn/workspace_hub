@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { getMyProjectInvitations } from "../api/invitation.api";
 import { useRespondProjectInvitation } from "../hooks/use-invitations";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export default function ProjectInvitationsScreen({
   invitationId,
@@ -44,7 +45,7 @@ export default function ProjectInvitationsScreen({
         ← Back to Projects
       </Link>
       {query.isLoading ? (
-        <p className="text-xs text-muted-foreground">Loading invitations...</p>
+        <LoadingState label="Loading invitations..." className="text-xs text-muted-foreground" />
       ) : query.isError ? (
         <p role="alert" className="text-xs text-destructive-content">
           Failed to load invitations.{" "}
@@ -81,7 +82,7 @@ export default function ProjectInvitationsScreen({
               </p>
             )}
             <div className="flex gap-2.5 pt-1">
-              <Button
+              <Button loading={respond.isPending && respond.variables?.invitationId === invitation.id && respond.variables?.action === "accept"}
                 type="button"
                 disabled={respond.isPending}
                 onClick={() => void handleRespond(invitation.id, "accept")}
@@ -89,7 +90,7 @@ export default function ProjectInvitationsScreen({
               >
                 Accept
               </Button>
-              <Button
+              <Button loading={respond.isPending && respond.variables?.invitationId === invitation.id && respond.variables?.action === "decline"}
                 type="button"
                 variant="outline"
                 disabled={respond.isPending}

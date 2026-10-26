@@ -1,3 +1,4 @@
+import { CreateChannelDto } from '../channel/dto/create-channel.dto';
 import {
   Controller,
   Delete,
@@ -12,8 +13,11 @@ import {
   Query,
   Put,
   UnauthorizedException,
+  ValidationPipe,
 } from '@nestjs/common';
 import { SpaceService } from './space.service';
+import { SpaceMemberCandidatesService } from './space-member-candidates.service';
+import { SpaceMemberCandidatesQueryDto } from './dto/space-member-candidates-query.dto';
 import {
   SPACE_ERROR_MESSAGES,
   SPACE_SUCCESS_MESSAGES_LABEL,
@@ -31,6 +35,7 @@ export class SpaceController {
   constructor(
     private readonly spaceService: SpaceService,
     private readonly config: RuntimeConfigService,
+    private readonly memberCandidates: SpaceMemberCandidatesService,
   ) {}
   @Post()
   async createSpace(
@@ -113,6 +118,7 @@ export class SpaceController {
       status?: string;
       priority?: string;
       dueDate?: string;
+      version?: string;
     },
   ) {
     this.assertInternalServiceKey(serviceKey);
@@ -125,6 +131,7 @@ export class SpaceController {
       body.status,
       body.priority,
       body.dueDate,
+      body.version,
     );
     return {
       message: 'Task thread retrieved successfully',
@@ -227,6 +234,22 @@ export class SpaceController {
     };
   }
 
+  @Get(':spaceId/member-candidates')
+  async getMemberCandidates(
+    @Headers('x-user-id') userId: string,
+    @Param('spaceId', ParseUUIDPipe) spaceId: string,
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: SpaceMemberCandidatesQueryDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+    }
+    return {
+      message: SPACE_SUCCESS_MESSAGES_LABEL.MEMBERS_LISTED,
+      data: await this.memberCandidates.getCandidates(userId, spaceId, query),
+    };
+  }
+
   @Patch(':spaceId/transfer-ownership')
   async transferSpaceOwnership(
     @Headers('x-user-id') userId: string,
@@ -316,7 +339,7 @@ export class SpaceController {
   async createChannel(
     @Headers('x-user-id') userId: string,
     @Param('spaceId') spaceId: string,
-    @Body() body: { name: string },
+    @Body() body: CreateChannelDto,
   ) {
     if (!userId) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.MISSING_USER_ID);
@@ -328,6 +351,7 @@ export class SpaceController {
       userId,
       spaceId,
       body.name,
+      body,
     );
     return {
       message: SPACE_SUCCESS_MESSAGES_LABEL.CHANNEL_CREATED,

@@ -6,7 +6,7 @@ import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
-import { Folder, ChevronRight, Loader2 } from "lucide-react";
+import { Folder, ChevronRight } from "lucide-react";
 import { DocumentItemType, NavigationLabel } from "../../types/documents.enums";
 import { DocumentItem } from "../../types/documents.types";
 import {
@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
+import { Spinner } from "@/components/ui/spinner";
 
 interface FolderPickerModalProps {
   open?: boolean;
@@ -162,8 +163,8 @@ function FolderPickerContent({
         {/* Sub-folders list */}
         <div className={`${dialogLayout.body} mt-3 flex max-h-56 min-h-36 flex-col gap-1 overflow-y-auto rounded-panel border border-border bg-card p-2`}>
           {isError ? <QueryFeedback label="destination folders" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
-            <div className="flex flex-1 flex-col items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin text-info-content" />
+            <div role="status" className="flex flex-1 flex-col items-center justify-center py-8 text-muted-foreground">
+              <Spinner size={24} />
               <span className="mt-2 text-xs font-semibold">
                 Loading folders...
               </span>

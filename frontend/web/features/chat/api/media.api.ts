@@ -52,11 +52,13 @@ export const getPresignedUrls = async (
 export const uploadToS3 = async (
   file: File,
   presignedUrl: string,
+  signal?: AbortSignal,
 ): Promise<boolean> => {
   try {
     const response = await fetch(presignedUrl, {
       method: "PUT",
       body: file,
+      signal,
       headers: {
         "Content-Type": file.type,
       },
@@ -67,7 +69,7 @@ export const uploadToS3 = async (
     }
     return true;
   } catch (error) {
-    console.error("S3 upload error:", error);
+    if (!signal?.aborted) console.error("S3 upload error:", error);
     return false;
   }
 };

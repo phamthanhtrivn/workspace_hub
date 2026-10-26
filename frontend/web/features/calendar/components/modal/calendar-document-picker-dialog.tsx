@@ -4,7 +4,7 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, FileText, FolderOpen, Loader2 } from "lucide-react";
+import { Check, FileText, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,6 +17,7 @@ import { documentsApi } from "@/features/documents/api/documents.api";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
 import type { DocumentItem } from "@/features/documents/types/documents.types";
 import { formatBytes } from "@/features/documents/utils/documents.utils";
+import { Spinner } from "@/components/ui/spinner";
 
 interface CalendarDocumentPickerDialogProps {
   open: boolean;
@@ -94,8 +95,8 @@ export function CalendarDocumentPickerDialog({
 
           <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
             {query.isLoading ? (
-              <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
+              <div role="status" className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
+                <Spinner />
                 Loading files...
               </div>
             ) : files.length === 0 ? (

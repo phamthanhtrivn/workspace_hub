@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatSimpleDate } from "@/features/project/utils/task-dates";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface TaskCommentsSectionProps {
   task: Task;
@@ -123,9 +124,7 @@ export default function TaskCommentsSection({
       </h3>
 
       {isLoading && (
-        <p className="text-xs text-muted-foreground">
-          Loading comments...
-        </p>
+        <LoadingState label="Loading comments..." className="text-xs text-muted-foreground" />
       )}
       {isError && (
         <p role="alert" className="text-xs text-destructive-content">
@@ -212,7 +211,7 @@ export default function TaskCommentsSection({
                       >
                         Cancel
                       </Button>
-                      <Button
+                      <Button loading={updateComment.isPending && updateComment.variables?.commentId === comment.id}
                         type="button"
                         onClick={() => void handleUpdate()}
                         disabled={
@@ -262,7 +261,7 @@ export default function TaskCommentsSection({
               aria-label="Write a comment..."
               className="h-10 w-full rounded-control border-input bg-card py-2 pl-3 pr-10 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary"
             />
-            <Button
+            <Button loading={createComment.isPending}
               type="button"
               variant="ghost"
               size="icon"

@@ -6,6 +6,7 @@ import { MessageType } from "./chat.enums";
 export const MAX_UNREAD_COUNT = 99;
 export const CHAT_DEFAULT_STALE_TIME_MS = 1000 * 60 * 5;
 export const CHAT_DEFAULT_MESSAGE_PAGE_SIZE = 20;
+export const CHAT_CODE_COPY_FEEDBACK_MS = 2000;
 
 // ─── Search / Debounce ─────────────────────────────────────────────────────
 
@@ -14,6 +15,8 @@ export const CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS = 300;
 export const SPACE_MEMBER_SEARCH_DEBOUNCE_MS = 300;
 export const CHANNEL_MEMBER_SEARCH_PAGE_SIZE = 500;
 export const SPACE_MEMBER_SEARCH_PAGE_SIZE = 500;
+export const DEFAULT_CHANNEL_NAME_LOCKED_MESSAGE =
+  "Default channels cannot be renamed.";
 
 // ─── Message Display Timing ────────────────────────────────────────────────
 
@@ -51,7 +54,6 @@ export const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡"] a
 export const NO_AVATAR_TYPES: string[] = [
   MessageType.POLL,
   MessageType.NOTE,
-  MessageType.TASK,
   MessageType.SYSTEM,
   MessageType.EVENT,
 ];
@@ -66,8 +68,10 @@ export enum ChatQueryRoot {
   MESSAGES = "messages",
   CHANNEL_MEMBERS = "channel-members",
   SPACE_MEMBERS = "space-members",
+  SPACE_MEMBER_CANDIDATES = "space-member-candidates",
   SPACE_INVITATIONS = "space-invitations",
   SPACE_DETAILS = "space-details",
+  USER_PROFILE = "chat-user-profile",
   READ_RECEIPTS = "read-receipts",
   PINNED_MESSAGES_PREVIEW = "pinnedMessagesPreview",
   PINNED_MESSAGES_DETAIL = "pinnedMessagesDetail",
@@ -96,6 +100,15 @@ export const chatKeys = {
   allMessages: () => [ChatQueryRoot.MESSAGES] as const,
   allChannelMembers: () => [ChatQueryRoot.CHANNEL_MEMBERS] as const,
   allSpaceMembers: () => [ChatQueryRoot.SPACE_MEMBERS] as const,
+  allSpaceMemberCandidates: () => [ChatQueryRoot.SPACE_MEMBER_CANDIDATES] as const,
+  spaceMemberCandidatesForSpace: (spaceId: string) =>
+    [ChatQueryRoot.SPACE_MEMBER_CANDIDATES, spaceId] as const,
+  spaceMemberCandidates: (
+    spaceId: string,
+    channelId: string | undefined,
+    search: string,
+    page: number,
+  ) => [ChatQueryRoot.SPACE_MEMBER_CANDIDATES, spaceId, channelId ?? null, search, page] as const,
   allSpaceInvitations: () => [ChatQueryRoot.SPACE_INVITATIONS] as const,
   allMedia: () => [ChatQueryRoot.MEDIA] as const,
   allPinnedMessagesPreview: () => [ChatQueryRoot.PINNED_MESSAGES_PREVIEW] as const,
@@ -106,6 +119,8 @@ export const chatKeys = {
   spaces: (userId?: string | null) => [ChatQueryRoot.SPACES, userId] as const,
   spaceDetails: (spaceId?: string | null) =>
     [ChatQueryRoot.SPACE_DETAILS, spaceId] as const,
+  userProfile: (userId?: string | null) =>
+    [ChatQueryRoot.USER_PROFILE, userId] as const,
   channels: (spaceId?: string | null, search?: string) =>
     search
       ? ([ChatQueryRoot.CHANNELS, spaceId, search] as const)
@@ -125,6 +140,10 @@ export const chatKeys = {
   ) => [ChatQueryRoot.MESSAGES, chatType, chatId, jumpTargetId ?? null] as const,
   channelMembers: (channelId?: string | null, search?: string) =>
     [ChatQueryRoot.CHANNEL_MEMBERS, channelId, search ?? ""] as const,
+  privateChannelMemberDirectory: (
+    channelId: string, userId: string | null, ownerId: string | null | undefined,
+    search: string, page: number,
+  ) => [ChatQueryRoot.CHANNEL_MEMBERS, channelId, "directory", userId, ownerId, search, page] as const,
   spaceMembers: (spaceId?: string | null, search?: string) =>
     [ChatQueryRoot.SPACE_MEMBERS, spaceId, search ?? ""] as const,
   spaceInvitations: (spaceId?: string | null) =>

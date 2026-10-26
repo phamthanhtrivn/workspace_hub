@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Loader2, Save } from "lucide-react";
+import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { USER_SETTING_SAVE_ERROR, UserTheme } from "../types/settings.enums";
@@ -15,6 +15,7 @@ import { QueryFeedback } from "@/components/common/query-feedback";
 import { useSettingsDraft } from "../hooks/use-settings-draft";
 import { UserSettingTab } from "../types/settings.enums";
 import { SettingSelect, SettingSwitchCard } from "./ui/setting-form-controls";
+import { Spinner } from "@/components/ui/spinner";
 
 const THEME_OPTIONS = [
   { value: UserTheme.LIGHT, label: "Light" },
@@ -111,13 +112,13 @@ const SettingsTab = React.memo(function SettingsTab() {
           disabled={settingsMutation.isPending}
         />
 
-        <Button
+        <Button aria-busy={settingsMutation.isPending || undefined}
           type="submit"
           disabled={settingsMutation.isPending}
           className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-control bg-primary text-sm font-semibold text-primary-foreground transition hover:bg-primary cursor-pointer"
         >
           {settingsMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Spinner tone="inherit" />
           ) : (
             <Save className="h-4 w-4" />
           )}

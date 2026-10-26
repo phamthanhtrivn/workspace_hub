@@ -11,6 +11,7 @@ describe('TaskService relation rules', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any,
     );
   }
 

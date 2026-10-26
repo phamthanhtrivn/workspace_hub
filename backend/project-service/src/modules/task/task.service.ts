@@ -44,6 +44,7 @@ import {
   TaskDocumentMetadata,
 } from "./task-document.client";
 import { TaskDocumentAttachmentSource } from "./task-document.enums";
+import { TaskSyncOutboxService } from "../task-sync/task-sync-outbox.service";
 
 const taskWithCount = taskInclude;
 const TASK_PROGRESS_FIELDS = new Set<keyof UpdateTaskDto>(['status', 'rank']);
@@ -71,6 +72,7 @@ export class TaskService {
     private readonly userProfiles: UserProfileSnapshotService,
     private readonly taskDocuments: TaskDocumentClient,
     private readonly projectSpace: ProjectSpaceClient,
+    private readonly taskSync: TaskSyncOutboxService,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateTaskDto) {
@@ -153,6 +155,7 @@ export class TaskService {
           tx,
         );
       }
+      await this.taskSync.enqueue(created, tx);
       return created;
     });
 
@@ -490,6 +493,7 @@ export class TaskService {
             );
           }
         }
+        await this.taskSync.enqueue(updated, tx);
         if (dto.assigneeUserId === undefined) return updated;
         return tx.task.findUniqueOrThrow({
           where: { id: taskId },
@@ -528,7 +532,7 @@ export class TaskService {
         const children = await tx.task.findMany({ where: { parentTaskId: task.id, deletedAt: null }, select: { id: true, status: true } });
         children.forEach((child) => assertTaskEditable(child.status));
         await tx.task.updateMany({ where: { id: { in: children.map((child) => child.id) } }, data: { parentTaskId: null, version: { increment: 1 } } });
-        await tx.task.update({
+        const deleted = await tx.task.update({
           where: { id: taskId, version: task.version },
           data: {
             archived: true,
@@ -536,6 +540,7 @@ export class TaskService {
             version: { increment: 1 },
           },
         });
+        await this.taskSync.enqueue(deleted, tx);
         await this.activities.record(
           taskId,
           userId,

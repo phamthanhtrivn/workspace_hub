@@ -5,6 +5,7 @@ import { Notification } from "../types/notification.types";
 import NotificationItem from "./notification-item";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BellOff } from "lucide-react";
+import { LoadingState } from "@/components/ui/loading-state";
 
 interface NotificationListProps {
   notifications: Notification[];
@@ -37,7 +38,7 @@ const NotificationList = React.memo(function NotificationList({
             </div>
           </div>
         ))}
-        <p className="sr-only">Loading notifications...</p>
+        <LoadingState label="Loading notifications..." className="sr-only" />
       </div>
     );
   }

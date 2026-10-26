@@ -18,6 +18,7 @@ import SeeAllButton from "../see-all-button";
 import { logApiError } from "@/lib/interceptors";
 import ThreadSnippetPreview from "./thread-snippet-preview";
 import { Button } from "@/components/ui/button";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface ThreadsSectionProps {
@@ -98,9 +99,7 @@ export default function ThreadsSection({
       {isExpanded && (
         <div className="px-4 pb-3">
           {isLoading ? (
-            <div className="text-xs text-muted-foreground py-2">
-              Loading threads...
-            </div>
+            <LoadingState label="Loading threads..." className="text-xs text-muted-foreground py-2" />
           ) : previewThreads.length === 0 ? (
             <div className="text-xs text-muted-foreground py-2">
               No threads yet

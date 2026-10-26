@@ -8,6 +8,7 @@ import { recordingApi } from "../../api/meeting-recording.api";
 import type { MeetingRecording } from "../../types/meeting-recording.types";
 import { MeetingButton } from "../ui/meeting-form-controls";
 import { MeetingRecordingSummary } from "./meeting-recording-summary";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export function MeetingRecordingPlayer({
   recording,
@@ -96,7 +97,7 @@ export function MeetingRecordingPlayer({
           {recording.title}
         </DialogTitle>
         {query.isLoading && !current ? (
-          <p className="py-12 text-center">Loading recording…</p>
+          <LoadingState label="Loading recording…" layout="centered" className="py-12 text-center" />
         ) : query.isError && !current ? (
           <div role="alert" className="py-8">
             <p>Recording unavailable or access has been revoked.</p>

@@ -14,7 +14,6 @@ import {
 import { FormEventHandler, useRef, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -32,6 +31,7 @@ import {
   writeTaskDeadline,
 } from "../../utils/calendar-task-deadline.utils";
 import { CalendarDocumentsSection } from "./calendar-documents-section";
+import { EventCalendarSelect } from "./event-calendar-select";
 import { QuickCreateEventFields } from "./quick-create-event-fields";
 import {
   QuickCreateKind,
@@ -87,8 +87,6 @@ export function QuickCreateModal({
       ? copy.addTask
       : copy.createEvent;
 
-  const selectedCalendar =
-    calendars.find((calendar) => calendar.id === calendarId) ?? calendars[0];
   const locationValue = useWatch({ control, name: "location" }) ?? "";
 
 
@@ -321,29 +319,16 @@ export function QuickCreateModal({
               </QuickRow>
             ) : (
               <QuickRow icon={<CalendarDays className="h-5 w-5" />}>
-                <div className="rounded-panel border border-border bg-card px-3 py-2 transition hover:border-input">
-                  <div className="flex items-center gap-2">
-                    <CustomSelect
-                      value={calendarId}
-                      onChange={(value) =>
-                        setValue("calendarId", value, { shouldDirty: true })
-                      }
-                      ariaLabel={copy.calendar}
-                      options={calendars.map((cal) => ({
-                        value: cal.id,
-                        label: cal.name,
-                      }))}
-                      triggerClassName="h-8 min-w-0 max-w-full cursor-pointer border-0 bg-transparent px-0 text-sm font-medium text-foreground shadow-none hover:bg-transparent focus-visible:ring-0"
-                      contentClassName="rounded-lg border-border"
-                    />
-                    <span
-                      className="h-3.5 w-3.5 shrink-0 rounded-full"
-                      style={{
-                        backgroundColor: selectedCalendar?.color || "var(--primary)",
-                      }}
-                    />
-                  </div>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                <div className="min-w-0 space-y-1.5">
+                  <EventCalendarSelect
+                    calendars={calendars}
+                    value={calendarId}
+                    onChange={(value) =>
+                      setValue("calendarId", value, { shouldDirty: true })
+                    }
+                    disabled={submitting || formState.isSubmitting}
+                  />
+                  <p className="truncate px-1 text-xs text-muted-foreground">
                     {formatReminderSummary(reminders)}
                   </p>
                 </div>
@@ -396,7 +381,7 @@ export function QuickCreateModal({
             >
               {copy.cancel}
             </Button>
-            <Button
+            <Button loading={submitting}
               type="submit"
               disabled={submitting || formState.isSubmitting}
               className="h-9 cursor-pointer rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:bg-primary disabled:cursor-not-allowed disabled:opacity-60"

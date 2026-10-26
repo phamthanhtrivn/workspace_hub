@@ -14,6 +14,22 @@ export const POMODORO_FOCUS_SOURCES = [
   { value: "project", label: "Project tasks" },
 ] as const;
 
+export const POMODORO_TASK_COPY = {
+  currentTask: "Current task",
+  toDo: "To do",
+  inProgress: "In progress",
+  starts: "Starts",
+  due: "Due",
+  overdue: "Overdue",
+  todayAndOverdue: "Today & overdue",
+  allEligible: "All eligible tasks",
+  todayScopeHint: "Scheduled through today, including overdue tasks.",
+  allScopeHint: "Overdue, today, upcoming and unscheduled tasks.",
+  excludedHint: "Completed and cancelled tasks are excluded.",
+  showAll: "Show all eligible tasks",
+  openSource: (source: string) => `Open ${source}`,
+} as const;
+
 export const POMODORO_TASK_MESSAGES = {
   unavailable: "This task is no longer available for focus. Choose another task.",
   busy: "Saving the focus session. Please try again shortly.",

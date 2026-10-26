@@ -2,8 +2,9 @@
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 import Link from "next/link";
-import { Loader2, Menu, MessageCircle, Plus, UserPlus } from "lucide-react";
+import { Menu, MessageCircle, Plus, UserPlus } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
+import { ProjectIdentityIcon } from "../ui/project-identity";
 import { ProjectSearchInput } from "../ui/project-form-controls";
 import TaskQuickFilters from "../ui/task-quick-filters";
 import {
@@ -24,6 +25,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Spinner } from "@/components/ui/spinner";
 
 interface ProjectDetailToolbarProps {
   project: Project;
@@ -148,9 +150,10 @@ export default function ProjectDetailToolbar({
                 variant="ghost"
                 size="sm"
                 onClick={() => onViewChange?.("overview")}
-                className="h-auto min-w-0 max-w-full shrink justify-start rounded-control p-0 text-xs font-medium text-muted-foreground shadow-none hover:bg-transparent hover:text-info-content focus-visible:ring-ring"
+                className="h-auto min-w-0 max-w-full shrink justify-start gap-2 rounded-control p-0 text-xs font-medium text-foreground shadow-none hover:bg-transparent hover:text-info-content focus-visible:ring-ring"
               >
-                <span className="truncate">{project.name}</span>
+                <ProjectIdentityIcon icon={project.icon} color={project.color} size="sm" />
+                <span className="truncate" title={project.name}>{project.name}</span>
               </Button>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="shrink-0 text-muted-foreground" />
@@ -182,7 +185,7 @@ export default function ProjectDetailToolbar({
 
         <div className="flex max-w-full flex-wrap items-center gap-2">
           {canOpenProjectChat && onOpenProjectChat && (
-            <Button
+            <Button aria-busy={isOpeningProjectChat || undefined}
               type="button"
               variant="outline"
               onClick={onOpenProjectChat}
@@ -190,7 +193,7 @@ export default function ProjectDetailToolbar({
               className="inline-flex cursor-pointer items-center gap-1.5 rounded-control border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-foreground transition hover:bg-background disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isOpeningProjectChat ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Spinner size={14} />
               ) : (
                 <MessageCircle className="h-3.5 w-3.5" strokeWidth={2.5} />
               )}

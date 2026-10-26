@@ -1,5 +1,6 @@
 "use client";
 
+import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import ChannelChatInput, {
   ChannelChatInputRef,
@@ -33,6 +34,7 @@ import {
 } from "../../types/chat.types";
 import {
   ChatSocketMessagePayload,
+  ChatSocketMessageUpdatePayload,
   ChatSocketMemberPayload,
   ChatSocketRoleUpdatedPayload,
   ChatSocketSettingUpdatedPayload,
@@ -58,6 +60,7 @@ import { useChatTypingIndicator } from "../../hooks/message/useChatTypingIndicat
 import { useChatMessageList } from "../../hooks/message/useChatMessageList";
 import { useChatMessageActions } from "../../hooks/message/useChatMessageActions";
 import { upsertMessageById } from "../../utils/message-state-utils";
+import { mergeChatMessageUpdate } from "../../utils/message-update-cache";
 import { getDirectMessageInputNotice } from "../../utils/direct-message-permission";
 import {
   cleanupRemovedSpaceCaches,
@@ -519,12 +522,14 @@ export default function ChatArea({
         }
       };
 
-      const handleMessageUpdated = (msg: ChatSocketMessagePayload) => {
+      const handleMessageUpdated = (msg: ChatSocketMessageUpdatePayload) => {
         if (
           getEventChannelId(msg as Record<string, unknown>) ===
           activeConversation.id
         ) {
-          updateMessageInState(msg.id, () => msg);
+          updateMessageInState(msg.id, (message) =>
+            mergeChatMessageUpdate(message, msg),
+          );
         }
       };
 
@@ -640,10 +645,10 @@ export default function ChatArea({
           data.affectedUserIds?.includes(auth?.userId ?? "");
         const affectsActiveConversation =
           (data.channelId ?? data.conversationId) === activeConversation.id ||
-          (data.spaceId && data.spaceId === activeSpaceId);
+          (data.leftSpace && data.spaceId && data.spaceId === activeSpaceId);
 
         if (affectsActiveConversation) {
-          if (data.spaceId && data.userId) {
+          if (data.leftSpace && data.spaceId && data.userId) {
             removeSpaceMemberFromCaches(queryClient, data.spaceId, data.userId);
           }
 
@@ -668,7 +673,7 @@ export default function ChatArea({
               queryClient.invalidateQueries({
                 queryKey: chatKeys.allChannels(),
               });
-              toast.success("Left channel successfully");
+              toast.message("You no longer have access to this channel");
             }
           } else {
             queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
@@ -837,7 +842,7 @@ export default function ChatArea({
           activeChatType={activeChatType}
           memberProfiles={memberProfiles}
           readReceipts={readReceipts}
-          spaceCreatorId={spaceDetail?.createdBy}
+          spaceCreatorId={activeConversation && "spaceId" in activeConversation && isPrivateChannel(activeConversation) ? activeConversation.ownerId ?? undefined : spaceDetail?.createdBy}
           conversationMembers={activeConversation?.members}
           onReact={(messageId, emoji, action) => {
             const reactionAction =

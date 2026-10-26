@@ -5,7 +5,6 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Loader2,
   Search,
   X,
 } from "lucide-react";
@@ -20,6 +19,7 @@ import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import type { MeetingJoinRequestUpdatedPayload } from "@/features/meeting/types/meeting-socket.types";
 import { MeetingButton, MeetingInput } from "@/features/meeting/components/ui/meeting-form-controls";
 import { MeetingIconButton } from "@/features/meeting/components/ui/meeting-icon-button";
+import { Spinner } from "@/components/ui/spinner";
 
 interface MeetingRoomAdmissionPanelProps {
   joinToken: string;
@@ -79,7 +79,7 @@ export function MeetingRoomAdmissionPanel({
 
       {hasRequests ? (
         <div className="flex items-center gap-2">
-          <MeetingButton
+          <MeetingButton loading={actions.approveAll.isPending}
             type="button"
             tone="primary"
             controlSize="sm"
@@ -90,7 +90,7 @@ export function MeetingRoomAdmissionPanel({
             <Check className="h-3.5 w-3.5" />
             Accept all
           </MeetingButton>
-          <MeetingButton
+          <MeetingButton loading={actions.declineAll.isPending}
             type="button"
             tone="danger"
             controlSize="sm"
@@ -106,8 +106,8 @@ export function MeetingRoomAdmissionPanel({
 
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
         {requestsQuery.isLoading ? (
-          <div className="flex h-40 items-center justify-center text-sm font-semibold text-muted-foreground">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <div role="status" className="flex h-40 items-center justify-center text-sm font-semibold text-muted-foreground">
+            <Spinner className="mr-2" />
             Loading requests...
           </div>
         ) : !hasRequests ? (
@@ -155,7 +155,7 @@ export function MeetingRoomAdmissionPanel({
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <MeetingButton
+                  <MeetingButton loading={actions.approveOne.isPending && actions.approveOne.variables === request.userId}
                     type="button"
                     tone="primary"
                     controlSize="sm"
@@ -166,7 +166,7 @@ export function MeetingRoomAdmissionPanel({
                     <Check className="h-3.5 w-3.5" />
                     Accept
                   </MeetingButton>
-                  <MeetingButton
+                  <MeetingButton loading={actions.declineOne.isPending && actions.declineOne.variables === request.userId}
                     type="button"
                     tone="ghost"
                     controlSize="sm"

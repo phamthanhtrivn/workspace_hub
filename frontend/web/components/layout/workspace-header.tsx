@@ -6,6 +6,7 @@ import NotificationDropdown from "@/components/common/notification-dropdown";
 import UserProfileDropdown from "../common/user-profile-dropdown";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { useNotificationSocket } from "@/features/notification/hooks/useNotificationSocket";
+import { useChatSocket } from "@/features/chat/hooks/socket/useChatSocket";
 import { Button } from "@/components/ui/button";
 
 
@@ -23,6 +24,7 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
   onOpenSettings,
 }: WorkspaceHeaderProps) {
   useNotificationSocket();
+  useChatSocket();
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card py-3.5 px-4 sm:px-6 lg:px-8">

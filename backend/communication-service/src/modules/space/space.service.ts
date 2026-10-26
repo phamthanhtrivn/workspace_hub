@@ -8,12 +8,16 @@ import {
 } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { PrismaService } from '../../prisma/prisma.service';
-import { InvitationStatus, SpaceRole, MessageType } from '@prisma/client';
+import { Prisma, InvitationStatus, SpaceRole, MessageType, ChannelVisibility } from '@prisma/client';
 import {
   KAFKA_EVENTS,
   KAFKA_TOPICS,
 } from '../../common/constants/kafka.constants';
 import { DefaultSpaceChannelNames } from './types/space.types';
+import { CreateChannelDto } from '../channel/dto/create-channel.dto';
+import { PrivateChannelService, reconcilePrivateMemberships, publishPrivateMembershipChanges } from '../channel/private-channel.service';
+import { createPrivateChannelSystemMessages, publishPrivateChannelSystemMessages } from '../channel/private-channel-system-messages';
+import { PrivateChannelMembershipAction } from '../channel/types/private-channel-system-message.types';
 import { InviteSpaceMemberDto } from './dto/invite-space-members.dto';
 import { EnsureProjectSpaceDto } from './dto/ensure-project-space.dto';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
@@ -39,6 +43,7 @@ export class SpaceService {
     private readonly chatSocketPublisher: ChatSocketPublisher,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
     private readonly projectNames: ProjectNameClient,
+    private readonly privateChannels: PrivateChannelService,
   ) {}
 
   private normalizeLimit(limit?: string | number) {
@@ -637,6 +642,7 @@ export class SpaceService {
       });
     }
 
+    const privateMembershipChanges = await reconcilePrivateMemberships(tx, space.id, removedMemberIds);
     if (removedMemberIds.length > 0) {
       await tx.channelMember.deleteMany({
         where: {
@@ -659,6 +665,7 @@ export class SpaceService {
       channelIds,
       joinedMembers,
       removedMembers,
+      privateMembershipChanges,
     };
   }
 
@@ -760,7 +767,11 @@ export class SpaceService {
     status?: string,
     priority?: string,
     dueDate?: string,
+    version?: string,
   ) {
+    if (version !== undefined && (!/^(0|[1-9]\d{0,18})$/.test(version) || BigInt(version) > 9223372036854775807n)) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.INVALID_TASK_VERSION);
+    }
     const space = await this.prisma.space.findFirst({
       where: { projectId },
     });
@@ -769,7 +780,7 @@ export class SpaceService {
     }
 
     const senderId = actorId || space.createdBy;
-    let targetChannel: { id: string; name: string } | null = null;
+    let targetChannel: { id: string; name: string; visibility: ChannelVisibility } | null = null;
 
     if (channelId) {
       const channelCandidate = await this.prisma.channel.findFirst({
@@ -783,13 +794,16 @@ export class SpaceService {
           const spaceMem = await this.prisma.spaceMember.findUnique({
             where: { spaceId_userId: { spaceId: space.id, userId: senderId } },
           });
-          canPost = spaceMem?.role === SpaceRole.ADMIN || space.createdBy === senderId;
+          canPost = channelCandidate.visibility === ChannelVisibility.PRIVATE
+            ? channelCandidate.ownerId === senderId
+            : spaceMem?.role === SpaceRole.ADMIN || space.createdBy === senderId;
         }
 
         if (canPost) {
-          targetChannel = { id: channelCandidate.id, name: channelCandidate.name };
+          targetChannel = { id: channelCandidate.id, name: channelCandidate.name, visibility: channelCandidate.visibility };
         }
       }
+      if (!targetChannel) throw new ForbiddenException(SPACE_ERROR_MESSAGES.TASK_THREAD_ACCESS_DENIED);
     }
 
     if (!targetChannel) {
@@ -797,15 +811,16 @@ export class SpaceService {
         where: {
           spaceId: space.id,
           name: { equals: 'task-discussions', mode: 'insensitive' },
+          visibility: ChannelVisibility.PUBLIC,
         },
-        select: { id: true, name: true },
+        select: { id: true, name: true, visibility: true },
       });
     }
 
     if (!targetChannel) {
       const defaultChannel = await this.prisma.channel.findFirst({
         where: { spaceId: space.id, isDefault: true },
-        select: { id: true, name: true },
+        select: { id: true, name: true, visibility: true },
         orderBy: { createdAt: 'asc' },
       });
       targetChannel = defaultChannel;
@@ -818,7 +833,7 @@ export class SpaceService {
           name: 'task-discussions',
           createdBy: senderId,
         },
-        select: { id: true, name: true },
+        select: { id: true, name: true, visibility: true },
       });
     }
 
@@ -826,7 +841,7 @@ export class SpaceService {
       where: { spaceId: space.id },
       select: { userId: true },
     });
-    if (spaceMembers.length > 0) {
+    if (targetChannel.visibility === ChannelVisibility.PUBLIC && spaceMembers.length > 0) {
       await this.prisma.channelMember.createMany({
         data: spaceMembers.map((m) => ({
           channelId: targetChannel!.id,
@@ -837,19 +852,25 @@ export class SpaceService {
     }
 
     const taskTag = `[Task #${taskId.slice(0, 8)}]`;
-    let rootMessage = await this.prisma.message.findFirst({
-      where: {
-        channelId: targetChannel.id,
-        threadParentId: null,
-        OR: [
-          { content: { contains: taskId } },
-          { content: { contains: taskTag } },
-        ],
-      },
-    });
+    const rootMessage = await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${taskId}, 0))`;
+      const latest = await tx.projectTaskSnapshot.findUnique({ where: { taskId } });
+      const existing = await tx.message.findFirst({
+        where: {
+          channelId: targetChannel.id,
+          threadParentId: null,
+          deletedAt: null,
+          recalled: false,
+          OR: [
+            { content: { contains: taskId } },
+            { content: { contains: taskTag } },
+          ],
+        },
+      });
 
-    if (!rootMessage) {
-      const messageContent = JSON.stringify({
+      if (existing) return existing;
+      const messageContent = JSON.stringify(latest && latest.projectId === projectId &&
+        (!version || latest.version >= BigInt(version)) ? latest.payload : {
         type: 'TASK',
         title: taskTitle,
         taskId,
@@ -858,9 +879,11 @@ export class SpaceService {
         priority: priority || undefined,
         dueDate: dueDate || undefined,
         tag: taskTag,
+        taskVersion: version,
+        deleted: false,
       });
 
-      rootMessage = await this.prisma.message.create({
+      return tx.message.create({
         data: {
           channelId: targetChannel.id,
           senderId,
@@ -869,7 +892,7 @@ export class SpaceService {
           threadParentId: null,
         },
       });
-    }
+    });
 
     return {
       spaceId: space.id,
@@ -938,7 +961,7 @@ export class SpaceService {
           chatType: CHAT_CONTEXT_TYPE.CHANNEL,
           spaceId: result.spaceId,
           channelId: result.channelId,
-          channelIds: result.channelIds ?? [result.channelId],
+          channelIds: [result.channelId],
           userId: member.userId,
           affectedUserIds: [member.userId],
           leftSpace: true,
@@ -1014,13 +1037,16 @@ export class SpaceService {
           channelIds: [defaultChannel.id],
           joinedMembers: members,
           removedMembers: [],
+          privateMembershipChanges: [],
         };
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       await this.publishProjectSpaceMembersJoined(result);
       await this.publishProjectSpaceMembersRemoved(result);
+      publishPrivateMembershipChanges(this.chatSocketPublisher, result.privateMembershipChanges, this.kafkaClient);
       const {
         joinedMembers: _joinedMembers,
         removedMembers: _removedMembers,
+        privateMembershipChanges: _privateMembershipChanges,
         channelIds: _channelIds,
         ...response
       } = result;
@@ -1042,12 +1068,14 @@ export class SpaceService {
           trimmedName,
           members,
         );
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       await this.publishProjectSpaceMembersJoined(result);
       await this.publishProjectSpaceMembersRemoved(result);
+      publishPrivateMembershipChanges(this.chatSocketPublisher, result.privateMembershipChanges, this.kafkaClient);
       const {
         joinedMembers: _joinedMembers,
         removedMembers: _removedMembers,
+        privateMembershipChanges: _privateMembershipChanges,
         channelIds: _channelIds,
         ...response
       } = result;
@@ -1161,7 +1189,7 @@ export class SpaceService {
         _count: {
           select: {
             members: true,
-            channels: true,
+            channels: { where: { OR: [{ visibility: ChannelVisibility.PUBLIC }, { members: { some: { userId } } }] } },
           },
         },
       },
@@ -1612,7 +1640,11 @@ export class SpaceService {
       );
     }
 
-    await this.prisma.$transaction(async (tx) => {
+    const privateMembershipChanges = await this.prisma.$transaction(async (tx) => {
+      const privateChanges = await reconcilePrivateMemberships(tx, spaceId, [targetUserId], {
+        actorId: userId,
+        action: PrivateChannelMembershipAction.SPACE_REMOVED,
+      });
       await tx.spaceMember.delete({
         where: { spaceId_userId: { spaceId, userId: targetUserId } },
       });
@@ -1622,7 +1654,9 @@ export class SpaceService {
           channelId: { in: channels.map((channel) => channel.id) },
         },
       });
-    });
+      return privateChanges;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    publishPrivateMembershipChanges(this.chatSocketPublisher, privateMembershipChanges, this.kafkaClient);
 
     this.chatSocketPublisher.publishMemberKicked(
       [
@@ -1640,7 +1674,6 @@ export class SpaceService {
         spaceId,
         spaceName: space?.name ?? null,
         channelId: defaultChannel?.id ?? channels[0]?.id ?? null,
-        channelIds: channels.map((channel) => channel.id),
         userId: targetUserId,
         affectedUserIds: [targetUserId],
         leftSpace: true,
@@ -1705,7 +1738,11 @@ export class SpaceService {
       );
     }
 
-    await this.prisma.$transaction(async (tx) => {
+    const privateMembershipChanges = await this.prisma.$transaction(async (tx) => {
+      const privateChanges = await reconcilePrivateMemberships(tx, spaceId, [userId], {
+        actorId: userId,
+        action: PrivateChannelMembershipAction.SPACE_LEFT,
+      });
       await tx.spaceMember.delete({
         where: { spaceId_userId: { spaceId, userId } },
       });
@@ -1715,7 +1752,9 @@ export class SpaceService {
           channelId: { in: channels.map((channel) => channel.id) },
         },
       });
-    });
+      return privateChanges;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    publishPrivateMembershipChanges(this.chatSocketPublisher, privateMembershipChanges, this.kafkaClient);
 
     await this.emitSpaceMemberRemoved(
       spaceId,
@@ -1756,7 +1795,6 @@ export class SpaceService {
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         spaceId,
         spaceName: space?.name ?? null,
-        channelIds: channels.map((channel) => channel.id),
         affectedUserIds: members.map((member) => member.userId),
         leftSpace: true,
         actorProfile,
@@ -1864,7 +1902,7 @@ export class SpaceService {
     return enrichedInvitation;
   }
 
-  async createChannel(userId: string, spaceId: string, name: string) {
+  async createChannel(userId: string, spaceId: string, name: string, options: Pick<CreateChannelDto, 'visibility' | 'memberUserIds'> = {}) {
     const isMember = await this.prisma.spaceMember.findUnique({
       where: {
         spaceId_userId: {
@@ -1892,6 +1930,8 @@ export class SpaceService {
     }
 
     const trimmedName = name.trim();
+    const visibility = options.visibility ?? ChannelVisibility.PUBLIC;
+    const memberUserIds = visibility === ChannelVisibility.PRIVATE ? [...new Set([userId, ...(options.memberUserIds ?? [])])] : [userId];
 
     // Check if channel already exists in this space (case-insensitive)
     const existingChannel = await this.prisma.channel.findFirst({
@@ -1901,6 +1941,7 @@ export class SpaceService {
           equals: trimmedName,
           mode: 'insensitive',
         },
+        OR: [{ visibility: ChannelVisibility.PUBLIC }, { members: { some: { userId } } }],
       },
     });
 
@@ -1908,13 +1949,19 @@ export class SpaceService {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.CHANNEL_NAME_EXISTS);
     }
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const { channel: result, systemMessages } = await this.prisma.$transaction(async (tx) => {
+      if (visibility === ChannelVisibility.PRIVATE) {
+        const validCount = await tx.spaceMember.count({ where: { spaceId, userId: { in: memberUserIds } } });
+        if (validCount !== memberUserIds.length) throw new BadRequestException(SPACE_ERROR_MESSAGES.MEMBER_NOT_FOUND);
+      }
       const channel = await tx.channel.create({
         data: {
           spaceId,
           name: trimmedName,
           createdBy: userId,
           isDefault: false,
+          visibility,
+          ownerId: visibility === ChannelVisibility.PRIVATE ? userId : null,
         },
       });
 
@@ -1936,6 +1983,10 @@ export class SpaceService {
         },
       });
 
+      if (visibility === ChannelVisibility.PRIVATE) {
+        await tx.channelMember.createMany({ data: memberUserIds.filter(id => id !== userId).map(userId => ({ channelId: channel.id, userId })), skipDuplicates: true });
+      }
+
       const createdChannel = await tx.channel.findUnique({
         where: { id: channel.id },
         include: {
@@ -1954,17 +2005,34 @@ export class SpaceService {
         },
       });
 
+      const systemMessages =
+        visibility === ChannelVisibility.PRIVATE
+          ? await createPrivateChannelSystemMessages(
+              tx,
+              channel.id,
+              userId,
+              memberUserIds
+                .filter(id => id !== userId)
+                .map(userId => ({
+                  userId,
+                  action: PrivateChannelMembershipAction.ADDED,
+                })),
+            )
+          : [];
       return {
-        ...createdChannel,
-        members: createdChannel.members.map((member) => ({
-          ...member,
-          role:
-            spaceMembers.find(
-              (spaceMember) => spaceMember.userId === member.userId,
-            )?.role ?? SpaceRole.MEMBER,
-        })),
+        systemMessages,
+        channel: {
+          ...createdChannel,
+          members: createdChannel.members.map((member) => ({
+            ...member,
+            role:
+              spaceMembers.find(
+                (spaceMember) => spaceMember.userId === member.userId,
+              )?.role ?? SpaceRole.MEMBER,
+          })),
+        },
       };
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     const spaceMembers = await this.prisma.spaceMember.findMany({
       where: { spaceId },
@@ -1972,7 +2040,7 @@ export class SpaceService {
     });
 
     this.chatSocketPublisher.publishToRooms(
-      spaceMembers.map((m) => m.userId),
+      visibility === ChannelVisibility.PRIVATE ? memberUserIds : spaceMembers.map((m) => m.userId),
       ChatEvent.CHANNEL_SETTING_UPDATED,
       {
         eventType: 'channel_created',
@@ -1980,6 +2048,8 @@ export class SpaceService {
       },
     );
 
+    if (visibility === ChannelVisibility.PRIVATE) await this.privateChannels.notifyAdded(result, userId, memberUserIds.filter(id => id !== userId));
+    publishPrivateChannelSystemMessages(this.chatSocketPublisher, systemMessages, memberUserIds);
     return result;
   }
 
@@ -1997,7 +2067,7 @@ export class SpaceService {
       throw new BadRequestException('You are not a member of this space');
     }
 
-    const whereClause: any = { spaceId };
+    const whereClause: Prisma.ChannelWhereInput = { spaceId, OR: [{ visibility: ChannelVisibility.PUBLIC }, { members: { some: { userId } } }] };
     if (search && search.trim().length > 0) {
       whereClause.name = {
         contains: search.trim(),

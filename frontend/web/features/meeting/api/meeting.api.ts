@@ -7,6 +7,10 @@ import type {
   InstantMeetingResponse,
   JoinMeetingPayload,
   MeetingHistoryResponse,
+  MeetingHistoryVisibility,
+  MeetingHistoryVisibilityResponse,
+  MeetingHistoryBulkVisibilityPayload,
+  MeetingHistoryBulkVisibilityResponse,
   MeetingHistorySummaryResponse,
   ScheduledMeetingInvitationResponse,
   ScheduledMeetingResponse,
@@ -147,14 +151,24 @@ export const getMeetingAccess = async (
 export const getMeetingHistory = async ({
   page,
   limit,
+  visibility = "visible",
 }: {
   page: number;
   limit: number;
+  visibility?: MeetingHistoryVisibility;
 }): Promise<ApiResponse<MeetingHistoryResponse>> => {
   const response = await api.get(MEETING_API_PATHS.HISTORY, {
-    params: { page, limit },
+    params: { page, limit, visibility },
   });
   return normalizeApiResponse<MeetingHistoryResponse>(response.data);
+};
+
+export const updateMeetingHistoryVisibility = async (
+  meetingId: string,
+  hidden: boolean,
+): Promise<ApiResponse<MeetingHistoryVisibilityResponse>> => {
+  const response = await api.patch(MEETING_API_PATHS.historyVisibility(meetingId), { hidden });
+  return normalizeApiResponse<MeetingHistoryVisibilityResponse>(response.data);
 };
 
 export const getMeetingHistorySummary = async (): Promise<
@@ -162,6 +176,20 @@ export const getMeetingHistorySummary = async (): Promise<
 > => {
   const response = await api.get(MEETING_API_PATHS.HISTORY_SUMMARY);
   return normalizeApiResponse<MeetingHistorySummaryResponse>(response.data);
+};
+
+export const updateMeetingHistoryBulkVisibility = async (
+  payload: MeetingHistoryBulkVisibilityPayload,
+): Promise<ApiResponse<MeetingHistoryBulkVisibilityResponse>> => {
+  const response = await api.patch(MEETING_API_PATHS.HISTORY_BULK_VISIBILITY, payload);
+  return normalizeApiResponse<MeetingHistoryBulkVisibilityResponse>(response.data);
+};
+
+export const undoMeetingHistoryBatch = async (
+  batchId: string,
+): Promise<ApiResponse<MeetingHistoryBulkVisibilityResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.HISTORY_UNDO_BATCH, { batchId });
+  return normalizeApiResponse<MeetingHistoryBulkVisibilityResponse>(response.data);
 };
 
 export const updateMeetingSettings = async (

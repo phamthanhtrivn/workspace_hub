@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
-import type { PomodoroMode, PomodoroStatus } from "../types/pomodoro";
+import type { PomodoroCompletionStatus, PomodoroMode, PomodoroStatus } from "../types/pomodoro";
+import { getPomodoroCycleContext } from "../utils/pomodoro-cycle";
+import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
 import { cleanTaskDescription } from "@/features/calendar/utils/calendar-event.utils";
 import { cn } from "@/lib/utils";
 import { Target, StickyNote } from "lucide-react";
@@ -12,6 +14,10 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 interface PomodoroTimerDisplayProps {
   mode: PomodoroMode;
   status: PomodoroStatus;
+  completionStatus?: PomodoroCompletionStatus;
+  cycleCount?: number;
+  longBreakInterval?: number;
+  disabled?: boolean;
   timeLeft: number;
   totalDuration: number;
   focusDuration?: number;
@@ -25,6 +31,10 @@ interface PomodoroTimerDisplayProps {
 export function PomodoroTimerDisplay({
   mode,
   status,
+  completionStatus = "idle",
+  cycleCount = 0,
+  longBreakInterval = 2,
+  disabled = false,
   timeLeft,
   totalDuration,
   focusDuration = 25,
@@ -67,10 +77,11 @@ export function PomodoroTimerDisplay({
   const strokeDashoffset =
     circumference - (progressPercent / 100) * circumference;
 
-  const isRunning = status === "RUNNING";
+  const finished = status === "RUNNING" && timeLeft === 0;
+  const isRunning = status === "RUNNING" && !finished;
   const cleanedTaskNote = cleanTaskDescription(activeTaskNote);
 
-  const statusText = isRunning
+  const statusText = finished ? (completionStatus === "error" ? copy.waiting : copy.saving) : isRunning
     ? safeMode === "FOCUS"
       ? "Focusing"
       : "Taking a break"
@@ -85,6 +96,7 @@ export function PomodoroTimerDisplay({
     SHORT_BREAK: shortBreakDuration,
     LONG_BREAK: longBreakDuration,
   };
+  const cycle = getPomodoroCycleContext(safeMode, cycleCount, longBreakInterval);
 
   return (
     <Tabs
@@ -105,7 +117,7 @@ export function PomodoroTimerDisplay({
           const theme = POMODORO_MODE_THEMES[tabMode];
           const TabIcon = theme.icon;
           return (
-            <TabsTrigger key={tabMode} value={tabMode}
+            <TabsTrigger key={tabMode} value={tabMode} disabled={disabled}
               className={cn(
                 "flex h-auto min-w-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-control px-1 py-2 text-xs font-medium tracking-tight text-muted-foreground transition-colors duration-200 hover:bg-card hover:text-foreground focus-visible:ring-2 data-[state=active]:bg-card data-[state=active]:font-semibold sm:text-xs",
                 theme.tabClass,
@@ -158,8 +170,6 @@ export function PomodoroTimerDisplay({
             {/* 3. Lower Hemisphere: Frameless Active Task OR Idle Status */}
             {activeTaskTitle ? (
               <div
-                role="status"
-                aria-live="polite"
                 className="relative flex w-full max-w-[196px] flex-col items-center"
               >
                 {/* Hero Task Title with Accent Target Icon */}
@@ -200,23 +210,13 @@ export function PomodoroTimerDisplay({
                     );
                   })()}
               </div>
-            ) : (
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground border border-border">
-                <span
-                  className={cn(
-                    "size-1.5 rounded-full transition-all",
-                    isRunning
-                      ? "animate-ping bg-success-content"
-                      : status === "PAUSED"
-                        ? "bg-warning-content"
-                        : "bg-border",
-                  )}
-                />
-                <span>{statusText}</span>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
+      </div>
+      <div role="status" aria-live="polite" aria-atomic="true" className="space-y-1 text-center text-xs text-muted-foreground">
+        <p className={cn("font-medium", finished && "text-warning-content")}>{statusText}</p>
+        <p>{copy.cycle(cycle.focusNumber, cycle.interval, POMODORO_MODE_THEMES[cycle.nextMode].name, modeDurations[cycle.nextMode])}</p>
       </div>
       </TabsContent>
     </Tabs>

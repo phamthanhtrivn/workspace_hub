@@ -34,6 +34,8 @@ export interface ChatConfirmDialogProps {
   onConfirmationValueChange?: (value: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
+  className?: string;
+  overlayClassName?: string;
 }
 
 const iconByVariant = {
@@ -72,6 +74,8 @@ export function ChatConfirmDialog({
   onConfirmationValueChange,
   onConfirm,
   onCancel,
+  className,
+  overlayClassName,
 }: ChatConfirmDialogProps) {
   const inputFieldId = useInputFieldId();
   const IconComponent = iconByVariant[variant];
@@ -86,7 +90,8 @@ export function ChatConfirmDialog({
     >
       <AlertDialogContent
         role="alertdialog"
-        className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}
+        className={cn(`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`, className)}
+        overlayClassName={overlayClassName}
         showCloseButton={false}
       >
         <div className="flex items-start gap-4">
@@ -136,7 +141,7 @@ export function ChatConfirmDialog({
           >
             {cancelLabel}
           </Button>
-          <Button variant="unstyled"
+          <Button loading={isLoading} variant="unstyled"
             type="button"
             disabled={isConfirmDisabled}
             onClick={onConfirm}
@@ -145,7 +150,7 @@ export function ChatConfirmDialog({
               confirmButtonClassByVariant[variant],
             )}
           >
-            {isLoading ? "..." : confirmLabel}
+            {confirmLabel}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

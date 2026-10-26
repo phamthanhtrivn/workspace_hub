@@ -3,7 +3,7 @@
 import { IconButton } from "@/components/ui/icon-button";
 
 import React, { useCallback, useMemo } from "react";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +12,7 @@ import { SharePermission } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
 import { useBulkUserProfilesByEmailsQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface ShareModalListProps {
@@ -162,9 +163,9 @@ export function ShareModalList({
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-6">
-            <Loader2 size={20} className="animate-spin text-muted-foreground" />
-          </div>
+          <div role="status" className="flex items-center justify-center py-6">
+            <Spinner size={24} />
+          <span className="sr-only">Loading…</span></div>
         ) : (
           shares.map((share) => {
             const profile = profilesMap.get(share.shareWithEmail.toLowerCase()) || {

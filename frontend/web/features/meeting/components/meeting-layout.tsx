@@ -154,6 +154,7 @@ export function MeetingLayout() {
   }, [searchParams]);
 
   useMeetingSocket({
+    onHistoryVisibilityUpdated: refreshMeetingOverview,
     // onStatusUpdated also receives meeting-started events through the socket hook.
     onStatusUpdated: refreshMeetingOverview,
     onMeetingEnded: refreshMeetingOverview,

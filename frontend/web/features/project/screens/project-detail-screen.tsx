@@ -575,6 +575,7 @@ export default function ProjectDetailScreen() {
       <TaskFormDialog
         key={`${showTaskForm}-new-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}`}
         open={showTaskForm}
+        projectId={projectId}
         projectName={project.name}
         parentTasks={tasks}
         initialParentTaskId={newTaskParentId}

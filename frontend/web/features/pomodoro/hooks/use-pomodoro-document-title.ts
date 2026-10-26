@@ -3,16 +3,21 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { getPageTitle, SITE_NAME } from "@/lib/page-metadata";
-import type { PomodoroMode, PomodoroStatus } from "../types/pomodoro";
+import type { PomodoroCompletionStatus, PomodoroMode, PomodoroStatus } from "../types/pomodoro";
+import { POMODORO_SESSION_COPY } from "../constants/pomodoro-session";
 
 const MODE_TITLES: Record<PomodoroMode, string> = {
   FOCUS: "🎯 Focus", SHORT_BREAK: "☕ Short Break", LONG_BREAK: "🌴 Long Break",
 };
 
-export function usePomodoroDocumentTitle(status: PomodoroStatus, mode: PomodoroMode, timeLeft: number) {
+export function usePomodoroDocumentTitle(status: PomodoroStatus, mode: PomodoroMode, timeLeft: number, completionStatus: PomodoroCompletionStatus = "idle") {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (status === "RUNNING" && timeLeft === 0) {
+      document.title = `${completionStatus === "error" ? POMODORO_SESSION_COPY.waiting : POMODORO_SESSION_COPY.saving} - ${SITE_NAME}`;
+      return;
+    }
     if (status !== "RUNNING") {
       document.title = getPageTitle(pathname);
       return;
@@ -21,7 +26,7 @@ export function usePomodoroDocumentTitle(status: PomodoroStatus, mode: PomodoroM
     const minutes = Math.floor(remaining / 60).toString().padStart(2, "0");
     const seconds = (remaining % 60).toString().padStart(2, "0");
     document.title = `(${minutes}:${seconds}) ${MODE_TITLES[mode]} - ${SITE_NAME}`;
-  }, [pathname, status, mode, timeLeft]);
+  }, [pathname, status, mode, timeLeft, completionStatus]);
 
   useEffect(() => () => {
     // The provider can unmount after navigation; restore the destination, not its opener.

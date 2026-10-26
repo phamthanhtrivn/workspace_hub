@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAppSelector } from "@/store/store";
 import { notebooksApi } from "../api/notebooks.api";
+import { LoadingState } from "@/components/ui/loading-state";
 
 export function NotebookList() {
   const userId = useAppSelector((state) => state.auth.userId);
@@ -57,7 +58,7 @@ export function NotebookList() {
           maxLength={200}
           onChange={(event) => setTitle(event.target.value)}
         />
-        <Button disabled={!title.trim() || create.isPending || !userId}>
+        <Button loading={create.isPending} disabled={!title.trim() || create.isPending || !userId}>
           <Plus />
           {create.isPending ? "Đang tạo…" : "Tạo notebook"}
         </Button>
@@ -71,7 +72,7 @@ export function NotebookList() {
           </Button>
         </p>
       )}
-      {query.isPending && <p role="status">Đang tải notebook…</p>}
+      {query.isPending && <LoadingState label="Đang tải notebook…" />}
       {!query.isError && query.data?.length === 0 && (
         <p className="rounded-xl border border-dashed p-8 text-muted-foreground">
           Chưa có notebook. Tạo notebook đầu tiên để thêm tài liệu.

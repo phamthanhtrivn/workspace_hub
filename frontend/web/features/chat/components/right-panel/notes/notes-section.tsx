@@ -1,5 +1,5 @@
 import { QueryFeedback } from "@/components/common/query-feedback";
-import { FileText, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { FileText, ChevronDown, ChevronRight } from "lucide-react";
 import { formatDateTime } from "@/lib/date";
 import { useNotes } from "../../../hooks/useNotes";
 import ViewNoteModal from "../../modals/message/view-note-modal";
@@ -8,6 +8,7 @@ import { useActiveChat } from "../../../hooks/useChatQueries";
 import { NoteResponse } from "../../../types/chat.types";
 import SeeAllButton from "../see-all-button";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 
 interface NotesSectionProps {
@@ -52,9 +53,9 @@ export default function NotesSection({
         <div className="px-4 pb-4">
           {isError && notes.length > 0 && <QueryFeedback label="notes" error retrying={retrying} onRetry={() => retry()} />}
           {isError && notes.length === 0 ? <QueryFeedback label="notes" error retrying={retrying} onRetry={() => retry()} /> : loading ? (
-            <div className="flex justify-center py-4">
-              <Loader2 size={16} className="text-muted-foreground animate-spin" />
-            </div>
+            <div role="status" className="flex justify-center py-4">
+              <Spinner />
+            <span className="sr-only">Loading…</span></div>
           ) : notes.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-2">
               No notes yet

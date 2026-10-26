@@ -23,6 +23,7 @@ import { logApiError } from "@/lib/interceptors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AnchoredPopover } from "@/components/ui/anchored-popup";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface SearchMessagesSectionProps {
@@ -231,9 +232,7 @@ export default function SearchMessagesSection({
       {/* Results */}
       <div className="flex-1 overflow-y-auto p-2">
         {loading ? (
-          <div className="p-4 text-center text-sm text-muted-foreground">
-            Searching...
-          </div>
+          <LoadingState label="Searching..." layout="centered" className="p-4 text-center text-sm text-muted-foreground" />
         ) : results.length > 0 ? (
           <div className="flex flex-col gap-1">
             {results.map((msg: any) => (

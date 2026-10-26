@@ -18,6 +18,7 @@ import { recordingErrorMessage } from "../../utils/recording-errors";
 import type { MeetingRecording } from "../../types/meeting-recording.types";
 import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
 import { Checkbox } from "@/components/ui/checkbox";
+import { LoadingState } from "@/components/ui/loading-state";
 
 
 export function MeetingRecordingShareDialog({
@@ -31,6 +32,7 @@ export function MeetingRecordingShareDialog({
   const client = useQueryClient();
   const [search, setSearch] = useState("");
   const [canDownload, setCanDownload] = useState(false);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const users = useAttendeeSearch(search);
   const key = ["meeting-recordings", userId, "permissions", recording.id];
   const permissions = useQuery({
@@ -47,6 +49,10 @@ export function MeetingRecordingShareDialog({
     },
     onError: (error) => toast.error(recordingErrorMessage(error)),
   });
+  const runAction = (key: string, operation: () => Promise<unknown>) => {
+    setPendingAction(key);
+    action.mutate(operation, { onSettled: () => setPendingAction(null) });
+  };
 
   return (
     <Dialog
@@ -73,11 +79,12 @@ export function MeetingRecordingShareDialog({
           Allow download when granting access
         </label>
         <MeetingButton
+          loading={action.isPending && pendingAction === "participants"}
           className="mt-4"
           tone="secondary"
           disabled={action.isPending || recording.status !== "COMPLETED"}
           onClick={() =>
-            action.mutate(() =>
+            runAction("participants", () =>
               recordingApi.shareParticipants(recording.id, canDownload),
             )
           }
@@ -94,7 +101,7 @@ export function MeetingRecordingShareDialog({
           />
         </label>
         {users.isFetching && (
-          <p className="mt-2 text-sm text-muted-foreground">Searching…</p>
+          <LoadingState label="Searching…" className="mt-2 text-sm text-muted-foreground" />
         )}
         {users.isError && (
           <p role="alert" className="mt-2 text-sm text-destructive-content">
@@ -113,9 +120,10 @@ export function MeetingRecordingShareDialog({
               </span>
               <MeetingButton
                 tone="outline"
+                loading={action.isPending && pendingAction === `grant:${user.id}`}
                 disabled={action.isPending}
                 onClick={() =>
-                  action.mutate(() =>
+                  runAction(`grant:${user.id}`, () =>
                     recordingApi.share(recording.id, user.id, canDownload),
                   )
                 }
@@ -128,7 +136,7 @@ export function MeetingRecordingShareDialog({
         {permissions.isError ? (
           <p role="alert">Could not load permissions.</p>
         ) : permissions.isLoading ? (
-          <p>Loading…</p>
+          <LoadingState label="Loading…" />
         ) : !permissions.data?.length ? (
           <p className="mt-2 text-sm text-muted-foreground">
             Only you can access this recording.
@@ -147,9 +155,10 @@ export function MeetingRecordingShareDialog({
               <div className="flex gap-2">
                 <MeetingButton
                   tone="outline"
+                  loading={action.isPending && pendingAction === `download:${permission.userId}`}
                   disabled={action.isPending}
                   onClick={() =>
-                    action.mutate(() =>
+                    runAction(`download:${permission.userId}`, () =>
                       recordingApi.share(
                         recording.id,
                         permission.userId,
@@ -164,9 +173,10 @@ export function MeetingRecordingShareDialog({
                 </MeetingButton>
                 <MeetingButton
                   tone="danger"
+                  loading={action.isPending && pendingAction === `revoke:${permission.userId}`}
                   disabled={action.isPending}
                   onClick={() =>
-                    action.mutate(() =>
+                    runAction(`revoke:${permission.userId}`, () =>
                       recordingApi.revoke(recording.id, permission.userId),
                     )
                   }

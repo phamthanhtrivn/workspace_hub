@@ -1,4 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { mergeChatMessageUpdate, type ChatMessageUpdate } from '@/features/chat/utils/message-update-cache';
 import {
   ChatContextType,
   ChatEntity,
@@ -121,6 +122,11 @@ const chatSlice = createSlice({
     setHighlightMessageId: (state, action: PayloadAction<string | null>) => {
       state.highlightMessageId = action.payload;
     },
+    patchActiveThreadRootMessage: (state, action: PayloadAction<ChatMessageUpdate>) => {
+      if (state.activeThreadRootMessage?.id === action.payload.id) {
+        state.activeThreadRootMessage = mergeChatMessageUpdate(state.activeThreadRootMessage, action.payload);
+      }
+    },
     setActiveThreadRootMessage: (
       state,
       action: PayloadAction<
@@ -198,6 +204,7 @@ export const {
   setSelectedProfileUserId,
   setHighlightMessageId,
   setActiveThreadRootMessage,
+  patchActiveThreadRootMessage,
   setActiveSpaceId,
   updateMuteStatus,
   updatePinStatus,

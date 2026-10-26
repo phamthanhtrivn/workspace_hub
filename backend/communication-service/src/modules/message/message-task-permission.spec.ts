@@ -1,13 +1,13 @@
-import { MessageType, SpaceRole } from '@prisma/client';
+import { ChannelVisibility, MessageType, SpaceRole } from '@prisma/client';
 import { MessageService } from './message.service';
 
 describe('MessageService task card permission', () => {
-  function createService(role: SpaceRole, createdBy = 'owner-1') {
+  function createService(role: SpaceRole, createdBy = 'owner-1', visibility: ChannelVisibility = ChannelVisibility.PUBLIC, ownerId = 'owner-1') {
     const tx = {
       channelMember: {
         findUnique: jest.fn().mockResolvedValue({
           channel: {
-            spaceId: 'space-1',
+            spaceId: 'space-1', visibility, ownerId,
             space: { createdBy },
             setting: {
               allowSendMessage: true,
@@ -57,4 +57,11 @@ describe('MessageService task card permission', () => {
       'channel-1', 'owner-1', '{"type":"TASK"}', MessageType.TEXT,
     )).resolves.toEqual({ id: 'message-1' });
   });
+  it('uses the private channel owner rather than space role to bypass channel settings', async () => {
+    const admin = createService(SpaceRole.ADMIN, 'space-owner', ChannelVisibility.PRIVATE, 'channel-owner');
+    await expect(admin.service.createMessage('channel-1', 'space-admin', '{"type":"TASK"}', MessageType.TEXT)).rejects.toThrow('Task creation is disabled in this channel');
+    const owner = createService(SpaceRole.MEMBER, 'space-owner', ChannelVisibility.PRIVATE, 'channel-owner');
+    await expect(owner.service.createMessage('channel-1', 'channel-owner', '{"type":"TASK"}', MessageType.TEXT)).resolves.toEqual({ id: 'message-1' });
+  });
+
 });

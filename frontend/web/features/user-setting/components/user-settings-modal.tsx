@@ -117,7 +117,7 @@ function SettingsSession({ isOpen, onClose, initialTab = UserSettingTab.PROFILE 
             if (destination === "close") drafts.current.forEach(draft => draft.discard()); else drafts.current.get(UserSettingTab.PASSWORD)?.discard();
             const next = destination; setDestination(null); if (next !== null) navigate(next);
           }}>Discard</Button>
-          {!passwordOnly && <Button type="button" disabled={saving} onClick={() => void saveAndClose()}>{saving ? "Saving…" : "Save changes"}</Button>}
+          {!passwordOnly && <Button loading={saving} type="button" disabled={saving} onClick={() => void saveAndClose()}>{saving ? "Saving…" : "Save changes"}</Button>}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

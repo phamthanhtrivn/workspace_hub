@@ -4,7 +4,6 @@ import {
   Calendar,
   CalendarClock,
   Copy,
-  Loader2,
   LogIn,
   Pencil,
   Play,
@@ -232,14 +231,13 @@ export function UpcomingMeetingCard({
           {canManage ? (
             <MeetingIconButton
               label="Cancel meeting"
-              icon={cancelMeeting.isPending ? Loader2 : Trash2}
+              icon={Trash2}
+              loading={cancelMeeting.isPending}
               tone="danger"
               controlSize="md"
               disabled={cancelMeeting.isPending}
               onClick={cancelScheduledMeeting}
-              className={`h-9 w-9 rounded-control ${
-                cancelMeeting.isPending ? "[&_svg]:animate-spin" : ""
-              }`}
+              className="h-9 w-9 rounded-control"
             />
           ) : null}
         </div>
