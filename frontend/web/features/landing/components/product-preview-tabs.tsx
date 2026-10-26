@@ -38,7 +38,7 @@ export function ProductPreviewTabs({ panels }: { panels: ProductPreviewPanel[] }
         <h3 className="text-xl font-semibold tracking-tight sm:text-2xl">{panel.title}</h3><p className="mt-3 text-sm leading-6 text-muted-foreground">{panel.description}</p>
       </FadeIn>
       <SlideIn from={previewOrigin} preset={hasChangedTab ? "tab" : "preview"} className="overflow-hidden rounded-panel border border-border bg-card">
-        <div className="flex h-10 items-center justify-between gap-2 border-b border-border bg-muted/50 px-4 text-[10px] text-muted-foreground sm:px-5"><span className="flex gap-1.5" aria-hidden="true"><span className="size-2 rounded-full bg-border" /><span className="size-2 rounded-full bg-border" /><span className="size-2 rounded-full bg-border" /></span><span>WorkspaceHub / {panel.label}</span><span>Illustrative preview</span></div>
+        <div className="flex h-10 items-center justify-between gap-2 border-b border-border bg-muted/50 px-4 text-[10px] text-muted-foreground sm:px-5 sm:text-xs"><span className="flex gap-1.5" aria-hidden="true"><span className="size-2 rounded-full bg-border" /><span className="size-2 rounded-full bg-border" /><span className="size-2 rounded-full bg-border" /></span><span>WorkspaceHub / {panel.label}</span><span>Illustrative preview</span></div>
         {panel.content}
       </SlideIn>
     </TabsContent>)}
