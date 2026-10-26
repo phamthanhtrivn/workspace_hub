@@ -10,7 +10,9 @@
     "test:screen-share": "node --test scripts/screen-share.test.mjs",
     "test:captions": "node --test scripts/captions.test.mjs",
     "test:auth": "node --test scripts/auth-refresh.test.mjs",
-    "test:ai-answer": "node --test scripts/answer-content.test.mjs"
+    "test:ai-answer": "node --test scripts/answer-content.test.mjs",
+    "test:landing-motion": "node --test scripts/landing-motion.test.mjs",
+    "test:landing-preview": "node --test scripts/landing-preview.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -41,6 +43,7 @@
     "date-fns": "^4.4.0",
     "emoji-picker-react": "^4.19.1",
     "file-saver": "^2.0.5",
+    "framer-motion": "13.2.0",
     "livekit-client": "^2.22.1",
     "lucide-react": "^1.21.0",
     "luxon": "^3.7.2",
