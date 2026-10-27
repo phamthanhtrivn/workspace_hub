@@ -102,24 +102,6 @@ export async function processConversation(
             () => communication(id, "history", { token: claim.token }, signal),
             signal,
             authorize,
-            async (scope) => {
-              try {
-                return await communication(
-                  id,
-                  "tasks",
-                  { token: claim.token, scope },
-                  signal,
-                );
-              } catch (error) {
-                if (error instanceof CommunicationError && error.status >= 500)
-                  return {
-                    available: false,
-                    message:
-                      "Project Service is unavailable. Do not infer tasks from chat or treat this as an empty task list.",
-                  };
-                throw error;
-              }
-            },
           );
       signal.throwIfAborted();
       answer = { token: claim.token, content, failed: false };

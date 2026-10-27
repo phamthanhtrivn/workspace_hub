@@ -18,39 +18,8 @@ const { ChatOpenAI } = require("@langchain/openai");
 const { AIMessage } = require("@langchain/core/messages");
 const {
   conversationAnswer,
-  explicitTaskScope,
 } = require("../dist/modules/conversation-ai/conversation-agent");
 
-test("explicit personal task filters prefetch authorized data and use one model call", async t => {
-  for (const [question, scope] of [["Công việc của tôi hôm nay", "today"],
-    ["My overdue tasks", "overdue"], ["Liệt kê nhiệm vụ chưa hoàn thành của mình", "open"]]) {
-    let calls = 0, reads = 0;
-    t.mock.method(ChatOpenAI.prototype, "bindTools", (_tools, options) => ({
-      invoke: async messages => {
-        calls++; assert.equal(reads, 1); assert.equal(options.tool_choice, "none");
-        assert.ok(messages.some(m => m.getType() === "tool" && m.content.includes("actual task")));
-        return new AIMessage("Task answer");
-      },
-    }));
-    await conversationAnswer(question, async () => assert.fail("must not read history"),
-      new AbortController().signal, async () => {}, async filter => {
-        reads++; assert.equal(filter, scope); return { tasks: [{ title: "actual task" }] };
-      });
-    assert.equal(calls, 1); assert.equal(reads, 1);
-  }
-});
-
-test("negations, other users and mixed task requests are not prefetched", () => {
-  for (const question of ["Do not list my overdue tasks", "My overdue tasks and decisions",
-    "Công việc của An hôm nay", "Đừng liệt kê công việc của tôi hôm nay", "My tasks today or overdue"])
-    assert.equal(explicitTaskScope(question), undefined);
-});
-
-test("denied task prefetch cannot call the provider", async t => {
-  t.mock.method(ChatOpenAI.prototype, "bindTools", () => assert.fail("must not call provider"));
-  await assert.rejects(conversationAnswer("My tasks today", async () => [], new AbortController().signal,
-    async () => { throw Error("revoked"); }, async () => assert.fail("must not read tasks")), /revoked/);
-});
 after(() => require("../dist/infrastructure/database/database").db.end());
 test("general questions do not read history", async (t) => {
   t.mock.method(ChatOpenAI.prototype, "bindTools", () => ({
@@ -529,141 +498,20 @@ test("clock context is refreshed for each request rather than cached at startup"
   assert.ok(contexts[1].includes("Sunday, 25/10/2026, 00:01:00"));
 });
 
-for (const scope of ["today", "overdue", "open"]) {
-  test(`personal task tool reads real assignments with ${scope} filter`, async (t) => {
-    let calls = 0,
-      reads = 0;
-    t.mock.method(ChatOpenAI.prototype, "bindTools", (tools) => ({
-      invoke: async (messages) => {
-        if (!calls++) {
-          assert.ok(tools.some((t) => t.name === "get_my_tasks"));
-          return new AIMessage({
-            content: "",
-            tool_calls: [
-              {
-                name: "get_my_tasks",
-                args: { scope },
-                id: "my-tasks",
-                type: "tool_call",
-              },
-            ],
-          });
-        }
-        assert.ok(!tools.some((t) => t.name === "get_my_tasks"));
-        assert.ok(
-          messages.some(
-            (m) =>
-              m.getType() === "tool" &&
-              m.content.includes("Real assigned task"),
-          ),
-        );
-        return new AIMessage("Your assigned task");
-      },
-    }));
-    const answer = await conversationAnswer(
-      "What are my actual project tasks?",
-      async () => assert.fail("must not infer real assignments from chat"),
-      new AbortController().signal,
-      async () => {},
-      async (filter) => {
-        reads++;
-        assert.equal(filter, scope);
-        return { available: true, tasks: [{ title: "Real assigned task" }] };
-      },
-    );
-    assert.equal(answer, "Your assigned task");
-    assert.equal(reads, 1);
-  });
-}
-
-test("task tool rejects model-selected user IDs before accessing Project", async (t) => {
-  t.mock.method(ChatOpenAI.prototype, "bindTools", () => ({
-    invoke: async () =>
-      new AIMessage({
-        content: "",
-        tool_calls: [
-          {
-            name: "get_my_tasks",
-            args: { scope: "today", userId: "someone-else" },
-            id: "bad",
-            type: "tool_call",
-          },
-        ],
-      }),
-  }));
-  await assert.rejects(
-    conversationAnswer(
-      "My tasks",
-      async () => [],
-      new AbortController().signal,
-      async () => {},
-      async () => assert.fail("must not access Project"),
-    ),
-  );
-});
-
-test("loading chat history still permits a separate real task lookup", async (t) => {
-  let turn = 0,
-    histories = 0,
-    tasks = 0;
-  t.mock.method(ChatOpenAI.prototype, "bindTools", (available) => ({
-    invoke: async () => {
-      const name =
-        turn++ === 0
-          ? "get_recent_messages"
-          : turn === 2
-            ? "get_my_tasks"
-            : undefined;
-      if (!name) return new AIMessage("Both sources used");
-      assert.ok(available.some((t) => t.name === name));
-      return new AIMessage({
-        content: "",
-        tool_calls: [
-          {
-            name,
-            args: name === "get_my_tasks" ? { scope: "today" } : {},
-            id: "call-" + turn,
-            type: "tool_call",
-          },
-        ],
-      });
+test("assigned task questions have no Project lookup tool", async (t) => {
+  t.mock.method(ChatOpenAI.prototype, "bindTools", (tools) => ({
+    invoke: async (messages) => {
+      assert.deepEqual(tools.map((tool) => tool.name), ["get_recent_messages"]);
+      assert.match(messages[0].content, /task lookup in chat is unavailable/);
+      return new AIMessage("Task lookup in chat is unavailable.");
     },
   }));
   assert.equal(
     await conversationAnswer(
-      "Summarize the decisions and list my actual project tasks",
-      async () => {
-        histories++;
-        return [{ content: "A decision" }];
-      },
+      "My tasks today",
+      async () => assert.fail("must not infer assignments from chat"),
       new AbortController().signal,
-      async () => {},
-      async () => {
-        tasks++;
-        return { available: true, tasks: [] };
-      },
     ),
-    "Both sources used",
-  );
-  assert.equal(histories, 1);
-  assert.equal(tasks, 1);
-});
-
-test("an explicit conversation summary cannot fetch unrelated personal tasks", async (t) => {
-  t.mock.method(ChatOpenAI.prototype, "bindTools", (_tools, options) => ({
-    invoke: async () => {
-      assert.equal(options.tool_choice, "none");
-      return new AIMessage("Summary");
-    },
-  }));
-  assert.equal(
-    await conversationAnswer(
-      "summarize conversation",
-      async () => [{ content: "Meeting" }],
-      new AbortController().signal,
-      async () => {},
-      async () => assert.fail("summary must stay scoped to chat"),
-    ),
-    "Summary",
+    "Task lookup in chat is unavailable.",
   );
 });

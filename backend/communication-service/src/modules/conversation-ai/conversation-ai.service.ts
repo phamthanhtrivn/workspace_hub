@@ -416,68 +416,6 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
     await this.authorized(r);
     return { name: media.name, sizeBytes: media.sizeBytes, downloadUrl };
   }
-  async tasks(id: string, token: string, scope: 'today' | 'overdue' | 'open') {
-    const request = await this.request(id, token);
-    if (request.status !== 'RUNNING') throw new ForbiddenException();
-    await this.authorized(request);
-    const key = process.env.AI_PROJECT_SERVICE_KEY || '';
-    if (key.length < 32)
-      throw new ServiceUnavailableException(
-        'Project task access is not configured',
-      );
-    const channel =
-      request.chat_type === 'CHANNEL'
-        ? await this.prisma.channel.findUnique({
-            where: { id: request.chat_id },
-            select: { space: { select: { projectId: true } } },
-          })
-        : null;
-    const projectId = channel?.space.projectId ?? undefined;
-    let data: Record<string, unknown>;
-    try {
-      const response = await fetch(
-        `${(process.env.PROJECT_SERVICE_URL || 'http://localhost:8082').replace(/\/$/, '')}/internal/conversation-tasks`,
-        {
-          method: 'POST',
-          redirect: 'error',
-          signal: AbortSignal.timeout(8000),
-          headers: {
-            'content-type': 'application/json',
-            'x-internal-service-key': key,
-          },
-          body: JSON.stringify({
-            userId: request.actor_id,
-            scope,
-            ...(projectId ? { projectId } : {}),
-          }),
-        },
-      );
-      if (!response.ok) {
-        await response.body?.cancel();
-        throw new Error('Project task query failed');
-      }
-      const result = (await response.json()) as {
-        data?: Record<string, unknown>;
-      };
-      if (
-        !result.data ||
-        result.data.available !== true ||
-        !Array.isArray(result.data.tasks) ||
-        result.data.tasks.length > 30 ||
-        JSON.stringify(result.data).length > 24000
-      )
-        throw new Error('Invalid Project task result');
-      data = result.data;
-    } catch {
-      throw new ServiceUnavailableException(
-        'Project Service task data is unavailable',
-      );
-    }
-    // Never return task data if chat permission or the trigger changed while querying.
-    await this.validate(id, token);
-    return data;
-  }
-
   async history(id: string, token: string) {
     const r = await this.request(id, token);
     if (r.status !== 'RUNNING') throw new ForbiddenException();

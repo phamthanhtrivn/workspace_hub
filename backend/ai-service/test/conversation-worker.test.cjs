@@ -219,41 +219,24 @@ test("failure to save a claim cannot spend model quota", async (t) => {
   assert.equal(calls, 0);
 });
 
-test("Project outages are explicit task-tool data, without exposing another identity", async (t) => {
+test("task questions do not expose a task reader or call a task endpoint", async (t) => {
   let saved;
-  t.mock.method(global, "fetch", async (url, options) => {
+  t.mock.method(global, "fetch", async (url) => {
+    assert.ok(!url.endsWith("/tasks"));
     if (url.endsWith("/claim"))
-      return Response.json({
-        data: { question: "my tasks", token: "fixed-claim" },
-      });
-    if (url.endsWith("/tasks")) {
-      assert.deepEqual(JSON.parse(options.body), {
-        token: "fixed-claim",
-        scope: "today",
-      });
-      return new Response(null, { status: 503 });
-    }
+      return Response.json({ data: { question: "my tasks", token: "fixed-claim" } });
     return Response.json({ data: { id: "reply" } });
   });
-  t.mock.method(
-    agent,
-    "conversationAnswer",
-    async (_q, _history, _signal, _authorize, readTasks) => {
-      const result = await readTasks("today");
-      assert.equal(result.available, false);
-      assert.ok(!("tasks" in result));
-      return "Project Service is unavailable";
-    },
-  );
+  t.mock.method(agent, "conversationAnswer", async (...args) => {
+    assert.equal(args.length, 4);
+    return "Task lookup in chat is unavailable";
+  });
   await processConversation("request", {
-    save: async (answer) => {
-      saved = answer;
-    },
+    save: async (answer) => { saved = answer; },
   });
   assert.equal(saved.failed, false);
   assert.match(saved.content, /unavailable/);
 });
-
 
 test("attachment requests take the document path and reuse the same protected completion checkpoint", async t => {
   const summaries = require("../dist/modules/conversation-ai/attachment-summary");
