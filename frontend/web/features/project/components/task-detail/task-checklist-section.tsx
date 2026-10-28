@@ -113,7 +113,7 @@ export default function TaskChecklistSection({
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Add an item..."
-            className="h-8 min-w-0 flex-1 rounded-control border-input text-xs font-semibold focus-visible:border-primary"
+            className="h-8 min-w-0 flex-1 rounded-control border-input text-xs font-semibold"
           />
           <Button
             type="submit"

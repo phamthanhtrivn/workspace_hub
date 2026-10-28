@@ -86,7 +86,7 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
               ariaLabel={copy.startDate}
               value={getDateInputValue(startAt)}
               onChange={nextValue => onStartDateChange(nextValue)}
-              triggerClassName="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-foreground shadow-none outline-none focus-visible:ring-0"
+              triggerClassName="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-foreground shadow-none outline-none"
               allowClear
             />
           </label>
@@ -100,7 +100,7 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
               value={getDateInputValue(endAt)}
               min={getDateInputValue(startAt)}
               onChange={nextValue => onEndDateChange(nextValue)}
-              triggerClassName="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-foreground shadow-none outline-none focus-visible:ring-0"
+              triggerClassName="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-foreground shadow-none outline-none"
               allowClear
             />
           </label>

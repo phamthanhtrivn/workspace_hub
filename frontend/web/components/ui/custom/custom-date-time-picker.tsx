@@ -5,6 +5,7 @@ import { CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { FIELD_FOCUS_CLASS_NAMES, FIELD_FOCUS_OPEN_CLASS_NAME } from "../field-focus";
 import { CustomDatePicker } from "./custom-date-picker";
 import { CustomTimePicker } from "./custom-time-picker";
 import { isDateTimePickerValue } from "./date-time-picker.utils";
@@ -34,7 +35,7 @@ export function CustomDateTimePicker({ id, value, onChange, ariaLabel, min, max,
   const displayed = value ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)} ${value.slice(11, 16)}` : "Pick date & time";
   return <Popover open={open && !disabled} onOpenChange={(next) => { if (next) setDraft(value); setOpen(next); }}>
     <PopoverTrigger asChild><Button id={id} type="button" variant="outline" disabled={disabled} aria-label={ariaLabel} aria-invalid={invalid || undefined} aria-describedby={descriptionId}
-      className={cn("w-full min-w-0 justify-start font-normal tabular-nums aria-invalid:border-destructive-outline", className)}>
+      className={cn("w-full min-w-0 justify-start font-normal tabular-nums aria-invalid:border-destructive-outline", className, FIELD_FOCUS_CLASS_NAMES.self, FIELD_FOCUS_OPEN_CLASS_NAME)}>
       <CalendarClock aria-hidden className="size-4 shrink-0 text-muted-foreground" /><span className={cn("truncate", !value && "text-muted-foreground")}>{displayed}</span>
     </Button></PopoverTrigger>
     <PopoverContent align="start" className="w-72 max-w-[calc(100vw-1rem)] space-y-3 p-3" aria-label={ariaLabel}>

@@ -87,7 +87,7 @@ export function CalendarToolbar({
             value: view.value,
             label: view.label,
           }))}
-          triggerClassName="h-9 cursor-pointer rounded-lg border-input bg-card pl-3 pr-8 text-xs font-semibold text-foreground transition hover:border-input hover:bg-background focus:border-primary focus:ring-2 focus:ring-ring"
+          triggerClassName="h-9 cursor-pointer rounded-lg border-input bg-card pl-3 pr-8 text-xs font-semibold text-foreground transition hover:border-input hover:bg-background"
           contentClassName="rounded-lg border-border"
         />
       </div>

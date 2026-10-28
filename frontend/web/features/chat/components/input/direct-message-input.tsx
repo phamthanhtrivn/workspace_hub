@@ -1,6 +1,7 @@
 "use client";
 
 import { IconButton } from "@/components/ui/icon-button";
+import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 import { useId as useControlledPopupId } from "react";
 
 import React, {
@@ -618,7 +619,7 @@ const DirectMessageInput = React.memo(
             )}
 
             <div
-              className={`@container/composer flex flex-wrap bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative items-center ${
+              className={`${FIELD_FOCUS_CONTAINER_CLASS_NAME} @container/composer flex flex-wrap bg-background border border-input transition-all relative items-center ${
                 compact ? "rounded-panel p-1.5 gap-1.5" : "rounded-panel p-2 gap-2"
               }`}
             >
@@ -675,7 +676,7 @@ const DirectMessageInput = React.memo(
               </div>
 
               <MessageComposerPreview message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} compact={compact} open={showPreview} onOpenChange={setShowPreview} className="flex-1 @max-[480px]/composer:order-first @max-[480px]/composer:basis-full">
-              <Textarea unstyled aria-label="Direct message"
+              <Textarea unstyled focusMode="container" aria-label="Direct message"
                 ref={textareaRef}
                 value={
                   message +
@@ -687,7 +688,7 @@ const DirectMessageInput = React.memo(
                 onPaste={handlePaste}
                 placeholder={resolvedPlaceholder}
                 disabled={isUploading}
-                className={`flex-1 min-w-0 max-h-[min(15rem,30dvh)] bg-transparent resize-none outline-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto [@media(max-height:30rem)]:max-h-12 ${
+                className={`flex-1 min-w-0 max-h-[min(15rem,30dvh)] bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto [@media(max-height:30rem)]:max-h-12 ${
                   compact
                     ? "px-1 py-1 text-xs min-h-[24px]"
                     : "px-2 py-2 text-sm min-h-[36px]"

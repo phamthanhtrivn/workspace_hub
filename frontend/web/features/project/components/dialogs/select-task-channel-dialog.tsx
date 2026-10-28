@@ -155,7 +155,7 @@ export default function SelectTaskChannelDialog({
                 value={selectedChannelId}
                 onValueChange={(val) => setSelectedChannelId(val)}
               >
-                <SelectTrigger className="h-11 w-full rounded-control border-input bg-background px-3.5 text-xs font-semibold text-foreground focus:ring-1 focus:ring-ring focus:border-info-outline cursor-pointer transition-colors">
+                <SelectTrigger className="h-11 w-full rounded-control border-input bg-background px-3.5 text-xs font-semibold text-foreground cursor-pointer transition-colors">
                   <SelectValue placeholder="Select a channel..." />
                 </SelectTrigger>
                 <SelectContent className="rounded-panel border-border bg-card">

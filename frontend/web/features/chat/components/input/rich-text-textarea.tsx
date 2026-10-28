@@ -19,6 +19,7 @@ import {
   useTextFormatting,
 } from "../../hooks/input/useTextFormatting";
 import { Textarea } from "@/components/ui/textarea";
+import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 
 
 interface RichTextTextareaProps {
@@ -31,7 +32,6 @@ interface RichTextTextareaProps {
   setValue: React.Dispatch<React.SetStateAction<string>>;
   placeholder?: string;
   minHeightClassName?: string;
-  focusColorClassName?: string;
 }
 
 const FORMAT_BUTTONS: Array<{
@@ -60,7 +60,6 @@ export default function RichTextTextarea({
   setValue,
   placeholder,
   minHeightClassName = "min-h-[160px]",
-  focusColorClassName = "focus-within:border-warning-outline focus-within:ring-warning-outline/20",
 }: RichTextTextareaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { applyFormatting, handleListKeyDown } = useTextFormatting({
@@ -71,7 +70,8 @@ export default function RichTextTextarea({
 
   return (
     <div
-      className={`overflow-hidden rounded-panel border border-input bg-card transition-all focus-within:ring-4 ${focusColorClassName}`}
+      data-invalid={invalid === true || invalid === "true" || undefined}
+      className={`${FIELD_FOCUS_CONTAINER_CLASS_NAME} overflow-hidden rounded-panel border border-input bg-card transition-all`}
     >
       <div className="flex flex-wrap items-center gap-0.5 border-b border-border bg-background px-2 py-1.5">
         {FORMAT_BUTTONS.map(({ type, label, icon: Icon }, index) => (
@@ -90,6 +90,7 @@ export default function RichTextTextarea({
         ))}
       </div>
       <Textarea unstyled
+        focusMode="container"
         id={id}
         aria-label={labelledBy ? undefined : label}
         aria-labelledby={labelledBy}

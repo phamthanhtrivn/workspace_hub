@@ -6,6 +6,7 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { POPUP_LAYER_CLASS } from "./popup-layer";
+import { FIELD_FOCUS_CLASS_NAMES, FIELD_FOCUS_OPEN_CLASS_NAME, type FieldFocusMode } from "./field-focus";
 
 function Select({
   ...props
@@ -28,14 +29,17 @@ function SelectValue({
 function SelectTrigger({
   className,
   children,
+  focusMode = "self",
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Trigger>) {
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> & { focusMode?: FieldFocusMode }) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       className={cn(
-        "flex h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-control border border-input bg-background px-3 py-2 text-sm font-medium text-foreground outline-none transition-colors duration-150 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:flex-1 [&_[data-slot=select-value]]:text-left [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+        "flex h-9 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-control border border-input bg-background px-3 py-2 text-sm font-medium text-foreground outline-none transition-colors duration-150 hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:flex-1 [&_[data-slot=select-value]]:text-left [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
         className,
+        FIELD_FOCUS_CLASS_NAMES[focusMode],
+        focusMode === "self" && FIELD_FOCUS_OPEN_CLASS_NAME,
       )}
       {...props}
     >

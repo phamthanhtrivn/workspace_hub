@@ -125,7 +125,7 @@ export function ChatConfirmDialog({
                     onConfirmationValueChange?.(event.target.value)
                   }
                   placeholder={confirmationPlaceholder ?? confirmationText}
-                  className="h-10 w-full rounded-control border border-input bg-card px-3 text-sm font-semibold text-foreground outline-none transition focus:border-info-outline focus:ring-4 focus:ring-ring disabled:opacity-50"
+                  className="h-10 w-full rounded-control border border-input bg-card px-3 text-sm font-semibold text-foreground outline-none transition disabled:opacity-50"
                 />
               </div>
             ) : null}

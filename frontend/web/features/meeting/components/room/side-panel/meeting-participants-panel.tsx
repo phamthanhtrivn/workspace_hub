@@ -62,7 +62,7 @@ export function MeetingParticipantsPanel({
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search by name or email..."
-          containerClassName="border-border bg-accent focus-within:border-border focus-within:ring-border/10"
+          containerClassName="border-border bg-accent"
           className="text-muted-foreground placeholder:text-muted-foreground"
         />
 

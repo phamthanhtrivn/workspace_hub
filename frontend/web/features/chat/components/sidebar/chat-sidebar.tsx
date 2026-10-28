@@ -852,7 +852,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search channels, conversations..."
-            className="w-full pl-9 pr-4 py-2 text-xs bg-muted border border-transparent focus:border-info-outline/20 focus:ring-4 focus:ring-ring rounded-control outline-none transition-all duration-200"
+            className="w-full pl-9 pr-4 py-2 text-xs bg-muted border border-transparent rounded-control outline-none transition-all duration-200"
           />
         </div>
       </div>

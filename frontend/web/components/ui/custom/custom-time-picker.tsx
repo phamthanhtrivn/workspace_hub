@@ -5,6 +5,7 @@ import { Clock3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { FIELD_FOCUS_CLASS_NAMES, FIELD_FOCUS_OPEN_CLASS_NAME } from "../field-focus";
 import { CustomSelect } from "./custom-select";
 import { parseTimePickerValue } from "./date-time-picker.utils";
 
@@ -29,7 +30,7 @@ export function CustomTimePicker({ value, onChange, ariaLabel, descriptionId, in
     <Popover open={open && !disabled} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button type="button" variant="outline" disabled={disabled} aria-label={ariaLabel} aria-describedby={descriptionId} aria-invalid={invalid || undefined}
-          className={cn("h-9 min-w-0 justify-start gap-2 border-input px-3 font-normal tabular-nums aria-invalid:border-destructive-outline motion-reduce:transition-none", className)}>
+          className={cn("h-9 min-w-0 justify-start gap-2 border-input px-3 font-normal tabular-nums aria-invalid:border-destructive-outline motion-reduce:transition-none", className, FIELD_FOCUS_CLASS_NAMES.self, FIELD_FOCUS_OPEN_CLASS_NAME)}>
           <Clock3 aria-hidden className="size-4 text-muted-foreground" />
           <span className={cn(!hour && "text-muted-foreground")}>{hour ? `${hour}:${minute}` : "Add time"}</span>
         </Button>

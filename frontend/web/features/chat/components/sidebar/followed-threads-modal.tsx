@@ -175,7 +175,7 @@ export default function FollowedThreadsModal({
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search followed threads..."
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border border-input focus:border-info-outline focus:ring-4 focus:ring-ring rounded-control outline-none transition"
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-card border border-input rounded-control outline-none transition"
             />
           </div>
         </div>

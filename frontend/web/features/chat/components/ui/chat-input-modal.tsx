@@ -103,8 +103,8 @@ export function ChatInputModal({
               placeholder={placeholder}
               disabled={isLoading}
               className={cn(
-                "h-11 rounded-control border border-input bg-background px-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden",
-                error && "border-destructive-outline focus-visible:ring-ring"
+                "h-11 rounded-control border border-input bg-background px-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:bg-card",
+                error && "border-destructive-outline"
               )}
             />
             {error ? (

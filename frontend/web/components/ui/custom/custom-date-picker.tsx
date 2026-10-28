@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { FIELD_FOCUS_CLASS_NAMES, FIELD_FOCUS_OPEN_CLASS_NAME } from "../field-focus";
 import { formatDatePickerValue, parseDatePickerValue } from "./date-time-picker.utils";
 
 const PAST_NAVIGATION_YEARS = 120;
@@ -51,7 +52,7 @@ export function CustomDatePicker({ id, ref, value, onChange, ariaLabel, descript
           <Button id={id} ref={(node) => { triggerRef.current = node; if (typeof ref === "function") ref(node); else if (ref) ref.current = node; }} onBlur={onBlur} type="button" variant="outline" disabled={disabled}
             aria-label={ariaLabel} aria-invalid={invalid || missingRequired || outsideRange || undefined}
             aria-describedby={[descriptionId, missingRequired ? requiredErrorId : undefined].filter(Boolean).join(" ") || undefined}
-            className={cn("h-9 w-full min-w-0 justify-start gap-2 border-input px-3 font-normal aria-invalid:border-destructive-outline motion-reduce:transition-none", triggerClassName)}>
+            className={cn("h-9 w-full min-w-0 justify-start gap-2 border-input px-3 font-normal aria-invalid:border-destructive-outline motion-reduce:transition-none", triggerClassName, FIELD_FOCUS_CLASS_NAMES.self, FIELD_FOCUS_OPEN_CLASS_NAME)}>
             <CalendarDays aria-hidden className="size-4 text-muted-foreground" />
             <span className={cn("truncate", !selected && "text-muted-foreground")}>{selected ? format(selected, "dd/MM/yyyy") : "Pick a date"}</span>
           </Button>

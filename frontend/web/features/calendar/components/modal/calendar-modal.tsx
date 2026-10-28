@@ -171,7 +171,7 @@ export function CalendarModal(props: CalendarModalProps) {
               disabled={props.pending}
               onChange={(event) => setName(event.target.value)}
               placeholder="Calendar name"
-              className="h-10 w-full rounded-control border border-input px-3.5 py-2 text-sm text-foreground shadow-none outline-none transition placeholder:text-muted-foreground focus-visible:border-info-outline focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+              className="h-10 w-full rounded-control border border-input px-3.5 py-2 text-sm text-foreground shadow-none outline-none transition placeholder:text-muted-foreground disabled:opacity-60"
             />
           </label>
 

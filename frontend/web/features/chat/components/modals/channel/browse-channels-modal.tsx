@@ -174,7 +174,7 @@ export default function BrowseChannelsModal({
               placeholder="Search channels by name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-card border border-input focus:border-info-outline focus:ring-4 focus:ring-ring rounded-control text-sm outline-none transition duration-150"
+              className="w-full pl-10 pr-4 py-2.5 bg-card border border-input rounded-control text-sm outline-none transition duration-150"
             />
           </div>
         </div>

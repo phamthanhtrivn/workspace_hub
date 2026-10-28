@@ -256,7 +256,7 @@ function TaskPrioritySelect({
         <SelectTrigger
           aria-label={`Change priority for ${issueKey}`}
           title={TASK_PRIORITY_LABELS[task.priority]}
-          className="grid h-6 w-6 place-items-center rounded-control border-0 bg-transparent p-0 text-muted-foreground shadow-none transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring [&>svg:last-child]:hidden"
+          className="grid h-6 w-6 place-items-center rounded-control border-0 bg-transparent p-0 text-muted-foreground shadow-none transition hover:bg-accent [&>svg:last-child]:hidden"
         >
           <SelectValue>
             <span className="grid h-5 w-5 place-items-center">

@@ -167,7 +167,7 @@ export function CustomRecurrenceModal({
                   interval: Number(event.target.value),
                 }))
               }
-              className="h-11 w-20 rounded-control border border-input px-3 text-sm font-semibold text-foreground shadow-none outline-none focus-visible:border-primary-soft focus-visible:ring-4 focus-visible:ring-ring"
+              className="h-11 w-20 rounded-control border border-input px-3 text-sm font-semibold text-foreground shadow-none outline-none"
             />
             <CustomSelect
               value={draft.frequency}

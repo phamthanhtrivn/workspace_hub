@@ -259,7 +259,7 @@ export default function TaskCommentsSection({
               }}
               placeholder="Write a comment..."
               aria-label="Write a comment..."
-              className="h-10 w-full rounded-control border-input bg-card py-2 pl-3 pr-10 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary"
+              className="h-10 w-full rounded-control border-input bg-card py-2 pl-3 pr-10 text-xs font-semibold text-foreground placeholder:text-muted-foreground"
             />
             <Button loading={createComment.isPending}
               type="button"

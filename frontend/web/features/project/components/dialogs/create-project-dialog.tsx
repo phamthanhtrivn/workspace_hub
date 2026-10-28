@@ -123,7 +123,7 @@ export default function CreateProjectDialog({
                 placeholder="Enter project name..."
                 autoFocus
                 required
-                className="mt-2 h-11 w-full rounded-control border-input bg-card px-3 text-sm font-semibold text-foreground placeholder:font-normal placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                className="mt-2 h-11 w-full rounded-control border-input bg-card px-3 text-sm font-semibold text-foreground placeholder:font-normal placeholder:text-muted-foreground"
               />
             </div>
 
@@ -141,7 +141,7 @@ export default function CreateProjectDialog({
                 maxLength={2000}
                 rows={3}
                 placeholder="Describe the project goals or scope..."
-                className="mt-2 min-h-24 resize-none rounded-control border-input bg-card text-sm text-foreground placeholder:font-normal placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                className="mt-2 min-h-24 resize-none rounded-control border-input bg-card text-sm text-foreground placeholder:font-normal placeholder:text-muted-foreground"
               />
             </div>
 
@@ -163,7 +163,7 @@ export default function CreateProjectDialog({
                     max={dueDate || undefined}
                     invalid={Boolean(dateErrors.startDate)}
                     descriptionId={dateErrors.startDate ? "project-start-date-error" : undefined}
-                    triggerClassName="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    triggerClassName="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground"
                     ariaLabel="Start date"
                     allowClear
                   />
@@ -188,7 +188,7 @@ export default function CreateProjectDialog({
                     min={startDate || undefined}
                     invalid={Boolean(dateErrors.dueDate)}
                     descriptionId={dateErrors.dueDate || !startDate ? "project-due-date-description" : undefined}
-                    triggerClassName="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    triggerClassName="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground"
                     ariaLabel="End date"
                     allowClear
                   />

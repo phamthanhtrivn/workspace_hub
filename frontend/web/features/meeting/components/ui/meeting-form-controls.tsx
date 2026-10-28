@@ -11,6 +11,7 @@ import {
   type CustomSelectOption,
 } from "@/components/ui/custom/custom-select";
 import { cn } from "@/lib/utils";
+import { FIELD_FOCUS_CONTAINER_CLASS_NAME, type FieldFocusMode } from "@/components/ui/field-focus";
 
 type MeetingControlSize = "sm" | "md" | "lg";
 type MeetingButtonTone =
@@ -60,35 +61,39 @@ export function MeetingInput({
   containerClassName,
   ...props
 }: MeetingInputProps) {
+  const isInvalid = invalid || props["aria-invalid"] === true || props["aria-invalid"] === "true";
   if (!Icon) {
     return (
       <Input
-        aria-invalid={invalid || undefined}
+        {...props}
+        aria-invalid={isInvalid || undefined}
         className={cn(
           "h-10",
           className,
         )}
-        {...props}
       />
     );
   }
 
   return (
     <span
+      data-invalid={isInvalid || undefined}
       className={cn(
-        "flex h-10 min-w-0 items-center gap-2 rounded-control border border-input bg-background px-3 transition-colors duration-150 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring",
-        invalid && "border-destructive-outline focus-within:ring-ring",
+        FIELD_FOCUS_CONTAINER_CLASS_NAME,
+        "flex h-10 min-w-0 items-center gap-2 rounded-control border border-input bg-background px-3 transition-colors duration-150",
+        isInvalid && "border-destructive-outline",
         containerClassName,
       )}
     >
       <Icon className="size-4 shrink-0 text-muted-foreground" />
       <Input
-        aria-invalid={invalid || undefined}
+        {...props}
+        aria-invalid={isInvalid || undefined}
         className={cn(
-          "h-auto min-w-0 flex-1 border-0 bg-transparent px-0 py-0 font-normal shadow-none focus-visible:ring-0",
+          "h-auto min-w-0 flex-1 border-0 bg-transparent px-0 py-0 font-normal shadow-none",
           className,
         )}
-        {...props}
+        focusMode="container"
       />
     </span>
   );
@@ -103,14 +108,15 @@ export function MeetingTextarea({
   className,
   ...props
 }: MeetingTextareaProps) {
+  const isInvalid = invalid || props["aria-invalid"] === true || props["aria-invalid"] === "true";
   return (
     <Textarea
-      aria-invalid={invalid || undefined}
+      {...props}
+      aria-invalid={isInvalid || undefined}
       className={cn(
         "min-h-24 font-normal",
         className,
       )}
-      {...props}
     />
   );
 }
@@ -127,6 +133,8 @@ interface MeetingSelectProps<TValue extends string = string> {
   className?: string;
   triggerClassName?: string;
   contentClassName?: string;
+  focusMode?: FieldFocusMode;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function MeetingSelect<TValue extends string = string>({

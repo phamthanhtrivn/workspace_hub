@@ -144,7 +144,7 @@ export default function InviteMemberDialog({
                   }
                 }}
                 placeholder="Type at least 2 characters to search..."
-                className="w-full rounded-control border-input py-2.5 pl-9 pr-9 text-xs font-semibold placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-ring"
+                className="w-full rounded-control border-input py-2.5 pl-9 pr-9 text-xs font-semibold placeholder:text-muted-foreground"
                 autoComplete="off"
               />
               {query && (

@@ -55,7 +55,7 @@ export function MembersTab({
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder="Search members..."
-          className="w-full rounded-control border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-info-outline focus:bg-card"
+          className="w-full rounded-control border border-input bg-background py-2 pl-9 pr-3 text-sm outline-none focus:bg-card"
         />
       </div>
 

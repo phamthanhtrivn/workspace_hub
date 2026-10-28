@@ -137,7 +137,7 @@ export default function SearchMessagesSection({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by content or file name..."
-              className="w-full pl-9 pr-3 py-2 text-sm bg-muted border-transparent rounded-control focus:bg-card focus:border-info-outline focus:ring-1 focus:ring-ring outline-none transition"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-muted border-transparent rounded-control focus:bg-card outline-none transition"
             />
           </form>
         </div>
@@ -160,7 +160,7 @@ export default function SearchMessagesSection({
                   value={senderSearch}
                   onChange={(e) => setSenderSearch(e.target.value)}
                   placeholder="Search sender..."
-                  className="w-full p-1.5 text-sm bg-card border border-input rounded-control outline-none focus:border-info-outline focus:ring-1 focus:ring-ring transition"
+                  className="w-full p-1.5 text-sm bg-card border border-input rounded-control outline-none transition"
                 />
               </div>
               <div className="overflow-y-auto flex-1 p-1">

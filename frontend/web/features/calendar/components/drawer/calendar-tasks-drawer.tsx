@@ -176,7 +176,7 @@ export function CalendarTasksDrawer({
                       label: "Overdue",
                     },
                   ]}
-                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-input bg-card pl-2.5 pr-6 text-xs font-medium text-foreground transition hover:border-input hover:bg-background focus:border-info-outline focus:ring-2 focus:ring-ring"
+                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-input bg-card pl-2.5 pr-6 text-xs font-medium text-foreground transition hover:border-input hover:bg-background"
                   contentClassName="rounded-lg border-border"
                 />
               </div>
@@ -203,7 +203,7 @@ export function CalendarTasksDrawer({
                       label: "Completed",
                     },
                   ]}
-                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-input bg-card pl-2.5 pr-6 text-xs font-medium text-foreground transition hover:border-input hover:bg-background focus:border-info-outline focus:ring-2 focus:ring-ring"
+                  triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-input bg-card pl-2.5 pr-6 text-xs font-medium text-foreground transition hover:border-input hover:bg-background"
                   contentClassName="rounded-lg border-border"
                 />
               </div>

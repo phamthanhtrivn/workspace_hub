@@ -149,7 +149,7 @@ export default function ThreadsListView({
             ariaLabel="Filter by sender"
             value={senderId}
             onChange={nextValue => setSenderId(nextValue)}
-            triggerClassName="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info-outline focus:ring-1 focus:ring-ring cursor-pointer"
+            triggerClassName="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none cursor-pointer"
           >
             <option value="">
               All Senders
