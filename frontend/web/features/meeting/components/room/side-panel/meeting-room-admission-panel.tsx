@@ -73,7 +73,7 @@ export function MeetingRoomAdmissionPanel({
           setPage(1);
         }}
         placeholder="Search by name or email..."
-        containerClassName="border-input bg-accent focus-within:border-input focus-within:ring-ring"
+        containerClassName="border-input bg-accent"
         className="text-muted-foreground placeholder:text-muted-foreground"
       />
 

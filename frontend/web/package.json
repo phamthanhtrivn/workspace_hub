@@ -10,6 +10,7 @@
     "test:screen-share": "node --test scripts/screen-share.test.mjs",
     "test:captions": "node --test scripts/captions.test.mjs",
     "test:auth": "node --test scripts/auth-refresh.test.mjs",
+    "test:field-focus": "node --test scripts/field-focus.test.mjs",
     "test:ai-answer": "node --test scripts/answer-content.test.mjs",
     "typecheck": "tsc --noEmit --incremental false",
     "test:landing-motion": "node --test scripts/landing-motion.test.mjs",

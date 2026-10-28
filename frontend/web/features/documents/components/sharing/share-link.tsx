@@ -117,7 +117,7 @@ export function ShareModalLink({
                 onChange={nextValue =>
                   void handleLinkAccessChange(nextValue as LinkAccess)
                 }
-                triggerClassName="bg-transparent border border-input rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-semibold text-foreground outline-hidden focus:ring-1 focus:ring-ring transition-all cursor-pointer"
+                triggerClassName="bg-transparent border border-input rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-semibold text-foreground outline-hidden transition-all cursor-pointer"
               >
                 {Object.entries(LINK_ACCESS_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>

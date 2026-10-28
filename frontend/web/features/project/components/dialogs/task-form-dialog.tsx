@@ -156,7 +156,7 @@ export default function TaskFormDialog({
                   placeholder="What needs to be done?"
                   maxLength={200}
                   required
-                  className="h-11 w-full rounded-control border-input px-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                  className="h-11 w-full rounded-control border-input px-4 text-sm font-semibold text-foreground placeholder:text-muted-foreground"
                 />
                 <span className="mt-1 block text-xs text-muted-foreground">
                   A clear, concise summary of the task.
@@ -172,7 +172,7 @@ export default function TaskFormDialog({
                   onChange={(event) => setDescription(event.target.value)}
                   placeholder="Add a detailed description, acceptance criteria, or context..."
                   rows={5}
-                  className="w-full resize-y rounded-control border-input px-4 py-3 text-xs leading-6 text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                  className="w-full resize-y rounded-control border-input px-4 py-3 text-xs leading-6 text-foreground placeholder:text-muted-foreground"
                 />
               </label>
             </section>

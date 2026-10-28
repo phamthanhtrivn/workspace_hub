@@ -186,7 +186,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter user email..."
-                  className="w-full pl-11 pr-4 py-3 bg-card border border-input rounded-control focus:outline-none focus:border-info-outline focus:ring-4 focus:ring-ring transition-all text-sm font-medium text-foreground placeholder:text-muted-foreground"
+                  className="w-full pl-11 pr-4 py-3 bg-card border border-input rounded-control transition-all text-sm font-medium text-foreground placeholder:text-muted-foreground"
                 />
                 <Search
                   className="absolute left-3.5 top-3 text-muted-foreground group-focus-within:text-info-content transition-colors"

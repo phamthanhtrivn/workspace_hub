@@ -315,7 +315,7 @@ export default function ManageMembersModal({
               placeholder="Search members..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-card border border-input rounded-control text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-info-outline transition-all placeholder:text-muted-foreground"
+              className="w-full pl-11 pr-4 py-3 bg-card border border-input rounded-control text-sm transition-all placeholder:text-muted-foreground"
             />
           </div>
         </div>

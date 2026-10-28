@@ -31,7 +31,7 @@ export function DocumentsSearchInput({
       containerClassName={cn("relative flex-1 min-w-[200px]", className)}
       iconClassName="left-3.5"
       clearLabel="Clear document search"
-      className="h-10 rounded-control border border-input bg-background pl-10 pr-8 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden transition-all"
+      className="h-10 rounded-control border border-input bg-background pl-10 pr-8 text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:bg-card transition-all"
     />
   );
 }

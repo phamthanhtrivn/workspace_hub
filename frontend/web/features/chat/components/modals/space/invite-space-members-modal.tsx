@@ -186,7 +186,7 @@ export default function InviteSpaceMembersModal({
               placeholder="Enter user email to search..."
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 bg-background border border-transparent focus:border-info-outline focus:bg-card rounded-control text-sm outline-none transition"
+              className="w-full pl-9 pr-4 py-2.5 bg-background border border-transparent focus:bg-card rounded-control text-sm outline-none transition"
             />
           </div>
 

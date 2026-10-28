@@ -5,6 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { FIELD_FOCUS_GROUP_CLASS_NAME } from "@/components/ui/field-focus";
 
 
 interface PasswordInputProps {
@@ -33,7 +34,7 @@ const PasswordInput = React.memo(function PasswordInput({
       <label htmlFor={id} className="text-sm font-semibold text-foreground">
         {label}
       </label>
-      <div className="relative">
+      <div className={cn(FIELD_FOCUS_GROUP_CLASS_NAME, "relative")}>
         <Input
           id={id}
           autoComplete={autoComplete}
@@ -45,10 +46,10 @@ const PasswordInput = React.memo(function PasswordInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={cn(
-            "h-10 w-full rounded-control [@media(pointer:coarse)]:pr-16 border bg-card px-3 pr-10 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground focus-visible:ring-2",
+            "h-10 w-full rounded-control [@media(pointer:coarse)]:pr-16 border bg-card px-3 pr-10 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground",
             error
-              ? "border-destructive-outline focus-visible:ring-ring"
-              : "border-input focus-visible:border-primary focus-visible:ring-ring",
+              ? "border-destructive-outline"
+              : "border-input",
           )}
         />
         <Button variant="unstyled"

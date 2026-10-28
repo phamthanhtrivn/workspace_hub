@@ -208,7 +208,7 @@ export default function PinnedMessagesDetailView({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search pinned messages..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card focus:border-info-outline focus:ring-1 focus:ring-ring outline-none transition"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card outline-none transition"
           />
         </div>
 
@@ -222,7 +222,7 @@ export default function PinnedMessagesDetailView({
               ariaLabel="Filter by sender"
               value={senderId}
               onChange={nextValue => setSenderId(nextValue)}
-              triggerClassName="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none focus:border-info-outline focus:ring-1 focus:ring-ring cursor-pointer"
+              triggerClassName="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs text-foreground outline-none cursor-pointer"
             >
               <option value="">
                 All Senders

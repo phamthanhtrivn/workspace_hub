@@ -27,7 +27,7 @@ export function ChatSearchInput({
       placeholder={placeholder}
       aria-label={placeholder}
       containerClassName={cn("relative flex-1 min-w-[180px]", className)}
-      className="h-9 rounded-control border border-input bg-background pl-9 pr-8 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:border-primary focus:bg-card focus:outline-hidden transition-all"
+      className="h-9 rounded-control border border-input bg-background pl-9 pr-8 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus:bg-card transition-all"
     />
   );
 }

@@ -93,7 +93,7 @@ export function MeetingRecordingsView() {
         />
         <CustomSelect
           ariaLabel="Recording access filter"
-          triggerClassName="h-10 cursor-pointer rounded-control border border-input bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          triggerClassName="h-10 cursor-pointer rounded-control border border-input bg-card px-3 text-sm text-foreground"
           value={params.scope ?? "all"}
           onChange={nextValue =>
             setParams((current) => ({

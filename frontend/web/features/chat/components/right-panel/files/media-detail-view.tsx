@@ -276,7 +276,7 @@ export default function MediaDetailView({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search files by name..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card focus:border-info-outline focus:ring-1 focus:ring-ring outline-none transition"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-muted border border-transparent rounded-control focus:bg-card outline-none transition"
           />
         </div>
 
@@ -290,7 +290,7 @@ export default function MediaDetailView({
             onChange={nextValue =>
               setActiveFilter((nextValue || undefined) as FileFilter)
             }
-            triggerClassName="w-full cursor-pointer rounded-lg border border-input bg-card px-3 py-2 text-xs font-medium text-foreground outline-none transition focus:border-info-outline focus:ring-1 focus:ring-ring"
+            triggerClassName="w-full cursor-pointer rounded-lg border border-input bg-card px-3 py-2 text-xs font-medium text-foreground outline-none transition"
           >
             {FILE_FILTERS.map((filter) => (
               <option key={filter.label} value={filter.value || ""}>

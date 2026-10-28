@@ -1,6 +1,7 @@
 "use client";
 
 import { IconButton } from "@/components/ui/icon-button";
+import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
@@ -107,15 +108,20 @@ export function MeetingJoinLinkModal({
             Meeting link
           </label>
           <div
+            data-invalid={Boolean(error) || undefined}
             className={cn(
-              "mt-2 flex min-w-0 items-center gap-2 rounded-control border bg-card px-3 py-2.5 transition-colors duration-150 focus-within:ring-2",
+              FIELD_FOCUS_CONTAINER_CLASS_NAME,
+              "mt-2 flex min-w-0 items-center gap-2 rounded-control border bg-card px-3 py-2.5 transition-colors duration-150",
               error
-                ? "border-destructive-outline focus-within:ring-ring"
-                : "border-input focus-within:border-ring focus-within:ring-ring",
+                ? "border-destructive-outline"
+                : "border-input",
             )}
           >
             <LinkIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
             <MeetingInput
+              focusMode="container"
+              invalid={Boolean(error)}
+              aria-describedby={error ? "meeting-join-link-error" : undefined}
               id="meeting-join-link"
               ref={inputRef}
               type="text"
@@ -125,11 +131,11 @@ export function MeetingJoinLinkModal({
                 if (error) setError(null);
               }}
               placeholder="https://workspacehub.app/meetings/..."
-              className="h-auto min-w-0 flex-1 border-0 bg-transparent px-0 py-0 text-sm font-normal text-foreground shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0"
+              className="h-auto min-w-0 flex-1 border-0 bg-transparent px-0 py-0 text-sm font-normal text-foreground shadow-none outline-none placeholder:text-muted-foreground"
             />
           </div>
           {error ? (
-            <p className="mt-2 text-sm font-semibold text-destructive-content">{error}</p>
+            <p id="meeting-join-link-error" role="alert" className="mt-2 text-sm font-semibold text-destructive-content">{error}</p>
           ) : null}
 
           <div className="mt-5 flex justify-end gap-2">

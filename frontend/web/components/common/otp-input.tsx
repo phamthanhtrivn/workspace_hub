@@ -121,7 +121,6 @@ export const OtpInput = React.memo(function OtpInput({
           onFocus={() => setActiveInput(index)}
           className={cn(
             "min-w-0 w-12 h-14 text-center text-2xl font-semibold border-2 rounded-xl bg-transparent transition-all outline-none",
-            "focus:border-primary focus:ring-2 focus:ring-ring",
             activeInput === index
               ? "border-primary"
               : "border-input dark:border-input",

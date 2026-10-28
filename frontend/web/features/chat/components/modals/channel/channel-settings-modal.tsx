@@ -154,7 +154,7 @@ export default function ChannelSettingsModal({
                     value={channelName}
                     onChange={(e) => setChannelName(e.target.value)}
                     placeholder="Enter channel name"
-                    className="w-full px-4 py-2 bg-card border border-input rounded-control focus:outline-none focus:border-info-outline focus:ring-2 focus:ring-ring transition-all text-sm font-medium text-foreground"
+                    className="w-full px-4 py-2 bg-card border border-input rounded-control transition-all text-sm font-medium text-foreground"
                   />
                 </div>
               </div>

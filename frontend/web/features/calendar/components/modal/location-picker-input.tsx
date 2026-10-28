@@ -98,7 +98,7 @@ export function LocationPickerInput({
           }}
           className={
             className ||
-            "h-auto w-full rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground hover:border-input focus-visible:border-info-outline focus-visible:ring-2 focus-visible:ring-ring"
+            "h-auto w-full rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground hover:border-input"
           }
         />
         {loading && (

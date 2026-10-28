@@ -210,7 +210,7 @@ export function ShareToChatModal({
                 value={introMessage}
                 onChange={(e) => setIntroMessage(e.target.value)}
                 placeholder="Add a message..."
-                className="min-h-[80px] rounded-control border border-input bg-background p-3 text-sm font-semibold text-foreground focus:outline-hidden focus:border-info-outline"
+                className="min-h-[80px] rounded-control border border-input bg-background p-3 text-sm font-semibold text-foreground"
               />
             </div>
           </div>

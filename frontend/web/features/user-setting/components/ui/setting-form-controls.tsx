@@ -37,10 +37,10 @@ export const SettingInput = React.forwardRef<HTMLInputElement, SettingInputProps
           aria-describedby={[props["aria-describedby"], description ? `${inputId}-description` : undefined, error ? `${inputId}-error` : undefined].filter(Boolean).join(" ") || undefined}
           ref={ref}
           className={cn(
-            "h-10 rounded-control border bg-card px-3 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground focus-visible:ring-2",
+            "h-10 rounded-control border bg-card px-3 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground",
             error
-              ? "border-destructive-outline focus-visible:ring-ring"
-              : "border-input focus-visible:border-primary focus-visible:ring-ring",
+              ? "border-destructive-outline"
+              : "border-input",
             className,
           )}
         />
@@ -126,10 +126,10 @@ export const SettingTextarea = React.forwardRef<
         aria-invalid={Boolean(error) || undefined}
         aria-describedby={[props["aria-describedby"], description ? `${inputId}-description` : undefined, error ? `${inputId}-error` : undefined].filter(Boolean).join(" ") || undefined}
         className={cn(
-          "rounded-control border bg-card px-3 py-2.5 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground focus-visible:ring-2 resize-none",
+          "rounded-control border bg-card px-3 py-2.5 text-sm font-semibold text-foreground transition-all placeholder:text-muted-foreground resize-none",
           error
-            ? "border-destructive-outline focus-visible:ring-ring"
-            : "border-input focus-visible:border-primary focus-visible:ring-ring",
+            ? "border-destructive-outline"
+            : "border-input",
           className,
         )}
       />
@@ -170,7 +170,7 @@ export function SettingSelect<TValue extends string = string>({
         onChange={onChange}
         ariaLabel={ariaLabel}
         disabled={disabled}
-        triggerClassName="h-10 rounded-panel border-input bg-background px-4 text-sm font-semibold text-foreground focus:border-primary focus:ring-2 focus:ring-ring cursor-pointer"
+        triggerClassName="h-10 rounded-panel border-input bg-background px-4 text-sm font-semibold text-foreground cursor-pointer"
       />
     </div>
   );

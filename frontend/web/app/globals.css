@@ -287,6 +287,48 @@
   }
 }
 
+/* Field focus follows the border owner, including mouse and keyboard focus. */
+@layer utilities {
+  .field-focus,
+  .field-focus-content {
+    outline: none;
+  }
+
+  .field-focus:focus,
+  .field-focus-container:focus-within,
+  .field-focus-group:focus-within > .field-focus,
+  .field-focus-open[data-state="open"] {
+    border-color: var(--ring);
+    @apply ring-2 ring-ring;
+    outline: none;
+  }
+
+  /* Error is independent of focus; the ring still identifies the active field. */
+  .field-focus[aria-invalid="true"],
+  .field-focus-open[aria-invalid="true"],
+  .field-focus-container[data-invalid="true"],
+  .field-focus-container[data-invalid="true"]:focus-within,
+  .field-focus-group:focus-within > .field-focus[aria-invalid="true"] {
+    border-color: var(--destructive-outline);
+  }
+
+  .field-focus-content:focus,
+  .field-focus-content:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
+
+  @media (forced-colors: active) {
+    .field-focus:focus,
+    .field-focus-container:focus-within,
+    .field-focus-group:focus-within > .field-focus,
+    .field-focus-open[data-state="open"] {
+      outline: 2px solid Highlight;
+      outline-offset: 2px;
+    }
+  }
+}
+
 /* Native-content canvases keep their own contrast instead of recoloring media. */
 .media-canvas { background: var(--media-background); color: var(--media-foreground); }
 

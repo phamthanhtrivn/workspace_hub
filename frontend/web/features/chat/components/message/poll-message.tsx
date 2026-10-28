@@ -269,7 +269,7 @@ const PollMessage = React.memo(function PollMessage({
                   value={newOptionText}
                   onChange={(e) => setNewOptionText(e.target.value)}
                   placeholder="Enter new option..."
-                  className="flex-1 px-3.5 py-2 text-xs border border-input focus:border-info-outline rounded-control outline-none transition"
+                  className="flex-1 px-3.5 py-2 text-xs border border-input rounded-control outline-none transition"
                   autoFocus
                 />
                 <Button variant="default"

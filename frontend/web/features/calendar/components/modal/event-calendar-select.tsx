@@ -63,7 +63,7 @@ export function EventCalendarSelect({
         aria-label={copy.calendar}
         title={selectedCalendar?.name}
         style={calendarColorStyle(selectedCalendar?.color)}
-        className="h-11 rounded-panel bg-[color-mix(in_srgb,var(--calendar-color)_8%,var(--card))] font-semibold hover:bg-[color-mix(in_srgb,var(--calendar-color)_14%,var(--card))] data-[state=open]:border-ring"
+        className="h-11 rounded-panel bg-[color-mix(in_srgb,var(--calendar-color)_8%,var(--card))] font-semibold hover:bg-[color-mix(in_srgb,var(--calendar-color)_14%,var(--card))]"
       >
         <SelectValue placeholder={placeholder}>
           {selectedCalendar ? (

@@ -446,7 +446,7 @@ export function ScheduleMeetingModal({
             {...form.register("title")}
             autoFocus
             placeholder="Meeting title"
-            className="h-12 w-full border-0 border-b border-border px-0 text-xl font-semibold outline-none placeholder:text-muted-foreground focus:border-primary"
+            className="h-12 w-full border-0 border-b border-border px-0 text-xl font-semibold outline-none placeholder:text-muted-foreground"
           />
 
           <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr]">
@@ -511,7 +511,7 @@ export function ScheduleMeetingModal({
                 value={inviteeQuery}
                 onChange={(event) => setInviteeQuery(event.target.value)}
                 placeholder="Search people..."
-                className="h-10 w-full rounded-control border border-border pl-9 pr-3 text-sm font-semibold outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-ring"
+                className="h-10 w-full rounded-control border border-border pl-9 pr-3 text-sm font-semibold outline-none placeholder:text-muted-foreground"
               />
             </div>
             {inviteeQuery.trim() ? (
@@ -576,7 +576,7 @@ export function ScheduleMeetingModal({
             {...form.register("description")}
             rows={3}
             placeholder="Description"
-            className="w-full resize-none rounded-lg border border-border px-3 py-2 text-sm font-semibold outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-ring"
+            className="w-full resize-none rounded-lg border border-border px-3 py-2 text-sm font-semibold outline-none placeholder:text-muted-foreground"
           />
 
           <section className="space-y-3">
@@ -614,7 +614,7 @@ export function ScheduleMeetingModal({
                         type={showPassword ? "text" : "password"}
                         {...form.register("password")}
                         placeholder="Meeting password"
-                        className="h-10 w-full rounded-control border border-border px-3 pr-11 text-sm font-semibold outline-none focus:border-primary focus:ring-4 focus:ring-ring"
+                        className="h-10 w-full rounded-control border border-border px-3 pr-11 text-sm font-semibold outline-none"
                       />
                       <MeetingIconButton
                         label={showPassword ? "Hide meeting password" : "Show meeting password"}

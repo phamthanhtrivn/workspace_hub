@@ -201,7 +201,7 @@ export function QuickCreateModal({
             aria-label={copy.addTitle}
             placeholder={copy.addTitle}
             aria-invalid={Boolean(formState.errors.title)}
-            className="ml-12 h-auto w-[calc(100%-3rem)] rounded-none border-0 border-b border-input bg-transparent px-0 pb-2 text-2xl font-medium leading-tight text-foreground shadow-none outline-none placeholder:text-muted-foreground focus:border-info-outline focus-visible:ring-0 sm:text-[1.7rem]"
+            className="ml-12 h-auto w-[calc(100%-3rem)] rounded-none border-0 border-b border-input bg-transparent px-0 pb-2 text-2xl font-medium leading-tight text-foreground shadow-none outline-none placeholder:text-muted-foreground sm:text-[1.7rem]"
           />
           {formState.errors.title && (
             <p className="ml-12 mt-2 text-xs font-semibold text-destructive-content">
@@ -287,7 +287,7 @@ export function QuickCreateModal({
                 aria-label={copy.addDescription}
                 rows={3}
                 placeholder={copy.addDescriptionAttachment}
-                className="min-h-[42px] w-full resize-none rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground hover:border-input focus-visible:border-info-outline focus-visible:ring-2 focus-visible:ring-ring"
+                className="min-h-[42px] w-full resize-none rounded-control border border-input bg-card px-3 py-2 text-sm font-medium text-foreground outline-none transition placeholder:text-muted-foreground hover:border-input"
               />
             </QuickRow>
 

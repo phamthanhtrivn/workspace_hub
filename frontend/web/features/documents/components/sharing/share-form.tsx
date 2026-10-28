@@ -183,7 +183,7 @@ export function ShareModalForm({
                 setShowSuggestions(true);
               }
             }}
-            className="w-full bg-background border border-input hover:border-input focus:border-info-outline rounded-control py-2.5 pl-10 pr-4 text-xs font-semibold text-foreground outline-hidden transition-all placeholder:text-muted-foreground"
+            className="w-full bg-background border border-input hover:border-input rounded-control py-2.5 pl-10 pr-4 text-xs font-semibold text-foreground outline-hidden transition-all placeholder:text-muted-foreground"
           />
 
           <ShareSuggestionsDropdown

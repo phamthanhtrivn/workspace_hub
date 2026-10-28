@@ -162,7 +162,7 @@ export function ProjectLabelManager({
                       }}
                       maxLength={PROJECT_SETTINGS_LABELS.LABEL_MAX_LENGTH}
                       disabled={isBusy}
-                      className="h-8 min-w-0 flex-1 rounded-control border-input bg-card px-2.5 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                      className="h-8 min-w-0 flex-1 rounded-control border-input bg-card px-2.5 text-xs font-semibold text-foreground placeholder:text-muted-foreground"
                     />
                     <Button loading={busyAction === `update-${label.id}`}
                       type="button"
@@ -267,7 +267,7 @@ export function ProjectLabelManager({
               placeholder="Label name..."
               maxLength={PROJECT_SETTINGS_LABELS.LABEL_MAX_LENGTH}
               disabled={isBusy}
-              className="h-9 min-w-0 flex-1 rounded-control border-input bg-card px-3 text-xs font-semibold text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+              className="h-9 min-w-0 flex-1 rounded-control border-input bg-card px-3 text-xs font-semibold text-foreground placeholder:text-muted-foreground"
             />
             <Button loading={busyAction === "create"}
               type="button"

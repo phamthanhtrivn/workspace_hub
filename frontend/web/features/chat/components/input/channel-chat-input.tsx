@@ -2,6 +2,7 @@
 
 import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { IconButton } from "@/components/ui/icon-button";
+import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 import { useId as useControlledPopupId } from "react";
 
 import React, {
@@ -840,7 +841,7 @@ const ChannelChatInput = React.memo(
               </div>
             )}
 
-            <div className="@container/composer flex flex-wrap bg-background border border-input focus-within:border-info-outline focus-within:ring-1 focus-within:ring-ring transition-all relative rounded-panel p-2 gap-2 items-center">
+            <div className={`${FIELD_FOCUS_CONTAINER_CLASS_NAME} @container/composer flex flex-wrap bg-background border border-input transition-all relative rounded-panel p-2 gap-2 items-center`}>
               {/* Hidden Inputs */}
               <input
                 type="file"
@@ -1036,7 +1037,7 @@ const ChannelChatInput = React.memo(
 
                 {/* Textarea Input */}
                 <MessageComposerPreview message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} open={showPreview} onOpenChange={setShowPreview}>
-                <Textarea unstyled role="combobox" aria-label="Message channel" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
+                <Textarea unstyled focusMode="container" role="combobox" aria-label="Message channel" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
                   id="chat-input-textarea"
                   ref={textareaRef}
                   onPaste={handlePaste}
@@ -1065,7 +1066,7 @@ const ChannelChatInput = React.memo(
                       : "Type @ to mention, message " + activeChannel?.name
                   }
                   disabled={isUploading}
-                  className="w-full max-h-[min(15rem,30dvh)] bg-transparent resize-none outline-none focus-visible:ring-0 text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px] [@media(max-height:30rem)]:max-h-12"
+                  className="w-full max-h-[min(15rem,30dvh)] bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px] [@media(max-height:30rem)]:max-h-12"
                   rows={1}
                   onKeyDown={(e) => {
                     if (mentionQuery !== null && filteredMembers.length > 0) {

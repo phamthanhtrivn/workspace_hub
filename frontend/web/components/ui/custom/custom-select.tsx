@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import type { FieldFocusMode } from "../field-focus";
 
 export interface CustomSelectOption<TValue extends string = string> {
   value: TValue;
@@ -34,6 +35,8 @@ interface CustomSelectProps<TValue extends string = string> {
   contentClassName?: string;
   triggerLabel?: React.ReactNode;
   descriptionId?: string;
+  focusMode?: FieldFocusMode;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const INTERNAL_EMPTY_VALUE = "__CUSTOM_SELECT_EMPTY__";
@@ -53,6 +56,8 @@ export function CustomSelect<TValue extends string = string>({
   contentClassName,
   triggerLabel,
   descriptionId,
+  focusMode,
+  onOpenChange,
 }: CustomSelectProps<TValue>) {
   const options = suppliedOptions ?? optionsFromChildren(children) as CustomSelectOption<TValue>[];
   const selectedOption = options.find((option) => option.value === value);
@@ -63,18 +68,20 @@ export function CustomSelect<TValue extends string = string>({
       <Select
         value={internalValue}
         disabled={disabled}
+        onOpenChange={onOpenChange}
         onValueChange={(nextValue) =>
           onChange((nextValue === INTERNAL_EMPTY_VALUE ? "" : nextValue) as TValue)
         }
       >
         <SelectTrigger
+          focusMode={focusMode}
           id={id}
           aria-label={ariaLabel}
           aria-invalid={invalid || undefined}
           aria-describedby={descriptionId}
           className={cn(
-            "h-9 cursor-pointer rounded-control border-input bg-background px-3 text-sm font-medium text-foreground hover:bg-accent data-[state=open]:ring-2 data-[state=open]:ring-ring",
-            invalid && "border-destructive-outline ring-2 ring-destructive-outline/15",
+            "h-9 cursor-pointer rounded-control border-input bg-background px-3 text-sm font-medium text-foreground hover:bg-accent",
+            invalid && "border-destructive-outline",
             triggerClassName,
           )}
         >

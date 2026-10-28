@@ -93,7 +93,7 @@ export default function ChannelMembersModal({
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search members by name..."
-              className="w-full rounded-control border border-input bg-card py-3 pl-11 pr-4 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-info-outline focus:ring-4 focus:ring-ring"
+              className="w-full rounded-control border border-input bg-card py-3 pl-11 pr-4 text-sm font-medium text-foreground outline-none transition-all placeholder:text-muted-foreground"
             />
           </label>
         </div>

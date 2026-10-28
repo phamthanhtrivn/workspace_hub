@@ -29,6 +29,7 @@ import { MeetingIconButton } from "../../ui/meeting-icon-button";
 import { AnchoredPopover, AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
+import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
@@ -288,7 +289,7 @@ export const MeetingMessageInput = forwardRef<
         </AnchoredPopover>
       )}
 
-      <div className="flex items-end gap-2 rounded-panel border border-input bg-background p-2">
+      <div className={`${FIELD_FOCUS_CONTAINER_CLASS_NAME} flex items-end gap-2 rounded-panel border border-input bg-background p-2`}>
         <input
           ref={fileInputRef}
           type="file"
@@ -344,12 +345,14 @@ export const MeetingMessageInput = forwardRef<
         )}
 
         <MeetingTextarea
+          focusMode="container"
+          aria-label="Meeting message"
           ref={textareaRef}
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           placeholder="Message..."
           rows={1}
-          className="max-h-32 min-h-9 flex-1 border-0 bg-transparent px-1 py-2 text-sm font-semibold leading-5 text-muted-foreground shadow-none placeholder:text-muted-foreground focus-visible:ring-0"
+          className="max-h-32 min-h-9 flex-1 border-0 bg-transparent px-1 py-2 text-sm font-semibold leading-5 text-muted-foreground shadow-none placeholder:text-muted-foreground"
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();

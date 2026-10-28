@@ -1,6 +1,8 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
+import { useState } from "react";
+import { FIELD_FOCUS_CONTAINER_CLASS_NAME, FIELD_FOCUS_OPEN_CLASS_NAME } from "@/components/ui/field-focus";
 import { cn } from "@/lib/utils";
 import type { MeetingDeviceOption } from "../../types/meeting.types";
 import { MeetingSelect } from "../ui/meeting-form-controls";
@@ -24,6 +26,7 @@ export function MeetingDeviceSelect({
   disabled = false,
   onChange,
 }: MeetingDeviceSelectProps) {
+  const [open, setOpen] = useState(false);
   const isDisabled = disabled || devices.length === 0;
   const selectedDevice = devices.find((device) => device.deviceId === value);
   const displayLabel = selectedDevice?.label ?? devices[0]?.label ?? "No device";
@@ -37,8 +40,11 @@ export function MeetingDeviceSelect({
 
   return (
     <div
+      data-state={open && !isDisabled ? "open" : "closed"}
       className={cn(
-        "group flex h-[68px] min-w-0 items-center gap-3 rounded-control border border-input bg-card px-3 transition-colors duration-150 hover:bg-accent focus-within:border-ring focus-within:ring-2 focus-within:ring-ring",
+        FIELD_FOCUS_CONTAINER_CLASS_NAME,
+        FIELD_FOCUS_OPEN_CLASS_NAME,
+        "group flex h-[68px] min-w-0 items-center gap-3 rounded-control border border-input bg-card px-3 transition-colors duration-150 hover:bg-accent",
         isDisabled && "cursor-not-allowed bg-background opacity-70 hover:bg-background",
       )}
     >
@@ -55,6 +61,8 @@ export function MeetingDeviceSelect({
           {label}
         </span>
         <MeetingSelect
+          focusMode="container"
+          onOpenChange={setOpen}
           id={id}
           value={value}
           options={options}
@@ -63,7 +71,7 @@ export function MeetingDeviceSelect({
           ariaLabel={label}
           placeholder={displayLabel}
           triggerClassName={cn(
-            "mt-1 h-5 border-0 bg-transparent px-0 py-0 text-sm font-normal shadow-none hover:bg-transparent focus:ring-0 data-[state=open]:ring-0 [&>svg]:right-0",
+            "mt-1 h-5 border-0 bg-transparent px-0 py-0 text-sm font-normal shadow-none hover:bg-transparent [&>svg]:right-0",
             isDisabled && "text-muted-foreground",
           )}
         />
