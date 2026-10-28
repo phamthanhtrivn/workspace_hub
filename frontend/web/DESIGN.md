@@ -56,3 +56,7 @@ Reuse Button/Input/Textarea. Native details for citation excerpts and note editi
 - Never render model HTML or execute document instructions.
 - Hide derived content if permission revalidation fails; do not persist content in browser storage.
 - Do not imply full-document coverage for a top-k answer or excerpt overview.
+
+## Personal work assistant
+
+A lazy bottom-right launcher on Dashboard, Projects and Calendar opens a 440px panel above the launcher; mobile uses a full-height modal sheet. Keep the existing blue palette, typography, semantic theme tokens and UI primitives. Today and scope precede the conversation. Scheduling suggestions derive from Calendar; no manual work-hours settings or settings icon are exposed. Show fresh-data time, partial/unavailable sources, keyboard focus, cancellation and recoverable errors. No deadline badges or automatic opening. Personal chat is separate from team chat. The header exposes conversation history and a new-conversation action; no delete action. History is scoped to the selected personal/project context, uses the first question as its title and supports paging. New conversations keep earlier messages intact.

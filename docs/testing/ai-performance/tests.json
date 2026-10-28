@@ -1,0 +1,10 @@
+{
+  "runAt": "2026-10-27T16:54:39.630Z",
+  "mode": "isolated fixtures; no live model calls",
+  "concurrency": 2,
+  "exitCode": 0,
+  "tests": 181,
+  "passed": 181,
+  "failed": 0,
+  "failures": []
+}

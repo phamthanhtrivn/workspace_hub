@@ -1,0 +1,75 @@
+{
+  "runAt": "2026-10-27T16:55:14.215Z",
+  "mode": "isolated SQL and source/auth fixtures; no external model or cloud speech calls",
+  "automatedPassed": true,
+  "requestedChecksComplete": true,
+  "aiTests": {
+    "total": 181,
+    "passed": 181,
+    "failed": 0
+  },
+  "steps": [
+    {
+      "name": "ai-build",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 5853
+    },
+    {
+      "name": "ai-tests",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 53517
+    },
+    {
+      "name": "frontend-stream-tests",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 543,
+      "tests": 4
+    },
+    {
+      "name": "project-source-tests",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 6168,
+      "tests": 4
+    },
+    {
+      "name": "calendar-source-tests",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 2110,
+      "tests": 1
+    },
+    {
+      "name": "speech-tests",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 1263,
+      "tests": 6
+    },
+    {
+      "name": "browser",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 11729
+    },
+    {
+      "name": "media",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 8578
+    }
+  ],
+  "liveDeployment": {
+    "verified": false,
+    "aiService": {
+      "reachable": false
+    },
+    "communicationService": {
+      "reachable": false
+    },
+    "reason": "Full authenticated deployment, provider behavior and real recording permissions are separate live scenarios; fixture checks do not certify them"
+  }
+}

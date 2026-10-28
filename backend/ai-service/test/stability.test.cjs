@@ -163,3 +163,26 @@ test("recovery marks abandoned jobs failed but never steals active/waiting work 
   );
   assert.ok(updates.some((u) => u.args[1].startsWith("SUMMARY_INTERRUPTED")));
 });
+
+test("meeting readiness requires the authenticated local speech worker and no Google service", async (t) => {
+  const { config } = require("../dist/config/env.config");
+  const previous = config.MEETING_SUMMARY_ENABLED;
+  config.MEETING_SUMMARY_ENABLED = "true";
+  t.after(() => {
+    config.MEETING_SUMMARY_ENABLED = previous;
+  });
+  let speechStatus = 200;
+  t.mock.method(global, "fetch", async (url, options) => {
+    if (url.includes(":8090")) {
+      assert.equal(
+        options.headers["x-internal-service-key"],
+        config.MEETING_STT_SERVICE_KEY,
+      );
+      return new Response("{}", { status: speechStatus });
+    }
+    return new Response("{}", { status: url.includes(":8088") ? 200 : 400 });
+  });
+  await checkHttpDependencies();
+  speechStatus = 503;
+  await assert.rejects(checkHttpDependencies());
+});

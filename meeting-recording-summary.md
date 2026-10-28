@@ -1,3 +1,7 @@
+## Update 27/10/2026: local speech
+
+Recognition now runs locally with faster-whisper small on CPU. Google STT is no longer used. FFmpeg and the local worker were executed successfully against a public Vietnamese sample; the runtime worker is ready on localhost:8090. Setup and current deployment blockers are documented in [MEETING_SUMMARY.md](backend/ai-service/MEETING_SUMMARY.md) and [verification](docs/testing/meeting-local-speech-verification.md). The implementation/verification notes below describe the earlier Google-based version.
+
 # Meeting recording summary
 
 Implement an owner-triggered summary of a completed recording: FFmpeg -> Google

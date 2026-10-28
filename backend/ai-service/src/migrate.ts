@@ -13,6 +13,30 @@ void db
       ),
     ),
   )
+  .then(() =>
+    db.query(
+      readFileSync(
+        join(__dirname, "../migrations/003_work_assistant.sql"),
+        "utf8",
+      ),
+    ),
+  )
+  .then(() =>
+    db.query(
+      readFileSync(
+        join(__dirname, "../migrations/004_work_assistant_conversations.sql"),
+        "utf8",
+      ),
+    ),
+  )
+  .then(() =>
+    db.query(
+      readFileSync(
+        join(__dirname, "../migrations/005_ai_performance.sql"),
+        "utf8",
+      ),
+    ),
+  )
   .then(() => console.log("Notebook schema ready (legacy tables untouched)"))
   .catch(() => {
     console.error("Migration failed; check database and credentials");

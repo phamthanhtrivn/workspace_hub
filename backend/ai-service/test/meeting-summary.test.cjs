@@ -17,7 +17,8 @@ Object.assign(process.env, {
   LLM_BASE_URL: "https://vibi.top/v1",
   LLM_API_KEY: "fixture",
   LLM_MODEL: "fixture",
-  GOOGLE_CLOUD_PROJECT: "fixture-project",
+  MEETING_STT_SERVICE_KEY: "fixture-local-speech-service-key-00000",
+  MEETING_STT_URL: "http://127.0.0.1:8090",
   MEETING_MEDIA_HOSTS: "media.example",
 });
 const database = require("../dist/infrastructure/database/database");
@@ -175,6 +176,11 @@ test("speech requests overlap within the configured bound and checkpoints stay i
 });
 
 test("a failed earlier chunk preserves a later success and only retries the missing audio", async (t) => {
+  const previous = config.MEETING_STT_CONCURRENCY;
+  config.MEETING_STT_CONCURRENCY = 2;
+  t.after(() => {
+    config.MEETING_STT_CONCURRENCY = previous;
+  });
   const fixture = mocks(t);
   fixture.speechMock.mock.mockImplementation(async (name) => {
     if (name === "chunk0") throw Error("first chunk failed");
@@ -318,6 +324,7 @@ test("changed revisions fail closed and interrupted running jobs do not replay p
 });
 
 test("media URLs require an exact allowed host and reject embedded credentials and redirects", async (t) => {
+  t.mock.method(fs, "statfs", async () => ({ bavail: 1048576n, bsize: 4096n }));
   for (const url of [
     "https://media.example.evil.test/file",
     "file:///etc/passwd",
@@ -386,38 +393,26 @@ test("bounded transcript batching preserves all content and approximate timestam
   assert.match(batches.join(""), /\[0:45\] last fact/);
 });
 
-test("Google speech uses V2 chirp_3 Vietnamese and no diarization or automatic retries", async (t) => {
-  const { GoogleAuth } = require("google-auth-library");
-  t.mock.method(
-    GoogleAuth.prototype,
-    "getAccessToken",
-    async () => "fixture-token",
-  );
+test("local speech sends bounded raw WAV with internal authentication; failures do not retry or leak audio", async (t) => {
   const directory = await fs.mkdtemp(
-    path.join(os.tmpdir(), "meeting-speech-test-"),
+    path.join(os.tmpdir(), "meeting-local-speech-test-"),
   );
   const audio = path.join(directory, "test.wav");
   await fs.writeFile(audio, Buffer.from("RIFFfixture"));
-  t.after(() => {
-    assert.equal(path.dirname(directory), os.tmpdir());
-    return fs.rm(directory, { recursive: true, force: true });
-  });
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
   let requests = 0;
   const fetch = t.mock.method(global, "fetch", async (url, options) => {
     requests++;
-    assert.match(
-      url,
-      /us-speech.googleapis.com\/v2\/projects\/fixture-project/,
+    assert.equal(url, "http://127.0.0.1:8090/transcribe");
+    assert.equal(options.redirect, "error");
+    assert.equal(
+      options.headers["x-internal-service-key"],
+      config.MEETING_STT_SERVICE_KEY,
     );
-    const body = JSON.parse(options.body);
-    assert.deepEqual(body.config, {
-      autoDecodingConfig: {},
-      languageCodes: ["vi-VN"],
-      model: "chirp_3",
-    });
-    return Response.json({
-      results: [{ alternatives: [{ transcript: "Xin chào." }] }],
-    });
+    assert.equal(options.headers["content-type"], "audio/wav");
+    assert.ok(Buffer.isBuffer(options.body));
+    assert.equal(options.body.toString(), "RIFFfixture");
+    return Response.json({ text: "Xin chào." });
   });
   assert.equal(
     await speech.recognizeMeetingChunk(audio, new AbortController().signal),
@@ -432,4 +427,23 @@ test("Google speech uses V2 chirp_3 Vietnamese and no diarization or automatic r
     /429/,
   );
   assert.equal(requests, 2);
+  fetch.mock.mockImplementation(async () =>
+    Response.json({ text: "x".repeat(12001) }),
+  );
+  await assert.rejects(
+    speech.recognizeMeetingChunk(audio, new AbortController().signal),
+  );
+  fetch.mock.mockImplementation(async () => new Response("x".repeat(65537)));
+  await assert.rejects(
+    speech.recognizeMeetingChunk(audio, new AbortController().signal),
+    /exceeds limit/,
+  );
+  const canceled = new AbortController();
+  canceled.abort();
+  await assert.rejects(speech.recognizeMeetingChunk(audio, canceled.signal));
+  await fs.writeFile(audio, Buffer.alloc(2 * 1024 * 1024 + 1));
+  await assert.rejects(
+    speech.recognizeMeetingChunk(audio, new AbortController().signal),
+    /too large/,
+  );
 });

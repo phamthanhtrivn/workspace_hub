@@ -1,68 +1,55 @@
-import { GoogleAuth } from "google-auth-library";
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { config } from "../../config/env.config";
 
-const auth = new GoogleAuth({
-  scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-});
 export class SpeechRecognitionError extends Error {
   constructor(readonly status: number) {
-    super(`Speech provider HTTP ${status}`);
+    super(`Local speech worker HTTP ${status}`);
   }
 }
-const speechResponse = z.object({
-  results: z
-    .array(
-      z.object({
-        alternatives: z
-          .array(z.object({ transcript: z.string().max(12000) }))
-          .optional(),
-      }),
-    )
-    .max(500)
-    .optional(),
-});
+const speechResponse = z.object({ text: z.string().max(12000) }).strict();
 
 export async function recognizeMeetingChunk(path: string, signal: AbortSignal) {
   signal.throwIfAborted();
   const audio = await readFile(path);
-  if (audio.length > 2 * 1024 * 1024)
-    throw new Error("Audio chunk is too large");
-  const token = await auth.getAccessToken();
-  signal.throwIfAborted();
-  if (!token) throw new Error("Google Speech authentication unavailable");
-  const location = config.GOOGLE_STT_LOCATION;
-  const project = encodeURIComponent(config.GOOGLE_CLOUD_PROJECT);
+  if (!audio.length || audio.length > 2 * 1024 * 1024)
+    throw new Error("Audio chunk is too large or empty");
   const response = await fetch(
-    `https://${location}-speech.googleapis.com/v2/projects/${project}/locations/${location}/recognizers/_:recognize`,
+    config.MEETING_STT_URL.replace(/\/$/, "") + "/transcribe",
     {
       method: "POST",
       redirect: "error",
-      signal: AbortSignal.any([signal, AbortSignal.timeout(90000)]),
+      signal: AbortSignal.any([
+        signal,
+        AbortSignal.timeout(config.MEETING_STT_TIMEOUT_MS),
+      ]),
       headers: {
-        authorization: `Bearer ${token}`,
-        "content-type": "application/json",
+        "x-internal-service-key": config.MEETING_STT_SERVICE_KEY,
+        "content-type": "audio/wav",
       },
-      body: JSON.stringify({
-        config: {
-          autoDecodingConfig: {},
-          languageCodes: ["vi-VN"],
-          model: "chirp_3",
-        },
-        content: audio.toString("base64"),
-      }),
+      body: audio,
     },
   );
   if (!response.ok) {
     await response.body?.cancel();
     throw new SpeechRecognitionError(response.status);
   }
-  const result = speechResponse.parse(await response.json());
-  const text = (result.results || [])
-    .map((item) => item.alternatives?.[0]?.transcript || "")
-    .join(" ")
-    .trim();
-  if (text.length > 12000) throw new Error("Speech response is too large");
-  return text;
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("Empty local speech response");
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      size += part.value.length;
+      if (size > 65536) throw new Error("Local speech response exceeds limit");
+      chunks.push(part.value);
+    }
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+  return speechResponse
+    .parse(JSON.parse(Buffer.concat(chunks).toString("utf8")))
+    .text.trim();
 }

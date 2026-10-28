@@ -1,3 +1,4 @@
+import { WorkAssistantModule } from './modules/work-assistant/work-assistant.controller';
 import { ConversationController } from "./modules/conversation-ai/conversation.controller";
 import { MeetingSummaryController } from "./modules/meeting-summary/meeting-summary.controller";
 import { Module } from "@nestjs/common";
@@ -7,7 +8,7 @@ import { SourcesModule } from "./modules/sources/sources.module";
 import { ChatModule } from "./modules/chat/chat.module";
 import { StudioModule } from "./modules/studio/studio.module";
 @Module({
-  imports: [NotebooksModule, SourcesModule, ChatModule, StudioModule],
+  imports: [WorkAssistantModule, NotebooksModule, SourcesModule, ChatModule, StudioModule],
   controllers: [HealthController, ConversationController, MeetingSummaryController],
 })
 export class AppModule {}

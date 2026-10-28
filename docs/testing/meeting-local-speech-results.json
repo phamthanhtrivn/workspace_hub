@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "runAt": "2026-10-27T16:55:10.145Z",
+  "mode": "real-ffmpeg-and-local-whisper; public-audio; no-cloud-STT-or-summary-call",
+  "sampleSource": "https://huggingface.co/datasets/dinhlam2210/voice-Viet-Nam/blob/main/data/audio_014.wav",
+  "transcript": "Không phải ai cũng cần một người giỏi lý lẽ, có khi người ta chỉ cần một dọng nói đủ ấm để dỗ dành, yêu thương.",
+  "stages": [
+    "TRANSCRIBING",
+    "TRANSCRIBING",
+    "TRANSCRIBING"
+  ],
+  "timings": {
+    "audio_ms": 153,
+    "speech_ms": 6351
+  },
+  "transcriptComplete": true
+}

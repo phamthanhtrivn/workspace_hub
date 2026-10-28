@@ -14,7 +14,9 @@ export async function admitModel(input: number, model = config.LLM_MODEL) {
       `SELECT
       count(*) FILTER (WHERE created_at > now()-interval '1 minute')::int rpm,
       coalesce(sum(input_tokens) FILTER (WHERE created_at > now()-interval '1 minute'),0)::int tokens,
-      count(*)::int daily FROM notebook_ai.model_calls WHERE model=$1 AND created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`,
+      count(*) FILTER (WHERE created_at >= date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::int daily,
+      coalesce(ceil(extract(epoch FROM (min(created_at) FILTER (WHERE created_at > now()-interval '1 minute') + interval '1 minute' - now())) * 1000),2000)::int retry_after_ms
+      FROM notebook_ai.model_calls WHERE model=$1 AND created_at >= LEAST(date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC',now()-interval '1 minute')`,
       [model],
     );
     if (
@@ -28,7 +30,9 @@ export async function admitModel(input: number, model = config.LLM_MODEL) {
       usage.rpm >= config.LLM_REQUESTS_PER_MINUTE ||
       usage.tokens + input > config.LLM_TOKENS_PER_MINUTE
     )
-      throw new ModelMinuteQuotaException();
+      throw new ModelMinuteQuotaException(
+        Math.max(1, Math.min(60000, usage.retry_after_ms ?? 2000)),
+      );
     await client.query(
       "INSERT INTO notebook_ai.model_calls(id,model,input_tokens) VALUES($1,$2,$3)",
       [randomUUID(), model, input],

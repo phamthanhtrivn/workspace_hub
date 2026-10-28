@@ -72,8 +72,9 @@ test("summary waits for local minute quota without replaying any provider respon
   updates = [];
   let attempts = 0,
     waits = 0;
+  t.mock.method(Math, "random", () => 0);
   t.mock.method(timers, "setTimeout", async (ms, _value, options) => {
-    assert.equal(ms, 60000);
+    assert.equal(ms, 58000);
     assert.equal(options.signal.aborted, false);
     waits++;
     assert.ok(updates.some(({ sql }) => sql.includes("in_flight=false")));
@@ -81,7 +82,7 @@ test("summary waits for local minute quota without replaying any provider respon
   model = async function* (question, _evidence, _signal, options) {
     assert.doesNotMatch(question, /phần \d+\//);
     assert.equal(options.purpose, "summary");
-    if (++attempts === 1) throw new ModelMinuteQuotaException();
+    if (++attempts === 1) throw new ModelMinuteQuotaException(58000);
     yield "Summary [[S1]]";
   };
   await summarize("artifact");

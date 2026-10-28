@@ -143,7 +143,9 @@ export async function summarize(id: string) {
             "UPDATE notebook_ai.artifacts SET in_flight=false,updated_at=now() WHERE id=$1 AND status='RUNNING'",
             [id],
           );
-          await pause(60000, undefined, { signal: controller.signal });
+          await pause(error.retryAfterMs + Math.random() * 250, undefined, {
+            signal: controller.signal,
+          });
           controller.signal.throwIfAborted();
           await authorizeSources(actor, sources);
         }

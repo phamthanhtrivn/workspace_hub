@@ -319,3 +319,53 @@ test("Vision uses bounded image blocks, counts image tokens and rejects truncate
   for (const name of ["image.png", "image.JPG", "image.webp"])
     assert.doesNotThrow(() => checkFile(name, 100));
 });
+
+test("image batching preserves first-two order across missing, duplicate and stale candidates", async (t) => {
+  const h = await harness(t);
+  const secondId = "c".repeat(64),
+    thirdId = "d".repeat(64);
+  for (const [id, data] of [
+    [h.image.id, h.image.dataUrl],
+    [secondId, "data:image/png;base64,second"],
+    [thirdId, "data:image/png;base64,third"],
+  ])
+    await h.pg.query(
+      "INSERT INTO notebook_ai.source_visuals(source_id,revision,image_id,image_hash,data_url) VALUES($1,$2,$3,$3,$4)",
+      [h.source.id, h.source.revision, id, data],
+    );
+  let lookups = 0;
+  t.mock.method(database, "rows", async (sql, args = []) => {
+    if (sql.includes("source_visuals")) lookups++;
+    return (await h.pg.query(sql, args)).rows;
+  });
+  const source = { ...h.source, status: "READY" };
+  const evidence = [
+    ...Array.from({ length: 20 }, (_, i) => ({
+      sourceId: source.id,
+      label: "M" + i,
+      imageId: String(i).padStart(64, "0"),
+    })),
+    { sourceId: randomUUID(), label: "FOREIGN", imageId: h.image.id },
+    { sourceId: source.id, label: "S1", imageId: h.image.id },
+    { sourceId: source.id, label: "DUPLICATE", imageId: h.image.id },
+    { sourceId: source.id, label: "S2", imageId: secondId },
+    { sourceId: source.id, label: "S3", imageId: thirdId },
+  ];
+  assert.deepEqual(await visualEvidence("read image", evidence, [source]), [
+    { label: "S1", dataUrl: h.image.dataUrl },
+    { label: "S2", dataUrl: "data:image/png;base64,second" },
+  ]);
+  assert.equal(lookups, 1);
+  assert.deepEqual(
+    await visualEvidence("read image", evidence, [
+      { ...source, revision: "changed" },
+    ]),
+    [],
+  );
+  assert.deepEqual(
+    await visualEvidence("read image", evidence, [
+      { ...source, status: "FAILED" },
+    ]),
+    [],
+  );
+});

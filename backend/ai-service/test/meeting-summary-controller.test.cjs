@@ -11,7 +11,7 @@ Object.assign(process.env, {
   MEETING_SUMMARY_ENABLED: "true",
   VISUAL_ENABLED: "false",
   CONVERSATION_AI_ENABLED: "false",
-  GOOGLE_CLOUD_PROJECT: "fixture",
+  MEETING_STT_SERVICE_KEY: "fixture-local-speech-service-key-00000",
   MEETING_MEDIA_HOSTS: "media.example",
   AI_COMMUNICATION_SERVICE_KEY: key,
   AI_GATEWAY_KEY: key,
