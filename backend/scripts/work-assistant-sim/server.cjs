@@ -73,7 +73,7 @@ async function main(){
   if(controls.delayAnswer){const signal=args[4];await new Promise((resolve,reject)=>{const timer=setTimeout(resolve,30000);signal.addEventListener('abort',()=>{clearTimeout(timer);reject(Error('Canceled fixture'))},{once:true})});}
   return originalAnswer(...args);
  };
- const {WorkAssistantModule}=req('./dist/modules/work-assistant/work-assistant.controller');
+ const {WorkAssistantModule}=req('./dist/modules/work-assistant/work-assistant.module');
  const app=await NestFactory.create(WorkAssistantModule,{logger:false});await app.listen(18111,'127.0.0.1');
  const server=http.createServer(async(request,response)=>{
   const url=new URL(request.url,'http://localhost'),route=url.pathname;

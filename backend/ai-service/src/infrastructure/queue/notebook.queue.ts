@@ -37,12 +37,7 @@ export async function enqueue(kind: string, id: string, data: object) {
       : kind === "summary"
         ? summaryQueue
         : queue;
-  if (kind === "conversation") {
-    const legacy = await queue.getJob(jobId);
-    if (legacy && !["failed", "completed"].includes(await legacy.getState()))
-      return;
-  }
-  if (kind === "summary") {
+  if (target !== queue) {
     const legacy = await queue.getJob(jobId);
     if (legacy && !["failed", "completed"].includes(await legacy.getState()))
       return;

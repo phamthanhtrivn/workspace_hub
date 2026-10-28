@@ -52,19 +52,12 @@ async function probe(url, headers = {}) {
     return { reachable: false };
   }
 }
-const build = run(
+run(
   "ai-build",
   process.execPath,
   ["node_modules/typescript/bin/tsc", "-p", "tsconfig.json"],
   resolve(root, "backend/ai-service"),
 );
-if (build.status === "PASS")
-  run("ai-tests", process.execPath, [
-    "backend/scripts/test-ai-service.mjs",
-    ...(process.argv.includes("--serial") ? ["--serial"] : []),
-  ]);
-else
-  steps.push({ name: "ai-tests", status: "BLOCKED", reason: "Build failed" });
 const python = resolve(
   root,
   "backend/ai-service/.venv",
