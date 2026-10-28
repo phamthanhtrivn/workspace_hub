@@ -10,11 +10,12 @@ Từ thư mục `workspace_hub`:
 node backend/scripts/verify-ai-service.mjs --browser --media
 ```
 
-Runner build AI, chạy toàn bộ test AI (concurrency 2), test SSE/lịch sử frontend, Jest nguồn Project/Calendar, test Python, kiểm tra trình duyệt demo và video mẫu công khai qua local Whisper. Không gọi model bên ngoài hay xử lý bản ghi người dùng.
+Runner build AI, kiểm tra TypeScript frontend/Project/Calendar, chạy toàn bộ test AI (concurrency 2), test SSE/lịch sử frontend, Jest nguồn Project/Calendar, test Python, kiểm tra trình duyệt demo và video mẫu công khai qua local Whisper. Không gọi model bên ngoài hay xử lý bản ghi người dùng.
 
 - Báo cáo tổng: [ai-service-audit-results.json](./ai-service-audit-results.json).
 - Chi tiết lỗi tìm thấy/bản sửa: [ai-service-audit.md](./ai-service-audit.md).
 - Log từng bước: `E:/KLTN/hoho/.tmp/ai-service-audit/`.
+- Nếu thiếu bộ nhớ khi chạy test song song, thêm `--serial` để chạy từng file test AI; các ca kiểm tra vẫn giữ nguyên.
 - Nếu chưa chạy demo frontend 3100, backend fixture 18110, worker speech 8090 hoặc chưa chuẩn bị MP4 công khai, bước tương ứng được ghi **BLOCKED**, không ghi PASS.
 
 Chạy riêng ca hồi quy mới:

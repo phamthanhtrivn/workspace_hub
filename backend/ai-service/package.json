@@ -17,7 +17,6 @@
     "@nestjs/platform-express": "^11.0.0",
     "bullmq": "^5.0.0",
     "dotenv": "^16.4.0",
-    "google-auth-library": "^10.9.1",
     "langchain": "^1.5.19",
     "pg": "^8.13.0",
     "reflect-metadata": "^0.2.2",

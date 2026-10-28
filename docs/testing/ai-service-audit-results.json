@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-10-27T16:55:14.215Z",
+  "runAt": "2026-10-28T01:39:54.802Z",
   "mode": "isolated SQL and source/auth fixtures; no external model or cloud speech calls",
   "automatedPassed": true,
   "requestedChecksComplete": true,
@@ -13,53 +13,59 @@
       "name": "ai-build",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 5853
+      "durationMs": 4576
     },
     {
       "name": "ai-tests",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 53517
+      "durationMs": 60727
+    },
+    {
+      "name": "frontend-types",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 51592
     },
     {
       "name": "frontend-stream-tests",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 543,
+      "durationMs": 839,
       "tests": 4
+    },
+    {
+      "name": "project-source-types",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 13149
     },
     {
       "name": "project-source-tests",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 6168,
+      "durationMs": 24580,
       "tests": 4
+    },
+    {
+      "name": "calendar-source-types",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 10175
     },
     {
       "name": "calendar-source-tests",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 2110,
+      "durationMs": 9400,
       "tests": 1
     },
     {
       "name": "speech-tests",
       "status": "PASS",
       "exitCode": 0,
-      "durationMs": 1263,
+      "durationMs": 1090,
       "tests": 6
-    },
-    {
-      "name": "browser",
-      "status": "PASS",
-      "exitCode": 0,
-      "durationMs": 11729
-    },
-    {
-      "name": "media",
-      "status": "PASS",
-      "exitCode": 0,
-      "durationMs": 8578
     }
   ],
   "liveDeployment": {

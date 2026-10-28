@@ -9,7 +9,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
-import { ChannelVisibility, MessageType, Prisma, SpaceRole } from '@prisma/client';
+import {
+  ChannelVisibility,
+  MessageType,
+  Prisma,
+  SpaceRole,
+} from '@prisma/client';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { getMediaType, mapMediaWithUrl } from '../../common/utils/file.util';
 import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
@@ -24,7 +29,8 @@ import { isTaskCardContent } from './utils/is-task-card-content';
 @Injectable()
 export class MessageService {
   constructor(
-    @Inject(forwardRef(() => ConversationAiService)) private readonly conversationAi: ConversationAiService,
+    @Inject(forwardRef(() => ConversationAiService))
+    private readonly conversationAi: ConversationAiService,
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
@@ -56,14 +62,21 @@ export class MessageService {
     },
     threadParentId?: string,
     attachmentMediaId?: string,
-  ): Promise<any> {
+  ) {
     assertClientMessageType(type, true);
     const createdMessage = await this.prisma.$transaction(async (tx) => {
       if (type !== MessageType.SYSTEM) {
-        const member = (await tx.channelMember.findUnique({
+        const member = await tx.channelMember.findUnique({
           where: { channelId_userId: { channelId, userId: senderId } },
-          include: { channel: { include: { setting: true, space: { select: { createdBy: true } } } } },
-        })) as any;
+          include: {
+            channel: {
+              include: {
+                setting: true,
+                space: { select: { createdBy: true } },
+              },
+            },
+          },
+        });
 
         if (!member) {
           throw new BadRequestException(
@@ -87,7 +100,10 @@ export class MessageService {
         }
 
         if (
-          (member.channel.visibility === ChannelVisibility.PRIVATE ? member.channel.ownerId !== senderId : spaceMember.role === SpaceRole.MEMBER && member.channel.space.createdBy !== senderId) &&
+          (member.channel.visibility === ChannelVisibility.PRIVATE
+            ? member.channel.ownerId !== senderId
+            : spaceMember.role === SpaceRole.MEMBER &&
+              member.channel.space.createdBy !== senderId) &&
           member.channel.setting
         ) {
           const setting = member.channel.setting;
@@ -105,10 +121,7 @@ export class MessageService {
           if (type === MessageType.NOTE && !setting.allowCreateNote) {
             throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOTE_DISABLED);
           }
-          if (
-            !setting.allowCreateTask &&
-            isTaskCardContent(type, content)
-          ) {
+          if (!setting.allowCreateTask && isTaskCardContent(type, content)) {
             throw new BadRequestException(MESSAGE_ERROR_MESSAGES.TASK_DISABLED);
           }
         }
@@ -118,7 +131,12 @@ export class MessageService {
         const parentMsg = await tx.message.findUnique({
           where: { id: threadParentId },
         });
-        if (!parentMsg || parentMsg.channelId !== channelId || parentMsg.deletedAt || parentMsg.recalled) {
+        if (
+          !parentMsg ||
+          parentMsg.channelId !== channelId ||
+          parentMsg.deletedAt ||
+          parentMsg.recalled
+        ) {
           throw new BadRequestException(
             MESSAGE_ERROR_MESSAGES.PARENT_NOT_FOUND,
           );
@@ -236,7 +254,14 @@ export class MessageService {
         });
       }
 
-      await this.conversationAi.register(message, senderId, channelId, "CHANNEL", tx, attachmentMediaId);
+      await this.conversationAi.register(
+        message,
+        senderId,
+        channelId,
+        'CHANNEL',
+        tx,
+        attachmentMediaId,
+      );
       return message;
     });
     this.conversationAi.notify(createdMessage);
@@ -494,7 +519,7 @@ export class MessageService {
     };
   }
 
-  private getMediaTypeWhere(mediaType?: string): Record<string, any> {
+  private getMediaTypeWhere(mediaType?: string): Prisma.MediaWhereInput {
     switch (mediaType) {
       case 'image':
         return { mimeType: { startsWith: 'image/' } };
@@ -621,7 +646,7 @@ export class MessageService {
     senderId?: string,
     type?: string,
   ) {
-    const whereClause: any = {
+    const whereClause: Prisma.MessageWhereInput = {
       channelId,
       deletedAt: null,
       recalled: false,
@@ -738,7 +763,7 @@ export class MessageService {
 
     return Promise.all(
       followers.map(async (follower) => {
-        const unreadSince = (follower as any).lastReadAt ?? follower.createdAt;
+        const unreadSince = follower.lastReadAt ?? follower.createdAt;
         const unreadReplyCount = await this.prisma.message.count({
           where: {
             threadParentId: follower.messageId,
@@ -746,7 +771,7 @@ export class MessageService {
             senderId: { not: userId },
           },
         });
-        const { channel, ...message } = follower.message as any;
+        const { channel, ...message } = follower.message;
         const rootMessage =
           await this.userProfileSnapshotService.attachSenderProfileToMessage({
             ...message,
@@ -804,7 +829,7 @@ export class MessageService {
             userId,
           },
         },
-        data: { lastReadAt: new Date() } as any,
+        data: { lastReadAt: new Date() },
       });
       return { following: true };
     }
@@ -814,7 +839,7 @@ export class MessageService {
         messageId,
         userId,
         lastReadAt: new Date(),
-      } as any,
+      },
     });
     return { following: true };
   }
@@ -854,7 +879,7 @@ export class MessageService {
     const lastReadAt = new Date();
     await this.prisma.threadFollower.updateMany({
       where: { messageId, userId },
-      data: { lastReadAt } as any,
+      data: { lastReadAt },
     });
 
     return { messageId, lastReadAt };
@@ -953,7 +978,11 @@ export class MessageService {
     }
   }
 
-  async addReactionAndPublish(messageId: string, userId: string, emoji: string) {
+  async addReactionAndPublish(
+    messageId: string,
+    userId: string,
+    emoji: string,
+  ) {
     const result = await this.addReaction(messageId, userId, emoji);
     const channelId = await this.getMessageChannelId(messageId);
 
@@ -1060,7 +1089,11 @@ export class MessageService {
         where: {
           channelId_userId: { channelId: message.channelId, userId },
         },
-        include: { channel: { include: { setting: true, space: { select: { createdBy: true } } } } },
+        include: {
+          channel: {
+            include: { setting: true, space: { select: { createdBy: true } } },
+          },
+        },
       });
       if (channelMember?.channel.setting?.allowCreateTask === false) {
         const spaceMember = await this.prisma.spaceMember.findUnique({
@@ -1072,7 +1105,10 @@ export class MessageService {
           },
         });
         if (
-          (channelMember.channel.visibility === ChannelVisibility.PRIVATE ? channelMember.channel.ownerId !== userId : spaceMember?.role === SpaceRole.MEMBER && channelMember.channel.space.createdBy !== userId)
+          channelMember.channel.visibility === ChannelVisibility.PRIVATE
+            ? channelMember.channel.ownerId !== userId
+            : spaceMember?.role === SpaceRole.MEMBER &&
+              channelMember.channel.space.createdBy !== userId
         ) {
           throw new BadRequestException(MESSAGE_ERROR_MESSAGES.TASK_DISABLED);
         }
@@ -1200,10 +1236,10 @@ export class MessageService {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.ALREADY_PINNED);
     }
 
-    const member = (await this.prisma.channelMember.findUnique({
+    const member = await this.prisma.channelMember.findUnique({
       where: { channelId_userId: { channelId: message.channelId, userId } },
       include: { channel: { include: { setting: true } } },
-    })) as any;
+    });
 
     if (!member) {
       throw new BadRequestException(
@@ -1225,7 +1261,9 @@ export class MessageService {
     }
 
     if (
-      (member.channel.visibility === ChannelVisibility.PRIVATE ? member.channel.ownerId !== userId : spaceMember.role === SpaceRole.MEMBER) &&
+      (member.channel.visibility === ChannelVisibility.PRIVATE
+        ? member.channel.ownerId !== userId
+        : spaceMember.role === SpaceRole.MEMBER) &&
       member.channel.setting &&
       !member.channel.setting.allowPinMessage
     ) {
@@ -1268,10 +1306,10 @@ export class MessageService {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_PINNED);
     }
 
-    const member = (await this.prisma.channelMember.findUnique({
+    const member = await this.prisma.channelMember.findUnique({
       where: { channelId_userId: { channelId: message.channelId, userId } },
       include: { channel: { include: { setting: true } } },
-    })) as any;
+    });
 
     if (!member) {
       throw new BadRequestException(
@@ -1293,7 +1331,9 @@ export class MessageService {
     }
 
     if (
-      (member.channel.visibility === ChannelVisibility.PRIVATE ? member.channel.ownerId !== userId : spaceMember.role === SpaceRole.MEMBER) &&
+      (member.channel.visibility === ChannelVisibility.PRIVATE
+        ? member.channel.ownerId !== userId
+        : spaceMember.role === SpaceRole.MEMBER) &&
       member.channel.setting &&
       !member.channel.setting.allowPinMessage
     ) {
@@ -1400,10 +1440,19 @@ export class MessageService {
       where: { messageId },
       select: { userId: true },
     });
-    const message = await this.prisma.message.findUnique({ where: { id: messageId }, select: { channelId: true } });
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: { channelId: true },
+    });
     if (!message?.channelId) return followers.map((f) => f.userId);
-    const members = await this.prisma.channelMember.findMany({ where: { channelId: message.channelId, userId: { in: followers.map(f => f.userId) } }, select: { userId: true } });
-    return members.map(member => member.userId);
+    const members = await this.prisma.channelMember.findMany({
+      where: {
+        channelId: message.channelId,
+        userId: { in: followers.map((f) => f.userId) },
+      },
+      select: { userId: true },
+    });
+    return members.map((member) => member.userId);
   }
 
   async addThreadFollower(messageId: string, userId: string): Promise<void> {
@@ -1425,9 +1474,9 @@ export class MessageService {
     }
   }
 
-  private mapChannelMessagePayload<T extends { channelId: string; medias?: any[] }>(
-    message: T,
-  ) {
+  private mapChannelMessagePayload<
+    T extends { channelId: string; medias?: { s3Key: string }[] },
+  >(message: T) {
     return {
       ...message,
       chatId: message.channelId,

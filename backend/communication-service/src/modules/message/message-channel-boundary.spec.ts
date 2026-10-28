@@ -24,12 +24,15 @@ describe('Message channel boundaries', () => {
     };
     type Dependencies = ConstructorParameters<typeof MessageService>;
     const service = new MessageService(
-      prisma as unknown as Dependencies[0],
-      {} as Dependencies[1],
+      {} as Dependencies[0],
+      prisma as unknown as Dependencies[1],
+      {} as Dependencies[2],
       {
-        attachSenderProfilesToMessages: jest.fn((messages) => messages),
-      } as unknown as Dependencies[2],
-      {} as Dependencies[3],
+        attachSenderProfilesToMessages: jest.fn(
+          (messages: unknown) => messages,
+        ),
+      } as unknown as Dependencies[3],
+      {} as Dependencies[4],
     );
     const result = await service.getConversationMessages(
       'public',
@@ -43,13 +46,11 @@ describe('Message channel boundaries', () => {
   it('rejects replies to a thread parent in another channel before updating or creating messages', async () => {
     const tx = {
       message: {
-        findUnique: jest
-          .fn()
-          .mockResolvedValue({
-            id: 'parent',
-            channelId: 'private',
-            senderId: 'owner',
-          }),
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'parent',
+          channelId: 'private',
+          senderId: 'owner',
+        }),
         create: jest.fn(),
         update: jest.fn(),
       },
@@ -61,10 +62,11 @@ describe('Message channel boundaries', () => {
     };
     type Dependencies = ConstructorParameters<typeof MessageService>;
     const service = new MessageService(
-      prisma as unknown as Dependencies[0],
-      {} as Dependencies[1],
+      {} as Dependencies[0],
+      prisma as unknown as Dependencies[1],
       {} as Dependencies[2],
       {} as Dependencies[3],
+      {} as Dependencies[4],
     );
     await expect(
       service.createMessage(

@@ -5,12 +5,13 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const cwd = resolve(root, "backend/ai-service");
+const concurrency = process.argv.includes("--serial") ? 1 : 2;
 const files = readdirSync(resolve(cwd, "test"))
   .filter((f) => f.endsWith(".test.cjs"))
   .map((f) => "test/" + f);
 const run = spawnSync(
   process.execPath,
-  ["--test", "--test-concurrency=2", ...files],
+  ["--test", "--test-concurrency=" + concurrency, ...files],
   {
     cwd,
     encoding: "utf8",
@@ -23,7 +24,7 @@ const output = (run.stdout || "") + (run.stderr || "");
 const report = {
   runAt: new Date().toISOString(),
   mode: "isolated fixtures; no live model calls",
-  concurrency: 2,
+  concurrency,
   exitCode: run.status,
   tests: Number(/# tests (\d+)/.exec(output)?.[1] ?? 0),
   passed: Number(/# pass (\d+)/.exec(output)?.[1] ?? 0),

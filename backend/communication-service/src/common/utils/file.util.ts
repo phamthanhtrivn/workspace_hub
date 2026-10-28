@@ -8,13 +8,21 @@ export const getMediaUrl = (s3Key: string): string => {
   return cloudFrontUrl ? `${cloudFrontUrl}/${s3Key}` : s3Key;
 };
 
-export const mapMediaWithUrl = (medias: any[]): any[] => {
+export function mapMediaWithUrl<T extends { s3Key: string }>(
+  medias: T[],
+): Array<T & { fileUrl: string }>;
+export function mapMediaWithUrl<T extends { s3Key: string }>(
+  medias: T[] | null | undefined,
+): Array<T & { fileUrl: string }> | null | undefined;
+export function mapMediaWithUrl<T extends { s3Key: string }>(
+  medias: T[] | null | undefined,
+) {
   if (!medias || !Array.isArray(medias)) return medias;
   return medias.map((m) => ({
     ...m,
     fileUrl: getMediaUrl(m.s3Key),
   }));
-};
+}
 
 export function getMediaType(mimeType: string): MESSAGE_MEDIA_TYPE {
   if (mimeType.startsWith('image/')) {

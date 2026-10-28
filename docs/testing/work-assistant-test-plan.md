@@ -7,10 +7,10 @@
 Chạy từ thư mục `workspace_hub`:
 
 ```powershell
-node backend/scripts/test-work-assistant.mjs
+node backend/scripts/verify-ai-service.mjs
 ```
 
-Lệnh này build AI, kiểm tra TypeScript của các phần liên quan và chạy các test đã có. Kết quả mới nhất được ghi vào [work-assistant-test-results.json](./work-assistant-test-results.json).
+Lệnh này build AI, kiểm tra TypeScript của các phần liên quan và chạy các test đã có. Kết quả mới nhất được ghi vào [ai-service-audit-results.json](./ai-service-audit-results.json).
 
 Các file kiểm thử:
 - [AI: thời gian, nguồn dữ liệu, công cụ, hội thoại, quyền, hủy và giới hạn](../../backend/ai-service/test/work-assistant.test.cjs).

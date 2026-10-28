@@ -1,3 +1,21 @@
+## Dọn ESLint Communication — 28/10/2026
+
+Đã xử lý các lỗi lint trong nhóm file Communication được nêu ở lượt dọn trước: bỏ ép kiểu `any` không cần thiết, dùng kiểu Prisma cho transaction/bộ lọc, giữ kiểu media khi thêm URL và dùng `unknown` kèm kiểm tra cấu trúc tại ranh giới phản hồi API. Đồng bộ project-space chỉ trả ba ID công khai, giữ metadata thành viên ở phía server.
+
+Đã thêm import `ChannelAccessModule` trực tiếp trong `SocketModule` để kiểm thử module độc lập khởi tạo được phụ thuộc; AppModule vốn đã nạp module toàn cục này. Hai test ranh giới kênh chat đã được cập nhật đúng thứ tự constructor hiện tại. Có thêm 24 ca kiểm tra cấu trúc phản hồi và retry xung đột project-space.
+
+Kết quả cuối: **11 file ESLint đạt, 0 lỗi/0 cảnh báo** theo cấu hình đầy đủ hiện có; kiểm tra kiểu Communication với `noUnusedLocals`/`noUnusedParameters` đạt; **46/46 bộ test, 273/273 test Communication đạt**. Đây là phạm vi 11 file đã chỉnh và bộ test của service, không phải kết quả lint toàn repository. Log và báo cáo máy nằm trong `E:/KLTN/hoho/.tmp/communication-cleanup/`.
+
+Demo frontend ở `http://localhost:3100` đã được khởi động lại cùng cấu hình API fixture để giải phóng bộ nhớ tích lũy trước khi kiểm tra.
+
+## Dọn mã và chuẩn hóa kiểm thử — 28/10/2026
+
+Đã gộp runner trợ lý vào `backend/scripts/verify-ai-service.mjs`, xóa runner/báo cáo cũ và cập nhật hướng dẫn. Đã thu hẹp sáu export AI về phạm vi file, bỏ import thừa ở Project/Communication, bỏ một hàm private không có chỗ gọi và đánh dấu các tham số bắt buộc nhưng không dùng. Build AI hiện kiểm tra biến/tham số thừa.
+
+Lượt xác minh cuối bằng `node backend/scripts/verify-ai-service.mjs --serial` đạt **196/196 test**: AI 181, frontend 4, Project 4, Calendar 1, Python 6. Kiểm tra kiểu frontend/AI/Project/Calendar và kiểm tra kiểu nghiêm ngặt Communication đều đạt. Tùy chọn `--serial` chạy từng file test AI khi máy thiếu bộ nhớ; lượt chạy cuối không áp giới hạn heap thấp cho frontend.
+
+ESLint kiểm tra cú pháp/import thừa trên năm file Communication đã dọn đạt; kiểm tra ESLint đầy đủ vẫn báo các lỗi có sẵn về `any`, truy cập không an toàn và định dạng. Kết quả UI/video bên dưới thuộc lượt kiểm tra trước. Báo cáo tự động mới nhất: [ai-service-audit-results.json](./ai-service-audit-results.json).
+
 ## Kiểm tra hồi quy AI Service — 27/10/2026
 
 Đã sửa lỗi lặp hội thoại khi tải thêm, thiếu dữ liệu khi so sánh 7/30 ngày và cấu hình STT không phù hợp worker local. Đã kiểm tra thêm độ chính xác microsecond của cursor để tránh bỏ sót hội thoại. Lượt cuối đạt **181 test AI + 4 frontend + 5 nguồn Project/Calendar + 6 Python**, sáu nhóm kiểm tra UI demo và luồng video → FFmpeg → Whisper local. Chưa xác minh deployment đầy đủ vì AI/Communication thật không phản hồi.
@@ -70,7 +88,7 @@ Vì vậy, mô phỏng đã xác nhận luồng trợ lý và hành vi model, **
 ## Chạy lại
 
 ```powershell
-node backend/scripts/test-work-assistant.mjs
+node backend/scripts/verify-ai-service.mjs
 ```
 
 [Xem cách mở demo và chạy bộ mô phỏng](./work-assistant-simulation/README.md). Chỉ áp dụng migration cho database ứng dụng thật sau khi hạ tầng và cấu hình kết nối đúng đã sẵn sàng.

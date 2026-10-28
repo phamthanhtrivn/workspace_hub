@@ -5,7 +5,7 @@ import { conversationAnswer } from "../modules/conversation-ai/conversation-agen
 import { setTimeout as pause } from "node:timers/promises";
 
 type SavedAnswer = { token: string; content: string; failed: boolean };
-export type ConversationCheckpoint = {
+type ConversationCheckpoint = {
   answer?: SavedAnswer;
   claimToken?: string;
   saveClaim?: (token: string) => Promise<void>;
@@ -107,13 +107,16 @@ export async function processConversation(
       answer = { token: claim.token, content, failed: false };
     } catch (error) {
       // Never log prompts, attachment contents, tokens or provider error messages.
-      console.error(JSON.stringify({
-        event: "conversation_generation_failed",
-        request_id: id,
-        attachment: !!claim.attachmentSummary,
-        error_type: error instanceof Error ? error.constructor.name : "UnknownError",
-        aborted: signal.aborted,
-      }));
+      console.error(
+        JSON.stringify({
+          event: "conversation_generation_failed",
+          request_id: id,
+          attachment: !!claim.attachmentSummary,
+          error_type:
+            error instanceof Error ? error.constructor.name : "UnknownError",
+          aborted: signal.aborted,
+        }),
+      );
       answer = {
         token: claim.token,
         content:

@@ -1,7 +1,7 @@
 {
-  "runAt": "2026-10-27T16:54:39.630Z",
+  "runAt": "2026-10-28T01:37:59.952Z",
   "mode": "isolated fixtures; no live model calls",
-  "concurrency": 2,
+  "concurrency": 1,
   "exitCode": 0,
   "tests": 181,
   "passed": 181,

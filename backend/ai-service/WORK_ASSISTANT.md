@@ -69,7 +69,7 @@ Local integration note: PostgreSQL on port 5433 and Docker were unavailable duri
 
 ## Repeatable test scenarios
 
-Run `node backend/scripts/test-work-assistant.mjs` from the repository root to build/check the affected packages and run the isolated assistant tests. The runner saves a machine-readable result in `docs/testing/work-assistant-test-results.json`.
+Run `node backend/scripts/verify-ai-service.mjs` from the repository root to build AI, check the affected packages' types and run the isolated AI, assistant and local-speech tests. The runner saves a machine-readable result in `docs/testing/ai-service-audit-results.json`. Add `--browser --media` when the fixture UI and speech worker are running.
 
 See [the manual test plan](../../docs/testing/work-assistant-test-plan.md) for the 29 scenarios, fixture dataset, expected metrics and separate live-integration checklist. Fixture passes are not live-model verification.
 

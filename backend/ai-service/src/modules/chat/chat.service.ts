@@ -222,7 +222,7 @@ export class ChatService {
     return {};
   }
 }
-export function safeError(error: unknown) {
+function safeError(error: unknown) {
   const message = (error as Error)?.message ?? "";
   if (
     /hạn mức|HTTP \d{3}|bị cắt|trích dẫn|thiếu trích|phiên bản|Mất quyền/i.test(

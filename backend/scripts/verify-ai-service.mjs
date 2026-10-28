@@ -59,7 +59,10 @@ const build = run(
   resolve(root, "backend/ai-service"),
 );
 if (build.status === "PASS")
-  run("ai-tests", process.execPath, ["backend/scripts/test-ai-service.mjs"]);
+  run("ai-tests", process.execPath, [
+    "backend/scripts/test-ai-service.mjs",
+    ...(process.argv.includes("--serial") ? ["--serial"] : []),
+  ]);
 else
   steps.push({ name: "ai-tests", status: "BLOCKED", reason: "Build failed" });
 const python = resolve(
@@ -67,11 +70,31 @@ const python = resolve(
   "backend/ai-service/.venv",
   process.platform === "win32" ? "Scripts/python.exe" : "bin/python",
 );
+run(
+  "frontend-types",
+  process.execPath,
+  ["node_modules/typescript/bin/tsc", "--noEmit", "--incremental", "false"],
+  resolve(root, "frontend/web"),
+);
 run("frontend-stream-tests", process.execPath, [
   "--test",
   "frontend/web/scripts/work-assistant.test.mjs",
 ]);
-for (const service of ["project", "calendar"])
+for (const service of ["project", "calendar"]) {
+  const cwd = resolve(root, "backend/" + service + "-service");
+  run(
+    service + "-source-types",
+    process.execPath,
+    [
+      "node_modules/typescript/bin/tsc",
+      "--project",
+      "tsconfig.build.json",
+      "--noEmit",
+      "--incremental",
+      "false",
+    ],
+    cwd,
+  );
   run(
     service + "-source-tests",
     process.execPath,
@@ -82,8 +105,9 @@ for (const service of ["project", "calendar"])
       "src/modules/work-assistant/work-assistant.service.spec.ts",
       "--silent",
     ],
-    resolve(root, "backend/" + service + "-service"),
+    cwd,
   );
+}
 if (existsSync(python))
   run(
     "speech-tests",
