@@ -9,6 +9,7 @@ import {
   type MeetingSummaryState,
 } from "../modules/meeting-summary/pipeline";
 import { MEETING_LIMITS } from "../modules/meeting-summary/limits";
+import { pollUntilAborted } from "../common/abort-polling";
 
 export async function processMeetingSummary(
   recordingId: string,
@@ -45,7 +46,6 @@ export async function processMeetingSummary(
         (timings[stage] || 0) + Math.round(performance.now() - start);
     }
   };
-  let checking = false;
   const authorize = async () => {
     signal.throwIfAborted();
     const current = await meetingSource(recordingId, state.actor_id, signal);
@@ -53,15 +53,11 @@ export async function processMeetingSummary(
       throw new Error("Recording revision changed");
     return current;
   };
-  const timer = setInterval(() => {
-    if (checking) return;
-    checking = true;
-    void authorize()
-      .catch(() => controller.abort())
-      .finally(() => {
-        checking = false;
-      });
-  }, MEETING_LIMITS.accessCheckIntervalMs);
+  const stopPolling = pollUntilAborted(
+    controller,
+    MEETING_LIMITS.accessCheckIntervalMs,
+    authorize,
+  );
   const checkpoint = async (stage: string) => {
     currentStage = stage;
     signal.throwIfAborted();
@@ -128,7 +124,7 @@ export async function processMeetingSummary(
       [recordingId, runId],
     );
   } finally {
-    clearInterval(timer);
+    stopPolling();
     controller.abort();
   }
 }

@@ -3,7 +3,8 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from "@nestjs/common";
-import { randomUUID, timingSafeEqual } from "node:crypto";
+import { randomUUID } from "node:crypto";
+import { matchesServiceKey } from "../../common/auth/service-key";
 import { config } from "../../config/env.config";
 import { rows } from "../../infrastructure/database/database";
 import { meetingSummaryQueue } from "../../infrastructure/queue/notebook.queue";
@@ -21,12 +22,7 @@ export class MeetingSummaryService {
       throw new ServiceUnavailableException(
         "Meeting summaries are not configured",
       );
-    if (
-      typeof key !== "string" ||
-      Buffer.byteLength(key) !== Buffer.byteLength(expected) ||
-      !timingSafeEqual(Buffer.from(key), Buffer.from(expected))
-    )
-      throw new UnauthorizedException();
+    if (!matchesServiceKey(key, expected)) throw new UnauthorizedException();
   }
 
   async status(id: string) {

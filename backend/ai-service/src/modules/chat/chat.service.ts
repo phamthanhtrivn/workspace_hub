@@ -1,14 +1,15 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type { Response } from "express";
-import { event } from "../../common/sse";
+import { event, startEventStream } from "../../common/sse";
+import { pollUntilAborted } from "../../common/abort-polling";
 import { rows } from "../../infrastructure/database/database";
 import { authorizeSources } from "../../infrastructure/integrations/document.client";
 import { SourcesService } from "../sources/sources.service";
 import { ownedNotebook } from "../../common/auth/notebook-access";
 import { citeEvidence, selectSources } from "../../common/evidence-policy";
 import { retrieve } from "../../infrastructure/integrations/rag.client";
-import type { Actor, Citation, Source } from "../../common/types";
+import type { Actor, Citation, Snapshot, Source } from "../../common/types";
 import { createChatAuthorization } from "./chat-authorization";
 import { config } from "../../config/env.config";
 
@@ -22,6 +23,22 @@ import {
   isFollowUp,
   retrievalQuestion,
 } from "./chat-history";
+
+type ChatStreamInput = {
+  actor: Actor;
+  notebookId: string;
+  question: string;
+  sourceIds: string[];
+  requestId: string;
+  res: Response;
+  sources: Source[];
+  controller: AbortController;
+};
+
+type ChatGenerationInput = ChatStreamInput & {
+  snapshot: Snapshot[];
+  authorize: () => Promise<void>;
+};
 
 @Injectable()
 export class ChatService {
@@ -71,20 +88,11 @@ export class ChatService {
     }
   }
 
-  private async streamAnswer(input: {
-    actor: Actor;
-    notebookId: string;
-    question: string;
-    sourceIds: string[];
-    requestId: string;
-    res: Response;
-    sources: Source[];
-    controller: AbortController;
-  }) {
+  private async streamAnswer(input: ChatStreamInput) {
     const { actor, notebookId, question, requestId, res, sources, controller } =
       input;
     const reply = immediateReply(question);
-    const snapshot = sources.map((s) => ({ id: s.id, revision: s.revision }));
+    const snapshot = sources.map(({ id, revision }) => ({ id, revision }));
     const authorize = createChatAuthorization({
       actor,
       sources,
@@ -99,27 +107,17 @@ export class ChatService {
       );
       if (state?.status !== "RUNNING") controller.abort();
     };
-    let checking = false;
-    const timer = setInterval(() => {
-      if (checking || controller.signal.aborted) return;
-      checking = true;
-      void check()
-        .catch(() => controller.abort())
-        .finally(() => {
-          checking = false;
-        });
-    }, config.CHAT_CANCEL_POLL_MS);
+    const stopPolling = pollUntilAborted(
+      controller,
+      config.CHAT_CANCEL_POLL_MS,
+      check,
+    );
     const permissions = setInterval(() => {
       if (!controller.signal.aborted)
         void authorize().catch(() => controller.abort());
     }, 3000);
     try {
-      res.status(200).set({
-        "content-type": "text/event-stream; charset=utf-8",
-        "cache-control": "no-cache, no-transform",
-        "x-accel-buffering": "no",
-      });
-      res.flushHeaders();
+      startEventStream(res);
       event(res, "status", {
         requestId,
         stage: reply ? "GENERATING" : "RETRIEVING",
@@ -152,23 +150,15 @@ export class ChatService {
           : safeError(error),
       });
     } finally {
-      clearInterval(timer);
+      stopPolling();
       clearInterval(permissions);
       controller.abort();
       res.end();
     }
   }
-  private async generateReply(input: {
-    actor: Actor;
-    notebookId: string;
-    question: string;
-    sourceIds: string[];
-    res: Response;
-    sources: Source[];
-    snapshot: { id: string; revision: string }[];
-    controller: AbortController;
-    authorize: () => Promise<void>;
-  }): Promise<{ content: string; citations: Citation[]; artifactId?: string }> {
+  private async generateReply(
+    input: ChatGenerationInput,
+  ): Promise<{ content: string; citations: Citation[]; artifactId?: string }> {
     const {
       actor,
       notebookId,

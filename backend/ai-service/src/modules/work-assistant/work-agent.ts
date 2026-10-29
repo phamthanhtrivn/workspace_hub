@@ -13,14 +13,21 @@ import { createChatModel } from "../../infrastructure/integrations/chat-model";
 import { admitModel } from "../../infrastructure/integrations/llm.client";
 import type { StoredMessage, WorkContext } from "./work-assistant.types";
 
+const MAX_CONTEXT_BYTES = 20000;
+const BYTES_PER_TOKEN = 3;
+const MONTHLY_WINDOW = /\b(?:30|ba muoi|thirty)\s*(?:ngay|days?)\b/;
+
+function normalizeQuestion(question: string) {
+  return question.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+}
+
 export function requestedWorkDays(question: string): 7 | 30 {
-  const plain = question.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-  return /\b(?:30|ba muoi|thirty)\s*(?:ngay|days?)\b/.test(plain) ? 30 : 7;
+  return MONTHLY_WINDOW.test(normalizeQuestion(question)) ? 30 : 7;
 }
 
 export function requestedWorkWindows(question: string): (7 | 30)[] {
-  const plain = question.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-  const monthly = /\b(?:30|ba muoi|thirty)\s*(?:ngay|days?)\b/.test(plain);
+  const plain = normalizeQuestion(question);
+  const monthly = MONTHLY_WINDOW.test(plain);
   const weekly =
     /\b(?:7|bay|seven)\s*(?:ngay|days?)\b/.test(plain) ||
     /\b(?:7|bay|seven)\s*(?:va|and|vs\.?|voi|versus|\/|&)\s*(?:30|ba muoi|thirty)\s*(?:ngay|days?)\b/.test(
@@ -28,12 +35,13 @@ export function requestedWorkWindows(question: string): (7 | 30)[] {
     );
   const comparing =
     /\b(?:so sanh|compare|comparison|versus|vs|voi|va|and)\b/.test(plain);
-  return monthly && weekly && comparing
-    ? [7, 30]
-    : [requestedWorkDays(question)];
+  return monthly && weekly && comparing ? [7, 30] : [monthly ? 30 : 7];
 }
 
-export function modelContext(context: WorkContext, byteBudget = 20000) {
+export function modelContext(
+  context: WorkContext,
+  byteBudget = MAX_CONTEXT_BYTES,
+) {
   const { busy, projectIds, ...data } = context;
   const result = {
     ...data,
@@ -63,6 +71,49 @@ export function modelContext(context: WorkContext, byteBudget = 20000) {
     data.tasks.some((t) => t.checklist.length > 4 || t.blockedBy.length > 4);
   return result;
 }
+
+function fitContextToBudget(
+  messages: BaseMessage[],
+  context: WorkContext,
+  maxTokens: number,
+) {
+  const promptBudget =
+    (config.LLM_TOKENS_PER_MINUTE - maxTokens) * BYTES_PER_TOKEN;
+  const otherBytes = Buffer.byteLength(
+    JSON.stringify(
+      messages.filter((message) => !(message instanceof ToolMessage)),
+    ),
+  );
+  let contextBudget = Math.max(
+    800,
+    Math.min(MAX_CONTEXT_BYTES, promptBudget - otherBytes - 700),
+  );
+  const toolIndex = messages.findLastIndex(
+    (message) => message instanceof ToolMessage,
+  );
+  let tokens = 0;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    if (toolIndex >= 0)
+      messages[toolIndex].content = JSON.stringify(
+        modelContext(context, contextBudget),
+      );
+    tokens =
+      Math.ceil(Buffer.byteLength(JSON.stringify(messages)) / BYTES_PER_TOKEN) +
+      maxTokens;
+    if (tokens <= config.LLM_TOKENS_PER_MINUTE)
+      return { contextBudget, tokens };
+    contextBudget = Math.max(
+      0,
+      contextBudget -
+        (tokens - config.LLM_TOKENS_PER_MINUTE) * BYTES_PER_TOKEN -
+        256,
+    );
+  }
+  throw new TooManyRequestsException(
+    "AI token budget is too small for this question. Shorten the question or clear older history.",
+  );
+}
+
 export async function workAnswer(
   question: string,
   history: StoredMessage[],
@@ -72,10 +123,7 @@ export async function workAnswer(
   onStatus: (message: string) => void,
 ) {
   let latest = initial;
-  const plainQuestion = question
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase();
+  const plainQuestion = normalizeQuestion(question);
   const hasOtherWindow = /\b(?:30|ba muoi|thirty|thang|months?)\b/.test(
     plainQuestion,
   );
@@ -83,7 +131,7 @@ export async function workAnswer(
     initial.days === 30 ||
     (!hasOtherWindow &&
       /\b(?:hom nay|today|7\s*(?:ngay|days?))\b/.test(plainQuestion));
-  let contextBudget = 20000;
+  let contextBudget = MAX_CONTEXT_BYTES;
   const cache = new Map<number, WorkContext>([[initial.days, initial]]);
   const schema = z.object({ days: z.enum(["7", "30"]) }).strict();
   const contextTool = tool(
@@ -164,38 +212,9 @@ export async function workAnswer(
   const model = createChatModel(modelName, maxTokens);
   for (let step = 0; step < 3; step++) {
     signal.throwIfAborted();
-    const promptBudget = (config.LLM_TOKENS_PER_MINUTE - maxTokens) * 3;
-    const otherBytes = Buffer.byteLength(
-      JSON.stringify(
-        messages.filter((message) => !(message instanceof ToolMessage)),
-      ),
-    );
-    contextBudget = Math.max(
-      800,
-      Math.min(20000, promptBudget - otherBytes - 700),
-    );
-    const toolIndex = messages
-      .map((message) => message instanceof ToolMessage)
-      .lastIndexOf(true);
-    let size = 0;
-    for (let attempt = 0; attempt < 6; attempt++) {
-      if (toolIndex >= 0)
-        messages[toolIndex].content = JSON.stringify(
-          modelContext(latest, contextBudget),
-        );
-      size =
-        Math.ceil(Buffer.byteLength(JSON.stringify(messages)) / 3) + maxTokens;
-      if (size <= config.LLM_TOKENS_PER_MINUTE) break;
-      contextBudget = Math.max(
-        0,
-        contextBudget - (size - config.LLM_TOKENS_PER_MINUTE) * 3 - 256,
-      );
-    }
-    if (size > config.LLM_TOKENS_PER_MINUTE)
-      throw new TooManyRequestsException(
-        "AI token budget is too small for this question. Shorten the question or clear older history.",
-      );
-    await admitModel(size, modelName);
+    const fitted = fitContextToBudget(messages, latest, maxTokens);
+    contextBudget = fitted.contextBudget;
+    await admitModel(fitted.tokens, modelName);
     signal.throwIfAborted();
     onStatus("Đang phân tích công việc…");
     const toolChoice = step < 2 && !usePrefetchedWindow ? "auto" : "none";

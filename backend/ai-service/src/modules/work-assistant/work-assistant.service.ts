@@ -4,7 +4,8 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import type { Response } from "express";
-import { event } from "../../common/sse";
+import { event, startEventStream } from "../../common/sse";
+import { pollUntilAborted } from "../../common/abort-polling";
 import { z } from "zod";
 import {
   overviewSchema,
@@ -49,7 +50,11 @@ export class WorkAssistantService {
       audience: session.project_id ? audience : "mine",
     };
   }
-  private async visible(actor: Actor, messages: StoredMessage[], signal?: AbortSignal) {
+  private async visible(
+    actor: Actor,
+    messages: StoredMessage[],
+    signal?: AbortSignal,
+  ) {
     const references = [...new Set(messages.flatMap((m) => m.project_ids))];
     const allowed = await this.context.authorize(actor, references, signal);
     return messages.map((m) =>
@@ -175,28 +180,12 @@ export class WorkAssistantService {
       timedOut = true;
       controller.abort();
     }, 105000);
-    let polling = false;
-    const poll = setInterval(() => {
-      if (polling || controller.signal.aborted) return;
-      polling = true;
-      void this.store
-        .canceled(actor, requestId)
-        .then((canceled) => {
-          if (canceled) controller.abort();
-        })
-        .catch(() => controller.abort())
-        .finally(() => {
-          polling = false;
-        });
-    }, 1000);
+    const stopPolling = pollUntilAborted(controller, 1000, async () => {
+      if (await this.store.canceled(actor, requestId)) controller.abort();
+    });
     const close = () => controller.abort();
     res.once("close", close);
-    res.status(200).set({
-      "content-type": "text/event-stream; charset=utf-8",
-      "cache-control": "no-cache, no-transform",
-      "x-accel-buffering": "no",
-    });
-    res.flushHeaders();
+    startEventStream(res);
     event(res, "request", { requestId });
     const heartbeat = setInterval(() => {
       if (!res.destroyed) res.write(": heartbeat\n\n");
@@ -221,15 +210,11 @@ export class WorkAssistantService {
       event(res, "error", {
         requestId,
         status,
-        message: timedOut
-          ? "Hết thời gian chờ AI. Vui lòng thử lại sau."
-          : controller.signal.aborted
-            ? "Yêu cầu đã dừng."
-            : status === 403
-              ? "Quyền truy cập đã thay đổi. Vui lòng mở lại trợ lý."
-              : status === 429
-                ? "AI đang chờ hạn mức. Hãy thử lại sau."
-                : "Chưa thể trả lời lúc này. Vui lòng thử lại; trợ lý chưa thay đổi dữ liệu công việc.",
+        message: this.failureMessage(
+          status,
+          timedOut,
+          controller.signal.aborted,
+        ),
       });
       console.warn(
         JSON.stringify({
@@ -243,11 +228,20 @@ export class WorkAssistantService {
       timing.finish(completed ? "ok" : "failed");
       controller.abort();
       clearTimeout(timeout);
-      clearInterval(poll);
+      stopPolling();
       clearInterval(heartbeat);
       res.off("close", close);
       res.end();
     }
+  }
+
+  private failureMessage(status: number, timedOut: boolean, canceled: boolean) {
+    if (timedOut) return "Hết thời gian chờ AI. Vui lòng thử lại sau.";
+    if (canceled) return "Yêu cầu đã dừng.";
+    if (status === 403)
+      return "Quyền truy cập đã thay đổi. Vui lòng mở lại trợ lý.";
+    if (status === 429) return "AI đang chờ hạn mức. Hãy thử lại sau.";
+    return "Chưa thể trả lời lúc này. Vui lòng thử lại; trợ lý chưa thay đổi dữ liệu công việc.";
   }
 
   private async initialContext(

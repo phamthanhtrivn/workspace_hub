@@ -3,6 +3,7 @@ import { summarizeAttachment } from "../modules/conversation-ai/attachment-summa
 import { config } from "../config/env.config";
 import { conversationAnswer } from "../modules/conversation-ai/conversation-agent";
 import { setTimeout as pause } from "node:timers/promises";
+import { pollUntilAborted } from "../common/abort-polling";
 
 type SavedAnswer = { token: string; content: string; failed: boolean };
 type ConversationCheckpoint = {
@@ -74,17 +75,10 @@ export async function processConversation(
     const authorize = () =>
       communication(id, "validate", { token: claim.token }, signal);
     let authorizeSource: (() => Promise<void>) | undefined;
-    let checking = false;
-    const timer = setInterval(() => {
-      if (checking) return;
-      checking = true;
-      void authorize()
-        .then(() => authorizeSource?.())
-        .catch(() => controller.abort())
-        .finally(() => {
-          checking = false;
-        });
-    }, 5000);
+    const stopPolling = pollUntilAborted(controller, 5000, async () => {
+      await authorize();
+      await authorizeSource?.();
+    });
     try {
       const content = claim.attachmentSummary
         ? await summarizeAttachment(
@@ -126,7 +120,7 @@ export async function processConversation(
         failed: true,
       };
     } finally {
-      clearInterval(timer);
+      stopPolling();
       controller.abort();
     }
     // Save before delivery. A BullMQ retry can resend this result without another model call.
