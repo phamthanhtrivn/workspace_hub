@@ -4,6 +4,7 @@ dist/
 *.log
 
 # Python runtime and test artifacts
+.venv/
 __pycache__/
 *.py[cod]
 *$py.class

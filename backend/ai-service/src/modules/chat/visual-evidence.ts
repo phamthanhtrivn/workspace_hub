@@ -19,23 +19,41 @@ export async function visualEvidence(
     )
   )
     return [];
-  const result: VisualInput[] = [];
+  const ready = new Map(
+    sources
+      .filter((source) => source.status === "READY")
+      .map((source) => [source.id, source]),
+  );
+  const candidates: {
+    source_id: string;
+    revision: string;
+    image_id: string;
+    label: string;
+    position: number;
+  }[] = [];
   const seen = new Set<string>();
   for (const item of evidence) {
-    const source = sources.find(
-      (source) => source.id === item.sourceId && source.status === "READY",
-    );
+    const source = ready.get(item.sourceId);
     if (!source || !item.imageId || !/^[a-f0-9]{64}$/.test(item.imageId))
       continue;
     const key = `${source.id}:${item.imageId}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    const [image] = await rows<{ data_url: string }>(
-      "SELECT data_url FROM notebook_ai.source_visuals WHERE source_id=$1 AND revision=$2 AND image_id=$3",
-      [source.id, source.revision, item.imageId],
-    );
-    if (image) result.push({ label: item.label, dataUrl: image.data_url });
-    if (result.length === 2) break;
+    candidates.push({
+      source_id: source.id,
+      revision: source.revision,
+      image_id: item.imageId,
+      label: item.label,
+      position: candidates.length,
+    });
   }
-  return result;
+  if (!candidates.length) return [];
+  const images = await rows<{ label: string; data_url: string }>(
+    "SELECT requested.label,v.data_url FROM jsonb_to_recordset($1::jsonb) AS requested(source_id uuid,revision text,image_id text,label text,position int) JOIN notebook_ai.source_visuals v ON v.source_id=requested.source_id AND v.revision=requested.revision AND v.image_id=requested.image_id ORDER BY requested.position LIMIT 2",
+    [JSON.stringify(candidates)],
+  );
+  return images.map((image) => ({
+    label: image.label,
+    dataUrl: image.data_url,
+  }));
 }

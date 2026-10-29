@@ -55,11 +55,41 @@ services:
     mem_limit: ${RAG_MEMORY_LIMIT:-2g}
     logging: *bounded-logs
     healthcheck:
-      test: [CMD, python, -c, "import os,urllib.request; r=urllib.request.Request('http://127.0.0.1:8088/ready',headers={'x-internal-service-key':os.environ['RAG_SERVICE_KEY']}); urllib.request.urlopen(r,timeout=10).close()"]
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "import os,urllib.request; r=urllib.request.Request('http://127.0.0.1:8088/ready',headers={'x-internal-service-key':os.environ['RAG_SERVICE_KEY']}); urllib.request.urlopen(r,timeout=10).close()",
+        ]
       interval: 30s
       timeout: 12s
       retries: 3
       start_period: 180s
+  speech-worker:
+    profiles: [meeting-summary]
+    build: ../../backend/speech-worker
+    environment:
+      SPEECH_SERVICE_KEY: ${MEETING_STT_SERVICE_KEY:-}
+      STT_MODEL_PATH: /models/small
+      STT_CPU_THREADS: ${MEETING_STT_CPU_THREADS:-4}
+      HF_HUB_OFFLINE: "1"
+    expose: ["8090"]
+    restart: unless-stopped
+    mem_limit: 3g
+    logging: *bounded-logs
+    healthcheck:
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "import os,urllib.request; r=urllib.request.Request('http://127.0.0.1:8090/ready',headers={'x-internal-service-key':os.environ['SPEECH_SERVICE_KEY']}); urllib.request.urlopen(r,timeout=5).close()",
+        ]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 120s
   migrate:
     build: ../../backend/ai-service
     env_file: .env
@@ -81,7 +111,13 @@ services:
     restart: unless-stopped
     logging: *bounded-logs
     healthcheck:
-      test: [CMD, node, -e, "fetch('http://127.0.0.1:8087/ready',{signal:AbortSignal.timeout(8000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:8087/ready',{signal:AbortSignal.timeout(8000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

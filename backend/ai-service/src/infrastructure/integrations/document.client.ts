@@ -9,7 +9,9 @@ export async function resolveDocuments(
   actor: Actor,
   refs: { documentId: string; versionId?: string }[],
   download = false,
+  signal?: AbortSignal,
 ): Promise<Manifest[]> {
+  signal?.throwIfAborted();
   let response: Response;
   try {
     response = await fetch(
@@ -26,22 +28,28 @@ export async function resolveDocuments(
           refs,
           download,
         }),
-        signal: AbortSignal.timeout(10000),
+        signal: signal
+          ? AbortSignal.any([signal, AbortSignal.timeout(10000)])
+          : AbortSignal.timeout(10000),
         redirect: "error",
       },
     );
   } catch {
+    signal?.throwIfAborted();
     throw new ServiceUnavailableException("Không xác minh được quyền tài liệu");
   }
-  if (response.status === 403 || response.status === 404)
-    throw new ForbiddenException("Nguồn đã bị xóa hoặc mất quyền truy cập");
-  if (response.status === 401)
-    throw new ServiceUnavailableException(
-      "Khóa nội bộ giữa AI và Document Service chưa khớp cấu hình",
-    );
-  if (!response.ok)
+  if (!response.ok) {
+    await response.body?.cancel();
+    if (response.status === 403 || response.status === 404)
+      throw new ForbiddenException("Nguồn đã bị xóa hoặc mất quyền truy cập");
+    if (response.status === 401)
+      throw new ServiceUnavailableException(
+        "Khóa nội bộ giữa AI và Document Service chưa khớp cấu hình",
+      );
     throw new ServiceUnavailableException("Document Service chưa sẵn sàng");
+  }
   const result = (await response.json()) as { data: Manifest[] };
+  signal?.throwIfAborted();
   return result.data;
 }
 
@@ -49,7 +57,9 @@ export async function authorizeSources(
   actor: Actor,
   sources: Source[],
   download = false,
+  signal?: AbortSignal,
 ) {
+  signal?.throwIfAborted();
   if (!sources.length) return [];
   const manifests = await resolveDocuments(
     actor,
@@ -58,6 +68,7 @@ export async function authorizeSources(
       versionId: s.version_id,
     })),
     download,
+    signal,
   );
   for (let i = 0; i < sources.length; i++) {
     const manifest = manifests[i];

@@ -20,6 +20,7 @@ import type {
 } from "../common/types";
 import { setTimeout as pause } from "node:timers/promises";
 import { ModelMinuteQuotaException } from "../common/errors/model-quota.exception";
+import { pollUntilAborted } from "../common/abort-polling";
 const sourcesService = new SourcesService();
 type Section = { content: string; citations: Citation[]; sourceId: string };
 export async function summarize(id: string) {
@@ -51,30 +52,21 @@ export async function summarize(id: string) {
     throw new UnrecoverableError("Source snapshot unavailable");
   }
   const controller = new AbortController();
-  let checking = false;
-  const timer = setInterval(() => {
-    if (checking) return;
-    checking = true;
-    void (async () => {
-      const [state] = await rows(
-        "SELECT status FROM notebook_ai.artifacts WHERE id=$1",
-        [id],
-      );
-      if (!state || state.status === "CANCELLED") controller.abort();
-      if (
-        !visibleSnapshot(
-          artifact.sources,
-          await sourcesService.sources(artifact.notebook_id),
-        )
+  const stopPolling = pollUntilAborted(controller, 1000, async () => {
+    const [state] = await rows(
+      "SELECT status FROM notebook_ai.artifacts WHERE id=$1",
+      [id],
+    );
+    if (!state || state.status === "CANCELLED") controller.abort();
+    if (
+      !visibleSnapshot(
+        artifact.sources,
+        await sourcesService.sources(artifact.notebook_id),
       )
-        controller.abort();
-      await authorizeSources(actor, sources);
-    })()
-      .catch(() => controller.abort())
-      .finally(() => {
-        checking = false;
-      });
-  }, 1000);
+    )
+      controller.abort();
+    await authorizeSources(actor, sources);
+  });
   try {
     await rows(
       "UPDATE notebook_ai.artifacts SET status='RUNNING',error=NULL,updated_at=now() WHERE id=$1 AND status<>'CANCELLED'",
@@ -143,7 +135,9 @@ export async function summarize(id: string) {
             "UPDATE notebook_ai.artifacts SET in_flight=false,updated_at=now() WHERE id=$1 AND status='RUNNING'",
             [id],
           );
-          await pause(60000, undefined, { signal: controller.signal });
+          await pause(error.retryAfterMs + Math.random() * 250, undefined, {
+            signal: controller.signal,
+          });
           controller.signal.throwIfAborted();
           await authorizeSources(actor, sources);
         }
@@ -192,7 +186,7 @@ export async function summarize(id: string) {
       error instanceof Error ? error.name : "Summary failed",
     );
   } finally {
-    clearInterval(timer);
+    stopPolling();
     controller.abort();
   }
 }

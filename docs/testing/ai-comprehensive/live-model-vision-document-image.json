@@ -1,0 +1,29 @@
+{
+  "runAt": "2026-10-29T12:56:21.609Z",
+  "providerOrigin": "https://vibi.top",
+  "notebookModel": "deepseek-v4.1-flash",
+  "agentModel": "gpt-6.1-sol",
+  "mode": "real configured provider; synthetic inputs; PGlite quota reservations; no gateway, live source permissions or application persistence",
+  "requestBudget": 5,
+  "requests": [
+    {
+      "case": "vision-document-image",
+      "status": 200
+    }
+  ],
+  "cases": [
+    {
+      "id": "vision-document-image",
+      "status": "PASS",
+      "answer": "**Loại hình:** Ảnh tài liệu dạng văn bản (không có bảng, biểu đồ, mũi tên hay trục). Nền trắng, chữ in hoa và chữ thường, canh trái.\n\n**Nội dung đọc được (nguyên văn):**\n\n1. Tiêu đề (màu đen): **ATLAS PILOT BUDGET - SYNTHETIC FIXTURE**\n2. Dòng màu xanh lá: **Approved: 108,000,000 VND**\n3. Dòng màu xanh lá: **VAT INCLUDED**\n4. Dòng màu đỏ nâu: **Draft: 120,000,000 VND**\n5. Dòng màu đỏ nâu: **CANCELLED / NOT APPROVED**\n\n**Số liệu và đơn vị:**\n- Approved (đã duyệt): 108,000,000 VND, gồm VAT.\n- Draft (bản nháp): 120,000,000 VND, đã hủy/không được duyệt.\n\n**Quan hệ và xu hướng (mô tả):**\n- Hai nhóm được phân biệt bằng màu: xanh lá cho bản đã duyệt, đỏ nâu cho bản nháp bị hủy.\n- Số tiền bản nháp lớn hơn số tiền đã duyệt đúng 12,000,000 VND (theo phép trừ từ hai số đã ghi).\n- Không có công thức, đồ thị hay chú thích nào khác trong ảnh.\n\n**Phần mờ/không đọc được:** Không thấy chữ mờ; toàn bộ văn bản đọc rõ.\n\n*Phân biệt:* Các dòng trên là nội dung nhìn thấy trực tiếp. Việc \"bản nháp bị hủy nên không dùng số 120,000,000 VND\" là suy luận từ nhãn, không phải số liệu bổ sung.",
+      "checks": {
+        "readsApprovedBudget": true,
+        "identifiesCurrency": true,
+        "preservesCancelledDraft": true
+      },
+      "durationMs": 5048
+    }
+  ],
+  "selection": "vision-document-image",
+  "note": "Small smoke checks and explicit output criteria; not a general quality or deployment certification."
+}

@@ -5,7 +5,7 @@ import { admitConversationModel } from "../conversation-ai/model-admission";
 import { createHash } from "node:crypto";
 import { MEETING_LIMITS } from "./limits";
 
-export const MEETING_PROMPT_VERSION = "meeting-summary-v1";
+const MEETING_PROMPT_VERSION = "meeting-summary-v1";
 export function meetingSummaryCacheKey(
   text: string,
   promptVersion = MEETING_PROMPT_VERSION,

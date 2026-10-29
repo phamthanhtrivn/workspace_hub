@@ -7,6 +7,17 @@ export async function checkHttpDependencies() {
       signal: AbortSignal.timeout(3000),
       redirect: "error",
     }),
+    ...(config.MEETING_SUMMARY_ENABLED === "true"
+      ? [
+          fetch(config.MEETING_STT_URL.replace(/\/$/, "") + "/ready", {
+            headers: {
+              "x-internal-service-key": config.MEETING_STT_SERVICE_KEY,
+            },
+            signal: AbortSignal.timeout(3000),
+            redirect: "error",
+          }),
+        ]
+      : []),
     // A correctly authenticated malformed request reaches validation (400),
     // without accessing any user's documents or generating presigned URLs.
     fetch(
@@ -28,9 +39,11 @@ export async function checkHttpDependencies() {
   );
   try {
     if (
-      responses.length !== 2 ||
+      responses.length !==
+        (config.MEETING_SUMMARY_ENABLED === "true" ? 3 : 2) ||
       !responses[0].ok ||
-      responses[1].status !== 400
+      responses.at(-1)?.status !== 400 ||
+      (config.MEETING_SUMMARY_ENABLED === "true" && !responses[1].ok)
     )
       throw new Error("AI dependency unavailable or misconfigured");
   } finally {

@@ -23,6 +23,7 @@ import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { OpenUserSettingsContext } from "@/features/user-setting/hooks/use-open-user-settings";
 import { cn } from "@/lib/utils";
 import WorkspaceHeader from "./workspace-header";
+import WorkAssistantLauncher from "@/features/work-assistant/components/work-assistant-launcher";
 import { PomodoroMiniTimer } from "@/features/pomodoro/components/pomodoro-mini-timer";
 import { Button } from "@/components/ui/button";
 import { SheetPanel } from "@/components/ui/sheet";
@@ -335,6 +336,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
         </main>
       </div>
 
+      <WorkAssistantLauncher />
       <UserSettingsModal
         isOpen={isSettingsModalOpen}
         onClose={handleCloseSettings}

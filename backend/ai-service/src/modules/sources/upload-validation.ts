@@ -11,8 +11,8 @@ import type { Manifest, Source } from "../../common/types";
 import { profiled } from "../../common/profiling/pipeline-profiler";
 import { config } from "../../config/env.config";
 
-export const MAX_FILE_BYTES = 20 * 1024 * 1024;
-export const MAX_NOTEBOOK_BYTES = 50 * 1024 * 1024;
+const MAX_FILE_BYTES = 20 * 1024 * 1024;
+const MAX_NOTEBOOK_BYTES = 50 * 1024 * 1024;
 
 export function checkFile(name: string, size: number) {
   const supported =

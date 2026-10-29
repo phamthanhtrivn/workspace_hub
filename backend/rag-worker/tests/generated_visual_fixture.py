@@ -3,11 +3,12 @@ import base64
 import io
 import json
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
+from fixture_font import fixture_font
 
 image = Image.new("RGB", (1500, 700), "white")
 draw = ImageDraw.Draw(image)
-font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 42)
+font = fixture_font(42)
 draw.text((40, 50), "Doanh thu năm 2026: 120 triệu đồng", fill="black", font=font)
 draw.text((40, 130), "Chi phí: 80 triệu đồng. Lợi nhuận: 40 triệu đồng.", fill="black", font=font)
 draw.rectangle((130, 280, 350, 500), fill="red")

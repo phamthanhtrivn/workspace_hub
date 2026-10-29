@@ -1,0 +1,87 @@
+{
+  "runAt": "2026-10-29T14:46:58.431Z",
+  "mode": "isolated SQL and source/auth fixtures; no external model or cloud speech calls",
+  "automatedPassed": true,
+  "requestedChecksComplete": true,
+  "aiTests": {
+    "total": 305,
+    "passed": 305,
+    "failed": 0
+  },
+  "steps": [
+    {
+      "name": "ai-build",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 16396
+    },
+    {
+      "name": "ai-tests",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 37530
+    },
+    {
+      "name": "ai-lint",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 22251
+    },
+    {
+      "name": "frontend-types",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 48718
+    },
+    {
+      "name": "frontend-stream-tests",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 823,
+      "tests": 4
+    },
+    {
+      "name": "project-source-types",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 3531
+    },
+    {
+      "name": "project-source-tests",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 14151,
+      "tests": 4
+    },
+    {
+      "name": "calendar-source-types",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 3759
+    },
+    {
+      "name": "calendar-source-tests",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 5456,
+      "tests": 1
+    },
+    {
+      "name": "speech-tests",
+      "status": "PASS",
+      "exitCode": 0,
+      "durationMs": 1038,
+      "tests": 6
+    }
+  ],
+  "liveDeployment": {
+    "verified": false,
+    "aiService": {
+      "reachable": false
+    },
+    "communicationService": {
+      "reachable": false
+    },
+    "reason": "Full authenticated deployment, provider behavior and real recording permissions are separate live scenarios; fixture checks do not certify them"
+  }
+}

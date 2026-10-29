@@ -3,7 +3,7 @@ import { SpaceRole } from '@prisma/client';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { CHANNEL_ERROR_MESSAGES } from '../channel/types/channel.enums';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()

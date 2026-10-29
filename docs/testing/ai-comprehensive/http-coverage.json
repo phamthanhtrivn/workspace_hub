@@ -1,0 +1,279 @@
+{
+  "runAt": "2026-10-29T14:59:37.359Z",
+  "mode": "real Nest HTTP and upstream HTTP sockets; PGlite SQL; fixture Redis/BullMQ and model outputs",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "statuses": [
+        200
+      ],
+      "requests": 1,
+      "maxMs": 2
+    },
+    {
+      "method": "GET",
+      "path": "/ready",
+      "statuses": [
+        200
+      ],
+      "requests": 1,
+      "maxMs": 9
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/notebooks/:id/messages",
+      "statuses": [
+        200,
+        400,
+        401,
+        409
+      ],
+      "requests": 9,
+      "maxMs": 514
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/requests/:id/cancel",
+      "statuses": [
+        201,
+        400,
+        401
+      ],
+      "requests": 3,
+      "maxMs": 5
+    },
+    {
+      "method": "POST",
+      "path": "/internal/conversation-ai/:id",
+      "statuses": [
+        201,
+        401
+      ],
+      "requests": 3,
+      "maxMs": 2
+    },
+    {
+      "method": "POST",
+      "path": "/internal/meeting-summaries/:id/status",
+      "statuses": [
+        201,
+        401
+      ],
+      "requests": 2,
+      "maxMs": 3
+    },
+    {
+      "method": "POST",
+      "path": "/internal/meeting-summaries/:id",
+      "statuses": [
+        201,
+        400,
+        401
+      ],
+      "requests": 5,
+      "maxMs": 6
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/notebooks",
+      "statuses": [
+        200,
+        401
+      ],
+      "requests": 3,
+      "maxMs": 3
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/notebooks",
+      "statuses": [
+        201,
+        400,
+        401,
+        413
+      ],
+      "requests": 5,
+      "maxMs": 4
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/notebooks/:id",
+      "statuses": [
+        200,
+        400,
+        401,
+        404
+      ],
+      "requests": 7,
+      "maxMs": 7
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/ai/notebooks/:id",
+      "statuses": [
+        200,
+        400,
+        401
+      ],
+      "requests": 3,
+      "maxMs": 4
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/ai/notebooks/:id",
+      "statuses": [
+        200,
+        400,
+        401
+      ],
+      "requests": 3,
+      "maxMs": 4
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/notebooks/:id/sources/:sourceId/images/:imageId",
+      "statuses": [
+        201,
+        400,
+        401,
+        404
+      ],
+      "requests": 4,
+      "maxMs": 7
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/notebooks/:id/upload-checks",
+      "statuses": [
+        201,
+        400,
+        401
+      ],
+      "requests": 3,
+      "maxMs": 8
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/notebooks/:id/sources",
+      "statuses": [
+        201,
+        400,
+        401
+      ],
+      "requests": 3,
+      "maxMs": 20
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/notebooks/:id/sources/:sourceId/:action",
+      "statuses": [
+        201,
+        400,
+        401,
+        403
+      ],
+      "requests": 6,
+      "maxMs": 12
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/notebooks/:id/notes",
+      "statuses": [
+        201,
+        400,
+        401
+      ],
+      "requests": 5,
+      "maxMs": 6
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/ai/notebooks/:id/notes/:noteId",
+      "statuses": [
+        200,
+        400,
+        401
+      ],
+      "requests": 3,
+      "maxMs": 3
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/notebooks/:id/artifacts",
+      "statuses": [
+        201,
+        400,
+        401
+      ],
+      "requests": 4,
+      "maxMs": 7
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/work-assistant/overview",
+      "statuses": [
+        200,
+        400,
+        401
+      ],
+      "requests": 3,
+      "maxMs": 16
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/work-assistant/session",
+      "statuses": [
+        200,
+        401,
+        404
+      ],
+      "requests": 3,
+      "maxMs": 5
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/work-assistant/sessions",
+      "statuses": [
+        200,
+        401
+      ],
+      "requests": 2,
+      "maxMs": 4
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/work-assistant/sessions",
+      "statuses": [
+        201,
+        401
+      ],
+      "requests": 2,
+      "maxMs": 7
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/work-assistant/sessions/:id/messages",
+      "statuses": [
+        200,
+        400,
+        401
+      ],
+      "requests": 3,
+      "maxMs": 28
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/work-assistant/requests/:id/cancel",
+      "statuses": [
+        201,
+        400,
+        401
+      ],
+      "requests": 3,
+      "maxMs": 3
+    }
+  ],
+  "upstreamCalls": 49,
+  "queuedOperations": 7
+}

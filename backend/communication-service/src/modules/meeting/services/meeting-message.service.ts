@@ -525,7 +525,7 @@ export class MeetingMessageService {
   }
 
   private async mapMeetingMessagePayloads<
-    T extends { senderId: string; medias?: unknown[] },
+    T extends { senderId: string; medias?: { s3Key: string }[] },
   >(messages: T[]) {
     const mappedMessages = messages.map((message) => ({
       ...message,
@@ -538,7 +538,7 @@ export class MeetingMessageService {
   }
 
   private async mapMeetingMessagePayload<
-    T extends { senderId: string; medias?: unknown[] },
+    T extends { senderId: string; medias?: { s3Key: string }[] },
   >(message: T) {
     const [mappedMessage] = await this.mapMeetingMessagePayloads([message]);
     return mappedMessage;

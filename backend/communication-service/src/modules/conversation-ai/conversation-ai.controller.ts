@@ -42,15 +42,6 @@ export class ConversationAiController {
     if (action === 'validate') return this.ai.validate(id, data.token);
     if (action === 'attachment') return this.ai.attachment(id, data.token);
     if (action === 'history') return this.ai.history(id, data.token);
-    if (action === 'tasks') {
-      if (
-        data.scope !== 'today' &&
-        data.scope !== 'overdue' &&
-        data.scope !== 'open'
-      )
-        throw new BadRequestException();
-      return this.ai.tasks(id, data.token, data.scope);
-    }
     if (
       action === 'complete' &&
       typeof data.content === 'string' &&

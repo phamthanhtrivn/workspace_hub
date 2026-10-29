@@ -113,7 +113,7 @@ export async function prepareMeetingAudio(
     throw new Error("Recording audio duration is invalid");
   return files.map((name) => join(directory, name));
 }
-export function runFfmpeg(args: string[], signal: AbortSignal) {
+function runFfmpeg(args: string[], signal: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(config.MEETING_FFMPEG_PATH, args, {
       windowsHide: true,

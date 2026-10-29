@@ -1,5 +1,3 @@
-import { ConversationTasksController } from "./conversation-tasks.controller";
-import { ConversationTasksService } from "./conversation-tasks.service";
 import { Module, forwardRef } from "@nestjs/common";
 import { TaskController } from "./task.controller";
 import { TaskService } from "./task.service";
@@ -20,9 +18,8 @@ import { TaskSyncModule } from "../task-sync/task-sync.module";
     forwardRef(() => NotificationOutboxModule),
     UserProfileSnapshotModule,
   ],
-  controllers: [TaskController, ConversationTasksController],
+  controllers: [TaskController],
   providers: [
-    ConversationTasksService,
     TaskService,
     TaskPolicyService,
     TaskDocumentClient,
