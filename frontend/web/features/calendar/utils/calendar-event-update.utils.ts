@@ -15,6 +15,7 @@ export function buildCalendarEventUpdate(
 ): UpdateCalendarEventPayload {
   const payload: UpdateCalendarEventPayload = {
     recurrenceScope: values.recurrenceScope,
+    ...(values.conference && values.conference.enabled !== Boolean(event.conference?.enabled) ? { conference: values.conference } : {}),
   };
   const scalarFields = [
     "calendarId",

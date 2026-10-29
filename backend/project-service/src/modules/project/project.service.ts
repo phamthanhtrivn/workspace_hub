@@ -1,3 +1,4 @@
+import { enqueueProjectAccessSync } from "./project-access-sync";
 import {
   BadGatewayException,
   BadRequestException,
@@ -97,25 +98,12 @@ export class ProjectService {
           },
         },
       });
+      await enqueueProjectAccessSync(tx, created.id);
       return created;
     });
 
     const ownerProfile = await this.userProfiles.getProfileByUserId(userId);
-    try {
-      await this.projectDocuments.ensureProjectRootFolder({
-        projectId: project.id,
-        name: project.name,
-        ownerId: project.ownerId,
-        ownerEmail: this.resolveOwnerEmail(project.ownerId, ownerProfile?.email),
-        members: [],
-      });
-    } catch {
-      await this.prisma.project
-        .delete({ where: { id: project.id } })
-        .catch(() => undefined);
-      throw new BadGatewayException('Unable to create project documents folder');
-    }
-    return toProjectResponse(project, {}, ownerProfile);
+    return { ...toProjectResponse(project, {}, ownerProfile), accessSync: { projectId: project.id, documents: "PENDING", chat: "PENDING", message: null } };
   }
 
   async findAll(userId: string, query: ProjectListQueryDto) {
@@ -226,10 +214,21 @@ export class ProjectService {
     );
   }
 
+  async getAccessSync(userId: string, projectId: string) {
+    await this.access.requireReadAccess(userId, projectId);
+    const job = await this.prisma.projectAccessSyncJob.findUnique({ where: { projectId } });
+    return { projectId, documents: job?.documentStatus ?? 'PENDING', chat: job?.chatStatus ?? 'PENDING', message: job?.lastError ?? null };
+  }
+  async retryAccessSync(userId: string, projectId: string) {
+    await this.access.requireReadAccess(userId, projectId);
+    await this.prisma.$transaction(tx => enqueueProjectAccessSync(tx, projectId));
+    return this.getAccessSync(userId, projectId);
+  }
+
   async findOne(userId: string, projectId: string) {
     const project = await this.access.requireReadAccess(userId, projectId);
     const ownerProfile = await this.userProfiles.getProfileByUserId(project.ownerId);
-    return toProjectResponse(project, {}, ownerProfile);
+    return { ...toProjectResponse(project, {}, ownerProfile), accessSync: await this.getAccessSync(userId, projectId) };
   }
 
   async openProjectSpace(userId: string, projectId: string) {
@@ -270,6 +269,7 @@ export class ProjectService {
     try {
       const projectSpace = await this.projectSpaces.ensureProjectSpace({
         projectId,
+        syncRevision: (await this.prisma.projectAccessSyncJob.findUnique({ where: { projectId } }))?.revision.toString(),
         name: project.name,
         ownerId: project.ownerId,
         members: Array.from(roleByUserId.entries()).map(([memberUserId, role]) => ({
@@ -290,6 +290,7 @@ export class ProjectService {
         },
         occurredAt: new Date().toISOString(),
       });
+      await this.prisma.$transaction(tx => enqueueProjectAccessSync(tx, projectId));
       return projectSpace;
     } catch {
       throw new BadGatewayException('Unable to open project chat space');
@@ -366,8 +367,10 @@ export class ProjectService {
   async syncProjectSpaceAccess(
     projectId: string,
     project?: Awaited<ReturnType<ProjectAccessService['findProject']>>,
+    revision?: bigint,
   ) {
     const currentProject = project ?? await this.access.findProject(projectId);
+    const syncRevision = revision?.toString() ?? (await this.prisma.projectAccessSyncJob.findUnique({ where: { projectId } }))?.revision.toString();
     let status;
     try {
       status = await this.projectSpaces.getProjectSpaceStatus(projectId);
@@ -404,6 +407,7 @@ export class ProjectService {
       return await this.projectSpaces.ensureProjectSpace({
         projectId,
         name: currentProject.name,
+        syncRevision,
         ownerId: currentProject.ownerId,
         members: Array.from(roleByUserId.entries()).map(
           ([memberUserId, role]) => ({
@@ -425,8 +429,10 @@ export class ProjectService {
   async syncProjectDocumentAccess(
     projectId: string,
     project?: Awaited<ReturnType<ProjectAccessService['findProject']>>,
+    revision?: bigint,
   ) {
     const currentProject = project ?? await this.access.findProject(projectId);
+    const syncRevision = revision?.toString() ?? (await this.prisma.projectAccessSyncJob.findUnique({ where: { projectId } }))?.revision.toString();
     const ownerProfile = await this.userProfiles.getProfileByUserId(
       currentProject.ownerId,
     );
@@ -448,6 +454,7 @@ export class ProjectService {
       return await this.projectDocuments.ensureProjectRootFolder({
         projectId,
         name: currentProject.name,
+        syncRevision,
         ownerId: currentProject.ownerId,
         ownerEmail: this.resolveOwnerEmail(currentProject.ownerId, ownerProfile?.email),
         members: members
@@ -511,34 +518,14 @@ export class ProjectService {
       data.archived = dto.status === ProjectStatus.ARCHIVED;
     }
 
-    let syncedProjectSpace = false;
-    if (nextProjectName !== undefined && nextProjectName !== current.name) {
-      try {
-        const result = await this.projectSpaces.renameProjectSpace(
-          projectId,
-          nextProjectName,
-          userId,
-        );
-        syncedProjectSpace = result.spaceId !== null;
-      } catch {
-        throw new BadGatewayException('Unable to sync project chat space name');
-      }
-    }
-
     let project;
     try {
-      project = await this.prisma.project.update({
-        where: { id: projectId, version: current.version },
-        data: { ...data, version: { increment: 1 } },
+      project = await this.prisma.$transaction(async tx => {
+        const updated = await tx.project.update({ where: { id: projectId, version: current.version }, data: { ...data, version: { increment: 1 } } });
+        if (nextProjectName !== undefined && nextProjectName !== current.name) await enqueueProjectAccessSync(tx, projectId);
+        return updated;
       });
-    } catch (error) {
-      if (syncedProjectSpace) {
-        await this.projectSpaces
-          .renameProjectSpace(projectId, current.name, userId)
-          .catch(() => undefined);
-      }
-      rethrowWriteConflict(error, 'Project was changed by another request');
-    }
+    } catch (error) { rethrowWriteConflict(error, 'Project was changed by another request'); }
 
     const ownerProfile = await this.userProfiles.getProfileByUserId(project.ownerId);
     return toProjectResponse(project, {}, ownerProfile);
@@ -574,10 +561,10 @@ export class ProjectService {
       return { projectId, name: current.name };
     }
 
-    const project = await this.prisma.project.update({
-      where: { id: projectId },
-      data: { name, version: { increment: 1 } },
-      select: { id: true, name: true },
+    const project = await this.prisma.$transaction(async tx => {
+      const updated = await tx.project.update({ where: { id: projectId }, data: { name, version: { increment: 1 } }, select: { id: true, name: true } });
+      await enqueueProjectAccessSync(tx, projectId);
+      return updated;
     });
 
     return { projectId: project.id, name: project.name };

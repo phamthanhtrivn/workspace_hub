@@ -301,10 +301,10 @@ export function useChatMessageActions({
   );
 
   const handlePollVoteMessage = useCallback(
-    async (messageId: string, pollOptionId: string) => {
+    async (messageId: string, pollOptionId: string, selected?: boolean) => {
       if (!conversationId) return;
       try {
-        await voteChannelPoll(conversationId, messageId, pollOptionId);
+        await voteChannelPoll(conversationId, messageId, pollOptionId, selected);
       } catch (error: unknown) {
         toast.error(getErrorMessage(error, "Failed to vote in poll"));
       }
@@ -334,19 +334,15 @@ export function useChatMessageActions({
       isLocked: boolean,
     ) => {
       if (!conversationId) return;
-      try {
-        await editChannelPoll(conversationId, messageId, {
-          title,
-          multipleChoice,
-          allowAddOptions,
-          anonymous,
-          isLocked,
-        });
-      } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to edit poll"));
-      }
+      await editChannelPoll(conversationId, messageId, {
+        title,
+        multipleChoice,
+        allowAddOptions,
+        anonymous,
+        isLocked,
+      });
     },
-    [conversationId, getErrorMessage],
+    [conversationId],
   );
 
   // ─── Note ──────────────────────────────────────────────────────────────────

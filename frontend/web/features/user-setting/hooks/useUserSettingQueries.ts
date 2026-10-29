@@ -132,8 +132,6 @@ export const useRevokeUserSessionMutation = () => {
 };
 
 export const useUploadAvatarMutation = () => {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationKey: [UserSettingMutationKey.UPLOAD_AVATAR],
     mutationFn: async ({
@@ -162,21 +160,7 @@ export const useUploadAvatarMutation = () => {
         },
       };
     },
-    onSuccess: (response) => {
-      queryClient.setQueryData<ApiResponse<UserProfile>>(
-        userSettingKeys.profile,
-        (current) =>
-          current
-            ? {
-                ...current,
-                data: {
-                  ...current.data,
-                  avatarUrl: response.data.avatarUrl,
-                },
-              }
-            : response,
-      );
-    },
+
   });
 };
 

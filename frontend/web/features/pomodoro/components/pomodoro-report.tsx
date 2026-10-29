@@ -28,17 +28,17 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
   const [hideEmptyDays, setHideEmptyDays] = useState(false);
   const [dailyPage, setDailyPage] = useState(1);
   const [sessionPage, setSessionPage] = useState(1);
-  const query = usePomodoroReport(range, lastUpdated, dates.today);
+  const query = usePomodoroReport(range, lastUpdated, dates.today, dates.timeZone);
   const selection = usePomodoroReportFilters(query.data, query.isSuccess && !query.isFetching);
   const filters = selection.filters;
   const sessions = query.data ?? EMPTY_SESSIONS;
-  const report = useMemo(() => query.validationError ? null : buildPomodoroReport(sessions, range, filters),
-    [sessions, range, filters, query.validationError]);
+  const report = useMemo(() => query.validationError ? null : buildPomodoroReport(sessions, range, filters, new Date(), dates.timeZone),
+    [sessions, range, filters, query.validationError, dates.timeZone]);
   const ready = !query.validationError && !query.isPending && !query.isError;
   const visibleDays = getPomodoroReportDays(report?.daily ?? [], hideEmptyDays);
   const dailyPagination = getPomodoroPagination(visibleDays.length, dailyPage, POMODORO_REPORT_PAGE_SIZE);
   const sessionPagination = getPomodoroPagination(report?.sessions.length ?? 0, sessionPage, POMODORO_REPORT_PAGE_SIZE);
-  const contextKey = `${range.startDate}/${range.endDate}/${filters.source}/${filters.project}/${filters.task}`;
+  const contextKey = `${dates.timeZone}/${range.startDate}/${range.endDate}/${filters.source}/${filters.project}/${filters.task}`;
   const [previousContext, setPreviousContext] = useState(contextKey);
 
   if (previousContext !== contextKey) {

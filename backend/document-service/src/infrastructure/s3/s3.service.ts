@@ -1,10 +1,11 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  CopyObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
@@ -101,6 +102,22 @@ export class S3Service {
       console.error(`Error deleting file from S3 (${s3Key}):`, error);
       throw new InternalServerErrorException('Failed to delete file from S3');
     }
+  }
+
+  async assertUploadSize(s3Key: string, expectedBytes: number): Promise<void> {
+    const object = await this.s3Client.send(new HeadObjectCommand({ Bucket: this.bucketName, Key: s3Key }));
+    if (!Number.isSafeInteger(expectedBytes) || expectedBytes < 0 || object.ContentLength !== expectedBytes) {
+      throw new BadRequestException('Uploaded file size does not match its metadata');
+    }
+  }
+
+  async copyFile(sourceKey: string, ownerUserId: string, fileName: string): Promise<string> {
+    const key = `${DOCUMENT_CONSTANTS.S3_FOLDER}/${ownerUserId}/${uuidv4()}_${fileName.replace(/\s+/g, '_')}`;
+    await this.s3Client.send(new CopyObjectCommand({
+      Bucket: this.bucketName, Key: key,
+      CopySource: `${this.bucketName}/${sourceKey.split('/').map(encodeURIComponent).join('/')}`,
+    }));
+    return key;
   }
 
   /**

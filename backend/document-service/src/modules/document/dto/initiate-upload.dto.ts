@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsOptional, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsInt, Min, IsOptional, IsUUID } from 'class-validator';
 
 export class InitiateUploadDto {
   @IsString()
@@ -9,7 +9,8 @@ export class InitiateUploadDto {
   @IsNotEmpty({ message: 'Mime type cannot be empty' })
   mimeType: string;
 
-  @IsNumber()
+  @IsInt()
+  @Min(0)
   @IsNotEmpty({ message: 'File size cannot be empty' })
   sizeBytes: number;
 

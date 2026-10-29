@@ -70,3 +70,4 @@ export function isNotificationInCategory(
 ): boolean {
   return category === "ALL" || getNotificationCategory(notification) === category;
 }
+export const NOTIFICATION_READ_COMMITTED_EVENT = "notification-read-committed";

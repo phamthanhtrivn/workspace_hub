@@ -1,3 +1,4 @@
+import { Temporal } from "temporal-polyfill";
 import type { PomodoroSessionRecord } from "../types/pomodoro";
 import { POMODORO_REPORT_COPY as copy, POMODORO_REPORT_MAX_DAYS, POMODORO_REPORT_SOURCES } from "../constants/pomodoro-report";
 
@@ -8,7 +9,8 @@ export type PomodoroReportPreset = "today" | "week" | "month";
 export type PomodoroReportRangeErrors = Partial<Record<keyof PomodoroReportRange, string>>;
 const DAY_MS = 86_400_000;
 
-export function localDateKey(date: Date): string {
+export function localDateKey(date: Date, timeZone?: string): string {
+  if (timeZone) return Temporal.Instant.from(date.toISOString()).toZonedDateTimeISO(timeZone).toPlainDate().toString();
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
@@ -23,9 +25,9 @@ export function presetReportRange(preset: PomodoroReportPreset, now = new Date()
   return { startDate: localDateKey(start), endDate: localDateKey(end) };
 }
 
-export function reportRangeErrors(range: PomodoroReportRange, now = new Date()): PomodoroReportRangeErrors {
+export function reportRangeErrors(range: PomodoroReportRange, now = new Date(), timeZone?: string): PomodoroReportRangeErrors {
   const errors: PomodoroReportRangeErrors = {};
-  const today = localDateKey(now);
+  const today = localDateKey(now, timeZone);
   for (const field of ["startDate", "endDate"] as const) {
     const value = range[field];
     const date = new Date(`${value}T00:00:00`);
@@ -44,18 +46,19 @@ export function reportRangeErrors(range: PomodoroReportRange, now = new Date()):
 }
 
 // Full local-day bounds also drive daily buckets; request bounds use a separate cutoff.
-export function reportRangeBounds(range: PomodoroReportRange, now = new Date()) {
-  const errors = reportRangeErrors(range, now);
+export function reportRangeBounds(range: PomodoroReportRange, now = new Date(), timeZone?: string) {
+  const errors = reportRangeErrors(range, now, timeZone);
   const error = errors.startDate || errors.endDate;
   if (error) throw new Error(error);
+  if (timeZone) return { startAt: Temporal.PlainDate.from(range.startDate).toZonedDateTime(timeZone).toInstant().toString(), endAt: Temporal.PlainDate.from(range.endDate).add({ days: 1 }).toZonedDateTime(timeZone).toInstant().toString() };
   const start = new Date(`${range.startDate}T00:00:00`);
   const end = new Date(`${range.endDate}T00:00:00`);
   end.setDate(end.getDate() + 1);
   return { startAt: start.toISOString(), endAt: end.toISOString() };
 }
 
-export function reportRequestBounds(range: PomodoroReportRange, now = new Date()) {
-  const bounds = reportRangeBounds(range, now);
+export function reportRequestBounds(range: PomodoroReportRange, now = new Date(), timeZone?: string) {
+  const bounds = reportRangeBounds(range, now, timeZone);
   return { ...bounds, endAt: new Date(Math.min(Date.parse(bounds.endAt), now.getTime())).toISOString() };
 }
 
@@ -103,9 +106,9 @@ export function reconcileReportFilters(sessions: PomodoroSessionRecord[], filter
 }
 
 export function buildPomodoroReport(
-  sessions: PomodoroSessionRecord[], range: PomodoroReportRange, filters: PomodoroReportFilters, now = new Date(),
+  sessions: PomodoroSessionRecord[], range: PomodoroReportRange, filters: PomodoroReportFilters, now = new Date(), timeZone?: string,
 ) {
-  const { startAt, endAt } = reportRangeBounds(range, now);
+  const { startAt, endAt } = reportRangeBounds(range, now, timeZone);
   const cutoff = Math.min(Date.parse(endAt), now.getTime());
   const selected = sessions.filter((session) => {
     const startedAt = Date.parse(session.startedAt);
@@ -115,14 +118,14 @@ export function buildPomodoroReport(
       (!filters.task || sessionTaskKey(session) === filters.task);
   }).sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt) || b.id.localeCompare(a.id));
   const days = new Map<string, { date: string; focusSeconds: number; completedFocusSessions: number; totalSessions: number }>();
-  for (const day = new Date(startAt); day < new Date(endAt); day.setDate(day.getDate() + 1)) {
-    const date = localDateKey(day);
+  for (let day = Temporal.PlainDate.from(range.startDate); Temporal.PlainDate.compare(day, range.endDate) <= 0; day = day.add({ days: 1 })) {
+    const date = day.toString();
     days.set(date, { date, focusSeconds: 0, completedFocusSessions: 0, totalSessions: 0 });
   }
   let stoppedFocusSessions = 0;
   let skippedFocusSessions = 0;
   for (const session of selected) {
-    const day = days.get(localDateKey(new Date(session.startedAt)))!;
+    const day = days.get(localDateKey(new Date(session.startedAt), timeZone))!;
     day.totalSessions += 1;
     if (session.sessionType !== "FOCUS") continue;
     day.focusSeconds += session.actualSeconds;

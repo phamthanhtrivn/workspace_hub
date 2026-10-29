@@ -268,6 +268,7 @@ export function QuickCreateModal({
                 attendees={controller.attendees}
                 onAttendeesChange={controller.setAttendees}
                 locationValue={locationValue}
+                conferenceUrl={event?.conference?.status === "READY" && event.conference.joinToken ? `/meetings/${event.conference.joinToken}` : ""}
                 onLocationChange={(val) =>
                   setValue("location", val, { shouldDirty: true })
                 }

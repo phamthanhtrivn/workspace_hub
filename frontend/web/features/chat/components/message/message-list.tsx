@@ -25,7 +25,7 @@ interface MessageListProps {
   spaceCreatorId?: string;
   conversationMembers?: { userId: string; role?: "ADMIN" | "MEMBER" }[];
   onReact: (messageId: string, emoji: string, action: "add" | "remove") => void;
-  onPollVote: (messageId: string, pollOptionId: string) => void;
+  onPollVote: (messageId: string, pollOptionId: string, selected?: boolean) => void | Promise<unknown>;
   onPollAddOption: (messageId: string, text: string) => void;
   onPollEdit: (
     messageId: string,
@@ -34,7 +34,7 @@ interface MessageListProps {
     allowAddOptions: boolean,
     anonymous: boolean,
     isLocked: boolean,
-  ) => void;
+  ) => void | Promise<unknown>;
   onNoteEdit: (messageId: string, title: string, content: string) => void;
   onEditMessage: (msg: RenderableChatMessage) => void;
   onRecallMessage: (msg: RenderableChatMessage) => void;

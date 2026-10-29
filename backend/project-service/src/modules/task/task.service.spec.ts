@@ -41,6 +41,13 @@ describe('TaskService relation rules', () => {
     ).resolves.toBeUndefined();
   });
 
+  it('excludes cancelled, deleted and archived children from the completion guard', async () => {
+    const service = createService();
+    const count = jest.fn().mockResolvedValue(0);
+    await (service as any).assertCanCompleteTaskWithSubtasks('parent', { task: { count } });
+    expect(count).toHaveBeenCalledWith({ where: { parentTaskId: 'parent', deletedAt: null, archived: false, status: { notIn: ['DONE', 'CANCELLED'] } } });
+  });
+
   it('rejects assigning a parent when a direct dependency already exists', async () => {
     const service = createService();
     const database = {

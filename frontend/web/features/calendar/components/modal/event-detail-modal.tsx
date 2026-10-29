@@ -2,6 +2,7 @@
 
 
 
+
 import {
   AlignLeft,
   Bell,
@@ -23,7 +24,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/store/store";
 import { useAttendeeProfiles } from "../../hooks/use-calendar-users";
-import { useCalendarEvent } from "../../hooks/use-calendar-queries";
+import { useCalendarEvent, useRetryCalendarConference } from "../../hooks/use-calendar-queries";
+import { buildCalendarMeetingUrl } from "../../utils/calendar-conference.utils";
 
 import { CalendarDocumentsSection } from "./calendar-documents-section";
 import {
@@ -71,6 +73,7 @@ export function EventDetailModal({
     open && initialEvent ? initialEvent.id : null,
   );
   const event = freshEvent ?? initialEvent;
+  const retryConference = useRetryCalendarConference();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dialogRef = useRef<HTMLDivElement>(null);
   const resolvedProfiles = useAttendeeProfiles(event, open);
@@ -123,12 +126,10 @@ export function EventDetailModal({
     }
   };
 
-  const hasMeeting =
-    event.location &&
-    (event.location.includes("/meetings/") ||
-      event.location.includes("meet.google.com"));
+  const meetingUrl = event.conference?.status === "READY" && event.conference.joinToken ? buildCalendarMeetingUrl(event.conference.joinToken) : event.location?.includes("meet.google.com") ? event.location : null;
+  const hasMeeting = Boolean(meetingUrl);
 
-  const hasPhysicalLocation = event.location && !hasMeeting;
+  const hasPhysicalLocation = event.location && !event.location.includes("meet.google.com");
 
   const reminderText =
     event.reminders && event.reminders.length > 0
@@ -286,6 +287,12 @@ export function EventDetailModal({
           </div>
 
           {/* Row 4: Meeting Video Conferencing (if present) */}
+          {event.conference?.enabled && ["PENDING", "FAILED"].includes(event.conference.status) && (
+            <div role="status" className="space-y-2 rounded-control border border-border p-3 text-sm">
+              <p>{event.conference.status === "FAILED" ? "Meeting preparation failed. Your event is saved; preparation will retry automatically." : "Your event is saved. The meeting link is being prepared."}</p>
+              {event.permissions?.canManage && <Button type="button" size="sm" variant="outline" loading={retryConference.isPending} onClick={() => retryConference.mutate(event.id, { onError: () => toast.error("Unable to retry meeting preparation. Please try again.") })}>Retry now</Button>}
+            </div>
+          )}
           {hasMeeting && (
             <div className="flex items-start gap-4">
               <div className="mt-1 flex w-5 shrink-0 justify-center">
@@ -294,15 +301,15 @@ export function EventDetailModal({
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <a
-                    href={event.location!}
+                    href={meetingUrl!}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 rounded-panel bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:bg-primary"
                   >
                     <span>
-                      {event.location!.includes("meet.google.com")
+                      {meetingUrl!.includes("meet.google.com")
                         ? "Join with Google Meet"
-                        : event.location!.includes("/meetings/")
+                        : meetingUrl!.includes("/meetings/")
                           ? "Join with Workspace Hub Meeting"
                           : "Join Meeting"}
                     </span>
@@ -312,7 +319,7 @@ export function EventDetailModal({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleCopyMeeting(event.location!)}
+                    onClick={() => handleCopyMeeting(meetingUrl!)}
                     className="grid h-8 w-8 cursor-pointer place-items-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     title="Copy meeting link"
                   >
@@ -324,7 +331,7 @@ export function EventDetailModal({
                   </Button>
                 </div>
                 <p className="truncate text-xs font-mono text-muted-foreground">
-                  {event.location!.replace(/^https?:\/\//, "")}
+                  {meetingUrl!.replace(/^https?:\/\//, "")}
                 </p>
               </div>
             </div>

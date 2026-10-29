@@ -256,10 +256,11 @@ export const voteChannelPoll = async (
   channelId: string,
   messageId: string,
   pollOptionId: string,
+  selected?: boolean,
 ): Promise<ApiResponse<ChatMessageResponse>> => {
   const response = await api.post(
     `/api/polls/${channelId}/messages/${messageId}/votes`,
-    { pollOptionId },
+    { pollOptionId, selected },
   );
   return normalizeApiResponse<ChatMessageResponse>(response.data);
 };

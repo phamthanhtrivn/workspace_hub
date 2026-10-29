@@ -1,3 +1,4 @@
+import { CalendarConferenceDto } from './calendar-conference.dto';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -18,6 +19,11 @@ import { CalendarEventAttendeeDto } from './calendar-event-attendee.dto';
 import { CalendarEventReminderDto } from './calendar-event-reminder.dto';
 
 export class CreateCalendarEventDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CalendarConferenceDto)
+  conference?: CalendarConferenceDto;
+
   @IsUUID()
   calendarId: string;
 

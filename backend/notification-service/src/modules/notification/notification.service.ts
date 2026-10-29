@@ -1,3 +1,4 @@
+import { NotificationEvent } from './types/notification.events';
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateNotificationDto } from "./dtos/create-notification.dto";
@@ -28,8 +29,13 @@ export class NotificationService {
     createDto: CreateNotificationDto,
     options: { sendPush?: boolean } = {},
   ): Promise<Notification> {
-    const saved = await this.prisma.notification.create({
+    const deliveryId = createDto.metadata && typeof createDto.metadata.deliveryId === "string" ? createDto.metadata.deliveryId : null;
+    const deduplicationId = deliveryId ? `delivery:${deliveryId}:${createDto.recipientId}` : undefined;
+    let saved: Notification;
+    try {
+      saved = await this.prisma.notification.create({
       data: {
+        ...(deduplicationId ? { id: deduplicationId } : {}),
         recipientId: createDto.recipientId,
         senderId: createDto.senderId,
         senderName: createDto.senderName,
@@ -43,6 +49,13 @@ export class NotificationService {
           : Prisma.JsonNull,
       },
     });
+
+    } catch (error) {
+      if (deduplicationId && error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        return this.prisma.notification.findUniqueOrThrow({ where: { id: deduplicationId } });
+      }
+      throw error;
+    }
 
     // Publish to realtime socket room
     this.notificationGateway.server
@@ -155,10 +168,9 @@ export class NotificationService {
       return null;
     }
 
-    return this.prisma.notification.update({
-      where: { id: notification.id },
-      data: { isRead: true },
-    });
+    const updated = await this.prisma.notification.update({ where: { id: notification.id }, data: { isRead: true } });
+    this.notificationGateway.server.to(recipientId).emit(NotificationEvent.CHANGED, { reason: 'READ', notificationId: id });
+    return updated;
   }
 
   async markAllAsRead(recipientId: string): Promise<number> {
@@ -169,6 +181,7 @@ export class NotificationService {
       },
       data: { isRead: true },
     });
+    this.notificationGateway.server.to(recipientId).emit(NotificationEvent.CHANGED, { reason: "READ_ALL" });
     return result.count;
   }
 

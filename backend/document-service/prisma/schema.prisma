@@ -33,6 +33,16 @@ model UserStorageQuota {
   @@map("user_storage_quotas")
 }
 
+model StorageCleanupJob {
+  id            String   @id @default(uuid()) @db.Uuid
+  s3Key         String   @unique @map("s3_key")
+  attemptCount  Int      @default(0) @map("attempt_count")
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  @@index([nextAttemptAt])
+  @@map("storage_cleanup_jobs")
+}
+
 model DocumentItem {
   id             String          @id @default(uuid()) @db.Uuid
   ownerUserId    String          @map("owner_user_id") @db.Uuid
@@ -44,6 +54,8 @@ model DocumentItem {
   s3Key          String?         @map("s3_key") // Point to the active version's S3 object
   mimeType       String?         @map("mime_type")
   sizeBytes      BigInt          @default(0) @map("size_bytes")
+  accessSyncRevision BigInt @default(0) @map("access_sync_revision")
+  importKey      String?         @unique @map("import_key")
   
   // Trash details
   isArchived     Boolean         @default(false) @map("is_archived") // Soft delete

@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { config } from 'dotenv';
 import { PrismaClient, Calendar, ReminderMethod } from '@prisma/client';
 import { RecurrenceScope } from '../../common/enums/calendar.enum';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -7,29 +6,30 @@ import { CalendarRecurrenceService } from './calendar-recurrence.service';
 import { RecurrenceMutationService } from './recurrence-mutation.service';
 import { EventRelationService } from './event-relation.service';
 import { eventWithRelationsInclude } from './calendar-event.types';
+import { CalendarConferenceSyncService } from './calendar-conference-sync.service';
 
 // Opt in against a local PostgreSQL database; every record belongs to a test calendar.
 const integration =
-  process.env.TEST_RECURRENCE_DATABASE === '1' ? describe : describe.skip;
+  process.env.TEST_UX_POSTGRES === 'true' ? describe : describe.skip;
 integration('Recurrence transactions (PostgreSQL)', () => {
   let prisma: PrismaClient;
   let recurrence: CalendarRecurrenceService;
   let mutations: RecurrenceMutationService;
   let calendar: Calendar;
+  let cleanup: () => Promise<void>;
   const owner = randomUUID();
   const startAt = '2026-10-05T02:00:00.000Z';
   const endAt = '2026-10-05T03:00:00.000Z';
 
-  beforeAll(() => {
-    config({ quiet: true });
-    prisma = new PrismaClient();
+  beforeAll(async () => {
+    ({ prisma, cleanup } = await require('../../../../scripts/isolated-postgres.cjs').isolatedPostgres(process.cwd()));
     recurrence = new CalendarRecurrenceService(prisma as PrismaService);
     mutations = new RecurrenceMutationService(
       prisma as PrismaService,
       recurrence,
       new EventRelationService(),
     );
-  });
+  }, 60_000);
   beforeEach(async () => {
     calendar = await prisma.calendar.create({
       data: {
@@ -44,7 +44,7 @@ integration('Recurrence transactions (PostgreSQL)', () => {
     if (calendar) await prisma.calendar.delete({ where: { id: calendar.id } });
   });
   afterAll(async () => {
-    await prisma.$disconnect();
+    await cleanup?.();
   });
 
   async function create(
@@ -68,6 +68,31 @@ integration('Recurrence transactions (PostgreSQL)', () => {
       include: eventWithRelationsInclude,
     });
   }
+
+  it('retains occurrence identity and conference bindings when ALL and FUTURE times move', async () => {
+    const event = await create('FREQ=DAILY;COUNT=4');
+    const conferences = new CalendarConferenceSyncService(prisma as PrismaService);
+    await prisma.$transaction(async tx => {
+      await tx.calendarEvent.updateMany({ where: { calendarId: calendar.id }, data: { conferenceEnabled: true } });
+      await tx.recurrenceSeries.update({ where: { id: event.recurrenceSeriesId! }, data: { conferenceEnabled: true } });
+      await conferences.reconcileCalendar(tx, calendar.id);
+    });
+    const before = await prisma.calendarEvent.findMany({ where: { calendarId: calendar.id }, orderBy: { startAt: 'asc' } });
+    let current = await prisma.calendarEvent.findUniqueOrThrow({ where: { id: before[0].id }, include: eventWithRelationsInclude });
+    await mutations.updateRecurringEvent(owner, current, calendar, {
+      startAt: new Date(current.startAt.getTime() + 3600000).toISOString(), endAt: new Date(current.endAt.getTime() + 3600000).toISOString(), recurrenceScope: RecurrenceScope.ALL,
+    }, tx => conferences.reconcileCalendar(tx, calendar.id));
+    expect((await prisma.calendarEvent.findMany({ where: { calendarId: calendar.id } })).map(row => row.id).sort()).toEqual(before.map(row => row.id).sort());
+    current = await prisma.calendarEvent.findUniqueOrThrow({ where: { id: before[2].id }, include: eventWithRelationsInclude });
+    await mutations.updateRecurringEvent(owner, current, calendar, {
+      startAt: new Date(current.startAt.getTime() + 3600000).toISOString(), endAt: new Date(current.endAt.getTime() + 3600000).toISOString(), recurrenceScope: RecurrenceScope.THIS_AND_FOLLOWING,
+    }, tx => conferences.reconcileCalendar(tx, calendar.id));
+    const bindings = await prisma.calendarConference.findMany({ where: { calendarId: calendar.id } });
+    expect(bindings).toHaveLength(4);
+    expect(bindings.every(binding => binding.enabled)).toBe(true);
+    expect(bindings.map(binding => binding.eventId).sort()).toEqual(before.map(row => row.id).sort());
+    await prisma.calendarConference.deleteMany({ where: { calendarId: calendar.id } });
+  }, 30_000);
 
   it('keeps THIS identity on repeated moves and never recreates the original slot', async () => {
     const event = await create();

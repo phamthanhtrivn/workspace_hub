@@ -19,7 +19,7 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
     event.resource === 'MEMBER' ||
     event.resource === 'INVITATION'
   ) {
-    invalidations.push({ queryKey: ['projects'], exact: true });
+    invalidations.push({ queryKey: ['projects'] });
   }
   if (
     event.resource === 'PROJECT' ||

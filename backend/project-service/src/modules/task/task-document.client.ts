@@ -15,6 +15,7 @@ interface ApiResponse<T> {
 }
 
 interface TaskDocumentRequest {
+  operationId?: string;
   projectId: string;
   userId: string;
   userEmail: string;

@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { Calendar, Prisma } from '@prisma/client';
 import {
@@ -11,10 +12,15 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCalendarDto } from './dto/create-calendar.dto';
 import { UpdateCalendarDto } from './dto/update-calendar.dto';
+import { CalendarConferenceSyncService } from '../calendar-event/calendar-conference-sync.service';
+import { CalendarNotificationOutboxService } from '../calendar-event/calendar-notification-outbox.service';
 
 @Injectable()
 export class CalendarService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService,
+    @Optional() private readonly conferences?: CalendarConferenceSyncService,
+    @Optional() private readonly notifications?: CalendarNotificationOutboxService,
+  ) {}
 
   async createCalendar(
     userId: string,
@@ -122,7 +128,16 @@ export class CalendarService {
       );
     }
 
-    await this.prisma.calendar.delete({ where: { id: calendar.id } });
+    await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM calendars WHERE id = ${calendar.id}::uuid FOR UPDATE`;
+      const events = await tx.calendarEvent.findMany({ where: { calendarId }, include: { attendees: true } });
+      await tx.calendar.delete({ where: { id: calendar.id } });
+      for (const event of events) await this.notifications?.enqueueEventCancellation(tx, {
+        eventId: event.id, eventTitle: event.title, cancellerId: userId,
+        recipientIds: event.attendees.filter(attendee => attendee.userId !== userId).map(attendee => attendee.userId),
+      });
+      await this.conferences?.reconcileCalendar(tx, calendar.id);
+    });
   }
 
   async assertCalendarOwner(

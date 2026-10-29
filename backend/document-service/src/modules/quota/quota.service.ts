@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 import { QuotaConstants } from '../../common/constants/quota.constants';
@@ -61,15 +62,18 @@ export class QuotaService {
   /**
    * Modify the user's used storage count.
    */
+  async reserve(tx: Prisma.TransactionClient, userId: string, additionalBytes: number) {
+    if (!Number.isSafeInteger(additionalBytes) || additionalBytes < 0) throw new BadRequestException('File size must be a non-negative safe integer');
+    await tx.userStorageQuota.upsert({ where: { userId }, create: { userId }, update: {} });
+    const changed = await tx.$executeRaw`UPDATE user_storage_quotas SET used_bytes = used_bytes + ${BigInt(additionalBytes)}, updated_at = NOW()
+      WHERE user_id = ${userId}::uuid AND used_bytes + ${BigInt(additionalBytes)} <= max_bytes`;
+    if (changed !== 1) throw new BadRequestException('Insufficient storage for this file');
+  }
   async updateUsedBytes(userId: string, bytesDiff: number) {
-    const quota = await this.getOrCreateQuota(userId);
-    const updatedUsedBytes = quota.usedBytes + BigInt(bytesDiff);
-
-    return this.prisma.userStorageQuota.update({
-      where: { userId },
-      data: {
-        usedBytes: updatedUsedBytes >= BigInt(0) ? updatedUsedBytes : BigInt(0),
-      },
+    await this.getOrCreateQuota(userId);
+    return this.prisma.$transaction(async tx => {
+      await tx.$executeRaw`UPDATE user_storage_quotas SET used_bytes = GREATEST(0, used_bytes + ${BigInt(bytesDiff)}), updated_at = NOW() WHERE user_id = ${userId}::uuid`;
+      return tx.userStorageQuota.findUniqueOrThrow({ where: { userId } });
     });
   }
 }

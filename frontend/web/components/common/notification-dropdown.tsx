@@ -16,11 +16,9 @@ import {
   setNotifications,
   setLoading,
   markAllReadSuccess,
-  setUnreadCount,
 } from "@/store/notification/notification.slice";
 import {
   getNotifications,
-  getUnreadCount,
   markAllAsRead,
 } from "@/features/notification/api/notification.api";
 import { useNotificationActions } from "@/features/notification/hooks/use-notification-actions";
@@ -41,10 +39,6 @@ import NotificationList from "@/features/notification/components/notification-li
 import NotificationDetailModal from "@/features/notification/components/notification-detail-modal";
 import { ChannelMemberAddedModalRenderer, ChannelOwnershipTransferredModalRenderer } from "@/features/notification/components/renderers/channel-member-added-renderer";
 import { registerNotificationRenderer } from "@/features/notification/components/notification-registry";
-import {
-  BACKEND_HEALTH_PATHS,
-  waitForBackendReady,
-} from "@/lib/backend-readiness";
 import { logApiError } from "@/lib/interceptors";
 
 // Renderers
@@ -249,55 +243,17 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     Boolean(customToDate) &&
     customFromDate > customToDate;
 
-  useEffect(() => {
-    let isCancelled = false;
-    let retryTimer: number | undefined;
-
-    if (accessToken) {
-      const fetchUnreadWhenReady = async () => {
-        const isReady = await waitForBackendReady(
-          BACKEND_HEALTH_PATHS.notification,
-          { attempts: 1 },
-        );
-
-        if (isCancelled) return;
-
-        if (!isReady) {
-          retryTimer = window.setTimeout(fetchUnreadWhenReady, 3_000);
-          return;
-        }
-
-        try {
-          const res = await getUnreadCount();
-          if (isCancelled) return;
-
-          dispatch(setUnreadCount(res.data.unreadCount));
-        } catch (error) {
-          logApiError(error, "Failed to fetch notification unread count");
-        }
-      };
-
-      void fetchUnreadWhenReady();
-    }
-
-    return () => {
-      isCancelled = true;
-      if (retryTimer) {
-        window.clearTimeout(retryTimer);
-      }
-    };
-  }, [accessToken, dispatch]);
-
+  const listRevision = useRef(0);
   const fetchList = React.useCallback(
     async (nextPage = page) => {
       if (!accessToken) return;
+      const revision = ++listRevision.current;
       if (isCustomRangeInvalid) {
         dispatch(setLoading(false));
         dispatch(
           setNotifications({
             list: [],
             total: 0,
-            unreadCount,
           }),
         );
         setPagination({
@@ -312,17 +268,8 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       try {
         dispatch(setLoading(true));
         setListError(false);
-        const hasDateFilter = Boolean(dateRange.fromDate || dateRange.toDate);
-        const [res, globalUnreadRes] = await Promise.all([
-          getNotifications(
-            nextPage,
-            PAGE_SIZE,
-            getReadFilterValue(tab),
-            category,
-            dateRange,
-          ),
-          hasDateFilter ? getUnreadCount() : Promise.resolve(null),
-        ]);
+        const res = await getNotifications(nextPage, PAGE_SIZE, getReadFilterValue(tab), category, dateRange);
+        if (revision !== listRevision.current) return;
         const fallbackUnreadCounts: NotificationUnreadCountsByCategory = {
           ...EMPTY_UNREAD_COUNTS_BY_CATEGORY,
           ALL: res.pagination.unreadCount,
@@ -331,13 +278,10 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
         };
         const nextUnreadCounts =
           res.pagination.unreadCountsByCategory ?? fallbackUnreadCounts;
-        const nextGlobalUnreadCount =
-          globalUnreadRes?.data.unreadCount ?? res.pagination.unreadCount;
         dispatch(
           setNotifications({
             list: res.data,
             total: res.pagination.total,
-            unreadCount: nextGlobalUnreadCount,
           }),
         );
         setUnreadCountsByCategory(nextUnreadCounts);
@@ -352,9 +296,9 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
         });
       } catch (error) {
         logApiError(error, "Failed to fetch notifications");
-        setListError(true);
+        if (revision === listRevision.current) setListError(true);
       } finally {
-        dispatch(setLoading(false));
+        if (revision === listRevision.current) dispatch(setLoading(false));
       }
     },
     [
@@ -365,7 +309,6 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       isCustomRangeInvalid,
       page,
       tab,
-      unreadCount,
     ],
   );
   const {

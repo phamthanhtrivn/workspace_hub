@@ -37,6 +37,8 @@ export enum UploadState {
   UPLOADING = "UPLOADING",
   CONFIRMING = "CONFIRMING",
   SUCCESS = "SUCCESS",
+  PARTIAL = "PARTIAL",
+  SKIPPED = "SKIPPED",
   ERROR = "ERROR",
 }
 

@@ -145,6 +145,7 @@ export function DocumentExplorer({
   // 4. File Upload Hook
   const {
     uploadState,
+    uploadSummary, retryFailed,
     uploadProgress,
     uploadingFileName,
     overwriteConflict,
@@ -508,6 +509,8 @@ export function DocumentExplorer({
         {/* Floating Upload Queue Widget */}
         <UploadProgress
           uploadState={uploadState}
+          summary={uploadSummary}
+          onRetry={() => void retryFailed()}
           uploadProgress={uploadProgress}
           uploadingFileName={uploadingFileName}
         />

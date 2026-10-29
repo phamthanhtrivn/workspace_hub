@@ -1,6 +1,10 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsEmail, IsUUID } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsEmail, IsOptional, IsUUID } from 'class-validator';
 
 export class TaskAttachmentDocumentsDto {
+  @IsOptional()
+  @IsUUID()
+  operationId?: string;
+
   @IsUUID(4, { message: 'Invalid user ID' })
   userId!: string;
 

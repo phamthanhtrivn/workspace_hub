@@ -6,6 +6,7 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
+import { StorageCleanupService } from './storage-cleanup.service';
 import { Response } from 'express';
 import * as archiver from 'archiver';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -43,6 +44,7 @@ export class DocumentService {
     private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
     private readonly projectDocumentRealtime: ProjectDocumentRealtimeClient,
+    private readonly storageCleanup: StorageCleanupService,
   ) {}
 
   private normalizeItemName(name: string) {
@@ -120,6 +122,7 @@ export class DocumentService {
         type: true,
         parentFolderId: true,
         projectId: true,
+        ownerUserId: true,
       },
     });
   }
@@ -344,17 +347,17 @@ export class DocumentService {
       'Cannot upload files into an archived or trashed folder',
     );
 
-    // Check storage quota
-    await this.quotaService.checkQuota(userId, dto.sizeBytes);
+
 
     const projectId = parentFolder?.projectId || dto.projectId || null;
-    await this.validateUploadNameConflict(userId, userEmail, {
+    const overwriteTarget = await this.validateUploadNameConflict(userId, userEmail, {
       name: dto.name,
       parentFolderId: parentFolder?.id ?? null,
       projectId,
       overwriteItemId: dto.overwriteItemId,
     });
 
+    await this.quotaService.checkQuota(overwriteTarget?.ownerUserId ?? userId, dto.sizeBytes);
     const { presignedUrl, s3Key } =
       await this.s3Service.generatePresignedUploadUrl(
         userId,
@@ -391,71 +394,41 @@ export class DocumentService {
     return documents;
   }
 
-  async importTaskAttachmentDocuments(
-    userId: string,
-    userEmail: string,
-    projectId: string,
-    documentItemIds: string[],
-  ) {
-    const uniqueIds = [...new Set(documentItemIds)];
-    const rootFolder = await this.findProjectRootFolder(projectId);
+  async importTaskAttachmentDocuments(userId: string, userEmail: string, projectId: string, documentItemIds: string[], operationId?: string) {
+    const root = await this.findProjectRootFolder(projectId);
     const imported: ReturnType<typeof this.toTaskAttachmentDocumentMetadata>[] = [];
-
-    for (const documentItemId of uniqueIds) {
-      const source = await this.checkPermission(
-        documentItemId,
-        userId,
-        userEmail,
-        DocumentRole.VIEWER,
-      );
+    for (const sourceId of new Set(documentItemIds)) {
+      const source = await this.checkPermission(sourceId, userId, userEmail, DocumentRole.VIEWER);
       this.assertAttachableFile(source);
-      if (source.projectId) {
-        throw new BadRequestException(
-          'Only personal files can be imported into a task',
-        );
+      if (source.projectId || source.ownerUserId !== userId) throw new ForbiddenException('Only your own personal files can be imported');
+      const importKey = operationId ? `${projectId}:${userId}:${operationId}:${sourceId}` : null;
+      if (importKey) {
+        const previous = await this.prisma.documentItem.findUnique({ where: { importKey } });
+        if (previous) { imported.push(this.toTaskAttachmentDocumentMetadata(previous)); continue; }
       }
-      if (source.ownerUserId !== userId) {
-        throw new ForbiddenException('Only your own files can be imported');
-      }
-
-      const name = await this.getAvailableImportName(
-        userId,
-        source.name,
-        rootFolder.id,
-        projectId,
-      );
-      const item = await this.prisma.$transaction(async (tx) => {
-        const createdItem = await tx.documentItem.create({
-          data: {
-            name,
-            type: ItemType.FILE,
-            ownerUserId: userId,
-            ownerEmail: userEmail,
-            parentFolderId: rootFolder.id,
-            projectId,
-            s3Key: source.s3Key,
-            mimeType: source.mimeType,
-            sizeBytes: source.sizeBytes,
-          },
+      const copiedKey = await this.s3Service.copyFile(source.s3Key!, userId, source.name);
+      let item: DocumentItem;
+      try {
+        await this.s3Service.assertUploadSize(copiedKey, Number(source.sizeBytes));
+        item = await this.prisma.$transaction(async tx => {
+          if (importKey) {
+            await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${importKey}, 8085))::text`;
+            const previous = await tx.documentItem.findUnique({ where: { importKey } });
+            if (previous) { await this.storageCleanup.enqueue(tx, [copiedKey]); return previous; }
+          }
+          await this.quotaService.reserve(tx, userId, Number(source.sizeBytes));
+          const name = await this.getAvailableImportName(userId, source.name, root.id, projectId);
+          await this.lockAvailableName(tx, userId, name, root.id, projectId);
+          return tx.documentItem.create({ data: {
+            name, type: ItemType.FILE, ownerUserId: userId, ownerEmail: userEmail, parentFolderId: root.id,
+            projectId, s3Key: copiedKey, importKey, mimeType: source.mimeType, sizeBytes: source.sizeBytes,
+            versions: { create: { versionNumber: 1, s3Key: copiedKey, sizeBytes: source.sizeBytes, uploadedBy: userId } },
+          } });
         });
-
-        await tx.documentVersion.create({
-          data: {
-            documentItemId: createdItem.id,
-            versionNumber: 1,
-            s3Key: source.s3Key!,
-            sizeBytes: source.sizeBytes,
-            uploadedBy: userId,
-          },
-        });
-
-        return createdItem;
-      });
-
+      } catch (error) { await this.storageCleanup.enqueue(this.prisma, [copiedKey]); throw error; }
       await this.publishProjectDocumentEvent(item, userId, 'CREATED');
       imported.push(this.toTaskAttachmentDocumentMetadata(item));
     }
-
     return imported;
   }
 
@@ -474,6 +447,12 @@ export class DocumentService {
 
     const projectId = parentFolder?.projectId || dto.projectId || null;
     const normalizedName = this.normalizeItemName(dto.name);
+    // A lost HTTP response must not turn a committed upload into a name error.
+    const committed = await this.prisma.documentItem.findFirst({ where: {
+      s3Key: dto.s3Key, ownerUserId: userId, projectId,
+      parentFolderId: parentFolder?.id ?? null, name: normalizedName,
+    } });
+    if (committed) return this.enrichDocumentItem(committed);
     const overwriteTarget = await this.validateUploadNameConflict(
       userId,
       userEmail,
@@ -505,11 +484,14 @@ export class DocumentService {
       return this.enrichDocumentItem(updatedItem);
     }
 
-    // Double check quota
-    await this.quotaService.checkQuota(userId, dto.sizeBytes);
+    await this.s3Service.assertUploadSize(dto.s3Key, dto.sizeBytes);
 
     // Create DocumentItem and first Version in Database
     const item = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${dto.s3Key}, 8085))::text`;
+      const previous = await tx.documentItem.findFirst({ where: { s3Key: dto.s3Key, ownerUserId: userId } });
+      if (previous) return previous;
+      await this.quotaService.reserve(tx, userId, dto.sizeBytes);
       await this.lockAvailableName(
         tx,
         userId,
@@ -544,8 +526,7 @@ export class DocumentService {
       return createdItem;
     });
 
-    // Update storage quota (add to usedBytes)
-    await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
+
 
     await this.publishProjectDocumentEvent(item, userId, 'CREATED');
     return this.enrichDocumentItem(item);
@@ -780,41 +761,23 @@ export class DocumentService {
     projectId: string,
     dto: EnsureProjectRootFolderDto,
   ): Promise<DocumentItem> {
-    const existing = await this.prisma.documentItem.findFirst({
-      where: {
-        projectId,
-        parentFolderId: null,
-        type: ItemType.FOLDER,
-        isArchived: false,
-      },
-      orderBy: { createdAt: 'asc' },
+    const folder = await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${projectId}, 8085))::text`;
+      const existing = await tx.documentItem.findFirst({ where: { projectId, parentFolderId: null, type: ItemType.FOLDER, isArchived: false }, orderBy: { createdAt: 'asc' } });
+      const root = existing ?? await tx.documentItem.create({ data: {
+        name: this.normalizeItemName(dto.name), type: ItemType.FOLDER, ownerUserId: dto.ownerId,
+        ownerEmail: dto.ownerEmail.toLowerCase(), parentFolderId: null, projectId, sizeBytes: 0n,
+      } });
+      await this.syncProjectRootShares(root, dto, tx);
+      return tx.documentItem.findUniqueOrThrow({ where: { id: root.id } });
     });
-
-    if (existing) {
-      await this.syncProjectRootShares(existing, dto);
-      return this.enrichDocumentItem(existing);
-    }
-
-    const normalizedName = this.normalizeItemName(dto.name);
-    const folder = await this.prisma.documentItem.create({
-      data: {
-        name: normalizedName,
-        type: ItemType.FOLDER,
-        ownerUserId: dto.ownerId,
-        ownerEmail: dto.ownerEmail.toLowerCase(),
-        parentFolderId: null,
-        projectId,
-        sizeBytes: BigInt(0),
-      },
-    });
-
-    await this.syncProjectRootShares(folder, dto);
     return this.enrichDocumentItem(folder);
   }
 
   private async syncProjectRootShares(
     folder: DocumentItem,
     dto: EnsureProjectRootFolderDto,
+    tx: Prisma.TransactionClient,
   ): Promise<void> {
     const members = (dto.members ?? [])
       .filter((member) => member.userId !== folder.ownerUserId)
@@ -826,42 +789,45 @@ export class DocumentService {
     const memberUserIds = [...new Set(members.map((member) => member.userId))];
     const memberEmails = [...new Set(members.map((member) => member.email))];
 
-    await this.prisma.$transaction(async (tx) => {
-      for (const member of members) {
-        await tx.documentShare.upsert({
-          where: {
-            documentItemId_shareWithEmail: {
-              documentItemId: folder.id,
-              shareWithEmail: member.email,
-            },
-          },
-          update: {
-            shareWithUserId: member.userId,
-            permission: member.permission,
-          },
-          create: {
-            documentItemId: folder.id,
-            shareWithUserId: member.userId,
-            shareWithEmail: member.email,
-            permission: member.permission,
-          },
-        });
-      }
-
-      await tx.documentShare.deleteMany({
+    await tx.$queryRaw`SELECT id FROM document_items WHERE id = ${folder.id}::uuid FOR UPDATE`;
+    const current = await tx.documentItem.findUniqueOrThrow({ where: { id: folder.id } });
+    if (dto.syncRevision && current.accessSyncRevision > BigInt(dto.syncRevision)) return;
+    if (!dto.syncRevision && current.accessSyncRevision > 0n) return;
+    await tx.documentItem.update({ where: { id: folder.id }, data: { name: this.normalizeItemName(dto.name), ...(dto.syncRevision ? { accessSyncRevision: BigInt(dto.syncRevision) } : {}) } });
+    for (const member of members) {
+      await tx.documentShare.upsert({
         where: {
+          documentItemId_shareWithEmail: {
+            documentItemId: folder.id,
+            shareWithEmail: member.email,
+          },
+        },
+        update: {
+          shareWithUserId: member.userId,
+          permission: member.permission,
+        },
+        create: {
           documentItemId: folder.id,
-          shareWithUserId: { not: null },
-          ...(memberUserIds.length === 0
-            ? {}
-            : {
-                OR: [
-                  { shareWithUserId: { notIn: memberUserIds } },
-                  { shareWithEmail: { notIn: memberEmails } },
-                ],
-              }),
+          shareWithUserId: member.userId,
+          shareWithEmail: member.email,
+          permission: member.permission,
         },
       });
+    }
+
+    await tx.documentShare.deleteMany({
+      where: {
+        documentItemId: folder.id,
+        shareWithUserId: { not: null },
+        ...(memberUserIds.length === 0
+          ? {}
+          : {
+              OR: [
+                { shareWithUserId: { notIn: memberUserIds } },
+                { shareWithEmail: { notIn: memberEmails } },
+              ],
+            }),
+      },
     });
   }
 
@@ -1367,20 +1333,22 @@ export class DocumentService {
   /**
    * Deletes files from S3 client in the background without blocking execution thread.
    */
-  private async deleteS3ObjectsBackground(s3Keys: string[]): Promise<void> {
-    for (const key of s3Keys) {
-      try {
-        await this.s3Service.deleteFile(key);
-      } catch (error) {
-        console.error(`Background S3 deletion failed for key ${key}:`, error);
-      }
+  private async lockDocumentTree(tx: Prisma.TransactionClient, rootId: string): Promise<string[]> {
+    const locked = new Set<string>();
+    while (true) {
+      const descendants = await tx.$queryRaw<Array<{ id: string }>>`WITH RECURSIVE tree AS (
+        SELECT id FROM document_items WHERE id = ${rootId}::uuid
+        UNION SELECT child.id FROM document_items child JOIN tree ON child.parent_folder_id = tree.id
+      ) SELECT id FROM tree`;
+      const missing = descendants.map(row => row.id).filter(id => !locked.has(id)).sort();
+      if (!missing.length) return descendants.map(row => row.id);
+      // FK writers take KEY SHARE on their immediate parent. Locking every node
+      // prevents an upload/move from entering the tree after the final snapshot.
+      await tx.$queryRaw`SELECT id FROM document_items WHERE id IN (${Prisma.join(missing.map(id => Prisma.sql`${id}::uuid`))}) ORDER BY id FOR UPDATE`;
+      missing.forEach(id => locked.add(id));
     }
   }
 
-  /**
-   * Permanently deletes a file or folder. Reclaims storage quota immediately,
-   * deletes database records, and triggers S3 physical file deletes in the background.
-   */
   async deleteItemPermanently(
     userId: string,
     userEmail: string,
@@ -1402,56 +1370,25 @@ export class DocumentService {
       );
     }
 
-    let filesToDelete: DocumentItem[] = [];
-    let folderIdsToDelete: string[] = [];
+    await this.prisma.$transaction(async tx => {
+      const allItemIds = await this.lockDocumentTree(tx, id);
+      const files = await tx.documentItem.findMany({ where: { id: { in: allItemIds }, type: ItemType.FILE }, include: { versions: true } });
+      const reclaimed = new Map<string, bigint>();
+      const keys: string[] = [];
+      for (const file of files) {
+        const versions: Array<{ s3Key: string | null; sizeBytes: bigint }> = file.versions.length ? file.versions : [{ s3Key: file.s3Key, sizeBytes: file.sizeBytes }];
+        reclaimed.set(file.ownerUserId, (reclaimed.get(file.ownerUserId) ?? 0n) + versions.reduce((sum, version) => sum + version.sizeBytes, 0n));
+        for (const version of versions) if (version.s3Key) keys.push(version.s3Key);
+        if (file.s3Key) keys.push(file.s3Key);
+      }
+      const removed = await tx.documentItem.deleteMany({ where: { id: { in: allItemIds } } });
+      if (!removed.count) return;
+      for (const [ownerId, bytes] of [...reclaimed].sort(([a], [b]) => a.localeCompare(b))) {
+        await tx.$executeRaw`UPDATE user_storage_quotas SET used_bytes = GREATEST(0, used_bytes - ${bytes}), updated_at = NOW() WHERE user_id = ${ownerId}::uuid`;
+      }
+      await this.storageCleanup.enqueue(tx, keys);
+    });
 
-    if (item.type === ItemType.FOLDER) {
-      const descendants = await this.getFolderDescendants(id);
-      filesToDelete = descendants.files;
-      folderIdsToDelete = descendants.folderIds;
-    } else {
-      filesToDelete = [item];
-    }
-
-    // Sum storage size of files being permanently deleted
-    const totalSizeReclaimed = filesToDelete.reduce(
-      (sum, file) => sum + Number(file.sizeBytes),
-      0,
-    );
-
-    const allItemIdsToDelete = [
-      ...folderIdsToDelete,
-      ...filesToDelete.map((f) => f.id),
-    ];
-
-    // Database deletion transaction
-    await this.prisma.$transaction([
-      this.prisma.documentItem.deleteMany({
-        where: { id: { in: allItemIdsToDelete } },
-      }),
-      this.prisma.userStorageQuota.update({
-        where: { userId },
-        data: {
-          usedBytes: {
-            decrement: totalSizeReclaimed,
-          },
-        },
-      }),
-    ]);
-
-    // Background S3 deletions
-    const s3Keys = filesToDelete
-      .map((f) => f.s3Key)
-      .filter((key): key is string => !!key);
-
-    if (s3Keys.length > 0) {
-      this.deleteS3ObjectsBackground(s3Keys).catch((err) => {
-        console.error(
-          `Failed to handle S3 deletions background execution:`,
-          err,
-        );
-      });
-    }
     await this.publishProjectDocumentEvent(item, userId, 'DELETED');
   }
 
@@ -1627,17 +1564,15 @@ export class DocumentService {
       throw new BadRequestException('Cannot create a new version for a folder');
     }
 
-    // Check storage quota
-    await this.quotaService.checkQuota(userId, dto.sizeBytes);
-
-    const latestVersion = await this.prisma.documentVersion.findFirst({
-      where: { documentItemId: id },
-      orderBy: { versionNumber: 'desc' },
-    });
-
+    await this.s3Service.assertUploadSize(dto.s3Key, dto.sizeBytes);
     let nextVersionNumber = 1;
 
     const newVersion = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM document_items WHERE id = ${id}::uuid FOR UPDATE`;
+      const duplicate = await tx.documentVersion.findFirst({ where: { documentItemId: id, s3Key: dto.s3Key } });
+      if (duplicate) return duplicate;
+      await this.quotaService.reserve(tx, item.ownerUserId, dto.sizeBytes);
+      const latestVersion = await tx.documentVersion.findFirst({ where: { documentItemId: id }, orderBy: { versionNumber: 'desc' } });
       if (!latestVersion) {
         // Retroactively create version 1 for original state
         await tx.documentVersion.create({
@@ -1680,7 +1615,7 @@ export class DocumentService {
     });
 
     // Update uploader storage quota
-    await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
+
 
     await this.publishProjectDocumentEvent(item, userId, 'UPDATED');
     const [enrichedVersion] = await this.userProfileSnapshotService.attachProfilesToDocumentVersions([newVersion]);
@@ -1946,17 +1881,15 @@ export class DocumentService {
       throw new BadRequestException('Cannot create a new version for a folder');
     }
 
-    // Check storage quota of the Owner
-    await this.quotaService.checkQuota(item.ownerUserId, dto.sizeBytes);
-
-    const latestVersion = await this.prisma.documentVersion.findFirst({
-      where: { documentItemId: id },
-      orderBy: { versionNumber: 'desc' },
-    });
-
+    await this.s3Service.assertUploadSize(dto.s3Key, dto.sizeBytes);
     let nextVersionNumber = DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER;
 
     const newVersion = await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM document_items WHERE id = ${id}::uuid FOR UPDATE`;
+      const duplicate = await tx.documentVersion.findFirst({ where: { documentItemId: id, s3Key: dto.s3Key } });
+      if (duplicate) return duplicate;
+      await this.quotaService.reserve(tx, item.ownerUserId, dto.sizeBytes);
+      const latestVersion = await tx.documentVersion.findFirst({ where: { documentItemId: id }, orderBy: { versionNumber: 'desc' } });
       if (!latestVersion) {
         await tx.documentVersion.create({
           data: {
@@ -1995,7 +1928,7 @@ export class DocumentService {
       return createdVersion;
     });
 
-    await this.quotaService.updateUsedBytes(item.ownerUserId, dto.sizeBytes);
+
 
     return {
       ...newVersion,

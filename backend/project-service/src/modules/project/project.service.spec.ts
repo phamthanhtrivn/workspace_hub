@@ -14,7 +14,7 @@ describe('ProjectService creation dates', () => {
   function createService() {
     const createProject = jest.fn().mockImplementation(async ({ data }) => data);
     const transaction = jest.fn(async (operation) =>
-      operation({ project: { create: createProject } }),
+      operation({ project: { create: createProject }, projectAccessSyncJob: { upsert: jest.fn() } }),
     );
     const ensureProjectRootFolder = jest.fn().mockResolvedValue(undefined);
     const service = new ProjectService(
@@ -79,7 +79,7 @@ describe('ProjectService creation dates', () => {
       .resolves.toMatchObject({ name: 'Project Alpha', ownerId });
     expect(transaction).toHaveBeenCalledTimes(1);
     expect(createProject).toHaveBeenCalledTimes(1);
-    expect(ensureProjectRootFolder).toHaveBeenCalledTimes(1);
+    expect(ensureProjectRootFolder).not.toHaveBeenCalled();
   });
 });
 
@@ -91,6 +91,7 @@ describe('ProjectService project space access sync', () => {
 
   it('maps project owner/admin to space admin and members to space member', async () => {
     const prisma = {
+      projectAccessSyncJob: { findUnique: jest.fn().mockResolvedValue(null) },
       projectMember: {
         findMany: jest.fn().mockResolvedValue([
           { userId: ownerId, role: ProjectRole.ADMIN },
@@ -160,6 +161,8 @@ describe('ProjectService project space access sync', () => {
       setting: null,
     };
     const prisma = {
+      projectAccessSyncJob: { upsert: jest.fn(), findUnique: jest.fn().mockResolvedValue(null) },
+      $transaction: jest.fn(operation => operation({ projectAccessSyncJob: { upsert: jest.fn() } })),
       projectMember: {
         findMany: jest.fn().mockResolvedValue([
           { userId: ownerId, role: ProjectRole.ADMIN },

@@ -74,6 +74,7 @@ model Calendar {
 }
 
 model RecurrenceSeries {
+  conferenceEnabled Boolean @default(false) @map("conference_enabled")
   id                       String          @id @default(uuid()) @db.Uuid
   calendarId               String          @map("calendar_id") @db.Uuid
   createdBy                String          @map("created_by") @db.Uuid
@@ -108,6 +109,7 @@ model RecurrenceSeries {
 }
 
 model CalendarEvent {
+  conferenceEnabled Boolean @default(false) @map("conference_enabled")
   id                   String          @id @default(uuid()) @db.Uuid
   calendarId           String          @map("calendar_id") @db.Uuid
   createdBy            String          @map("created_by") @db.Uuid
@@ -391,4 +393,24 @@ model NotificationOutbox {
   processedAt   DateTime? @map("processed_at") @db.Timestamptz(3)
 
   @@map("notification_outbox")
+}
+
+model CalendarConference {
+  eventId String @id @map("event_id") @db.Uuid
+  calendarId String @map("calendar_id") @db.Uuid
+  hostId String @map("host_id") @db.Uuid
+  enabled Boolean @default(true)
+  revision BigInt @default(1)
+  signature String
+  payload Json
+  status String @default("PENDING")
+  meetingId String? @map("meeting_id") @db.Uuid
+  joinToken String? @map("join_token")
+  lastError String? @map("last_error")
+  attemptCount Int @default(0) @map("attempt_count")
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  @@index([status, nextAttemptAt])
+  @@index([calendarId])
+  @@map("calendar_conferences")
 }

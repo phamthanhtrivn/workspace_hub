@@ -43,7 +43,7 @@ export class ProjectSocketInterceptor implements NestInterceptor {
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const resource = this.resourceFrom(request);
-    const action = this.actionFrom(request.method);
+    const action = request.originalUrl.split('?')[0].endsWith('/reopen') ? 'UPDATED' : this.actionFrom(request.method);
     if (!resource || !action || !request.authenticatedUserId) return next.handle();
 
     const location = await this.resolveLocation(request);

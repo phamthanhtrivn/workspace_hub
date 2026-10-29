@@ -24,12 +24,13 @@ describe('Message channel boundaries', () => {
     };
     type Dependencies = ConstructorParameters<typeof MessageService>;
     const service = new MessageService(
-      prisma as unknown as Dependencies[0],
-      {} as Dependencies[1],
+      {} as any,
+      prisma as any,
+      {} as any,
       {
         attachSenderProfilesToMessages: jest.fn((messages) => messages),
-      } as unknown as Dependencies[2],
-      {} as Dependencies[3],
+      } as any,
+      {} as any,
     );
     const result = await service.getConversationMessages(
       'public',
@@ -61,10 +62,11 @@ describe('Message channel boundaries', () => {
     };
     type Dependencies = ConstructorParameters<typeof MessageService>;
     const service = new MessageService(
-      prisma as unknown as Dependencies[0],
-      {} as Dependencies[1],
-      {} as Dependencies[2],
-      {} as Dependencies[3],
+      {} as any,
+      prisma as any,
+      {} as any,
+      {} as any,
+      {} as any,
     );
     await expect(
       service.createMessage(

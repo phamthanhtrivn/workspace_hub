@@ -6,10 +6,16 @@ import { AttachTaskDocumentsDto } from './dto/attach-task-documents.dto';
 import { GetProjectTasksQueryDto } from './dto/get-project-tasks-query.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskService } from './task.service';
+import { TASK_LIFECYCLE } from './task-lifecycle.constants';
 
 @Controller('api')
 export class TaskController {
   constructor(private readonly tasks: TaskService) {}
+
+  @Post(TASK_LIFECYCLE.reopenRoute)
+  async reopen(@CurrentUserId() userId: string, @Param('taskId', new ParseUUIDPipe()) taskId: string) {
+    return ApiResponse.success(await this.tasks.reopen(userId, taskId), 'Task reopened successfully');
+  }
 
   @Post('projects/:projectId/tasks')
   async create(

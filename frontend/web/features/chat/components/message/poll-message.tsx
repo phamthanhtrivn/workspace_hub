@@ -2,6 +2,8 @@
 
 import { IconButton } from "@/components/ui/icon-button";
 
+import { toast } from "sonner";
+import { isAxiosError } from "axios";
 import React, { useState } from "react";
 import {
   BarChart2,
@@ -26,7 +28,7 @@ import { Input } from "@/components/ui/input";
 
 interface PollMessageProps {
   poll: PollResponse;
-  onVote?: (optionId: string) => void;
+  onVote?: (optionId: string, selected?: boolean) => void | Promise<unknown>;
   onUserClick?: (userId: string) => void;
   onAddOption?: (text: string) => void;
   onEditPoll?: (
@@ -35,7 +37,7 @@ interface PollMessageProps {
     allowAddOptions: boolean,
     anonymous: boolean,
     isLocked: boolean,
-  ) => void;
+  ) => void | Promise<unknown>;
 }
 
 const PollMessage = React.memo(function PollMessage({
@@ -46,6 +48,8 @@ const PollMessage = React.memo(function PollMessage({
   onEditPoll,
 }: PollMessageProps) {
   const pollFieldId = React.useId();
+  const [voting, setVoting] = useState(false);
+  const votingRef = React.useRef(false);
   const currentUser = useAppSelector((state) => state.auth);
   const memberProfiles = useChatMemberProfiles();
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -63,6 +67,8 @@ const PollMessage = React.memo(function PollMessage({
   }
 
   const isMe = poll.createdBy === currentUser?.userId;
+  const voterIds = poll.options.flatMap(option => (option.votes ?? []).map(vote => vote.userId));
+  const singleChoiceBlocked = new Set(voterIds).size !== voterIds.length;
   const creatorProfile =
     poll.creatorProfile || memberProfiles?.[poll.createdBy] || null;
 
@@ -81,10 +87,13 @@ const PollMessage = React.memo(function PollMessage({
     opt.votes?.some((v) => v.userId === currentUser?.userId),
   );
 
-  const handleOptionClick = (optionId: string) => {
-    if (poll.isLocked) return;
+  const handleOptionClick = async (optionId: string) => {
+    if (poll.isLocked || votingRef.current) return;
     if (onVote) {
-      onVote(optionId);
+      votingRef.current = true; setVoting(true);
+      try { await onVote(optionId, !poll.options.find(option => option.id === optionId)?.votes?.some(vote => vote.userId === currentUser.userId)); }
+      catch (error) { toast.error(isAxiosError(error) ? error.response?.data?.message || "Unable to vote" : "Unable to vote"); }
+      finally { votingRef.current = false; setVoting(false); }
     } else {
       if (poll.multipleChoice) {
         setSelectedOptions((prev) =>
@@ -165,9 +174,9 @@ const PollMessage = React.memo(function PollMessage({
                 key={option.id}
                 className={`relative overflow-hidden rounded-panel border transition-all duration-200 ${isSelected ? "border-info-outline bg-info-soft/20" : "border-border hover:bg-background hover:border-input"} ${!poll.isLocked ? "cursor-pointer" : ""} group`}
               >
-                <label className="absolute inset-0 z-20 cursor-pointer has-[:disabled]:cursor-default rounded-[inherit] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
+                <label aria-busy={voting || undefined} className="absolute inset-0 z-20 cursor-pointer has-[:disabled]:cursor-default rounded-[inherit] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
                   <span className="sr-only">{option.text}</span>
-                  {poll.multipleChoice ? <NativeCheckbox data-ui-interaction-exception="Hidden form control preserves existing poll selection semantics." className="sr-only" checked={Boolean(isSelected)} disabled={poll.isLocked} onChange={() => handleOptionClick(option.id)} /> : <NativeRadio data-ui-interaction-exception="Hidden form control preserves existing poll selection semantics." className="sr-only" name={pollFieldId} checked={Boolean(isSelected)} disabled={poll.isLocked} onChange={() => handleOptionClick(option.id)} onClick={() => { if (isSelected) handleOptionClick(option.id); }} />}
+                  {poll.multipleChoice ? <NativeCheckbox data-ui-interaction-exception="Hidden form control preserves existing poll selection semantics." className="sr-only" checked={Boolean(isSelected)} disabled={poll.isLocked || voting} onChange={() => handleOptionClick(option.id)} /> : <NativeRadio data-ui-interaction-exception="Hidden form control preserves existing poll selection semantics." className="sr-only" name={pollFieldId} checked={Boolean(isSelected)} disabled={poll.isLocked || voting} onChange={() => handleOptionClick(option.id)} onClick={() => { if (isSelected) handleOptionClick(option.id); }} />}
                 </label>
                 {/* Progress bar background */}
                 {(userHasVoted || totalVotes > 0) && (
@@ -345,11 +354,12 @@ const PollMessage = React.memo(function PollMessage({
         </div>
       </div>
       <EditPollModal
+        singleChoiceBlocked={singleChoiceBlocked}
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         poll={poll}
         onSubmit={(data) => {
-          onEditPoll?.(
+          return onEditPoll?.(
             data.title,
             data.multipleChoice,
             data.allowAddOptions,

@@ -10,6 +10,7 @@ describe('Project space membership synchronization', () => {
     const successorId = 'private-successor';
     const channelIds = ['general-channel', 'task-channel'];
     const tx = {
+      $queryRaw: jest.fn(),
       userProfileSnapshot: { findMany: jest.fn().mockResolvedValue([]) },
       message: { create: jest.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => Promise.resolve({ id: 'system-message', ...data })) },
       space: {

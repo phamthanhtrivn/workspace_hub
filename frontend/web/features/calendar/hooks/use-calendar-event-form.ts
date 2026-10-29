@@ -3,11 +3,6 @@ import { useRef, useState } from "react";
 import { FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  createScheduledMeeting,
-  updateScheduledMeeting,
-  cancelScheduledMeeting,
-} from "@/features/meeting/api/meeting.api";
 import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import { CALENDAR_FORM_COPY as copy } from "../constants/calendar-form-copy";
 import {
@@ -15,9 +10,8 @@ import {
   calendarEventFormSchema,
 } from "../schemas/calendar-event-form.schema";
 import { CALENDAR_DEFAULT_EVENT_COLOR } from "../types/calendar.constants";
-import { useAppSelector } from "@/store/store";
 import {
-  AttendeeResponseStatus,
+
   CalendarEvent,
   CalendarEventAttendeePayload,
   CalendarEventDraft,
@@ -27,11 +21,6 @@ import {
 } from "../types/calendar.types";
 import { fromDateTimeLocal } from "../utils/calendar-date.utils";
 import { createCalendarEventFormDefaults } from "../utils/calendar-event-form.utils";
-import {
-  buildCalendarMeetingUrl,
-  isWorkspaceMeetingUrl,
-  parseCalendarMeetingJoinToken,
-} from "../utils/calendar-conference.utils";
 import { useCalendarEventTime } from "./use-calendar-event-time";
 import { useCalendarRecurrence } from "./use-calendar-recurrence";
 
@@ -40,30 +29,6 @@ interface UseCalendarEventFormInput {
   draft: CalendarEventDraft | null;
   event?: CalendarEvent | null;
   onSubmit: (values: CalendarEventFormValues) => Promise<void>;
-}
-
-function getValidScheduledMeetingRange(startAtIso: string, endAtIso: string) {
-  const now = Date.now();
-  let startMs = new Date(startAtIso).getTime();
-  let endMs = new Date(endAtIso).getTime();
-
-  if (Number.isNaN(startMs)) startMs = now;
-  if (Number.isNaN(endMs)) endMs = startMs + 30 * 60 * 1000;
-
-  // Meeting backend requires startAt > now (in the future)
-  if (startMs <= now) {
-    startMs = now + 60 * 1000; // 1 minute in the future
-  }
-
-  // Ensure endAt > startAt
-  if (endMs <= startMs) {
-    endMs = startMs + 30 * 60 * 1000; // 30 minutes duration minimum
-  }
-
-  return {
-    scheduledStartAt: new Date(startMs).toISOString(),
-    scheduledEndAt: new Date(endMs).toISOString(),
-  };
 }
 
 export function useCalendarEventForm({
@@ -97,7 +62,7 @@ export function useCalendarEventForm({
     defaults.showCustomEventColor,
   );
   const [hasConference, setHasConference] = useState<boolean>(() =>
-    isWorkspaceMeetingUrl(defaults.values.location),
+    Boolean(event?.conference?.enabled),
   );
   const [pendingRecurrenceValues, setPendingRecurrenceValues] =
     useState<CalendarEventEditorValues | null>(null);
@@ -123,101 +88,15 @@ export function useCalendarEventForm({
       return;
     }
     setHasConference(enabled);
-    if (!enabled && isWorkspaceMeetingUrl(form.getValues("location"))) {
-      form.setValue("location", "", { shouldDirty: true });
-    }
+
   };
 
-  const currentUserId = useAppSelector((state) => state.auth.userId);
+
 
   const persistValidForm = async (values: CalendarEventEditorValues) => {
-    let finalLocation = values.location.trim() || null;
-    const hostId = event?.createdBy || currentUserId;
-    const acceptedAttendeeUserIds = attendees
-      .filter(
-        (a) =>
-          a.responseStatus === AttendeeResponseStatus.ACCEPTED ||
-          a.userId === hostId,
-      )
-      .map((a) => a.userId);
-    const existingMeetingToken =
-      parseCalendarMeetingJoinToken(finalLocation) ||
-      parseCalendarMeetingJoinToken(event?.location) ||
-      parseCalendarMeetingJoinToken(defaults.values.location);
-    const eventStartMs = new Date(fromDateTimeLocal(values.startAt)).getTime();
-    const isPast = eventStartMs <= Date.now();
-
-    if (isPast) {
-      if (existingMeetingToken) {
-        try {
-          await cancelScheduledMeeting(existingMeetingToken);
-        } catch {
-          // ignore
-        }
-        finalLocation = null;
-        setHasConference(false);
-        toast.info(
-          "Video conference is no longer available for past events and has been canceled.",
-        );
-      } else if (hasConference) {
-        setHasConference(false);
-        toast.error("Cannot add video conference to past events");
-      }
-    } else {
-      const meetingRange = getValidScheduledMeetingRange(
-        fromDateTimeLocal(values.startAt),
-        fromDateTimeLocal(values.endAt),
-      );
-
-      const eventTag = event?.id
-        ? `[Calendar Event:${event.id}]`
-        : "[Calendar Event]";
-      const calendarMeetingDesc = values.description.trim()
-        ? values.description.trim().includes("[Calendar Event")
-          ? values.description.trim()
-          : `${values.description.trim()}\n${eventTag}`
-        : eventTag;
-
-      if (hasConference && !existingMeetingToken) {
-        try {
-          const meetingRes = await createScheduledMeeting({
-            title: values.title.trim() || "Event Meeting",
-            scheduledStartAt: meetingRange.scheduledStartAt,
-            scheduledEndAt: meetingRange.scheduledEndAt,
-            description: calendarMeetingDesc,
-            inviteeIds: acceptedAttendeeUserIds,
-          });
-          if (meetingRes.data?.joinToken) {
-            finalLocation = buildCalendarMeetingUrl(meetingRes.data.joinToken);
-          }
-        } catch {
-          toast.error("Failed to create video conference meeting");
-        }
-      } else if (existingMeetingToken) {
-        if (hasConference) {
-          try {
-            await updateScheduledMeeting(existingMeetingToken, {
-              title: values.title.trim() || "Event Meeting",
-              scheduledStartAt: meetingRange.scheduledStartAt,
-              scheduledEndAt: meetingRange.scheduledEndAt,
-              description: calendarMeetingDesc,
-              inviteeIds: acceptedAttendeeUserIds,
-            });
-          } catch {
-            // Non-fatal
-          }
-        } else {
-          try {
-            await cancelScheduledMeeting(existingMeetingToken);
-          } catch {
-            // Non-fatal
-          }
-          finalLocation = null;
-        }
-      }
-    }
-
+    const finalLocation = values.location.trim() || null;
     await onSubmit({
+      conference: { enabled: hasConference },
       calendarId: values.calendarId,
       title: values.title.trim(),
       description: values.description.trim() || null,

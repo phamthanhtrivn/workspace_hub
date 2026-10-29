@@ -1,3 +1,5 @@
+import { CalendarMeetingSyncController } from './calendar-meeting-sync.controller';
+import { CalendarMeetingSyncService } from './services/calendar-meeting-sync.service';
 import { Module } from '@nestjs/common';
 import { LiveKitModule } from '../../infrastructure/livekit/livekit.module';
 import { S3Module } from '../../infrastructure/s3/s3.module';
@@ -49,6 +51,7 @@ import {
     DirectMessagePermissionModule,
   ],
   controllers: [
+    CalendarMeetingSyncController,
     MeetingSummaryController,
     MeetingSummarySourceController,
     MeetingHistoryPreferenceController,
@@ -58,6 +61,7 @@ import {
     MeetingLiveKitWebhookController,
   ],
   providers: [
+    CalendarMeetingSyncService,
     MeetingCaptionsService,
     MeetingRecordingRequestsService,
     MeetingRecordingService,
