@@ -1,3 +1,4 @@
+import { WorkAssistantModule } from './modules/work-assistant/work-assistant.controller';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -13,6 +14,7 @@ import { PomodoroModule } from './modules/pomodoro/pomodoro.module';
 
 @Module({
   imports: [
+    WorkAssistantModule,
     PrismaModule,
     CalendarModule,
     CalendarEventModule,

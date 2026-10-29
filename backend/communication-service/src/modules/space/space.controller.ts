@@ -11,7 +11,6 @@ import {
   Patch,
   ParseUUIDPipe,
   Query,
-  Put,
   UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';

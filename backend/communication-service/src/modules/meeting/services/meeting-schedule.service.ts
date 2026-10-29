@@ -671,14 +671,6 @@ export class MeetingScheduleService {
     );
   }
 
-  private async publishScheduledMeetingUpdated(
-    meeting: MeetingWithParticipants,
-  ) {
-    const snapshot = this.toPublisherSnapshot(meeting);
-    const profile = await this.getPublisherProfile(meeting.hostId);
-    this.meetingSchedulePublisher.publishUpdateNotifications(snapshot, profile);
-  }
-
   private async publishScheduledMeetingCancelled(
     meeting: MeetingWithParticipants,
   ) {

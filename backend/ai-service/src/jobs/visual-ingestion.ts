@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { pollUntilAborted } from "../common/abort-polling";
 import { setTimeout as pause } from "node:timers/promises";
 import { z } from "zod";
 import { UnrecoverableError } from "bullmq";
@@ -142,16 +143,7 @@ export async function enrichVisualSource(
     await authorizeSources(actor, [source]);
     signal.throwIfAborted();
   };
-  let checking = false;
-  const timer = setInterval(() => {
-    if (checking) return;
-    checking = true;
-    void authorize()
-      .catch(() => controller.abort())
-      .finally(() => {
-        checking = false;
-      });
-  }, 3000);
+  const stopPolling = pollUntilAborted(controller, 3000, authorize);
   try {
     await authorize();
     const result = await extractOnce(source, content, signal);
@@ -219,6 +211,6 @@ export async function enrichVisualSource(
     }
     return { pages: result.pages, visuals };
   } finally {
-    clearInterval(timer);
+    stopPolling();
   }
 }

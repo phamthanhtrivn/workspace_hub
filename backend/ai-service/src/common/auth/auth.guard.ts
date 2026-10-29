@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { z } from "zod";
-import { timingSafeEqual } from "node:crypto";
+import { matchesServiceKey } from "./service-key";
 import type { Request } from "express";
 import { config } from "../../config/env.config";
 import type { Actor } from "../types";
@@ -32,17 +32,7 @@ export class AuthGuard implements CanActivate {
       throw new ServiceUnavailableException(
         "Gateway authentication is not configured",
       );
-    if (
-      typeof proof !== "string" ||
-      !keys.some((key) => {
-        const expected = Buffer.from(key);
-        const supplied = Buffer.from(proof);
-        return (
-          expected.length === supplied.length &&
-          timingSafeEqual(expected, supplied)
-        );
-      })
-    )
+    if (!keys.some((key) => matchesServiceKey(proof, key)))
       throw new UnauthorizedException("Trusted gateway required");
     // Kong verifies the JWT and replaces client-supplied identity headers.
     // The dedicated proof also rejects forged user headers sent directly to this service.

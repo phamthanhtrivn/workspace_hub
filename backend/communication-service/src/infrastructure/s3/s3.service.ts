@@ -15,7 +15,7 @@ import {
 } from './recording-multipart-upload';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { generateS3Key } from '../../common/utils/s3-key.util';
-import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
+import { S3_UPLOAD_TYPE } from '../../common/types/file.enums';
 
 @Injectable()
 export class S3Service {

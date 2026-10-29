@@ -1,0 +1,49 @@
+{
+  "runAt": "2026-10-29T14:37:57.959Z",
+  "project": "aiqa-1793283069262",
+  "mode": "Actual Kong/JWT, User/Document/Project/Calendar/Communication/AI processes, native PostgreSQL/Redis/Qdrant, real multilingual embedding and configured LLM; local Moto S3 emulator",
+  "cases": [
+    {
+      "id": "real-user-registration-login-and-gateway-jwt",
+      "status": "PASS",
+      "durationMs": 1780
+    },
+    {
+      "id": "document-presigned-upload-and-real-native-ingestion",
+      "status": "PASS",
+      "durationMs": 778
+    },
+    {
+      "id": "real-rag-retrieval-scope-and-grounded-llm-stream",
+      "status": "PASS",
+      "durationMs": 3643
+    },
+    {
+      "id": "real-document-sharing-and-revocation-blocks-new-access",
+      "status": "PASS",
+      "durationMs": 671
+    },
+    {
+      "id": "studio-summary-real-redis-worker-and-native-checkpoints",
+      "status": "PASS",
+      "durationMs": 7206
+    },
+    {
+      "id": "native-project-context-and-work-assistant",
+      "status": "PASS",
+      "durationMs": 5347
+    }
+  ],
+  "resources": {
+    "ownerId": "eaf661b5-9d0a-4a66-92fe-87761681ad80",
+    "readerId": "a994ace3-586f-4184-9626-b1781eabbbd1",
+    "notebookId": "57d62473-f6c1-40df-8a18-6ce030fe31b5",
+    "readerNotebookId": "299dc6c4-6344-4023-9ac4-09c067e620f7",
+    "documentId": "32d3d56f-bd84-47f9-8b62-638c08566228",
+    "sourceId": "99935d2b-1d4e-4350-a426-6399b059bca7",
+    "originalS3Key": "documents/eaf661b5-9d0a-4a66-92fe-87761681ad80/883fb185-a2fe-4e87-9141-88c4dd95ffc8_atlas-native.md",
+    "projectId": "c8311a48-cd32-478e-9e7f-47be6c21d273",
+    "workSessionId": "f68999ce-2e5d-4780-803f-4a3a6e21b398"
+  },
+  "passed": true
+}

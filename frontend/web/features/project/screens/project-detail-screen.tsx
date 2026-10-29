@@ -4,7 +4,7 @@ import { useProjectAccessState } from "../hooks/use-project-access-state";
 
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   type Task,
@@ -62,6 +62,8 @@ import { projectSocketService } from "../api/project-socket.service";
 
 export default function ProjectDetailScreen() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const requestedTaskId = searchParams.get("taskId") || searchParams.get("task");
   const router = useRouter();
   const projectId = params.id as string;
   const { data: project, isLoading, isError } = useProject(projectId);
@@ -151,7 +153,7 @@ export default function ProjectDetailScreen() {
   const [showMembers, setShowMembers] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const hasOpenedUrlTaskRef = useRef(false);
+  const hasOpenedUrlTaskRef = useRef<string | null>(null);
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -161,17 +163,15 @@ export default function ProjectDetailScreen() {
   }, []);
 
   useEffect(() => {
-    if (hasOpenedUrlTaskRef.current || serverTasks.length === 0) return;
-    const query = new URLSearchParams(window.location.search);
-    const targetTaskId = query.get("taskId") || query.get("task");
-    if (!targetTaskId) return;
+    const targetTaskId = requestedTaskId;
+    if (!targetTaskId || hasOpenedUrlTaskRef.current === targetTaskId || serverTasks.length === 0) return;
 
     const foundTask = serverTasks.find((task) => task.id === targetTaskId);
     if (foundTask) {
-      hasOpenedUrlTaskRef.current = true;
+      hasOpenedUrlTaskRef.current = targetTaskId;
       setSelectedTask(foundTask);
     }
-  }, [serverTasks]);
+  }, [serverTasks, requestedTaskId]);
 
   const {
     isOpen: showTaskForm,

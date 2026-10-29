@@ -6,9 +6,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { MessageType, Prisma } from '@prisma/client';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { S3Service } from 'src/infrastructure/s3/s3.service';
-import { getMediaType, mapMediaWithUrl } from 'src/common/utils/file.util';
+import { PrismaService } from '../../prisma/prisma.service';
+import { S3Service } from '../../infrastructure/s3/s3.service';
+import { getMediaType, mapMediaWithUrl } from '../../common/utils/file.util';
 import {
   MESSAGE_CONSTANTS,
   MESSAGE_DIRECTION,

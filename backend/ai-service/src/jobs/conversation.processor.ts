@@ -3,9 +3,10 @@ import { summarizeAttachment } from "../modules/conversation-ai/attachment-summa
 import { config } from "../config/env.config";
 import { conversationAnswer } from "../modules/conversation-ai/conversation-agent";
 import { setTimeout as pause } from "node:timers/promises";
+import { pollUntilAborted } from "../common/abort-polling";
 
 type SavedAnswer = { token: string; content: string; failed: boolean };
-export type ConversationCheckpoint = {
+type ConversationCheckpoint = {
   answer?: SavedAnswer;
   claimToken?: string;
   saveClaim?: (token: string) => Promise<void>;
@@ -74,17 +75,10 @@ export async function processConversation(
     const authorize = () =>
       communication(id, "validate", { token: claim.token }, signal);
     let authorizeSource: (() => Promise<void>) | undefined;
-    let checking = false;
-    const timer = setInterval(() => {
-      if (checking) return;
-      checking = true;
-      void authorize()
-        .then(() => authorizeSource?.())
-        .catch(() => controller.abort())
-        .finally(() => {
-          checking = false;
-        });
-    }, 5000);
+    const stopPolling = pollUntilAborted(controller, 5000, async () => {
+      await authorize();
+      await authorizeSource?.();
+    });
     try {
       const content = claim.attachmentSummary
         ? await summarizeAttachment(
@@ -102,36 +96,21 @@ export async function processConversation(
             () => communication(id, "history", { token: claim.token }, signal),
             signal,
             authorize,
-            async (scope) => {
-              try {
-                return await communication(
-                  id,
-                  "tasks",
-                  { token: claim.token, scope },
-                  signal,
-                );
-              } catch (error) {
-                if (error instanceof CommunicationError && error.status >= 500)
-                  return {
-                    available: false,
-                    message:
-                      "Project Service is unavailable. Do not infer tasks from chat or treat this as an empty task list.",
-                  };
-                throw error;
-              }
-            },
           );
       signal.throwIfAborted();
       answer = { token: claim.token, content, failed: false };
     } catch (error) {
       // Never log prompts, attachment contents, tokens or provider error messages.
-      console.error(JSON.stringify({
-        event: "conversation_generation_failed",
-        request_id: id,
-        attachment: !!claim.attachmentSummary,
-        error_type: error instanceof Error ? error.constructor.name : "UnknownError",
-        aborted: signal.aborted,
-      }));
+      console.error(
+        JSON.stringify({
+          event: "conversation_generation_failed",
+          request_id: id,
+          attachment: !!claim.attachmentSummary,
+          error_type:
+            error instanceof Error ? error.constructor.name : "UnknownError",
+          aborted: signal.aborted,
+        }),
+      );
       answer = {
         token: claim.token,
         content:
@@ -141,7 +120,7 @@ export async function processConversation(
         failed: true,
       };
     } finally {
-      clearInterval(timer);
+      stopPolling();
       controller.abort();
     }
     // Save before delivery. A BullMQ retry can resend this result without another model call.

@@ -3,7 +3,15 @@ import { z } from "zod";
 
 export const config = z
   .object({
-    MEETING_STT_CONCURRENCY: z.coerce.number().int().min(1).max(4).default(2),
+    MEETING_STT_CONCURRENCY: z.coerce.number().int().min(1).max(4).default(1),
+    MEETING_STT_URL: z.string().url().default("http://127.0.0.1:8090"),
+    MEETING_STT_SERVICE_KEY: z.string().default(""),
+    MEETING_STT_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(1000)
+      .max(600000)
+      .default(180000),
     MEETING_SUMMARY_ENABLED: z.enum(["true", "false"]).default("false"),
     MEETING_SUMMARY_MAX_SECONDS: z.coerce
       .number()
@@ -19,8 +27,6 @@ export const config = z
       .default(1073741824),
     MEETING_FFMPEG_PATH: z.string().min(1).default("ffmpeg"),
     MEETING_MEDIA_HOSTS: z.string().default(""),
-    GOOGLE_CLOUD_PROJECT: z.string().default(""),
-    GOOGLE_STT_LOCATION: z.enum(["us", "eu"]).default("us"),
     CONVERSATION_AI_ENABLED: z.enum(["true", "false"]).default("false"),
     CONVERSATION_AI_CONCURRENCY: z.coerce
       .number()
@@ -46,6 +52,16 @@ export const config = z
       .string()
       .url()
       .default("http://localhost:8083"),
+    WORK_ASSISTANT_ENABLED: z.enum(["true", "false"]).default("true"),
+    WORK_ASSISTANT_SERVICE_KEY: z.string().default(""),
+    WORK_ASSISTANT_PROJECT_URL: z
+      .string()
+      .url()
+      .default("http://localhost:8082"),
+    WORK_ASSISTANT_CALENDAR_URL: z
+      .string()
+      .url()
+      .default("http://localhost:8086"),
     PORT: z.coerce.number().default(8087),
     AI_ENABLED: z.enum(["true", "false"]).default("false"),
     AI_SHUTDOWN_TIMEOUT_MS: z.coerce
@@ -87,15 +103,25 @@ export const config = z
   .superRefine((value, context) => {
     if (
       value.MEETING_SUMMARY_ENABLED === "true" &&
-      (!value.GOOGLE_CLOUD_PROJECT ||
-        !value.MEETING_MEDIA_HOSTS ||
+      value.MEETING_STT_CONCURRENCY !== 1
+    )
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["MEETING_STT_CONCURRENCY"],
+        message:
+          "Local speech worker supports one audio chunk at a time; configure MEETING_STT_CONCURRENCY=1",
+      });
+    if (
+      value.MEETING_SUMMARY_ENABLED === "true" &&
+      (!value.MEETING_MEDIA_HOSTS ||
+        value.MEETING_STT_SERVICE_KEY.length < 32 ||
         value.AI_COMMUNICATION_SERVICE_KEY.length < 32)
     )
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["MEETING_SUMMARY_ENABLED"],
         message:
-          "Configure Google project, allowed media hosts and communication service key",
+          "Configure local speech service key, allowed media hosts and communication service key",
       });
     if (
       value.VISUAL_ENABLED === "true" &&

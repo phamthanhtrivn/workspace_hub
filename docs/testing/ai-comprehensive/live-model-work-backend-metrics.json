@@ -1,0 +1,28 @@
+{
+  "runAt": "2026-10-29T12:55:59.043Z",
+  "providerOrigin": "https://vibi.top",
+  "notebookModel": "deepseek-v4.1-flash",
+  "agentModel": "gpt-6.1-sol",
+  "mode": "real configured provider; synthetic inputs; PGlite quota reservations; no gateway, live source permissions or application persistence",
+  "requestBudget": 5,
+  "requests": [
+    {
+      "case": "work-backend-metrics",
+      "status": 200
+    }
+  ],
+  "cases": [
+    {
+      "id": "work-backend-metrics",
+      "status": "PASS",
+      "answer": "Theo **thống kê backend trong 7 ngày, từ 23–29/10/2026** (giờ Việt Nam):\n\n- **Tỷ lệ đúng hạn của công việc Project thuộc phạm vi cá nhân bạn: 75%** — 3 việc đúng hạn, 1 việc trễ trong 4 việc đã hoàn thành có deadline. Tổng cộng có 5 việc hoàn thành; việc không có deadline không nằm trong mẫu số.\n- **Bạn đã tập trung 1 giờ 15 phút**, qua **3 phiên Pomodoro**. Đây là thời gian tập trung của riêng bạn, không phải cả nhóm.\n\nLưu ý: tỷ lệ đúng hạn dựa trên **deadline hiện đang lưu**, chưa phản ánh lịch sử thay đổi deadline. Dữ liệu hiện tại không đại diện cho toàn bộ Project.",
+      "checks": {
+        "exactBackendRate": true,
+        "personalFocus": true
+      },
+      "durationMs": 7022
+    }
+  ],
+  "selection": "work-backend-metrics",
+  "note": "Small smoke checks and explicit output criteria; not a general quality or deployment certification."
+}

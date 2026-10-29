@@ -1,0 +1,29 @@
+{
+  "tests": 35,
+  "passed": 30,
+  "failures": [],
+  "errors": [],
+  "skipped": [
+    {
+      "case": "test_docx_extracts_raster_images_with_archive_names_never_used_as_paths (test_visual.VisualTests.test_docx_extracts_raster_images_with_archive_names_never_used_as_paths)",
+      "reason": "Tesseract OCR unavailable; run this test in the RAG Docker image"
+    },
+    {
+      "case": "test_real_local_ocr_reads_generated_vietnamese_image (test_visual.VisualTests.test_real_local_ocr_reads_generated_vietnamese_image)",
+      "reason": "Tesseract OCR unavailable; run this test in the RAG Docker image"
+    },
+    {
+      "case": "test_real_scanned_pdf_uses_ocr_and_preserves_page_number (test_visual.VisualTests.test_real_scanned_pdf_uses_ocr_and_preserves_page_number)",
+      "reason": "Tesseract OCR unavailable; run this test in the RAG Docker image"
+    },
+    {
+      "case": "test_real_vector_diagram_without_embedded_raster_is_retained (test_visual.VisualTests.test_real_vector_diagram_without_embedded_raster_is_retained)",
+      "reason": "Tesseract OCR unavailable; run this test in the RAG Docker image"
+    },
+    {
+      "case": "test_standalone_image_is_normalized_and_keeps_ocr_context (test_visual.VisualTests.test_standalone_image_is_normalized_and_keeps_ocr_context)",
+      "reason": "Tesseract OCR unavailable; run this test in the RAG Docker image"
+    }
+  ],
+  "mode": "Qdrant in-memory; fixture embeddings; real parser/preflight and FastAPI; OCR tests explicitly unavailable on this host"
+}

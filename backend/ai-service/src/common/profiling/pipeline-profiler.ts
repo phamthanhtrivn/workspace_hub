@@ -7,14 +7,19 @@ type Stage =
   | "processing_ms"
   | "queue_wait_ms"
   | "job_age_ms"
-  | "attempt";
+  | "attempt"
+  | "history_ms"
+  | "context_ms"
+  | "model_ms"
+  | "persist_ms";
 type Operation =
   | "index"
   | "preflight"
   | "job_index"
   | "job_summary"
   | "job_cleanup"
-  | "job_conversation";
+  | "job_conversation"
+  | "work_assistant";
 
 export class Profile {
   private readonly started = performance.now();

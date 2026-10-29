@@ -9,7 +9,7 @@ import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { MessageService } from '../message/message.service';
 import { INVITATION_STATUS } from './types/invitation.enums';
 import { InvitationPublisher } from './events/invitation.publisher';
-import { UserProfileSnapshot } from 'src/common/types/user.types';
+import { UserProfileSnapshot } from '../../common/types/user.types';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()

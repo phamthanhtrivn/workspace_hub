@@ -59,6 +59,18 @@ describe('conversation AI internal HTTP authentication', () => {
           })
         ).status,
       ).toBe(201);
+      expect(
+        (
+          await fetch(url.replace('/validate', '/tasks'), {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-internal-service-key': key,
+            },
+            body: JSON.stringify({ token, scope: 'today' }),
+          })
+        ).status,
+      ).toBe(400);
       expect(ai.validate).toHaveBeenCalledWith(
         '11111111-1111-4111-8111-111111111111',
         token,

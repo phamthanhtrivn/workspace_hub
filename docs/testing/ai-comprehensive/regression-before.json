@@ -1,0 +1,11 @@
+{
+  "command": "node --test --test-reporter=tap test/comprehensive-regressions.test.cjs",
+  "state": "before fixes",
+  "tests": 2,
+  "passed": 0,
+  "failed": 2,
+  "failures": [
+    { "case": "timezone refetch propagates Project revocation", "error": "Missing expected rejection.", "actual": "Returned unavailable context after Project 403 on timezone refetch", "expected": "HTTP 403 exception" },
+    { "case": "Studio summary cache partitions provider, effective model and output token budget", "error": "Different providers must not reuse prior artifacts", "actual": "Both providers generated the same cache key", "expected": "Distinct cache keys" }
+  ]
+}

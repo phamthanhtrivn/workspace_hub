@@ -1,0 +1,10 @@
+{
+  "sample": "audio_014",
+  "reference": "không phải ai cũng cần một người giỏi lý lẽ. Có khi, người ta chỉ cần một giọng nói đủ ấm để dỗ dành, yêu thương.",
+  "hypothesis": "Không phải ai cũng cần một người giỏi lý lẽ, có khi người ta chỉ cần một dọng nói đủ ấm để dỗ dành, yêu thương.",
+  "referenceWords": 26,
+  "wordEdits": 1,
+  "wer": 0.038461538461538464,
+  "normalization": "NFC, casefold, punctuation removed; diacritics retained",
+  "scope": "One public clip; no corpus-level accuracy claim"
+}

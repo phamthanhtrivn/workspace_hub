@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "runAt": "2026-10-27T16:55:01.221Z",
+  "mode": "real-ui-and-assistant-api; isolated-sql; source-auth-fixtures; no-model-call",
+  "checks": [
+    "Trash and manual working-hour actions are absent",
+    "Creating a conversation starts empty and keeps existing messages",
+    "History list reopens the selected conversation and refresh keeps its identity",
+    "Other accounts cannot open the thread; delete endpoint is unavailable",
+    "Desktop and mobile history are reachable; Escape closes the mobile panel",
+    "Project conversations are created and listed in their own scope"
+  ],
+  "pageErrors": []
+}

@@ -181,6 +181,6 @@ export async function summarizeAttachment(
       ? "Lưu ý: Bản tóm tắt dựa trên văn bản/OCR; chưa phân tích riêng các hình và biểu đồ."
       : "",
   ].filter(Boolean);
-  const safeName = manifest.name.replace(/[\r\n\[\]`*_<>]/g, " ");
+  const safeName = manifest.name.replace(/[\r\n[\]`*_<>]/g, " ");
   return `Tóm tắt tài liệu: ${safeName}\n\n${answer.content.trim()}${notes.length ? "\n\n" + notes.join("\n") : ""}`;
 }

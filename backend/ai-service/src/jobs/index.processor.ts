@@ -76,25 +76,25 @@ export async function indexSource(id: string) {
       await rag("/delete", { scopeId: source.notebook_id, sourceId: id });
     completed = true;
   } catch (error) {
-    if (
+    const failure =
       error instanceof HttpException &&
       error.getStatus() >= 400 &&
       error.getStatus() < 500 &&
       error.getStatus() !== 429
-    )
-      error = new UnrecoverableError(error.message);
+        ? new UnrecoverableError(error.message)
+        : error;
     await rows(
       "UPDATE notebook_ai.sources SET status='FAILED',error=$2,updated_at=now() WHERE id=$1",
       [
         id,
-        error instanceof UnrecoverableError
-          ? error.message
-          : error instanceof Error && "getStatus" in error
-            ? error.message
+        failure instanceof UnrecoverableError
+          ? failure.message
+          : failure instanceof Error && "getStatus" in failure
+            ? failure.message
             : "INDEX_DEPENDENCY_FAILED: Không tải hoặc xử lý được nguồn. Kiểm tra Document Service, RAG worker và bộ nhớ; thử lại khi dịch vụ sẵn sàng.",
       ],
     );
-    throw error;
+    throw failure;
   } finally {
     timing.finish(completed ? "ok" : "failed");
   }

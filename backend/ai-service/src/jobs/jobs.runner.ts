@@ -15,53 +15,53 @@ import { indexSource } from "./index.processor";
 import { summarize } from "./summary.processor";
 import { logError } from "../common/errors/error-log";
 import { createShutdownHandler, settleAll } from "../common/shutdown";
-async function processConversationJob(job: Job) {
-  const timing = new Profile("job_conversation");
+async function profileJob<T>(
+  job: Job,
+  pipeline: "job_index" | "job_summary" | "job_cleanup" | "job_conversation",
+  process: () => Promise<T>,
+) {
+  const timing = new Profile(pipeline);
   timing.set("job_age_ms", Date.now() - job.timestamp);
   if (job.attemptsMade === 0)
     timing.set("queue_wait_ms", Date.now() - job.timestamp);
   timing.set("attempt", job.attemptsMade + 1);
   let completed = false;
   try {
-    await timing.measure("processing_ms", () =>
-      processConversation(job.data.requestId, {
-        answer: job.data.answer,
-        claimToken: job.data.claimToken,
-        saveClaim: async (claimToken) =>
-          job.updateData({ ...job.data, claimToken }),
-        save: async (answer) => job.updateData({ ...job.data, answer }),
-      }),
-    );
-    completed = true;
-  } finally {
-    timing.finish(completed ? "ok" : "failed");
-  }
-}
-async function processJob(job: Job) {
-  if (!["index", "summary", "cleanup", "conversation"].includes(job.name))
-    throw new UnrecoverableError("Unknown job");
-  if (job.name === "conversation") return processConversationJob(job);
-  const timing = new Profile(
-    `job_${job.name}` as "job_index" | "job_summary" | "job_cleanup",
-  );
-  timing.set("job_age_ms", Date.now() - job.timestamp);
-  // Retry age includes previous work/backoff, so don't label it as pure queue wait.
-  if (job.attemptsMade === 0)
-    timing.set("queue_wait_ms", Date.now() - job.timestamp);
-  timing.set("attempt", job.attemptsMade + 1);
-  let completed = false;
-  try {
-    const result = await timing.measure("processing_ms", () => {
-      if (job.name === "index") return indexSource(job.data.sourceId);
-      if (job.name === "summary") return summarize(job.data.artifactId);
-      return rag("/delete", job.data);
-    });
+    const result = await timing.measure("processing_ms", process);
     completed = true;
     return result;
   } finally {
     timing.finish(completed ? "ok" : "failed");
   }
 }
+
+async function processConversationJob(job: Job) {
+  return profileJob(job, "job_conversation", () =>
+    processConversation(job.data.requestId, {
+      answer: job.data.answer,
+      claimToken: job.data.claimToken,
+      saveClaim: async (claimToken) =>
+        job.updateData({ ...job.data, claimToken }),
+      save: async (answer) => job.updateData({ ...job.data, answer }),
+    }),
+  );
+}
+
+async function processJob(job: Job) {
+  switch (job.name) {
+    case "conversation":
+      return processConversationJob(job);
+    case "index":
+      return profileJob(job, "job_index", () => indexSource(job.data.sourceId));
+    case "summary":
+      return profileJob(job, "job_summary", () => summarize(job.data.artifactId));
+    case "cleanup":
+      return profileJob(job, "job_cleanup", () => rag("/delete", job.data));
+    default:
+      throw new UnrecoverableError("Unknown job");
+  }
+}
+
 export function startWorkers() {
   const worker = new Worker("notebook-jobs", processJob, {
     connection,

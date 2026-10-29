@@ -1,8 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { MAX_FILE_SIZE } from 'src/common/utils/file.util';
-import { S3Service } from 'src/infrastructure/s3/s3.service';
+import { MAX_FILE_SIZE } from '../../common/utils/file.util';
+import { S3Service } from '../../infrastructure/s3/s3.service';
 import { PresignRequestDto } from './dto/presign-request.dto';
-import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
+import { S3_UPLOAD_TYPE } from '../../common/types/file.enums';
 import {
   MEDIA_SUCCESS_MESSAGES,
   MEDIA_ERROR_MESSAGES,
