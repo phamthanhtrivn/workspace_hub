@@ -4,7 +4,7 @@ import {
   Injectable,
   forwardRef,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { NOTE_ERROR_MESSAGES } from './types/note.enums';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';

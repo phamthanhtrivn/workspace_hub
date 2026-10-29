@@ -58,6 +58,13 @@ run(
   ["node_modules/typescript/bin/tsc", "-p", "tsconfig.json"],
   resolve(root, "backend/ai-service"),
 );
+run("ai-tests", process.execPath, ["backend/scripts/test-ai-service.mjs"]);
+run(
+  "ai-lint",
+  process.execPath,
+  ["node_modules/eslint/bin/eslint.js", "src", "test", "scripts", "eslint.config.mjs"],
+  resolve(root, "backend/ai-service"),
+);
 const python = resolve(
   root,
   "backend/ai-service/.venv",

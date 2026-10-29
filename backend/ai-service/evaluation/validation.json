@@ -1,0 +1,35 @@
+{
+  "validatedAt": "2026-10-29T12:25:32.542Z",
+  "datasetVersion": 1,
+  "synthetic": true,
+  "data": {
+    "deterministicCases": 81,
+    "workspaceScenarios": 9,
+    "newModelCases": 18,
+    "legacyModelCases": 3,
+    "manualScenarios": 13,
+    "uploadableDocuments": 3,
+    "meetingTranscripts": 1
+  },
+  "verification": {
+    "command": "npm test",
+    "tests": 292,
+    "passed": 292,
+    "failed": 0,
+    "newTests": 111,
+    "build": "PASS",
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "networkMode": "SQL, HTTP and model fixtures; no live model calls",
+    "fullReport": "../../../docs/testing/ai-performance/tests.json"
+  },
+  "liveModel": { "status": "NOT_RUN", "passed": null, "failed": null },
+  "manualUi": { "status": "NOT_RUN", "passed": null, "failed": null },
+  "speechRecognition": { "status": "NOT_RUN_FOR_NEW_TRANSCRIPT", "note": "The provided transcript is text; no synthetic audio or real recording was transcribed in this run." },
+  "limitations": [
+    "Grader tests validate acceptance/rejection of reference answers, not actual model quality.",
+    "Citation-label checks do not prove semantic entailment.",
+    "Workspace HTTP fixtures are not database seeds and do not certify live authorization.",
+    "Finite synthetic cases do not guarantee perfect behavior."
+  ]
+}

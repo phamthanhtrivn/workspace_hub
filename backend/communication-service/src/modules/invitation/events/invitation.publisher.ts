@@ -3,7 +3,7 @@ import { ClientKafka } from '@nestjs/microservices';
 import {
   KAFKA_EVENTS,
   KAFKA_TOPICS,
-} from 'src/common/constants/kafka.constants';
+} from '../../../common/constants/kafka.constants';
 
 @Injectable()
 export class InvitationPublisher {

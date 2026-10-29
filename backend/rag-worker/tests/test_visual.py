@@ -1,26 +1,31 @@
 import base64
 import io
 import os
+import shutil
 import unittest
 from unittest.mock import patch
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
+from fixture_font import fixture_font
 from pypdf import PdfWriter
 
 from app.errors import InvalidSource
 from app.visual import VisualExtractor, image_url, open_image, ocr_image
 
+requires_ocr = unittest.skipUnless(shutil.which("tesseract"), "Tesseract OCR unavailable; run this test in the RAG Docker image")
+
 
 def text_image(text="Doanh thu nam 2026: 120 trieu dong"):
     image = Image.new("RGB", (1500, 500), "white")
     draw = ImageDraw.Draw(image)
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 42)
+    font = fixture_font(42)
     draw.text((40, 70), text, fill="black", font=font)
     draw.text((40, 150), "Chi phi: 80 trieu dong. Loi nhuan: 40 trieu dong.", fill="black", font=font)
     return image
 
 
 class VisualTests(unittest.TestCase):
+    @requires_ocr
     def test_real_local_ocr_reads_generated_vietnamese_image(self):
         with text_image("Doanh thu năm 2026: 120 triệu đồng") as image:
             text, needs_vision = ocr_image(image)
@@ -29,6 +34,7 @@ class VisualTests(unittest.TestCase):
         self.assertIn("80", text)
         self.assertIn("triệu", text)
 
+    @requires_ocr
     def test_standalone_image_is_normalized_and_keeps_ocr_context(self):
         with text_image() as image, io.BytesIO() as output:
             image.save(output, "PNG")
@@ -51,6 +57,7 @@ class VisualTests(unittest.TestCase):
             with self.assertRaises(InvalidSource):
                 open_image(output.getvalue(), ".png")
 
+    @requires_ocr
     def test_real_scanned_pdf_uses_ocr_and_preserves_page_number(self):
         with text_image() as image, io.BytesIO() as output:
             image.save(output, "PDF", resolution=144)
@@ -68,6 +75,7 @@ class VisualTests(unittest.TestCase):
                 ocr.assert_not_called()
         self.assertEqual(result["images"], [])
 
+    @requires_ocr
     def test_real_vector_diagram_without_embedded_raster_is_retained(self):
         from pypdf.generic import DecodedStreamObject, NameObject
         writer = PdfWriter()
@@ -90,6 +98,7 @@ class VisualTests(unittest.TestCase):
                 extractor.add_image(image, 25, "")
         self.assertEqual(error.exception.code, "VISUAL_PAGE_LIMIT")
 
+    @requires_ocr
     def test_docx_extracts_raster_images_with_archive_names_never_used_as_paths(self):
         import zipfile
         with text_image() as image, io.BytesIO() as raster, io.BytesIO() as archive:

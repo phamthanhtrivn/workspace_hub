@@ -35,7 +35,7 @@ import { InviteSpaceMemberDto } from './dto/invite-space-members.dto';
 import { EnsureProjectSpaceDto } from './dto/ensure-project-space.dto';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
 import { ProjectNameClient } from './project-name.client';
-import { UserProfileSnapshot } from 'src/common/types/user.types';
+import { UserProfileSnapshot } from '../../common/types/user.types';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { ChatEvent } from '../socket/chat/chat-socket.events';
 import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';

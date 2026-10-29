@@ -2,7 +2,7 @@
 
 Mã mới, không phục hồi Python AI service cũ. Frontend `/ai` → notebook → ba vùng Nguồn / Hỏi đáp / Studio. Không có flashcard/quiz. Chỉ có notebook cá nhân và một dòng lịch sử hỏi đáp/notebook ở MVP.
 
-Cấu trúc mã Node.js theo feature module và ranh giới hạ tầng/jobs: [backend/ai-service/README.md](../../backend/ai-service/README.md). Entry point/lệnh Docker, env và endpoint không đổi sau refactor.
+Cấu trúc mã Node.js theo feature module và ranh giới hạ tầng/jobs: [kiến trúc AI service](../../docs/testing/ai-comprehensive/architecture.md). Entry point/lệnh Docker, env và endpoint không đổi sau refactor.
 
 ## Thành phần
 

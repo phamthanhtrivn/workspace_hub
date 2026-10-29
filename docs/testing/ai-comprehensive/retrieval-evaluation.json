@@ -1,0 +1,19 @@
+{
+  "scope": "synthetic_candidate_reranking_only",
+  "queries": 50,
+  "baseline": {
+    "recall_at_3": 0.6,
+    "mrr": 0.4567,
+    "ndcg_at_3": 0.4262
+  },
+  "bm25_rrf": {
+    "recall_at_3": 1,
+    "mrr": 0.6867,
+    "ndcg_at_3": 0.7671
+  },
+  "limitations": [
+    "Not an end-to-end RAG or model-quality benchmark",
+    "No semantic entailment or abstention scoring",
+    "Replace synthetic cases with reviewed real-document questions before release-quality comparisons"
+  ]
+}

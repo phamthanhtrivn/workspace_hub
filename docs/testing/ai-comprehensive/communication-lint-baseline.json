@@ -1,0 +1,103 @@
+{
+  "runAt": "2026-10-29T14:50:17.336Z",
+  "passed": true,
+  "note": "Baseline reconstructs only the 19 original src/* imports from current files, preserving pre-existing uncommitted user changes. HEAD is not a valid pre-fix baseline for this dirty working tree.",
+  "files": [
+    {
+      "file": "infrastructure/s3/s3.service.ts",
+      "baselineErrors": 1,
+      "currentErrors": 1,
+      "baselineWarnings": 0,
+      "currentWarnings": 0,
+      "newProblems": []
+    },
+    {
+      "file": "modules/channel/channel.service.ts",
+      "baselineErrors": 78,
+      "currentErrors": 78,
+      "baselineWarnings": 3,
+      "currentWarnings": 3,
+      "newProblems": []
+    },
+    {
+      "file": "modules/direct-conversation/direct-conversation.service.ts",
+      "baselineErrors": 22,
+      "currentErrors": 22,
+      "baselineWarnings": 4,
+      "currentWarnings": 4,
+      "newProblems": []
+    },
+    {
+      "file": "modules/direct-message/direct-message.service.ts",
+      "baselineErrors": 16,
+      "currentErrors": 16,
+      "baselineWarnings": 0,
+      "currentWarnings": 0,
+      "newProblems": []
+    },
+    {
+      "file": "modules/invitation/events/invitation.publisher.ts",
+      "baselineErrors": 0,
+      "currentErrors": 0,
+      "baselineWarnings": 0,
+      "currentWarnings": 0,
+      "newProblems": []
+    },
+    {
+      "file": "modules/invitation/invitation.service.ts",
+      "baselineErrors": 2,
+      "currentErrors": 2,
+      "baselineWarnings": 0,
+      "currentWarnings": 0,
+      "newProblems": []
+    },
+    {
+      "file": "modules/media/media.module.ts",
+      "baselineErrors": 0,
+      "currentErrors": 0,
+      "baselineWarnings": 0,
+      "currentWarnings": 0,
+      "newProblems": []
+    },
+    {
+      "file": "modules/media/media.service.ts",
+      "baselineErrors": 0,
+      "currentErrors": 0,
+      "baselineWarnings": 0,
+      "currentWarnings": 0,
+      "newProblems": []
+    },
+    {
+      "file": "modules/note/note.service.ts",
+      "baselineErrors": 0,
+      "currentErrors": 0,
+      "baselineWarnings": 1,
+      "currentWarnings": 1,
+      "newProblems": []
+    },
+    {
+      "file": "modules/poll/poll.service.ts",
+      "baselineErrors": 0,
+      "currentErrors": 0,
+      "baselineWarnings": 1,
+      "currentWarnings": 1,
+      "newProblems": []
+    },
+    {
+      "file": "modules/space/space.service.ts",
+      "baselineErrors": 0,
+      "currentErrors": 0,
+      "baselineWarnings": 0,
+      "currentWarnings": 0,
+      "newProblems": []
+    },
+    {
+      "file": "modules/user-profile-snapshot/user-profile-snapshot.module.ts",
+      "baselineErrors": 0,
+      "currentErrors": 0,
+      "baselineWarnings": 0,
+      "currentWarnings": 0,
+      "newProblems": []
+    }
+  ]
+}

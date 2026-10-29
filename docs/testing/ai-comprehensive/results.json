@@ -1,0 +1,600 @@
+{
+  "generatedAt": "2026-10-29T14:53:41.939Z",
+  "verdict": "Automated checks and isolated native stack scenarios pass; production certification and universal AI accuracy are not established",
+  "scopedChecksPassed": true,
+  "architecture": {
+    "sourceFiles": 79,
+    "sourceLines": 6935,
+    "endpoints": 25,
+    "testFiles": [
+      {
+        "path": "backend/ai-service/test/api-shutdown.test.cjs",
+        "sha256": "0416930697d783aa8daac1950806072cb404570da5b6ff5a9849e81dd1cee653"
+      },
+      {
+        "path": "backend/ai-service/test/attachment-summary.test.cjs",
+        "sha256": "ce43797928889eddb7c0cdf85c62c3171862021ead22b7e1c5d0bdca652d4471"
+      },
+      {
+        "path": "backend/ai-service/test/audit-regression.test.cjs",
+        "sha256": "d2ecf01ea1601941c1f44de6cf0beae3093c121de13f5204feaeffdef4fc2d85"
+      },
+      {
+        "path": "backend/ai-service/test/auth.test.cjs",
+        "sha256": "9cf682f93e7f92b2f37a921eafca08dea71f96f72f461e9f8fcdaea9afb1e22a"
+      },
+      {
+        "path": "backend/ai-service/test/chat-cancellation.test.cjs",
+        "sha256": "f991684eb07d11aa6cc0f29e92261c2303fa1f645be11cb102fc7576bfaeaa69"
+      },
+      {
+        "path": "backend/ai-service/test/chat-history.test.cjs",
+        "sha256": "ae0d6d5b648a38dc9e313b192daa21b1df7fcd11a9bee95bd09d2f2060e16a9d"
+      },
+      {
+        "path": "backend/ai-service/test/chat-response.test.cjs",
+        "sha256": "62d1e0cbaf4af2d6cbd039b7a374297cdb9c0cf3fed225fbb240979bedda36f1"
+      },
+      {
+        "path": "backend/ai-service/test/citation-check.test.cjs",
+        "sha256": "5aa216171250de5c02e80ac0e931c65cc1fa28f6a42333378d0fc62c00de05d6"
+      },
+      {
+        "path": "backend/ai-service/test/comprehensive-http.test.cjs",
+        "sha256": "d95e2c87171d803baddaebbd8f9a9c0383380037ba3d42ba6d439b309fac545d"
+      },
+      {
+        "path": "backend/ai-service/test/comprehensive-regressions.test.cjs",
+        "sha256": "6ebc43f1ed232c1df7598dffbf61918dbb726fd2892ca2767290b107897df90b"
+      },
+      {
+        "path": "backend/ai-service/test/conversation-admission.test.cjs",
+        "sha256": "4311c69d67b600e1d52820b0571dc44733f2070e17fb890036ec80326c88ab61"
+      },
+      {
+        "path": "backend/ai-service/test/conversation-agent.test.cjs",
+        "sha256": "47cdf8519e72096f1fd022950b3046ce4f0e3093bd1def66479c4608c28bb90b"
+      },
+      {
+        "path": "backend/ai-service/test/conversation-model-eval.test.cjs",
+        "sha256": "ee3fc9badb4ee856b8b43293632ff734fca14649274ea901c3f4fc17c009fded"
+      },
+      {
+        "path": "backend/ai-service/test/conversation-model-quota.test.cjs",
+        "sha256": "dd4e65ce9c99482ba094cf754f46a9ee27e09eb813ca24aebe74a8f48b8af85a"
+      },
+      {
+        "path": "backend/ai-service/test/conversation-telemetry.test.cjs",
+        "sha256": "e0082e0a46fd5526c36dcc68f16cd345fad4cdaead51651815de2696286a54ba"
+      },
+      {
+        "path": "backend/ai-service/test/conversation-worker.test.cjs",
+        "sha256": "16a9602d3d5bbdcc4a6e4a677e6aef23bd8ba0af6062d530a0512c66d86aaa7b"
+      },
+      {
+        "path": "backend/ai-service/test/documents.test.cjs",
+        "sha256": "f4348f27410f2ca1ef15829aaaf7df9970fc626b6bcf356caf109383f36353d4"
+      },
+      {
+        "path": "backend/ai-service/test/evaluation-data.test.cjs",
+        "sha256": "cf50159db634a3fbdda5806e8fffa3cd03624fc206f0ebd230d0fcacdcfc5369"
+      },
+      {
+        "path": "backend/ai-service/test/evaluation-grading.test.cjs",
+        "sha256": "345d9f2c8e647bd95e6678df0ec31b54a9a8377612294dbc898adc28536c7126"
+      },
+      {
+        "path": "backend/ai-service/test/evaluation-workspace.test.cjs",
+        "sha256": "923956bf550f3fee0ed5b558fa5c6cfe90af1d5d5488aeac933cc733ae9b13e9"
+      },
+      {
+        "path": "backend/ai-service/test/gateway-plugin.test.cjs",
+        "sha256": "20486e5cb8831be86bc20e558dafb92342efeb91f8d09772793eb7da2e58b918"
+      },
+      {
+        "path": "backend/ai-service/test/ingestion-performance.test.cjs",
+        "sha256": "25d992d50e5304da11584fadb2a5efc98cb0c9144b25b097d896cbd6b7e64655"
+      },
+      {
+        "path": "backend/ai-service/test/job-recovery.test.cjs",
+        "sha256": "bc4dc67a889fc166762ced53e0b35db63241bddab5f736b4cf0de3b943a0cdc1"
+      },
+      {
+        "path": "backend/ai-service/test/meeting-summary-controller.test.cjs",
+        "sha256": "11825d1abc130812537eedbdb08a0e68849c85aafeea7146a811fae90f33b614"
+      },
+      {
+        "path": "backend/ai-service/test/meeting-summary.test.cjs",
+        "sha256": "7c6ad950f23d6595f2582236a1fc7c47dd846185710d14a29d62061a1dc0d2fa"
+      },
+      {
+        "path": "backend/ai-service/test/modules.test.cjs",
+        "sha256": "e5caff47379507c379158e4b8a796a7eb09c64569d40126134d6bb00a0ae517b"
+      },
+      {
+        "path": "backend/ai-service/test/notebooks.test.cjs",
+        "sha256": "519e72f3206cca557dedf070fafa3e395d6da75888f80fb9588c2da8b35ac877"
+      },
+      {
+        "path": "backend/ai-service/test/performance.test.cjs",
+        "sha256": "a3da13a7f548dd53a75a59cd4c847ef2524ea999c909f1c2b0b190670e251edc"
+      },
+      {
+        "path": "backend/ai-service/test/policy.test.cjs",
+        "sha256": "971bae082a0dc3d35e086e11a380cc2452d1df1cde656cd5b978a47cf3d9eaea"
+      },
+      {
+        "path": "backend/ai-service/test/security-setup.test.cjs",
+        "sha256": "a3760c74597c428293f81293b402c5f7acc7a7f83ecfdecabc547b7fa3eafb7f"
+      },
+      {
+        "path": "backend/ai-service/test/shutdown.test.cjs",
+        "sha256": "314476fb5443d79083ac49dfb16d3af06d41ed8962f454e7b9ecd18b0a72c8f0"
+      },
+      {
+        "path": "backend/ai-service/test/stability.test.cjs",
+        "sha256": "d5fb754ab153645eb860a53d16ebebf1b4e88c5745fe3b078ddf1443f11307c1"
+      },
+      {
+        "path": "backend/ai-service/test/summary-worker.test.cjs",
+        "sha256": "93a5aa40132afbfcd66ff30a09ef459c5332ce0826b0428ff4e136caed369519"
+      },
+      {
+        "path": "backend/ai-service/test/uploads.test.cjs",
+        "sha256": "988edb9329b56f8ad3f2554c3eda031dab8336ea0845f4e95cb1093d6aac9ef7"
+      },
+      {
+        "path": "backend/ai-service/test/visual-ingestion.test.cjs",
+        "sha256": "0a7fbeacfe944694edad09d17d4c637e8761a52f6cdaf0cb8dd8e2671e5b1219"
+      },
+      {
+        "path": "backend/ai-service/test/work-assistant.test.cjs",
+        "sha256": "a63bc2ab1e382b1e1ac0234186ce9ae3718fd278afcf608c28eded11c04d5f95"
+      },
+      {
+        "path": "backend/ai-service/test/worker-lifecycle.test.cjs",
+        "sha256": "d92eb9f8fdc4db31f10f83bc1d4ff15682f11a3e12e742e399bf2abaf5c62906"
+      }
+    ]
+  },
+  "automation": {
+    "aiTests": {
+      "total": 305,
+      "passed": 305,
+      "failed": 0
+    },
+    "relatedTests": 15,
+    "rag": {
+      "status": "PASS",
+      "tests": 35,
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 2.168,
+      "image": "wh-notebook-rag-worker",
+      "mode": "Actual Docker RAG image with Tesseract vie+eng and mounted current source/tests read-only; network disabled; Qdrant in-memory and fixture embeddings",
+      "command": "docker run --rm --network none --mount type=bind,source=<repo>/backend/rag-worker/tests,target=/app/tests,readonly --mount type=bind,source=<repo>/backend/rag-worker/app,target=/app/app,readonly --entrypoint python wh-notebook-rag-worker -m unittest discover -s tests -p test_*.py -v",
+      "note": "This closes the five OCR skips observed on the Windows host. It does not certify native vector server or real embeddings."
+    },
+    "communication": {
+      "total": 273,
+      "passed": 273,
+      "failed": 0,
+      "suites": 46
+    },
+    "totalPassed": 628,
+    "skipped": [],
+    "buildAndLint": [
+      {
+        "name": "ai-build",
+        "status": "PASS"
+      },
+      {
+        "name": "ai-lint",
+        "status": "PASS"
+      },
+      {
+        "name": "frontend-types",
+        "status": "PASS"
+      },
+      {
+        "name": "project-source-types",
+        "status": "PASS"
+      },
+      {
+        "name": "calendar-source-types",
+        "status": "PASS"
+      }
+    ]
+  },
+  "http": {
+    "implemented": 25,
+    "covered": 25,
+    "requests": 89,
+    "mode": "real Nest HTTP and upstream HTTP sockets; PGlite SQL; fixture Redis/BullMQ and model outputs"
+  },
+  "liveModel": {
+    "requests": 6,
+    "cases": [
+      {
+        "id": "notebook-grounded-qa",
+        "attempts": [
+          {
+            "status": "PASS",
+            "artifact": "live-model.json",
+            "durationMs": 3843
+          }
+        ],
+        "finalStatus": "PASS",
+        "checks": {
+          "approvedAmount": true,
+          "vat": true,
+          "currentCitation": true
+        }
+      },
+      {
+        "id": "eval-history-injection",
+        "attempts": [
+          {
+            "status": "PASS",
+            "artifact": "live-model.json",
+            "durationMs": 4346
+          }
+        ],
+        "finalStatus": "PASS",
+        "checks": {
+          "historyScope": true,
+          "validJson": true,
+          "exactFacts": true
+        }
+      },
+      {
+        "id": "work-backend-metrics",
+        "attempts": [
+          {
+            "status": "FAIL",
+            "errorType": "ModelMinuteQuotaException",
+            "artifact": "live-model.json",
+            "durationMs": 4
+          },
+          {
+            "status": "PASS",
+            "artifact": "live-model-work-backend-metrics.json",
+            "durationMs": 7022
+          }
+        ],
+        "finalStatus": "PASS",
+        "checks": {
+          "exactBackendRate": true,
+          "personalFocus": true
+        }
+      },
+      {
+        "id": "meeting-decisions-and-unknowns",
+        "attempts": [
+          {
+            "status": "PASS",
+            "artifact": "live-model.json",
+            "durationMs": 11300
+          }
+        ],
+        "finalStatus": "PASS",
+        "checks": {
+          "correctedBudget": true,
+          "latestDemo": true,
+          "doesNotExecuteInjection": true,
+          "acknowledgesUnknown": true
+        }
+      },
+      {
+        "id": "vision-document-image",
+        "attempts": [
+          {
+            "status": "PASS",
+            "artifact": "live-model-vision-document-image.json",
+            "durationMs": 5048
+          }
+        ],
+        "finalStatus": "PASS",
+        "checks": {
+          "readsApprovedBudget": true,
+          "identifiesCurrency": true,
+          "preservesCancelledDraft": true
+        }
+      }
+    ],
+    "scope": "real configured provider; synthetic inputs; PGlite quota reservations; no gateway, live source permissions or application persistence"
+  },
+  "liveSpeech": {
+    "passed": true,
+    "referenceWords": 26,
+    "wordEdits": 1,
+    "wer": 0.038461538461538464,
+    "scope": "One public clip; no corpus-level accuracy claim"
+  },
+  "reranking": {
+    "scope": "synthetic_candidate_reranking_only",
+    "queries": 50,
+    "baseline": {
+      "recall_at_3": 0.6,
+      "mrr": 0.4567,
+      "ndcg_at_3": 0.4262
+    },
+    "bm25_rrf": {
+      "recall_at_3": 1,
+      "mrr": 0.6867,
+      "ndcg_at_3": 0.7671
+    },
+    "limitations": [
+      "Not an end-to-end RAG or model-quality benchmark",
+      "No semantic entailment or abstention scoring",
+      "Replace synthetic cases with reviewed real-document questions before release-quality comparisons"
+    ]
+  },
+  "fixedDefects": [
+    {
+      "id": "AI-QA-01",
+      "severity": "P2",
+      "description": "Preserve Project 403 during timezone refetch",
+      "regression": "comprehensive-regressions.test.cjs"
+    },
+    {
+      "id": "AI-QA-02",
+      "severity": "P2",
+      "description": "Partition Studio artifact cache by provider, effective model and output budget",
+      "regression": "comprehensive-regressions.test.cjs"
+    },
+    {
+      "id": "AI-QA-03",
+      "severity": "P1",
+      "description": "Communication production startup failed because emitted JavaScript retained unresolved src/* imports; convert 19 imports across 12 files to relative paths",
+      "regression": "273 Communication tests and actual compiled native service startup"
+    }
+  ],
+  "fullStackVerified": false,
+  "isolatedNativeStackVerified": true,
+  "nativeEvidence": {
+    "native-flow.json": {
+      "runAt": "2026-10-29T14:37:57.959Z",
+      "project": "aiqa-1793283069262",
+      "mode": "Actual Kong/JWT, User/Document/Project/Calendar/Communication/AI processes, native PostgreSQL/Redis/Qdrant, real multilingual embedding and configured LLM; local Moto S3 emulator",
+      "cases": [
+        {
+          "id": "real-user-registration-login-and-gateway-jwt",
+          "status": "PASS",
+          "durationMs": 1780
+        },
+        {
+          "id": "document-presigned-upload-and-real-native-ingestion",
+          "status": "PASS",
+          "durationMs": 778
+        },
+        {
+          "id": "real-rag-retrieval-scope-and-grounded-llm-stream",
+          "status": "PASS",
+          "durationMs": 3643
+        },
+        {
+          "id": "real-document-sharing-and-revocation-blocks-new-access",
+          "status": "PASS",
+          "durationMs": 671
+        },
+        {
+          "id": "studio-summary-real-redis-worker-and-native-checkpoints",
+          "status": "PASS",
+          "durationMs": 7206
+        },
+        {
+          "id": "native-project-context-and-work-assistant",
+          "status": "PASS",
+          "durationMs": 5347
+        }
+      ],
+      "resources": {
+        "ownerId": "eaf661b5-9d0a-4a66-92fe-87761681ad80",
+        "readerId": "a994ace3-586f-4184-9626-b1781eabbbd1",
+        "notebookId": "57d62473-f6c1-40df-8a18-6ce030fe31b5",
+        "readerNotebookId": "299dc6c4-6344-4023-9ac4-09c067e620f7",
+        "documentId": "32d3d56f-bd84-47f9-8b62-638c08566228",
+        "sourceId": "99935d2b-1d4e-4350-a426-6399b059bca7",
+        "originalS3Key": "documents/eaf661b5-9d0a-4a66-92fe-87761681ad80/883fb185-a2fe-4e87-9141-88c4dd95ffc8_atlas-native.md",
+        "projectId": "c8311a48-cd32-478e-9e7f-47be6c21d273",
+        "workSessionId": "f68999ce-2e5d-4780-803f-4a3a6e21b398"
+      },
+      "passed": true
+    },
+    "native-additional.json": {
+      "runAt": "2026-10-29T14:42:49.430Z",
+      "cases": [
+        {
+          "id": "persisted-answer-masked-after-real-share-revocation",
+          "status": "PASS",
+          "durationMs": 5898
+        },
+        {
+          "id": "native-communication-ai-model-and-durable-outbox",
+          "status": "PASS",
+          "durationMs": 4804
+        },
+        {
+          "id": "bounded-gateway-read-concurrency",
+          "status": "PASS",
+          "durationMs": 140
+        }
+      ],
+      "resources": {
+        "revokedNotebookId": "56b0d8ba-2f48-4ae1-9372-774dbbbd40c5",
+        "conversationId": "a4f1a5ee-5db6-4a50-9f91-cc263fbf5ce4"
+      },
+      "load": {
+        "requests": 100,
+        "concurrency": 10,
+        "failures": 0,
+        "p50Ms": 9,
+        "p95Ms": 49,
+        "scope": "Local authenticated notebook reads; not an LLM throughput or production SLA benchmark"
+      },
+      "passed": true
+    },
+    "native-meeting.json": {
+      "runAt": "2026-10-29T14:44:13.745Z",
+      "scope": "Fixture completed recording metadata; actual signed S3 HTTP, Communication permissions, queue, FFmpeg, local Whisper, LLM and SQL. LiveKit capture is outside this test.",
+      "checks": [
+        "Unshared reader cannot read or start summary",
+        "Owner start and completed summary",
+        "Real FFmpeg and Whisper transcript checkpoint",
+        "Configured LLM summary persisted and readable",
+        "Repeated start returns existing completion"
+      ],
+      "recordingId": "0939ccfd-db27-4d9c-b96e-5970ac55dddd",
+      "durationMs": 8369,
+      "passed": true
+    },
+    "native-recovery.json": {
+      "runAt": "2026-10-29T14:46:24.068Z",
+      "scope": "Only isolated QA resources; no production capacity or in-flight paid model crash certification",
+      "cases": [
+        {
+          "id": "postgres-admission-lock-across-independent-node-processes",
+          "status": "PASS",
+          "durationMs": 8336
+        },
+        {
+          "id": "queue-job-survives-stopped-worker-and-redis-aof-restart",
+          "status": "PASS",
+          "durationMs": 4540
+        },
+        {
+          "id": "postgres-qdrant-restart-preserves-chat-and-real-embedding-evidence",
+          "status": "PASS",
+          "durationMs": 1612
+        },
+        {
+          "id": "worker-restart-consumes-durable-cleanup-and-api-restart-keeps-history",
+          "status": "PASS",
+          "durationMs": 5512
+        }
+      ],
+      "passed": true
+    },
+    "native-s3.json": {
+      "runAt": "2026-10-29T14:27:56.293Z",
+      "passed": true,
+      "mode": "Unmodified Document S3Service with real AWS SDK HTTP against dedicated local Moto S3 emulator; not AWS cloud certification",
+      "checks": [
+        "Put/HEAD exact bytes",
+        "VersionId and ETag",
+        "signed download exact content",
+        "changed revision detected",
+        "metadata-only request has no signed URL",
+        "missing object rejected"
+      ]
+    },
+    "native-ocr.json": {
+      "status": "PASS",
+      "tests": 35,
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 2.168,
+      "image": "wh-notebook-rag-worker",
+      "mode": "Actual Docker RAG image with Tesseract vie+eng and mounted current source/tests read-only; network disabled; Qdrant in-memory and fixture embeddings",
+      "command": "docker run --rm --network none --mount type=bind,source=<repo>/backend/rag-worker/tests,target=/app/tests,readonly --mount type=bind,source=<repo>/backend/rag-worker/app,target=/app/app,readonly --entrypoint python wh-notebook-rag-worker -m unittest discover -s tests -p test_*.py -v",
+      "note": "This closes the five OCR skips observed on the Windows host. It does not certify native vector server or real embeddings."
+    }
+  },
+  "environmentCleanup": {
+    "runAt": "2026-10-29T14:52:03.4505661Z",
+    "passed": true,
+    "wslConfigRestoredByteForByte": true,
+    "wslMemory": "4GB",
+    "normalWslShutdownCompleted": true,
+    "dockerDesktopStopped": true,
+    "qaContainersNetworkAndInternalVolumesRemoved": true,
+    "existingModelVolumePreservedBeforeDockerStop": "wh-notebook_notebook-models",
+    "remainingQaListeners": [],
+    "stoppedProcessTrees": {
+      "value": [
+        {
+          "name": "ai",
+          "processes": [
+            12180
+          ]
+        },
+        {
+          "name": "calendar",
+          "processes": [
+            30476
+          ]
+        },
+        {
+          "name": "communication",
+          "processes": [
+            24932
+          ]
+        },
+        {
+          "name": "document",
+          "processes": [
+            26184
+          ]
+        },
+        {
+          "name": "jobs",
+          "processes": [
+            27736
+          ]
+        },
+        {
+          "name": "moto",
+          "processes": [
+            6972,
+            30404,
+            26288,
+            23408
+          ]
+        },
+        {
+          "name": "project",
+          "processes": [
+            27580
+          ]
+        },
+        {
+          "name": "speech",
+          "processes": [
+            22144,
+            8956,
+            23568
+          ]
+        },
+        {
+          "name": "user",
+          "processes": [
+            18340,
+            22876,
+            17472
+          ]
+        }
+      ],
+      "Count": 9
+    }
+  },
+  "codeQuality": {
+    "aiLintPassed": true,
+    "communicationLint": {
+      "clean": false,
+      "noNewDiagnosticsFromImportFix": true,
+      "existingErrors": 119,
+      "existingWarnings": 9,
+      "evidence": "communication-lint-baseline.json"
+    }
+  },
+  "remainingChecks": [
+    "S3 HTTP uses local Moto emulation, not AWS cloud infrastructure, IAM, KMS or CloudFront certification.",
+    "Meeting recording input uses fixture completed-recording metadata and a public audio sample; LiveKit capture/egress is not exercised.",
+    "100 notebook reads at concurrency 10 are a local bounded smoke, not sustained load, multi-node failover, disk/OOM testing or an LLM throughput SLA.",
+    "Recovery covers queued cleanup, Redis AOF, PostgreSQL/Qdrant and API/worker restarts; unknown outcomes during paid model process crashes are not certified by native tests.",
+    "Real multilingual-e5-small retrieval passed one synthetic document scenario; Docling paths and statistical multilingual document/LLM/STT quality still require reviewed representative corpora."
+  ]
+}

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from 'src/prisma/prisma.module';
+import { PrismaModule } from '../../prisma/prisma.module';
 import { UserProfileSnapshotConsumer } from './user-profile-snapshot.consumer';
 import { UserProfileSnapshotService } from './user-profile-snapshot.service';
 

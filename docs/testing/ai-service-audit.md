@@ -1,5 +1,33 @@
 # Kiểm tra AI Service — 27/10/2026
 
+## Latest native validation - 29/10/2026
+
+628 automated tests passed, including 35/35 RAG/OCR with no skips. Native Kong/JWT, SQL/Redis/Qdrant, embedding/model, @ai, Meeting summary and recovery scenarios passed. Communication production imports fixed; existing lint debt remains. See [final report](./ai-comprehensive/report.md) and [machine-readable evidence](./ai-comprehensive/results.json). Sections below are historical snapshots.
+
+## Audit toàn diện — 29/10/2026
+
+Đã quét toàn bộ 79 file source, kiểm thử HTTP đủ 25 route, tái hiện và sửa hai lỗi P2 về quyền khi tải lại timezone và khóa cache Studio. Kết quả cuối: 350 test tự động đạt, 5 ca OCR skipped vì thiếu Tesseract; năm ca smoke model thật đạt và pipeline FFmpeg/Whisper thật đạt. Chưa xác minh toàn bộ deployment Kong/Redis/PostgreSQL/Qdrant vì các dịch vụ này không chạy. [Báo cáo đầy đủ](./ai-comprehensive/report.md), [kiến trúc](./ai-comprehensive/architecture.md), [bằng chứng tổng hợp](./ai-comprehensive/results.json).
+
+## Dữ liệu kiểm thử bổ sung — 29/10/2026
+
+Đã bổ sung 81 ca JSON có đáp án độc lập, chín biến thể workspace qua HTTP fixture, 18 tình huống đánh giá model có đáp án JSON, ba tài liệu và một transcript giả lập để thử tay. Toàn bộ AI suite mới đạt 292/292 test, gồm 111 test bổ sung cho hành vi service, tính nhất quán dữ liệu và grader. Build, lint và typecheck đạt. Kết quả này không phải kết quả chạy model thật hay 13 ca giao diện mới.
+
+Hướng dẫn và dữ liệu: [evaluation/README.md](../../backend/ai-service/evaluation/README.md). Trạng thái từng lớp kiểm chứng: [validation.json](../../backend/ai-service/evaluation/validation.json).
+
+## Cập nhật bảo trì — 29/10/2026
+
+Đã khôi phục bộ test từ trước commit `16027e7d`, cập nhật import module và cách gọi Work Assistant/Meeting Summary theo cấu trúc service hiện tại. Bộ AI chạy lại đạt 181/181 test với SQL/HTTP/model fixture. Helper gửi SSE được dùng chung tại `src/common/sse.ts`; lint cũng kiểm tra source, test và script.
+
+Từ `backend/ai-service`, chạy `npm ci`, sau đó:
+
+```powershell
+npm run lint
+npm run typecheck
+npm test
+```
+
+`npm test` build trước khi chạy test, ghi kết quả vào `docs/testing/ai-performance/tests.json` và log vào `.tmp/ai-performance/tests.log` tính từ workspace. Runner từ chối bộ test rỗng; runner tổng `node backend/scripts/verify-ai-service.mjs` đã nối lại bước `ai-tests` và thêm `ai-lint`. Các kiểm tra fixture này không xác minh deployment hoặc chất lượng câu trả lời từ provider thật.
+
 Đã tái hiện và sửa ba lỗi trong mã hiện có; kiểm tra bản sửa còn phát hiện một trường hợp mất độ chính xác của cursor, cũng đã sửa. Kết quả dưới đây thuộc môi trường SQL cô lập, nguồn/Auth fixture, giao diện demo và worker nhận dạng giọng nói local. Chưa xác minh toàn bộ deployment thật.
 
 ## Lỗi và cách xác minh

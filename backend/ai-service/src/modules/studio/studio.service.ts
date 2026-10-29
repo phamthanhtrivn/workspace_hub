@@ -11,6 +11,7 @@ import { selectSources, visibleSnapshot } from "../../common/evidence-policy";
 import type { Actor, Snapshot } from "../../common/types";
 import { createHash, randomUUID } from "node:crypto";
 import { enqueue } from "../../infrastructure/queue/notebook.queue";
+import { config } from "../../config/env.config";
 @Injectable()
 export class StudioService {
   constructor(private readonly sourcesService: SourcesService) {}
@@ -124,7 +125,9 @@ export class StudioService {
           ...(sources.some((source) => source.index_version === "visual-v1")
             ? { visualPipeline: "visual-v1" }
             : {}),
-          model: process.env.LLM_MODEL,
+          provider: config.LLM_BASE_URL.replace(/\/$/, ""),
+          model: config.LLM_MODEL,
+          maxTokens: config.LLM_MAX_TOKENS,
           language: "vi",
         }),
       )

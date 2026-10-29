@@ -12,6 +12,7 @@ import type {
   WorkScope,
   WorkTask,
 } from "./work-assistant.types";
+import { readResponseText } from "../../common/read-response";
 import { freeSlots, workRange } from "./work-time";
 
 const metricsSchema = z.object({
@@ -155,9 +156,7 @@ export class WorkContextService {
         "Nguồn dữ liệu chưa truy cập được.",
       );
     }
-    const text = await response.text();
-    if (text.length > 350000)
-      throw new ServiceUnavailableException("Nguồn dữ liệu vượt giới hạn.");
+    const text = await readResponseText(response, 350000);
     return (JSON.parse(text) as { data: unknown }).data;
   }
   async authorize(actor: Actor, projectIds: string[], signal?: AbortSignal) {
@@ -260,9 +259,15 @@ export class WorkContextService {
           ).then((d) => projectSchema.parse(d)),
           calendarRead(),
         ]);
+        if (
+          updated[0].status === "rejected" &&
+          updated[0].reason instanceof ForbiddenException
+        )
+          throw updated[0].reason;
         project = updated[0].status === "fulfilled" ? updated[0].value : null;
         calendar = updated[1].status === "fulfilled" ? updated[1].value : null;
-      } catch {
+      } catch (error) {
+        if (error instanceof ForbiddenException) throw error;
         project = null;
         calendar = null;
       }

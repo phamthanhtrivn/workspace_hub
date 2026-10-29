@@ -8,14 +8,14 @@ import { ClientKafka } from '@nestjs/microservices';
 import { Prisma, SpaceRole, ChannelVisibility } from '@prisma/client';
 import { PrivateChannelService, reconcilePrivateMemberships, publishPrivateMembershipChanges } from './private-channel.service';
 import { PrivateChannelMembershipAction } from './types/private-channel-system-message.types';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { S3Service } from 'src/infrastructure/s3/s3.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { S3Service } from '../../infrastructure/s3/s3.service';
 import { UpdateChannelSettingDto } from './dto/update-channel-setting.dto';
 import { SPACE_ERROR_MESSAGES } from '../space/types/space.enums';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
-import { getMediaUrl } from 'src/common/utils/file.util';
-import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
+import { getMediaUrl } from '../../common/utils/file.util';
+import { S3_UPLOAD_TYPE } from '../../common/types/file.enums';
 import {
   CHANNEL_ERROR_MESSAGES,
   CHANNEL_MEMBER_SEARCH_DEFAULT_LIMIT,
