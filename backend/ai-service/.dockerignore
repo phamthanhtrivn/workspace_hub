@@ -1,7 +1,6 @@
 node_modules
 dist
 .env
-test
 *.log
 .venv
 __pycache__

@@ -7,9 +7,7 @@
     "start": "node dist/main.js",
     "worker": "node dist/worker.js",
     "migrate": "node dist/migrate.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint src test scripts eslint.config.mjs",
-    "test": "npm run build && node ../scripts/test-ai-service.mjs"
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@langchain/core": "^1.3.0",
@@ -26,16 +24,10 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.11",
-    "@eslint/js": "^9.39.4",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
     "@types/pg": "^8.11.0",
-    "eslint": "^9.39.4",
-    "globals": "^17.0.0",
-    "typescript": "^5.8.0",
-    "typescript-eslint": "^8.46.0",
-    "wasmoon": "^1.16.0"
+    "typescript": "^5.8.0"
   },
   "overrides": {
     "multer": "^2.5.0"

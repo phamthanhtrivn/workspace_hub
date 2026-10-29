@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-10-29T14:44:53.255Z",
+  "runAt": "2026-10-29T14:59:37.359Z",
   "mode": "real Nest HTTP and upstream HTTP sockets; PGlite SQL; fixture Redis/BullMQ and model outputs",
   "routes": [
     {
@@ -30,7 +30,7 @@
         409
       ],
       "requests": 9,
-      "maxMs": 521
+      "maxMs": 514
     },
     {
       "method": "POST",
@@ -51,7 +51,7 @@
         401
       ],
       "requests": 3,
-      "maxMs": 3
+      "maxMs": 2
     },
     {
       "method": "POST",
@@ -61,7 +61,7 @@
         401
       ],
       "requests": 2,
-      "maxMs": 4
+      "maxMs": 3
     },
     {
       "method": "POST",
@@ -72,7 +72,7 @@
         401
       ],
       "requests": 5,
-      "maxMs": 7
+      "maxMs": 6
     },
     {
       "method": "GET",
@@ -82,7 +82,7 @@
         401
       ],
       "requests": 3,
-      "maxMs": 4
+      "maxMs": 3
     },
     {
       "method": "POST",
@@ -94,7 +94,7 @@
         413
       ],
       "requests": 5,
-      "maxMs": 5
+      "maxMs": 4
     },
     {
       "method": "GET",
@@ -106,7 +106,7 @@
         404
       ],
       "requests": 7,
-      "maxMs": 8
+      "maxMs": 7
     },
     {
       "method": "PATCH",
@@ -128,7 +128,7 @@
         401
       ],
       "requests": 3,
-      "maxMs": 5
+      "maxMs": 4
     },
     {
       "method": "POST",
@@ -151,7 +151,7 @@
         401
       ],
       "requests": 3,
-      "maxMs": 9
+      "maxMs": 8
     },
     {
       "method": "POST",
@@ -162,7 +162,7 @@
         401
       ],
       "requests": 3,
-      "maxMs": 26
+      "maxMs": 20
     },
     {
       "method": "POST",
@@ -174,7 +174,7 @@
         403
       ],
       "requests": 6,
-      "maxMs": 10
+      "maxMs": 12
     },
     {
       "method": "POST",
@@ -185,7 +185,7 @@
         401
       ],
       "requests": 5,
-      "maxMs": 7
+      "maxMs": 6
     },
     {
       "method": "DELETE",
@@ -196,7 +196,7 @@
         401
       ],
       "requests": 3,
-      "maxMs": 4
+      "maxMs": 3
     },
     {
       "method": "POST",
@@ -207,7 +207,7 @@
         401
       ],
       "requests": 4,
-      "maxMs": 9
+      "maxMs": 7
     },
     {
       "method": "GET",
@@ -218,7 +218,7 @@
         401
       ],
       "requests": 3,
-      "maxMs": 17
+      "maxMs": 16
     },
     {
       "method": "GET",
@@ -239,7 +239,7 @@
         401
       ],
       "requests": 2,
-      "maxMs": 5
+      "maxMs": 4
     },
     {
       "method": "POST",
@@ -249,7 +249,7 @@
         401
       ],
       "requests": 2,
-      "maxMs": 9
+      "maxMs": 7
     },
     {
       "method": "POST",
@@ -260,7 +260,7 @@
         401
       ],
       "requests": 3,
-      "maxMs": 33
+      "maxMs": 28
     },
     {
       "method": "POST",

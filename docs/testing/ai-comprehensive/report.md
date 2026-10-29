@@ -60,4 +60,4 @@ node backend/scripts/summarize-ai-audit.mjs
 node backend/scripts/live-ai-comprehensive.cjs --run
 ```
 
-Lệnh cuối gọi model thật và có thể tính phí. Native cần stack/weights/Java/Python phù hợp: prepare-native-ai-audit.cjs tạo compose/credential QA; bootstrap-native-ai-audit.cjs khởi tạo DB/process; các test-native-*.cjs chạy từng nhóm. State cũ trong .tmp được giữ làm bằng chứng; script chuẩn bị từ chối ghi đè nên cần state QA mới cho lượt mới.
+Lệnh cuối gọi model thật và có thể tính phí. Native cần stack/weights/Java/Python phù hợp: prepare-native-ai-audit.cjs tạo compose/credential QA; bootstrap-native-ai-audit.cjs khởi tạo DB/process; các test-native-*.cjs chạy từng nhóm. State, log, Maven cache và môi trường Python tạm của lượt audit đã được dọn; bằng chứng cuối được giữ trong thư mục báo cáo này. Lượt chạy native mới cần chuẩn bị lại dependency và media fixture theo đường dẫn trong bootstrap/test script. Script chuẩn bị từ chối ghi đè state đang tồn tại.

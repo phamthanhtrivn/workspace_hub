@@ -30,8 +30,7 @@ for (const [index, run] of liveRuns.entries())
     liveCases.set(item.id, entry);
   }
 const relatedTests = pipeline.steps.filter((step) => step.name !== "ai-tests" && step.status === "PASS" && step.tests).reduce((sum, step) => sum + step.tests, 0);
-const rerank = JSON.parse(readFileSync(resolve(root, "../.tmp/ai-comprehensive-rerank.json"), "utf8"));
-writeFileSync(resolve(target, "retrieval-evaluation.json"), JSON.stringify(rerank, null, 2) + "\n");
+const rerank = read("retrieval-evaluation.json");
 const coveredRoutes = http.routes.filter((route) => route.statuses.some((status) => status >= 200 && status < 300)).length;
 const scopedChecksPassed = regression.tests > 0 && regression.failed === 0 && pipeline.automatedPassed && rag.failures.length === 0 && rag.errors.length === 0 && liveCases.size === 5 && [...liveCases.values()].every((item) => item.finalStatus === "PASS") && media.passed === true && coveredRoutes === inventory.endpoints;
 const result = {
