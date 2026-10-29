@@ -9,6 +9,7 @@ import {
 import { notificationSocketService } from "../api/notification-socket.service";
 import {
   addNotification,
+  setUnreadCount,
   deleteNotificationSuccess,
   deleteNotificationsSuccess,
   updateNotificationSuccess,
@@ -18,9 +19,11 @@ import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import {
   getNotificationCategory,
   NOTIFICATION_CHANGED_EVENT,
+  NOTIFICATION_READ_COMMITTED_EVENT,
 } from "../utils/notification-category.utils";
 import {
   NotificationType,
+  NOTIFICATION_SOCKET_EVENT,
   Notification as AppNotification,
 } from "../types/notification.types";
 
@@ -151,7 +154,9 @@ export function useNotificationSocket() {
           queryKey: ["calendar"],
         });
       }
+      if (noti.type === NotificationType.CALENDAR_REMINDER) void queryClient.invalidateQueries({ queryKey: ["projects", "dashboard-completed-tasks"] });
       dispatchNotificationChanged(noti);
+      void reconcileNotifications();
     };
 
     const handleUpdatedNotification = (notification: AppNotification) => {
@@ -162,16 +167,32 @@ export function useNotificationSocket() {
         });
       }
       dispatchNotificationChanged(notification);
+      void reconcileNotifications();
     };
 
     const handleDeletedNotification = ({ id }: { id: string }) => {
       dispatch(deleteNotificationSuccess(id));
       dispatchNotificationCollectionChanged();
+      void reconcileNotifications();
     };
 
     const handleDeletedNotifications = (payload: NotificationsDeletedPayload) => {
       dispatch(deleteNotificationsSuccess(payload));
       dispatchNotificationCollectionChanged(payload.category);
+      void reconcileNotifications();
+    };
+
+    let reconciliationRevision = 0;
+    const reconcileNotifications = async () => {
+      const revision = ++reconciliationRevision;
+      const { getUnreadCount } = await import('../api/notification.api');
+      try {
+        const response = await getUnreadCount();
+        if (isCancelled || revision !== reconciliationRevision) return;
+        dispatch(setUnreadCount(response.data.unreadCount));
+        dispatchNotificationCollectionChanged();
+        void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      } catch { /* Reconcile again after the next connection/event. */ }
     };
 
     const connectWhenReady = async () => {
@@ -188,11 +209,16 @@ export function useNotificationSocket() {
       }
 
       const socket = notificationSocketService.connect(accessToken);
+      socket.on("connect", reconcileNotifications);
+      socket.on(NOTIFICATION_SOCKET_EVENT.CHANGED, reconcileNotifications);
+      void reconcileNotifications();
       socket.on("new_notification", handleNewNotification);
       socket.on("notification_updated", handleUpdatedNotification);
       socket.on("notification_deleted", handleDeletedNotification);
       socket.on("notifications_deleted", handleDeletedNotifications);
       cleanupSocketListeners = () => {
+        socket.off("connect", reconcileNotifications);
+        socket.off(NOTIFICATION_SOCKET_EVENT.CHANGED, reconcileNotifications);
         socket.off("new_notification", handleNewNotification);
         socket.off("notification_updated", handleUpdatedNotification);
         socket.off("notification_deleted", handleDeletedNotification);
@@ -200,10 +226,12 @@ export function useNotificationSocket() {
       };
     };
 
+    window.addEventListener(NOTIFICATION_READ_COMMITTED_EVENT, reconcileNotifications);
     void connectWhenReady();
 
     return () => {
       isCancelled = true;
+      window.removeEventListener(NOTIFICATION_READ_COMMITTED_EVENT, reconcileNotifications);
       if (retryTimer) {
         window.clearTimeout(retryTimer);
       }

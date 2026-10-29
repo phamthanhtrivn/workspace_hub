@@ -1,9 +1,12 @@
 "use client";
 
+import { useAccountTimezone } from "@/features/user-setting/hooks/use-account-timezone";
 import { Button } from "@/components/ui/button";
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useAppSelector } from "@/store/store";
 import { getDailyStats } from "../api/pomodoro-server.api";
-import type { PomodoroDailyStats } from "../types/pomodoro";
+import { localDateKey } from "../utils/pomodoro-report";
 import { Progress } from "@/components/ui/progress";
 import { LoadingState } from "@/components/ui/loading-state";
 
@@ -13,20 +16,15 @@ interface PomodoroStatsCardProps {
 }
 
 export const PomodoroStatsOverview = React.memo(function PomodoroStatsOverview({ lastUpdated, dailyGoalPomodoros }: PomodoroStatsCardProps) {
-  const [stats, setStats] = useState<PomodoroDailyStats | null>(null);
-  const [failed, setFailed] = useState(false);
-  const [retryRevision, setRetryRevision] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    getDailyStats()
-      .then((data) => { if (active) { setStats(data); setFailed(false); } })
-      .catch(() => { if (active) { setStats(null); setFailed(true); } });
-    return () => { active = false; };
-  }, [lastUpdated, retryRevision]);
+  const timeZone = useAccountTimezone();
+  const userId = useAppSelector(state => state.auth.userId);
+  const { data: stats, isError: failed, refetch } = useQuery({
+    queryKey: ["pomodoro", "daily-stats", userId, timeZone, localDateKey(new Date(), timeZone), lastUpdated],
+    queryFn: () => getDailyStats(timeZone), enabled: Boolean(userId), refetchInterval: 30_000,
+  });
 
   if (failed) return <p role="alert" className="text-xs text-destructive-content">
-    Unable to load today&apos;s stats. <Button variant="ghost" type="button" className="underline" onClick={() => setRetryRevision((value) => value + 1)}>Retry</Button>
+    Unable to load today&apos;s stats. <Button variant="ghost" type="button" className="underline" onClick={() => void refetch()}>Retry</Button>
   </p>;
   if (!stats) return <LoadingState label="Loading stats..." className="text-xs text-muted-foreground" />;
 

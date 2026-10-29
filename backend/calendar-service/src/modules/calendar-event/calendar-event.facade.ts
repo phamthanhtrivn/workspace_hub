@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { CalendarConferenceSyncService } from './calendar-conference-sync.service';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import {
   AttendeeResponseStatus,
   CalendarEventAttendee,
@@ -42,7 +43,15 @@ export class CalendarEventService {
     private readonly relations: EventRelationService,
     private readonly recurrenceMutations: RecurrenceMutationService,
     private readonly notificationOutbox: CalendarNotificationOutboxService,
+    @Optional() private readonly conferenceSync?: CalendarConferenceSyncService,
   ) {}
+
+  async retryConference(userId: string, eventId: string) {
+    const event = await this.accessPolicy.findEventOrThrow(eventId);
+    this.accessPolicy.assertCanManageEvent(userId, event);
+    await this.prisma.calendarConference.updateMany({ where: { eventId, enabled: true }, data: { status: 'PENDING', nextAttemptAt: new Date(), attemptCount: 0 } });
+    return this.getEventById(userId, eventId);
+  }
 
   async createEvent(
     userId: string,
@@ -71,6 +80,10 @@ export class CalendarEventService {
         dto,
         attendees,
         reminders,
+        async (tx, firstId) => {
+          await this.conferenceSync?.reconcileCalendar(tx, calendar.id);
+          await this.notificationOutbox.enqueueEventInvitations(tx, { eventTitle: dto.title, eventId: firstId, creatorId: userId, recipientIds: attendees.map(attendee => attendee.userId) });
+        },
       );
       return this.getEventById(userId, eventId);
     }
@@ -83,6 +96,7 @@ export class CalendarEventService {
           title: dto.title,
           description: dto.description ?? null,
           location: dto.location ?? null,
+          conferenceEnabled: dto.conference?.enabled ?? false,
           startAt: new Date(dto.startAt),
           endAt: new Date(dto.endAt),
           allDay: dto.allDay ?? false,
@@ -109,6 +123,7 @@ export class CalendarEventService {
         creatorId: userId,
         recipientIds: attendees.map((attendee) => attendee.userId),
       });
+      await this.conferenceSync?.reconcileCalendar(tx, calendar.id);
       return created;
     });
 
@@ -132,7 +147,7 @@ export class CalendarEventService {
     const enriched = await this.userProfiles.attachProfilesToEvents(events);
 
     return {
-      items: enriched.map((event) => this.mapper.toPublicEvent(userId, event)),
+      items: this.conferenceSync ? await this.conferenceSync.attach(enriched.map(event => this.mapper.toPublicEvent(userId, event))) : enriched.map(event => this.mapper.toPublicEvent(userId, event)),
       total,
       page: filters.page,
       limit: filters.limit,
@@ -181,7 +196,8 @@ export class CalendarEventService {
     const event = await this.accessPolicy.findEventOrThrow(eventId);
     this.accessPolicy.assertCanViewEvent(userId, event);
     const [enriched] = await this.userProfiles.attachProfilesToEvents([event]);
-    return this.mapper.toPublicEvent(userId, enriched);
+    const mapped = this.mapper.toPublicEvent(userId, enriched);
+    return this.conferenceSync ? (await this.conferenceSync.attach([mapped]))[0] : mapped;
   }
 
   async updateEvent(
@@ -209,52 +225,6 @@ export class CalendarEventService {
       dto.endAt ?? event.endAt.toISOString(),
     );
 
-    const oldAttendeeIds = (event.attendees ?? []).map((a) => a.userId);
-    let keptAttendeeIds = oldAttendeeIds.filter((id) => id !== userId);
-
-    if (dto.attendees !== undefined) {
-      const newAttendeeIds = this.relations
-        .normalizeAttendees(userId, dto.attendees)
-        .map((a) => a.userId);
-
-      const removedAttendeeIds = oldAttendeeIds.filter(
-        (id) => !newAttendeeIds.includes(id),
-      );
-      const addedAttendeeIds = newAttendeeIds.filter(
-        (id) => !oldAttendeeIds.includes(id),
-      );
-      keptAttendeeIds = newAttendeeIds.filter(
-        (id) => oldAttendeeIds.includes(id) && id !== userId,
-      );
-
-      if (removedAttendeeIds.length > 0) {
-        await this.notificationOutbox.enqueueAttendeeRemoval(this.prisma, {
-          eventTitle: event.title,
-          eventId: event.id,
-          removerId: userId,
-          recipientIds: removedAttendeeIds,
-        });
-      }
-
-      if (addedAttendeeIds.length > 0) {
-        await this.notificationOutbox.enqueueEventInvitations(this.prisma, {
-          eventTitle: dto.title || event.title,
-          eventId: event.id,
-          creatorId: userId,
-          recipientIds: addedAttendeeIds,
-        });
-      }
-    }
-
-    if (keptAttendeeIds.length > 0) {
-      await this.notificationOutbox.enqueueEventUpdate(this.prisma, {
-        eventTitle: dto.title || event.title,
-        eventId: event.id,
-        updaterId: userId,
-        recipientIds: keptAttendeeIds,
-      });
-    }
-
     const updatedId = await this.updateByRecurrenceState(
       userId,
       event,
@@ -275,12 +245,9 @@ export class CalendarEventService {
     const recipientIds = (event.attendees ?? []).map(
       (attendee) => attendee.userId,
     );
-    await this.recurrenceMutations.cancelEvent(userId, event, scope);
-    await this.notificationOutbox.enqueueEventCancellation(this.prisma, {
-      eventTitle: event.title,
-      eventId: event.id,
-      cancellerId: userId,
-      recipientIds,
+    await this.recurrenceMutations.cancelEvent(userId, event, scope, async tx => {
+      await this.notificationOutbox.enqueueEventCancellation(tx, { eventTitle: event.title, eventId: event.id, cancellerId: userId, recipientIds });
+      await this.conferenceSync?.reconcileCalendar(tx, event.calendarId);
     });
   }
 
@@ -392,9 +359,61 @@ export class CalendarEventService {
           });
         }
 
+        await this.conferenceSync?.reconcileCalendar(tx, event.calendarId);
         return updated;
       },
     );
+  }
+
+  private async enqueueUpdateEffects(tx: Prisma.TransactionClient, userId: string, event: EventWithRelations, dto: UpdateCalendarEventDto) {
+    const oldAttendeeIds = (event.attendees ?? []).map((a) => a.userId);
+    let keptAttendeeIds = oldAttendeeIds.filter((id) => id !== userId);
+
+    if (dto.attendees !== undefined) {
+      const newAttendeeIds = this.relations
+        .normalizeAttendees(userId, dto.attendees)
+        .map((a) => a.userId);
+
+      const removedAttendeeIds = oldAttendeeIds.filter(
+        (id) => !newAttendeeIds.includes(id),
+      );
+      const addedAttendeeIds = newAttendeeIds.filter(
+        (id) => !oldAttendeeIds.includes(id),
+      );
+      keptAttendeeIds = newAttendeeIds.filter(
+        (id) => oldAttendeeIds.includes(id) && id !== userId,
+      );
+
+      if (removedAttendeeIds.length > 0) {
+        await this.notificationOutbox.enqueueAttendeeRemoval(tx, {
+          eventTitle: event.title,
+          eventId: event.id,
+          removerId: userId,
+          recipientIds: removedAttendeeIds,
+        });
+      }
+
+      if (addedAttendeeIds.length > 0) {
+        await this.notificationOutbox.enqueueEventInvitations(tx, {
+          eventTitle: dto.title || event.title,
+          eventId: event.id,
+          creatorId: userId,
+          recipientIds: addedAttendeeIds,
+        });
+      }
+    }
+
+    if (keptAttendeeIds.length > 0) {
+      await this.notificationOutbox.enqueueEventUpdate(tx, {
+        eventTitle: dto.title || event.title,
+        eventId: event.id,
+        updaterId: userId,
+        recipientIds: keptAttendeeIds,
+      });
+    }
+
+
+    await this.conferenceSync?.reconcileCalendar(tx, event.calendarId);
   }
 
   private async updateByRecurrenceState(
@@ -409,6 +428,7 @@ export class CalendarEventService {
         event,
         calendar,
         dto,
+        (tx, updatedId) => this.enqueueUpdateEffects(tx, userId, { ...event, id: updatedId }, dto),
       );
     }
     if (dto.recurrenceRule) {
@@ -417,6 +437,7 @@ export class CalendarEventService {
         event,
         calendar,
         dto,
+        (tx, updatedId) => this.enqueueUpdateEffects(tx, userId, { ...event, id: updatedId }, dto),
       );
     }
     await this.updateStandaloneEvent(userId, event, calendar, dto);
@@ -440,6 +461,7 @@ export class CalendarEventService {
           title: dto.title,
           description: dto.description,
           location: dto.location,
+          conferenceEnabled: dto.conference?.enabled,
           startAt: dto.startAt ? nextStartAt : undefined,
           endAt: dto.endAt ? nextEndAt : undefined,
           allDay: dto.allDay,
@@ -450,6 +472,7 @@ export class CalendarEventService {
         },
       });
       await this.relations.replaceEventRelations(tx, event, nextStartAt, dto);
+      await this.enqueueUpdateEffects(tx, userId, event, dto);
     });
   }
 

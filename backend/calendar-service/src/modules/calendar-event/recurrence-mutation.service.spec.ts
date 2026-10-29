@@ -80,7 +80,8 @@ describe('Recurring event edits', () => {
         findUnique: jest.fn().mockResolvedValue(current),
         update: jest.fn(),
         deleteMany: jest.fn(),
-        findMany: jest.fn().mockResolvedValue(occurrences),
+        findMany: jest.fn(({ where }) => Promise.resolve(occurrences.filter(occurrence => where.isRecurrenceOverride === undefined || occurrence.isRecurrenceOverride === where.isRecurrenceOverride))),
+        updateMany: jest.fn(), delete: jest.fn(),
         findFirst: jest.fn().mockResolvedValue({ id: 'generated' }),
       },
       recurrenceException: { deleteMany: jest.fn(), createMany: jest.fn() },
@@ -92,6 +93,7 @@ describe('Recurring event edits', () => {
     };
     const recurrence = {
       lockSeries: jest.fn(),
+      includesOccurrence: jest.fn().mockReturnValue(true),
       assertHasOccurrence: jest.fn(),
       materializeSeriesThrough: jest.fn(),
       getDefaultGenerationEnd: jest
@@ -179,9 +181,7 @@ describe('Recurring event edits', () => {
       recurrenceRule: 'FREQ=WEEKLY;COUNT=3',
       recurrenceScope: RecurrenceScope.ALL,
     });
-    expect(tx.calendarEvent.deleteMany).toHaveBeenCalledWith({
-      where: { recurrenceSeriesId: series.id, isRecurrenceOverride: false },
-    });
+    expect(tx.calendarEvent.deleteMany).not.toHaveBeenCalled();
     const patch = tx.calendarEvent.update.mock.calls[0][0].data;
     expect(patch.startAt).toBeUndefined();
     expect(patch.status).toBeUndefined();
@@ -265,13 +265,7 @@ describe('Recurring event edits', () => {
         }),
       }),
     );
-    expect(tx.calendarEvent.deleteMany).toHaveBeenCalledWith({
-      where: {
-        recurrenceSeriesId: series.id,
-        originalStartAt: { gte: event.originalStartAt },
-        isRecurrenceOverride: false,
-      },
-    });
+    expect(tx.calendarEvent.deleteMany).not.toHaveBeenCalled();
     expect(tx.calendarEvent.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: event.id },

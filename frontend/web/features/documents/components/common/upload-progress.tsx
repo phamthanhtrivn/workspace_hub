@@ -2,17 +2,21 @@ import React from "react";
 import { UploadState } from "../../types/documents.enums";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 
 interface UploadProgressProps {
   uploadState: UploadState;
   uploadProgress: number;
   uploadingFileName: string;
+  summary?: { succeeded: number; failed: number; skipped: number };
+  onRetry?: () => void;
 }
 
 function UploadProgress({
   uploadState,
   uploadProgress,
   uploadingFileName,
+  summary, onRetry,
 }: UploadProgressProps) {
   if (uploadState === UploadState.IDLE) {
     return null;
@@ -30,6 +34,10 @@ function UploadProgress({
         return "UPLOAD COMPLETE";
       case UploadState.ERROR:
         return "UPLOAD FAILED";
+      case UploadState.PARTIAL:
+        return "SOME UPLOADS FAILED";
+      case UploadState.SKIPPED:
+        return "UPLOADS SKIPPED";
       default:
         return "UPLOADING...";
     }
@@ -50,6 +58,8 @@ function UploadProgress({
         {uploadingFileName}
       </div>
 
+      {summary && <p role="status" className="mb-2 text-xs text-muted-foreground">{summary.succeeded} uploaded · {summary.failed} failed · {summary.skipped} skipped</p>}
+      {Boolean(summary?.failed) && <Button type="button" variant="outline" size="sm" className="mb-2" onClick={onRetry}>Retry failed files</Button>}
       <Progress value={uploadProgress} className="w-full bg-muted rounded-full h-2 overflow-hidden border border-border">
         <div
           className={cn(

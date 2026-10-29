@@ -26,7 +26,7 @@ export function CalendarConferenceCard({
 
   const handleCopyLink = () => {
     if (!locationValue) return;
-    navigator.clipboard.writeText(locationValue);
+    navigator.clipboard.writeText(new URL(locationValue, window.location.origin).toString());
     setCopied(true);
     toast.success("Meeting link copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
@@ -40,7 +40,7 @@ export function CalendarConferenceCard({
     onToggleConference(true);
   };
 
-  if (!hasConference && !isMeetingUrl) {
+  if (!hasConference) {
     return (
       <Button
         type="button"

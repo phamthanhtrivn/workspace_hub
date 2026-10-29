@@ -93,6 +93,7 @@ describe('CalendarNotificationOutboxService', () => {
     await service.drain();
 
     expect(notifications.notifyEventInvitation).toHaveBeenCalledWith({
+      deliveryId: '44444444-4444-4444-4444-444444444444',
       eventTitle: 'Planning',
       eventId,
       recipientId,

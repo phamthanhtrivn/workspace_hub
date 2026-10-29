@@ -1,3 +1,4 @@
+import { CalendarConferenceSyncService } from './calendar-conference-sync.service';
 import { Module } from '@nestjs/common';
 import { KafkaProducerModule } from '../../infrastructure/kafka/kafka-producer.module';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
@@ -16,6 +17,7 @@ import { CalendarNotificationOutboxService } from './calendar-notification-outbo
   controllers: [CalendarEventController],
   providers: [
     CalendarEventService,
+    CalendarConferenceSyncService,
     CalendarRecurrenceService,
     EventAccessPolicy,
     EventMapper,
@@ -24,6 +26,6 @@ import { CalendarNotificationOutboxService } from './calendar-notification-outbo
     CalendarNotificationService,
     CalendarNotificationOutboxService,
   ],
-  exports: [CalendarEventService, CalendarRecurrenceService],
+  exports: [CalendarEventService, CalendarRecurrenceService, CalendarConferenceSyncService, CalendarNotificationOutboxService],
 })
 export class CalendarEventModule {}

@@ -1,3 +1,4 @@
+import { ProjectAccessSyncWorker } from "./project-access-sync.worker";
 import { Module } from "@nestjs/common";
 import { ProjectController } from "./project.controller";
 import { ProjectAccessService } from "./project-access.service";
@@ -15,6 +16,7 @@ import { ProjectSpaceClient } from "./project-space.client";
   ],
   providers: [
     ProjectService,
+    ProjectAccessSyncWorker,
     ProjectAccessService,
     ProjectDocumentClient,
     ProjectSpaceClient,

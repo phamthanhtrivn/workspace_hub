@@ -51,7 +51,7 @@ interface ChatMessageProps {
     action: "add" | "remove",
   ) => void;
   onReadClick?: (userId: string) => void;
-  onPollVote?: (messageId: string, optionId: string) => void;
+  onPollVote?: (messageId: string, optionId: string, selected?: boolean) => void | Promise<unknown>;
   onPollAddOption?: (messageId: string, text: string) => void;
   onPollEdit?: (
     messageId: string,
@@ -60,7 +60,7 @@ interface ChatMessageProps {
     allowAddOptions: boolean,
     anonymous: boolean,
     isLocked: boolean,
-  ) => void;
+  ) => void | Promise<unknown>;
   onNoteEdit?: (messageId: string, title: string, content: string) => void;
   onEditMessage?: (msg: RenderableChatMessage) => void;
   onRecallMessage?: (msg: RenderableChatMessage) => void;
@@ -170,7 +170,7 @@ const ChatMessage = React.memo(function ChatMessage({
       <PollMessage
         poll={msg.poll}
         onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
-        onVote={(optionId) => onPollVote?.(msg.id, optionId)}
+        onVote={(optionId, selected) => onPollVote?.(msg.id, optionId, selected)}
         onAddOption={(text) => onPollAddOption?.(msg.id, text)}
         onEditPoll={(
           title,

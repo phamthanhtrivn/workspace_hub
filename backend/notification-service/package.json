@@ -17,7 +17,8 @@
     "start:debug": "nest start --debug --watch",
     "prestart:prod": "npm run prisma:generate",
     "start:prod": "node dist/main",
-    "lint": "eslint \"src/**/*.ts\" --fix"
+    "lint": "eslint \"src/**/*.ts\" --fix",
+    "test": "node --test test/*.test.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

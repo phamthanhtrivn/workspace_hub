@@ -1,3 +1,4 @@
+import { useProjectAccessState } from "../../hooks/use-project-access-state";
 import BoardView from "../views/board-view";
 import { useAppSelector } from "@/store/store";
 import CalendarView from "../views/calendar-view";
@@ -49,6 +50,7 @@ interface ProjectDetailContentProps {
 }
 
 export default function ProjectDetailContent(props: ProjectDetailContentProps) {
+  const accessState = useProjectAccessState(props.projectId);
   const { userId } = useAppSelector((state) => state.auth);
   const { permissions } = props;
   const memberPanel = (
@@ -66,6 +68,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
 
   const renderView = () => {
     if (props.viewMode === "documents") {
+      if (accessState.data?.documents !== "READY") return <p role="status" className="p-4 text-sm text-muted-foreground">Documents are being prepared. This panel will open automatically.</p>;
       return (
         <ProjectDocumentsView
           projectId={props.projectId}

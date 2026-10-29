@@ -7,6 +7,7 @@ import { QuotaModule } from '../quota/quota.module';
 import { S3Module } from '../../infrastructure/s3/s3.module';
 import { TrashCleanupService } from './trash-cleanup.service';
 import { ProjectDocumentRealtimeClient } from './project-document-realtime.client';
+import { StorageCleanupService } from './storage-cleanup.service';
 
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
 
@@ -22,6 +23,7 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     DocumentService,
     TrashCleanupService,
     ProjectDocumentRealtimeClient,
+    StorageCleanupService,
   ],
   exports: [DocumentService],
 })

@@ -33,12 +33,12 @@ const notificationSlice = createSlice({
       action: PayloadAction<{
         list: Notification[];
         total: number;
-        unreadCount: number;
+        unreadCount?: number;
       }>,
     ) => {
       state.list = action.payload.list;
       state.total = action.payload.total;
-      state.unreadCount = action.payload.unreadCount;
+      if (action.payload.unreadCount !== undefined) state.unreadCount = action.payload.unreadCount;
     },
     addNotification: (state, action: PayloadAction<Notification>) => {
       if (!state.list.some((n) => n.id === action.payload.id)) {
@@ -56,14 +56,12 @@ const notificationSlice = createSlice({
       const notification = state.list.find((n) => n.id === action.payload);
       if (notification && !notification.isRead) {
         notification.isRead = true;
-        state.unreadCount = Math.max(0, state.unreadCount - 1);
       }
     },
     markAllReadSuccess: (state) => {
       state.list.forEach((n) => {
         n.isRead = true;
       });
-      state.unreadCount = 0;
     },
     updateNotificationSuccess: (state, action: PayloadAction<Notification>) => {
       const index = state.list.findIndex(

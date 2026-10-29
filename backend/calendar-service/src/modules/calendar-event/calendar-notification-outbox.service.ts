@@ -19,6 +19,7 @@ interface OutboxRecord {
 }
 
 interface EventInvitationPayload {
+  deliveryId?: string;
   eventTitle: string;
   eventId: string;
   recipientId: string;
@@ -26,6 +27,7 @@ interface EventInvitationPayload {
 }
 
 interface AttendeeResponsePayload {
+  deliveryId?: string;
   eventTitle: string;
   eventId: string;
   recipientId: string;
@@ -34,6 +36,7 @@ interface AttendeeResponsePayload {
 }
 
 interface EventCancellationPayload {
+  deliveryId?: string;
   eventTitle: string;
   eventId: string;
   recipientId: string;
@@ -41,6 +44,7 @@ interface EventCancellationPayload {
 }
 
 interface AttendeeRemovalPayload {
+  deliveryId?: string;
   eventTitle: string;
   eventId: string;
   recipientId: string;
@@ -48,6 +52,7 @@ interface AttendeeRemovalPayload {
 }
 
 interface EventUpdatePayload {
+  deliveryId?: string;
   eventTitle: string;
   eventId: string;
   recipientId: string;
@@ -104,7 +109,8 @@ export class CalendarNotificationOutboxService
   async enqueueEventInvitations(
     database: OutboxDatabase,
     params: {
-      eventTitle: string;
+      deliveryId?: string;
+  eventTitle: string;
       eventId: string;
       creatorId: string;
       recipientIds: string[];
@@ -132,7 +138,8 @@ export class CalendarNotificationOutboxService
   async enqueueEventCancellation(
     database: OutboxDatabase,
     params: {
-      eventTitle: string;
+      deliveryId?: string;
+  eventTitle: string;
       eventId: string;
       cancellerId: string;
       recipientIds: string[];
@@ -160,7 +167,8 @@ export class CalendarNotificationOutboxService
   async enqueueAttendeeRemoval(
     database: OutboxDatabase,
     params: {
-      eventTitle: string;
+      deliveryId?: string;
+  eventTitle: string;
       eventId: string;
       removerId: string;
       recipientIds: string[];
@@ -188,7 +196,8 @@ export class CalendarNotificationOutboxService
   async enqueueEventUpdate(
     database: OutboxDatabase,
     params: {
-      eventTitle: string;
+      deliveryId?: string;
+  eventTitle: string;
       eventId: string;
       updaterId: string;
       recipientIds: string[];
@@ -268,23 +277,23 @@ export class CalendarNotificationOutboxService
     try {
       if (record.eventType === EVENT_INVITATION) {
         await this.deliverEventInvitation(
-          this.toEventInvitation(record.payload),
+          { ...this.toEventInvitation(record.payload), deliveryId: record.id },
         );
       } else if (record.eventType === ATTENDEE_RESPONSE) {
         await this.deliverAttendeeResponse(
-          this.toAttendeeResponse(record.payload),
+          { ...this.toAttendeeResponse(record.payload), deliveryId: record.id },
         );
       } else if (record.eventType === EVENT_CANCELLATION) {
         await this.deliverEventCancellation(
-          this.toEventCancellation(record.payload),
+          { ...this.toEventCancellation(record.payload), deliveryId: record.id },
         );
       } else if (record.eventType === ATTENDEE_REMOVED) {
         await this.deliverAttendeeRemoval(
-          this.toAttendeeRemoval(record.payload),
+          { ...this.toAttendeeRemoval(record.payload), deliveryId: record.id },
         );
       } else if (record.eventType === EVENT_UPDATE) {
         await this.deliverEventUpdate(
-          this.toEventUpdate(record.payload),
+          { ...this.toEventUpdate(record.payload), deliveryId: record.id },
         );
       } else {
         throw new Error(

@@ -39,16 +39,19 @@ export class PollController {
     @Param('messageId') messageId: string,
     @Headers('x-user-id') userId: string,
     @Body('pollOptionId') pollOptionId: string,
+    @Body('selected') selected?: boolean,
   ) {
     if (!userId || !channelId || !messageId || !pollOptionId) {
       throw new BadRequestException(POLL_ERROR_MESSAGES.MISSING_REQUIRED_DATA);
     }
 
+    if (selected !== undefined && typeof selected !== 'boolean') throw new BadRequestException('selected must be a boolean');
     return this.pollService.votePollAndPublish(
       channelId,
       messageId,
       pollOptionId,
       userId,
+      selected,
     );
   }
 

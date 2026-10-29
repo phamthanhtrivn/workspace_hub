@@ -1,3 +1,4 @@
+import { TASK_LIFECYCLE } from './task-lifecycle.constants';
 import {
   BadRequestException,
   BadGatewayException,
@@ -262,6 +263,7 @@ export class TaskService {
       userEmail,
       documentItemIds,
       dto.source,
+      dto.operationId,
     );
 
     if (documents.length !== documentItemIds.length) {
@@ -287,6 +289,7 @@ export class TaskService {
         select: { documentItemId: true },
       });
       if (existing.length > 0) {
+        if (existing.length === attachmentsToCreate.length) return tx.taskDocumentAttachment.findMany({ where: { taskId, documentItemId: { in: attachmentsToCreate.map(document => document.id) } } });
         throw new ConflictException('One or more documents are already attached');
       }
 
@@ -518,6 +521,32 @@ export class TaskService {
     return toTaskResponse(task, profiles);
   }
 
+  async reopen(userId: string, taskId: string) {
+    const initial = await this.findTask(taskId);
+    await this.access.requireCanEditTask(userId, initial.projectId, initial.createdBy);
+    const reopened = await this.prisma.$transaction(async tx => {
+      await lockProject(tx, initial.projectId);
+      await this.access.requireCanEditTask(userId, initial.projectId, initial.createdBy);
+      const current = await tx.task.findFirst({ where: { id: taskId, deletedAt: null }, include: taskWithCount });
+      if (!current) throw new NotFoundException('Task not found');
+      if (current.archived) throw new ConflictException(TASK_LIFECYCLE.archivedMessage);
+      if (current.parentTaskId) {
+        const parent = await tx.task.findUnique({ where: { id: current.parentTaskId } });
+        if (!parent || parent.deletedAt || parent.archived || isTerminalTaskStatus(parent.status)) {
+          throw new ConflictException({ code: TASK_LIFECYCLE.parentClosed, message: TASK_LIFECYCLE.parentClosedMessage });
+        }
+      }
+      if (!isTerminalTaskStatus(current.status)) return current;
+      const updated = await tx.task.update({ where: { id: taskId, version: current.version },
+        data: { status: TaskStatus.TODO, completedAt: null, completedBy: null, version: { increment: 1 }, updatedAt: new Date() }, include: taskWithCount });
+      await this.activities.record(taskId, userId, 'status', current.status, TaskStatus.TODO, tx);
+      await this.taskSync.enqueue(updated, tx);
+      return updated;
+    });
+    const profiles = await resolveProfilesForItem(this.userProfiles, reopened, t => [...t.assignees.map(a => a.userId), t.createdBy, t.reporterId]);
+    return toTaskResponse(reopened, profiles);
+  }
+
   async delete(userId: string, taskId: string): Promise<void> {
     const task = await this.findTask(taskId);
     await this.access.requireCanEditTask(
@@ -570,6 +599,7 @@ export class TaskService {
     userEmail: string,
     documentItemIds: string[],
     source: TaskDocumentAttachmentSource,
+    operationId?: string,
   ): Promise<TaskDocumentMetadata[]> {
     try {
       if (source === TaskDocumentAttachmentSource.MY_FILES) {
@@ -578,6 +608,7 @@ export class TaskService {
           userId,
           userEmail,
           documentItemIds,
+          operationId,
         });
       }
 
@@ -688,7 +719,7 @@ export class TaskService {
         parentTaskId: taskId,
         deletedAt: null,
         archived: false,
-        status: { not: TaskStatus.DONE },
+        status: { notIn: [TaskStatus.DONE, TaskStatus.CANCELLED] },
       },
     });
     if (openSubtasks > 0) {

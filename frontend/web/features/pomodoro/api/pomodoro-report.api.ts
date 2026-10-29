@@ -2,10 +2,10 @@ import { listCalendarPomodoroSessions } from "@/features/calendar/api/calendar.a
 import type { PomodoroSessionRecord } from "../types/pomodoro";
 import { reportRequestBounds, type PomodoroReportRange } from "../utils/pomodoro-report";
 
-export async function getPomodoroReportSessions(range: PomodoroReportRange, signal?: AbortSignal): Promise<PomodoroSessionRecord[]> {
+export async function getPomodoroReportSessions(range: PomodoroReportRange, signal?: AbortSignal, timeZone?: string): Promise<PomodoroSessionRecord[]> {
   // Capture once so pagination cannot expand into a different reporting window.
-  const bounds = reportRequestBounds(range);
-  if (bounds.startAt === bounds.endAt) return [];
+  const bounds = reportRequestBounds(range, new Date(), timeZone);
+  if (Date.parse(bounds.startAt) >= Date.parse(bounds.endAt)) return [];
   const sessions = new Map<string, PomodoroSessionRecord>();
   let page = 1;
   let totalPages = 1;

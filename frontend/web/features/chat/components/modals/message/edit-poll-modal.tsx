@@ -3,6 +3,8 @@ import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
+import { toast } from "sonner";
+import { isAxiosError } from "axios";
 import React, { useState, useEffect } from "react";
 
 import { X } from "lucide-react";
@@ -13,6 +15,7 @@ import { DialogSurface } from "@/components/ui/dialog";
 
 
 interface EditPollModalProps {
+  singleChoiceBlocked?: boolean;
   isOpen: boolean;
   onClose: () => void;
   poll: {
@@ -28,16 +31,18 @@ interface EditPollModalProps {
     allowAddOptions: boolean;
     anonymous: boolean;
     isLocked: boolean;
-  }) => void;
+  }) => void | Promise<unknown>;
 }
 
 const EditPollModal: React.FC<EditPollModalProps> = ({
   isOpen,
+  singleChoiceBlocked = false,
   onClose,
   poll,
   onSubmit,
 }) => {
   const inputFieldId = useInputFieldId();
+  const [pending, setPending] = useState(false);
   const [title, setTitle] = useState("");
   const [multipleChoice, setMultipleChoice] = useState(true);
   const [allowAddOptions, setAllowAddOptions] = useState(true);
@@ -61,10 +66,12 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
 
   if (!isOpen || !poll) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
-    onSubmit({
+    if (!title.trim() || pending) return;
+    setPending(true);
+    try {
+    await onSubmit({
       title,
       multipleChoice,
       allowAddOptions,
@@ -72,6 +79,8 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
       isLocked,
     });
     onClose();
+    } catch (error) { toast.error(isAxiosError(error) ? error.response?.data?.message || "Unable to update poll" : "Unable to update poll"); }
+    finally { setPending(false); }
   };
 
   if (!mounted) return null;
@@ -83,7 +92,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
             Edit Poll
           </h2>
           <Button variant="unstyled" aria-label="Close"
-            onClick={onClose}
+            disabled={pending} onClick={onClose}
             className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground"
           >
             <X size={20} />
@@ -109,6 +118,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
             <label className="flex items-center gap-3 cursor-pointer">
               <Checkbox
 
+                disabled={pending || (singleChoiceBlocked && Boolean(poll.multipleChoice))}
                 checked={multipleChoice}
                 onCheckedChange={nextChecked => setMultipleChoice(nextChecked)}
                 className="w-4 h-4 text-info-content rounded focus:ring-ring"
@@ -117,6 +127,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
                 Allow multiple choices
               </span>
             </label>
+            {singleChoiceBlocked && <p className="text-xs text-muted-foreground">Some participants selected multiple options. Create a new poll to use single choice.</p>}
             <label className="flex items-center gap-3 cursor-pointer">
               <Checkbox
 

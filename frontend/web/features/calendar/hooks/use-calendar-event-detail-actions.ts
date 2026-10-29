@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
-  EventSourceType,
+
   EventStatus,
   RecurrenceScope,
 } from "../types/calendar.types";
@@ -16,13 +16,6 @@ import {
   useUpdateCalendarTaskCompletion,
 } from "./use-calendar-queries";
 import { isTaskCalendarEvent } from "../utils/calendar-event.utils";
-import { parseCalendarMeetingJoinToken } from "../utils/calendar-conference.utils";
-import {
-  acceptScheduledMeetingInvitation,
-  cancelScheduledMeeting,
-  declineScheduledMeetingInvitation,
-  updateScheduledMeeting,
-} from "@/features/meeting/api/meeting.api";
 import { useAppSelector } from "@/store/store";
 
 interface UseCalendarEventDetailActionsInput {
@@ -77,16 +70,9 @@ export function useCalendarEventDetailActions({
     async (scope: RecurrenceScope) => {
       if (!detailEvent) return;
       const targetEvent = detailEvent;
-      const meetingToken = parseCalendarMeetingJoinToken(targetEvent.location);
+
       try {
         await cancelEvent.mutateAsync({ eventId: targetEvent.id, scope });
-        if (meetingToken) {
-          try {
-            await cancelScheduledMeeting(meetingToken);
-          } catch {
-            // Non-fatal if meeting already cancelled
-          }
-        }
         setDetailEvent(null);
         toast.success(
           `Deleted "${targetEvent.title}"`,
@@ -143,40 +129,6 @@ export function useCalendarEventDetailActions({
           eventId: detailEvent.id,
           responseStatus,
         });
-        const meetingToken = parseCalendarMeetingJoinToken(detailEvent.location);
-        if (meetingToken) {
-          try {
-            if (responseStatus === AttendeeResponseStatus.ACCEPTED) {
-              await acceptScheduledMeetingInvitation(meetingToken);
-            } else if (responseStatus === AttendeeResponseStatus.DECLINED) {
-              await declineScheduledMeetingInvitation(meetingToken);
-            }
-          } catch {
-            // Non-fatal if meeting invitation response error
-          }
-
-          if (detailEvent.createdBy === currentUserId) {
-            const updatedAttendees = detailEvent.attendees?.map((a) =>
-              a.userId === currentUserId || (!currentUserId && a.userId !== detailEvent.createdBy)
-                ? { ...a, responseStatus }
-                : a,
-            );
-            const acceptedUserIds = (updatedAttendees ?? [])
-              .filter(
-                (a) =>
-                  a.responseStatus === AttendeeResponseStatus.ACCEPTED ||
-                  a.userId === detailEvent.createdBy,
-              )
-              .map((a) => a.userId);
-            try {
-              await updateScheduledMeeting(meetingToken, {
-                inviteeIds: acceptedUserIds,
-              });
-            } catch {
-              // Non-fatal
-            }
-          }
-        }
         toast.success("Response saved");
       } catch {
         toast.error("Failed to save response");

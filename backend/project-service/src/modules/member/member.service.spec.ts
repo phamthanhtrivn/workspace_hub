@@ -7,6 +7,18 @@ describe("MemberService project access removal", () => {
   const memberUserId = "member-1";
   const ownerId = "owner-1";
 
+  it.each([0, 1])('queues access for both a new and a reactivated membership (reactivated=%s)', async reactivated => {
+    const member = { id: 'membership', projectId, userId: memberUserId, role: ProjectRole.MEMBER, status: ProjectMemberStatus.ACTIVE, joinedAt: new Date() };
+    const tx = { projectMember: {
+      updateMany: jest.fn().mockResolvedValue({ count: reactivated }), findUniqueOrThrow: jest.fn().mockResolvedValue(member), create: jest.fn().mockResolvedValue(member),
+    }, projectAccessSyncJob: { upsert: jest.fn() } };
+    const service = new MemberService({ $transaction: (operation: (client: typeof tx) => Promise<unknown>) => operation(tx) } as any,
+      { requireOwnerWriteAccess: jest.fn().mockResolvedValue({ setting: null }) } as any,
+      { getProfileByUserId: jest.fn().mockResolvedValue(null) } as any, {} as any);
+    await service.add(ownerId, projectId, { userId: memberUserId });
+    expect(tx.projectAccessSyncJob.upsert).toHaveBeenCalledTimes(1);
+  });
+
   function createService() {
     let committed = false;
     const projectMember = {
@@ -19,9 +31,10 @@ describe("MemberService project access removal", () => {
       }),
       update: jest.fn().mockResolvedValue({}),
     };
+    const projectAccessSyncJob = { upsert: jest.fn().mockResolvedValue({}) };
     const prisma = {
       $transaction: jest.fn(async (operation) => {
-        const result = await operation({ projectMember });
+        const result = await operation({ projectMember, projectAccessSyncJob });
         committed = true;
         return result;
       }),
@@ -42,11 +55,11 @@ describe("MemberService project access removal", () => {
       {} as Dependencies[2],
       projects as unknown as Dependencies[3],
     );
-    return { service, projectMember, access, projects };
+    return { service, projectMember, access, projects, projectAccessSyncJob };
   }
 
-  it("commits project removal before revoking document and space access", async () => {
-    const { service, projectMember, projects } = createService();
+  it("atomically queues revocation with project removal", async () => {
+    const { service, projectMember, projects, projectAccessSyncJob } = createService();
     await service.remove(ownerId, projectId, memberUserId);
     expect(projectMember.update).toHaveBeenCalledWith({
       where: { id: "membership-1", version: 3 },
@@ -55,24 +68,26 @@ describe("MemberService project access removal", () => {
         leftAt: expect.any(Date),
       }),
     });
-    expect(projects.syncProjectDocumentAccess).toHaveBeenCalledWith(projectId);
-    expect(projects.syncProjectSpaceAccess).toHaveBeenCalledWith(projectId);
+    expect(projects.syncProjectDocumentAccess).not.toHaveBeenCalled();
+    expect(projectAccessSyncJob.upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { projectId } }));
+    expect(projects.syncProjectSpaceAccess).not.toHaveBeenCalled();
   });
 
-  it("still revokes space access if document synchronization fails", async () => {
-    const { service, projects } = createService();
+  it("commits membership while dependent services are unavailable", async () => {
+    const { service, projects, projectAccessSyncJob } = createService();
     const failure = new Error("Document service unavailable");
     projects.syncProjectDocumentAccess.mockRejectedValueOnce(failure);
     await expect(
       service.remove(ownerId, projectId, memberUserId),
-    ).rejects.toThrow(failure);
-    expect(projects.syncProjectSpaceAccess).toHaveBeenCalledWith(projectId);
+    ).resolves.toBeUndefined();
+    expect(projects.syncProjectSpaceAccess).not.toHaveBeenCalled();
+    expect(projectAccessSyncJob.upsert).toHaveBeenCalled();
   });
 
-  it("reports space synchronization failures", async () => {
-    const { service, projects } = createService();
+  it("fails the transaction when durable synchronization cannot be queued", async () => {
+    const { service, projects, projectAccessSyncJob } = createService();
     const failure = new Error("Space service unavailable");
-    projects.syncProjectSpaceAccess.mockRejectedValueOnce(failure);
+    projectAccessSyncJob.upsert.mockRejectedValueOnce(failure);
     await expect(
       service.remove(ownerId, projectId, memberUserId),
     ).rejects.toThrow(failure);

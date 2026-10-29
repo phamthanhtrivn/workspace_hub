@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createTask,
@@ -56,7 +57,7 @@ export function useCreateTask(projectId: string) {
   return useMutation({
     mutationFn: (payload: CreateTaskPayload) => createTask(projectId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: taskKeys.statusCounts(projectId) });
     },
   });
@@ -69,7 +70,7 @@ export function useUpdateTask(projectId: string) {
     mutationFn: ({ taskId, payload }: { taskId: string; payload: UpdateTaskPayload }) =>
       updateTask(taskId, payload),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: taskKeys.statusCounts(projectId) });
       queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.taskId) });
     },
@@ -80,7 +81,7 @@ export function useCreateChecklist(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ taskId, title }: { taskId: string; title: string }) => createChecklist(taskId, title),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects", projectId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) }),
   });
 }
 
@@ -88,7 +89,7 @@ export function useUpdateChecklist(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ checklistId, completed }: { checklistId: string; completed: boolean }) => updateChecklist(checklistId, completed),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects", projectId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) }),
   });
 }
 
@@ -96,7 +97,7 @@ export function useDeleteChecklist(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (checklistId: string) => deleteChecklist(checklistId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["projects", projectId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) }),
   });
 }
 
@@ -118,10 +119,15 @@ export function useTaskDocuments(taskId: string) {
 
 export function useAttachTaskDocuments(projectId: string, taskId: string) {
   const queryClient = useQueryClient();
+  const operation = useRef<{ signature: string; id: string } | null>(null);
   return useMutation({
-    mutationFn: (payload: AttachTaskDocumentsPayload) =>
-      attachTaskDocuments(taskId, payload),
+    mutationFn: (payload: AttachTaskDocumentsPayload) => {
+      const signature = JSON.stringify([payload.source, [...payload.documentItemIds].sort()]);
+      if (operation.current?.signature !== signature) operation.current = { signature, id: crypto.randomUUID() };
+      return attachTaskDocuments(taskId, { ...payload, operationId: operation.current.id });
+    },
     onSuccess: () => {
+      operation.current = null;
       queryClient.invalidateQueries({ queryKey: taskKeys.documents(taskId) });
       queryClient.invalidateQueries({ queryKey: taskKeys.detail(taskId) });
       queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) });

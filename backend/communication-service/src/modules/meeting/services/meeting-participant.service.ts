@@ -207,6 +207,7 @@ export class MeetingParticipantService {
       where: { id: targetParticipant.id },
       data: {
         status: MeetingParticipantStatus.REMOVED,
+        requiresReadmission: true,
         leftAt: now,
         lastSeenAt: now,
         handRaisedAt: null,

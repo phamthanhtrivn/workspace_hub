@@ -4,6 +4,20 @@ import { CalendarService } from './calendar.service';
 describe('CalendarService', () => {
   const userId = '11111111-1111-1111-1111-111111111111';
 
+  it('queues meeting cancellation and attendee notifications in the calendar deletion transaction', async () => {
+    const tx = { $queryRaw: jest.fn(), calendar: { delete: jest.fn() }, calendarEvent: { findMany: jest.fn().mockResolvedValue([{ id: 'event', title: 'Planning', attendees: [{ userId }, { userId: 'guest' }] }]) } };
+    const prisma = { calendar: { findUnique: jest.fn().mockResolvedValue({ id: 'calendar', ownerUserId: userId, projectId: null, isDefault: false }) }, $transaction: jest.fn(operation => operation(tx)) };
+    const conferences = { reconcileCalendar: jest.fn() }, notifications = { enqueueEventCancellation: jest.fn() };
+    const service = new CalendarService(prisma as any, conferences as any, notifications as any);
+    await service.deleteCalendar(userId, 'calendar');
+    expect(conferences.reconcileCalendar).toHaveBeenCalledWith(tx, 'calendar');
+    expect(notifications.enqueueEventCancellation).toHaveBeenCalledWith(tx, expect.objectContaining({ eventId: 'event', recipientIds: ['guest'] }));
+    tx.calendar.delete.mockRejectedValueOnce(new Error('Delete failed'));
+    conferences.reconcileCalendar.mockClear(); notifications.enqueueEventCancellation.mockClear();
+    await expect(service.deleteCalendar(userId, 'calendar')).rejects.toThrow('Delete failed');
+    expect(conferences.reconcileCalendar).not.toHaveBeenCalled(); expect(notifications.enqueueEventCancellation).not.toHaveBeenCalled();
+  });
+
   it('creates a personal default without hiding future project calendars', async () => {
     const personalCalendar = {
       id: '22222222-2222-2222-2222-222222222222',

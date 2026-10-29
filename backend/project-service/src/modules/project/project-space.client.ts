@@ -12,6 +12,7 @@ export interface EnsureProjectSpaceMember {
 export interface EnsureProjectSpaceRequest {
   projectId: string;
   name: string;
+  syncRevision?: string;
   ownerId: string;
   members: EnsureProjectSpaceMember[];
 }

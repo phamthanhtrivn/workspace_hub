@@ -30,6 +30,16 @@ export class ProjectController {
     private readonly config: RuntimeConfigService,
   ) {}
 
+  @Get(':projectId/access-sync')
+  async accessSync(@CurrentUserId() userId: string, @Param('projectId', new ParseUUIDPipe()) projectId: string) {
+    return ApiResponse.success(await this.projects.getAccessSync(userId, projectId));
+  }
+
+  @Post(':projectId/access-sync/retry')
+  async retryAccessSync(@CurrentUserId() userId: string, @Param('projectId', new ParseUUIDPipe()) projectId: string) {
+    return ApiResponse.success(await this.projects.retryAccessSync(userId, projectId));
+  }
+
   @Post()
   async create(@CurrentUserId() userId: string, @Body() dto: CreateProjectDto) {
     return ApiResponse.success(await this.projects.create(userId, dto), 'Project created successfully');

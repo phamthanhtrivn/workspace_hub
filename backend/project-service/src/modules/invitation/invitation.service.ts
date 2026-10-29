@@ -1,3 +1,4 @@
+import { enqueueProjectAccessSync } from "../project/project-access-sync";
 import {
   ConflictException,
   Injectable,
@@ -356,14 +357,14 @@ export class InvitationService {
         tx,
       );
 
+      await enqueueProjectAccessSync(tx, invitation.projectId);
       return tx.projectInvitation.findUniqueOrThrow({
         where: { id: invitationId },
         include: { project: { select: { name: true } } },
       });
     });
 
-    await this.projects.syncProjectDocumentAccess(updated.projectId);
-    await this.projects.syncProjectSpaceAccess(updated.projectId);
+
 
     const profiles = await resolveProfilesForItem(
       this.userProfiles,

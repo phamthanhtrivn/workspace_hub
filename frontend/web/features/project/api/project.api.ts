@@ -7,6 +7,8 @@ import {
   type ProjectSetting,
 } from "@/features/project/types/project";
 import type { PaginationMeta } from "./pagination";
+import type { ProjectAccessState } from "../types/project-access-sync";
+export type { ProjectAccessState } from "../types/project-access-sync";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -18,6 +20,7 @@ interface ApiResponse<T> {
 }
 
 interface ProjectApiModel {
+  accessSync?: ProjectAccessState;
   id: string;
   name: string;
   color?: string | null;
@@ -125,6 +128,7 @@ function normalizeProject(project: ProjectApiModel): Project {
 
   return {
     id: project.id,
+    accessSync: project.accessSync,
     name: project.name,
     color: project.color || "#6366f1",
     icon: project.icon || "📁",
@@ -367,3 +371,6 @@ export async function getUserProfiles(
     return new Map();
   }
 }
+
+export const getProjectAccessState = async (projectId: string) => (await api.get<{ data: ProjectAccessState }>(`/api/projects/${projectId}/access-sync`)).data.data;
+export const retryProjectAccessSync = (projectId: string) => api.post(`/api/projects/${projectId}/access-sync/retry`);

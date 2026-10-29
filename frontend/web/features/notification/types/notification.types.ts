@@ -139,3 +139,5 @@ export interface DeleteNotificationsResponse {
     toDate?: string;
   };
 }
+
+export const NOTIFICATION_SOCKET_EVENT = { CHANGED: "notifications_changed" } as const;

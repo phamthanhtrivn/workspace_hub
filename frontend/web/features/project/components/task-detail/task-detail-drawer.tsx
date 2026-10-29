@@ -12,6 +12,7 @@ import TaskActivityPanel from "./task-activity-panel";
 import TaskChecklistSection from "./task-checklist-section";
 import TaskCommentsSection from "./task-comments-section";
 import TaskDocumentsSection from "./task-documents-section";
+import { TaskReopenButton } from "./task-reopen-button";
 import TaskStatusPicker from "./task-status-picker";
 import TaskLabelsPicker from "./task-labels-picker";
 import TaskDependenciesSection from "./task-dependencies-section";
@@ -115,6 +116,7 @@ export default function TaskDetailDrawer({
             </span>
           </div>
           <div className="flex items-center gap-1.5">
+            {isTaskClosed && canEditTask && !task.archived && <TaskReopenButton task={task} parent={tasks.find(parent => parent.id === task.parentTaskId)} onTaskClick={onTaskClick} />}
             <ProjectTaskFocusButton task={task} />
             <TaskChatButton task={task} onOpenChat={onOpenChat} />
             <Button

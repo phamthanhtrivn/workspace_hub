@@ -1,4 +1,7 @@
 "use client";
+import { ProjectAccessStatus } from "../components/project-access-status";
+import { useProjectAccessState } from "../hooks/use-project-access-state";
+
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -75,6 +78,7 @@ export default function ProjectDetailScreen() {
   const updateTaskMutation = useUpdateTask(projectId);
   const updateProjectMutation = useUpdateProject(projectId);
   const archiveProjectMutation = useArchiveProject(projectId);
+  const accessState = useProjectAccessState(projectId);
   const projectSpaceStatusQuery = useProjectSpaceStatus(projectId);
   const openProjectSpaceMutation = useOpenProjectSpace(projectId);
   const openTaskChannelMutation = useOpenTaskChannel(projectId);
@@ -344,6 +348,7 @@ export default function ProjectDetailScreen() {
   };
 
   const handleOpenProjectChat = async () => {
+    if (["PENDING", "FAILED"].includes(accessState.data?.chat ?? "PENDING")) { toast.info("Chat access is being prepared. Please try again shortly."); return; }
     try {
       const projectSpace = await openProjectSpaceMutation.mutateAsync();
       const searchParams = new URLSearchParams({
@@ -409,6 +414,7 @@ export default function ProjectDetailScreen() {
       <main
         className="@container/project-detail flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-card px-4 py-5 sm:px-6 lg:px-8 lg:py-6"
       >
+        <ProjectAccessStatus projectId={projectId} />
         <ProjectDetailToolbar
           project={project}
           members={projectWithMembers.members}
@@ -425,7 +431,7 @@ export default function ProjectDetailScreen() {
           isFiltersActive={isFiltersActive}
           canCreateTask={permissions.canCreateTask}
           canInviteMembers={permissions.canInviteMembers}
-          canOpenProjectChat={canOpenProjectChat}
+          canOpenProjectChat={canOpenProjectChat && !["PENDING", "FAILED"].includes(accessState.data?.chat ?? "PENDING")}
           isOpeningProjectChat={openProjectSpaceMutation.isPending}
           onViewChange={setViewMode}
           onSearchChange={setSearchQuery}

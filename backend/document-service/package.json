@@ -14,7 +14,10 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs}/**/*.ts\" --fix",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "test": "node --test test/*.test.cjs",
+    "test:ux": "node --test test/document-lifecycle.test.cjs test/internal-access.test.cjs test/quota-concurrency.test.cjs test/upload-name-concurrency.test.cjs test/chat-attachment-bridge.test.cjs",
+    "test:ux:postgres": "node ../scripts/run-ux-postgres.cjs --node test/document-lifecycle.test.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1080.0",

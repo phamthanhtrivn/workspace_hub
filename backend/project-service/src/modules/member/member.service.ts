@@ -1,3 +1,4 @@
+import { enqueueProjectAccessSync } from "../project/project-access-sync";
 import {
   ConflictException,
   Injectable,
@@ -51,6 +52,7 @@ export class MemberService {
           where: { projectId_userId: { projectId, userId: dto.userId } },
         });
         const profile = await this.userProfiles.getProfileByUserId(dto.userId);
+        await enqueueProjectAccessSync(tx, projectId);
         return toMemberResponse(member, profile);
       }
 
@@ -68,6 +70,7 @@ export class MemberService {
           },
         });
         const profile = await this.userProfiles.getProfileByUserId(dto.userId);
+        await enqueueProjectAccessSync(tx, projectId);
         return toMemberResponse(member, profile);
       } catch (error) {
         if (isUniqueConstraintError(error)) {
@@ -78,8 +81,7 @@ export class MemberService {
         throw error;
       }
     });
-    await this.projects.syncProjectDocumentAccess(projectId);
-    await this.projects.syncProjectSpaceAccess(projectId);
+
     return memberResponse;
   }
 
@@ -105,9 +107,13 @@ export class MemberService {
 
     let updated;
     try {
-      updated = await this.prisma.projectMember.update({
+      updated = await this.prisma.$transaction(async tx => {
+        const result = await tx.projectMember.update({
         where: { id: member.id, version: member.version },
         data: { ...dto, updatedAt: new Date(), version: { increment: 1 } },
+        });
+        await enqueueProjectAccessSync(tx, projectId);
+        return result;
       });
     } catch (error) {
       rethrowWriteConflict(
@@ -117,7 +123,7 @@ export class MemberService {
     }
 
     const profile = await this.userProfiles.getProfileByUserId(memberUserId);
-    await this.projects.syncProjectDocumentAccess(projectId);
+
     return toMemberResponse(updated, profile);
   }
 
@@ -149,6 +155,7 @@ export class MemberService {
             version: { increment: 1 },
           },
         });
+        await enqueueProjectAccessSync(tx, projectId);
       } catch (error) {
         rethrowWriteConflict(
           error,
@@ -156,12 +163,6 @@ export class MemberService {
         );
       }
     });
-    const accessSyncResults = await Promise.allSettled([
-      this.projects.syncProjectDocumentAccess(projectId),
-      this.projects.syncProjectSpaceAccess(projectId),
-    ]);
-    for (const result of accessSyncResults) {
-      if (result.status === 'rejected') throw result.reason;
-    }
+
   }
 }

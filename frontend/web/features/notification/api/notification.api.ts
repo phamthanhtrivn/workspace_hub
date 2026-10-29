@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { NOTIFICATION_READ_COMMITTED_EVENT } from "../utils/notification-category.utils";
 import {
   DeleteNotificationsResponse,
   GetNotificationsResponse,
@@ -37,11 +38,13 @@ export const getUnreadCount = async (): Promise<{ message: string; data: { unrea
 
 export const markAsRead = async (id: string): Promise<unknown> => {
   const response = await api.patch(`/api/notifications/${id}/read`);
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(NOTIFICATION_READ_COMMITTED_EVENT));
   return response.data;
 };
 
 export const markAllAsRead = async (): Promise<unknown> => {
   const response = await api.put("/api/notifications/read-all");
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(NOTIFICATION_READ_COMMITTED_EVENT));
   return response.data;
 };
 

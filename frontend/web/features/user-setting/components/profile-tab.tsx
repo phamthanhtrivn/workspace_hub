@@ -23,7 +23,7 @@ import { UserSettingTab } from "../types/settings.enums";
 import { SettingInput, SettingTextarea } from "./ui/setting-form-controls";
 import { Spinner } from "@/components/ui/spinner";
 
-const draftValue = (profile: UserProfile | null) => JSON.stringify(profile ? [profile.fullName, profile.phoneNumber, profile.dob, profile.bio] : null);
+const draftValue = (profile: UserProfile | null) => JSON.stringify(profile ? [profile.fullName, profile.phoneNumber, profile.dob, profile.bio, profile.avatarUrl] : null);
 
 const ProfileTab = React.memo(function ProfileTab() {
   const { email } = useAppSelector((state) => state.auth);
@@ -42,7 +42,7 @@ const ProfileTab = React.memo(function ProfileTab() {
   useEffect(() => {
     if (profileResponse?.data) {
       if (!dirty) { setProfileForm(profileResponse.data); setSavedValue(draftValue(profileResponse.data)); }
-      else setProfileForm(current => current && current.avatarUrl !== profileResponse.data.avatarUrl ? { ...current, avatarUrl: profileResponse.data.avatarUrl } : current);
+
     }
   }, [profileResponse, dirty]);
 
@@ -141,6 +141,7 @@ const ProfileTab = React.memo(function ProfileTab() {
             )}
           </div>
           <Button aria-busy={uploadAvatarMutation.isPending || undefined} variant="unstyled"
+            type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadAvatarMutation.isPending}
             className="absolute inset-0 bg-overlay/80 text-media-foreground opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer disabled:opacity-50"

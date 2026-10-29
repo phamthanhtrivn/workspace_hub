@@ -136,6 +136,7 @@ model UserProfileSnapshot {
  * ========================================================= */
 
 model Space {
+  accessSyncRevision BigInt @default(0) @map("access_sync_revision")
   id          String            @id @default(uuid()) @db.Uuid
   name        String
   createdBy   String            @map("created_by") @db.Uuid
@@ -560,7 +561,16 @@ model DirectThreadFollower {
  * MEETING
  * ========================================================= */
 
+model CalendarMeetingSyncState {
+  eventId String @id @map("event_id") @db.Uuid
+  revision BigInt
+  @@map("calendar_meeting_sync_states")
+}
+
 model Meeting {
+  calendarCancelled Boolean @default(false) @map("calendar_cancelled")
+  calendarEventId String? @unique @map("calendar_event_id") @db.Uuid
+  calendarSyncRevision BigInt @default(0) @map("calendar_sync_revision")
   id                       String                  @id @default(uuid()) @db.Uuid
   roomName                 String                  @unique @map("room_name")
   joinToken                String                  @unique @map("join_token")
@@ -639,6 +649,7 @@ model MeetingParticipant {
   lastSeenAt        DateTime?                @map("last_seen_at")
   lastReadMessageId String?                  @map("last_read_message_id") @db.Uuid
   lastReadAt        DateTime?                @map("last_read_at")
+  requiresReadmission Boolean @default(false) @map("requires_readmission")
   chatMuted         Boolean                  @default(false) @map("chat_muted")
   handRaisedAt      DateTime?                @map("hand_raised_at")
   canRecord         Boolean                  @default(false) @map("can_record")

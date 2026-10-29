@@ -47,9 +47,7 @@ export default function ViewPollModal({
         <div className="max-h-[85vh] overflow-y-auto rounded-panel">
           <PollMessage
             poll={poll}
-            onVote={(pollOptionId) => {
-              void voteChannelPoll(conversationId, poll.messageId, pollOptionId);
-            }}
+            onVote={(pollOptionId, selected) => voteChannelPoll(conversationId, poll.messageId, pollOptionId, selected)}
             onAddOption={(text) => {
               void addChannelPollOption(conversationId, poll.messageId, text);
             }}
@@ -60,7 +58,7 @@ export default function ViewPollModal({
               anonymous,
               isLocked,
             ) => {
-              void editChannelPoll(conversationId, poll.messageId, {
+              return editChannelPoll(conversationId, poll.messageId, {
                   title,
                   multipleChoice,
                   allowAddOptions,

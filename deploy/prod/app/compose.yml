@@ -183,6 +183,8 @@ services:
       PROJECT_SERVICE_URL: http://project-service:8082
       DOCUMENT_SERVICE_URL: http://document-service:8085
       CALENDAR_DOCUMENT_SERVICE_KEY: ${CALENDAR_DOCUMENT_SERVICE_KEY:?CALENDAR_DOCUMENT_SERVICE_KEY is required}
+      COMMUNICATION_SERVICE_URL: http://communication-service:8083
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
     expose:
       - '8086'
     restart: unless-stopped

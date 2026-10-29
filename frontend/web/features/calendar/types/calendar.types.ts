@@ -147,7 +147,13 @@ export interface CalendarEventReminder {
   method: ReminderMethod;
 }
 
+export interface CalendarConference {
+  enabled: boolean; status: "NONE" | "PENDING" | "READY" | "FAILED";
+  meetingId: string | null; joinToken: string | null; message: string | null;
+}
+
 export interface CalendarEvent {
+  conference?: CalendarConference;
   id: string;
   calendarId: string;
   createdBy: string;
@@ -279,6 +285,7 @@ export interface CalendarGroupedTasks {
 }
 
 export interface CalendarEventFormValues {
+  conference?: { enabled: boolean };
   calendarId: string;
   title: string;
   description?: string | null;
@@ -298,6 +305,7 @@ export interface CalendarEventFormValues {
 }
 
 export interface CreateCalendarEventPayload {
+  conference?: { enabled: boolean };
   calendarId: string;
   title: string;
   description?: string | null;

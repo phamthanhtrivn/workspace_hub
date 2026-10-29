@@ -587,6 +587,15 @@ export class SpaceService {
     trimmedName: string,
     members: { userId: string; role: SpaceRole }[],
   ) {
+    await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${existingSpace.id}::uuid FOR UPDATE`;
+    const current = await tx.space.findUnique({ where: { id: existingSpace.id } });
+    const currentRevision = current?.accessSyncRevision ?? 0n;
+    const requestedRevision = dto.syncRevision ? BigInt(dto.syncRevision) : 0n;
+    if (currentRevision > requestedRevision) {
+      const channel = await this.ensureDefaultProjectChannel(tx, existingSpace.id, existingSpace.createdBy);
+      return { projectId: dto.projectId, spaceId: existingSpace.id, channelId: channel.id, channelIds: [], joinedMembers: [], removedMembers: [], privateMembershipChanges: [] };
+    }
+    if (dto.syncRevision) await tx.space.update({ where: { id: existingSpace.id }, data: { accessSyncRevision: requestedRevision } });
     const space =
       existingSpace.name === trimmedName
         ? existingSpace
@@ -1061,6 +1070,7 @@ export class SpaceService {
               name: trimmedName,
               createdBy: dto.ownerId,
               projectId: dto.projectId,
+              accessSyncRevision: dto.syncRevision ? BigInt(dto.syncRevision) : 0n,
             },
           });
 

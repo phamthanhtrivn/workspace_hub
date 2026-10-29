@@ -6,6 +6,8 @@ export enum POLL_SUCCESS_MESSAGES {
 }
 
 export enum POLL_ERROR_MESSAGES {
+  MULTIPLE_VOTES_EXIST = 'Some participants selected multiple options. Create a new poll to use single choice.',
+  EMPTY_OPTION = 'Poll option cannot be empty',
   NOT_FOUND = 'Poll not found',
   OPTION_NOT_FOUND = 'Poll option not found',
   ADD_OPTION_PREVENTED = 'Adding options is not allowed',
@@ -15,3 +17,5 @@ export enum POLL_ERROR_MESSAGES {
   MISSING_REQUIRED_DATA = 'Missing required poll data',
   NOT_MEMBER_OF_CHANNEL = 'You are not a member of this channel',
 }
+
+export const POLL_ERROR_CODES = { MULTIPLE_VOTES_EXIST: 'POLL_MULTIPLE_VOTES_EXIST' } as const;

@@ -1,3 +1,4 @@
+import { CalendarConferenceDto } from './calendar-conference.dto';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -19,6 +20,11 @@ import { CalendarEventReminderDto } from './calendar-event-reminder.dto';
 import { RecurrenceScope } from '../../../common/enums/calendar.enum';
 
 export class UpdateCalendarEventDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CalendarConferenceDto)
+  conference?: CalendarConferenceDto;
+
   @IsOptional()
   @IsUUID()
   calendarId?: string;

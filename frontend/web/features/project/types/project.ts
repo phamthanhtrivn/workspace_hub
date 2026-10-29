@@ -210,6 +210,7 @@ export interface Task {
 }
 
 export interface Project {
+  accessSync?: import("./project-access-sync").ProjectAccessState;
   id: string;
   name: string;
   color: string;

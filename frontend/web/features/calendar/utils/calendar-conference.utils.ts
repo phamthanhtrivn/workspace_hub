@@ -2,7 +2,7 @@ const JOIN_TOKEN_PATTERN = /^[A-Za-z0-9_-]{6,128}$/;
 
 /**
  * Extracts a meeting joinToken from a location string if it represents a Workspace Hub meeting URL.
- * e.g. "http://localhost:3000/meetings/token123" or "/meetings/token123" or "token123"
+ * Accepts same-origin meeting URLs and relative /meetings/:token links.
  */
 export function parseCalendarMeetingJoinToken(
   location?: string | null,
@@ -11,11 +11,6 @@ export function parseCalendarMeetingJoinToken(
   const trimmed = location.trim();
   if (!trimmed) return null;
 
-  // Direct join token match
-  if (JOIN_TOKEN_PATTERN.test(trimmed)) {
-    return trimmed;
-  }
-
   // URL matching /meetings/:joinToken
   try {
     const origin =
@@ -23,6 +18,7 @@ export function parseCalendarMeetingJoinToken(
         ? window.location.origin
         : "http://localhost:3000";
     const url = new URL(trimmed, origin);
+    if (url.origin !== origin) return null;
     const segments = url.pathname.split("/").filter(Boolean);
     const meetingIdx = segments.indexOf("meetings");
     if (meetingIdx !== -1 && segments[meetingIdx + 1]) {

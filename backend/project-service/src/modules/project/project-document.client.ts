@@ -5,6 +5,7 @@ import { RuntimeConfigService } from '../../common/config/runtime-config.service
 export interface EnsureProjectRootFolderRequest {
   projectId: string;
   name: string;
+  syncRevision?: string;
   ownerId: string;
   ownerEmail: string;
   members: Array<{
@@ -41,6 +42,7 @@ export class ProjectDocumentClient {
       headers: this.internalHeaders(),
       body: {
         name: payload.name,
+        syncRevision: payload.syncRevision,
         ownerId: payload.ownerId,
         ownerEmail: payload.ownerEmail,
         members: payload.members,

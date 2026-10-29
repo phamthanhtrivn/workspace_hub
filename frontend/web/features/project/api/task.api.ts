@@ -81,6 +81,7 @@ export interface UpdateTaskPayload {
 export type ProjectTaskStatusCounts = Record<TaskStatus, number>;
 
 export interface AttachTaskDocumentsPayload {
+  operationId?: string;
   documentItemIds: string[];
   source: TaskDocumentAttachmentSource;
 }
@@ -255,4 +256,9 @@ export async function detachTaskDocument(
     `/api/tasks/${taskId}/documents/${attachmentId}`,
   );
   return unwrap(response);
+}
+
+export async function reopenTask(taskId: string): Promise<Task> {
+  const response = await api.post<ApiResponse<TaskApiModel>>(`/api/tasks/${taskId}/reopen`);
+  return normalizeTask(unwrap(response));
 }

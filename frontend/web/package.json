@@ -14,7 +14,8 @@
     "test:ai-answer": "node --test scripts/answer-content.test.mjs",
     "typecheck": "tsc --noEmit --incremental false",
     "test:landing-motion": "node --test scripts/landing-motion.test.mjs",
-    "test:landing-preview": "node --test scripts/landing-preview.test.mjs"
+    "test:landing-preview": "node --test scripts/landing-preview.test.mjs",
+    "test:ux": "node --test scripts/ux-logic.test.cjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

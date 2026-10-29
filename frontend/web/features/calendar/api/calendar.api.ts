@@ -285,3 +285,5 @@ export async function updateCalendarEventResponse(
   );
   return unwrap(response);
 }
+
+export const retryCalendarConference = async (eventId: string) => api.post(`/api/calendar/events/${eventId}/conference/retry`);

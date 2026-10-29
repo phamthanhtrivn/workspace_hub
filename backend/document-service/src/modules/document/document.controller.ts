@@ -97,6 +97,7 @@ export class DocumentController {
       dto.userEmail,
       dto.projectId,
       dto.documentItemIds,
+      dto.operationId,
     );
     return {
       message: 'Task attachment documents imported successfully',
