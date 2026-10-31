@@ -9,7 +9,7 @@ import {
 import { z } from "zod";
 import { config } from "../../config/env.config";
 import { TooManyRequestsException } from "../../common/errors/rate-limit.exception";
-import { createChatModel } from "../../infrastructure/integrations/chat-model";
+import { aiModels } from "../../infrastructure/integrations/ai-model.provider";
 import { admitModel } from "../../infrastructure/integrations/llm.client";
 import type { StoredMessage, WorkContext } from "./work-assistant.types";
 
@@ -209,7 +209,7 @@ export async function workAnswer(
   );
   const modelName = config.CONVERSATION_AI_MODEL ?? config.LLM_MODEL;
   const maxTokens = Math.min(config.CONVERSATION_AI_MAX_TOKENS ?? 1800, 2200);
-  const model = createChatModel(modelName, maxTokens);
+  const model = aiModels.createChatModel(modelName, maxTokens);
   for (let step = 0; step < 3; step++) {
     signal.throwIfAborted();
     const fitted = fitContextToBudget(messages, latest, maxTokens);

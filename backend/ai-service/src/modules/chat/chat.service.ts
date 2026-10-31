@@ -1,50 +1,14 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
-import { randomUUID } from "node:crypto";
+import { Injectable } from "@nestjs/common";
 import type { Response } from "express";
-import { event, startEventStream } from "../../common/sse";
-import { pollUntilAborted } from "../../common/abort-polling";
-import { rows } from "../../infrastructure/database/database";
-import { authorizeSources } from "../../infrastructure/integrations/document.client";
-import { SourcesService } from "../sources/sources.service";
-import { ownedNotebook } from "../../common/auth/notebook-access";
-import { citeEvidence, selectSources } from "../../common/evidence-policy";
-import { retrieve } from "../../infrastructure/integrations/rag.client";
-import type { Actor, Citation, Snapshot, Source } from "../../common/types";
-import { createChatAuthorization } from "./chat-authorization";
-import { config } from "../../config/env.config";
-
-import { immediateReply, generateChatResponse } from "./chat-response";
-import { visualEvidence } from "./visual-evidence";
-import { startChatRequest, completeChatRequest } from "./chat-request";
-import { StudioService } from "../studio/studio.service";
-import { isNotebookSummaryRequest } from "./summary-request";
-import {
-  conversationHistory,
-  isFollowUp,
-  retrievalQuestion,
-} from "./chat-history";
-
-type ChatStreamInput = {
-  actor: Actor;
-  notebookId: string;
-  question: string;
-  sourceIds: string[];
-  requestId: string;
-  res: Response;
-  sources: Source[];
-  controller: AbortController;
-};
-
-type ChatGenerationInput = ChatStreamInput & {
-  snapshot: Snapshot[];
-  authorize: () => Promise<void>;
-};
+import type { Actor } from "../../common/types";
+import { ChatSseService } from "./chat-sse.service";
+import { ChatWorkflowService } from "./chat-workflow.service";
 
 @Injectable()
 export class ChatService {
   constructor(
-    private readonly sources: SourcesService,
-    private readonly studio: StudioService,
+    private readonly transport: ChatSseService,
+    private readonly workflow: ChatWorkflowService,
   ) {}
   async answer(
     actor: Actor,
@@ -54,215 +18,17 @@ export class ChatService {
     requestId: string,
     res: Response,
   ) {
-    const controller = new AbortController();
-    const disconnect = () => controller.abort();
-    res.once("close", disconnect);
-    try {
-      if (res.destroyed) return;
-      await ownedNotebook(actor, notebookId);
-      const sources = await this.selectedSources(notebookId, sourceIds);
-      await authorizeSources(actor, sources, false, controller.signal);
-      controller.signal.throwIfAborted();
-      await startChatRequest(actor.id, notebookId, requestId);
-      await this.streamAnswer({
-        actor,
-        notebookId,
-        question,
-        sourceIds,
-        requestId,
-        res,
-        sources,
-        controller,
-      });
-    } finally {
-      controller.abort();
-      res.off("close", disconnect);
-    }
-  }
-
-  private async selectedSources(notebookId: string, sourceIds: string[]) {
-    try {
-      return selectSources(sourceIds, await this.sources.sources(notebookId));
-    } catch (error) {
-      throw new BadRequestException((error as Error).message);
-    }
-  }
-
-  private async streamAnswer(input: ChatStreamInput) {
-    const { actor, notebookId, question, requestId, res, sources, controller } =
-      input;
-    const reply = immediateReply(question);
-    const snapshot = sources.map(({ id, revision }) => ({ id, revision }));
-    const authorize = createChatAuthorization({
-      actor,
-      sources,
-      snapshot,
-      loadSources: () => this.sources.sources(notebookId),
-      signal: controller.signal,
-    });
-    const check = async () => {
-      const [state] = await rows(
-        "SELECT status FROM notebook_ai.requests WHERE id=$1",
-        [requestId],
-      );
-      if (state?.status !== "RUNNING") controller.abort();
-    };
-    const stopPolling = pollUntilAborted(
-      controller,
-      config.CHAT_CANCEL_POLL_MS,
-      check,
-    );
-    const permissions = setInterval(() => {
-      if (!controller.signal.aborted)
-        void authorize().catch(() => controller.abort());
-    }, 3000);
-    try {
-      startEventStream(res);
-      event(res, "status", {
-        requestId,
-        stage: reply ? "GENERATING" : "RETRIEVING",
-      });
-      controller.signal.throwIfAborted();
-      const answer = await this.generateReply({
-        ...input,
-        snapshot,
-        authorize,
-      });
-      await authorize();
-      controller.signal.throwIfAborted();
-      const id = await completeChatRequest(
-        requestId,
-        notebookId,
-        answer,
-        snapshot,
-        answer.artifactId,
-      );
-      if (answer.artifactId) event(res, "delta", { text: answer.content });
-      event(res, "done", { id, ...answer });
-    } catch (error) {
-      await rows(
-        "UPDATE notebook_ai.requests SET status=$2,updated_at=now() WHERE id=$1 AND status='RUNNING'",
-        [requestId, controller.signal.aborted ? "CANCELLED" : "FAILED"],
-      );
-      event(res, "error", {
-        message: controller.signal.aborted
-          ? "Đã hủy câu trả lời."
-          : safeError(error),
-      });
-    } finally {
-      stopPolling();
-      clearInterval(permissions);
-      controller.abort();
-      res.end();
-    }
-  }
-  private async generateReply(
-    input: ChatGenerationInput,
-  ): Promise<{ content: string; citations: Citation[]; artifactId?: string }> {
-    const {
+    return this.transport.answer(
       actor,
       notebookId,
       question,
       sourceIds,
+      requestId,
       res,
-      sources,
-      snapshot,
-      controller,
-      authorize,
-    } = input;
-    const signal = controller.signal;
-    const history = await this.history(notebookId, question, sources);
-    signal.throwIfAborted();
-    const reply = immediateReply(question);
-    const directReply = history.length && isFollowUp(question) ? null : reply;
-    await rows(
-      "INSERT INTO notebook_ai.messages(id,notebook_id,role,content,sources) VALUES($1,$2,'USER',$3,$4)",
-      [randomUUID(), notebookId, question, JSON.stringify(snapshot)],
     );
-    if (isNotebookSummaryRequest(question)) {
-      signal.throwIfAborted();
-      const artifact = await this.studio.artifact(
-        actor,
-        notebookId,
-        "SUMMARY",
-        sourceIds,
-      );
-      return {
-        content:
-          artifact.status === "COMPLETED"
-            ? artifact.content
-            : "Mình đang đọc tài liệu để tóm tắt. Kết quả sẽ xuất hiện ngay tại đây khi hoàn tất.",
-        citations: artifact.status === "COMPLETED" ? artifact.citations : [],
-        artifactId: artifact.id,
-      };
-    }
-    const citations = directReply
-      ? []
-      : citeEvidence(
-          (
-            await retrieve(
-              notebookId,
-              sourceIds,
-              retrievalQuestion(question, history),
-              signal,
-            )
-          ).evidence,
-          sources,
-        );
-    signal.throwIfAborted();
-    event(res, "status", { stage: "GENERATING" });
-    const images = await visualEvidence(question, citations, sources);
-    await authorize();
-    return generateChatResponse(
-      question,
-      citations,
-      signal,
-      (text) => event(res, "delta", { text }),
-      history,
-      images,
-    );
-  }
-
-  private async history(
-    notebookId: string,
-    question: string,
-    sources: Source[],
-  ) {
-    if (immediateReply(question) && !isFollowUp(question)) return [];
-    const previous = await rows<{
-      role: string;
-      content: string;
-      sources: { id: string; revision: string }[];
-    }>(
-      `SELECT m.role, CASE WHEN a.status='COMPLETED' THEN a.content ELSE m.content END AS content,m.sources
-         FROM notebook_ai.messages m LEFT JOIN notebook_ai.artifacts a ON a.id=m.artifact_id
-         WHERE m.notebook_id=$1 AND (m.artifact_id IS NULL OR a.status='COMPLETED')
-         AND (m.role='USER' OR jsonb_array_length(m.citations)>0 OR a.status='COMPLETED')
-         ORDER BY m.created_at DESC,m.id DESC LIMIT 12`,
-      [notebookId],
-    );
-    return conversationHistory(previous.reverse(), sources);
   }
 
   async cancel(actor: Actor, requestId: string) {
-    await rows(
-      "UPDATE notebook_ai.requests SET status='CANCELLED',updated_at=now() WHERE id=$1 AND owner_id=$2 AND status='RUNNING'",
-      [requestId, actor.id],
-    );
-    await rows(
-      "UPDATE notebook_ai.artifacts SET status='CANCELLED',updated_at=now() WHERE id=$1 AND notebook_id IN(SELECT id FROM notebook_ai.notebooks WHERE owner_id=$2) AND status IN ('QUEUED','RUNNING')",
-      [requestId, actor.id],
-    );
-    return {};
+    return this.workflow.cancel(actor, requestId);
   }
-}
-function safeError(error: unknown) {
-  const message = (error as Error)?.message ?? "";
-  if (
-    /hạn mức|HTTP \d{3}|bị cắt|trích dẫn|thiếu trích|phiên bản|Mất quyền/i.test(
-      message,
-    )
-  )
-    return message;
-  return "AI chưa hoàn tất yêu cầu. Kiểm tra kết nối/model và thử lại; yêu cầu không được tự gửi lại.";
 }

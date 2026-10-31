@@ -1,10 +1,10 @@
+import { AiDatabaseClient } from "../../infrastructure/database/ai-database.client";
 import {
   ConflictException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import { rows, transaction } from "../../infrastructure/database/database";
 import { TooManyRequestsException } from "../../common/errors/rate-limit.exception";
 import type { Actor } from "../../common/types";
 import type { StoredMessage, TaskReference } from "./work-assistant.types";
@@ -18,8 +18,9 @@ export type WorkSession = {
 };
 @Injectable()
 export class WorkStore {
+  constructor(private readonly database: AiDatabaseClient) {}
   async session(actor: Actor, projectId?: string, create = false) {
-    return transaction(async (client) => {
+    return this.database.transaction(async (client) => {
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
         [actor.id],
@@ -46,7 +47,7 @@ export class WorkStore {
   async list(actor: Actor, projectId?: string, before?: string) {
     const boundary = before ? parseConversationCursor(before) : undefined;
     if (boundary) {
-      const [cursor] = await rows<{ updated_at: string }>(
+      const [cursor] = await this.database.rows<{ updated_at: string }>(
         `SELECT to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') updated_at FROM notebook_ai.work_assistant_sessions WHERE id=$1 AND owner_id=$2 AND project_id IS NOT DISTINCT FROM $3::uuid`,
         [boundary.id, actor.id, projectId ?? null],
       );
@@ -56,7 +57,7 @@ export class WorkStore {
     const parameters = projectId ? [actor.id, projectId] : [actor.id];
     const cursorParameter = parameters.length + 1;
     if (boundary) parameters.push(boundary.updatedAt!, boundary.id);
-    const sessions = await rows<{
+    const sessions = await this.database.rows<{
       id: string;
       project_id: string | null;
       updated_at: string;
@@ -81,7 +82,7 @@ export class WorkStore {
     };
   }
   async owned(actor: Actor, id: string) {
-    const [session] = await rows<WorkSession>(
+    const [session] = await this.database.rows<WorkSession>(
       "SELECT * FROM notebook_ai.work_assistant_sessions WHERE id=$1 AND owner_id=$2",
       [id, actor.id],
     );
@@ -90,13 +91,13 @@ export class WorkStore {
   }
   async history(session: WorkSession, before?: string) {
     if (before) {
-      const [cursor] = await rows(
+      const [cursor] = await this.database.rows(
         "SELECT id FROM notebook_ai.work_assistant_messages WHERE id=$1 AND session_id=$2",
         [before, session.id],
       );
       if (!cursor) throw new NotFoundException("History cursor not found");
     }
-    const messages = await rows<StoredMessage>(
+    const messages = await this.database.rows<StoredMessage>(
       "SELECT * FROM notebook_ai.work_assistant_messages WHERE session_id=$1 " +
         (before
           ? "AND (created_at,id)<(SELECT created_at,id FROM notebook_ai.work_assistant_messages WHERE id=$2 AND session_id=$1) "
@@ -111,14 +112,14 @@ export class WorkStore {
     };
   }
   async recent(session: WorkSession) {
-    const messages = await rows<StoredMessage>(
+    const messages = await this.database.rows<StoredMessage>(
       "SELECT * FROM notebook_ai.work_assistant_messages WHERE session_id=$1 ORDER BY created_at DESC,id DESC LIMIT 4",
       [session.id],
     );
     return messages.reverse();
   }
   async begin(actor: Actor, session: WorkSession, requestId: string) {
-    await transaction(async (client) => {
+    await this.database.transaction(async (client) => {
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
         [actor.id],
@@ -154,14 +155,17 @@ export class WorkStore {
     });
   }
   async canceled(actor: Actor, id: string) {
-    const [row] = await rows<{ cancel_requested: boolean; status: string }>(
+    const [row] = await this.database.rows<{
+      cancel_requested: boolean;
+      status: string;
+    }>(
       "SELECT cancel_requested,status FROM notebook_ai.work_assistant_requests WHERE id=$1 AND owner_id=$2",
       [id, actor.id],
     );
     return !row || row.cancel_requested || row.status !== "RUNNING";
   }
   async cancel(actor: Actor, id: string) {
-    const result = await rows(
+    const result = await this.database.rows(
       "UPDATE notebook_ai.work_assistant_requests SET cancel_requested=true WHERE id=$1 AND owner_id=$2 RETURNING id",
       [id, actor.id],
     );
@@ -177,7 +181,7 @@ export class WorkStore {
     projectIds: string[],
     metadata: StoredMessage["context"],
   ) {
-    return transaction(async (client) => {
+    return this.database.transaction(async (client) => {
       const { rows: changed } = await client.query(
         "UPDATE notebook_ai.work_assistant_requests SET status='COMPLETED',updated_at=now() WHERE id=$1 AND owner_id=$2 AND status='RUNNING' AND NOT cancel_requested RETURNING id",
         [requestId, actor.id],
@@ -211,7 +215,7 @@ export class WorkStore {
     });
   }
   async fail(actor: Actor, id: string, canceled: boolean) {
-    await rows(
+    await this.database.rows(
       "UPDATE notebook_ai.work_assistant_requests SET status=$3,updated_at=now() WHERE id=$1 AND owner_id=$2 AND status='RUNNING' RETURNING id",
       [id, actor.id, canceled ? "CANCELED" : "FAILED"],
     );

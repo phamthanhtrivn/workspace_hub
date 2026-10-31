@@ -2,19 +2,21 @@ import { processConversation } from "./conversation.processor";
 import { processMeetingSummary } from "./meeting-summary.processor";
 import { Worker, UnrecoverableError, type Job } from "bullmq";
 import { config, connection } from "../config/env.config";
-import { db } from "../infrastructure/database/database";
-import {
-  queue,
-  closeQueues,
-  WORKER_HEARTBEAT_VALUE,
-} from "../infrastructure/queue/notebook.queue";
-import { rag } from "../infrastructure/integrations/rag.client";
+import { aiDatabase } from "../infrastructure/database/ai-database.client";
+import { aiQueues } from "../infrastructure/queue/ai-queue.client";
+import { WORKER_HEARTBEAT_VALUE } from "../infrastructure/queue/notebook.queue";
+import { aiModels } from "../infrastructure/integrations/ai-model.provider";
 import { reconcileQueuedJobs } from "./job-recovery";
 import { Profile } from "../common/profiling/pipeline-profiler";
 import { indexSource } from "./index.processor";
 import { summarize } from "./summary.processor";
 import { logError } from "../common/errors/error-log";
 import { createShutdownHandler, settleAll } from "../common/shutdown";
+const db = aiDatabase.pool;
+const queue = aiQueues.jobs;
+const closeQueues = aiQueues.close;
+const rag = aiModels.rag;
+
 async function profileJob<T>(
   job: Job,
   pipeline: "job_index" | "job_summary" | "job_cleanup" | "job_conversation",
@@ -54,7 +56,9 @@ async function processJob(job: Job) {
     case "index":
       return profileJob(job, "job_index", () => indexSource(job.data.sourceId));
     case "summary":
-      return profileJob(job, "job_summary", () => summarize(job.data.artifactId));
+      return profileJob(job, "job_summary", () =>
+        summarize(job.data.artifactId),
+      );
     case "cleanup":
       return profileJob(job, "job_cleanup", () => rag("/delete", job.data));
     default:
