@@ -1,59 +1,31 @@
-import { CalendarConferenceSyncService } from './calendar-conference-sync.service';
-import { BadRequestException, Injectable, Optional } from '@nestjs/common';
-import {
-  AttendeeResponseStatus,
-  CalendarEventAttendee,
-  EventSourceType,
-  EventStatus,
-  EventVisibility,
-  Prisma,
-} from '@prisma/client';
-import {
-  CALENDAR_DEFAULTS,
-  CALENDAR_ERROR_MESSAGES,
-} from '../../common/constants/calendar.constants';
+import { Injectable } from '@nestjs/common';
+import { AttendeeResponseStatus, CalendarEventAttendee } from '@prisma/client';
 import { RecurrenceScope } from '../../common/enums/calendar.enum';
-import { ResourceAccessService } from '../../infrastructure/integrations/resource-access.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
-import {
-  EventWithRelations,
-  eventWithRelationsInclude,
-} from './calendar-event.types';
-import { CalendarRecurrenceService } from './calendar-recurrence.service';
 import { CreateCalendarEventDto } from './dto/create-calendar-event.dto';
 import { GetCalendarEventsQueryDto } from './dto/get-calendar-events-query.dto';
 import { GetCalendarTasksQueryDto } from './dto/get-calendar-tasks-query.dto';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
-import { EventAccessPolicy } from './event-access.policy';
-import { EventMapper } from './event.mapper';
-import { EventRelationService } from './event-relation.service';
-import { RecurrenceMutationService } from './recurrence-mutation.service';
-import { CalendarNotificationOutboxService } from './calendar-notification-outbox.service';
+import { CalendarEventQueryService } from './calendar-event-query.service';
+import { CalendarEventValidationService } from './calendar-event-validation.service';
+import { CalendarEventEffectsService } from './calendar-event-effects.service';
+import { CalendarEventMutationService } from './calendar-event-mutation.service';
+import { CalendarTaskMutationService } from './calendar-task-mutation.service';
+import { CalendarAttendeeMutationService } from './calendar-attendee-mutation.service';
+import { CalendarConferenceWorkflowService } from './calendar-conference-workflow.service';
 
 @Injectable()
 export class CalendarEventService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly userProfiles: UserProfileSnapshotService,
-    private readonly recurrence: CalendarRecurrenceService,
-    private readonly resourceAccess: ResourceAccessService,
-    private readonly accessPolicy: EventAccessPolicy,
-    private readonly mapper: EventMapper,
-    private readonly relations: EventRelationService,
-    private readonly recurrenceMutations: RecurrenceMutationService,
-    private readonly notificationOutbox: CalendarNotificationOutboxService,
-    @Optional() private readonly conferenceSync?: CalendarConferenceSyncService,
+    private readonly queries: CalendarEventQueryService,
+    private readonly validation: CalendarEventValidationService,
+    private readonly effects: CalendarEventEffectsService,
+    private readonly mutations: CalendarEventMutationService,
+    private readonly tasks: CalendarTaskMutationService,
+    private readonly attendees: CalendarAttendeeMutationService,
+    private readonly conferences: CalendarConferenceWorkflowService,
   ) {}
-
   async retryConference(userId: string, eventId: string) {
-    const event = await this.accessPolicy.findEventOrThrow(eventId);
-    this.accessPolicy.assertCanManageEvent(userId, event);
-    await this.prisma.calendarConference.updateMany({
-      where: { eventId, enabled: true },
-      data: { status: 'PENDING', nextAttemptAt: new Date(), attemptCount: 0 },
-    });
-    return this.getEventById(userId, eventId);
+    return this.conferences.retryConference(userId, eventId);
   }
 
   async createEvent(
@@ -61,157 +33,19 @@ export class CalendarEventService {
     userEmail: string | undefined,
     dto: CreateCalendarEventDto,
   ) {
-    const calendar = await this.accessPolicy.assertCalendarOwner(
-      userId,
-      dto.calendarId,
-    );
-    this.accessPolicy.assertPersonalCalendar(calendar);
-    this.assertValidRange(dto.startAt, dto.endAt);
-    this.recurrence.assertValidRule(dto.recurrenceRule);
-    await this.resourceAccess.assertDocumentAccess(
-      userId,
-      userEmail,
-      dto.documentIds,
-    );
-
-    const attendees = this.relations.normalizeAttendees(userId, dto.attendees);
-    const reminders = this.relations.normalizeReminders(dto.reminders);
-    if (dto.recurrenceRule) {
-      const eventId = await this.recurrenceMutations.createRecurringEvent(
-        userId,
-        calendar,
-        dto,
-        attendees,
-        reminders,
-        async (tx, firstId) => {
-          await this.conferenceSync?.reconcileCalendar(tx, calendar.id);
-          await this.notificationOutbox.enqueueEventInvitations(tx, {
-            eventTitle: dto.title,
-            eventId: firstId,
-            creatorId: userId,
-            recipientIds: attendees.map((attendee) => attendee.userId),
-          });
-        },
-      );
-      return this.getEventById(userId, eventId);
-    }
-
-    const event = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.calendarEvent.create({
-        data: {
-          calendarId: calendar.id,
-          createdBy: userId,
-          title: dto.title,
-          description: dto.description ?? null,
-          location: dto.location ?? null,
-          conferenceEnabled: dto.conference?.enabled ?? false,
-          startAt: new Date(dto.startAt),
-          endAt: new Date(dto.endAt),
-          allDay: dto.allDay ?? false,
-          color: dto.color ?? calendar.color,
-          status: dto.status ?? EventStatus.CONFIRMED,
-          visibility: dto.visibility,
-          sourceType: dto.sourceType ?? EventSourceType.USER,
-        },
-      });
-      await this.relations.createEventRelations(
-        tx,
-        created.id,
-        userId,
-        new Date(dto.startAt),
-        {
-          attendees,
-          reminders,
-          documentIds: dto.documentIds ?? [],
-        },
-      );
-      await this.notificationOutbox.enqueueEventInvitations(tx, {
-        eventTitle: created.title,
-        eventId: created.id,
-        creatorId: userId,
-        recipientIds: attendees.map((attendee) => attendee.userId),
-      });
-      await this.conferenceSync?.reconcileCalendar(tx, calendar.id);
-      return created;
-    });
-
-    return this.getEventById(userId, event.id);
+    return this.mutations.createEvent(userId, userEmail, dto);
   }
 
   async getEvents(userId: string, filters: GetCalendarEventsQueryDto) {
-    this.assertValidQueryRange(filters.startAt, filters.endAt);
-    const where = this.buildListFilter(userId, filters);
-    const skip = (filters.page - 1) * filters.limit;
-    const [events, total] = await Promise.all([
-      this.prisma.calendarEvent.findMany({
-        where,
-        include: eventWithRelationsInclude,
-        orderBy: { startAt: 'asc' },
-        skip,
-        take: filters.limit,
-      }),
-      this.prisma.calendarEvent.count({ where }),
-    ]);
-    const enriched = await this.userProfiles.attachProfilesToEvents(events);
-
-    return {
-      items: this.conferenceSync
-        ? await this.conferenceSync.attach(
-            enriched.map((event) => this.mapper.toPublicEvent(userId, event)),
-          )
-        : enriched.map((event) => this.mapper.toPublicEvent(userId, event)),
-      total,
-      page: filters.page,
-      limit: filters.limit,
-    };
+    return this.queries.getEvents(userId, filters);
   }
 
   async getTasks(userId: string, filters: GetCalendarTasksQueryDto) {
-    const where: Prisma.CalendarEventWhereInput = {
-      status: { not: EventStatus.CANCELLED },
-      OR: [
-        { sourceType: EventSourceType.TASK },
-        { description: { contains: '[TASK]' } },
-      ],
-      AND: [
-        {
-          OR: [
-            { calendar: { ownerUserId: userId } },
-            { createdBy: userId },
-            { attendees: { some: { userId } } },
-          ],
-        },
-      ],
-    };
-    const skip = (filters.page - 1) * filters.limit;
-    const [events, total] = await Promise.all([
-      this.prisma.calendarEvent.findMany({
-        where,
-        include: eventWithRelationsInclude,
-        orderBy: { startAt: 'asc' },
-        skip,
-        take: filters.limit,
-      }),
-      this.prisma.calendarEvent.count({ where }),
-    ]);
-    const enriched = await this.userProfiles.attachProfilesToEvents(events);
-
-    return {
-      items: enriched.map((event) => this.mapper.toPublicEvent(userId, event)),
-      total,
-      page: filters.page,
-      limit: filters.limit,
-    };
+    return this.queries.getTasks(userId, filters);
   }
 
   async getEventById(userId: string, eventId: string) {
-    const event = await this.accessPolicy.findEventOrThrow(eventId);
-    this.accessPolicy.assertCanViewEvent(userId, event);
-    const [enriched] = await this.userProfiles.attachProfilesToEvents([event]);
-    const mapped = this.mapper.toPublicEvent(userId, enriched);
-    return this.conferenceSync
-      ? (await this.conferenceSync.attach([mapped]))[0]
-      : mapped;
+    return this.queries.getEventById(userId, eventId);
   }
 
   async updateEvent(
@@ -220,32 +54,7 @@ export class CalendarEventService {
     eventId: string,
     dto: UpdateCalendarEventDto,
   ) {
-    const event = await this.accessPolicy.findEventOrThrow(eventId);
-    this.accessPolicy.assertCanManageEvent(userId, event);
-    this.accessPolicy.assertUserManagedEvent(event);
-    this.recurrence.assertValidRule(dto.recurrenceRule);
-    await this.resourceAccess.assertDocumentAccess(
-      userId,
-      userEmail,
-      dto.documentIds,
-    );
-
-    const calendar = dto.calendarId
-      ? await this.accessPolicy.assertCalendarOwner(userId, dto.calendarId)
-      : event.calendar;
-    this.accessPolicy.assertPersonalCalendar(calendar);
-    this.assertValidRange(
-      dto.startAt ?? event.startAt.toISOString(),
-      dto.endAt ?? event.endAt.toISOString(),
-    );
-
-    const updatedId = await this.updateByRecurrenceState(
-      userId,
-      event,
-      calendar,
-      dto,
-    );
-    return this.getEventById(userId, updatedId);
+    return this.mutations.updateEvent(userId, userEmail, eventId, dto);
   }
 
   async cancelEvent(
@@ -253,26 +62,7 @@ export class CalendarEventService {
     eventId: string,
     scope: RecurrenceScope = RecurrenceScope.THIS,
   ): Promise<void> {
-    const event = await this.accessPolicy.findEventOrThrow(eventId);
-    this.accessPolicy.assertCanManageEvent(userId, event);
-    this.accessPolicy.assertUserManagedEvent(event);
-    const recipientIds = (event.attendees ?? []).map(
-      (attendee) => attendee.userId,
-    );
-    await this.recurrenceMutations.cancelEvent(
-      userId,
-      event,
-      scope,
-      async (tx) => {
-        await this.notificationOutbox.enqueueEventCancellation(tx, {
-          eventTitle: event.title,
-          eventId: event.id,
-          cancellerId: userId,
-          recipientIds,
-        });
-        await this.conferenceSync?.reconcileCalendar(tx, event.calendarId);
-      },
-    );
+    return this.mutations.cancelEvent(userId, eventId, scope);
   }
 
   async updateTaskCompletion(
@@ -280,59 +70,11 @@ export class CalendarEventService {
     eventId: string,
     completed: boolean,
   ) {
-    const event = await this.accessPolicy.findEventOrThrow(eventId);
-    this.accessPolicy.assertCanManageEvent(userId, event);
-    this.accessPolicy.assertPersonalCalendar(event.calendar);
-    this.accessPolicy.assertUserManagedEvent(event);
-    if (!this.isTaskEvent(event)) {
-      throw new BadRequestException(
-        CALENDAR_ERROR_MESSAGES.ONLY_TASKS_CAN_BE_COMPLETED,
-      );
-    }
-
-    await this.prisma.calendarEvent.update({
-      where: { id: event.id },
-      data: {
-        sourceType: EventSourceType.TASK,
-        completedAt: completed ? new Date() : null,
-        updatedBy: userId,
-        isRecurrenceOverride: event.recurrenceSeries ? true : undefined,
-      },
-    });
-    return this.getEventById(userId, event.id);
+    return this.tasks.updateTaskCompletion(userId, eventId, completed);
   }
 
   async updateTaskOrder(userId: string, eventIds: string[]) {
-    const events = await this.prisma.calendarEvent.findMany({
-      where: { id: { in: eventIds } },
-      include: eventWithRelationsInclude,
-    });
-    if (events.length !== eventIds.length) {
-      throw new BadRequestException(CALENDAR_ERROR_MESSAGES.INVALID_TASK_ORDER);
-    }
-
-    for (const event of events) {
-      this.accessPolicy.assertCanManageEvent(userId, event);
-      this.accessPolicy.assertPersonalCalendar(event.calendar);
-      this.accessPolicy.assertUserManagedEvent(event);
-      if (!this.isTaskEvent(event)) {
-        throw new BadRequestException(
-          CALENDAR_ERROR_MESSAGES.INVALID_TASK_ORDER,
-        );
-      }
-    }
-
-    await this.prisma.$transaction(async (tx) => {
-      await Promise.all(
-        eventIds.map((eventId, taskOrder) =>
-          tx.calendarEvent.update({
-            where: { id: eventId },
-            data: { taskOrder, updatedBy: userId },
-          }),
-        ),
-      );
-    });
-    return eventIds;
+    return this.tasks.updateTaskOrder(userId, eventIds);
   }
 
   async updateResponse(
@@ -340,242 +82,6 @@ export class CalendarEventService {
     eventId: string,
     responseStatus: AttendeeResponseStatus,
   ): Promise<CalendarEventAttendee> {
-    const event = await this.accessPolicy.findEventOrThrow(eventId);
-    this.accessPolicy.assertCanViewEvent(userId, event);
-    if (event.status === EventStatus.CANCELLED) {
-      throw new BadRequestException('Cannot respond to a cancelled event');
-    }
-    const attendee = await this.prisma.calendarEventAttendee.findUnique({
-      where: { eventId_userId: { eventId, userId } },
-    });
-
-    return this.prisma.$transaction(
-      async (tx): Promise<CalendarEventAttendee> => {
-        let updated: CalendarEventAttendee;
-        if (attendee) {
-          updated = await tx.calendarEventAttendee.update({
-            where: { id: attendee.id },
-            data: { responseStatus },
-          });
-        } else {
-          updated = await tx.calendarEventAttendee.create({
-            data: {
-              eventId,
-              userId,
-              responseStatus,
-              optional: true,
-            },
-          });
-        }
-
-        await tx.calendarEvent.update({
-          where: { id: eventId },
-          data: { updatedAt: new Date() },
-        });
-
-        if (event.createdBy !== userId) {
-          await this.notificationOutbox.enqueueAttendeeResponse(tx, {
-            eventTitle: event.title,
-            eventId: event.id,
-            recipientId: event.createdBy,
-            responderId: userId,
-            status: responseStatus,
-          });
-        }
-
-        await this.conferenceSync?.reconcileCalendar(tx, event.calendarId);
-        return updated;
-      },
-    );
-  }
-
-  private async enqueueUpdateEffects(
-    tx: Prisma.TransactionClient,
-    userId: string,
-    event: EventWithRelations,
-    dto: UpdateCalendarEventDto,
-  ) {
-    const oldAttendeeIds = (event.attendees ?? []).map((a) => a.userId);
-    let keptAttendeeIds = oldAttendeeIds.filter((id) => id !== userId);
-
-    if (dto.attendees !== undefined) {
-      const newAttendeeIds = this.relations
-        .normalizeAttendees(userId, dto.attendees)
-        .map((a) => a.userId);
-
-      const removedAttendeeIds = oldAttendeeIds.filter(
-        (id) => !newAttendeeIds.includes(id),
-      );
-      const addedAttendeeIds = newAttendeeIds.filter(
-        (id) => !oldAttendeeIds.includes(id),
-      );
-      keptAttendeeIds = newAttendeeIds.filter(
-        (id) => oldAttendeeIds.includes(id) && id !== userId,
-      );
-
-      if (removedAttendeeIds.length > 0) {
-        await this.notificationOutbox.enqueueAttendeeRemoval(tx, {
-          eventTitle: event.title,
-          eventId: event.id,
-          removerId: userId,
-          recipientIds: removedAttendeeIds,
-        });
-      }
-
-      if (addedAttendeeIds.length > 0) {
-        await this.notificationOutbox.enqueueEventInvitations(tx, {
-          eventTitle: dto.title || event.title,
-          eventId: event.id,
-          creatorId: userId,
-          recipientIds: addedAttendeeIds,
-        });
-      }
-    }
-
-    if (keptAttendeeIds.length > 0) {
-      await this.notificationOutbox.enqueueEventUpdate(tx, {
-        eventTitle: dto.title || event.title,
-        eventId: event.id,
-        updaterId: userId,
-        recipientIds: keptAttendeeIds,
-      });
-    }
-
-    await this.conferenceSync?.reconcileCalendar(tx, event.calendarId);
-  }
-
-  private async updateByRecurrenceState(
-    userId: string,
-    event: EventWithRelations,
-    calendar: EventWithRelations['calendar'],
-    dto: UpdateCalendarEventDto,
-  ): Promise<string> {
-    if (event.recurrenceSeries) {
-      return this.recurrenceMutations.updateRecurringEvent(
-        userId,
-        event,
-        calendar,
-        dto,
-        (tx, updatedId) =>
-          this.enqueueUpdateEffects(
-            tx,
-            userId,
-            { ...event, id: updatedId },
-            dto,
-          ),
-      );
-    }
-    if (dto.recurrenceRule) {
-      return this.recurrenceMutations.convertStandaloneToSeries(
-        userId,
-        event,
-        calendar,
-        dto,
-        (tx, updatedId) =>
-          this.enqueueUpdateEffects(
-            tx,
-            userId,
-            { ...event, id: updatedId },
-            dto,
-          ),
-      );
-    }
-    await this.updateStandaloneEvent(userId, event, calendar, dto);
-    return event.id;
-  }
-
-  private async updateStandaloneEvent(
-    userId: string,
-    event: EventWithRelations,
-    calendar: EventWithRelations['calendar'],
-    dto: UpdateCalendarEventDto,
-  ): Promise<void> {
-    const nextStartAt = dto.startAt ? new Date(dto.startAt) : event.startAt;
-    const nextEndAt = dto.endAt ? new Date(dto.endAt) : event.endAt;
-    await this.prisma.$transaction(async (tx) => {
-      await tx.calendarEvent.update({
-        where: { id: event.id },
-        data: {
-          calendarId: calendar.id,
-          updatedBy: userId,
-          title: dto.title,
-          description: dto.description,
-          location: dto.location,
-          conferenceEnabled: dto.conference?.enabled,
-          startAt: dto.startAt ? nextStartAt : undefined,
-          endAt: dto.endAt ? nextEndAt : undefined,
-          allDay: dto.allDay,
-          color: dto.color,
-          status: dto.status,
-          visibility: dto.visibility,
-          cancelledAt: this.getCancelledAt(dto.status),
-        },
-      });
-      await this.relations.replaceEventRelations(tx, event, nextStartAt, dto);
-      await this.enqueueUpdateEffects(tx, userId, event, dto);
-    });
-  }
-
-  private buildListFilter(
-    userId: string,
-    filters: GetCalendarEventsQueryDto,
-  ): Prisma.CalendarEventWhereInput {
-    const where: Prisma.CalendarEventWhereInput = {
-      status: { not: EventStatus.CANCELLED },
-      OR: [
-        { calendar: { ownerUserId: userId } },
-        { attendees: { some: { userId } } },
-        { visibility: EventVisibility.PUBLIC },
-      ],
-      calendarId: filters.calendarId,
-    };
-    const range: Prisma.CalendarEventWhereInput[] = [
-      { startAt: { lte: new Date(filters.endAt) } },
-      { endAt: { gte: new Date(filters.startAt) } },
-    ];
-    if (filters.projectId) {
-      range.push({ calendar: { projectId: filters.projectId } });
-    }
-    where.AND = range;
-    return where;
-  }
-
-  private assertValidRange(startAt: string, endAt: string): void {
-    if (new Date(endAt) <= new Date(startAt)) {
-      throw new BadRequestException(
-        CALENDAR_ERROR_MESSAGES.INVALID_EVENT_RANGE,
-      );
-    }
-  }
-
-  private assertValidQueryRange(startAt?: string, endAt?: string): void {
-    if (!startAt || !endAt) {
-      throw new BadRequestException(
-        CALENDAR_ERROR_MESSAGES.INVALID_QUERY_RANGE,
-      );
-    }
-    const start = new Date(startAt);
-    const end = new Date(endAt);
-    const maxRange = CALENDAR_DEFAULTS.MAX_QUERY_RANGE_DAYS * 86_400_000;
-    if (end <= start || end.getTime() - start.getTime() > maxRange) {
-      throw new BadRequestException(
-        CALENDAR_ERROR_MESSAGES.INVALID_QUERY_RANGE,
-      );
-    }
-  }
-
-  private getCancelledAt(status?: EventStatus): Date | null | undefined {
-    if (status === EventStatus.CANCELLED) return new Date();
-    return status ? null : undefined;
-  }
-
-  private isTaskEvent(
-    event: Pick<EventWithRelations, 'sourceType' | 'description'>,
-  ) {
-    return (
-      event.sourceType === EventSourceType.TASK ||
-      (typeof event.description === 'string' &&
-        event.description.includes('[TASK]'))
-    );
+    return this.attendees.updateResponse(userId, eventId, responseStatus);
   }
 }
