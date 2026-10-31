@@ -36,6 +36,28 @@ Kafka to the published host ports. Service URLs use `http://localhost:<port>`.
 Use the same JWT secret and internal service credential across services that
 share them. Do not use container DNS names in host application configuration.
 
+### Authentication and service credentials
+
+Environment examples are not stored in the repo. Keep private env files and
+configure the required names below; obtain secret values separately.
+
+| Variable | Where it belongs |
+| --- | --- |
+| `JWT_SECRET_KEY`, `JWT_ISSUER` | User and services that verify access tokens. Use the same signing secret and issuer; Kong receives `JWT_SECRET_KEY`. AI trusts Kong proof instead. |
+| `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` | Configure the actual browser origin for HTTP/socket access; Kong uses `FRONTEND_URL`. |
+| `INTERNAL_SERVICE_KEY` | Existing internal callers/receivers that use the legacy shared credential. |
+| `CALENDAR_DOCUMENT_SERVICE_KEY` | Calendar and Document, at least 32 random characters; optional `CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS` on Document during rotation. |
+| `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY`, `RAG_SERVICE_KEY` | Dedicated AI links to Kong, Document and RAG; each purpose uses a different key. Document accepts `AI_DOCUMENT_SERVICE_KEY_PREVIOUS` during rotation. See [AI configuration](../deploy/ai/README.md#các-nhóm-biến-cấu-hình-ai). |
+| `WORK_ASSISTANT_SERVICE_KEY` | AI, Project and Calendar must match. |
+| `AI_COMMUNICATION_SERVICE_KEY`, `AI_SERVICE_URL` | AI/Communication share the key; Communication calls AI at `AI_SERVICE_URL`. Set matching `CONVERSATION_AI_ENABLED` and/or `MEETING_SUMMARY_ENABLED` only when configured. |
+| `COMMUNICATION_SERVICE_URL` | Calendar's conference integration and other internal callers; use the host URL when running locally. |
+
+The existing `node backend/scripts/configure-ai-security.mjs` command provisions
+missing local service keys and rejects mismatches. It writes the existing env
+files; keep their provider/database credentials and restart affected processes
+after an intentional configuration change. Recording/media variables are listed
+in the [LiveKit guide](../backend/livekit/README.md#recording-environment).
+
 ## Schema preparation
 
 Run schema changes explicitly after reviewing the target database. This cleanup

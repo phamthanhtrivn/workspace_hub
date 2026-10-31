@@ -14,9 +14,9 @@ Cấu trúc mã Node.js theo feature module và ranh giới hạ tầng/jobs: [k
 ## Khởi động local
 
 1. Bật Docker Desktop, khởi động hạ tầng WorkSpaceHub hiện có để có network `wh_network`. Document Service và User Service phải đang chạy. Dùng bộ nhớ Docker đủ cho parser và embedding; chưa có số đo RAM thực tế để cam kết cấu hình tối thiểu. Image Python và lần tải model đầu có thể tốn vài phút, khác với thời gian trả lời sau khi index.
-2. Sao chép `.env.example` trong thư mục này thành `.env` (file đã được ignore). Không dùng nguyên `.env` Python cũ.
+2. Giữ `.env` đã cấu hình trong thư mục này. Với máy mới, tạo private `.env` theo các nhóm biến bên dưới; file này được Git ignore. Không ghi đè env đang dùng hoặc dùng nguyên env Python cũ.
 3. Điền các biến:
-   - `NOTEBOOK_POSTGRES_USER=notebook`, `NOTEBOOK_POSTGRES_PASSWORD`: mật khẩu AI riêng ≥32 ký tự. Thay `CHANGE_ME` trong `DATABASE_URL` bằng cùng mật khẩu đã URL-encode. Docker dùng `postgres:5432/notebook_db`, Redis `redis://redis:6379/3`; Node trên host dùng cổng publish trong `backend/docker/.env` (ví dụ `localhost:5433`) và Redis `localhost:6379/3`. Không đặt mật khẩu PostgreSQL quản trị trong env AI.
+   - `NOTEBOOK_POSTGRES_USER=notebook`, `NOTEBOOK_POSTGRES_PASSWORD`: mật khẩu AI riêng ≥32 ký tự. `DATABASE_URL` phải dùng đúng role và mật khẩu đó, URL-encode phần mật khẩu. Docker dùng `postgres:5432/notebook_db`, Redis `redis://redis:6379/3`; Node trên host dùng cổng publish trong `backend/docker/.env` (ví dụ `localhost:5433`) và Redis `localhost:6379/3`. Không đặt mật khẩu PostgreSQL quản trị trong env AI.
    - AI **không cần `JWT_SECRET_KEY` hay `JWT_ISSUER`**. User Service phát token, Kong kiểm tra JWT và plugin `jwt-user-context` xóa header danh tính từ client rồi gán lại `x-user-id`, `x-user-email`, `x-user-role`. AI chỉ chấp nhận danh tính hợp lệ từ gateway, không tự decode token làm fallback.
    - Dùng khóa **khác nhau cho từng luồng**, ≥32 ký tự, không còn fallback `local-internal-key` kể cả local. `AI_GATEWAY_KEY` khớp giữa Kong/AI; `AI_DOCUMENT_SERVICE_KEY` khớp giữa AI/Document Service; `RAG_SERVICE_KEY` khớp giữa AI/RAG worker. `CALENDAR_DOCUMENT_SERVICE_KEY` khớp giữa Calendar/Document Service. Không thay `INTERNAL_SERVICE_KEY` legacy của các luồng khác.
    - Sau `npm.cmd ci` trong `backend/ai-service`, từ **gốc repo** chạy `node backend/scripts/configure-ai-security.mjs`. Script cần env AI host, `deploy/ai`, Kong, Document, RAG, Communication, Project và Calendar; bổ sung khóa còn thiếu, từ chối khóa đang có bị lệch, không in giá trị. Lệnh này có ghi file; không có chế độ `--check`. Kiểm tra cấu hình hạ tầng bằng lệnh bên dưới. Không copy file mẫu đè env đã cấu hình. Production cấp khóa riêng, không sao chép khóa local.
@@ -42,7 +42,27 @@ Redis chung cần `appendonly yes`, `appendfsync everysec`, `maxmemory-policy no
 6. Rebuild/restart Kong dùng template vừa cập nhật. Cả hai template đều phải nạp **hai** plugin `jwt` và `jwt-user-context` cho `notebook-ai-routes`; thiếu plugin chuyển tiếp danh tính thì AI trả 401. `kong.host.yml` trỏ `host.docker.internal:8087`; `kong.docker.yml` trỏ `notebook-api:8087` qua `wh_network`. Route SSE không buffer và **không retry** ở gateway. Khi chạy Node trên host Linux, cấu hình địa chỉ bind riêng mà gateway truy cập được và firewall chỉ cho gateway; không mở `0.0.0.0` công khai. Không chạy `docker compose down -v` trên hạ tầng cũ.
 7. Chạy frontend như hiện tại, mở `http://localhost:3000/ai`. `NEXT_PUBLIC_API_URL` vẫn trỏ Kong. API có `/health` và `/ready` tại `http://localhost:8087`; RAG/Qdrant/speech không publish port host. PostgreSQL/Redis chung giữ các cổng localhost của hạ tầng chính.
 
-`.env.example` của `backend/ai-service` phục vụ cách chạy Node trên host (thay URL DB/Redis bằng địa chỉ thực tương ứng); compose dùng `.env` trong **thư mục này**, không tự đọc file env đang mở trong IDE.
+Node trên host đọc `backend/ai-service/.env`; Compose đọc `deploy/ai/.env`, không tự đọc file env đang mở trong IDE. Đồng bộ credential giữa hai file, nhưng giữ URL/bind phù hợp với nơi chạy. API trên host bind `127.0.0.1`; trong container bind `0.0.0.0`, chỉ publish cổng localhost.
+
+## Các nhóm biến cấu hình AI
+
+Các tên dưới đây thay cho file env mẫu; secret được cấp riêng và chỉ lưu trong private env. Biến tùy chọn có thể bỏ để dùng mặc định trong mã nguồn, trừ khi cần bật tính năng tương ứng.
+
+| Nhóm | Biến và cách dùng |
+| --- | --- |
+| Tiến trình | `AI_ENABLED`, `NODE_ENV`, `BIND_HOST`, `PORT`; `AI_SHUTDOWN_TIMEOUT_MS`, `CHAT_CANCEL_POLL_MS` điều chỉnh shutdown/poll. |
+| Database/queue | `NOTEBOOK_POSTGRES_USER`, `NOTEBOOK_POSTGRES_PASSWORD`, `DATABASE_URL`, `REDIS_URL`; role `notebook`, database `notebook_db`, Redis DB 3. |
+| Proof gateway | `AI_GATEWAY_KEY` khớp Kong; `AI_GATEWAY_KEY_PREVIOUS` chỉ dùng trong cửa sổ xoay khóa. |
+| Document/RAG | `AI_DOCUMENT_SERVICE_KEY`, `DOCUMENT_SERVICE_URL`; `RAG_SERVICE_KEY`, `RAG_SERVICE_KEY_PREVIOUS`, `RAG_WORKER_URL`. Khóa khớp receiver, URL dùng DNS Docker hoặc localhost tương ứng. |
+| Provider | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`; ngân sách qua `LLM_TIMEOUT_MS`, `LLM_MAX_TOKENS`, `LLM_REQUESTS_PER_MINUTE`, `LLM_TOKENS_PER_MINUTE`, `LLM_REQUESTS_PER_DAY`. `FRONTEND_URL` là origin frontend. |
+| Retrieval | `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DEVICE`, `EMBEDDING_BASE_URL`, `EMBEDDING_API_KEY`, `INDEX_PIPELINE_VERSION`. Credential embedding chỉ cần khi provider yêu cầu. |
+| Tài nguyên RAG | `OMP_NUM_THREADS`, `TOKENIZERS_PARALLELISM`, `RAG_MEMORY_LIMIT`; đặt theo RAM/CPU thực tế. |
+| OCR/Vision | `VISUAL_ENABLED`, `VISION_MAX_TOKENS`; chỉ bật sau khi chấp thuận gửi hình tới provider theo phần OCR bên dưới. |
+| Bot chat | `CONVERSATION_AI_ENABLED`, `AI_COMMUNICATION_SERVICE_KEY`, `COMMUNICATION_SERVICE_URL`, `CONVERSATION_AI_CONCURRENCY`, `CONVERSATION_AI_QUOTA_WAIT_MS`; khóa khớp Communication. |
+| Trợ lý công việc | `WORK_ASSISTANT_ENABLED`, `WORK_ASSISTANT_SERVICE_KEY`, `WORK_ASSISTANT_PROJECT_URL`, `WORK_ASSISTANT_CALENDAR_URL`; cùng khóa ở Project/Calendar. |
+| Tóm tắt họp | `MEETING_SUMMARY_ENABLED`, `MEETING_STT_SERVICE_KEY`, `MEETING_STT_URL`, `MEETING_STT_CONCURRENCY`, `MEETING_STT_TIMEOUT_MS`, `MEETING_FFMPEG_PATH`, `MEETING_SUMMARY_MAX_SECONDS`, `MEETING_SUMMARY_MAX_BYTES`, `MEETING_MEDIA_HOSTS`. Khi chạy speech trong Docker, bật `COMPOSE_PROFILES=meeting-summary`; `MEETING_STT_CPU_THREADS` điều chỉnh CPU. |
+| Network/bootstrap | `AI_APP_NETWORK`; production thêm `NOTEBOOK_ADMIN_HOST`, `NOTEBOOK_ADMIN_PORT`. Admin user/password chỉ được nạp riêng cho bootstrap, không đưa vào runtime AI. |
+| Image production | `AI_IMAGE`, `RAG_IMAGE`, `SPEECH_IMAGE` phải có digest hoặc SHA tag; thiếu image/provider credential sẽ không qua preflight. |
 
 ## Embedding và parser
 
@@ -131,7 +151,7 @@ Sau khi đổi flag, build/restart RAG worker và AI API/jobs, chạy migration 
 
 `compose.production.yml` dùng image có digest hoặc tag `sha-<40 hex>`, không build trên server và không tạo PostgreSQL/Redis. Migration/API/jobs tham gia network external `workspacehub-app_default`; RAG/Qdrant/speech ở mạng riêng AI. Database và Redis trỏ private IP của INFRA; không publish cổng AI. Catalog và pipeline APP hiện có không triển khai AI.
 
-Dùng `production.env.example` làm mẫu cho `.env.production` riêng. Đồng bộ `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY`, `AI_COMMUNICATION_SERVICE_KEY`, `WORK_ASSISTANT_SERVICE_KEY` với env APP, mật khẩu `NOTEBOOK_POSTGRES_PASSWORD` với env INFRA dùng cho bootstrap. Cấp riêng khóa RAG/speech. Không dùng lại khóa local, không đổi PostgreSQL admin credential. `NOTEBOOK_ADMIN_HOST` là private IP INFRA; bootstrap chạy trên network APP và dùng env admin chỉ cho bước bootstrap.
+Quản lý `.env.production` riêng theo các nhóm biến trên, với `NODE_ENV=production`, URL service trên APP và database/Redis ở INFRA. Đồng bộ `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY`, `AI_COMMUNICATION_SERVICE_KEY`, `WORK_ASSISTANT_SERVICE_KEY` với env APP, mật khẩu `NOTEBOOK_POSTGRES_PASSWORD` với env INFRA dùng cho bootstrap. Cấp riêng khóa RAG/speech. Không dùng lại khóa local, không đổi PostgreSQL admin credential. `NOTEBOOK_ADMIN_HOST` là private IP INFRA; bootstrap chạy trên network APP và dùng env admin chỉ cho bước bootstrap.
 
 Chuẩn bị image ở máy build/registry và điền `AI_IMAGE`, `RAG_IMAGE`, `SPEECH_IMAGE` bằng digest hoặc tag SHA. Điền LLM account production riêng; không sao chép tài khoản local. Env được chuẩn bị nhưng chưa có image/key không phải cấu hình sẵn sàng deploy. Validator và Compose chặn khởi động khi thiếu các đầu vào này.
 
