@@ -11,7 +11,7 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 import {
   InvitationEmailInput,
   InvitationEmailService,
-} from "../invitation/invitation-email.service";
+} from "../invitation-delivery/invitation-email.service";
 import {
   NOTIFICATION_GATEWAY,
   NotificationGateway,
@@ -304,10 +304,10 @@ export class NotificationOutboxService
     if (
       typeof invitationId !== "string" ||
       typeof recipientId !== "string" ||
-      status !== "ACCEPTED" &&
-      status !== "DECLINED" &&
-      status !== "CANCELLED" &&
-      status !== "EXPIRED"
+      (status !== "ACCEPTED" &&
+        status !== "DECLINED" &&
+        status !== "CANCELLED" &&
+        status !== "EXPIRED")
     ) {
       throw new Error("Invalid project invitation status payload");
     }
