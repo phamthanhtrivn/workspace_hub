@@ -3,22 +3,16 @@ import { CreateTaskDto } from "./dto/create-task.dto";
 import { AttachTaskDocumentsDto } from "./dto/attach-task-documents.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { GetProjectTasksQueryDto } from "./dto/get-project-tasks-query.dto";
-import { TaskLookupService } from "./task-lookup.service";
 import { TaskQueryService } from "./task-query.service";
 import { TaskAttachmentService } from "./task-attachment.service";
-import { TaskValidationService } from "./task-validation.service";
-import { TaskActivityService } from "./task-activity.service";
 import { TaskCreationService } from "./task-creation.service";
 import { TaskMutationService } from "./task-mutation.service";
 
 @Injectable()
 export class TaskService {
   constructor(
-    private readonly lookup: TaskLookupService,
     private readonly queries: TaskQueryService,
     private readonly attachments: TaskAttachmentService,
-    private readonly validation: TaskValidationService,
-    private readonly activity: TaskActivityService,
     private readonly creation: TaskCreationService,
     private readonly mutations: TaskMutationService,
   ) {}

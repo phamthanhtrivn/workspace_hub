@@ -4,19 +4,13 @@ import {
   MESSAGE_CONSTANTS,
   MESSAGE_DIRECTION,
 } from '../message/types/message.enums';
-import { DirectMessageAccessService } from './direct-message-access.service';
-import { DirectMessagePresentationService } from './direct-message-presentation.service';
 import { DirectMessageQueryService } from './direct-message-query.service';
-import { DirectMessageEventPublisher } from './direct-message-event-publisher.service';
 import { DirectMessageMutationService } from './direct-message-mutation.service';
 
 @Injectable()
 export class DirectMessageService {
   constructor(
-    private readonly access: DirectMessageAccessService,
-    private readonly presentation: DirectMessagePresentationService,
     private readonly queries: DirectMessageQueryService,
-    private readonly events: DirectMessageEventPublisher,
     private readonly mutations: DirectMessageMutationService,
   ) {}
   async createDirectMessage(

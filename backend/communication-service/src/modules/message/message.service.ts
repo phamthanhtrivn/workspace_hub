@@ -3,7 +3,6 @@ import { MessageType } from '@prisma/client';
 import { MESSAGE_DIRECTION, MESSAGE_CONSTANTS } from './types/message.enums';
 import { MessageQueryService } from './message-query.service';
 import { MessageMutationService } from './message-mutation.service';
-import { MessagePresentationService } from './message-presentation.service';
 import { MessagePublishingService } from './message-publishing.service';
 
 @Injectable()
@@ -11,7 +10,6 @@ export class MessageService {
   constructor(
     private readonly queries: MessageQueryService,
     private readonly mutations: MessageMutationService,
-    private readonly presentation: MessagePresentationService,
     private readonly publishing: MessagePublishingService,
   ) {}
   async createMessage(

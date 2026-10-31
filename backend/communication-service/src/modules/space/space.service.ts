@@ -5,10 +5,7 @@ import { InviteSpaceMemberDto } from './dto/invite-space-members.dto';
 import { EnsureProjectSpaceDto } from './dto/ensure-project-space.dto';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
 import { UserProfileSnapshot } from '../../common/types/user.types';
-import { SpaceAccessService } from './space-access.service';
 import { SpaceSettingsService } from './space-settings.service';
-import { SpacePresentationService } from './space-presentation.service';
-import { SpaceEventPublisher } from './space-event-publisher.service';
 import { ProjectSpaceProvisioningService } from './project-space-provisioning.service';
 import { SpaceChannelSynchronizationService } from './space-channel-synchronization.service';
 import { SpaceQueryService } from './space-query.service';
@@ -19,10 +16,7 @@ import { SpaceInvitationService } from './space-invitation.service';
 @Injectable()
 export class SpaceService {
   constructor(
-    private readonly access: SpaceAccessService,
     private readonly settings: SpaceSettingsService,
-    private readonly presentation: SpacePresentationService,
-    private readonly events: SpaceEventPublisher,
     private readonly projects: ProjectSpaceProvisioningService,
     private readonly channels: SpaceChannelSynchronizationService,
     private readonly queries: SpaceQueryService,

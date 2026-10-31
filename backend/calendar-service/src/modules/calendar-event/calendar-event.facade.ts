@@ -6,8 +6,6 @@ import { GetCalendarEventsQueryDto } from './dto/get-calendar-events-query.dto';
 import { GetCalendarTasksQueryDto } from './dto/get-calendar-tasks-query.dto';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
 import { CalendarEventQueryService } from './calendar-event-query.service';
-import { CalendarEventValidationService } from './calendar-event-validation.service';
-import { CalendarEventEffectsService } from './calendar-event-effects.service';
 import { CalendarEventMutationService } from './calendar-event-mutation.service';
 import { CalendarTaskMutationService } from './calendar-task-mutation.service';
 import { CalendarAttendeeMutationService } from './calendar-attendee-mutation.service';
@@ -17,8 +15,6 @@ import { CalendarConferenceWorkflowService } from './calendar-conference-workflo
 export class CalendarEventService {
   constructor(
     private readonly queries: CalendarEventQueryService,
-    private readonly validation: CalendarEventValidationService,
-    private readonly effects: CalendarEventEffectsService,
     private readonly mutations: CalendarEventMutationService,
     private readonly tasks: CalendarTaskMutationService,
     private readonly attendees: CalendarAttendeeMutationService,

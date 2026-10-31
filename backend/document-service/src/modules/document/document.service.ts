@@ -19,8 +19,6 @@ import { DocumentRole, DocumentSortBy } from '../../common/enums/document.enum';
 import { UserProfileSnapshotResponse } from '../user-profile-snapshot/types/user-profile-snapshot.types';
 import { DocumentAccessService } from './document-access.service';
 import { DocumentLocationService } from './document-location.service';
-import { DocumentEventPublisher } from './document-event-publisher.service';
-import { DocumentPresentationService } from './document-presentation.service';
 import { DocumentTreeService } from './document-tree.service';
 import { DocumentQueryService } from './document-query.service';
 import { DocumentPublicQueryService } from './document-public-query.service';
@@ -35,8 +33,6 @@ export class DocumentService {
   constructor(
     private readonly access: DocumentAccessService,
     private readonly locations: DocumentLocationService,
-    private readonly events: DocumentEventPublisher,
-    private readonly presentation: DocumentPresentationService,
     private readonly tree: DocumentTreeService,
     private readonly queries: DocumentQueryService,
     private readonly publicQueries: DocumentPublicQueryService,
