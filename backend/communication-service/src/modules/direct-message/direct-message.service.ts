@@ -1,53 +1,24 @@
-import { assertClientMessageType } from '../../common/auth/client-message-type';
-import { ConversationAiService } from '../conversation-ai/conversation-ai.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
-import { MessageType, Prisma } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { S3Service } from '../../infrastructure/s3/s3.service';
-import { getMediaType, mapMediaWithUrl } from '../../common/utils/file.util';
+import { Injectable } from '@nestjs/common';
+import { MessageType } from '@prisma/client';
 import {
   MESSAGE_CONSTANTS,
   MESSAGE_DIRECTION,
-  MESSAGE_ERROR_MESSAGES,
 } from '../message/types/message.enums';
-import {
-  CHAT_CONTEXT_TYPE,
-  CHAT_REACTION_ACTION,
-} from '../../common/types/chat.enums';
-import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
-import { ChatEvent } from '../socket/chat/chat-socket.events';
-import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
-import { DirectMessagePermissionService } from './direct-message-permission.service';
-
-type DirectMessageWithMedia = Prisma.DirectMessageGetPayload<{
-  include: { medias: true };
-}> &
-  Record<string, unknown>;
-
-type DirectMessageSocketPayload = Record<string, unknown> & {
-  id: string;
-  medias?: unknown[];
-} & (
-    | { conversationId: string; channelId?: string | null }
-    | { channelId: string; conversationId?: string | null }
-  );
+import { DirectMessageAccessService } from './direct-message-access.service';
+import { DirectMessagePresentationService } from './direct-message-presentation.service';
+import { DirectMessageQueryService } from './direct-message-query.service';
+import { DirectMessageEventPublisher } from './direct-message-event-publisher.service';
+import { DirectMessageMutationService } from './direct-message-mutation.service';
 
 @Injectable()
 export class DirectMessageService {
   constructor(
-    private readonly conversationAi: ConversationAiService,
-    private readonly prisma: PrismaService,
-    private readonly s3Service: S3Service,
-    private readonly userProfileSnapshotService: UserProfileSnapshotService,
-    private readonly chatSocketPublisher: ChatSocketPublisher,
-    private readonly directMessagePermissionService: DirectMessagePermissionService,
+    private readonly access: DirectMessageAccessService,
+    private readonly presentation: DirectMessagePresentationService,
+    private readonly queries: DirectMessageQueryService,
+    private readonly events: DirectMessageEventPublisher,
+    private readonly mutations: DirectMessageMutationService,
   ) {}
-
   async createDirectMessage(
     conversationId: string,
     senderId: string,
@@ -63,149 +34,16 @@ export class DirectMessageService {
     mentions?: string[],
     attachmentMediaId?: string,
   ) {
-    assertClientMessageType(type);
-    await this.directMessagePermissionService.assertCanSend(
+    return this.mutations.createDirectMessage(
       conversationId,
       senderId,
-    );
-    if (medias?.length)
-      await this.s3Service.assertAttachments(medias, {
-        actorId: senderId,
-        referenceId: conversationId,
-        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-      });
-    const createdMessage = await this.prisma.$transaction(async (tx) => {
-      const participant = await tx.directConversationParticipant.findUnique({
-        where: {
-          conversationId_userId: {
-            conversationId,
-            userId: senderId,
-          },
-        },
-      });
-
-      if (!participant) {
-        throw new BadRequestException(
-          MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
-        );
-      }
-
-      if (threadParentId) {
-        const parentMessage = await tx.directMessage.findUnique({
-          where: { id: threadParentId },
-        });
-
-        if (!parentMessage || parentMessage.conversationId !== conversationId) {
-          throw new BadRequestException(
-            MESSAGE_ERROR_MESSAGES.PARENT_NOT_FOUND,
-          );
-        }
-
-        await tx.directMessage.update({
-          where: { id: threadParentId },
-          data: {
-            threadReplyCount: { increment: 1 },
-            threadLastReplyAt: new Date(),
-          },
-        });
-
-        await tx.directThreadFollower.upsert({
-          where: {
-            messageId_userId: {
-              messageId: threadParentId,
-              userId: parentMessage.senderId,
-            },
-          },
-          update: {},
-          create: {
-            messageId: threadParentId,
-            userId: parentMessage.senderId,
-          },
-        });
-
-        await tx.directThreadFollower.upsert({
-          where: {
-            messageId_userId: {
-              messageId: threadParentId,
-              userId: senderId,
-            },
-          },
-          update: {},
-          create: {
-            messageId: threadParentId,
-            userId: senderId,
-          },
-        });
-      }
-
-      const message = await tx.directMessage.create({
-        data: {
-          conversationId,
-          senderId,
-          content,
-          type: type || MessageType.TEXT,
-          threadParentId,
-          medias:
-            medias && medias.length > 0
-              ? {
-                  create: medias.map((media) => ({
-                    name: media.name,
-                    s3Key: media.s3Key,
-                    mimeType: media.mimeType,
-                    sizeBytes: media.sizeBytes,
-                    type: getMediaType(media.mimeType),
-                  })),
-                }
-              : undefined,
-        },
-        include: {
-          medias: true,
-          threadFollowers: true,
-        },
-      });
-
-      await tx.directConversation.update({
-        where: { id: conversationId },
-        data: { updatedAt: new Date() },
-      });
-
-      await tx.directConversationParticipant.update({
-        where: {
-          conversationId_userId: {
-            conversationId,
-            userId: senderId,
-          },
-        },
-        data: {
-          lastReadMessageId: message.id,
-          lastReadAt: new Date(),
-        },
-      });
-
-      await this.conversationAi.register(
-        message,
-        senderId,
-        conversationId,
-        'DIRECT_MESSAGE',
-        tx,
-        attachmentMediaId,
-      );
-      return this.mapDirectMessage(message);
-    });
-    this.conversationAi.notify(createdMessage);
-
-    const message =
-      await this.userProfileSnapshotService.attachSenderProfileToMessage(
-        createdMessage,
-      );
-
-    await this.publishDirectMessageCreated(conversationId, message, {
+      content,
+      type,
       medias,
       threadParentId,
       mentions,
-    });
-
-    return message;
+      attachmentMediaId,
+    );
   }
 
   async getDirectConversationMessages(
@@ -215,133 +53,13 @@ export class DirectMessageService {
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     direction: MESSAGE_DIRECTION = MESSAGE_DIRECTION.OLDER,
   ) {
-    await this.directMessagePermissionService.assertCanRead(
+    return this.queries.getDirectConversationMessages(
       conversationId,
       userId,
+      cursor,
+      limit,
+      direction,
     );
-    const includeQuery = {
-      reactions: true,
-      medias: true,
-      meeting: true,
-      threadFollowers: true,
-    };
-
-    if (direction === MESSAGE_DIRECTION.OLDER) {
-      const messages = await this.prisma.directMessage.findMany({
-        where: { conversationId, threadParentId: null },
-        take: limit + 1,
-        skip: cursor ? 1 : 0,
-        cursor: cursor ? { id: cursor } : undefined,
-        orderBy: { createdAt: 'desc' },
-        include: includeQuery,
-      });
-
-      let nextCursor: string | undefined;
-      if (messages.length > limit) {
-        const nextItem = messages.pop();
-        nextCursor = nextItem?.id;
-      }
-
-      const mappedMessages = messages
-        .reverse()
-        .map((message) => this.mapDirectMessage(message));
-
-      return {
-        messages:
-          await this.userProfileSnapshotService.attachSenderProfilesToMessages(
-            mappedMessages,
-          ),
-        nextCursor,
-      };
-    }
-
-    if (direction === MESSAGE_DIRECTION.NEWER) {
-      const messages = await this.prisma.directMessage.findMany({
-        where: { conversationId, threadParentId: null },
-        take: limit + 1,
-        skip: cursor ? 1 : 0,
-        cursor: cursor ? { id: cursor } : undefined,
-        orderBy: { createdAt: 'asc' },
-        include: includeQuery,
-      });
-
-      let prevCursor: string | undefined;
-      if (messages.length > limit) {
-        const prevItem = messages.pop();
-        prevCursor = prevItem?.id;
-      }
-
-      const mappedMessages = messages.map((message) =>
-        this.mapDirectMessage(message),
-      );
-
-      return {
-        messages:
-          await this.userProfileSnapshotService.attachSenderProfilesToMessages(
-            mappedMessages,
-          ),
-        prevCursor,
-      };
-    }
-
-    if (direction === MESSAGE_DIRECTION.AROUND && cursor) {
-      const halfLimit = Math.floor(limit / 2);
-      const [targetMessage, olderMessages, newerMessages] = await Promise.all([
-        this.prisma.directMessage.findUnique({
-          where: { id: cursor },
-          include: includeQuery,
-        }),
-        this.prisma.directMessage.findMany({
-          where: { conversationId, threadParentId: null },
-          take: halfLimit + 1,
-          skip: 1,
-          cursor: { id: cursor },
-          orderBy: { createdAt: 'desc' },
-          include: includeQuery,
-        }),
-        this.prisma.directMessage.findMany({
-          where: { conversationId, threadParentId: null },
-          take: halfLimit + 1,
-          skip: 1,
-          cursor: { id: cursor },
-          orderBy: { createdAt: 'asc' },
-          include: includeQuery,
-        }),
-      ]);
-
-      let nextCursor: string | undefined;
-      if (olderMessages.length > halfLimit) {
-        const nextItem = olderMessages.pop();
-        nextCursor = nextItem?.id;
-      }
-
-      let prevCursor: string | undefined;
-      if (newerMessages.length > halfLimit) {
-        const prevItem = newerMessages.pop();
-        prevCursor = prevItem?.id;
-      }
-
-      const messages = [
-        ...olderMessages.reverse(),
-        ...(targetMessage ? [targetMessage] : []),
-        ...newerMessages,
-      ];
-
-      const mappedMessages = messages.map((message) =>
-        this.mapDirectMessage(message),
-      );
-
-      return {
-        messages:
-          await this.userProfileSnapshotService.attachSenderProfilesToMessages(
-            mappedMessages,
-          ),
-        nextCursor,
-        prevCursor,
-      };
-    }
-
-    return { messages: [], nextCursor: undefined, prevCursor: undefined };
   }
 
   async getDirectConversationMedia(
@@ -352,61 +70,14 @@ export class DirectMessageService {
     mediaType?: string,
     q?: string,
   ) {
-    await this.directMessagePermissionService.assertCanRead(
+    return this.queries.getDirectConversationMedia(
       conversationId,
       userId,
+      cursor,
+      limit,
+      mediaType,
+      q,
     );
-    const nameWhere = q
-      ? { name: { contains: q, mode: 'insensitive' as const } }
-      : {};
-    const medias = await this.prisma.directMedia.findMany({
-      where: {
-        ...this.getMediaTypeWhere(mediaType),
-        ...nameWhere,
-        message: {
-          conversationId,
-          deletedAt: null,
-          recalled: false,
-        },
-      },
-      take: limit + 1,
-      skip: cursor ? 1 : 0,
-      cursor: cursor ? { id: cursor } : undefined,
-      orderBy: {
-        message: {
-          createdAt: 'desc',
-        },
-      },
-      include: {
-        message: {
-          select: {
-            id: true,
-            senderId: true,
-            createdAt: true,
-            conversationId: true,
-          },
-        },
-      },
-    });
-
-    let nextCursor: string | undefined;
-    if (medias.length > limit) {
-      const nextItem = medias.pop();
-      nextCursor = nextItem?.id;
-    }
-
-    return {
-      medias: mapMediaWithUrl(medias).map((media) => ({
-        ...media,
-        message: media.message
-          ? {
-              ...media.message,
-              channelId: media.message.conversationId,
-            }
-          : media.message,
-      })),
-      nextCursor,
-    };
   }
 
   async getDirectPinnedMessages(
@@ -417,75 +88,14 @@ export class DirectMessageService {
     senderId?: string,
     q?: string,
   ) {
-    await this.directMessagePermissionService.assertCanRead(
+    return this.queries.getDirectPinnedMessages(
       conversationId,
       userId,
+      cursor,
+      limit,
+      senderId,
+      q,
     );
-    const matchedUsers = q
-      ? await this.prisma.userProfileSnapshot.findMany({
-          where: {
-            fullName: {
-              contains: q,
-              mode: 'insensitive' as const,
-            },
-          },
-          select: {
-            userId: true,
-          },
-        })
-      : [];
-    const matchedUserIds = matchedUsers.map((u) => u.userId);
-
-    const messages = await this.prisma.directMessage.findMany({
-      where: {
-        conversationId,
-        pinned: true,
-        threadParentId: null,
-        senderId: senderId || undefined,
-        ...(q && {
-          OR: [
-            {
-              content: {
-                contains: q,
-                mode: 'insensitive' as const,
-              },
-            },
-            {
-              senderId: {
-                in: matchedUserIds,
-              },
-            },
-          ],
-        }),
-      },
-      take: limit + 1,
-      skip: cursor ? 1 : 0,
-      cursor: cursor ? { id: cursor } : undefined,
-      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-      include: {
-        reactions: true,
-        medias: true,
-        threadFollowers: true,
-      },
-    });
-
-    let nextCursor: string | undefined;
-    if (messages.length > limit) {
-      const nextItem = messages.pop();
-      nextCursor = nextItem?.id;
-    }
-
-    const mappedMessages = messages.map((message) =>
-      this.mapDirectMessage(message),
-    );
-
-    return {
-      messages:
-        await this.userProfileSnapshotService.attachSenderProfilesToMessages(
-          mappedMessages,
-        ),
-      nextCursor,
-    };
   }
 
   async searchDirectMessages(
@@ -495,49 +105,12 @@ export class DirectMessageService {
     senderId?: string,
     type?: string,
   ) {
-    await this.directMessagePermissionService.assertCanRead(
+    return this.queries.searchDirectMessages(
       conversationId,
       userId,
-    );
-    const whereClause: Prisma.DirectMessageWhereInput = {
-      conversationId,
-      deletedAt: null,
-      recalled: false,
-      threadParentId: null,
-    };
-
-    if (q) {
-      whereClause.OR = [
-        { content: { contains: q, mode: 'insensitive' } },
-        { medias: { some: { name: { contains: q, mode: 'insensitive' } } } },
-      ];
-    }
-
-    if (senderId) {
-      whereClause.senderId = senderId;
-    }
-
-    if (type) {
-      whereClause.type = type as MessageType;
-    }
-
-    const messages = await this.prisma.directMessage.findMany({
-      where: whereClause,
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: {
-        medias: true,
-        threadFollowers: true,
-      },
-      take: 10,
-    });
-
-    const mappedMessages = messages.map((message) =>
-      this.mapDirectMessage(message),
-    );
-    return this.userProfileSnapshotService.attachSenderProfilesToMessages(
-      mappedMessages,
+      q,
+      senderId,
+      type,
     );
   }
 
@@ -548,198 +121,37 @@ export class DirectMessageService {
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     senderId?: string,
   ) {
-    await this.directMessagePermissionService.assertCanRead(
+    return this.queries.getDirectConversationThreads(
       conversationId,
       userId,
+      cursor,
+      limit,
+      senderId,
     );
-    const messages = await this.prisma.directMessage.findMany({
-      where: {
-        conversationId,
-        senderId: senderId || undefined,
-        threadReplyCount: {
-          gt: 0,
-        },
-        threadParentId: null,
-      },
-      take: limit + 1,
-      skip: cursor ? 1 : 0,
-      cursor: cursor ? { id: cursor } : undefined,
-      include: {
-        reactions: true,
-        medias: true,
-        threadFollowers: true,
-      },
-      orderBy: {
-        threadLastReplyAt: 'desc',
-      },
-    });
-
-    let nextCursor: string | undefined;
-    if (messages.length > limit) {
-      const nextItem = messages.pop();
-      nextCursor = nextItem?.id;
-    }
-
-    const mappedMessages = messages.map((message) =>
-      this.mapDirectMessage(message),
-    );
-
-    return {
-      messages:
-        await this.userProfileSnapshotService.attachSenderProfilesToMessages(
-          mappedMessages,
-        ),
-      nextCursor,
-    };
   }
 
   async getFollowedDirectThreads(userId: string) {
-    const followers = await this.prisma.directThreadFollower.findMany({
-      where: {
-        userId,
-        message: {
-          threadReplyCount: { gt: 0 },
-          threadParentId: null,
-          conversation: {
-            participants: {
-              some: { userId },
-            },
-          },
-        },
-      },
-      include: {
-        message: {
-          include: {
-            reactions: true,
-            medias: true,
-            threadFollowers: true,
-            conversation: {
-              include: {
-                participants: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        message: {
-          threadLastReplyAt: 'desc',
-        },
-      },
-    });
-
-    return Promise.all(
-      followers.map(async (follower) => {
-        const unreadSince = follower.lastReadAt ?? follower.createdAt;
-        const unreadReplyCount = await this.prisma.directMessage.count({
-          where: {
-            threadParentId: follower.messageId,
-            createdAt: { gt: unreadSince },
-            senderId: { not: userId },
-          },
-        });
-        const { conversation, ...message } = follower.message;
-        const rootMessage =
-          await this.userProfileSnapshotService.attachSenderProfileToMessage(
-            this.mapDirectMessage(message),
-          );
-        const members =
-          await this.userProfileSnapshotService.attachProfilesToMembers(
-            conversation.participants ?? [],
-          );
-
-        return {
-          rootMessage,
-          chat: {
-            ...conversation,
-            members,
-          },
-          chatId: conversation.id,
-          chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-          chatName: null,
-          replyCount: message.threadReplyCount,
-          lastReplyAt: message.threadLastReplyAt,
-          unreadReplyCount,
-          isFollowing: true,
-        };
-      }),
-    );
+    return this.queries.getFollowedDirectThreads(userId);
   }
 
   async getDirectThreadMessages(messageId: string, userId: string) {
-    await this.assertDirectMessageMember(messageId, userId);
-    const includeQuery = {
-      reactions: true,
-      medias: true,
-      meeting: true,
-      threadFollowers: true,
-    };
-
-    const rootMessage = await this.prisma.directMessage.findUnique({
-      where: { id: messageId },
-      include: includeQuery,
-    });
-
-    if (!rootMessage) {
-      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.ROOT_THREAD_NOT_FOUND);
-    }
-
-    const replies = await this.prisma.directMessage.findMany({
-      where: { threadParentId: messageId },
-      orderBy: { createdAt: 'asc' },
-      include: includeQuery,
-    });
-
-    const mappedRootMessage = this.mapDirectMessage(rootMessage);
-    const mappedReplies = replies.map((reply) => this.mapDirectMessage(reply));
-
-    return {
-      rootMessage:
-        await this.userProfileSnapshotService.attachSenderProfileToMessage(
-          mappedRootMessage,
-        ),
-      replies:
-        await this.userProfileSnapshotService.attachSenderProfilesToMessages(
-          mappedReplies,
-        ),
-    };
+    return this.queries.getDirectThreadMessages(messageId, userId);
   }
 
   async getDirectConversationMemberIds(conversationId: string) {
-    const participants =
-      await this.prisma.directConversationParticipant.findMany({
-        where: { conversationId },
-        select: { userId: true },
-      });
-    return participants.map((participant) => participant.userId);
+    return this.queries.getDirectConversationMemberIds(conversationId);
   }
 
   async getDirectConversationMembersInfo(conversationId: string) {
-    const participants =
-      await this.prisma.directConversationParticipant.findMany({
-        where: { conversationId },
-        select: { userId: true, muted: true },
-      });
-    return participants;
+    return this.queries.getDirectConversationMembersInfo(conversationId);
   }
 
   async getDirectThreadFollowers(messageId: string) {
-    const followers = await this.prisma.directThreadFollower.findMany({
-      where: { messageId },
-      select: { userId: true },
-    });
-    return followers.map((follower) => follower.userId);
+    return this.queries.getDirectThreadFollowers(messageId);
   }
 
   async getDirectMessageConversationId(messageId: string) {
-    const message = await this.prisma.directMessage.findUnique({
-      where: { id: messageId },
-      select: { conversationId: true },
-    });
-    if (!message) {
-      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
-    }
-    return message.conversationId;
+    return this.queries.getDirectMessageConversationId(messageId);
   }
 
   async markDirectConversationAsRead(
@@ -747,483 +159,50 @@ export class DirectMessageService {
     userId: string,
     messageId: string,
   ) {
-    await this.directMessagePermissionService.assertCanRead(
+    return this.mutations.markDirectConversationAsRead(
       conversationId,
       userId,
-    );
-    const message = await this.prisma.directMessage.findFirst({
-      where: { id: messageId, conversationId, deletedAt: null },
-      select: { id: true },
-    });
-    if (!message)
-      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
-    const result = await this.prisma.directConversationParticipant.update({
-      where: {
-        conversationId_userId: {
-          conversationId,
-          userId,
-        },
-      },
-      data: {
-        lastReadMessageId: messageId,
-        lastReadAt: new Date(),
-      },
-    });
-
-    await this.chatSocketPublisher.publishDirectMessageRead(conversationId, {
       messageId,
-      userId,
-      readAt: result.lastReadAt,
-    });
-
-    return result;
+    );
   }
 
   async addDirectReaction(messageId: string, userId: string, emoji: string) {
-    await this.assertDirectMessageMember(messageId, userId);
-    const existing = await this.prisma.directReaction.findFirst({
-      where: { messageId, userId },
-    });
-
-    if (existing) {
-      if (existing.emoji === emoji) {
-        await this.prisma.directReaction.delete({ where: { id: existing.id } });
-        const result = { action: 'remove', emoji };
-        await this.publishDirectReactionUpdated(messageId, userId, result);
-        return result;
-      }
-
-      await this.prisma.directReaction.update({
-        where: { id: existing.id },
-        data: { emoji },
-      });
-      const result = { action: 'update', emoji };
-      await this.publishDirectReactionUpdated(messageId, userId, result);
-      return result;
-    }
-
-    await this.prisma.directReaction.create({
-      data: { messageId, userId, emoji },
-    });
-    const result = { action: 'add', emoji };
-    await this.publishDirectReactionUpdated(messageId, userId, result);
-    return result;
+    return this.mutations.addDirectReaction(messageId, userId, emoji);
   }
 
   async removeDirectReaction(messageId: string, userId: string, emoji: string) {
-    await this.assertDirectMessageMember(messageId, userId);
-    const result = await this.prisma.directReaction.deleteMany({
-      where: { messageId, userId, emoji },
-    });
-    const conversationId = await this.getDirectMessageConversationId(messageId);
-
-    await this.chatSocketPublisher.publishDirectReactionUpdated(
-      conversationId,
-      {
-        messageId,
-        userId,
-        emoji,
-        action: CHAT_REACTION_ACTION.REMOVE,
-      },
-    );
-
-    return result;
+    return this.mutations.removeDirectReaction(messageId, userId, emoji);
   }
 
   async editDirectMessage(messageId: string, content: string, userId: string) {
-    const message = await this.getOwnedDirectMessage(messageId, userId);
-    if (message.type !== MessageType.TEXT) {
-      throw new BadRequestException('Only text messages can be edited');
-    }
-    if (content.trim().length === 0) {
-      throw new BadRequestException('Message content cannot be empty');
-    }
-    this.assertWithin24Hours(
-      message.createdAt,
-      'Messages can only be edited within 24 hours',
-    );
-
-    const updatedMessage = await this.prisma.directMessage.update({
-      where: { id: messageId },
-      data: { content, edited: true },
-      include: {
-        reactions: true,
-        medias: true,
-        threadFollowers: true,
-      },
-    });
-    const mappedMessage = this.mapDirectMessage(updatedMessage);
-    await this.publishDirectMessageUpdate(
-      ChatEvent.MESSAGE_UPDATED,
-      mappedMessage,
-    );
-    return mappedMessage;
+    return this.mutations.editDirectMessage(messageId, content, userId);
   }
 
   async recallDirectMessage(messageId: string, userId: string) {
-    const message = await this.getOwnedDirectMessage(messageId, userId, {
-      medias: true,
-    });
-    this.assertWithin24Hours(
-      message.createdAt,
-      'Messages can only be recalled within 24 hours',
-    );
-
-    if (message.medias && message.medias.length > 0) {
-      for (const media of message.medias) {
-        if (media.s3Key) {
-          await this.s3Service.deleteFile(media.s3Key);
-        }
-      }
-      await this.prisma.directMedia.deleteMany({ where: { messageId } });
-    }
-
-    // Delete direct reactions and direct thread followers
-    await Promise.all([
-      this.prisma.directReaction.deleteMany({ where: { messageId } }),
-      this.prisma.directThreadFollower.deleteMany({ where: { messageId } }),
-    ]);
-
-    const updatedMessage = await this.prisma.directMessage.update({
-      where: { id: messageId },
-      data: { recalled: true, content: null, pinned: false },
-      include: {
-        reactions: true,
-        medias: true,
-        threadFollowers: true,
-      },
-    });
-    const mappedMessage = this.mapDirectMessage(updatedMessage);
-    await this.publishDirectMessageUpdate(
-      ChatEvent.MESSAGE_UPDATED,
-      mappedMessage,
-    );
-    return mappedMessage;
+    return this.mutations.recallDirectMessage(messageId, userId);
   }
 
   async deleteDirectMessage(messageId: string, userId: string) {
-    await this.getOwnedDirectMessage(messageId, userId);
-    const deletedMessage = await this.prisma.directMessage.update({
-      where: { id: messageId },
-      data: { deletedAt: new Date() },
-      include: {
-        reactions: true,
-        medias: true,
-        threadFollowers: true,
-      },
-    });
-    const mappedMessage = this.mapDirectMessage(deletedMessage);
-    await this.publishDirectMessageUpdate(
-      ChatEvent.MESSAGE_UPDATED,
-      mappedMessage,
-    );
-    return mappedMessage;
+    return this.mutations.deleteDirectMessage(messageId, userId);
   }
 
   async pinDirectMessage(messageId: string, userId: string) {
-    const message = await this.assertDirectMessageMember(messageId, userId);
-    if (message.pinned) {
-      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.ALREADY_PINNED);
-    }
-
-    const updatedMessage = await this.prisma.directMessage.update({
-      where: { id: messageId },
-      data: { pinned: true },
-      include: {
-        reactions: true,
-        medias: true,
-        threadFollowers: true,
-      },
-    });
-    const mappedMessage = this.mapDirectMessage(updatedMessage);
-    await this.publishDirectMessageUpdate(
-      ChatEvent.MESSAGE_PINNED,
-      mappedMessage,
-    );
-    return mappedMessage;
+    return this.mutations.pinDirectMessage(messageId, userId);
   }
 
   async unpinDirectMessage(messageId: string, userId: string) {
-    const message = await this.assertDirectMessageMember(messageId, userId);
-    if (!message.pinned) {
-      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_PINNED);
-    }
-
-    const updatedMessage = await this.prisma.directMessage.update({
-      where: { id: messageId },
-      data: { pinned: false },
-      include: {
-        reactions: true,
-        medias: true,
-        threadFollowers: true,
-      },
-    });
-    const mappedMessage = this.mapDirectMessage(updatedMessage);
-    await this.publishDirectMessageUpdate(
-      ChatEvent.MESSAGE_UNPINNED,
-      mappedMessage,
-    );
-    return mappedMessage;
+    return this.mutations.unpinDirectMessage(messageId, userId);
   }
 
   async followDirectThread(messageId: string, userId: string) {
-    await this.assertDirectMessageMember(messageId, userId);
-    await this.prisma.directThreadFollower.upsert({
-      where: {
-        messageId_userId: {
-          messageId,
-          userId,
-        },
-      },
-      update: { lastReadAt: new Date() },
-      create: { messageId, userId, lastReadAt: new Date() },
-    });
-    return { following: true };
+    return this.mutations.followDirectThread(messageId, userId);
   }
 
   async unfollowDirectThread(messageId: string, userId: string) {
-    await this.assertDirectMessageMember(messageId, userId);
-    await this.prisma.directThreadFollower.deleteMany({
-      where: { messageId, userId },
-    });
-    return { following: false };
+    return this.mutations.unfollowDirectThread(messageId, userId);
   }
 
   async markDirectThreadAsRead(messageId: string, userId: string) {
-    await this.assertDirectMessageMember(messageId, userId);
-    const lastReadAt = new Date();
-    await this.prisma.directThreadFollower.updateMany({
-      where: { messageId, userId },
-      data: { lastReadAt },
-    });
-    return { messageId, lastReadAt };
-  }
-
-  private mapDirectMessage(message: DirectMessageWithMedia) {
-    return {
-      ...message,
-      chatId: message.conversationId,
-      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-      medias: mapMediaWithUrl(message.medias || []),
-    };
-  }
-
-  private async publishDirectReactionUpdated(
-    messageId: string,
-    userId: string,
-    result: { action: string; emoji: string },
-  ) {
-    const conversationId = await this.getDirectMessageConversationId(messageId);
-
-    await this.chatSocketPublisher.publishDirectReactionUpdated(
-      conversationId,
-      {
-        messageId,
-        userId,
-        emoji: result.emoji,
-        action: result.action,
-      },
-    );
-  }
-
-  private async publishDirectMessageUpdate(
-    event: ChatEvent,
-    message: DirectMessageSocketPayload,
-  ) {
-    const conversationId = this.getConversationIdFromMessage(message);
-    await this.chatSocketPublisher.publishDirectMessageUpdated(
-      conversationId,
-      event,
-      message,
-    );
-  }
-
-  private getConversationIdFromMessage(
-    message: DirectMessageSocketPayload,
-  ): string {
-    if (typeof message.conversationId === 'string') {
-      return message.conversationId;
-    }
-
-    if (typeof message.channelId === 'string') {
-      return message.channelId;
-    }
-
-    throw new Error('Direct message payload is missing conversationId');
-  }
-
-  private async publishDirectMessageCreated(
-    conversationId: string,
-    message: DirectMessageSocketPayload,
-    data: {
-      medias?: {
-        name: string;
-        s3Key: string;
-        mimeType: string;
-        sizeBytes: number;
-      }[];
-      threadParentId?: string;
-      mentions?: string[];
-    },
-  ) {
-    let threadFollowers: string[] = [];
-
-    if (data.threadParentId) {
-      threadFollowers = await this.getDirectThreadFollowers(
-        data.threadParentId,
-      );
-    }
-
-    const messagePayload = {
-      ...message,
-      chatId: conversationId,
-      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-      conversationId,
-      mentions: data.mentions,
-      threadFollowers: data.threadParentId ? threadFollowers : undefined,
-    };
-
-    await this.chatSocketPublisher.publishDirectMessageCreated(
-      conversationId,
-      messagePayload,
-      { medias: data.medias },
-    );
-  }
-
-  private async assertDirectMessageMember(messageId: string, userId: string) {
-    const message = await this.prisma.directMessage.findUnique({
-      where: { id: messageId },
-    });
-    if (!message) {
-      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
-    }
-
-    await this.directMessagePermissionService.assertCanRead(
-      message.conversationId,
-      userId,
-    );
-    return message;
-  }
-
-  private async getOwnedDirectMessage(
-    messageId: string,
-    userId: string,
-  ): Promise<Prisma.DirectMessageGetPayload<Record<string, never>>>;
-  private async getOwnedDirectMessage<
-    TInclude extends Prisma.DirectMessageInclude,
-  >(
-    messageId: string,
-    userId: string,
-    include: TInclude,
-  ): Promise<Prisma.DirectMessageGetPayload<{ include: TInclude }>>;
-  private async getOwnedDirectMessage(
-    messageId: string,
-    userId: string,
-    include?: Prisma.DirectMessageInclude,
-  ) {
-    const message = await this.prisma.directMessage.findUnique({
-      where: { id: messageId },
-      include,
-    });
-    if (!message) {
-      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
-    }
-    if (message.senderId !== userId) {
-      throw new ForbiddenException(
-        MESSAGE_ERROR_MESSAGES.MODIFY_OWNER_REQUIRED,
-      );
-    }
-    return message;
-  }
-
-  private assertWithin24Hours(createdAt: Date, errorMessage: string) {
-    const hoursDifference =
-      (new Date().getTime() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
-    if (hoursDifference > 24) {
-      throw new BadRequestException(errorMessage);
-    }
-  }
-
-  private getMediaTypeWhere(mediaType?: string): Prisma.DirectMediaWhereInput {
-    switch (mediaType) {
-      case 'image':
-        return { mimeType: { startsWith: 'image/' } };
-      case 'video':
-        return { mimeType: { startsWith: 'video/' } };
-      case 'audio':
-        return { mimeType: { startsWith: 'audio/' } };
-      case 'pdf':
-        return {
-          OR: [
-            { mimeType: 'application/pdf' },
-            { name: { endsWith: '.pdf', mode: 'insensitive' } },
-          ],
-        };
-      case 'document':
-        return {
-          OR: [
-            { mimeType: { contains: 'word', mode: 'insensitive' } },
-            {
-              mimeType: { contains: 'opendocument.text', mode: 'insensitive' },
-            },
-            { name: { endsWith: '.doc', mode: 'insensitive' } },
-            { name: { endsWith: '.docx', mode: 'insensitive' } },
-            { name: { endsWith: '.txt', mode: 'insensitive' } },
-          ],
-        };
-      case 'spreadsheet':
-        return {
-          OR: [
-            { mimeType: { contains: 'spreadsheet', mode: 'insensitive' } },
-            { mimeType: { contains: 'excel', mode: 'insensitive' } },
-            { mimeType: 'text/csv' },
-            { name: { endsWith: '.xls', mode: 'insensitive' } },
-            { name: { endsWith: '.xlsx', mode: 'insensitive' } },
-            { name: { endsWith: '.csv', mode: 'insensitive' } },
-          ],
-        };
-      case 'presentation':
-        return {
-          OR: [
-            { mimeType: { contains: 'presentation', mode: 'insensitive' } },
-            { mimeType: { contains: 'powerpoint', mode: 'insensitive' } },
-            { name: { endsWith: '.ppt', mode: 'insensitive' } },
-            { name: { endsWith: '.pptx', mode: 'insensitive' } },
-          ],
-        };
-      case 'archive':
-        return {
-          OR: [
-            { mimeType: { contains: 'zip', mode: 'insensitive' } },
-            { mimeType: { contains: 'rar', mode: 'insensitive' } },
-            { mimeType: { contains: '7z', mode: 'insensitive' } },
-            { mimeType: { contains: 'tar', mode: 'insensitive' } },
-            { name: { endsWith: '.zip', mode: 'insensitive' } },
-            { name: { endsWith: '.rar', mode: 'insensitive' } },
-            { name: { endsWith: '.7z', mode: 'insensitive' } },
-            { name: { endsWith: '.tar', mode: 'insensitive' } },
-            { name: { endsWith: '.gz', mode: 'insensitive' } },
-          ],
-        };
-      case 'code':
-        return {
-          OR: [
-            { mimeType: { startsWith: 'text/' } },
-            { name: { endsWith: '.js', mode: 'insensitive' } },
-            { name: { endsWith: '.ts', mode: 'insensitive' } },
-            { name: { endsWith: '.tsx', mode: 'insensitive' } },
-            { name: { endsWith: '.jsx', mode: 'insensitive' } },
-            { name: { endsWith: '.json', mode: 'insensitive' } },
-            { name: { endsWith: '.css', mode: 'insensitive' } },
-            { name: { endsWith: '.html', mode: 'insensitive' } },
-            { name: { endsWith: '.java', mode: 'insensitive' } },
-            { name: { endsWith: '.py', mode: 'insensitive' } },
-          ],
-        };
-      case 'other':
-        return {};
-      default:
-        return {};
-    }
+    return this.mutations.markDirectThreadAsRead(messageId, userId);
   }
 }

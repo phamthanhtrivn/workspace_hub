@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
-import { SocketModule } from '../socket/socket.module';
+import { SocketPublishingModule } from '../socket/socket-publishing.module';
 import { TaskSyncConsumer } from './task-sync.consumer';
 import { TaskSyncService } from './task-sync.service';
 @Module({
-  imports: [SocketModule],
+  imports: [SocketPublishingModule],
   controllers: [TaskSyncConsumer],
   providers: [TaskSyncService],
 })

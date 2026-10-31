@@ -1,3 +1,4 @@
+import { SystemMessageService } from '../message/system-message.service';
 import {
   Injectable,
   BadRequestException,
@@ -38,6 +39,7 @@ import {
 @Injectable()
 export class ChannelService {
   constructor(
+    private readonly systemMessages: SystemMessageService,
     private readonly prisma: PrismaService,
     private readonly chatSocketPublisher: ChatSocketPublisher,
     private readonly s3Service: S3Service,
@@ -537,7 +539,7 @@ export class ChannelService {
 
     const roleName = newRole === SpaceRole.ADMIN ? 'Admin' : 'Member';
 
-    await this.chatSocketPublisher.sendSystemMessage(
+    await this.systemMessages.sendSystemMessage(
       channelId,
       userId,
       `${userId} set ${targetUserId} as ${roleName}`,
@@ -782,11 +784,7 @@ export class ChannelService {
       await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
     const actorProfile = profileMap.get(userId);
     const content = `Channel name was updated to "${updatedChannel.name}" by ${actorProfile?.fullName || 'an admin'}`;
-    await this.chatSocketPublisher.sendSystemMessage(
-      channelId,
-      userId,
-      content,
-    );
+    await this.systemMessages.sendSystemMessage(channelId, userId, content);
 
     const payload = {
       id: channelId,
@@ -861,7 +859,7 @@ export class ChannelService {
       leftSpace: false,
     });
 
-    await this.chatSocketPublisher.sendSystemMessage(
+    await this.systemMessages.sendSystemMessage(
       channelId,
       userId,
       `${await this.getUserDisplayName(userId)} left the channel`,
@@ -912,7 +910,7 @@ export class ChannelService {
       select: { id: true },
     });
 
-    await this.chatSocketPublisher.sendSystemMessage(
+    await this.systemMessages.sendSystemMessage(
       channelId,
       userId,
       `${await this.getUserDisplayName(userId)} left the space`,
@@ -1153,7 +1151,7 @@ export class ChannelService {
       },
     });
 
-    await this.chatSocketPublisher.sendSystemMessage(
+    await this.systemMessages.sendSystemMessage(
       channelId,
       userId,
       `${userName || userId} joined the chat channel`,

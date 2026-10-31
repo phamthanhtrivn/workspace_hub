@@ -1,5 +1,5 @@
-import { Module, forwardRef } from '@nestjs/common';
-import { SocketModule } from '../socket/socket.module';
+import { Module } from '@nestjs/common';
+import { SocketPublishingModule } from '../socket/socket-publishing.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { DirectConversationController } from './direct-conversation.controller';
 import { DirectConversationService } from './direct-conversation.service';
@@ -9,7 +9,7 @@ import { DirectMessagePrivacyConsumer } from './direct-message-privacy.consumer'
 
 @Module({
   imports: [
-    forwardRef(() => SocketModule),
+    SocketPublishingModule,
     PrismaModule,
     UserProfileSnapshotModule,
     DirectMessagePermissionModule,

@@ -1,3 +1,4 @@
+import { SystemMessageService } from '../../../message/system-message.service';
 import { assertClientMessageType } from '../../../../common/auth/client-message-type';
 import {
   ForbiddenException,
@@ -21,6 +22,7 @@ import { ChatSocketPublisher } from '../chat-socket.publisher';
 @Injectable()
 export class ChatMessageHandler {
   constructor(
+    private readonly systemMessages: SystemMessageService,
     private readonly messageService: MessageService,
     private readonly directMessageService: DirectMessageService,
     private readonly chatSocketPublisher: ChatSocketPublisher,
@@ -189,7 +191,7 @@ export class ChatMessageHandler {
 
   async sendSystemMessage(channelId: string, userId: string, content: string) {
     try {
-      const messageWithUrls = await this.chatSocketPublisher.sendSystemMessage(
+      const messageWithUrls = await this.systemMessages.sendSystemMessage(
         channelId,
         userId,
         content,
