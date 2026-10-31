@@ -2,7 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { ThemeProvider, ThemeToaster } from "@/components/common/theme-provider";
+import {
+  ThemeProvider,
+  ThemeToaster,
+} from "@/components/common/theme-provider";
 import { AccountThemeSync } from "@/features/user-setting/components/account-theme-sync";
 import StoreProvider from "@/store/store-provider";
 import QueryProvider from "@/store/query-provider";
@@ -20,7 +23,7 @@ export function AppProviders({
   if (pathname === "/recording-template") return <>{children}</>;
   return (
     <ThemeProvider>
-      <GoogleOAuthProvider clientId={googleClientId}>
+      <GoogleOAuthProvider clientId={googleClientId} locale="en">
         <QueryProvider>
           <StoreProvider>
             <AccountThemeSync />

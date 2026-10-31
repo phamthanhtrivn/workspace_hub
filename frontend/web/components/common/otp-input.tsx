@@ -12,6 +12,9 @@ interface OtpInputProps {
   label?: string;
   error?: string;
   description?: string;
+  inputRef?: React.Ref<HTMLInputElement>;
+  onBlur?: React.FocusEventHandler<HTMLInputElement>;
+  disabled?: boolean;
 }
 
 export const OtpInput = React.memo(function OtpInput({
@@ -22,6 +25,9 @@ export const OtpInput = React.memo(function OtpInput({
   label = "Verification code",
   error,
   description,
+  inputRef,
+  onBlur,
+  disabled,
 }: OtpInputProps) {
   const id = React.useId();
   const [activeInput, setActiveInput] = useState(0);
@@ -105,7 +111,13 @@ export const OtpInput = React.memo(function OtpInput({
           key={index}
           ref={(el) => {
             inputRefs.current[index] = el;
+            if (index === 0) {
+              if (typeof inputRef === "function") inputRef(el);
+              else if (inputRef) inputRef.current = el;
+            }
           }}
+          disabled={disabled}
+          onBlur={onBlur}
           type="text"
           autoFocus={index === 0}
           aria-label={`${label}, digit ${index + 1} of ${length}`}

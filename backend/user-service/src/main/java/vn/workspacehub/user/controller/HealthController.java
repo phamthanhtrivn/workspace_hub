@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.Statement;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +24,12 @@ import java.util.concurrent.TimeUnit;
 public class HealthController {
 
     private static final String SERVICE_NAME = "user-service";
+    private static final List<String> AUTH_SCHEMA_PROBES = List.of(
+            "SELECT id, email, email_verified, password_hash, status, role FROM users WHERE false",
+            "SELECT id, user_id, token_hash, family_id, rotated_at, expires_at, revoked FROM refresh_tokens WHERE false",
+            "SELECT id, user_id, expires_at, consumed_at FROM password_reset_grants WHERE false",
+            "SELECT id, user_id, provider, provider_user_id FROM oauth_accounts WHERE false"
+    );
 
     private final DataSource dataSource;
     private final RedisConnectionFactory redisConnectionFactory;
@@ -74,6 +81,14 @@ public class HealthController {
     private Map<String, String> checkDatabase() {
         try (Connection connection = dataSource.getConnection()) {
             if (connection.isValid(3)) {
+                try (Statement statement = connection.createStatement()) {
+                    statement.setQueryTimeout(3);
+                    for (String probe : AUTH_SCHEMA_PROBES) {
+                        try (var result = statement.executeQuery(probe)) {
+                            // Validate mappings without retrieving account or token data.
+                        }
+                    }
+                }
                 return ok("database");
             }
             return error("database", "Database connection is invalid");

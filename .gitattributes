@@ -4,3 +4,4 @@ Dockerfile* text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
 *.py text eol=lf
+backend/user-service/src/main/resources/db/migration/*.sql text eol=lf
