@@ -56,10 +56,10 @@ def classify(paths):
         if path.startswith('deploy/prod/app/'):
             roles.add('app')
             checks.update(RUNTIME)
-        if path in ('deploy/scripts/render-runtime.py', 'deploy/scripts/bootstrap-app-env.sh', 'deploy/scripts/install-release.sh', 'deploy/scripts/send-deployment.py', 'deploy/scripts/verify-host-plan.py', 'deploy/scripts/release-host.py', 'deploy/scripts/requirements.txt'):
+        if path in ('deploy/scripts/render-runtime.py', 'deploy/scripts/install-release.sh', 'deploy/scripts/send-deployment.py', 'deploy/scripts/verify-host-plan.py', 'deploy/scripts/release-host.py', 'deploy/scripts/requirements.txt'):
             roles.update(ROLES)
             checks.update(RUNTIME)
-        if path in ('deploy/scripts/deploy-app.sh', 'deploy/scripts/release-app.py', 'deploy/scripts/verify-host-plan.py', 'deploy/scripts/common.sh', 'deploy/scripts/health-check.sh', 'deploy/scripts/rollback.sh', 'deploy/scripts/migrate.sh'):
+        if path in ('deploy/scripts/deploy-app.sh', 'deploy/scripts/release-app.py', 'deploy/scripts/verify-host-plan.py', 'deploy/scripts/common.sh', 'deploy/scripts/health-check.sh', 'deploy/scripts/rollback.sh'):
             roles.add('app')
             checks.update(RUNTIME)
     return images, roles, checks
