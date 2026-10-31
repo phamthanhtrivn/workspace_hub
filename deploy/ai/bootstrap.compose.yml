@@ -1,0 +1,19 @@
+name: wh-notebook
+services:
+  notebook-bootstrap:
+    image: postgres:15.18-alpine@sha256:cd17e2ac98240fce1541ad2a803b34009b4eea5aec8a832363cdc7eca62e722e
+    entrypoint: [sh, /bootstrap-db.sh]
+    environment:
+      PGHOST: ${NOTEBOOK_ADMIN_HOST:-postgres}
+      PGPORT: ${NOTEBOOK_ADMIN_PORT:-5432}
+      PGUSER: ${POSTGRES_USER:?Administrative POSTGRES_USER is required}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Administrative POSTGRES_PASSWORD is required}
+      NOTEBOOK_POSTGRES_USER: ${NOTEBOOK_POSTGRES_USER:-notebook}
+      NOTEBOOK_POSTGRES_PASSWORD: ${NOTEBOOK_POSTGRES_PASSWORD:?Notebook password is required}
+    volumes: [./bootstrap-db.sh:/bootstrap-db.sh:ro]
+    networks: [workspace]
+    restart: 'no'
+networks:
+  workspace:
+    name: ${AI_APP_NETWORK:-wh_network}
+    external: true

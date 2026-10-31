@@ -37,9 +37,14 @@ if role == 'app':
     # Calendar document checks now require their own caller credential.
     if len(values.get('CALENDAR_DOCUMENT_SERVICE_KEY', '').strip()) < 32:
         raise ValueError('CALENDAR_DOCUMENT_SERVICE_KEY must have at least 32 characters')
-    for key in ('AI_GATEWAY_KEY', 'AI_DOCUMENT_SERVICE_KEY', 'AI_DOCUMENT_SERVICE_KEY_PREVIOUS', 'CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS'):
+    for key in ('AI_GATEWAY_KEY', 'AI_DOCUMENT_SERVICE_KEY', 'AI_DOCUMENT_SERVICE_KEY_PREVIOUS', 'AI_COMMUNICATION_SERVICE_KEY', 'WORK_ASSISTANT_SERVICE_KEY', 'CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS'):
         if values.get(key) and len(values[key].strip()) < 32:
             raise ValueError(key + ' must have at least 32 characters when configured')
+    for flag in ('CONVERSATION_AI_ENABLED', 'MEETING_SUMMARY_ENABLED'):
+        if values.get(flag, 'false') not in {'true', 'false'}:
+            raise ValueError(flag + ' must be true or false')
+        if values.get(flag) == 'true' and len(values.get('AI_COMMUNICATION_SERVICE_KEY', '').strip()) < 32:
+            raise ValueError('Enabled conversation/meeting AI requires AI_COMMUNICATION_SERVICE_KEY')
 if 'POSTGRES_PASSWORD' in values:
     values['POSTGRES_PASSWORD_URLENCODED'] = quote(values['POSTGRES_PASSWORD'], safe='')
 if not values:

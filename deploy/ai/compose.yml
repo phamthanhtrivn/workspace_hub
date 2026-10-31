@@ -5,29 +5,6 @@ x-logging: &bounded-logs
     max-size: "10m"
     max-file: "3"
 services:
-  notebook-db:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_USER: notebook
-      POSTGRES_DB: notebook_db
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configure deploy/ai/.env first}
-    volumes: [notebook-postgres:/var/lib/postgresql/data]
-    healthcheck:
-      test: [CMD-SHELL, "pg_isready -U notebook -d notebook_db"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    restart: unless-stopped
-  notebook-redis:
-    image: redis:7.4-alpine
-    command: [redis-server, --appendonly, "yes", --maxmemory-policy, noeviction]
-    volumes: [notebook-redis:/data]
-    healthcheck:
-      test: [CMD, redis-cli, ping]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    restart: unless-stopped
   notebook-qdrant:
     image: qdrant/qdrant:v1.19.2
     volumes: [notebook-qdrant:/qdrant/storage]
@@ -94,8 +71,7 @@ services:
     build: ../../backend/ai-service
     env_file: .env
     command: [node, dist/migrate.js]
-    depends_on:
-      notebook-db: { condition: service_healthy }
+    networks: [default, workspace]
     restart: "no"
   notebook-api:
     build: ../../backend/ai-service
@@ -106,7 +82,6 @@ services:
     networks: [default, workspace]
     depends_on:
       migrate: { condition: service_completed_successfully }
-      notebook-redis: { condition: service_healthy }
       rag-worker: { condition: service_healthy }
     restart: unless-stopped
     logging: *bounded-logs
@@ -132,16 +107,13 @@ services:
     networks: [default, workspace]
     depends_on:
       migrate: { condition: service_completed_successfully }
-      notebook-redis: { condition: service_healthy }
       rag-worker: { condition: service_healthy }
     restart: unless-stopped
     logging: *bounded-logs
 volumes:
-  notebook-postgres:
-  notebook-redis:
   notebook-qdrant:
   notebook-models:
 networks:
   workspace:
-    name: wh_network
+    name: ${AI_APP_NETWORK:-wh_network}
     external: true

@@ -25,6 +25,10 @@ services:
       - redis-server
       - '--appendonly'
       - 'yes'
+      - '--appendfsync'
+      - everysec
+      - '--maxmemory-policy'
+      - noeviction
     ports:
       - ${INFRA_BIND_HOST:?INFRA_BIND_HOST is required}:6379:6379
     volumes:

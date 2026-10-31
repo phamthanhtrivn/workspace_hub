@@ -76,6 +76,15 @@ Notebook AI is a Node API/jobs service with separate Python workers; follow
 [Notebook AI setup](../deploy/ai/README.md). Install each Python worker from its
 `requirements.txt`. Preserve existing `.env` files and runtime environments.
 
+AI shares `wh_postgres` (PostgreSQL 15) and `wh_redis`: dedicated database
+`notebook_db`, restricted login `notebook`, Redis DB 3 and prefix `wh-notebook`.
+Use the idempotent PostgreSQL 15 bootstrap command in the AI guide before its
+migrations, including on an existing infrastructure volume. Docker uses
+`postgres:5432` / `redis:6379/3` on `wh_network`; host Node uses published ports.
+Keep the AI database password separate from the infrastructure admin password.
+The shared Redis uses AOF/everysec/noeviction; enable AOF online and wait for its
+rewrite before recreating a pre-existing Redis that has only RDB persistence.
+
 Check each service's readiness directly, then through Kong at
 `http://localhost:8000/health/<service>` (for example `/health/document`). Open
 `http://localhost:3000`, authenticate, and verify chat/meeting WebSocket connections

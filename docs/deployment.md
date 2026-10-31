@@ -11,12 +11,22 @@ it needs neither a Git checkout nor application build tools.
 | REALTIME | `/opt/workspacehub/realtime` | LiveKit, Egress |
 | INFRA | `/opt/workspacehub/infra` | PostgreSQL, Redis, Kafka, topic initializer |
 
+Notebook AI has a separate, manually operated Compose stack on APP; it is not
+part of the 14-image APP release catalog. See [AI deployment](../deploy/ai/README.md#production-stack-ai-riêng-trên-app)
+for immutable image inputs, dedicated credentials, PostgreSQL 15 bootstrap and
+the production preflight gate. It uses INFRA PostgreSQL (`notebook_db`, restricted
+`notebook` role) and Redis DB 3; API/jobs/migration join `workspacehub-app_default`.
+Redis uses AOF/everysec/noeviction. Preparing these files does not deploy AI;
+production LLM credentials and published AI/RAG/speech images must be supplied
+separately. Keep real env files outside Git.
+
 ## Local development
 
 Applications run on the host. Docker runs infrastructure and Kong only.
 Follow [local development](local-development.md) for environment scopes,
 application terminals, explicit SQL/Prisma/Alembic migrations and recording.
-The sole local Docker entry point is `backend/docker/docker-compose.host.yml`.
+The infrastructure Docker entry point is `backend/docker/docker-compose.host.yml`;
+optional AI uses the separate stack described above.
 GitHub Actions validates application builds and deployment configuration.
 Production retains image build/push, EC2 pull/run, migrations and rollback.
 
