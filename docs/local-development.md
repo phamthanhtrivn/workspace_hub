@@ -43,7 +43,7 @@ configure the required names below; obtain secret values separately.
 
 | Variable | Where it belongs |
 | --- | --- |
-| `JWT_SECRET_KEY`, `JWT_ISSUER` | User and services that verify access tokens. Use the same signing secret and issuer; Kong receives `JWT_SECRET_KEY`. AI trusts Kong proof instead. |
+| `JWT_SECRET_KEY`, `JWT_ISSUER` | User, Communication, Project, Calendar, Document and Notification verify access tokens. Set `JWT_SECRET_KEY` in each service's own local `.env` to the same signing secret as User and Kong; use the same issuer (default `workspace-hub`). AI trusts Kong proof instead. Restart a service after changing its `.env`; updating the file does not update an already running process. |
 | `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` | Configure the actual browser origin for HTTP/socket access; Kong uses `FRONTEND_URL`. |
 | `INTERNAL_SERVICE_KEY` | Existing internal callers/receivers that use the legacy shared credential. |
 | `CALENDAR_DOCUMENT_SERVICE_KEY` | Calendar and Document, at least 32 random characters; optional `CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS` on Document during rotation. |
@@ -72,8 +72,11 @@ does not apply migrations or reset data.
 User/Project deployment SQL jobs use `deploy/shared/sql-migrations` with recorded
 checksums. For local existing databases, follow the service's SQL migration order
 with your PostgreSQL client; do not substitute Prisma migration for Project SQL.
-User Service's existing development profile uses Hibernate `ddl-auto: update`;
-this refactor retains that behavior. Production continues to use its migration job.
+User Service uses Hibernate `ddl-auto: validate` locally and in production. Run
+reviewed migrations before starting it; Hibernate no longer fills schema gaps.
+For an existing database created with Hibernate update, use the explicit
+[User schema reconciliation procedure](migrations.md#user-service-legacy-schema)
+after a backup. Production continues to use its migration job.
 For Prisma services, use `npx prisma generate`, then explicitly apply reviewed
 committed migrations using `npx prisma migrate deploy`. Existing Communication
 databases may need the baseline preparation described in
