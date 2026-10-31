@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
@@ -11,93 +13,58 @@ import { setCredentials } from "@/store/auth/auth-slice";
 import type { AppDispatch } from "@/store/store";
 import { useLoginMutation } from "../hooks/useAuthMutations";
 import {
-  getAuthErrorMessage,
-  getAuthValidationErrors,
-} from "../utils/auth-error";
+  loginFormSchema,
+  type LoginFormValues,
+} from "../schemas/auth-form.schemas";
+import { AUTH_VALIDATION_MESSAGES } from "../types/auth-validation.constants";
+import { useAuthFormSubmit } from "../hooks/use-auth-form-submit";
+import { AuthFormError } from "./auth-form-error";
 import {
   getAuthenticatedHomePath,
   getReturnToFromSearch,
 } from "../utils/auth-redirect";
 import { Button } from "@/components/ui/button";
 
-
 const LoginForm = React.memo(function LoginForm() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const loginMutation = useLoginMutation();
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
-
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: { email: "", password: "" },
+    mode: "onSubmit",
+    reValidateMode: "onChange",
   });
-
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [id]: value,
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      [id]: "",
-    }));
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setErrors({});
-
-    loginMutation.mutate(
-      {
-        email: formData.email,
-        password: formData.password,
-      },
-      {
-        onSuccess: (response) => {
-          const data = response.data;
-
-          dispatch(
-            setCredentials({
-              accessToken: data.accessToken,
-              userId: data.userId,
-              email: data.email,
-              role: data.role,
-              fullName: data.fullName,
-              avatarUrl: data.avatarUrl,
-            }),
-          );
-
-          toast.success(response.message);
-          router.replace(
-            getReturnToFromSearch(window.location.search) ??
-              getAuthenticatedHomePath(data.role),
-          );
-        },
-        onError: (error) => {
-          const validationErrors = getAuthValidationErrors(error);
-          if (Object.keys(validationErrors).length > 0) {
-            setErrors(validationErrors);
-            requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
-            return;
-          }
-
-          toast.error(
-            getAuthErrorMessage(
-              error,
-              "Login failed",
-            ),
-          );
-        },
-      },
-    );
-  };
+  const { errors, isSubmitting } = form.formState;
+  const busy = isSubmitting || loginMutation.isPending;
+  const onSubmit = useAuthFormSubmit(
+    form,
+    ["email", "password"],
+    AUTH_VALIDATION_MESSAGES.loginFailed,
+    async (values) => {
+      const response = await loginMutation.mutateAsync(values);
+      const data = response.data;
+      dispatch(
+        setCredentials({
+          accessToken: data.accessToken,
+          userId: data.userId,
+          email: data.email,
+          role: data.role,
+          fullName: data.fullName,
+          avatarUrl: data.avatarUrl,
+        }),
+      );
+      toast.success(response.message);
+      router.replace(
+        getReturnToFromSearch(window.location.search) ??
+          getAuthenticatedHomePath(data.role),
+      );
+    },
+  );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form noValidate onSubmit={onSubmit} className="space-y-5">
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-4">
           <label
@@ -108,15 +75,18 @@ const LoginForm = React.memo(function LoginForm() {
           </label>
         </div>
 
-        <InputField autoComplete="email" required
+        <InputField
+          autoComplete="email"
+          required
           variant="auth"
+          className="text-base sm:text-sm"
           id="email"
           type="email"
           icon={Mail}
           placeholder="you@workspacehub.vn"
-          value={formData.email}
-          error={errors.email}
-          onChange={handleChange}
+          {...form.register("email")}
+          disabled={busy}
+          error={errors.email?.message}
         />
       </div>
 
@@ -138,15 +108,18 @@ const LoginForm = React.memo(function LoginForm() {
           </div>
         </div>
 
-        <InputField autoComplete="current-password" required
+        <InputField
+          autoComplete="current-password"
+          required
           variant="auth"
+          className="text-base sm:text-sm"
           id="password"
           type={showPassword ? "text" : "password"}
           icon={Lock}
           placeholder="••••••••"
-          value={formData.password}
-          error={errors.password}
-          onChange={handleChange}
+          {...form.register("password")}
+          disabled={busy}
+          error={errors.password?.message}
           rightIcon={
             showPassword ? (
               <EyeOff className="h-4 w-4" />
@@ -158,13 +131,16 @@ const LoginForm = React.memo(function LoginForm() {
         />
       </div>
 
-      <Button loading={loginMutation.isPending} variant="unstyled"
+      <AuthFormError message={errors.root?.server?.message} />
+      <Button
+        loading={busy}
+        variant="unstyled"
         type="submit"
-        disabled={loginMutation.isPending}
+        disabled={busy}
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-[0_16px_32px_color-mix(in_srgb,var(--primary)_22%,transparent)] transition hover:-translate-y-0.5 hover:bg-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer disabled:opacity-70"
       >
         <LogIn className="h-4 w-4" />
-        {loginMutation.isPending ? "Logging in..." : "Login"}
+        {busy ? "Logging in..." : "Login"}
       </Button>
     </form>
   );

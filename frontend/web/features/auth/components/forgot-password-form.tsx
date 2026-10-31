@@ -1,6 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { ArrowLeft, Eye, EyeOff, KeyRound, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
@@ -11,16 +13,24 @@ import {
   useSendResetOtpMutation,
   useVerifyResetOtpMutation,
 } from "../hooks/useForgotPasswordMutations";
+import { AuthRouteTarget, ForgotPasswordStep } from "../types/auth.constants";
 import {
-  AuthRouteTarget,
-  ForgotPasswordStep,
-} from "../types/auth.constants";
+  forgotEmailFormSchema,
+  verifyOtpFormSchema,
+  resetPasswordFormSchema,
+  type ForgotEmailFormValues,
+  type VerifyOtpFormValues,
+  type ResetPasswordFormValues,
+} from "../schemas/auth-form.schemas";
 import {
-  getAuthErrorMessage,
-  getAuthValidationErrors,
-} from "../utils/auth-error";
+  AUTH_VALIDATION_LIMITS,
+  AUTH_VALIDATION_MESSAGES as messages,
+} from "../types/auth-validation.constants";
+import { useAuthFormSubmit } from "../hooks/use-auth-form-submit";
+import { handleAuthFormError } from "../utils/auth-form-error";
+import { AuthFormError } from "./auth-form-error";
+import { ForgotPasswordProgress } from "./forgot-password-progress";
 import { Button } from "@/components/ui/button";
-
 
 const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
   const sendResetOtpMutation = useSendResetOtpMutation();
@@ -31,130 +41,137 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
     ForgotPasswordStep.EMAIL,
   );
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [resetToken, setResetToken] = useState("");
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const submissionLock = useRef(false);
+  const emailForm = useForm<ForgotEmailFormValues>({
+    resolver: zodResolver(forgotEmailFormSchema),
+    defaultValues: { email: "" },
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+  const otpForm = useForm<VerifyOtpFormValues>({
+    resolver: zodResolver(verifyOtpFormSchema),
+    defaultValues: { otp: "" },
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+  const passwordForm = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordFormSchema),
+    defaultValues: { newPassword: "", confirmPassword: "" },
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+  });
+  const emailErrors = emailForm.formState.errors;
+  const otpErrors = otpForm.formState.errors;
+  const passwordErrors = passwordForm.formState.errors;
   const isLoading =
     sendResetOtpMutation.isPending ||
     verifyResetOtpMutation.isPending ||
-    resetPasswordMutation.isPending;
+    resetPasswordMutation.isPending ||
+    emailForm.formState.isSubmitting ||
+    otpForm.formState.isSubmitting ||
+    passwordForm.formState.isSubmitting;
 
-  const handleApiError = (error: unknown) => {
-    const validationErrors = getAuthValidationErrors(error);
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus());
-      return;
-    }
+  const onEmailSubmit = useAuthFormSubmit(
+    emailForm,
+    ["email"],
+    messages.sendCodeFailed,
+    async (values) => {
+      await sendResetOtpMutation.mutateAsync(values);
+      setEmail(values.email);
+      otpForm.reset();
+      passwordForm.reset();
+      setResetToken("");
+      toast.success("Verification code sent to your email");
+      setStep(ForgotPasswordStep.OTP);
+    },
+    submissionLock,
+  );
 
-    toast.error(
-      getAuthErrorMessage(
-        error,
-        "An error occurred",
-      ),
-    );
-  };
-
-  const handleSendEmail = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setErrors({});
-
-    sendResetOtpMutation.mutate(
-      { email },
-      {
-        onSuccess: () => {
-          toast.success("Verification code sent to your email");
-          setStep(ForgotPasswordStep.OTP);
-        },
-        onError: handleApiError,
-      },
-    );
-  };
-
-  const handleVerifyOtp = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-
-    verifyResetOtpMutation.mutate(
-      { email, otp },
-      {
-        onSuccess: (response) => {
-          setResetToken(response.data.resetToken);
-          toast.success("Verification code verified successfully");
-          setStep(ForgotPasswordStep.PASSWORD);
-        },
-        onError: handleApiError,
-      },
-    );
-  };
-
-  const handleResetPassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-
-    if (newPassword !== confirmPassword) {
-      setErrors({
-        confirmPassword: "Passwords do not match",
+  const onOtpSubmit = useAuthFormSubmit(
+    otpForm,
+    ["otp"],
+    messages.verifyCodeFailed,
+    async (values) => {
+      const response = await verifyResetOtpMutation.mutateAsync({
+        email,
+        otp: values.otp,
       });
-      requestAnimationFrame(() => document.getElementById("confirmPassword")?.focus());
-      return;
+      const token = response.data?.resetToken;
+      if (typeof token !== "string" || !token)
+        throw new Error(messages.verifyCodeFailed);
+      setResetToken(token);
+      passwordForm.reset();
+      toast.success("Verification code verified successfully");
+      setStep(ForgotPasswordStep.PASSWORD);
+    },
+    submissionLock,
+  );
+
+  const onPasswordSubmit = useAuthFormSubmit(
+    passwordForm,
+    ["newPassword", "confirmPassword"],
+    messages.resetFailed,
+    async (values) => {
+      if (!resetToken) {
+        passwordForm.setError("root.server", {
+          message: messages.resetExpired,
+        });
+        return;
+      }
+      await resetPasswordMutation.mutateAsync({
+        email,
+        resetToken,
+        newPassword: values.newPassword,
+      });
+      toast.success("Password updated successfully");
+      window.location.href = AuthRouteTarget.LOGIN;
+    },
+    submissionLock,
+  );
+
+  const handleResendCode = async () => {
+    if (!email || submissionLock.current) return;
+    submissionLock.current = true;
+    otpForm.clearErrors("root");
+    try {
+      await sendResetOtpMutation.mutateAsync({ email });
+      otpForm.reset();
+      passwordForm.reset();
+      setResetToken("");
+      toast.success("Verification code sent to your email");
+    } catch (error) {
+      handleAuthFormError(error, otpForm, [], messages.sendCodeFailed);
+    } finally {
+      submissionLock.current = false;
     }
-
-    resetPasswordMutation.mutate(
-      { email, resetToken, newPassword },
-      {
-        onSuccess: () => {
-          toast.success("Password updated successfully");
-          window.location.href = AuthRouteTarget.LOGIN;
-        },
-        onError: handleApiError,
-      },
-    );
   };
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-    if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
-  };
-
-  const handleNewPasswordChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setNewPassword(e.target.value);
-    if (errors.newPassword) {
-      setErrors((prev) => ({ ...prev, newPassword: "" }));
-    }
-  };
-
-  const handleConfirmPasswordChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    setConfirmPassword(e.target.value);
-    if (errors.confirmPassword) {
-      setErrors((prev) => ({ ...prev, confirmPassword: "" }));
+  const handleBack = () => {
+    if (submissionLock.current) return;
+    setResetToken("");
+    passwordForm.reset();
+    if (step === ForgotPasswordStep.PASSWORD) {
+      otpForm.clearErrors();
+      setStep(ForgotPasswordStep.OTP);
+    } else {
+      otpForm.reset();
+      emailForm.clearErrors();
+      setStep(ForgotPasswordStep.EMAIL);
     }
   };
 
   return (
     <div className="space-y-6">
-      <ol aria-label="Password recovery progress" className="flex flex-wrap gap-3 text-xs text-muted-foreground">{[[ForgotPasswordStep.EMAIL, "Email"], [ForgotPasswordStep.OTP, "Verify code"], [ForgotPasswordStep.PASSWORD, "New password"]].map(([value, label]) => <li key={value} aria-current={step === value ? "step" : undefined} className={step === value ? "font-semibold text-foreground" : undefined}>{label}</li>)}</ol>
+      <ForgotPasswordProgress step={step} />
       {step !== ForgotPasswordStep.EMAIL && (
-        <Button variant="unstyled"
+        <Button
+          variant="unstyled"
           type="button"
-          onClick={() => {
-            if (step === ForgotPasswordStep.OTP) {
-              setStep(ForgotPasswordStep.EMAIL);
-            }
-            if (step === ForgotPasswordStep.PASSWORD) {
-              setStep(ForgotPasswordStep.OTP);
-            }
-          }}
+          onClick={handleBack}
+          disabled={isLoading}
           className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -164,7 +181,8 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
 
       {step === ForgotPasswordStep.EMAIL && (
         <form
-          onSubmit={handleSendEmail}
+          noValidate
+          onSubmit={onEmailSubmit}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
         >
           <div className="space-y-2">
@@ -174,18 +192,24 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             >
               Email <span className="text-destructive-content">*</span>
             </label>
-            <InputField autoComplete="email" required
+            <InputField
+              autoComplete="email"
+              required
               variant="auth"
+              className="text-base sm:text-sm"
               id="email"
               type="email"
               icon={Mail}
               placeholder="you@workspacehub.vn"
-              value={email}
-              error={errors.email}
-              onChange={handleEmailChange}
+              {...emailForm.register("email")}
+              disabled={isLoading}
+              error={emailErrors.email?.message}
             />
           </div>
-          <Button loading={sendResetOtpMutation.isPending} variant="unstyled"
+          <AuthFormError message={emailErrors.root?.server?.message} />
+          <Button
+            loading={sendResetOtpMutation.isPending}
+            variant="unstyled"
             type="submit"
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
@@ -197,7 +221,8 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
 
       {step === ForgotPasswordStep.OTP && (
         <form
-          onSubmit={handleVerifyOtp}
+          noValidate
+          onSubmit={onOtpSubmit}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
         >
           <div className="space-y-4">
@@ -216,24 +241,31 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             </div>
 
             <div className="flex flex-col items-center gap-2">
-              <OtpInput error={errors.otp}
-                length={6}
-                value={otp}
-                onChange={(value) => {
-                  setOtp(value);
-                  if (errors.otp) setErrors((prev) => ({ ...prev, otp: "" }));
-                }}
+              <Controller
+                control={otpForm.control}
+                name="otp"
+                render={({ field, fieldState }) => (
+                  <OtpInput
+                    length={AUTH_VALIDATION_LIMITS.otpLength}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    inputRef={field.ref}
+                    disabled={isLoading}
+                    error={fieldState.error?.message}
+                  />
+                )}
               />
-
             </div>
 
             <div className="text-center text-sm">
               <span className="text-muted-foreground">
                 Didn&apos;t receive code?{" "}
               </span>
-              <Button variant="unstyled"
+              <Button
+                variant="unstyled"
                 type="button"
-                onClick={() => handleSendEmail()}
+                onClick={handleResendCode}
                 className="font-bold text-link transition hover:text-foreground cursor-pointer"
                 disabled={isLoading}
               >
@@ -241,9 +273,12 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               </Button>
             </div>
           </div>
-          <Button loading={verifyResetOtpMutation.isPending} variant="unstyled"
+          <AuthFormError message={otpErrors.root?.server?.message} />
+          <Button
+            loading={verifyResetOtpMutation.isPending}
+            variant="unstyled"
             type="submit"
-            disabled={isLoading || otp.length < 6}
+            disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
             {verifyResetOtpMutation.isPending ? "Verifying..." : "Verify code"}
@@ -253,7 +288,8 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
 
       {step === ForgotPasswordStep.PASSWORD && (
         <form
-          onSubmit={handleResetPassword}
+          noValidate
+          onSubmit={onPasswordSubmit}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
         >
           <div className="space-y-2">
@@ -263,15 +299,20 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             >
               New Password <span className="text-destructive-content">*</span>
             </label>
-            <InputField autoComplete="new-password" required
+            <InputField
+              autoComplete="new-password"
+              required
               variant="auth"
+              className="text-base sm:text-sm"
               id="newPassword"
               type={showPassword ? "text" : "password"}
               icon={Lock}
               placeholder="••••••••"
-              value={newPassword}
-              error={errors.newPassword}
-              onChange={handleNewPasswordChange}
+              {...passwordForm.register("newPassword", {
+                deps: ["confirmPassword"],
+              })}
+              disabled={isLoading}
+              error={passwordErrors.newPassword?.message}
               rightIcon={
                 showPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -288,17 +329,21 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               htmlFor="confirmPassword"
               className="text-sm font-semibold text-foreground"
             >
-              Confirm Password <span className="text-destructive-content">*</span>
+              Confirm Password{" "}
+              <span className="text-destructive-content">*</span>
             </label>
-            <InputField autoComplete="new-password" required
+            <InputField
+              autoComplete="new-password"
+              required
               variant="auth"
+              className="text-base sm:text-sm"
               id="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}
               icon={Lock}
               placeholder="••••••••"
-              value={confirmPassword}
-              error={errors.confirmPassword}
-              onChange={handleConfirmPasswordChange}
+              {...passwordForm.register("confirmPassword")}
+              disabled={isLoading}
+              error={passwordErrors.confirmPassword?.message}
               rightIcon={
                 showConfirmPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -309,12 +354,17 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               onRightClick={() => setShowConfirmPassword((prev) => !prev)}
             />
           </div>
-          <Button loading={resetPasswordMutation.isPending} variant="unstyled"
+          <AuthFormError message={passwordErrors.root?.server?.message} />
+          <Button
+            loading={resetPasswordMutation.isPending}
+            variant="unstyled"
             type="submit"
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {resetPasswordMutation.isPending ? "Updating..." : "Update password"}
+            {resetPasswordMutation.isPending
+              ? "Updating..."
+              : "Update password"}
           </Button>
         </form>
       )}
