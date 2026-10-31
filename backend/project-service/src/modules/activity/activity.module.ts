@@ -1,11 +1,11 @@
-import { forwardRef, Module } from '@nestjs/common';
-import { ActivityController } from './activity.controller';
-import { ActivityService } from './activity.service';
-import { TaskModule } from '../task/task.module';
-import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
+import { Module } from "@nestjs/common";
+import { ActivityController } from "./activity.controller";
+import { ActivityService } from "./activity.service";
+import { TaskPolicyModule } from "../task/task-policy.module";
+import { UserProfileSnapshotModule } from "../user-profile-snapshot/user-profile-snapshot.module";
 
 @Module({
-  imports: [forwardRef(() => TaskModule), UserProfileSnapshotModule],
+  imports: [TaskPolicyModule, UserProfileSnapshotModule],
   controllers: [ActivityController],
   providers: [ActivityService],
   exports: [ActivityService],

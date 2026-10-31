@@ -1,10 +1,8 @@
-import { Inject, Injectable, forwardRef } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   CHAT_CONTEXT_TYPE,
   CHAT_REACTION_ACTION,
 } from '../../../common/types/chat.enums';
-import { MessageType } from '@prisma/client';
-import { MessageService } from '../../message/message.service';
 import { SocketEventEmitter } from '../services/socket-event-emitter';
 import { ChatEvent } from './chat-socket.events';
 import { ChatSocketRoomResolver } from './chat-socket-room-resolver';
@@ -25,8 +23,6 @@ export class ChatSocketPublisher {
   constructor(
     private readonly socketEventEmitter: SocketEventEmitter,
     private readonly roomResolver: ChatSocketRoomResolver,
-    @Inject(forwardRef(() => MessageService))
-    private readonly messageService: MessageService,
   ) {}
 
   assertReady(): void {
@@ -285,29 +281,6 @@ export class ChatSocketPublisher {
 
   publishMemberJoin(targetRooms: string[], payload: ChatSocketPayload): void {
     this.publishToRooms(targetRooms, ChatEvent.JOIN_CONVERSATION, payload);
-  }
-
-  async sendSystemMessage(
-    channelId: string,
-    userId: string,
-    content: string,
-  ): Promise<ChatSocketMessage> {
-    const message = await this.messageService.createMessage(
-      channelId,
-      userId,
-      content,
-      MessageType.SYSTEM,
-    );
-
-    const messageWithUrls = {
-      ...message,
-      chatId: channelId,
-      chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-      medias: [],
-    };
-
-    await this.publishChannelMessageCreated(channelId, messageWithUrls);
-    return messageWithUrls;
   }
 
   async publishChannelSettingUpdated(

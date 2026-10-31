@@ -1,81 +1,30 @@
-import { NotificationEvent } from './types/notification.events';
 import { Injectable } from "@nestjs/common";
-import { PrismaService } from "../../prisma/prisma.service";
 import { CreateNotificationDto } from "./dtos/create-notification.dto";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
-import { NotificationGateway } from "./notification.gateway";
-import { PushService } from "./push.service";
-import { Notification, Prisma, PushSubscription } from "@prisma/client";
+import { Notification, PushSubscription } from "@prisma/client";
 import {
-  NOTIFICATION_CATEGORIES,
   NotificationDateRange,
-  getNotificationCategoryWhere,
   NotificationCategory,
   NotificationUnreadCountsByCategory,
-  NotificationWhereInput,
   PushNotificationPayload,
 } from "./types/notification.types";
 import { ProjectInvitationResolution } from "./dtos/resolve-project-invitation.dto";
+import { NotificationQueryService } from "./notification-query.service";
+import { NotificationMutationService } from "./notification-mutation.service";
+import { NotificationSubscriptionService } from "./notification-subscription.service";
 
 @Injectable()
 export class NotificationService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly notificationGateway: NotificationGateway,
-    private readonly pushService: PushService,
+    private readonly queries: NotificationQueryService,
+    private readonly mutations: NotificationMutationService,
+    private readonly subscriptions: NotificationSubscriptionService,
   ) {}
-
   async createNotification(
     createDto: CreateNotificationDto,
     options: { sendPush?: boolean } = {},
   ): Promise<Notification> {
-    const deliveryId = createDto.metadata && typeof createDto.metadata.deliveryId === "string" ? createDto.metadata.deliveryId : null;
-    const deduplicationId = deliveryId ? `delivery:${deliveryId}:${createDto.recipientId}` : undefined;
-    let saved: Notification;
-    try {
-      saved = await this.prisma.notification.create({
-      data: {
-        ...(deduplicationId ? { id: deduplicationId } : {}),
-        recipientId: createDto.recipientId,
-        senderId: createDto.senderId,
-        senderName: createDto.senderName,
-        senderAvatar: createDto.senderAvatar,
-        type: createDto.type,
-        title: createDto.title,
-        content: createDto.content,
-        link: createDto.link,
-        metadata: createDto.metadata
-          ? (createDto.metadata as Prisma.InputJsonValue)
-          : Prisma.JsonNull,
-      },
-    });
-
-    } catch (error) {
-      if (deduplicationId && error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        return this.prisma.notification.findUniqueOrThrow({ where: { id: deduplicationId } });
-      }
-      throw error;
-    }
-
-    // Publish to realtime socket room
-    this.notificationGateway.server
-      .to(saved.recipientId)
-      .emit("new_notification", saved);
-
-    // Send push notification in the background
-    if (options.sendPush !== false) {
-      this.sendPushToUser(saved.recipientId, {
-        title: saved.title,
-        content: saved.content,
-        link: saved.link || undefined,
-        senderName: saved.senderName || undefined,
-        senderAvatar: saved.senderAvatar || undefined,
-      }).catch((err) =>
-        console.error("Failed to send push notification:", err),
-      );
-    }
-
-    return saved;
+    return this.mutations.createNotification(createDto, options);
   }
 
   async getNotifications(
@@ -92,97 +41,29 @@ export class NotificationService {
     categoryUnreadCount: number;
     unreadCountsByCategory: NotificationUnreadCountsByCategory;
   }> {
-    const baseWhere: NotificationWhereInput = {
+    return this.queries.getNotifications(
       recipientId,
-    };
-    const createdAt = this.getCreatedAtWhere(dateRange);
-    if (createdAt) {
-      baseWhere.createdAt = createdAt;
-    }
-    const categoryWhere = getNotificationCategoryWhere(category);
-    const where: NotificationWhereInput = {
-      AND: [baseWhere, categoryWhere],
-    };
-    if (isRead !== undefined) {
-      where.isRead = isRead;
-    }
-    const skip = (page - 1) * limit;
-
-    const unreadCountQueries = NOTIFICATION_CATEGORIES.map((item) =>
-      this.prisma.notification.count({
-        where: {
-          AND: [baseWhere, getNotificationCategoryWhere(item)],
-          isRead: false,
-        },
-      }),
+      page,
+      limit,
+      isRead,
+      category,
+      dateRange,
     );
-
-    const [list, total, ...unreadCounts] = await Promise.all([
-      this.prisma.notification.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      this.prisma.notification.count({ where }),
-      ...unreadCountQueries,
-    ]);
-
-    const unreadCountsByCategory = NOTIFICATION_CATEGORIES.reduce(
-      (counts, item, index) => {
-        counts[item] = unreadCounts[index] ?? 0;
-        return counts;
-      },
-      {} as NotificationUnreadCountsByCategory,
-    );
-    const unreadCount = unreadCountsByCategory.ALL;
-    const categoryUnreadCount = unreadCountsByCategory[category] ?? unreadCount;
-
-    return {
-      list,
-      total,
-      unreadCount,
-      categoryUnreadCount,
-      unreadCountsByCategory,
-    };
   }
 
   async getUnreadCount(recipientId: string): Promise<number> {
-    return this.prisma.notification.count({
-      where: {
-        recipientId,
-        isRead: false,
-      },
-    });
+    return this.queries.getUnreadCount(recipientId);
   }
 
   async markAsRead(
     id: string,
     recipientId: string,
   ): Promise<Notification | null> {
-    const notification = await this.prisma.notification.findFirst({
-      where: { id, recipientId },
-    });
-
-    if (!notification) {
-      return null;
-    }
-
-    const updated = await this.prisma.notification.update({ where: { id: notification.id }, data: { isRead: true } });
-    this.notificationGateway.server.to(recipientId).emit(NotificationEvent.CHANGED, { reason: 'READ', notificationId: id });
-    return updated;
+    return this.mutations.markAsRead(id, recipientId);
   }
 
   async markAllAsRead(recipientId: string): Promise<number> {
-    const result = await this.prisma.notification.updateMany({
-      where: {
-        recipientId,
-        isRead: false,
-      },
-      data: { isRead: true },
-    });
-    this.notificationGateway.server.to(recipientId).emit(NotificationEvent.CHANGED, { reason: "READ_ALL" });
-    return result.count;
+    return this.mutations.markAllAsRead(recipientId);
   }
 
   async resolveProjectInvitation(
@@ -190,38 +71,11 @@ export class NotificationService {
     recipientId: string,
     status: ProjectInvitationResolution,
   ): Promise<Notification | null> {
-    const notification = await this.prisma.notification.findFirst({
-      where: {
-        recipientId,
-        type: "PROJECT_INVITATION",
-        metadata: { path: ["invitationId"], equals: invitationId },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-    if (!notification) return null;
-
-    const currentMetadata =
-      notification.metadata &&
-      typeof notification.metadata === "object" &&
-      !Array.isArray(notification.metadata)
-        ? notification.metadata
-        : {};
-    const updated = await this.prisma.notification.update({
-      where: { id: notification.id },
-      data: {
-        isRead: true,
-        metadata: {
-          ...currentMetadata,
-          status,
-          respondedAt: new Date().toISOString(),
-        },
-      },
-    });
-
-    this.notificationGateway.server
-      .to(updated.recipientId)
-      .emit("notification_updated", updated);
-    return updated;
+    return this.mutations.resolveProjectInvitation(
+      invitationId,
+      recipientId,
+      status,
+    );
   }
 
   async resolveMeetingInvitation(
@@ -229,56 +83,15 @@ export class NotificationService {
     recipientId: string,
     status: "ACCEPTED" | "DECLINED" | "CANCELLED",
   ): Promise<Notification | null> {
-    const notification = await this.prisma.notification.findFirst({
-      where: {
-        recipientId,
-        type: "MEETING_INVITATION",
-        metadata: { path: ["meetingId"], equals: meetingId },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-    if (!notification) return null;
-
-    const currentMetadata =
-      notification.metadata &&
-      typeof notification.metadata === "object" &&
-      !Array.isArray(notification.metadata)
-        ? notification.metadata
-        : {};
-    const updated = await this.prisma.notification.update({
-      where: { id: notification.id },
-      data: {
-        isRead: true,
-        metadata: {
-          ...currentMetadata,
-          status,
-          respondedAt: new Date().toISOString(),
-        },
-      },
-    });
-
-    this.notificationGateway.server
-      .to(updated.recipientId)
-      .emit("notification_updated", updated);
-    return updated;
+    return this.mutations.resolveMeetingInvitation(
+      meetingId,
+      recipientId,
+      status,
+    );
   }
 
   async deleteNotification(id: string, recipientId: string): Promise<boolean> {
-    const notification = await this.prisma.notification.findFirst({
-      where: { id, recipientId },
-    });
-
-    if (!notification) {
-      return false;
-    }
-
-    await this.prisma.notification.delete({
-      where: { id: notification.id },
-    });
-    this.notificationGateway.server
-      .to(recipientId)
-      .emit("notification_deleted", { id: notification.id });
-    return true;
+    return this.mutations.deleteNotification(id, recipientId);
   }
 
   async deleteNotifications(
@@ -296,126 +109,24 @@ export class NotificationService {
     fromDate?: string;
     toDate?: string;
   }> {
-    const baseWhere: NotificationWhereInput = { recipientId };
-    const createdAt = this.getCreatedAtWhere(options.dateRange ?? {});
-    if (createdAt) {
-      baseWhere.createdAt = createdAt;
-    }
-    const where: NotificationWhereInput = {
-      AND: [baseWhere, getNotificationCategoryWhere(category)],
-    };
-    if (options.isRead !== undefined) {
-      where.isRead = options.isRead;
-    }
-    const unreadWhere: NotificationWhereInput = {
-      AND: [where, { isRead: false }],
-    };
-
-    const [unreadDeletedCount, deleteResult] = await this.prisma.$transaction([
-      this.prisma.notification.count({ where: unreadWhere }),
-      this.prisma.notification.deleteMany({ where }),
-    ]);
-    const payload = {
-      deletedCount: deleteResult.count,
-      unreadDeletedCount,
-      category,
-      isRead: options.isRead,
-      fromDate: options.dateRange?.fromDate?.toISOString(),
-      toDate: options.dateRange?.toDate?.toISOString(),
-    };
-
-    this.notificationGateway.server
-      .to(recipientId)
-      .emit("notifications_deleted", payload);
-
-    return payload;
-  }
-
-  private getCreatedAtWhere(
-    dateRange: NotificationDateRange,
-  ): Prisma.DateTimeFilter | undefined {
-    const createdAt: Prisma.DateTimeFilter = {};
-    if (dateRange.fromDate) {
-      createdAt.gte = dateRange.fromDate;
-    }
-    if (dateRange.toDate) {
-      createdAt.lte = dateRange.toDate;
-    }
-    return Object.keys(createdAt).length > 0 ? createdAt : undefined;
+    return this.mutations.deleteNotifications(recipientId, category, options);
   }
 
   async saveSubscription(
     userId: string,
     dto: SaveSubscriptionDto,
   ): Promise<PushSubscription> {
-    const existing = await this.prisma.pushSubscription.findUnique({
-      where: { endpoint: dto.endpoint },
-    });
-
-    if (existing) {
-      if (existing.userId === userId) {
-        return existing;
-      }
-      return this.prisma.pushSubscription.update({
-        where: { endpoint: dto.endpoint },
-        data: {
-          userId,
-          p256dh: dto.keys.p256dh,
-          auth: dto.keys.auth,
-        },
-      });
-    }
-
-    return this.prisma.pushSubscription.create({
-      data: {
-        userId,
-        endpoint: dto.endpoint,
-        p256dh: dto.keys.p256dh,
-        auth: dto.keys.auth,
-      },
-    });
+    return this.subscriptions.saveSubscription(userId, dto);
   }
 
   async unsubscribe(userId: string, endpoint: string): Promise<boolean> {
-    const existing = await this.prisma.pushSubscription.findFirst({
-      where: { userId, endpoint },
-    });
-
-    if (!existing) return false;
-
-    await this.prisma.pushSubscription.delete({
-      where: { id: existing.id },
-    });
-    return true;
+    return this.subscriptions.unsubscribe(userId, endpoint);
   }
 
   async sendPushToUser(
     userId: string,
     payload: PushNotificationPayload,
   ): Promise<void> {
-    const subscriptions = await this.prisma.pushSubscription.findMany({
-      where: { userId },
-    });
-
-    if (!subscriptions || subscriptions.length === 0) return;
-
-    await Promise.all(
-      subscriptions.map(async (sub) => {
-        const success = await this.pushService.sendPushNotification(
-          sub,
-          payload,
-        );
-        if (!success) {
-          await this.prisma.pushSubscription
-            .delete({ where: { id: sub.id } })
-            .catch((err) =>
-              console.error(
-                `Failed to delete expired subscription ${sub.id}:`,
-                err,
-              ),
-            );
-        }
-      }),
-    );
+    return this.subscriptions.sendPushToUser(userId, payload);
   }
 }

@@ -3,11 +3,14 @@ import { NestFactory } from "@nestjs/core";
 import { json } from "express";
 import { AppModule } from "./app.module";
 import { config } from "./config/env.config";
-import { db } from "./infrastructure/database/database";
-import { closeQueues } from "./infrastructure/queue/notebook.queue";
+import { aiDatabase } from "./infrastructure/database/ai-database.client";
+import { aiQueues } from "./infrastructure/queue/ai-queue.client";
 import type { Server } from "node:http";
 import { createShutdownHandler, settleAll } from "./common/shutdown";
 import { logError } from "./common/errors/error-log";
+const db = aiDatabase.pool;
+const closeQueues = aiQueues.close;
+
 async function main() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
   app.use(json({ limit: "64kb" }));

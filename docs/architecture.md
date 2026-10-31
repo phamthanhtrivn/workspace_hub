@@ -32,6 +32,26 @@ API nội bộ dùng credential theo luồng; public gateway không công khai c
 
 Refresh token được xoay vòng, có thu hồi family và phát hiện reuse. Reset token dùng một lần; đổi mật khẩu thu hồi phiên. Cookie refresh giữa nhiều tab được tuần tự hóa ở frontend.
 
+## Tổ chức backend
+
+Controller giữ façade hiện có; provider bên trong được chia theo trách nhiệm. Các service vẫn build độc lập, không dùng thêm shared package.
+
+| Service | Provider và ranh giới chính |
+| --- | --- |
+| Notification | Query, mutation, subscription và delivery; lưu DB trước khi phát socket và gửi push. |
+| Document | Access, location/name, query, public query, upload/version, lifecycle, sharing, project attachment, tree, presentation, event publisher và download/ZIP streaming. Quota, upload intent và khóa cây tiếp tục dùng transaction đang điều phối. |
+| Communication | Space tách access, settings, presentation, event, project provisioning, channel/thread synchronization, query, membership, lifecycle và invitation. Message/DM tách query, mutation, presentation và publishing. `SystemMessageService` tạo message rồi gọi publisher. |
+| Project | Task tách lookup, query, validation, creation, mutation, attachment và activity mapping. Project tách query, mutation, chat/document workflow và event publisher. Activity, access-sync intent và outbox vẫn được ghi trong transaction nghiệp vụ. |
+| Calendar | Recurrence tách creation, THIS, THIS_AND_FOLLOWING, ALL, occurrence helper và transaction coordinator. Event tách query, validation, mutation, task, attendee, conference và effects. Pomodoro tách config, timer, session và statistics. |
+| User | `AuthService` giữ transaction qua Spring proxy; registration, credential/social login, refresh, session, token issuer, response mapper và servlet adapter là collaborator nội bộ. Refresh giữ `noRollbackFor = BusinessException.class` và thứ tự khóa user trước token. |
+| AI | Façade chat/work-assistant gọi admission/access, query, generation, workflow và SSE adapter. Workflow phát event qua `ApplicationEventStream`; `SseTransport` sở hữu thao tác Express/SSE. |
+
+`SocketPublishingModule` chỉ chứa emitter, room service/resolver và publisher; không nhập `MessageModule` hay gateway. Business module dùng publishing module, còn `SocketModule` giữ gateway/handler. Vì vậy Message không cần nhập ngược socket transport.
+
+`ProjectAccessModule` và `TaskPolicyModule` cung cấp policy phụ thuộc thấp; `ActivityModule` dùng policy thay vì nhập `TaskModule`. `InvitationDeliveryModule` sở hữu email delivery và các adapter, cho phép outbox hoạt động mà không nhập ngược `InvitationModule` hoặc `ProjectModule`.
+
+Helper thực hiện thao tác atomic nhận `Prisma.TransactionClient` từ workflow. Với User, transaction nằm ở façade có proxy; không đặt thêm transaction độc lập trong collaborator. Với AI, `AiDatabaseClient`, `AiQueueClient` và `AiModelProvider` bọc pool, queue và factory hiện có. Nest dùng cùng instance qua `useValue`; API/worker entrypoint tiếp tục sở hữu shutdown, checkpoint và recovery, không tạo thêm pool/worker hay tự phát lại model call.
+
 ## Luồng AI
 
 Nguồn notebook trỏ tới phiên bản Document được cấp quyền. Worker lấy đúng bytes, parse/index qua RAG, sau đó Q&A truy xuất trong notebook/source scope và trả SSE có trích dẫn. Summary chạy bằng job có checkpoint. File gốc vẫn thuộc Document khi notebook bị xóa.

@@ -1,11 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { RuntimeConfigService } from '../../common/config/runtime-config.service';
+import { Inject, Injectable } from "@nestjs/common";
+import { RuntimeConfigService } from "../../common/config/runtime-config.service";
 import {
   NOTIFICATION_GATEWAY,
   NotificationGateway,
   USER_DIRECTORY,
   UserDirectory,
-} from '../../common/adapters/project-communication.port';
+} from "../../common/adapters/project-communication.port";
 
 export interface InvitationEmailInput {
   invitationId: string;
@@ -19,7 +19,8 @@ export interface InvitationEmailInput {
 export class InvitationEmailService {
   constructor(
     @Inject(USER_DIRECTORY) private readonly users: UserDirectory,
-    @Inject(NOTIFICATION_GATEWAY) private readonly notifications: NotificationGateway,
+    @Inject(NOTIFICATION_GATEWAY)
+    private readonly notifications: NotificationGateway,
     private readonly config: RuntimeConfigService,
   ) {}
 

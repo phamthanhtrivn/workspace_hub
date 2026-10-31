@@ -1,333 +1,56 @@
-import { enqueueProjectAccessSync } from "./project-access-sync";
-import {
-  BadGatewayException,
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import {
-  ProjectMemberStatus,
-  ProjectRole,
-  ProjectStatus,
-  TaskStatus,
-} from './project.enums';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { CreateProjectDto } from './dto/create-project.dto';
-import { InternalRenameProjectDto } from './dto/internal-rename-project.dto';
-import { ProjectListQueryDto } from './dto/project-list-query.dto';
-import { UpdateProjectDto } from './dto/update-project.dto';
-import { ProjectAccessService } from './project-access.service';
-import {
-  PROJECT_DATE_MESSAGES,
-  PROJECT_DATE_TIME_ZONE,
-  PROJECT_LIST_PAGE_SIZE,
-} from './project.constants';
-import { toMemberResponse, toProjectResponse } from './project.mapper';
-import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
-import { paginate } from '../../common/utils/pagination';
-import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
-import { ProjectDocumentClient } from './project-document.client';
-import { InternalDocumentEventDto } from './dto/internal-document-event.dto';
-import { InternalProjectSpaceEventDto } from './dto/internal-project-space-event.dto';
-import { ProjectSocketPublisher } from '../socket/project-socket.publisher';
-import {
-  ProjectSpaceClient,
-  ProjectSpaceRole,
-} from './project-space.client';
+import { Injectable } from "@nestjs/common";
+import { CreateProjectDto } from "./dto/create-project.dto";
+import { InternalRenameProjectDto } from "./dto/internal-rename-project.dto";
+import { ProjectListQueryDto } from "./dto/project-list-query.dto";
+import { UpdateProjectDto } from "./dto/update-project.dto";
+import { ProjectAccessService } from "./project-access.service";
+import { InternalDocumentEventDto } from "./dto/internal-document-event.dto";
+import { InternalProjectSpaceEventDto } from "./dto/internal-project-space-event.dto";
+import { ProjectQueryService } from "./project-query.service";
+import { ProjectChatWorkflowService } from "./project-chat-workflow.service";
+import { ProjectDocumentWorkflowService } from "./project-document-workflow.service";
+import { ProjectEventPublisher } from "./project-event-publisher.service";
+import { ProjectMutationService } from "./project-mutation.service";
 
 @Injectable()
 export class ProjectService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly access: ProjectAccessService,
-    private readonly userProfiles: UserProfileSnapshotService,
-    private readonly projectDocuments: ProjectDocumentClient,
-    private readonly projectSpaces: ProjectSpaceClient,
-    private readonly socketPublisher: ProjectSocketPublisher,
+    private readonly queries: ProjectQueryService,
+    private readonly chat: ProjectChatWorkflowService,
+    private readonly documents: ProjectDocumentWorkflowService,
+    private readonly events: ProjectEventPublisher,
+    private readonly mutations: ProjectMutationService,
   ) {}
-
   async create(userId: string, dto: CreateProjectDto) {
-    const now = new Date();
-    const startDate = this.toDate(dto.startDate);
-    const dueDate = this.toDate(dto.dueDate);
-    this.validateCreateDates(startDate, dueDate, now);
-    this.validateDateRange(startDate, dueDate);
-
-    const project = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.project.create({
-        data: {
-          id: crypto.randomUUID(),
-          name: dto.name.trim(),
-          color: dto.color,
-          icon: dto.icon,
-          description: dto.description,
-          status: ProjectStatus.ACTIVE,
-          ownerId: userId,
-          archived: false,
-          startDate,
-          dueDate,
-          createdAt: now,
-          updatedAt: now,
-          setting: {
-            create: {
-              id: crypto.randomUUID(),
-              allowMemberCreateTask: true,
-              allowMemberEditOthersTask: false,
-              allowMemberEditOwnTask: true,
-              allowMemberInvite: false,
-            },
-          },
-          members: {
-            create: {
-              id: crypto.randomUUID(),
-              userId,
-              role: ProjectRole.ADMIN,
-              status: ProjectMemberStatus.ACTIVE,
-              canCreateTask: true,
-              canEditOwnTask: true,
-              canEditOthersTask: true,
-              canManageMembers: true,
-              canManageLabels: true,
-              canEditDocuments: true,
-              joinedAt: now,
-              updatedAt: now,
-            },
-          },
-        },
-      });
-      await enqueueProjectAccessSync(tx, created.id);
-      return created;
-    });
-
-    const ownerProfile = await this.userProfiles.getProfileByUserId(userId);
-    return { ...toProjectResponse(project, {}, ownerProfile), accessSync: { projectId: project.id, documents: "PENDING", chat: "PENDING", message: null } };
+    return this.mutations.create(userId, dto);
   }
 
   async findAll(userId: string, query: ProjectListQueryDto) {
-    const listQuery = {
-      ...query,
-      page: query.page ?? 1,
-      limit: Math.min(query.limit ?? PROJECT_LIST_PAGE_SIZE, PROJECT_LIST_PAGE_SIZE),
-    };
-    const search = query.search?.trim();
-    const where: Prisma.ProjectWhereInput = {
-      archived: false,
-      ...(query.status ? { status: query.status } : {}),
-      ...(query.hasAssignedTasks
-        ? {
-            tasks: {
-              some: {
-                archived: false,
-                deletedAt: null,
-                assignees: { some: { userId } },
-              },
-            },
-          }
-        : {}),
-      AND: [
-        {
-          OR: [
-            { ownerId: userId },
-            {
-              members: {
-                some: { userId, status: ProjectMemberStatus.ACTIVE },
-              },
-            },
-          ],
-        },
-        ...(search
-          ? [
-              {
-                OR: [
-                  { name: { contains: search, mode: 'insensitive' } },
-                  {
-                    description: {
-                      contains: search,
-                      mode: 'insensitive',
-                    },
-                  },
-                ],
-              } satisfies Prisma.ProjectWhereInput,
-            ]
-          : []),
-      ],
-    };
-    const [total, projects] = await this.prisma.$transaction([
-      this.prisma.project.count({ where }),
-      this.prisma.project.findMany({
-        where,
-        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
-        include: { setting: true },
-        skip: (listQuery.page - 1) * listQuery.limit,
-        take: listQuery.limit,
-      }),
-    ]);
-    const projectIds = projects.map((project) => project.id);
-    const ownerIds = [...new Set(projects.map((project) => project.ownerId))];
-    const [taskCounts, ownerProfiles] = await Promise.all([
-      projectIds.length === 0
-        ? []
-        : this.prisma.task.groupBy({
-            by: ['projectId', 'status'],
-            where: {
-              projectId: { in: projectIds },
-              archived: false,
-              deletedAt: null,
-            },
-            _count: { _all: true },
-          }),
-      this.userProfiles.getProfilesByUserIds(ownerIds),
-    ]);
-
-    const statsByProject = new Map<
-      string,
-      { total: number; completed: number }
-    >();
-    for (const count of taskCounts) {
-      const stats = statsByProject.get(count.projectId) ?? {
-        total: 0,
-        completed: 0,
-      };
-      stats.total += count._count._all;
-      if (count.status === TaskStatus.DONE)
-        stats.completed += count._count._all;
-      statsByProject.set(count.projectId, stats);
-    }
-    return paginate(
-      projects.map((project) => {
-        const stats = statsByProject.get(project.id);
-        const ownerProfile = ownerProfiles.get(project.ownerId);
-        return toProjectResponse(
-          project,
-          {
-            totalTaskCount: stats?.total ?? 0,
-            completedTaskCount: stats?.completed ?? 0,
-          },
-          ownerProfile,
-        );
-      }),
-      total,
-      listQuery,
-    );
+    return this.queries.findAll(userId, query);
   }
 
   async getAccessSync(userId: string, projectId: string) {
-    await this.access.requireReadAccess(userId, projectId);
-    const job = await this.prisma.projectAccessSyncJob.findUnique({ where: { projectId } });
-    return { projectId, documents: job?.documentStatus ?? 'PENDING', chat: job?.chatStatus ?? 'PENDING', message: job?.lastError ?? null };
+    return this.queries.getAccessSync(userId, projectId);
   }
+
   async retryAccessSync(userId: string, projectId: string) {
-    await this.access.requireReadAccess(userId, projectId);
-    await this.prisma.$transaction(tx => enqueueProjectAccessSync(tx, projectId));
-    return this.getAccessSync(userId, projectId);
+    return this.mutations.retryAccessSync(userId, projectId);
   }
 
   async findOne(userId: string, projectId: string) {
-    const project = await this.access.requireReadAccess(userId, projectId);
-    const ownerProfile = await this.userProfiles.getProfileByUserId(project.ownerId);
-    return { ...toProjectResponse(project, {}, ownerProfile), accessSync: await this.getAccessSync(userId, projectId) };
+    return this.queries.findOne(userId, projectId);
   }
 
   async openProjectSpace(userId: string, projectId: string) {
-    const project = await this.access.requireReadAccess(userId, projectId);
-    const status = await this.getProjectSpaceStatus(userId, projectId);
-    const member = project.ownerId === userId
-      ? null
-      : await this.access.getActiveMember(projectId, userId);
-    const canCreateProjectSpace =
-      project.ownerId === userId || member?.role === ProjectRole.ADMIN;
-    if (!status.exists && !canCreateProjectSpace) {
-      throw new ForbiddenException('Project chat space has not been created yet');
-    }
-
-    const members = await this.prisma.projectMember.findMany({
-      where: {
-        projectId,
-        status: ProjectMemberStatus.ACTIVE,
-      },
-      select: {
-        userId: true,
-        role: true,
-      },
-      orderBy: { joinedAt: 'asc' },
-    });
-
-    const roleByUserId = new Map<string, ProjectSpaceRole>();
-    for (const member of members) {
-      roleByUserId.set(
-        member.userId,
-        member.userId === project.ownerId || member.role === ProjectRole.ADMIN
-          ? 'ADMIN'
-          : 'MEMBER',
-      );
-    }
-    roleByUserId.set(project.ownerId, 'ADMIN');
-
-    try {
-      const projectSpace = await this.projectSpaces.ensureProjectSpace({
-        projectId,
-        syncRevision: (await this.prisma.projectAccessSyncJob.findUnique({ where: { projectId } }))?.revision.toString(),
-        name: project.name,
-        ownerId: project.ownerId,
-        members: Array.from(roleByUserId.entries()).map(([memberUserId, role]) => ({
-          userId: memberUserId,
-          role,
-        })),
-      });
-      this.socketPublisher.publish({
-        projectId,
-        resource: 'PROJECT_SPACE',
-        action: status.exists ? 'UPDATED' : 'CREATED',
-        actorId: userId,
-        entityId: projectSpace.spaceId,
-        data: {
-          exists: true,
-          spaceId: projectSpace.spaceId,
-          channelId: projectSpace.channelId,
-        },
-        occurredAt: new Date().toISOString(),
-      });
-      await this.prisma.$transaction(tx => enqueueProjectAccessSync(tx, projectId));
-      return projectSpace;
-    } catch {
-      throw new BadGatewayException('Unable to open project chat space');
-    }
+    return this.chat.openProjectSpace(userId, projectId);
   }
 
   async getProjectSpaceStatus(userId: string, projectId: string) {
-    await this.access.requireReadAccess(userId, projectId);
-    try {
-      return await this.projectSpaces.getProjectSpaceStatus(projectId);
-    } catch {
-      throw new BadGatewayException('Unable to load project chat space status');
-    }
+    return this.chat.getProjectSpaceStatus(userId, projectId);
   }
 
   async openTaskChannel(userId: string, projectId: string, taskId: string) {
-    await this.access.requireReadAccess(userId, projectId);
-    const task = await this.prisma.task.findFirst({
-      where: { id: taskId, projectId },
-      select: { id: true, title: true },
-    });
-    if (!task) {
-      throw new NotFoundException('Task not found in project');
-    }
-
-    await this.openProjectSpace(userId, projectId);
-
-    try {
-      return await this.projectSpaces.ensureTaskChannel(
-        projectId,
-        taskId,
-        task.title,
-        userId,
-      );
-    } catch {
-      throw new BadGatewayException('Unable to open task chat channel');
-    }
+    return this.chat.openTaskChannel(userId, projectId, taskId);
   }
 
   async openTaskThread(
@@ -336,351 +59,60 @@ export class ProjectService {
     taskId: string,
     channelId?: string,
   ) {
-    await this.access.requireReadAccess(userId, projectId);
-    const task = await this.prisma.task.findFirst({
-        where: { id: taskId, projectId, deletedAt: null },
-        select: { id: true, title: true, status: true, priority: true, dueDate: true, version: true },
-    });
-    if (!task) {
-      throw new NotFoundException('Task not found in project');
-    }
-
-    await this.openProjectSpace(userId, projectId);
-
-    try {
-      return await this.projectSpaces.ensureTaskThread(
-        projectId,
-        taskId,
-        task.title,
-        userId,
-        channelId,
-        task.status,
-        task.priority,
-        task.dueDate ? task.dueDate.toISOString() : undefined,
-          task.version.toString(),
-      );
-    } catch {
-      throw new BadGatewayException('Unable to open task discussion thread');
-    }
+    return this.chat.openTaskThread(userId, projectId, taskId, channelId);
   }
 
   async syncProjectSpaceAccess(
     projectId: string,
-    project?: Awaited<ReturnType<ProjectAccessService['findProject']>>,
+    project?: Awaited<ReturnType<ProjectAccessService["findProject"]>>,
     revision?: bigint,
   ) {
-    const currentProject = project ?? await this.access.findProject(projectId);
-    const syncRevision = revision?.toString() ?? (await this.prisma.projectAccessSyncJob.findUnique({ where: { projectId } }))?.revision.toString();
-    let status;
-    try {
-      status = await this.projectSpaces.getProjectSpaceStatus(projectId);
-    } catch {
-      throw new BadGatewayException('Unable to load project chat space status');
-    }
-    if (!status.exists) return status;
-
-    const members = await this.prisma.projectMember.findMany({
-      where: {
-        projectId,
-        status: ProjectMemberStatus.ACTIVE,
-      },
-      select: {
-        userId: true,
-        role: true,
-      },
-      orderBy: { joinedAt: 'asc' },
-    });
-
-    const roleByUserId = new Map<string, ProjectSpaceRole>();
-    for (const member of members) {
-      roleByUserId.set(
-        member.userId,
-        member.userId === currentProject.ownerId ||
-          member.role === ProjectRole.ADMIN
-          ? 'ADMIN'
-          : 'MEMBER',
-      );
-    }
-    roleByUserId.set(currentProject.ownerId, 'ADMIN');
-
-    try {
-      return await this.projectSpaces.ensureProjectSpace({
-        projectId,
-        name: currentProject.name,
-        syncRevision,
-        ownerId: currentProject.ownerId,
-        members: Array.from(roleByUserId.entries()).map(
-          ([memberUserId, role]) => ({
-            userId: memberUserId,
-            role,
-          }),
-        ),
-      });
-    } catch {
-      throw new BadGatewayException('Unable to sync project chat space members');
-    }
+    return this.chat.syncProjectSpaceAccess(projectId, project, revision);
   }
 
   async openProjectDocuments(userId: string, projectId: string) {
-    const project = await this.access.requireReadAccess(userId, projectId);
-    return this.syncProjectDocumentAccess(projectId, project);
+    return this.documents.openProjectDocuments(userId, projectId);
   }
 
   async syncProjectDocumentAccess(
     projectId: string,
-    project?: Awaited<ReturnType<ProjectAccessService['findProject']>>,
+    project?: Awaited<ReturnType<ProjectAccessService["findProject"]>>,
     revision?: bigint,
   ) {
-    const currentProject = project ?? await this.access.findProject(projectId);
-    const syncRevision = revision?.toString() ?? (await this.prisma.projectAccessSyncJob.findUnique({ where: { projectId } }))?.revision.toString();
-    const ownerProfile = await this.userProfiles.getProfileByUserId(
-      currentProject.ownerId,
+    return this.documents.syncProjectDocumentAccess(
+      projectId,
+      project,
+      revision,
     );
-    const members = await this.prisma.projectMember.findMany({
-      where: { projectId, status: ProjectMemberStatus.ACTIVE },
-      select: {
-        userId: true,
-        role: true,
-        canEditDocuments: true,
-      },
-      orderBy: { joinedAt: 'asc' },
-    });
-    const memberUserIds = members
-      .map((member) => member.userId)
-      .filter((memberUserId) => memberUserId !== currentProject.ownerId);
-    const profiles = await this.userProfiles.getProfilesByUserIds(memberUserIds);
-
-    try {
-      return await this.projectDocuments.ensureProjectRootFolder({
-        projectId,
-        name: currentProject.name,
-        syncRevision,
-        ownerId: currentProject.ownerId,
-        ownerEmail: this.resolveOwnerEmail(currentProject.ownerId, ownerProfile?.email),
-        members: members
-          .filter((member) => member.userId !== currentProject.ownerId)
-          .map((member) => {
-            const profile = profiles.get(member.userId);
-            return {
-              userId: member.userId,
-              email: this.resolveOwnerEmail(member.userId, profile?.email),
-              permission:
-                member.role === ProjectRole.ADMIN || member.canEditDocuments
-                  ? 'EDITOR'
-                  : 'VIEWER',
-            };
-          }),
-      });
-    } catch {
-      throw new BadGatewayException('Unable to open project documents');
-    }
   }
 
   async update(userId: string, projectId: string, dto: UpdateProjectDto) {
-    const current = await this.access.requireOwner(userId, projectId);
-    if (current.archived || current.status === ProjectStatus.ARCHIVED) {
-      const fields = Object.entries(dto).filter(([, value]) => value !== undefined);
-      const isRestore = fields.length === 1 && dto.status === ProjectStatus.ACTIVE;
-      if (!isRestore) {
-        throw new ConflictException(
-          'Archived projects are read-only; restore the project before editing it',
-        );
-      }
-    }
-    const data: Prisma.ProjectUpdateInput = {};
-
-    let nextProjectName: string | undefined;
-    if (dto.name !== undefined) {
-      const name = dto.name.trim();
-      if (!name) {
-        throw new BadRequestException('Project name cannot be empty');
-      }
-      data.name = name;
-      nextProjectName = name;
-    }
-    if (dto.color !== undefined) data.color = dto.color;
-    if (dto.icon !== undefined) data.icon = dto.icon;
-    if (dto.description !== undefined) data.description = dto.description;
-    if (dto.startDate !== undefined)
-      data.startDate = this.toDate(dto.startDate);
-    if (dto.dueDate !== undefined) data.dueDate = this.toDate(dto.dueDate);
-
-    const startDate =
-      dto.startDate !== undefined
-        ? this.toDate(dto.startDate)
-        : current.startDate;
-    const dueDate =
-      dto.dueDate !== undefined ? this.toDate(dto.dueDate) : current.dueDate;
-    this.validateDateRange(startDate, dueDate);
-
-    if (dto.status !== undefined) {
-      data.status = dto.status;
-      data.archived = dto.status === ProjectStatus.ARCHIVED;
-    }
-
-    let project;
-    try {
-      project = await this.prisma.$transaction(async tx => {
-        const updated = await tx.project.update({ where: { id: projectId, version: current.version }, data: { ...data, version: { increment: 1 } } });
-        if (nextProjectName !== undefined && nextProjectName !== current.name) await enqueueProjectAccessSync(tx, projectId);
-        return updated;
-      });
-    } catch (error) { rethrowWriteConflict(error, 'Project was changed by another request'); }
-
-    const ownerProfile = await this.userProfiles.getProfileByUserId(project.ownerId);
-    return toProjectResponse(project, {}, ownerProfile);
+    return this.mutations.update(userId, projectId, dto);
   }
 
   async renameProjectFromSpace(
     projectId: string,
     dto: InternalRenameProjectDto,
   ) {
-    const name = dto.name.trim();
-    if (!name) {
-      throw new BadRequestException('Project name cannot be empty');
-    }
-
-    const current = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      select: {
-        id: true,
-        name: true,
-        archived: true,
-        status: true,
-      },
-    });
-    if (!current) {
-      throw new BadRequestException('Project not found');
-    }
-    if (current.archived || current.status === ProjectStatus.ARCHIVED) {
-      throw new ConflictException(
-        'Archived projects are read-only; restore the project before editing it',
-      );
-    }
-    if (current.name === name) {
-      return { projectId, name: current.name };
-    }
-
-    const project = await this.prisma.$transaction(async tx => {
-      const updated = await tx.project.update({ where: { id: projectId }, data: { name, version: { increment: 1 } }, select: { id: true, name: true } });
-      await enqueueProjectAccessSync(tx, projectId);
-      return updated;
-    });
-
-    return { projectId: project.id, name: project.name };
+    return this.mutations.renameProjectFromSpace(projectId, dto);
   }
 
-  async publishDocumentEvent(
-    projectId: string,
-    dto: InternalDocumentEventDto,
-  ) {
-    await this.access.findProject(projectId);
-    const event = {
-      projectId,
-      resource: 'DOCUMENT' as const,
-      action: dto.action,
-      actorId: dto.actorId,
-      entityId: dto.entityId,
-      data: {
-        ...(dto.data ?? {}),
-        parentFolderId: dto.parentFolderId ?? null,
-      },
-      occurredAt: new Date().toISOString(),
-    };
-    this.socketPublisher.publish(event);
-    return event;
+  async publishDocumentEvent(projectId: string, dto: InternalDocumentEventDto) {
+    return this.events.publishDocumentEvent(projectId, dto);
   }
 
   async publishProjectSpaceEvent(
     projectId: string,
     dto: InternalProjectSpaceEventDto,
   ) {
-    await this.access.findProject(projectId);
-    const spaceId = dto.spaceId ?? dto.entityId ?? null;
-    const event = {
-      projectId,
-      resource: 'PROJECT_SPACE' as const,
-      action: dto.action,
-      actorId: dto.actorId,
-      entityId: dto.entityId ?? dto.spaceId ?? undefined,
-      data: {
-        exists: dto.exists ?? dto.action !== 'DELETED',
-        spaceId,
-        channelId: dto.channelId ?? null,
-      },
-      occurredAt: new Date().toISOString(),
-    };
-    this.socketPublisher.publish(event);
-    return event;
+    return this.events.publishProjectSpaceEvent(projectId, dto);
   }
 
   async archive(userId: string, projectId: string): Promise<void> {
-    const project = await this.access.requireOwner(userId, projectId);
-    try {
-      await this.prisma.project.update({
-        where: { id: projectId, version: project.version },
-        data: {
-          status: ProjectStatus.ARCHIVED,
-          archived: true,
-          version: { increment: 1 },
-        },
-      });
-    } catch (error) {
-      rethrowWriteConflict(error, 'Project was changed by another request');
-    }
+    return this.mutations.archive(userId, projectId);
   }
 
   async listMembers(userId: string, projectId: string) {
-    await this.access.requireReadAccess(userId, projectId);
-    const members = await this.prisma.projectMember.findMany({
-      where: { projectId, status: ProjectMemberStatus.ACTIVE },
-      orderBy: { joinedAt: 'asc' },
-    });
-
-    const userIds = members.map((member) => member.userId);
-    const profiles = await this.userProfiles.getProfilesByUserIds(userIds);
-
-    return members.map((member) =>
-      toMemberResponse(member, profiles.get(member.userId)),
-    );
-  }
-
-  private toDate(value?: string | null): Date | null | undefined {
-    return value == null ? value : new Date(value);
-  }
-
-  private validateCreateDates(
-    startDate: Date | null | undefined,
-    dueDate: Date | null | undefined,
-    now: Date,
-  ): void {
-    if (dueDate && !startDate) {
-      throw new BadRequestException(PROJECT_DATE_MESSAGES.startDateRequiredForEndDate);
-    }
-    if (!startDate) return;
-
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: PROJECT_DATE_TIME_ZONE,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-    if (formatter.format(startDate) < formatter.format(now)) {
-      throw new BadRequestException(PROJECT_DATE_MESSAGES.startDateInPast);
-    }
-  }
-
-  private validateDateRange(
-    startDate?: Date | null,
-    dueDate?: Date | null,
-  ): void {
-    if (startDate && dueDate && startDate > dueDate) {
-      throw new ConflictException(PROJECT_DATE_MESSAGES.invalidDateRange);
-    }
-  }
-
-  private resolveOwnerEmail(ownerId: string, email?: string | null): string {
-    const normalizedEmail = email?.trim();
-    return normalizedEmail || `${ownerId}@workspace.local`;
+    return this.queries.listMembers(userId, projectId);
   }
 }

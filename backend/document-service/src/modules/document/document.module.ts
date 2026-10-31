@@ -1,3 +1,15 @@
+import { DocumentAccessService } from './document-access.service';
+import { DocumentLocationService } from './document-location.service';
+import { DocumentEventPublisher } from './document-event-publisher.service';
+import { DocumentPresentationService } from './document-presentation.service';
+import { DocumentTreeService } from './document-tree.service';
+import { DocumentQueryService } from './document-query.service';
+import { DocumentPublicQueryService } from './document-public-query.service';
+import { DocumentUploadService } from './document-upload.service';
+import { DocumentLifecycleService } from './document-lifecycle.service';
+import { DocumentSharingService } from './document-sharing.service';
+import { ProjectDocumentAttachmentService } from './project-document-attachment.service';
+import { DocumentDownloadService } from './document-download.service';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { DocumentService } from './document.service';
@@ -21,6 +33,18 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
   controllers: [DocumentController, InternalDocumentAccessController],
   providers: [
     DocumentService,
+    DocumentAccessService,
+    DocumentLocationService,
+    DocumentEventPublisher,
+    DocumentPresentationService,
+    DocumentTreeService,
+    DocumentQueryService,
+    DocumentPublicQueryService,
+    DocumentUploadService,
+    DocumentLifecycleService,
+    DocumentSharingService,
+    ProjectDocumentAttachmentService,
+    DocumentDownloadService,
     TrashCleanupService,
     ProjectDocumentRealtimeClient,
     StorageCleanupService,

@@ -1,6 +1,6 @@
 import type { Citation, VisualInput } from "../../common/types";
 import { inspectAnswerCitations } from "./citation-check";
-import { modelAnswer } from "../../infrastructure/integrations/llm.client";
+import { aiModels } from "../../infrastructure/integrations/ai-model.provider";
 import { isFollowUp, type ChatTurn } from "./chat-history";
 
 function normalizedQuestion(question: string) {
@@ -82,7 +82,7 @@ export async function generateChatResponse(
   }
   let content = "";
   let clarification = false;
-  for await (const delta of modelAnswer(question, evidence, signal, {
+  for await (const delta of aiModels.answer(question, evidence, signal, {
     history,
     images,
     onClarification: () => {

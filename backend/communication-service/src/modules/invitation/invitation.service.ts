@@ -1,3 +1,4 @@
+import { SystemMessageService } from '../message/system-message.service';
 import {
   Injectable,
   BadRequestException,
@@ -17,6 +18,7 @@ import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profil
 @Injectable()
 export class InvitationService {
   constructor(
+    private readonly systemMessages: SystemMessageService,
     private readonly prisma: PrismaService,
     private readonly conversationPublisher: InvitationPublisher,
     private readonly chatSocketPublisher: ChatSocketPublisher,
@@ -150,7 +152,7 @@ export class InvitationService {
     });
 
     for (const channel of spaceChannels) {
-      await this.chatSocketPublisher.sendSystemMessage(
+      await this.systemMessages.sendSystemMessage(
         channel.id,
         userId,
         `${responderSnapshot.fullName || userId} joined the chat channel`,

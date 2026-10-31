@@ -1,5 +1,5 @@
 import { tool } from "langchain";
-import { createChatModel } from "../../infrastructure/integrations/chat-model";
+import { aiModels } from "../../infrastructure/integrations/ai-model.provider";
 import {
   HumanMessage,
   AIMessage,
@@ -37,7 +37,7 @@ export async function conversationAnswer(
   );
   const modelName = config.CONVERSATION_AI_MODEL ?? config.LLM_MODEL;
   const maxTokens = config.CONVERSATION_AI_MAX_TOKENS ?? config.LLM_MAX_TOKENS;
-  const model = createChatModel(modelName, maxTokens);
+  const model = aiModels.createChatModel(modelName, maxTokens);
   const currentTime = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Ho_Chi_Minh",
     weekday: "long",
