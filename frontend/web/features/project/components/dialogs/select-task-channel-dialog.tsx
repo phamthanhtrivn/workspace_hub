@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { chatKeys } from "@/features/chat/types/chat.constant";
+import { useState } from "react";
 import { MessageSquare, Sparkles, UserCheck, Hash, Lock, AlertCircle } from "lucide-react";
 import {
   Dialog,
@@ -18,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { getSpaceChannels } from "@/features/chat/api/space.api";
 import { ChannelVisibility, SpaceRole } from "@/features/chat/types/chat.enums";
-import type { ChannelResponse } from "@/features/chat/types/chat.types";
+
 import type { Task } from "@/features/project/types/project";
 import { useAppSelector } from "@/store/store";
 import { Button } from "@/components/ui/button";
@@ -34,7 +36,7 @@ interface SelectTaskChannelDialogProps {
   onSubmit: (params: { channelId?: string }) => void;
 }
 
-export default function SelectTaskChannelDialog({
+function SelectTaskChannelForm({
   task,
   spaceId,
   isOpen,
@@ -43,19 +45,13 @@ export default function SelectTaskChannelDialog({
   onSubmit,
 }: SelectTaskChannelDialogProps) {
   const currentUserId = useAppSelector((state) => state.auth.userId);
-  const [channels, setChannels] = useState<ChannelResponse[]>([]);
-  const [loadingChannels, setLoadingChannels] = useState(false);
-  const [selectedChannelId, setSelectedChannelId] = useState<string>("");
+  const [chosenChannelId, setSelectedChannelId] = useState<string>("");
 
-  useEffect(() => {
-    if (!isOpen || !spaceId) {
-      setChannels([]);
-      setSelectedChannelId("");
-      return;
-    }
-    setLoadingChannels(true);
-    getSpaceChannels(spaceId)
-      .then((res) => {
+  const channelQuery = useQuery({
+    queryKey: [...chatKeys.channels(spaceId), "task-options", currentUserId],
+    enabled: isOpen && !!spaceId,
+    queryFn: async () => {
+      const res = await getSpaceChannels(spaceId!);
         const rawChannels = res.data || [];
         // Filter channels joined by current user AND where member chat is permitted
         const allowedChannels = rawChannels.filter((c) => {
@@ -66,7 +62,7 @@ export default function SelectTaskChannelDialog({
           }
 
           // 2. Must not prohibit member messaging in channel settings
-          const setting = (c as any).setting;
+          const setting = c.setting;
           if (setting && setting.allowSendMessage === false) {
             const userMember = c.members?.find((m) => m.userId === currentUserId);
             const isUserAdmin =
@@ -75,30 +71,20 @@ export default function SelectTaskChannelDialog({
           }
 
           // 3. Read only flag check
-          if ((c as any).isReadOnly) return false;
+          if ('isReadOnly' in c && c.isReadOnly === true) return false;
 
           return true;
         });
 
-        setChannels(allowedChannels);
-        if (allowedChannels.length > 0) {
-          const taskChannel = allowedChannels.find(
-            (c) => c.name?.toLowerCase() === "task-discussions",
-          );
-          const defaultChannel = allowedChannels.find((c) => c.isDefault);
-          setSelectedChannelId(
-            (taskChannel ?? defaultChannel ?? allowedChannels[0]).id,
-          );
-        } else {
-          setSelectedChannelId("");
-        }
-      })
-      .catch(() => {
-        setChannels([]);
-        setSelectedChannelId("");
-      })
-      .finally(() => setLoadingChannels(false));
-  }, [isOpen, spaceId, currentUserId]);
+      return allowedChannels;
+    },
+  });
+  const channels = channelQuery.isError ? [] : channelQuery.data ?? [];
+  const loadingChannels = channelQuery.isFetching;
+  const preferredChannel = channels.find(channel => channel.name?.toLowerCase() === "task-discussions")
+    ?? channels.find(channel => channel.isDefault) ?? channels[0];
+  const selectedChannelId = channels.some(channel => channel.id === chosenChannelId)
+    ? chosenChannelId : preferredChannel?.id ?? "";
 
   if (!task) return null;
 
@@ -119,7 +105,7 @@ export default function SelectTaskChannelDialog({
             Choose Channel for Discussion Thread
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground mt-1">
-            Select a Space Channel that you have joined. A dedicated Thread for Task <span className="inline-block max-w-full truncate align-bottom font-semibold text-foreground" title={task.title}>"{task.title}"</span> will be created inside it.
+            Select a Space Channel that you have joined. A dedicated Thread for Task <span className="inline-block max-w-full truncate align-bottom font-semibold text-foreground" title={task.title}>&quot;{task.title}&quot;</span> will be created inside it.
           </DialogDescription>
         </DialogHeader>
 
@@ -202,4 +188,8 @@ export default function SelectTaskChannelDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+export default function SelectTaskChannelDialog(props: SelectTaskChannelDialogProps) {
+  return props.isOpen && props.task ? <SelectTaskChannelForm key={JSON.stringify([props.spaceId, props.task.id])} {...props} /> : null;
 }

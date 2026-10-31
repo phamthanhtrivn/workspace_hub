@@ -12,6 +12,8 @@ import { isUUID } from 'class-validator';
 import { Server, Socket } from 'socket.io';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ProjectMemberStatus } from '../project/project.enums';
+import { verifyAccessToken } from '../../common/auth/access-token';
+import { allowSocketRequest, socketCorsOptions } from '../../common/auth/socket-origin';
 import { SocketEventEmitter } from './socket-event-emitter';
 import { SocketRoomService } from './socket-room.service';
 import {
@@ -22,10 +24,8 @@ import {
 
 @WebSocketGateway({
   path: '/project.io',
-  cors: {
-    origin: true,
-    credentials: true,
-  },
+  cors: socketCorsOptions,
+  allowRequest: allowSocketRequest,
 })
 export class ProjectGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
@@ -39,14 +39,19 @@ export class ProjectGateway
   ) {}
 
   afterInit(server: Server): void {
+    server.use((client, next) => {
+      try {
+        verifyAccessToken(this.accessToken(client));
+        next();
+      } catch {
+        next(new Error('A valid access token is required'));
+      }
+    });
     this.events.bindServer(server);
   }
 
   async handleConnection(client: Socket): Promise<void> {
-    const token =
-      client.handshake.auth?.token ||
-      client.handshake.query?.token ||
-      client.handshake.headers.authorization?.match(/^Bearer\s+([^\s]+)$/i)?.[1];
+    const token = this.accessToken(client);
 
     if (!token) {
       client.disconnect();
@@ -54,22 +59,7 @@ export class ProjectGateway
     }
 
     try {
-      const payloadBase64 = String(token).split('.')[1];
-      if (!payloadBase64) {
-        client.disconnect();
-        return;
-      }
-
-      const decoded = JSON.parse(
-        Buffer.from(payloadBase64, 'base64').toString(),
-      );
-      const userId = decoded.sub || decoded.id;
-
-      if (!userId || !isUUID(userId)) {
-        client.disconnect();
-        return;
-      }
-
+      const userId = verifyAccessToken(token);
       client.data.userId = userId;
 
       const projects = await this.prisma.project.findMany({
@@ -91,8 +81,8 @@ export class ProjectGateway
         this.rooms.user(userId),
         ...projects.map((project) => this.rooms.project(project.id)),
       ]);
-    } catch (error) {
-      this.logger.error(`Failed to handle socket connection: ${error}`);
+    } catch {
+      this.logger.warn('Rejected unauthenticated project socket connection');
       client.disconnect();
     }
   }
@@ -143,4 +133,9 @@ export class ProjectGateway
   }
 
   handleDisconnect(): void {}
+
+  private accessToken(client: Socket): unknown {
+    return client.handshake.auth?.token || client.handshake.query?.token ||
+      client.handshake.headers.authorization?.match(/^Bearer\s+([^\s]+)$/i)?.[1];
+  }
 }

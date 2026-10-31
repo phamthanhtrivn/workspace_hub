@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsIn, IsOptional, IsNumberString, IsString, IsUUID, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsNumberString,
+  IsString,
+  IsUUID,
+  ValidateNested,
+} from 'class-validator';
 import { SpaceRole } from '@prisma/client';
 
 export class ProjectSpaceMemberDto {

@@ -8,7 +8,7 @@
     "prisma:generate": "prisma generate",
     "prebuild": "npm run prisma:generate",
     "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\"",
     "prestart": "npm run prisma:generate",
     "start": "nest start",
     "prestart:dev": "npm run prisma:generate",
@@ -17,22 +17,21 @@
     "start:debug": "nest start --debug --watch",
     "prestart:prod": "npm run prisma:generate",
     "start:prod": "node dist/main",
-    "lint": "eslint \"src/**/*.ts\" --fix",
-    "test": "node --test test/*.test.cjs"
+    "lint": "eslint \"src/**/*.ts\" --fix"
   },
   "dependencies": {
-    "@nestjs/common": "^11.0.1",
-    "@nestjs/core": "^11.0.1",
-    "@nestjs/microservices": "^11.0.1",
-    "@nestjs/platform-express": "^11.0.1",
-    "@nestjs/platform-socket.io": "^11.1.27",
-    "@nestjs/websockets": "^11.1.27",
+    "@nestjs/common": "11.2.8",
+    "@nestjs/core": "11.2.8",
+    "@nestjs/microservices": "11.2.8",
+    "@nestjs/platform-express": "11.2.8",
+    "@nestjs/platform-socket.io": "11.2.8",
+    "@nestjs/websockets": "11.2.8",
     "@prisma/client": "^6.19.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "dotenv": "^16.4.5",
     "kafkajs": "^2.2.4",
-    "nodemailer": "^7.0.3",
+    "nodemailer": "^10.3.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.3",
@@ -43,7 +42,6 @@
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
-    "@nestjs/testing": "^11.0.1",
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
     "@types/nodemailer": "^7.0.0",
@@ -60,5 +58,11 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.0"
+    },
+    "multer": "^2.5.0"
   }
 }

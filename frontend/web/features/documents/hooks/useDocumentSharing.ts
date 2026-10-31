@@ -1,5 +1,6 @@
 "use client";
 
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../api/documents.api";
 import { SharePermission } from "../types/documents.enums";
@@ -24,8 +25,8 @@ export function useDocumentSharing(documentId: string | null) {
       queryClient.invalidateQueries({ queryKey: ["document-shares", documentId] });
       queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to revoke access");
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Failed to revoke access"));
     },
   });
 
@@ -39,8 +40,8 @@ export function useDocumentSharing(documentId: string | null) {
       queryClient.invalidateQueries({ queryKey: ["document-shares", documentId] });
       queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to share document");
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Failed to share document"));
     },
   });
 

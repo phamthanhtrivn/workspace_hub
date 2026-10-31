@@ -29,6 +29,7 @@ import {
 import { DocumentRole, DocumentSortBy } from '../../common/enums/document.enum';
 import { QuotaService } from '../quota/quota.service';
 import { S3Service } from '../../infrastructure/s3/s3.service';
+import { UPLOAD_POLICY } from '../../infrastructure/s3/upload-policy';
 import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { UserProfileSnapshotResponse } from '../user-profile-snapshot/types/user-profile-snapshot.types';
@@ -51,7 +52,9 @@ export class DocumentService {
     return name.trim();
   }
 
-  private toDocumentEventData(item: Pick<DocumentItem, 'id' | 'name' | 'type' | 'parentFolderId'>) {
+  private toDocumentEventData(
+    item: Pick<DocumentItem, 'id' | 'name' | 'type' | 'parentFolderId'>,
+  ) {
     return {
       id: item.id,
       name: item.name,
@@ -61,7 +64,10 @@ export class DocumentService {
   }
 
   private async publishProjectDocumentEvent(
-    item: Pick<DocumentItem, 'id' | 'name' | 'type' | 'parentFolderId' | 'projectId'>,
+    item: Pick<
+      DocumentItem,
+      'id' | 'name' | 'type' | 'parentFolderId' | 'projectId'
+    >,
     actorId: string,
     action: 'CREATED' | 'UPDATED' | 'DELETED',
   ): Promise<void> {
@@ -204,7 +210,8 @@ export class DocumentService {
     projectId?: string | null,
     archivedMessage = 'Cannot modify an archived or trashed folder',
   ): Promise<(DocumentItem & { shares: DocumentShare[] }) | null> {
-    let parentFolder: (DocumentItem & { shares: DocumentShare[] }) | null = null;
+    let parentFolder: (DocumentItem & { shares: DocumentShare[] }) | null =
+      null;
 
     if (parentFolderId) {
       parentFolder = await this.checkPermission(
@@ -274,7 +281,12 @@ export class DocumentService {
       );
     }
 
-    await this.checkPermission(conflict.id, userId, userEmail, DocumentRole.EDITOR);
+    await this.checkPermission(
+      conflict.id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
     return conflict;
   }
 
@@ -311,7 +323,10 @@ export class DocumentService {
   }
 
   private toTaskAttachmentDocumentMetadata(
-    item: Pick<DocumentItem, 'id' | 'name' | 'mimeType' | 'sizeBytes' | 'projectId'>,
+    item: Pick<
+      DocumentItem,
+      'id' | 'name' | 'mimeType' | 'sizeBytes' | 'projectId'
+    >,
   ) {
     return {
       id: item.id,
@@ -327,10 +342,17 @@ export class DocumentService {
       throw new BadRequestException('Only files can be attached to tasks');
     }
     if (item.isArchived) {
-      throw new BadRequestException('Archived or trashed documents cannot be attached');
+      throw new BadRequestException(
+        'Archived or trashed documents cannot be attached',
+      );
+    }
+    if (item.sizeBytes > BigInt(UPLOAD_POLICY.MAX_SIZE_BYTES)) {
+      throw new BadRequestException('Attachments cannot exceed 10 MiB');
     }
     if (!item.s3Key) {
-      throw new BadRequestException('Document file is missing storage metadata');
+      throw new BadRequestException(
+        'Document file is missing storage metadata',
+      );
     }
   }
 
@@ -347,22 +369,29 @@ export class DocumentService {
       'Cannot upload files into an archived or trashed folder',
     );
 
-
-
     const projectId = parentFolder?.projectId || dto.projectId || null;
-    const overwriteTarget = await this.validateUploadNameConflict(userId, userEmail, {
-      name: dto.name,
-      parentFolderId: parentFolder?.id ?? null,
-      projectId,
-      overwriteItemId: dto.overwriteItemId,
-    });
+    const overwriteTarget = await this.validateUploadNameConflict(
+      userId,
+      userEmail,
+      {
+        name: dto.name,
+        parentFolderId: parentFolder?.id ?? null,
+        projectId,
+        overwriteItemId: dto.overwriteItemId,
+      },
+    );
 
-    await this.quotaService.checkQuota(overwriteTarget?.ownerUserId ?? userId, dto.sizeBytes);
+    await this.quotaService.checkQuota(
+      overwriteTarget?.ownerUserId ?? userId,
+      dto.sizeBytes,
+    );
     const { presignedUrl, s3Key } =
       await this.s3Service.generatePresignedUploadUrl(
         userId,
         dto.name,
         dto.mimeType,
+        dto.sizeBytes,
+        { actorId: userId },
       );
 
     return { presignedUrl, s3Key };
@@ -375,7 +404,9 @@ export class DocumentService {
     documentItemIds: string[],
   ) {
     const uniqueIds = [...new Set(documentItemIds)];
-    const documents: ReturnType<typeof this.toTaskAttachmentDocumentMetadata>[] = [];
+    const documents: ReturnType<
+      typeof this.toTaskAttachmentDocumentMetadata
+    >[] = [];
     for (const documentItemId of uniqueIds) {
       const item = await this.checkPermission(
         documentItemId,
@@ -394,38 +425,97 @@ export class DocumentService {
     return documents;
   }
 
-  async importTaskAttachmentDocuments(userId: string, userEmail: string, projectId: string, documentItemIds: string[], operationId?: string) {
+  async importTaskAttachmentDocuments(
+    userId: string,
+    userEmail: string,
+    projectId: string,
+    documentItemIds: string[],
+    operationId?: string,
+  ) {
     const root = await this.findProjectRootFolder(projectId);
-    const imported: ReturnType<typeof this.toTaskAttachmentDocumentMetadata>[] = [];
+    const imported: ReturnType<typeof this.toTaskAttachmentDocumentMetadata>[] =
+      [];
     for (const sourceId of new Set(documentItemIds)) {
-      const source = await this.checkPermission(sourceId, userId, userEmail, DocumentRole.VIEWER);
+      const source = await this.checkPermission(
+        sourceId,
+        userId,
+        userEmail,
+        DocumentRole.VIEWER,
+      );
       this.assertAttachableFile(source);
-      if (source.projectId || source.ownerUserId !== userId) throw new ForbiddenException('Only your own personal files can be imported');
-      const importKey = operationId ? `${projectId}:${userId}:${operationId}:${sourceId}` : null;
+      if (source.projectId || source.ownerUserId !== userId)
+        throw new ForbiddenException(
+          'Only your own personal files can be imported',
+        );
+      const importKey = operationId
+        ? `${projectId}:${userId}:${operationId}:${sourceId}`
+        : null;
       if (importKey) {
-        const previous = await this.prisma.documentItem.findUnique({ where: { importKey } });
-        if (previous) { imported.push(this.toTaskAttachmentDocumentMetadata(previous)); continue; }
+        const previous = await this.prisma.documentItem.findUnique({
+          where: { importKey },
+        });
+        if (previous) {
+          imported.push(this.toTaskAttachmentDocumentMetadata(previous));
+          continue;
+        }
       }
-      const copiedKey = await this.s3Service.copyFile(source.s3Key!, userId, source.name);
+      const copiedKey = await this.s3Service.copyFile(
+        source.s3Key!,
+        userId,
+        source.name,
+      );
       let item: DocumentItem;
       try {
-        await this.s3Service.assertUploadSize(copiedKey, Number(source.sizeBytes));
-        item = await this.prisma.$transaction(async tx => {
+        await this.s3Service.assertUploadSize(
+          copiedKey,
+          Number(source.sizeBytes),
+        );
+        item = await this.prisma.$transaction(async (tx) => {
           if (importKey) {
             await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${importKey}, 8085))::text`;
-            const previous = await tx.documentItem.findUnique({ where: { importKey } });
-            if (previous) { await this.storageCleanup.enqueue(tx, [copiedKey]); return previous; }
+            const previous = await tx.documentItem.findUnique({
+              where: { importKey },
+            });
+            if (previous) {
+              await this.storageCleanup.enqueue(tx, [copiedKey]);
+              return previous;
+            }
           }
           await this.quotaService.reserve(tx, userId, Number(source.sizeBytes));
-          const name = await this.getAvailableImportName(userId, source.name, root.id, projectId);
+          const name = await this.getAvailableImportName(
+            userId,
+            source.name,
+            root.id,
+            projectId,
+          );
           await this.lockAvailableName(tx, userId, name, root.id, projectId);
-          return tx.documentItem.create({ data: {
-            name, type: ItemType.FILE, ownerUserId: userId, ownerEmail: userEmail, parentFolderId: root.id,
-            projectId, s3Key: copiedKey, importKey, mimeType: source.mimeType, sizeBytes: source.sizeBytes,
-            versions: { create: { versionNumber: 1, s3Key: copiedKey, sizeBytes: source.sizeBytes, uploadedBy: userId } },
-          } });
+          return tx.documentItem.create({
+            data: {
+              name,
+              type: ItemType.FILE,
+              ownerUserId: userId,
+              ownerEmail: userEmail,
+              parentFolderId: root.id,
+              projectId,
+              s3Key: copiedKey,
+              importKey,
+              mimeType: source.mimeType,
+              sizeBytes: source.sizeBytes,
+              versions: {
+                create: {
+                  versionNumber: 1,
+                  s3Key: copiedKey,
+                  sizeBytes: source.sizeBytes,
+                  uploadedBy: userId,
+                },
+              },
+            },
+          });
         });
-      } catch (error) { await this.storageCleanup.enqueue(this.prisma, [copiedKey]); throw error; }
+      } catch (error) {
+        await this.storageCleanup.enqueue(this.prisma, [copiedKey]);
+        throw error;
+      }
       await this.publishProjectDocumentEvent(item, userId, 'CREATED');
       imported.push(this.toTaskAttachmentDocumentMetadata(item));
     }
@@ -448,10 +538,15 @@ export class DocumentService {
     const projectId = parentFolder?.projectId || dto.projectId || null;
     const normalizedName = this.normalizeItemName(dto.name);
     // A lost HTTP response must not turn a committed upload into a name error.
-    const committed = await this.prisma.documentItem.findFirst({ where: {
-      s3Key: dto.s3Key, ownerUserId: userId, projectId,
-      parentFolderId: parentFolder?.id ?? null, name: normalizedName,
-    } });
+    const committed = await this.prisma.documentItem.findFirst({
+      where: {
+        s3Key: dto.s3Key,
+        ownerUserId: userId,
+        projectId,
+        parentFolderId: parentFolder?.id ?? null,
+        name: normalizedName,
+      },
+    });
     if (committed) return this.enrichDocumentItem(committed);
     const overwriteTarget = await this.validateUploadNameConflict(
       userId,
@@ -484,12 +579,18 @@ export class DocumentService {
       return this.enrichDocumentItem(updatedItem);
     }
 
-    await this.s3Service.assertUploadSize(dto.s3Key, dto.sizeBytes);
+    await this.s3Service.assertUploadSize(dto.s3Key, dto.sizeBytes, {
+      actorId: userId,
+      mimeType: dto.mimeType,
+      target: `new:${userId}`,
+    });
 
     // Create DocumentItem and first Version in Database
     const item = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${dto.s3Key}, 8085))::text`;
-      const previous = await tx.documentItem.findFirst({ where: { s3Key: dto.s3Key, ownerUserId: userId } });
+      const previous = await tx.documentItem.findFirst({
+        where: { s3Key: dto.s3Key, ownerUserId: userId },
+      });
       if (previous) return previous;
       await this.quotaService.reserve(tx, userId, dto.sizeBytes);
       await this.lockAvailableName(
@@ -525,8 +626,6 @@ export class DocumentService {
 
       return createdItem;
     });
-
-
 
     await this.publishProjectDocumentEvent(item, userId, 'CREATED');
     return this.enrichDocumentItem(item);
@@ -655,9 +754,7 @@ export class DocumentService {
 
     if (share) {
       if (requiredRole === DocumentRole.OWNER) {
-        throw new ForbiddenException(
-          'Only the owner can perform this action',
-        );
+        throw new ForbiddenException('Only the owner can perform this action');
       }
       if (
         requiredRole === DocumentRole.EDITOR &&
@@ -673,9 +770,7 @@ export class DocumentService {
     // 3. Check public link sharing if enabled
     if (item.linkAccess !== LinkAccess.NONE) {
       if (requiredRole === DocumentRole.OWNER) {
-        throw new ForbiddenException(
-          'Only the owner can perform this action',
-        );
+        throw new ForbiddenException('Only the owner can perform this action');
       }
       if (
         requiredRole === DocumentRole.EDITOR &&
@@ -761,13 +856,30 @@ export class DocumentService {
     projectId: string,
     dto: EnsureProjectRootFolderDto,
   ): Promise<DocumentItem> {
-    const folder = await this.prisma.$transaction(async tx => {
+    const folder = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${projectId}, 8085))::text`;
-      const existing = await tx.documentItem.findFirst({ where: { projectId, parentFolderId: null, type: ItemType.FOLDER, isArchived: false }, orderBy: { createdAt: 'asc' } });
-      const root = existing ?? await tx.documentItem.create({ data: {
-        name: this.normalizeItemName(dto.name), type: ItemType.FOLDER, ownerUserId: dto.ownerId,
-        ownerEmail: dto.ownerEmail.toLowerCase(), parentFolderId: null, projectId, sizeBytes: 0n,
-      } });
+      const existing = await tx.documentItem.findFirst({
+        where: {
+          projectId,
+          parentFolderId: null,
+          type: ItemType.FOLDER,
+          isArchived: false,
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+      const root =
+        existing ??
+        (await tx.documentItem.create({
+          data: {
+            name: this.normalizeItemName(dto.name),
+            type: ItemType.FOLDER,
+            ownerUserId: dto.ownerId,
+            ownerEmail: dto.ownerEmail.toLowerCase(),
+            parentFolderId: null,
+            projectId,
+            sizeBytes: 0n,
+          },
+        }));
       await this.syncProjectRootShares(root, dto, tx);
       return tx.documentItem.findUniqueOrThrow({ where: { id: root.id } });
     });
@@ -790,10 +902,24 @@ export class DocumentService {
     const memberEmails = [...new Set(members.map((member) => member.email))];
 
     await tx.$queryRaw`SELECT id FROM document_items WHERE id = ${folder.id}::uuid FOR UPDATE`;
-    const current = await tx.documentItem.findUniqueOrThrow({ where: { id: folder.id } });
-    if (dto.syncRevision && current.accessSyncRevision > BigInt(dto.syncRevision)) return;
+    const current = await tx.documentItem.findUniqueOrThrow({
+      where: { id: folder.id },
+    });
+    if (
+      dto.syncRevision &&
+      current.accessSyncRevision > BigInt(dto.syncRevision)
+    )
+      return;
     if (!dto.syncRevision && current.accessSyncRevision > 0n) return;
-    await tx.documentItem.update({ where: { id: folder.id }, data: { name: this.normalizeItemName(dto.name), ...(dto.syncRevision ? { accessSyncRevision: BigInt(dto.syncRevision) } : {}) } });
+    await tx.documentItem.update({
+      where: { id: folder.id },
+      data: {
+        name: this.normalizeItemName(dto.name),
+        ...(dto.syncRevision
+          ? { accessSyncRevision: BigInt(dto.syncRevision) }
+          : {}),
+      },
+    });
     for (const member of members) {
       await tx.documentShare.upsert({
         where: {
@@ -892,8 +1018,11 @@ export class DocumentService {
       sortBy?: DocumentSortBy;
       search?: string;
     },
-  ): Promise<{ items: DocumentItem[]; totalCount: number }> {
-    const where: any = {
+  ): Promise<{
+    items: Array<Omit<DocumentItem, 'sizeBytes'> & { sizeBytes: number }>;
+    totalCount: number;
+  }> {
+    const where: Prisma.DocumentItemWhereInput = {
       isArchived: options.isArchived ?? false,
     };
 
@@ -960,7 +1089,9 @@ export class DocumentService {
     }
 
     // 3. Sorting (folders first, then sortBy)
-    const orderDirections: any[] = [{ type: 'asc' }];
+    const orderDirections: Prisma.DocumentItemOrderByWithRelationInput[] = [
+      { type: 'asc' },
+    ];
     if (options.sortBy === DocumentSortBy.OLDEST) {
       orderDirections.push({ updatedAt: 'asc' });
     } else {
@@ -989,7 +1120,7 @@ export class DocumentService {
     ]);
 
     const mappedItems = await Promise.all(
-      items.map(async (item: any) => {
+      items.map(async (item) => {
         const userRole = await this.getPermissionRole(
           item.id,
           userId,
@@ -1013,7 +1144,10 @@ export class DocumentService {
       }),
     );
 
-    const enrichedItems = await this.userProfileSnapshotService.attachProfilesToDocumentItems(mappedItems);
+    const enrichedItems =
+      await this.userProfileSnapshotService.attachProfilesToDocumentItems(
+        mappedItems,
+      );
     return { items: enrichedItems, totalCount };
   }
 
@@ -1240,7 +1374,7 @@ export class DocumentService {
     userEmail: string,
     id: string,
     isStarred: boolean,
-  ): Promise<any> {
+  ) {
     const item = await this.checkPermission(
       id,
       userId,
@@ -1333,19 +1467,27 @@ export class DocumentService {
   /**
    * Deletes files from S3 client in the background without blocking execution thread.
    */
-  private async lockDocumentTree(tx: Prisma.TransactionClient, rootId: string): Promise<string[]> {
+  private async lockDocumentTree(
+    tx: Prisma.TransactionClient,
+    rootId: string,
+  ): Promise<string[]> {
     const locked = new Set<string>();
     while (true) {
-      const descendants = await tx.$queryRaw<Array<{ id: string }>>`WITH RECURSIVE tree AS (
+      const descendants = await tx.$queryRaw<
+        Array<{ id: string }>
+      >`WITH RECURSIVE tree AS (
         SELECT id FROM document_items WHERE id = ${rootId}::uuid
         UNION SELECT child.id FROM document_items child JOIN tree ON child.parent_folder_id = tree.id
       ) SELECT id FROM tree`;
-      const missing = descendants.map(row => row.id).filter(id => !locked.has(id)).sort();
-      if (!missing.length) return descendants.map(row => row.id);
+      const missing = descendants
+        .map((row) => row.id)
+        .filter((id) => !locked.has(id))
+        .sort();
+      if (!missing.length) return descendants.map((row) => row.id);
       // FK writers take KEY SHARE on their immediate parent. Locking every node
       // prevents an upload/move from entering the tree after the final snapshot.
-      await tx.$queryRaw`SELECT id FROM document_items WHERE id IN (${Prisma.join(missing.map(id => Prisma.sql`${id}::uuid`))}) ORDER BY id FOR UPDATE`;
-      missing.forEach(id => locked.add(id));
+      await tx.$queryRaw`SELECT id FROM document_items WHERE id IN (${Prisma.join(missing.map((id) => Prisma.sql`${id}::uuid`))}) ORDER BY id FOR UPDATE`;
+      missing.forEach((id) => locked.add(id));
     }
   }
 
@@ -1370,20 +1512,35 @@ export class DocumentService {
       );
     }
 
-    await this.prisma.$transaction(async tx => {
+    await this.prisma.$transaction(async (tx) => {
       const allItemIds = await this.lockDocumentTree(tx, id);
-      const files = await tx.documentItem.findMany({ where: { id: { in: allItemIds }, type: ItemType.FILE }, include: { versions: true } });
+      const files = await tx.documentItem.findMany({
+        where: { id: { in: allItemIds }, type: ItemType.FILE },
+        include: { versions: true },
+      });
       const reclaimed = new Map<string, bigint>();
       const keys: string[] = [];
       for (const file of files) {
-        const versions: Array<{ s3Key: string | null; sizeBytes: bigint }> = file.versions.length ? file.versions : [{ s3Key: file.s3Key, sizeBytes: file.sizeBytes }];
-        reclaimed.set(file.ownerUserId, (reclaimed.get(file.ownerUserId) ?? 0n) + versions.reduce((sum, version) => sum + version.sizeBytes, 0n));
-        for (const version of versions) if (version.s3Key) keys.push(version.s3Key);
+        const versions: Array<{ s3Key: string | null; sizeBytes: bigint }> =
+          file.versions.length
+            ? file.versions
+            : [{ s3Key: file.s3Key, sizeBytes: file.sizeBytes }];
+        reclaimed.set(
+          file.ownerUserId,
+          (reclaimed.get(file.ownerUserId) ?? 0n) +
+            versions.reduce((sum, version) => sum + version.sizeBytes, 0n),
+        );
+        for (const version of versions)
+          if (version.s3Key) keys.push(version.s3Key);
         if (file.s3Key) keys.push(file.s3Key);
       }
-      const removed = await tx.documentItem.deleteMany({ where: { id: { in: allItemIds } } });
+      const removed = await tx.documentItem.deleteMany({
+        where: { id: { in: allItemIds } },
+      });
       if (!removed.count) return;
-      for (const [ownerId, bytes] of [...reclaimed].sort(([a], [b]) => a.localeCompare(b))) {
+      for (const [ownerId, bytes] of [...reclaimed].sort(([a], [b]) =>
+        a.localeCompare(b),
+      )) {
         await tx.$executeRaw`UPDATE user_storage_quotas SET used_bytes = GREATEST(0, used_bytes - ${bytes}), updated_at = NOW() WHERE user_id = ${ownerId}::uuid`;
       }
       await this.storageCleanup.enqueue(tx, keys);
@@ -1484,13 +1641,20 @@ export class DocumentService {
     userId: string,
     userEmail: string,
     id: string,
-  ): Promise<Array<DocumentVersion & { uploadedByEmail: string; uploaderProfile: UserProfileSnapshotResponse | null }>> {
-    const item = (await this.checkPermission(
+  ): Promise<
+    Array<
+      DocumentVersion & {
+        uploadedByEmail: string;
+        uploaderProfile: UserProfileSnapshotResponse | null;
+      }
+    >
+  > {
+    const item = await this.checkPermission(
       id,
       userId,
       userEmail,
       DocumentRole.VIEWER,
-    )) as any;
+    );
 
     if (item.type === ItemType.FOLDER) {
       throw new BadRequestException('Folder has no versions');
@@ -1552,7 +1716,9 @@ export class DocumentService {
     userEmail: string,
     id: string,
     dto: CreateVersionDto,
-  ): Promise<DocumentVersion & { uploaderProfile: UserProfileSnapshotResponse | null }> {
+  ): Promise<
+    DocumentVersion & { uploaderProfile: UserProfileSnapshotResponse | null }
+  > {
     const item = await this.checkPermission(
       id,
       userId,
@@ -1564,15 +1730,24 @@ export class DocumentService {
       throw new BadRequestException('Cannot create a new version for a folder');
     }
 
-    await this.s3Service.assertUploadSize(dto.s3Key, dto.sizeBytes);
+    await this.s3Service.assertUploadSize(dto.s3Key, dto.sizeBytes, {
+      actorId: userId,
+      mimeType: dto.mimeType,
+      target: `document:${id}`,
+    });
     let nextVersionNumber = 1;
 
     const newVersion = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM document_items WHERE id = ${id}::uuid FOR UPDATE`;
-      const duplicate = await tx.documentVersion.findFirst({ where: { documentItemId: id, s3Key: dto.s3Key } });
+      const duplicate = await tx.documentVersion.findFirst({
+        where: { documentItemId: id, s3Key: dto.s3Key },
+      });
       if (duplicate) return duplicate;
       await this.quotaService.reserve(tx, item.ownerUserId, dto.sizeBytes);
-      const latestVersion = await tx.documentVersion.findFirst({ where: { documentItemId: id }, orderBy: { versionNumber: 'desc' } });
+      const latestVersion = await tx.documentVersion.findFirst({
+        where: { documentItemId: id },
+        orderBy: { versionNumber: 'desc' },
+      });
       if (!latestVersion) {
         // Retroactively create version 1 for original state
         await tx.documentVersion.create({
@@ -1616,9 +1791,11 @@ export class DocumentService {
 
     // Update uploader storage quota
 
-
     await this.publishProjectDocumentEvent(item, userId, 'UPDATED');
-    const [enrichedVersion] = await this.userProfileSnapshotService.attachProfilesToDocumentVersions([newVersion]);
+    const [enrichedVersion] =
+      await this.userProfileSnapshotService.attachProfilesToDocumentVersions([
+        newVersion,
+      ]);
     return enrichedVersion;
   }
 
@@ -1631,7 +1808,9 @@ export class DocumentService {
     id: string,
   ): Promise<{
     linkAccess: LinkAccess;
-    shares: Array<DocumentShare & { shareWithProfile: UserProfileSnapshotResponse | null }>;
+    shares: Array<
+      DocumentShare & { shareWithProfile: UserProfileSnapshotResponse | null }
+    >;
   }> {
     const item = await this.checkPermission(
       id,
@@ -1644,7 +1823,10 @@ export class DocumentService {
       orderBy: { createdAt: 'asc' },
     });
 
-    const enrichedShares = await this.userProfileSnapshotService.attachProfilesToDocumentShares(shares);
+    const enrichedShares =
+      await this.userProfileSnapshotService.attachProfilesToDocumentShares(
+        shares,
+      );
 
     return {
       linkAccess: item.linkAccess,
@@ -1661,7 +1843,7 @@ export class DocumentService {
     id: string,
     linkAccess: LinkAccess,
   ): Promise<DocumentItem> {
-    const item = await this.checkPersonalOwnerFeature(
+    await this.checkPersonalOwnerFeature(
       id,
       userId,
       userEmail,
@@ -1694,9 +1876,7 @@ export class DocumentService {
     );
 
     if (shareEmail.toLowerCase() === item.ownerEmail.toLowerCase()) {
-      throw new BadRequestException(
-        'Cannot share an item with its owner',
-      );
+      throw new BadRequestException('Cannot share an item with its owner');
     }
 
     const share = await this.prisma.documentShare.upsert({
@@ -1777,11 +1957,7 @@ export class DocumentService {
     );
 
     // Determine effective user role with inheritance
-    const userRole = await this.getPermissionRole(
-      item.id,
-      userId,
-      userEmail,
-    );
+    const userRole = await this.getPermissionRole(item.id, userId, userEmail);
 
     let sizeBytes = Number(item.sizeBytes);
     let containedSizeBytes: number | undefined;
@@ -1806,17 +1982,13 @@ export class DocumentService {
     };
   }
 
-  async getPublicVersions(
-    id: string,
-    userId?: string,
-    userEmail?: string,
-  ): Promise<any[]> {
-    const item = (await this.checkPermission(
+  async getPublicVersions(id: string, userId?: string, userEmail?: string) {
+    const item = await this.checkPermission(
       id,
       userId,
       userEmail,
       DocumentRole.VIEWER,
-    )) as any;
+    );
 
     if (item.type === ItemType.FOLDER) {
       throw new BadRequestException('Folder has no versions');
@@ -1848,7 +2020,7 @@ export class DocumentService {
         email = item.ownerEmail;
       } else {
         const share = item.shares?.find(
-          (s: any) => s.shareWithUserId === v.uploadedBy,
+          (s) => s.shareWithUserId === v.uploadedBy,
         );
         if (share) {
           email = share.shareWithEmail;
@@ -1867,7 +2039,7 @@ export class DocumentService {
     dto: CreateVersionDto,
     userId?: string,
     userEmail?: string,
-  ): Promise<DocumentVersion> {
+  ): Promise<Omit<DocumentVersion, 'sizeBytes'> & { sizeBytes: number }> {
     const activeUserId = userId || DOCUMENT_CONSTANTS.ANONYMOUS_USER_ID;
 
     const item = await this.checkPermission(
@@ -1881,15 +2053,25 @@ export class DocumentService {
       throw new BadRequestException('Cannot create a new version for a folder');
     }
 
-    await this.s3Service.assertUploadSize(dto.s3Key, dto.sizeBytes);
+    await this.s3Service.assertUploadSize(dto.s3Key, dto.sizeBytes, {
+      actorId: activeUserId,
+      publicDocumentId: id,
+      mimeType: dto.mimeType,
+      target: `document:${id}`,
+    });
     let nextVersionNumber = DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER;
 
     const newVersion = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM document_items WHERE id = ${id}::uuid FOR UPDATE`;
-      const duplicate = await tx.documentVersion.findFirst({ where: { documentItemId: id, s3Key: dto.s3Key } });
+      const duplicate = await tx.documentVersion.findFirst({
+        where: { documentItemId: id, s3Key: dto.s3Key },
+      });
       if (duplicate) return duplicate;
       await this.quotaService.reserve(tx, item.ownerUserId, dto.sizeBytes);
-      const latestVersion = await tx.documentVersion.findFirst({ where: { documentItemId: id }, orderBy: { versionNumber: 'desc' } });
+      const latestVersion = await tx.documentVersion.findFirst({
+        where: { documentItemId: id },
+        orderBy: { versionNumber: 'desc' },
+      });
       if (!latestVersion) {
         await tx.documentVersion.create({
           data: {
@@ -1928,12 +2110,10 @@ export class DocumentService {
       return createdVersion;
     });
 
-
-
     return {
       ...newVersion,
       sizeBytes: Number(newVersion.sizeBytes),
-    } as any;
+    };
   }
 
   async renamePublicItem(
@@ -1987,6 +2167,11 @@ export class DocumentService {
         item.ownerUserId,
         dto.name,
         dto.mimeType,
+        dto.sizeBytes,
+        {
+          actorId: userId || DOCUMENT_CONSTANTS.ANONYMOUS_USER_ID,
+          publicDocumentId: id,
+        },
       );
 
     return { presignedUrl, s3Key };
@@ -2098,7 +2283,7 @@ export class DocumentService {
     folderId: string,
     userId?: string,
     userEmail?: string,
-  ): Promise<DocumentItem[]> {
+  ) {
     // Verify the user can access the root shared item
     await this.checkPermission(rootId, userId, userEmail, DocumentRole.VIEWER);
 
@@ -2106,9 +2291,7 @@ export class DocumentService {
     const isChild = await this.isDescendant(folderId, rootId);
     const isSelf = folderId === rootId;
     if (!isChild && !isSelf) {
-      throw new ForbiddenException(
-        'Folder does not belong to the shared item',
-      );
+      throw new ForbiddenException('Folder does not belong to the shared item');
     }
 
     const children = await this.prisma.documentItem.findMany({
@@ -2130,7 +2313,7 @@ export class DocumentService {
           ...(containedSizeBytes !== undefined ? { containedSizeBytes } : {}),
         };
       }),
-    ) as any;
+    );
   }
 
   async getChatMetadata(
@@ -2149,22 +2332,12 @@ export class DocumentService {
     createdAt: Date;
     hasPermission: boolean;
   }> {
-    const item = await this.prisma.documentItem.findUnique({
-      where: { id },
-    });
-
-    if (!item) {
-      throw new NotFoundException('Document or folder not found');
-    }
-
-    // Check if user has permission
-    let hasPermission = false;
-    try {
-      await this.checkPermission(id, userId, userEmail, DocumentRole.VIEWER);
-      hasPermission = true;
-    } catch (e) {
-      hasPermission = false;
-    }
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
 
     // Get folder/file size
     let sizeBytes = Number(item.sizeBytes);
@@ -2188,7 +2361,7 @@ export class DocumentService {
       ownerEmail: item.ownerEmail,
       ownerName,
       createdAt: item.createdAt,
-      hasPermission,
+      hasPermission: true,
     };
   }
 
@@ -2232,14 +2405,15 @@ export class DocumentService {
   async checkEmailsPermissions(
     id: string,
     emails: string[],
+    userId: string,
+    userEmail: string,
   ): Promise<string[]> {
-    const item = await this.prisma.documentItem.findUnique({
-      where: { id },
-    });
-
-    if (!item) {
-      throw new NotFoundException('Document or folder not found');
-    }
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
 
     // If public sharing is enabled, everyone has access
     if (item.linkAccess !== LinkAccess.NONE) {
@@ -2314,10 +2488,11 @@ export class DocumentService {
     const maxIterations = 50;
 
     while (currentId && iterations < maxIterations) {
-      const item = await this.prisma.documentItem.findUnique({
-        where: { id: currentId },
-        select: { id: true, name: true, parentFolderId: true },
-      });
+      const item: Pick<DocumentItem, 'id' | 'name' | 'parentFolderId'> | null =
+        await this.prisma.documentItem.findUnique({
+          where: { id: currentId },
+          select: { id: true, name: true, parentFolderId: true },
+        });
 
       if (!item) {
         break;
@@ -2334,7 +2509,10 @@ export class DocumentService {
   private async enrichDocumentItem<T extends { ownerUserId: string }>(
     item: T,
   ): Promise<T & { ownerProfile: UserProfileSnapshotResponse | null }> {
-    const [enriched] = await this.userProfileSnapshotService.attachProfilesToDocumentItems([item]);
+    const [enriched] =
+      await this.userProfileSnapshotService.attachProfilesToDocumentItems([
+        item,
+      ]);
     return enriched;
   }
 }

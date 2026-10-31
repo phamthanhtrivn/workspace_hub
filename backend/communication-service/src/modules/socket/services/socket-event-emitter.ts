@@ -29,7 +29,9 @@ export class SocketEventEmitter {
   }
 
   removeUserFromRoom(userId: string, room: string): void {
-    this.server?.in([userId, this.socketRoomService.user(userId)]).socketsLeave(room);
+    this.server
+      ?.in([userId, this.socketRoomService.user(userId)])
+      .socketsLeave(room);
   }
 
   getServer(): Server | undefined {

@@ -1,9 +1,10 @@
 "use client";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 import { X, FileText } from "lucide-react";
 import RichTextTextarea from "../../input/rich-text-textarea";
@@ -20,7 +21,7 @@ interface EditNoteModalProps {
   onSave: (title: string, content: string) => void;
 }
 
-export default function EditNoteModal({
+function EditNoteModalForm({
   isOpen,
   onClose,
   initialTitle,
@@ -28,20 +29,12 @@ export default function EditNoteModal({
   onSave,
 }: EditNoteModalProps) {
   const inputFieldId = useInputFieldId();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
-  useEffect(() => {
-    if (isOpen) {
-      setTitle(initialTitle);
-      setContent(initialContent);
-    }
-  }, [isOpen, initialTitle, initialContent]);
+
 
   if (!isOpen || !mounted) return null;
 
@@ -115,3 +108,7 @@ export default function EditNoteModal({
     </div>}</DialogSurface>;
 }
 
+
+export default function EditNoteModal(props: EditNoteModalProps) {
+  return props.isOpen ? <EditNoteModalForm key={JSON.stringify([props.initialTitle, props.initialContent])} {...props} /> : null;
+}

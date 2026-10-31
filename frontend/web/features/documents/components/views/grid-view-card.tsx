@@ -67,6 +67,7 @@ export function GridViewCard({
     attributes,
     listeners,
     setNodeRef: setDraggableRef,
+    setActivatorNodeRef,
     transform,
     isDragging,
   } = useDraggable({
@@ -95,7 +96,7 @@ export function GridViewCard({
   };
 
   return (
-    <div ref={setCombinedRef} style={style} {...attributes} {...listeners}>
+    <div ref={setCombinedRef} style={style}>
       <DocumentsCard
         selected={isSelected}
         isDraggingOver={isOver}
@@ -115,12 +116,15 @@ export function GridViewCard({
       >
         {/* Header Icon & Menu */}
         <div className="flex items-start justify-between">
+          <Button type="button" variant="unstyled" ref={setActivatorNodeRef}
+            {...attributes} {...listeners} aria-label={`Drag ${item.name}`}>
           <DocumentIcon
             item={item}
             iconSize={22}
             isSelected={isSelected}
             className="p-3 rounded-panel transition-all duration-200"
           />
+          </Button>
 
           <ItemActionsMenu
             item={item}

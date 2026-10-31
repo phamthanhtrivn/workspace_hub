@@ -224,9 +224,17 @@ export class CalendarRecurrenceService {
       .join(';')}`;
   }
 
-  includesOccurrence(rule: string, seriesStart: Date, timeZone: string, occurrenceStart: Date): boolean {
+  includesOccurrence(
+    rule: string,
+    seriesStart: Date,
+    timeZone: string,
+    occurrenceStart: Date,
+  ): boolean {
     const target = this.toFloatingDate(occurrenceStart, timeZone);
-    const candidate = this.createRuleSet(rule, seriesStart, timeZone).after(target, true);
+    const candidate = this.createRuleSet(rule, seriesStart, timeZone).after(
+      target,
+      true,
+    );
     return candidate?.getTime() === target.getTime();
   }
 

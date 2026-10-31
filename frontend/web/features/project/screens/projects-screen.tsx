@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Plus, Settings } from "lucide-react";
 import CreateProjectDialog from "@/features/project/components/dialogs/create-project-dialog";
 import ProjectSettingsDialog from "@/features/project/components/dialogs/project-settings-dialog";
@@ -261,19 +262,7 @@ export default function ProjectsScreen() {
                   return (
                     <TableRow unstyled
                       key={project.id}
-                      role="link"
-                      tabIndex={0}
-                      aria-label={`Open ${project.name}`}
                       onClick={() => router.push(`/projects/${project.id}`)}
-                      onKeyDown={(event) => {
-                        if (
-                          event.key === "Enter" &&
-                          event.target === event.currentTarget
-                        ) {
-                          event.preventDefault();
-                          router.push(`/projects/${project.id}`);
-                        }
-                      }}
                       className="group cursor-pointer transition duration-150 hover:bg-background focus-visible:bg-info-soft/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
                       <TableCell unstyled className="px-6 py-3.5">
@@ -282,9 +271,9 @@ export default function ProjectsScreen() {
                           <div className="min-w-0 flex-1">
                             <div className="flex min-w-0 items-center gap-2">
                               <ProjectColorDot color={project.color} />
-                              <span title={project.name} className="truncate text-sm font-semibold text-info-content group-hover:underline">
+                              <Link href={`/projects/${project.id}`} onClick={event => event.stopPropagation()} title={project.name} className="truncate rounded-control text-sm font-semibold text-info-content group-hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                 {project.name}
-                              </span>
+                              </Link>
                             </div>
                             {projectIdSuffix ? (
                               <div className="mt-0.5">

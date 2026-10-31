@@ -22,10 +22,7 @@ interface MeetingNotificationProfile {
 }
 
 type MeetingInvitationNotificationStatus =
-  | 'PENDING'
-  | 'ACCEPTED'
-  | 'DECLINED'
-  | 'CANCELLED';
+  'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
 
 @Injectable()
 export class MeetingSchedulePublisher {

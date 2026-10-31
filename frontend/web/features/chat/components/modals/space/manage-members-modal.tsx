@@ -1,10 +1,11 @@
 "use client";
 
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { IconButton } from "@/components/ui/icon-button";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 import {
   FiX,
@@ -89,11 +90,8 @@ export default function ManageMembersModal({
   const spaceCreatorId = spaceDetail?.createdBy;
   const isCurrentUserOwner = spaceCreatorId === currentUserId;
 
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const currentUserMember = channel.members?.find(
     (member) => member.userId === currentUserId,

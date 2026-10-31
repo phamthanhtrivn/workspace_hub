@@ -1,5 +1,6 @@
 "use client";
 
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../api/documents.api";
 import { toast } from "sonner";
@@ -25,8 +26,8 @@ export function useDocumentVersions(documentId: string | null) {
       queryClient.invalidateQueries({ queryKey: ["document-versions", documentId] });
       queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to upload version");
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Failed to upload version"));
     },
   });
 
@@ -40,8 +41,8 @@ export function useDocumentVersions(documentId: string | null) {
       link.click();
       document.body.removeChild(link);
       toast.info(`Downloading version...`);
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to download version");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to download version");
     }
   };
 

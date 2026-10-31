@@ -9,15 +9,15 @@ import { ValidationPipe } from "@nestjs/common";
 import { KAFKA_CLIENTS } from "./common/constants/kafka.constants";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
+import { socketCorsOptions } from './common/socket-origin';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS
   app.enableCors({
-    origin: true,
+    ...socketCorsOptions,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-    credentials: true,
   });
 
   // Global Validation Pipe

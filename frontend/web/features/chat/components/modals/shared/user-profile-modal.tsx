@@ -1,5 +1,6 @@
 "use client";
 
+import { getApiErrorMessage } from "@/lib/api-error";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useEffect, useState } from "react";
@@ -100,9 +101,9 @@ const UserProfileModal = React.memo(function UserProfileModal() {
           response?.message || "Failed to start direct conversation",
         );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
-        err.response?.data?.message || "Failed to start direct conversation",
+        getApiErrorMessage(err, "Failed to start direct conversation"),
       );
     }
   };
@@ -168,7 +169,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
                 <div className="flex items-start gap-3 text-sm text-foreground mt-2 pt-2 border-t border-border">
                   <Info size={18} className="text-muted-foreground shrink-0 mt-0.5" />
                   {userProfile?.bio ? (
-                    <span className="italic">"{userProfile.bio}"</span>
+                    <span className="italic">&quot;{userProfile.bio}&quot;</span>
                   ) : (
                     <span>No bio provided</span>
                   )}

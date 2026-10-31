@@ -7,11 +7,13 @@ import { PushService } from './push.service';
 import { SpaceNotificationEvent } from './events/space-notification.event';
 import { SpaceInvitationNotificationHandler } from './events/space-invitation-notification.service';
 import { CalendarReminderEvent } from './events/calendar-reminder.event';
+import { InvalidKafkaEventInterceptor } from '../../common/interceptors/invalid-kafka-event.interceptor';
 
 @Module({
   imports: [],
   controllers: [NotificationController, SpaceNotificationEvent, CalendarReminderEvent],
   providers: [
+    InvalidKafkaEventInterceptor,
     NotificationService,
     NotificationGateway,
     EmailService,

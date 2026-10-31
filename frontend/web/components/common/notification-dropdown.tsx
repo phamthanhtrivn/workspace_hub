@@ -524,7 +524,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                 ? "border-info-outline bg-info-soft text-link"
                 : "border-border text-muted-foreground hover:bg-background"
             }`}
-            aria-label="Notifications"
+            aria-label={unreadCount > 0 ? `Notifications, ${formatNotificationCount(unreadCount)} unread` : "Notifications"}
           >
             <Bell size={22} className={isOpen ? "fill-info-content" : ""} />
             {unreadCount > 0 ? (

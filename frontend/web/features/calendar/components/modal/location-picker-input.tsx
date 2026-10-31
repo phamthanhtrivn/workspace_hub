@@ -2,6 +2,7 @@
 
 import { MapPin } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Combobox, ComboboxInput, ComboboxContent, ComboboxList, ComboboxItem } from "@/components/ui/combobox";
 import {
   LocationSuggestion,
@@ -26,53 +27,45 @@ export function LocationPickerInput({
   className,
 }: LocationPickerInputProps) {
   const [query, setQuery] = useState(value || "");
-  const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedTerm, setDebouncedTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    setQuery(value || "");
-  }, [value]);
-
-
-
-  useEffect(() => {
-    const trimmed = query.trim();
-    if (!trimmed || trimmed === value) {
-      setSuggestions([]);
-      setLoading(false);
-      return;
+  const [previousValue, setPreviousValue] = useState(value);
+  if (previousValue !== value) {
+    setPreviousValue(value);
+    if (value !== query) {
+      setQuery(value || "");
+      setSearchTerm("");
     }
-
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      setLoading(true);
-      searchLocationSuggestions(trimmed, controller.signal)
-        .then((results) => {
-          setSuggestions(results);
-          setIsOpen(results.length > 0);
-        })
-        .finally(() => setLoading(false));
-    }, 300);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [query, value]);
+  }
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedTerm(searchTerm.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  const canSearch = searchTerm.trim().length >= 2 && searchTerm.trim() === debouncedTerm;
+  const suggestionsQuery = useQuery({
+    queryKey: ["calendar-location-suggestions", debouncedTerm],
+    queryFn: ({ signal }) => searchLocationSuggestions(debouncedTerm, signal),
+    enabled: canSearch,
+  });
+  const suggestions = canSearch ? suggestionsQuery.data ?? [] : [];
+  const loading = searchTerm.trim().length >= 2 && (!canSearch || suggestionsQuery.isFetching);
 
   const handleSelect = (suggestion: LocationSuggestion) => {
     const nextVal = suggestion.display_name;
     setQuery(nextVal);
     onChange(nextVal);
-    setSuggestions([]);
+    setSearchTerm("");
     setIsOpen(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setQuery(val);
+    setSearchTerm(val);
+    setIsOpen(true);
     onChange(val);
   };
 

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { requireInternalServiceKey } from '../../common/auth/service-key';
 
 type ProjectDocumentAction = 'CREATED' | 'UPDATED' | 'DELETED';
 
@@ -17,8 +18,9 @@ export class ProjectDocumentRealtimeClient {
   private readonly projectServiceUrl = (
     process.env.PROJECT_SERVICE_URL ?? 'http://localhost:8082'
   ).replace(/\/+$/, '');
-  private readonly internalServiceKey =
-    process.env.INTERNAL_SERVICE_KEY || 'local-internal-key';
+  private readonly internalServiceKey = requireInternalServiceKey(
+    process.env.INTERNAL_SERVICE_KEY,
+  );
   private readonly timeoutMs = this.positiveInteger(
     process.env.SERVICE_HTTP_TIMEOUT_MS,
     5_000,

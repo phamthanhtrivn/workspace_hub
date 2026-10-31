@@ -1,3 +1,4 @@
+import type { ChatMediaResponse } from "@/features/chat/types/chat.types";
 import AiTypingIndicator from "../../message/ai-typing-indicator";
 import { useAiTypingIndicator } from "../../../hooks/message/useAiTypingIndicator";
 import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
@@ -10,7 +11,7 @@ import React, {
   useMemo,
 } from "react";
 import { X, FileText, Download, Bell, Play } from "lucide-react";
-import Image from "next/image";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   followDirectThread,
@@ -124,7 +125,7 @@ export default function ThreadDetailView({
     threadId: string;
     isFollowing: boolean;
   } | null>(null);
-  const [lightboxMedias, setLightboxMedias] = useState<any[] | null>(null);
+  const [lightboxMedias, setLightboxMedias] = useState<ChatMediaResponse[] | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number>(0);
   const { data: followedThreads = EMPTY_FOLLOWED_THREADS } = useQuery({
     queryKey: chatKeys.followedThreads(currentUserId),
@@ -271,7 +272,7 @@ export default function ThreadDetailView({
 
     queryClient.setQueryData(
       chatKeys.followedThreads(currentUserId),
-      (oldThreads: any) =>
+      (oldThreads: FollowedThreadResponse[] | undefined) =>
         Array.isArray(oldThreads)
           ? oldThreads.map((thread) =>
               thread.rootMessage.id === rootMessage.id
@@ -296,13 +297,13 @@ export default function ThreadDetailView({
     if (rootMessage.senderId) {
       ids.add(rootMessage.senderId);
     }
-    replies.forEach((reply: any) => {
+    replies.forEach((reply) => {
       if (reply.senderId) {
         ids.add(reply.senderId);
       }
     });
     if (activeChat && "members" in activeChat && Array.isArray(activeChat.members)) {
-      activeChat.members.forEach((m: any) => {
+      activeChat.members.forEach((m) => {
         if (m.userId) ids.add(m.userId);
       });
     }
@@ -315,7 +316,7 @@ export default function ThreadDetailView({
     const socket = socketService.getSocket();
     if (!socket) return;
 
-    const handleNewMessage = (msg: any) => {
+    const handleNewMessage = (msg: ChatMessageResponse) => {
       if (msg.threadParentId === rootMessage.id) {
         appendThreadReply(msg);
         if (isFollowing) {
@@ -430,14 +431,14 @@ export default function ThreadDetailView({
     activeRootMessage.senderProfile || getProfile(activeRootMessage.senderId);
   const rootAvatarUrl = rootProfile?.avatarUrl || undefined;
 
-  const renderThreadMessageMedias = (messageItem: any) => {
+  const renderThreadMessageMedias = (messageItem: ChatMessageResponse) => {
     if (!messageItem.medias || messageItem.medias.length === 0) return null;
 
     const visualMedias = messageItem.medias.filter(
-      (m: any) => m.type === "IMAGE" || m.type === "VIDEO",
+      (m) => m.type === "IMAGE" || m.type === "VIDEO",
     );
     const fileMedias = messageItem.medias.filter(
-      (m: any) => m.type !== "IMAGE" && m.type !== "VIDEO",
+      (m) => m.type !== "IMAGE" && m.type !== "VIDEO",
     );
 
     return (
@@ -445,7 +446,7 @@ export default function ThreadDetailView({
         {/* Render images/videos */}
         {visualMedias.length > 0 && (
           <div className="grid gap-1 grid-cols-1 max-w-[240px]">
-            {visualMedias.map((media: any, index: number) => {
+            {visualMedias.map((media, index: number) => {
               if (media.type === "IMAGE") {
                 return (
                   <Button variant="unstyled"
@@ -498,7 +499,7 @@ export default function ThreadDetailView({
         {/* Render file attachments */}
         {fileMedias.length > 0 && (
           <div className="flex flex-col gap-1.5 max-w-full">
-            {fileMedias.map((media: any) => {
+            {fileMedias.map((media) => {
               const formatSize = (bytes: number) => {
                 if (bytes === 0) return "0 B";
                 const k = 1024;
@@ -594,7 +595,7 @@ export default function ThreadDetailView({
               senderProfile={rootProfile}
               memberRole={
                 activeChat?.members?.find(
-                  (m: any) => m.userId === rootMessage.senderId,
+                  (m) => m.userId === rootMessage.senderId,
                 )?.role
               }
               spaceCreatorId={spaceCreatorId}
@@ -648,7 +649,7 @@ export default function ThreadDetailView({
           <LoadingState label="Loading comments..." layout="centered" className="text-center text-xs text-muted-foreground py-4" />
         ) : (
           <div className="space-y-4">
-            {replies.map((reply: any) => {
+            {replies.map((reply) => {
               const profile = reply.senderProfile || getProfile(reply.senderId);
               return (
                 <div key={reply.id} className="flex items-start gap-3">
@@ -658,7 +659,7 @@ export default function ThreadDetailView({
                     senderProfile={profile}
                     memberRole={
                       activeChat?.members?.find(
-                        (m: any) => m.userId === reply.senderId,
+                        (m) => m.userId === reply.senderId,
                       )?.role
                     }
                     spaceCreatorId={spaceCreatorId}

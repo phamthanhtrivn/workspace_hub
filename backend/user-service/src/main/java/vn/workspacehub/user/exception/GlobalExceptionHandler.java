@@ -13,6 +13,20 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handleNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity.status(404).body(ApiResponse.builder()
+                .success(false).message(ex.getMessage()).errors(null)
+                .timestamp(LocalDateTime.now()).build());
+    }
+
+    @ExceptionHandler(AuthRateLimitException.class)
+    public ResponseEntity<ApiResponse<?>> handleAuthRateLimit(AuthRateLimitException ex) {
+        return ResponseEntity.status(429).header("Retry-After", Integer.toString(vn.workspacehub.user.common.AuthPolicy.LOGIN_WINDOW_SECONDS))
+                .body(ApiResponse.builder().success(false).message(ex.getMessage())
+                        .timestamp(LocalDateTime.now()).build());
+    }
+
      @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<?> handleValidationException(
             MethodArgumentNotValidException ex) {

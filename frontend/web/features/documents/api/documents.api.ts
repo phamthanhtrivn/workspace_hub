@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { assertAttachmentSize } from "@/lib/upload-policy";
 import { store } from "@/store/store";
 import {
   DocumentItem,
@@ -125,6 +126,7 @@ export const documentsApi = {
     onProgress?: (percent: number, state: UploadState) => void,
     overwriteItemId?: string,
   ): Promise<DocumentItem> => {
+    assertAttachmentSize(file);
     const mimeType = file.type || DEFAULT_MIME_TYPE;
 
     onProgress?.(0, UploadState.INITIATING);
@@ -141,6 +143,7 @@ export const documentsApi = {
     await axios.put(presignedUrl, file, {
       headers: {
         "Content-Type": mimeType,
+        "If-None-Match": "*",
       },
       onUploadProgress: (progressEvent) => {
         if (onProgress) {
@@ -202,7 +205,7 @@ export const documentsApi = {
     return response.data.data;
   },
 
-  deleteItemPermanently: async (id: string): Promise<any> => {
+  deleteItemPermanently: async (id: string): Promise<unknown> => {
     const response = await api.delete(`/api/documents/${id}/permanent`);
     return response.data;
   },
@@ -239,6 +242,7 @@ export const documentsApi = {
     file: File,
     onProgress?: (percent: number, state: UploadState) => void,
   ): Promise<DocumentVersion> => {
+    assertAttachmentSize(file);
     const mimeType = file.type || DEFAULT_MIME_TYPE;
 
     onProgress?.(0, UploadState.INITIATING);
@@ -252,6 +256,7 @@ export const documentsApi = {
     await axios.put(presignedUrl, file, {
       headers: {
         "Content-Type": mimeType,
+        "If-None-Match": "*",
       },
       onUploadProgress: (progressEvent) => {
         if (onProgress) {
@@ -362,6 +367,7 @@ export const documentsApi = {
     file: File,
     onProgress?: (percent: number, state: UploadState) => void,
   ): Promise<DocumentVersion> => {
+    assertAttachmentSize(file);
     const mimeType = file.type || DEFAULT_MIME_TYPE;
 
     onProgress?.(0, UploadState.INITIATING);
@@ -378,6 +384,7 @@ export const documentsApi = {
     await axios.put(presignedUrl, file, {
       headers: {
         "Content-Type": mimeType,
+        "If-None-Match": "*",
       },
       onUploadProgress: (progressEvent) => {
         if (onProgress) {

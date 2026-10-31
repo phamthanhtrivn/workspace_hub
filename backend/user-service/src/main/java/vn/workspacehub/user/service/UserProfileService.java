@@ -24,6 +24,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserProfileService {
+    private final vn.workspacehub.user.repository.PasswordResetGrantRepository passwordResetGrants;
 
     private final UserProfileRepository userProfileRepository;
     private final UserProfileMapper userProfileMapper;
@@ -80,8 +81,8 @@ public class UserProfileService {
     }
 
     @Transactional
-    public void setFirstPassword(UUID userId, SetFirstPasswordRequest request, String currentTokenHash) {
-        User user = userRepository.findById(userId)
+    public void setFirstPassword(UUID userId, SetFirstPasswordRequest request) {
+        User user = userRepository.findForUpdateById(userId)
                 .orElseThrow(() -> new BusinessException("User not found"));
 
         if (user.getPasswordHash() != null && !user.getPasswordHash().isBlank()) {
@@ -99,16 +100,16 @@ public class UserProfileService {
 
         otpService.clearOtp(user.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        user.setEmailVerified(true);
         userRepository.save(user);
 
-        if (currentTokenHash != null && !currentTokenHash.isBlank()) {
-            refreshTokenRepository.revokeAllExceptCurrent(userId, currentTokenHash, LocalDateTime.now());
-        }
+        refreshTokenRepository.revokeAllForUser(userId, LocalDateTime.now());
+        passwordResetGrants.invalidateForUser(userId, LocalDateTime.now(java.time.ZoneOffset.UTC));
     }
 
     @Transactional
-    public void updatePassword(UUID userId, UpdatePasswordRequest request, String currentTokenHash) {
-        User user = userRepository.findById(userId)
+    public void updatePassword(UUID userId, UpdatePasswordRequest request) {
+        User user = userRepository.findForUpdateById(userId)
                 .orElseThrow(() -> new BusinessException("User not found"));
 
         if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
@@ -127,8 +128,7 @@ public class UserProfileService {
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        if (currentTokenHash != null && !currentTokenHash.isBlank()) {
-            refreshTokenRepository.revokeAllExceptCurrent(userId, currentTokenHash, LocalDateTime.now());
-        }
+        refreshTokenRepository.revokeAllForUser(userId, LocalDateTime.now());
+        passwordResetGrants.invalidateForUser(userId, LocalDateTime.now(java.time.ZoneOffset.UTC));
     }
 }

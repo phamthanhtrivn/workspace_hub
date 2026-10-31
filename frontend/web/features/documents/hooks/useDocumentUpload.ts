@@ -216,7 +216,6 @@ export function useDocumentUpload({
     (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      setIsDraggingOver(false);
       dragCounter.current = 0;
 
       if (enabled && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
@@ -227,9 +226,13 @@ export function useDocumentUpload({
     [enabled, handleFileUpload]
   );
 
+  const [previousEnabled, setPreviousEnabled] = useState(enabled);
+  if (previousEnabled !== enabled) {
+    setPreviousEnabled(enabled);
+    if (!enabled) setIsDraggingOver(false);
+  }
   useEffect(() => {
     if (!enabled) {
-      setIsDraggingOver(false);
       dragCounter.current = 0;
       return;
     }

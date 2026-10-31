@@ -30,9 +30,14 @@ export class CalendarEventController {
   constructor(private readonly calendarEventService: CalendarEventService) {}
 
   @Post(':eventId/conference/retry')
-  async retryConference(@Headers('x-user-id') userId: string, @Param('eventId', new ParseUUIDPipe()) eventId: string) {
+  async retryConference(
+    @Headers('x-user-id') userId: string,
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+  ) {
     this.validateUserId(userId);
-    return { data: await this.calendarEventService.retryConference(userId, eventId) };
+    return {
+      data: await this.calendarEventService.retryConference(userId, eventId),
+    };
   }
 
   @Post()

@@ -1,5 +1,6 @@
 "use client";
 
+import type { SendSocketMessageMedia } from "../../types/chat-socket.types";
 import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { IconButton } from "@/components/ui/icon-button";
 import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
@@ -77,7 +78,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 
 interface ChannelChatInputProps {
-  onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
+  onSendMessage?: (content: string, media?: SendSocketMessageMedia[], mentions?: string[]) => void;
   onCreatePoll?: () => void;
   onCreateNote?: () => void;
   onTypingChange?: (isTyping: boolean) => void;
@@ -128,7 +129,7 @@ const ChannelChatInput = React.memo(
       const [isSubmittingTask, setIsSubmittingTask] = useState(false);
 
       const activeSpaceId = useAppSelector(
-        (state: any) => state.chat.activeSpaceId,
+        (state) => state.chat.activeSpaceId,
       );
       const { data: spaceDetail } = useQuery({
         queryKey: chatKeys.spaceDetails(activeSpaceId || ""),
@@ -138,7 +139,7 @@ const ChannelChatInput = React.memo(
 
       const { activeChat: activeChannel, activeChatType } = useActiveChat();
       const memberProfiles = useChatMemberProfiles();
-      const authUserId = useAppSelector((state: any) => state.auth.userId);
+      const authUserId = useAppSelector((state) => state.auth.userId);
       const currentMember = activeChannel?.members?.find(
         (member) => member.userId === authUserId,
       );
@@ -204,8 +205,8 @@ const ChannelChatInput = React.memo(
           });
 
           onSendMessage?.(taskMessagePayload);
-        } catch (error: any) {
-          toast.error(error?.message || "Failed to create task");
+        } catch (error: unknown) {
+          toast.error(error instanceof Error ? error.message : "Failed to create task");
         } finally {
           setIsSubmittingTask(false);
         }
@@ -370,7 +371,7 @@ const ChannelChatInput = React.memo(
       );
 
       const insertMention = useCallback(
-        (user: any) => {
+        (user: import("../../utils/mention-member-utils").MentionMemberOption) => {
           if (mentionStartIndex === -1) return;
           const before = message.substring(0, mentionStartIndex);
           const after = message.substring(
@@ -1245,11 +1246,12 @@ const ChannelChatInput = React.memo(
               </div>
             </div>
           </div>
-          <MyFilesSelectModal
+          {activeChannelId && activeChatType && <MyFilesSelectModal
+            context={{ chatId: activeChannelId, chatType: activeChatType }}
             isOpen={isMyFilesModalOpen}
             onClose={() => setIsMyFilesModalOpen(false)}
             onSelect={handleSelectMyFiles}
-          />
+          />}
           {isTaskModalOpen && spaceDetail?.projectId && (
             <TaskFormDialog
               open={isTaskModalOpen}

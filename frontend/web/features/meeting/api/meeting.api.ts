@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { DEFAULT_UPLOAD_MIME_TYPE } from "@/lib/upload-policy";
 import { normalizeApiResponse } from "@/features/chat/api/chat.api";
 import { MEETING_API_PATHS } from "../types/meeting.constants";
 import type {
@@ -325,7 +326,8 @@ export const uploadMeetingMediaToS3 = async (
     method: "PUT",
     body: file,
     headers: {
-      "Content-Type": file.type,
+      "Content-Type": file.type || DEFAULT_UPLOAD_MIME_TYPE,
+      "If-None-Match": "*",
     },
   });
 

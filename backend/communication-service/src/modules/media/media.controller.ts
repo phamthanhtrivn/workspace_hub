@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Headers } from '@nestjs/common';
 import { PresignRequestDto } from './dto/presign-request.dto';
 import { MediaService } from './media.service';
 
@@ -7,7 +7,10 @@ export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
   @Post('presign')
-  async generatePresignedUrls(@Body() body: PresignRequestDto) {
-    return this.mediaService.generatePresignedUrls(body);
+  async generatePresignedUrls(
+    @Body() body: PresignRequestDto,
+    @Headers('x-user-id') userId: string,
+  ) {
+    return this.mediaService.generatePresignedUrls(body, userId);
   }
 }

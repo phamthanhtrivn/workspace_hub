@@ -72,6 +72,7 @@ export function ListViewRow({
     attributes,
     listeners,
     setNodeRef: setDraggableRef,
+    setActivatorNodeRef,
     transform,
     isDragging,
   } = useDraggable({
@@ -103,8 +104,6 @@ export function ListViewRow({
     <TableRow unstyled
       ref={setCombinedRef}
       style={style}
-      {...attributes}
-      {...listeners}
       onClick={(e) => {
         e.stopPropagation();
         onSelect(item.id);
@@ -124,7 +123,10 @@ export function ListViewRow({
       )}
     >
       <TableCell unstyled className="p-4 flex items-center gap-3 min-w-0">
-        <DocumentIcon item={item} iconSize={18} className="p-2 rounded-panel" />
+        <Button type="button" variant="unstyled" ref={setActivatorNodeRef}
+          {...attributes} {...listeners} aria-label={`Drag ${item.name}`}>
+          <DocumentIcon item={item} iconSize={18} className="p-2 rounded-panel" />
+        </Button>
         <Button variant="unstyled" type="button" className="min-w-0 truncate text-left font-semibold text-foreground max-w-xs" onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); if (isFolder) onFolderClick(item); else onPreview?.(item); }}>{item.name}</Button>
         {!isProjectDocuments && item.isStarred ? (
           <Star className="h-3.5 w-3.5 fill-warning-content text-warning-content shrink-0 ml-1" />

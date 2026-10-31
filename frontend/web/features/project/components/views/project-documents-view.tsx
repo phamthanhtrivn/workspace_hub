@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import DocumentExplorer from "@/features/documents/components/document-explorer";
 import { DownloadQueueProvider } from "@/features/documents/components/download/download-queue-provider";
 import { DocumentsEmptyState } from "@/features/documents/components/ui/documents-empty-state";
@@ -20,14 +20,19 @@ export default function ProjectDocumentsView({
   canEditDocuments,
 }: ProjectDocumentsViewProps) {
   const documentsQuery = useProjectDocuments(projectId);
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [path, setPath] = useState<{ id: string | null; name: string }[]>([]);
-
-  useEffect(() => {
-    if (!documentsQuery.data) return;
-    setCurrentFolderId(documentsQuery.data.folderId);
-    setPath([{ id: documentsQuery.data.folderId, name: projectName }]);
-  }, [documentsQuery.data, projectName]);
+  const [chosenFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const [navigationPath, setPath] = useState<{ id: string | null; name: string }[]>([]);
+  const [navigationProjectId, setNavigationProjectId] = useState(projectId);
+  if (navigationProjectId !== projectId) {
+    setNavigationProjectId(projectId);
+    setCurrentFolderId(null);
+    setPath([]);
+  }
+  const rootFolderId = documentsQuery.data?.folderId ?? null;
+  const currentFolderId = chosenFolderId ?? rootFolderId;
+  const path = navigationPath.length
+    ? navigationPath.map(entry => entry.id === rootFolderId ? { ...entry, name: projectName } : entry)
+    : rootFolderId ? [{ id: rootFolderId, name: projectName }] : [];
 
   const handleNavigate = (folderId: string | null, folderName?: string) => {
     const rootFolderId = documentsQuery.data?.folderId ?? null;

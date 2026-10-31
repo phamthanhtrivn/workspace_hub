@@ -1,11 +1,12 @@
 "use client";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
 
 import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 import {
   FiX,
@@ -55,7 +56,7 @@ export default function ChannelSettingsModal({
 
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const activeSpaceId = useAppSelector((state) => state.chat.activeSpaceId);
@@ -78,9 +79,6 @@ export default function ChannelSettingsModal({
     !channel.isDefault && (isPrivateChannel(channel) ? isPrivateChannelOwner(channel, currentUserId) : (isSpaceAdmin || isChannelCreator || isOwner));
   const canEditSettings = isPrivateChannel(channel) ? isPrivateChannelOwner(channel, currentUserId) : isSpaceAdmin || isOwner;
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleToggle = (key: keyof typeof settings) => {
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }));

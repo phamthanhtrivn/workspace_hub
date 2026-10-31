@@ -4,14 +4,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 import vn.workspacehub.user.dto.request.RegisterRequestDto;
 import vn.workspacehub.user.dto.response.LoginResponseDto;
 import vn.workspacehub.user.dto.response.UserSessionResponse;
@@ -26,6 +21,7 @@ import vn.workspacehub.user.enums.UserRole;
 import vn.workspacehub.user.enums.UserStatus;
 import vn.workspacehub.user.events.UserProfileEventPublisher;
 import vn.workspacehub.user.exception.BusinessException;
+import vn.workspacehub.user.exception.ResourceNotFoundException;
 import vn.workspacehub.user.repository.AccountSettingRepository;
 import vn.workspacehub.user.repository.OAuthAccountRepository;
 import vn.workspacehub.user.repository.RefreshTokenRepository;
@@ -33,10 +29,12 @@ import vn.workspacehub.user.repository.UserProfileRepository;
 import vn.workspacehub.user.repository.UserRepository;
 import vn.workspacehub.user.util.CookieUtils;
 import vn.workspacehub.user.util.HashUtils;
+import vn.workspacehub.user.util.EmailUtils;
+import vn.workspacehub.user.common.AuthPolicy;
+import jakarta.annotation.PostConstruct;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -53,25 +51,36 @@ public class AuthService {
     private final OAuthAccountRepository oauthAccountRepository;
     private final AccountSettingRepository accountSettingRepository;
     private final UserProfileEventPublisher userProfileEventPublisher;
+    private final AuthAttemptLimiter attemptLimiter;
+    private final ClientIpResolver clientIpResolver;
+    private final GoogleIdentityVerifier googleIdentityVerifier;
+    private String dummyPasswordHash;
 
-    private static final String REFRESH_TOKEN_COOKIE = "refreshToken";
+    private static final String REFRESH_TOKEN_COOKIE = AuthPolicy.REFRESH_COOKIE;
+
+    @PostConstruct
+    void initializePasswordTiming() {
+        dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
+    }
 
     @Value("${jwt.secret_key}")
     private String jwtSecret;
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpirationMs;
-    @Value("${spring.security.oauth2.client.registration.google.client-id:}")
-    private String googleClientId;
 
     @Transactional
     public LoginResponseDto login(String email, String password, HttpServletRequest request,
             HttpServletResponse response) {
-        User user = userRepository.findUserByEmail(email)
-                .orElseThrow(() -> new BusinessException("Email or password is incorrect"));
-
-        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new BusinessException("Email or password is incorrect");
+        email = EmailUtils.normalize(email);
+        attemptLimiter.beforeLogin(email);
+        Optional<User> candidate = userRepository.findForUpdateByEmail(email);
+        String hash = candidate.map(User::getPasswordHash).filter(value -> !value.isBlank()).orElse(dummyPasswordHash);
+        boolean passwordMatches = passwordEncoder.matches(password, hash);
+        if (candidate.isEmpty() || !passwordMatches || candidate.get().getStatus() != UserStatus.ACTIVE) {
+            throw new BusinessException(AuthPolicy.INVALID_CREDENTIALS);
         }
+        User user = candidate.get();
+        attemptLimiter.loginSucceeded(email);
 
         String ipAddress = getClientIpAddress(request);
 
@@ -92,56 +101,31 @@ public class AuthService {
 
     private LoginResponseDto processGoogleLogin(String credential, HttpServletRequest request,
             HttpServletResponse response) {
-        try {
-            RestTemplate restTemplate = new RestTemplate();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setBearerAuth(credential);
-            HttpEntity<?> entity = new HttpEntity<>(headers);
-
-            ResponseEntity<Map> responseEntity;
-            try {
-                responseEntity = restTemplate.exchange(
-                        "https://www.googleapis.com/oauth2/v3/userinfo",
-                        HttpMethod.GET,
-                        entity,
-                        Map.class);
-            } catch (org.springframework.web.client.HttpClientErrorException e) {
-                throw new BusinessException("Google authentication error: " + e.getResponseBodyAsString());
-            }
-
-            Map<String, Object> payload = responseEntity.getBody();
-            if (payload == null || !payload.containsKey("email")) {
-                throw new BusinessException("Could not retrieve user information from Google");
-            }
-
-            String email = (String) payload.get("email");
-            String providerUserId = (String) payload.get("sub");
-            String fullName = (String) payload.get("name");
-            String avatarUrl = (String) payload.get("picture");
-
-            return processOAuthUser(email, providerUserId, OAuthProvider.GOOGLE, fullName, avatarUrl, request,
-                    response);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new BusinessException("Google authentication failed: " + e.getClass().getName() + " - " + e.getMessage());
-        }
+        GoogleIdentityVerifier.Identity identity = googleIdentityVerifier.verify(credential);
+        return processOAuthUser(identity.email(), identity.subject(), OAuthProvider.GOOGLE,
+                identity.fullName(), identity.avatarUrl(), request, response);
     }
 
     private LoginResponseDto processOAuthUser(String email, String providerUserId, OAuthProvider provider,
             String fullName, String avatarUrl, HttpServletRequest request, HttpServletResponse response) {
-        Optional<OAuthAccount> optionalOAuth = oauthAccountRepository.findByProviderAndProviderUserId(provider,
+        Optional<UUID> optionalOAuth = oauthAccountRepository.findUserIdByProviderAndSubject(provider,
                 providerUserId);
 
         User user;
         if (optionalOAuth.isPresent()) {
-            user = optionalOAuth.get().getUser();
+            user = userRepository.findForUpdateById(optionalOAuth.get())
+                    .orElseThrow(() -> new BusinessException(AuthPolicy.GOOGLE_FAILED));
         } else {
-            Optional<User> optionalUser = userRepository.findUserByEmail(email);
+            Optional<User> optionalUser = userRepository.findForUpdateByEmail(email);
             if (optionalUser.isPresent()) {
                 user = optionalUser.get();
+                if (!user.isEmailVerified() && user.getPasswordHash() != null && !user.getPasswordHash().isBlank()) {
+                    throw new BusinessException("Reset your password to verify email ownership before linking Google.");
+                }
             } else {
                 user = User.builder()
                         .email(email)
+                        .emailVerified(true)
                         .passwordHash("")
                         .role(UserRole.USER)
                         .status(UserStatus.ACTIVE)
@@ -175,8 +159,9 @@ public class AuthService {
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new BusinessException("Your account has been locked");
+            throw new BusinessException(AuthPolicy.GOOGLE_FAILED);
         }
+        user.setEmailVerified(true);
 
         String ipAddress = getClientIpAddress(request);
         String rawRefreshToken = createAndSaveRefreshToken(user, request, ipAddress);
@@ -185,7 +170,7 @@ public class AuthService {
         return buildLoginResponse(user);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BusinessException.class)
     public LoginResponseDto refresh(HttpServletRequest request, HttpServletResponse response) {
         String rawRefreshToken = CookieUtils.extractCookie(request, REFRESH_TOKEN_COOKIE);
 
@@ -195,12 +180,27 @@ public class AuthService {
 
         String tokenHash = HashUtils.hmacSha256(rawRefreshToken, jwtSecret);
 
-        java.util.Optional<RefreshToken> storedTokenOpt = refreshTokenRepository
-                .findByTokenHashAndRevokedFalse(tokenHash);
+        Optional<UUID> userId = refreshTokenRepository.findUserIdByTokenHash(tokenHash);
+        if (userId.isEmpty()) return null;
+        // Always lock the user before the token, matching reset/login lock ordering.
+        Optional<User> userOpt = userRepository.findForUpdateById(userId.get());
+        if (userOpt.isEmpty()) return null;
+        Optional<RefreshToken> storedTokenOpt = refreshTokenRepository.findForUpdateByTokenHash(tokenHash);
         if (storedTokenOpt.isEmpty()) {
             return null;
         }
         RefreshToken storedToken = storedTokenOpt.get();
+
+        if (storedToken.isRevoked()) {
+            if (storedToken.getRotatedAt() != null)
+                refreshTokenRepository.revokeFamily(storedToken.getFamilyId(), LocalDateTime.now());
+            return null;
+        }
+
+        if (userOpt.get().getStatus() != UserStatus.ACTIVE) {
+            refreshTokenRepository.revokeAllForUser(userId.get(), LocalDateTime.now());
+            return null;
+        }
 
         if (storedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
             revokeToken(storedToken);
@@ -222,9 +222,12 @@ public class AuthService {
             throw new BusinessException("A security anomaly was detected. Please sign in again.");
         }
 
-        User user = storedToken.getUser();
-
-        return buildLoginResponse(user);
+        revokeToken(storedToken);
+        storedToken.setRotatedAt(LocalDateTime.now());
+        String replacement = createAndSaveRefreshToken(userOpt.get(), request, currentIp,
+                storedToken.getFamilyId(), storedToken.getExpiresAt());
+        setRefreshTokenCookie(response, replacement, storedToken.getExpiresAt());
+        return buildLoginResponse(userOpt.get());
     }
 
     @Transactional
@@ -233,8 +236,11 @@ public class AuthService {
 
         if (rawRefreshToken != null && !rawRefreshToken.isBlank()) {
             String tokenHash = HashUtils.hmacSha256(rawRefreshToken, jwtSecret);
-            refreshTokenRepository.findByTokenHashAndRevokedFalse(tokenHash)
-                    .ifPresent(this::revokeToken);
+            refreshTokenRepository.findUserIdByTokenHash(tokenHash).ifPresent(userId -> {
+                userRepository.findForUpdateById(userId);
+                refreshTokenRepository.findForUpdateByTokenHash(tokenHash)
+                        .ifPresent(token -> refreshTokenRepository.revokeFamily(token.getFamilyId(), LocalDateTime.now()));
+            });
         }
 
         CookieUtils.clearCookie(response, REFRESH_TOKEN_COOKIE, "/");
@@ -242,13 +248,13 @@ public class AuthService {
 
     @Transactional
     public void register(RegisterRequestDto dto) {
-        if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new BusinessException("Email already exists");
-        }
+        String email = EmailUtils.normalize(dto.getEmail());
+        String passwordHash = passwordEncoder.encode(dto.getPassword());
+        if (userRepository.existsByEmail(email)) return;
 
         User user = User.builder()
-                .email(dto.getEmail())
-                .passwordHash(passwordEncoder.encode(dto.getPassword()))
+                .email(email)
+                .passwordHash(passwordHash)
                 .role(UserRole.USER)
                 .status(UserStatus.ACTIVE)
                 .build();
@@ -306,28 +312,30 @@ public class AuthService {
 
     @Transactional
     public void revokeSession(UUID userId, UUID sessionId, String password) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.findForUpdateById(userId)
                 .orElseThrow(() -> new BusinessException("User does not exist"));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             throw new BusinessException("Password is incorrect");
         }
 
-        RefreshToken token = refreshTokenRepository.findByIdAndUserIdAndRevokedFalse(sessionId, userId)
-                .orElseThrow(() -> new BusinessException("Session does not exist or has already been revoked"));
+        RefreshToken token = refreshTokenRepository.findByIdAndUserId(sessionId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException(AuthPolicy.SESSION_NOT_FOUND));
 
-        revokeToken(token);
+        refreshTokenRepository.revokeFamily(token.getFamilyId(), LocalDateTime.now());
     }
 
     private String getClientIpAddress(HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null || xfHeader.isEmpty() || !xfHeader.contains(request.getRemoteAddr())) {
-            return request.getRemoteAddr();
-        }
-        return xfHeader.split(",")[0].trim();
+        return clientIpResolver.resolve(request);
     }
 
     private String createAndSaveRefreshToken(User user, HttpServletRequest request, String ipAddress) {
+        return createAndSaveRefreshToken(user, request, ipAddress, UUID.randomUUID(),
+                LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000));
+    }
+
+    private String createAndSaveRefreshToken(User user, HttpServletRequest request, String ipAddress,
+            UUID familyId, LocalDateTime expiresAt) {
         String rawRefreshToken = UUID.randomUUID().toString();
         String tokenHash = HashUtils.hmacSha256(rawRefreshToken, jwtSecret);
 
@@ -341,7 +349,8 @@ public class AuthService {
         RefreshToken refreshToken = RefreshToken.builder()
                 .user(user)
                 .tokenHash(tokenHash)
-                .expiresAt(LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000))
+                .familyId(familyId)
+                .expiresAt(expiresAt)
                 .ipAddress(ipAddress)
                 .browser(browser)
                 .operatingSystem(os)
@@ -359,6 +368,12 @@ public class AuthService {
     private void setRefreshTokenCookie(HttpServletResponse response, String rawRefreshToken) {
         CookieUtils.setCookie(response, REFRESH_TOKEN_COOKIE, rawRefreshToken,
                 (int) (refreshTokenExpirationMs / 1000), "/");
+    }
+
+    private void setRefreshTokenCookie(HttpServletResponse response, String rawRefreshToken, LocalDateTime expiresAt) {
+        long remaining = java.time.Duration.between(LocalDateTime.now(), expiresAt).getSeconds();
+        CookieUtils.setCookie(response, REFRESH_TOKEN_COOKIE, rawRefreshToken,
+                (int) Math.max(0, Math.min(remaining, refreshTokenExpirationMs / 1000)), "/");
     }
 
     private LoginResponseDto buildLoginResponse(User user) {

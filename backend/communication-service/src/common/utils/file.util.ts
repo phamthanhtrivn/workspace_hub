@@ -1,6 +1,7 @@
 import { MESSAGE_MEDIA_TYPE } from '../types/file.enums';
+import { UPLOAD_POLICY } from '../../infrastructure/s3/attachment-upload.policy';
 
-export const MAX_FILE_SIZE = 100 * 1024 * 1024;
+export const MAX_FILE_SIZE = UPLOAD_POLICY.MAX_SIZE_BYTES;
 
 export const getMediaUrl = (s3Key: string): string => {
   if (!s3Key) return '';

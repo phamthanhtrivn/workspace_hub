@@ -16,4 +16,3 @@ export class GetCalendarTasksQueryDto {
   @Max(CALENDAR_DEFAULTS.MAX_PAGE_SIZE)
   limit: number = CALENDAR_DEFAULTS.DEFAULT_PAGE_SIZE;
 }
-

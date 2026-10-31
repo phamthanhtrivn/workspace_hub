@@ -18,6 +18,7 @@ import vn.workspacehub.user.dto.response.UserSearchResponse;
 import vn.workspacehub.user.dto.response.UserSessionResponse;
 import vn.workspacehub.user.service.AuthService;
 import vn.workspacehub.user.service.UserService;
+import vn.workspacehub.user.util.ServiceCredentials;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,7 +31,7 @@ public class UserController {
     private final AuthService authService;
     private final UserService userService;
 
-    @Value("${INTERNAL_SERVICE_KEY:local-internal-key}")
+    @Value("${INTERNAL_SERVICE_KEY:}")
     private String internalServiceKey;
 
     @GetMapping("/me/sessions")
@@ -88,7 +89,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<DirectMessageSettingsResponse>> getDirectMessageSettings(
             @PathVariable UUID id,
             @RequestHeader(value = "X-Internal-Service-Key", required = false) String serviceKey) {
-        if (serviceKey == null || !serviceKey.equals(internalServiceKey)) {
+        if (!ServiceCredentials.matches(serviceKey, internalServiceKey)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid internal service key");
         }
         boolean allowed = userService.getAccountSettings(id).isAllowNewDirectMessages();

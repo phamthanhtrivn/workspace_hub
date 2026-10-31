@@ -4,7 +4,7 @@ import { POMODORO_NUMBER_FIELDS } from "../constants/pomodoro-settings";
 
 function durationField(name: typeof POMODORO_NUMBER_FIELDS[number]["name"]) {
   const limits = POMODORO_NUMBER_FIELDS.find((field) => field.name === name)!;
-  return z.number({ invalid_type_error: "Enter a valid number.", required_error: "Enter a number." })
+  return z.number({ error: issue => issue.input === undefined ? "Enter a number." : "Enter a valid number." })
     .int("Enter a whole number.").min(limits.min, `Minimum: ${limits.min}.`).max(limits.max, `Maximum: ${limits.max}.`);
 }
 
@@ -14,7 +14,7 @@ export const pomodoroSettingsSchema = z.object({
   longBreak: durationField("longBreak"),
   longBreakInterval: durationField("longBreakInterval"),
   dailyGoalPomodoros: durationField("dailyGoalPomodoros"),
-  soundVolumePercent: z.number({ invalid_type_error: "Enter a valid percentage." }).min(0, "Minimum: 0%.").max(100, "Maximum: 100%."),
+  soundVolumePercent: z.number({ error: "Enter a valid percentage." }).min(0, "Minimum: 0%.").max(100, "Maximum: 100%."),
   soundType: z.enum(["chime", "bell", "digital"]),
   soundEnabled: z.boolean(),
   notificationEnabled: z.boolean(),

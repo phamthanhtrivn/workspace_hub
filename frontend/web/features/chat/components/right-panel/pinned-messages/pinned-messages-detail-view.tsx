@@ -1,3 +1,4 @@
+import type { ChatMessageResponse, PinnedMessagesResponse } from "@/features/chat/types/chat.types";
 import { QueryFeedback } from "@/components/common/query-feedback";
 
 import { IconButton } from "@/components/ui/icon-button";
@@ -30,7 +31,7 @@ interface PinnedMessagesDetailViewProps {
   onJumpToMessage: (messageId: string) => void;
 }
 
-function getPinnedPreviewText(message: any) {
+function getPinnedPreviewText(message: ChatMessageResponse) {
   if (message.content) return message.content;
   if (message.medias?.length) return "Attachment";
   if (message.poll) return "Poll";
@@ -67,7 +68,7 @@ export default function PinnedMessagesDetailView({
   const conversationMemberIds = useMemo(
     () =>
       activeConversation?.members
-        ?.map((member: any) => member.userId)
+        ?.map((member) => member.userId)
         .filter(Boolean) || [],
     [activeConversation?.members],
   );
@@ -117,7 +118,7 @@ export default function PinnedMessagesDetailView({
   const senderOptions = useMemo(() => {
     if (!isDirect || !activeConversation?.members) return [];
     return activeConversation.members
-      .map((member: any) => {
+      .map((member) => {
         const profile = memberProfiles[member.userId] || member.profile;
         return {
           id: member.userId,
@@ -125,26 +126,26 @@ export default function PinnedMessagesDetailView({
             member.userId === currentUserId
               ? "You"
               : profile?.fullName ||
-                member.fullName ||
+                member.profile?.fullName ||
                 "User",
         };
       })
       .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label));
-  }, [activeConversation?.members, currentUserId, isDirect, memberProfiles]);
+  }, [activeConversation, currentUserId, isDirect, memberProfiles]);
 
   const handleUnpin = async (messageId: string) => {
     if (isDirect) {
       await unpinDirectPinnedMessage(conversationId, messageId);
       queryClient.setQueryData(
         chatKeys.pinnedMessagesDetail(ChatScope.DIRECT, conversationId),
-        (oldData: any) => {
+        (oldData: import("@tanstack/react-query").InfiniteData<PinnedMessagesResponse> | undefined) => {
           if (!oldData) return oldData;
           return {
             ...oldData,
-            pages: oldData.pages.map((page: any) => ({
+            pages: oldData.pages.map((page) => ({
               ...page,
               messages: page.messages.filter(
-                (message: any) => message.id !== messageId,
+                (message) => message.id !== messageId,
               ),
             })),
           };
@@ -162,14 +163,14 @@ export default function PinnedMessagesDetailView({
 
     queryClient.setQueryData(
       chatKeys.pinnedMessagesDetail(ChatScope.CHANNEL, conversationId),
-      (oldData: any) => {
+      (oldData: import("@tanstack/react-query").InfiniteData<PinnedMessagesResponse> | undefined) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
-          pages: oldData.pages.map((page: any) => ({
+          pages: oldData.pages.map((page) => ({
             ...page,
             messages: page.messages.filter(
-              (message: any) => message.id !== messageId,
+              (message) => message.id !== messageId,
             ),
           })),
         };
@@ -248,7 +249,7 @@ export default function PinnedMessagesDetailView({
           </div>
         ) : (
           <div className="space-y-2">
-            {pinnedMessages.map((message: any) => (
+            {pinnedMessages.map((message) => (
               <div
                 key={message.id}
                 className="group flex items-start gap-3 rounded-lg border border-border bg-background p-3 hover:bg-muted transition"

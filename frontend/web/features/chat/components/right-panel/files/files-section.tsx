@@ -1,3 +1,4 @@
+import type { ChatMediaResponse } from "@/features/chat/types/chat.types";
 import { toast } from "sonner";
 
 import { IconButton } from "@/components/ui/icon-button";
@@ -23,18 +24,18 @@ interface FilesSectionProps {
   loading?: boolean;
   error?: boolean;
   onToggle: () => void;
-  files: any[];
+  files: ChatMediaResponse[];
   onSeeAll?: () => void;
   onOpenPreview?: (mediaId: string) => void;
 }
 
-function isVisualFile(item: any) {
+function isVisualFile(item: ChatMediaResponse) {
   return (
     item.mimeType?.startsWith("image/") || item.mimeType?.startsWith("video/")
   );
 }
 
-function FileThumb({ item }: { item: any }) {
+function FileThumb({ item }: { item: ChatMediaResponse }) {
   if (item.mimeType?.startsWith("image/") && item.fileUrl) {
     return (
       <img
@@ -76,7 +77,7 @@ export default function FilesSection({
   const displayItems = files.slice(0, 5);
   const hasMore = files.length > 5;
 
-  const handleDownload = async (e: React.MouseEvent, item: any) => {
+  const handleDownload = async (e: React.MouseEvent, item: ChatMediaResponse) => {
     e.preventDefault();
     e.stopPropagation();
     try {

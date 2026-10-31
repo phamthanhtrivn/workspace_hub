@@ -1,7 +1,13 @@
 import { assertClientMessageType } from '../../../../common/auth/client-message-type';
-import { ForbiddenException, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  HttpException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { MessageType } from '@prisma/client';
 import { Socket } from 'socket.io';
+import { socketUserId } from '../../../../common/auth/socket-user';
 import {
   CHAT_CONTEXT_TYPE,
   CHAT_ERROR_MESSAGES,
@@ -47,7 +53,7 @@ export class ChatMessageHandler {
     },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (
       !userId ||
       !data.channelId ||
@@ -127,7 +133,7 @@ export class ChatMessageHandler {
     },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (
       !userId ||
       !data.conversationId ||
@@ -181,11 +187,7 @@ export class ChatMessageHandler {
     }
   }
 
-  async sendSystemMessage(
-    channelId: string,
-    userId: string,
-    content: string,
-  ) {
+  async sendSystemMessage(channelId: string, userId: string, content: string) {
     try {
       const messageWithUrls = await this.chatSocketPublisher.sendSystemMessage(
         channelId,
@@ -206,7 +208,7 @@ export class ChatMessageHandler {
     data: { channelId: string; messageId: string; content: string },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (
       !userId ||
       !data.messageId ||
@@ -240,7 +242,7 @@ export class ChatMessageHandler {
     data: { channelId: string; messageId: string },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (!userId || !data.messageId || !data.channelId) return;
 
     try {
@@ -267,7 +269,7 @@ export class ChatMessageHandler {
     data: { channelId: string; messageId: string },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (!userId || !data.messageId || !data.channelId) return;
 
     try {
@@ -277,14 +279,11 @@ export class ChatMessageHandler {
         data.messageId,
       );
 
-      await this.chatSocketPublisher.publishChannelMessageRead(
-        data.channelId,
-        {
-          messageId: data.messageId,
-          userId,
-          readAt: readReceipt.lastReadAt,
-        },
-      );
+      await this.chatSocketPublisher.publishChannelMessageRead(data.channelId, {
+        messageId: data.messageId,
+        userId,
+        readAt: readReceipt.lastReadAt,
+      });
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -299,7 +298,7 @@ export class ChatMessageHandler {
     data: { conversationId: string; messageId: string },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (!userId || !data.messageId || !data.conversationId) return;
 
     try {
@@ -323,7 +322,7 @@ export class ChatMessageHandler {
     data: { channelId: string; messageId: string },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (!userId || !data.messageId || !data.channelId) return;
 
     try {
@@ -346,7 +345,10 @@ export class ChatMessageHandler {
       console.error(error);
       return {
         status: CHAT_RESPONSE_STATUS.ERROR,
-        message: error.message || CHAT_ERROR_MESSAGES.PIN_FAILED,
+        message:
+          error instanceof HttpException && error.getStatus() < 500
+            ? error.message
+            : CHAT_ERROR_MESSAGES.PIN_FAILED,
       };
     }
   }
@@ -355,7 +357,7 @@ export class ChatMessageHandler {
     data: { channelId: string; messageId: string },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (!userId || !data.messageId || !data.channelId) return;
 
     try {
@@ -378,7 +380,10 @@ export class ChatMessageHandler {
       console.error(error);
       return {
         status: CHAT_RESPONSE_STATUS.ERROR,
-        message: error.message || CHAT_ERROR_MESSAGES.UNPIN_FAILED,
+        message:
+          error instanceof HttpException && error.getStatus() < 500
+            ? error.message
+            : CHAT_ERROR_MESSAGES.UNPIN_FAILED,
       };
     }
   }

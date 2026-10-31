@@ -3,6 +3,8 @@ package vn.workspacehub.user.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.workspacehub.user.entity.RefreshToken;
@@ -14,11 +16,25 @@ import java.util.UUID;
 
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
+    @Query("SELECT t.user.id FROM RefreshToken t WHERE t.tokenHash = :tokenHash")
+    Optional<UUID> findUserIdByTokenHash(@Param("tokenHash") String tokenHash);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM RefreshToken t WHERE t.tokenHash = :tokenHash")
+    Optional<RefreshToken> findForUpdateByTokenHash(@Param("tokenHash") String tokenHash);
+
+    @Modifying
+    @Query("UPDATE RefreshToken t SET t.revoked = true, t.revokedAt = :now WHERE t.familyId = :familyId AND t.revoked = false")
+    int revokeFamily(@Param("familyId") UUID familyId, @Param("now") LocalDateTime now);
+
+    @Modifying
+    @Query("UPDATE RefreshToken t SET t.revoked = true, t.revokedAt = :now WHERE t.user.id = :userId AND t.revoked = false")
+    int revokeAllForUser(@Param("userId") UUID userId, @Param("now") LocalDateTime now);
     Optional<RefreshToken> findByTokenHashAndRevokedFalse(String tokenHash);
 
     List<RefreshToken> findByUserIdAndRevokedFalseOrderByCreatedAtDesc(UUID userId);
 
     Optional<RefreshToken> findByIdAndUserIdAndRevokedFalse(UUID id, UUID userId);
+    Optional<RefreshToken> findByIdAndUserId(UUID id, UUID userId);
 
     @Modifying
     @Query("UPDATE RefreshToken t SET t.revoked = true, t.revokedAt = :now WHERE t.revoked = false AND t.expiresAt < :now")

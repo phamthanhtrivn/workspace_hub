@@ -7,6 +7,12 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    files: ["scripts/**/*.cjs"],
+    languageOptions: { sourceType: "commonjs" },
+    // These Node scripts execute as CommonJS and cannot use ES module imports.
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
     files: ["app/**/*.{js,jsx,ts,tsx}", "components/**/*.{js,jsx,ts,tsx}", "features/**/*.{js,jsx,ts,tsx}"],
     plugins: { workspace: { rules: { "shared-ui": sharedUiRule } } },
     rules: { "workspace/shared-ui": "error" },
@@ -17,6 +23,7 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    ".tmp/**",
     "next-env.d.ts",
   ]),
 ]);

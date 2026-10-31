@@ -11,6 +11,7 @@ import {
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
+import { isServiceKeyValid } from '../../common/auth/service-key';
 import { ApiResponse } from '../../common/utils/api-response';
 import { RuntimeConfigService } from '../../common/config/runtime-config.service';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
@@ -183,7 +184,7 @@ export class ProjectController {
   }
 
   private assertInternalServiceKey(serviceKey?: string): void {
-    if (!serviceKey || serviceKey !== this.config.internalServiceKey) {
+    if (!isServiceKeyValid(serviceKey, this.config.internalServiceKey)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
   }

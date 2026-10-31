@@ -145,14 +145,14 @@ export const formatMessageContent = (
 
   // 2. Process Member Profile Mentions from memberProfiles map
   const allProfiles = Object.values(memberProfiles || {})
-    .map((profile: any) => ({
+    .map((profile) => ({
       userId: profile.userId || profile.id,
-      name: profile.fullName || profile.displayName || "Someone",
+      name: profile.fullName || "Someone",
     }))
     .filter((p) => p.name && p.name !== "Someone")
     .sort((a, b) => b.name.length - a.name.length);
 
-  allProfiles.forEach(({ userId, name }: any) => {
+  allProfiles.forEach(({ userId, name }) => {
     const searchStr = `@${name}`;
     const newParts: (string | React.ReactNode)[] = [];
     parts.forEach((part, partIdx) => {
@@ -213,7 +213,7 @@ export const formatMessageContent = (
 
   // Process Markdown Links [text](url)
   const mdLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-  let mdLinkParts: (string | React.ReactNode)[] = [];
+  const mdLinkParts: (string | React.ReactNode)[] = [];
   parts.forEach((part, partIdx) => {
     if (typeof part === "string") {
       let lastIdx = 0;
@@ -452,7 +452,7 @@ export const parseBlocks = (
                 );
               }
               if (node.type === "heading") {
-                const HeadingTag = `h${node.level}` as any;
+                const HeadingTag = `h${node.level}` as keyof React.JSX.IntrinsicElements;
                 const classMap: Record<number, string> = {
                   1: "text-xl font-black text-foreground mt-3 mb-1.5 leading-tight tracking-tight",
                   2: "text-lg font-extrabold text-foreground mt-2.5 mb-1.5 leading-tight tracking-tight",

@@ -1,3 +1,4 @@
+import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
 import {
   ChevronDown,
   ChevronRight,
@@ -27,7 +28,7 @@ interface ThreadsSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
   onSeeAll: () => void;
-  onOpenThread: (message: any) => void;
+  onOpenThread: (message: ChatMessageResponse) => void;
 }
 
 export default function ThreadsSection({
@@ -106,7 +107,7 @@ export default function ThreadsSection({
             </div>
           ) : (
             <div className="space-y-1">
-              {previewThreads.map((message: any) => {
+              {previewThreads.map((message) => {
                 const profile =
                   message.senderProfile || memberProfiles[message.senderId];
                 const name =

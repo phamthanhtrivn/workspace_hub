@@ -386,8 +386,13 @@ export class MeetingRoomService {
     }
 
     const existingParticipant = meeting.participants[0];
-    if (existingParticipant?.requiresReadmission || existingParticipant?.status === MeetingParticipantStatus.REMOVED) {
-      throw new ForbiddenException(MEETING_ERROR_MESSAGES.MEETING_JOIN_REQUIRES_APPROVAL);
+    if (
+      existingParticipant?.requiresReadmission ||
+      existingParticipant?.status === MeetingParticipantStatus.REMOVED
+    ) {
+      throw new ForbiddenException(
+        MEETING_ERROR_MESSAGES.MEETING_JOIN_REQUIRES_APPROVAL,
+      );
     }
 
     const role =

@@ -229,7 +229,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
 
             <div className="text-center text-sm">
               <span className="text-muted-foreground">
-                Didn't receive code?{" "}
+                Didn&apos;t receive code?{" "}
               </span>
               <Button variant="unstyled"
                 type="button"

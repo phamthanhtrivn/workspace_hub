@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
+import React from "react";
 
 import { X } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
@@ -28,11 +29,8 @@ export default function ViewPollModal({
   conversationId,
 }: ViewPollModalProps) {
   const dispatch = useAppDispatch();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!isOpen || !poll || !mounted) return null;
 

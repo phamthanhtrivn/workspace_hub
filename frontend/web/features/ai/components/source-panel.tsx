@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Folder, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { useAppSelector } from "@/store/store";
 import { notebooksApi } from "../api/notebooks.api";
@@ -124,12 +125,11 @@ export function SourcePanel({
         {sources.map((source) => (
           <article key={source.id} className="rounded-lg border p-3">
             <label className="flex items-start gap-2 text-sm font-medium">
-              <input
-                type="checkbox"
-                className="mt-1 accent-blue-800"
+              <Checkbox
+                className="mt-1"
                 checked={selected.includes(source.id)}
                 disabled={source.status !== "READY" || sourceBusy}
-                onChange={() => toggle(source.id)}
+                onCheckedChange={() => toggle(source.id)}
               />
               <span className="min-w-0 break-words">{source.name}</span>
             </label>

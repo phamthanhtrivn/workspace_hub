@@ -1,8 +1,9 @@
 "use client";
 
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import { X, User } from "lucide-react";
 import {
@@ -56,11 +57,8 @@ export default function PollVotersModal({
   poll,
   onUserClick,
 }: PollVotersModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const totalUniqueVoters = useMemo(() => {
     return new Set(

@@ -1,3 +1,4 @@
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -20,20 +21,14 @@ type MessageDirection = "older" | "newer" | "around";
 interface SendDirectMessageParams {
   conversationId: string;
   content?: string;
-  medias?: any[];
+  medias?: SendSocketMessageMedia[];
   threadParentId?: string;
   mentions?: string[];
   onSent?: () => void;
 }
 
-function getErrorMessage(error: any, fallback: string): string {
-  if (error?.response?.data?.message) {
-    return error.response.data.message;
-  }
-  if (error?.message) {
-    return error.message;
-  }
-  return fallback;
+function getErrorMessage(error: unknown, fallback: string): string {
+  return getApiErrorMessage(error, error instanceof Error ? error.message : fallback);
 }
 
 export function useDirectMessageActions() {

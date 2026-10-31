@@ -1,4 +1,7 @@
-type MutationEffect = (tx: Prisma.TransactionClient, eventId: string) => Promise<void>;
+type MutationEffect = (
+  tx: Prisma.TransactionClient,
+  eventId: string,
+) => Promise<void>;
 import {
   BadRequestException,
   Injectable,
@@ -74,7 +77,11 @@ export class RecurrenceMutationService {
           exceptionDates: dto.exceptionDates ?? [],
         });
         await this.materializeSeries(created.id, created.startAt, tx);
-        const firstId = await this.findFirstSeriesOccurrenceId(created.id, undefined, tx);
+        const firstId = await this.findFirstSeriesOccurrenceId(
+          created.id,
+          undefined,
+          tx,
+        );
         await afterMutation?.(tx, firstId);
         return firstId;
       },
@@ -114,7 +121,8 @@ export class RecurrenceMutationService {
                 : dto.description,
             location:
               dto.location === undefined ? event.location : dto.location,
-            conferenceEnabled: dto.conference?.enabled ?? event.conferenceEnabled,
+            conferenceEnabled:
+              dto.conference?.enabled ?? event.conferenceEnabled,
             startAt,
             endAt: dto.endAt ? new Date(dto.endAt) : event.endAt,
             allDay: dto.allDay ?? event.allDay,
@@ -133,15 +141,39 @@ export class RecurrenceMutationService {
             dto.documentIds ?? event.documents.map((item) => item.documentId),
           exceptionDates: dto.exceptionDates ?? [],
         });
-        if (this.recurrence.includesOccurrence(dto.recurrenceRule!, startAt, calendar.timeZone, startAt) && !dto.exceptionDates?.includes(startAt.toISOString())) {
-          await tx.calendarEvent.update({ where: { id: event.id }, data: {
-            ...this.getStandaloneEventData(userId, event, calendar, dto, startAt, dto.endAt ? new Date(dto.endAt) : event.endAt),
-            recurrenceSeriesId: series.id, originalStartAt: startAt, isRecurrenceOverride: false,
-          } });
+        if (
+          this.recurrence.includesOccurrence(
+            dto.recurrenceRule!,
+            startAt,
+            calendar.timeZone,
+            startAt,
+          ) &&
+          !dto.exceptionDates?.includes(startAt.toISOString())
+        ) {
+          await tx.calendarEvent.update({
+            where: { id: event.id },
+            data: {
+              ...this.getStandaloneEventData(
+                userId,
+                event,
+                calendar,
+                dto,
+                startAt,
+                dto.endAt ? new Date(dto.endAt) : event.endAt,
+              ),
+              recurrenceSeriesId: series.id,
+              originalStartAt: startAt,
+              isRecurrenceOverride: false,
+            },
+          });
           await this.relations.replaceEventRelations(tx, event, startAt, dto);
         } else await tx.calendarEvent.delete({ where: { id: event.id } });
         await this.materializeSeries(series.id, startAt, tx);
-        const firstId = await this.findFirstSeriesOccurrenceId(series.id, undefined, tx);
+        const firstId = await this.findFirstSeriesOccurrenceId(
+          series.id,
+          undefined,
+          tx,
+        );
         await afterMutation?.(tx, firstId);
         return firstId;
       },
@@ -337,14 +369,19 @@ export class RecurrenceMutationService {
     if (scope === RecurrenceScope.ALL) {
       const standalone = await tx.calendarEvent.update({
         where: { id: event.id },
-        data: { ...this.getStandaloneEventData(
-          userId,
-          event,
-          calendar,
-          dto,
-          nextStartAt,
-          nextEndAt,
-        ), recurrenceSeriesId: null, originalStartAt: null, isRecurrenceOverride: false },
+        data: {
+          ...this.getStandaloneEventData(
+            userId,
+            event,
+            calendar,
+            dto,
+            nextStartAt,
+            nextEndAt,
+          ),
+          recurrenceSeriesId: null,
+          originalStartAt: null,
+          isRecurrenceOverride: false,
+        },
       });
       await this.relations.replaceEventRelations(tx, event, nextStartAt, dto);
       await tx.recurrenceSeries.delete({ where: { id: series.id } });
@@ -460,7 +497,10 @@ export class RecurrenceMutationService {
     );
 
     if (regenerate) {
-      const regular = await tx.calendarEvent.findMany({ where: { recurrenceSeriesId: series.id, isRecurrenceOverride: false }, include: eventWithRelationsInclude });
+      const regular = await tx.calendarEvent.findMany({
+        where: { recurrenceSeriesId: series.id, isRecurrenceOverride: false },
+        include: eventWithRelationsInclude,
+      });
       const overrides = await tx.calendarEvent.findMany({
         where: {
           recurrenceSeriesId: series.id,
@@ -469,9 +509,30 @@ export class RecurrenceMutationService {
         include: eventWithRelationsInclude,
         orderBy: { originalStartAt: startDelta > 0 ? 'desc' : 'asc' },
       });
-      await tx.calendarEvent.updateMany({ where: { recurrenceSeriesId: series.id }, data: { originalStartAt: null } });
-      const exceptionDates = dto.exceptionDates ?? series.exceptions.map(exception => new Date(exception.occurrenceStart.getTime() + startDelta).toISOString());
-      await this.reuseRegularOccurrences(tx, userId, regular.filter(occurrence => !occurrence.isRecurrenceOverride), calendar, dto, series.id, nextSeriesStart, nextSeriesEnd, dto.recurrenceRule ?? series.recurrenceRule, startDelta, exceptionDates);
+      await tx.calendarEvent.updateMany({
+        where: { recurrenceSeriesId: series.id },
+        data: { originalStartAt: null },
+      });
+      const exceptionDates =
+        dto.exceptionDates ??
+        series.exceptions.map((exception) =>
+          new Date(
+            exception.occurrenceStart.getTime() + startDelta,
+          ).toISOString(),
+        );
+      await this.reuseRegularOccurrences(
+        tx,
+        userId,
+        regular.filter((occurrence) => !occurrence.isRecurrenceOverride),
+        calendar,
+        dto,
+        series.id,
+        nextSeriesStart,
+        nextSeriesEnd,
+        dto.recurrenceRule ?? series.recurrenceRule,
+        startDelta,
+        exceptionDates,
+      );
       selectedOverridePreserved = overrides.some(({ id }) => id === event.id);
       for (const occurrence of overrides) {
         await this.updatePreservedOverride(
@@ -516,7 +577,7 @@ export class RecurrenceMutationService {
           title: dto.title,
           description: dto.description,
           location: dto.location,
-        conferenceEnabled: dto.conference?.enabled,
+          conferenceEnabled: dto.conference?.enabled,
           allDay: dto.allDay,
           color: dto.color,
           status: dto.status,
@@ -584,7 +645,14 @@ export class RecurrenceMutationService {
         updatedBy: userId,
       },
     });
-    const regular = await tx.calendarEvent.findMany({ where: { recurrenceSeriesId: series.id, originalStartAt: { gte: cutoff }, isRecurrenceOverride: false }, include: eventWithRelationsInclude });
+    const regular = await tx.calendarEvent.findMany({
+      where: {
+        recurrenceSeriesId: series.id,
+        originalStartAt: { gte: cutoff },
+        isRecurrenceOverride: false,
+      },
+      include: eventWithRelationsInclude,
+    });
     const nextSeries = await tx.recurrenceSeries.create({
       data: {
         calendarId: calendar.id,
@@ -639,7 +707,25 @@ export class RecurrenceMutationService {
       },
       include: eventWithRelationsInclude,
     });
-    await this.reuseRegularOccurrences(tx, userId, regular.filter(occurrence => !occurrence.isRecurrenceOverride), calendar, dto, nextSeries.id, nextStartAt, nextEndAt, nextRule, startDelta, series.exceptions.filter(exception => exception.occurrenceStart >= cutoff).map(exception => new Date(exception.occurrenceStart.getTime() + startDelta).toISOString()));
+    await this.reuseRegularOccurrences(
+      tx,
+      userId,
+      regular.filter((occurrence) => !occurrence.isRecurrenceOverride),
+      calendar,
+      dto,
+      nextSeries.id,
+      nextStartAt,
+      nextEndAt,
+      nextRule,
+      startDelta,
+      series.exceptions
+        .filter((exception) => exception.occurrenceStart >= cutoff)
+        .map((exception) =>
+          new Date(
+            exception.occurrenceStart.getTime() + startDelta,
+          ).toISOString(),
+        ),
+    );
     for (const occurrence of overrides) {
       await this.updatePreservedOverride(
         tx,
@@ -661,23 +747,57 @@ export class RecurrenceMutationService {
   }
 
   private async reuseRegularOccurrences(
-    tx: Prisma.TransactionClient, userId: string, occurrences: EventWithRelations[],
-    calendar: Calendar, dto: UpdateCalendarEventDto, seriesId: string,
-    seriesStart: Date, seriesEnd: Date, rule: string, startDelta: number, exceptionDates: string[],
+    tx: Prisma.TransactionClient,
+    userId: string,
+    occurrences: EventWithRelations[],
+    calendar: Calendar,
+    dto: UpdateCalendarEventDto,
+    seriesId: string,
+    seriesStart: Date,
+    seriesEnd: Date,
+    rule: string,
+    startDelta: number,
+    exceptionDates: string[],
   ) {
     const excluded = new Set(exceptionDates);
     for (const occurrence of occurrences) {
-      const startAt = new Date((occurrence.originalStartAt ?? occurrence.startAt).getTime() + startDelta);
-      if (excluded.has(startAt.toISOString()) || !this.recurrence.includesOccurrence(rule, seriesStart, calendar.timeZone, startAt)) {
+      const startAt = new Date(
+        (occurrence.originalStartAt ?? occurrence.startAt).getTime() +
+          startDelta,
+      );
+      if (
+        excluded.has(startAt.toISOString()) ||
+        !this.recurrence.includesOccurrence(
+          rule,
+          seriesStart,
+          calendar.timeZone,
+          startAt,
+        )
+      ) {
         await tx.calendarEvent.delete({ where: { id: occurrence.id } });
         continue;
       }
-      await tx.calendarEvent.update({ where: { id: occurrence.id }, data: {
-        recurrenceSeriesId: seriesId, originalStartAt: startAt, calendarId: calendar.id,
-        updatedBy: userId, startAt, endAt: new Date(startAt.getTime() + seriesEnd.getTime() - seriesStart.getTime()),
-        title: dto.title, description: dto.description, location: dto.location, conferenceEnabled: dto.conference?.enabled,
-        allDay: dto.allDay, color: dto.color, status: dto.status, visibility: dto.visibility,
-      } });
+      await tx.calendarEvent.update({
+        where: { id: occurrence.id },
+        data: {
+          recurrenceSeriesId: seriesId,
+          originalStartAt: startAt,
+          calendarId: calendar.id,
+          updatedBy: userId,
+          startAt,
+          endAt: new Date(
+            startAt.getTime() + seriesEnd.getTime() - seriesStart.getTime(),
+          ),
+          title: dto.title,
+          description: dto.description,
+          location: dto.location,
+          conferenceEnabled: dto.conference?.enabled,
+          allDay: dto.allDay,
+          color: dto.color,
+          status: dto.status,
+          visibility: dto.visibility,
+        },
+      });
       await this.relations.replaceEventRelations(tx, occurrence, startAt, dto);
     }
   }

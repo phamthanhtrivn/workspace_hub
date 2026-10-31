@@ -17,7 +17,7 @@ Applications run on the host. Docker runs infrastructure and Kong only.
 Follow [local development](local-development.md) for environment scopes,
 application terminals, explicit SQL/Prisma/Alembic migrations and recording.
 The sole local Docker entry point is `backend/docker/docker-compose.host.yml`.
-GitHub Actions keeps isolated application E2E under `.github/ci/ai`.
+GitHub Actions validates application builds and deployment configuration.
 Production retains image build/push, EC2 pull/run, migrations and rollback.
 
 ## Images and GitHub configuration
@@ -71,8 +71,8 @@ Remove obsolete workflow settings `AWS_ROLE_ARN`, `DEPLOY_ARTIFACT_BUCKET`,
 The application's `AWS_REGION` remains required. No GitHub OIDC role, SSM command,
 artifact bucket, or Parameter Store lookup participates in deployment.
 
-PRs targeting main run lint, unit tests and trial builds for affected components;
-configuration and deployment regression checks always run. PRs never publish or
+PRs targeting main run lint and trial builds for affected components;
+configuration checks always run. Test suites have been removed. PRs never publish or
 deploy. Push/merge to main invokes one production coordinator: it reads non-secret
 release metadata over SSH, runs selective CI, builds changed images and deploys
 only affected hosts in INFRA → REALTIME → APP order. A failed required host blocks
@@ -80,7 +80,7 @@ later hosts. Image builds can run alongside INFRA deployment after CI succeeds.
 
 **Release production** on main accepts `services=auto`, `all`, or comma-separated
 Compose names, such as `calendar-service,frontend-web`. `auto` reconciles pending
-APP changes, `all` builds all 17 APP images, and an explicit list rebuilds those
+APP changes, `all` builds all 14 APP images (eight runtime and six migration images), and an explicit list rebuilds those
 runtime images plus affected migration images. **Deploy infra** and **Deploy realtime**
 remain available for manual redeployment of operator env changes. All entrypoints
 share one production concurrency group. Normal APP code changes do not deploy
@@ -265,7 +265,8 @@ secure context; configure domains/TLS and Google origins/S3 CORS for full testin
 4. Dispatch **Deploy realtime** on main; verify signaling, ICE and webhook access.
 5. Dispatch **Release production** on main, or push a new main commit. CI must pass
    before selected images publish and the APP configuration is sent by SCP. A new
-   APP host builds all 17 images; later releases build only affected images.
+   APP host requires GitHub Actions to build all 14 images; later releases build
+   only affected images. The host pulls the images and does not build them.
 6. The host verifies SHA-256 before extraction, acquires its deployment lock, renders
    runtime env, pulls selected images, runs selected migrations, rolls out selected
    APP containers and checks their health/readiness. Bootstrap runs all six
@@ -332,10 +333,10 @@ bash deploy/scripts/validate-config.sh
 ```
 
 Checks create a disposable fake env shared by all Compose validations, remove it
-on exit, and cover image pins, safe migrations, YAML, shell, actionlint, renderer,
-release rollback and transport regression tests. Only designated Dockerfiles and
+on exit, and cover Compose contracts, image pins, migration configuration, YAML, shell,
+Python syntax and actionlint. Only designated Dockerfiles and
 deployment configurations are scanned for unsafe image/command patterns.
-Node lint remains advisory because of existing lint debt; tests/builds and deployment
+Node lint remains advisory because of existing lint debt; builds and deployment
 checks are required. Production/migration Docker targets are built during CI.
 
 Pinned image upgrades require release-note review, exact version/digest edits,

@@ -1,5 +1,6 @@
 "use client";
 
+import { getApiErrorMessage } from "@/lib/api-error";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../api/documents.api";
 import { toast } from "sonner";
@@ -38,8 +39,8 @@ export function useDocumentActions({
       toast.success("Folder created successfully");
       refreshExplorer();
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to create folder");
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Failed to create folder"));
     },
   });
 
@@ -51,8 +52,8 @@ export function useDocumentActions({
       toast.success("Resource renamed successfully");
       refreshExplorer();
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to rename resource");
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Failed to rename resource"));
     },
   });
 
@@ -64,8 +65,8 @@ export function useDocumentActions({
       toast.success("Resource moved successfully");
       refreshExplorer();
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to move resource");
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Failed to move resource"));
     },
   });
 
@@ -77,8 +78,8 @@ export function useDocumentActions({
       toast.success(data.isStarred ? "Starred resource" : "Unstarred resource");
       refreshExplorer();
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to update star status");
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Failed to update star status"));
     },
   });
 
@@ -89,8 +90,8 @@ export function useDocumentActions({
       toast.success("Moved to trash");
       refreshExplorer();
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to move to trash");
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Failed to move to trash"));
     },
   });
 
@@ -101,8 +102,8 @@ export function useDocumentActions({
       toast.success("Resource restored");
       refreshExplorer();
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to restore resource");
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Failed to restore resource"));
     },
   });
 
@@ -113,14 +114,14 @@ export function useDocumentActions({
       toast.success("Permanently deleted resource");
       refreshExplorer();
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || "Failed to delete resource");
+    onError: (err: unknown) => {
+      toast.error(getApiErrorMessage(err, "Failed to delete resource"));
     },
   });
 
   // Single Item Download
   const handleDownloadItem = async (item: DocumentItem) => {
-    if (item.type === "FOLDER" || (item.type as any) === "FOLDER") {
+    if (item.type === "FOLDER") {
       enqueueDownload(item.id, item.name);
       toast.info(`Started downloading folder: ${item.name}`);
     } else {
@@ -132,8 +133,8 @@ export function useDocumentActions({
         link.click();
         document.body.removeChild(link);
         toast.info(`Downloading file: ${item.name}`);
-      } catch (err: any) {
-        toast.error(err?.message || "Failed to download file");
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Failed to download file");
       }
     }
   };

@@ -55,7 +55,7 @@ this refactor retains that behavior. Production continues to use its migration j
 For Prisma services, use `npx prisma generate`, then explicitly apply reviewed
 committed migrations using `npx prisma migrate deploy`. Existing Communication
 databases may need the baseline preparation described in
-[recording setup](../meeting-recording-setup.md); do not reset to resolve drift.
+[migration guide](migrations.md); do not reset to resolve drift.
 
 ## Applications: separate terminals
 
@@ -72,8 +72,9 @@ databases may need the baseline preparation described in
 Run `npm ci` in each Node application first and generate its Prisma client where
 applicable. User Service does not automatically load `.env`: supply the existing
 variables through your IDE run configuration or terminal environment before Maven.
-For AI, create the environment once with `py -3.14 -m venv .venv`, then install
-`requirements-dev.txt`. Preserve an existing `.env`; the AI example is for first setup.
+Notebook AI is a Node API/jobs service with separate Python workers; follow
+[Notebook AI setup](../deploy/ai/README.md). Install each Python worker from its
+`requirements.txt`. Preserve existing `.env` files and runtime environments.
 
 Check each service's readiness directly, then through Kong at
 `http://localhost:8000/health/<service>` (for example `/health/document`). Open
@@ -87,8 +88,9 @@ through `host.docker.internal`; allow the required local firewall access.
 Add `--profile recording` before `up -d` on the host Compose command to enable
 Egress. Keep existing recording volumes. The webhook targets host Communication
 at `http://host.docker.internal:8083/api/meetings/livekit/webhook`.
-See [recording setup](../meeting-recording-setup.md).
+See [LiveKit and recording](../backend/livekit/README.md).
 
-Run host unit tests through npm/Python. Production builds/pushes SHA images in
+Use the available build, typecheck and lint commands after changes. The test
+suites were removed; historical results are retained locally. Production builds/pushes SHA images in
 GitHub Actions; EC2 pulls them, runs migration containers, checks health and rolls
 back failures. See [deployment](deployment.md).

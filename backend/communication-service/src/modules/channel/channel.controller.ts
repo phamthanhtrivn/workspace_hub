@@ -1,3 +1,4 @@
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
 import {
   Body,
   BadRequestException,
@@ -15,8 +16,12 @@ import {
   ValidationPipe,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { isServiceKeyValid } from '../../common/auth/service-key';
 import { UpdateChannelSettingDto } from './dto/update-channel-setting.dto';
-import { ChannelResource, SkipChannelResource } from './access/channel-resource.decorator';
+import {
+  ChannelResource,
+  SkipChannelResource,
+} from './access/channel-resource.decorator';
 import { UpdateChannelInfoDto } from './dto/update-channel-info.dto';
 import { AddChannelMembersDto } from './dto/add-channel-members.dto';
 import { PrivateChannelMembersQueryDto } from './dto/private-channel-members-query.dto';
@@ -41,6 +46,7 @@ export class ChannelController {
     private readonly privateMembers: PrivateChannelMembersService,
   ) {}
 
+  @IndependentAuthentication()
   @Post('internal/:id/task-create-permission')
   @SkipChannelResource()
   async checkTaskCreatePermission(
@@ -48,7 +54,7 @@ export class ChannelController {
     @Headers('x-internal-service-key') serviceKey: string,
     @Body() request: CheckChannelTaskPermissionDto,
   ) {
-    if (!serviceKey || serviceKey !== this.config.internalServiceKey) {
+    if (!isServiceKeyValid(serviceKey, this.config.internalServiceKey)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
     await this.channelService.assertCanCreateTaskInChannel(
@@ -184,7 +190,13 @@ export class ChannelController {
     @Headers('x-user-id') userId: string,
     @Body() body: AddChannelMembersDto,
   ) {
-    return { data: await this.channelService.addMembers(channelId, userId, body.userIds) };
+    return {
+      data: await this.channelService.addMembers(
+        channelId,
+        userId,
+        body.userIds,
+      ),
+    };
   }
 
   // @Delete(':id/members/:memberId')

@@ -26,6 +26,11 @@ import { CalendarNotificationOutboxService } from './calendar-notification-outbo
     CalendarNotificationService,
     CalendarNotificationOutboxService,
   ],
-  exports: [CalendarEventService, CalendarRecurrenceService, CalendarConferenceSyncService, CalendarNotificationOutboxService],
+  exports: [
+    CalendarEventService,
+    CalendarRecurrenceService,
+    CalendarConferenceSyncService,
+    CalendarNotificationOutboxService,
+  ],
 })
 export class CalendarEventModule {}

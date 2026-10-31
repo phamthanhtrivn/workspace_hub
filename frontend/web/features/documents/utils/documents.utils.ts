@@ -15,7 +15,7 @@ import {
   DocumentRoleMetadata,
   StorageQuotaStats,
 } from "../types/documents.types";
-import { Eye, Edit, ShieldCheck, LucideIcon } from "lucide-react";
+import { Eye, Edit, ShieldCheck } from "lucide-react";
 
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return "0 B";

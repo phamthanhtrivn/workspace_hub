@@ -1,5 +1,7 @@
 "use client";
 
+import { getApiErrorMessage } from "@/lib/api-error";
+import type { SpaceResponse } from "@/features/chat/types/chat.types";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { createSpace } from "@/features/chat/api/space.api";
@@ -9,7 +11,7 @@ import { Globe } from "lucide-react";
 interface CreateSpaceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSpaceCreated?: (space: any) => void;
+  onSpaceCreated?: (space: SpaceResponse) => void;
 }
 
 export default function CreateSpaceModal({
@@ -32,8 +34,8 @@ export default function CreateSpaceModal({
       } else {
         toast.error("Failed to create space");
       }
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || "Error creating space");
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, "Error creating space"));
     } finally {
       setIsCreating(false);
     }

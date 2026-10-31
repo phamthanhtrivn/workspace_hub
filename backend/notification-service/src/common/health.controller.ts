@@ -1,46 +1,57 @@
-import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
-import { Kafka } from 'kafkajs';
-import { KAFKA_CLIENTS } from './constants/kafka.constants';
-import { PrismaService } from '../prisma/prisma.service';
+import { Public } from "./decorators/http-authentication.decorator";
+import {
+  Controller,
+  Get,
+  ServiceUnavailableException,
+  Logger,
+} from "@nestjs/common";
+import { Kafka } from "kafkajs";
+import { KAFKA_CLIENTS } from "./constants/kafka.constants";
+import { PrismaService } from "../prisma/prisma.service";
 
 type DependencyCheck = {
   name: string;
-  status: 'ok' | 'error';
+  status: "ok" | "error";
   message?: string;
 };
 
-const SERVICE_NAME = 'notification-service';
-const KAFKA_DEFAULT_BROKER = 'localhost:9092';
+const SERVICE_NAME = "notification-service";
+const KAFKA_DEFAULT_BROKER = "localhost:9092";
 const KAFKA_HEALTH_CACHE_MS = 30_000;
 
+@Public()
 @Controller()
 export class HealthController {
+  private readonly logger = new Logger(HealthController.name);
   private kafkaCheck?: { result: DependencyCheck; expiresAt: number };
   private kafkaCheckInFlight?: Promise<DependencyCheck>;
 
   constructor(private readonly prisma: PrismaService) {}
 
-  @Get('health')
+  @Get("health")
   health() {
-    return this.response('ok', []);
+    return this.response("ok", []);
   }
 
-  @Get('ready')
+  @Get("ready")
   async ready() {
     const checks = await Promise.all([this.checkDatabase(), this.checkKafka()]);
-    const isReady = checks.every((check) => check.status === 'ok');
+    const isReady = checks.every((check) => check.status === "ok");
 
     if (!isReady) {
       throw new ServiceUnavailableException({
-        message: 'Service dependencies are not ready',
-        ...this.response('unready', checks),
+        message: "Service dependencies are not ready",
+        ...this.response("unready", checks),
       });
     }
 
-    return this.response('ready', checks);
+    return this.response("ready", checks);
   }
 
-  private response(status: 'ok' | 'ready' | 'unready', checks: DependencyCheck[]) {
+  private response(
+    status: "ok" | "ready" | "unready",
+    checks: DependencyCheck[],
+  ) {
     return {
       service: SERVICE_NAME,
       status,
@@ -52,9 +63,9 @@ export class HealthController {
   private async checkDatabase(): Promise<DependencyCheck> {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      return { name: 'database', status: 'ok' };
+      return { name: "database", status: "ok" };
     } catch (error) {
-      return this.errorCheck('database', error);
+      return this.errorCheck("database", error);
     }
   }
 
@@ -69,7 +80,8 @@ export class HealthController {
       const result = await this.kafkaCheckInFlight;
       this.kafkaCheck = {
         result,
-        expiresAt: Date.now() + (result.status === 'ok' ? KAFKA_HEALTH_CACHE_MS : 5_000),
+        expiresAt:
+          Date.now() + (result.status === "ok" ? KAFKA_HEALTH_CACHE_MS : 5_000),
       };
       return result;
     } finally {
@@ -79,7 +91,7 @@ export class HealthController {
 
   private async performKafkaCheck(): Promise<DependencyCheck> {
     const brokers = (process.env.KAFKA_BROKER ?? KAFKA_DEFAULT_BROKER)
-      .split(',')
+      .split(",")
       .map((broker) => broker.trim())
       .filter(Boolean);
     const kafka = new Kafka({
@@ -94,19 +106,23 @@ export class HealthController {
     try {
       await admin.connect();
       await admin.listTopics();
-      return { name: 'kafka', status: 'ok' };
+      return { name: "kafka", status: "ok" };
     } catch (error) {
-      return this.errorCheck('kafka', error);
+      return this.errorCheck("kafka", error);
     } finally {
       await admin.disconnect().catch(() => undefined);
     }
   }
 
   private errorCheck(name: string, error: unknown): DependencyCheck {
+    this.logger.error(
+      `Readiness check failed: ${name}`,
+      error instanceof Error ? error.stack : undefined,
+    );
     return {
       name,
-      status: 'error',
-      message: error instanceof Error ? error.message : String(error),
+      status: "error",
+      message: "Dependency unavailable",
     };
   }
 }

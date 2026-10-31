@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import type { SpeechRecognitionHandle, SpeechRecognitionWindow } from "../../types/speech-recognition.types";
 interface UseSpeechToTextProps {
   onTranscript: (transcript: string) => void;
 }
@@ -9,7 +10,7 @@ interface UseSpeechToTextProps {
 export function useSpeechToText({ onTranscript }: UseSpeechToTextProps) {
   const [isDictating, setIsDictating] = useState(false);
   const [interimMessage, setInterimMessage] = useState("");
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionHandle | null>(null);
   const isDictatingRef = useRef(false);
 
   const resetDictationState = useCallback(() => {
@@ -21,15 +22,15 @@ export function useSpeechToText({ onTranscript }: UseSpeechToTextProps) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const SpeechRecognition =
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition;
+        (window as SpeechRecognitionWindow).SpeechRecognition ||
+        (window as SpeechRecognitionWindow).webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = "vi-VN";
 
-        recognition.onresult = (event: any) => {
+        recognition.onresult = (event) => {
           let finalTranscript = "";
           let currentInterim = "";
           for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -46,7 +47,7 @@ export function useSpeechToText({ onTranscript }: UseSpeechToTextProps) {
           setInterimMessage(currentInterim);
         };
 
-        recognition.onerror = (event: any) => {
+        recognition.onerror = (event) => {
           console.error("Speech recognition error", event.error);
           resetDictationState();
 

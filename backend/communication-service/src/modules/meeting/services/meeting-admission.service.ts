@@ -86,9 +86,32 @@ export class MeetingAdmissionService {
     }
 
     const existingParticipant = meeting.participants[0];
-    const requiresReadmission = existingParticipant?.requiresReadmission || existingParticipant?.status === MeetingParticipantStatus.REMOVED;
-    if (meeting.channelId && !await this.prisma.channelMember.findUnique({ where: { channelId_userId: { channelId: meeting.channelId, userId } } })) throw new BadRequestException("You are no longer a member of this channel");
-    if (meeting.conversationId && !await this.prisma.directConversationParticipant.findUnique({ where: { conversationId_userId: { conversationId: meeting.conversationId, userId } } })) throw new BadRequestException("You are not a participant of this conversation");
+    const requiresReadmission =
+      existingParticipant?.requiresReadmission ||
+      existingParticipant?.status === MeetingParticipantStatus.REMOVED;
+    if (
+      meeting.channelId &&
+      !(await this.prisma.channelMember.findUnique({
+        where: { channelId_userId: { channelId: meeting.channelId, userId } },
+      }))
+    )
+      throw new BadRequestException(
+        'You are no longer a member of this channel',
+      );
+    if (
+      meeting.conversationId &&
+      !(await this.prisma.directConversationParticipant.findUnique({
+        where: {
+          conversationId_userId: {
+            conversationId: meeting.conversationId,
+            userId,
+          },
+        },
+      }))
+    )
+      throw new BadRequestException(
+        'You are not a participant of this conversation',
+      );
     const role =
       existingParticipant?.role ??
       (meeting.hostId === userId ? MeetingRole.HOST : MeetingRole.PARTICIPANT);
@@ -125,7 +148,8 @@ export class MeetingAdmissionService {
     }
 
     if (
-      !requiresReadmission && (meeting.autoAdmit || isModerator || canEnterLockedMeeting)
+      !requiresReadmission &&
+      (meeting.autoAdmit || isModerator || canEnterLockedMeeting)
     ) {
       return {
         meetingId: meeting.id,
@@ -281,7 +305,12 @@ export class MeetingAdmissionService {
 
     const updatedRequest = await this.prisma.meetingParticipant.update({
       where: { id: request.id },
-      data: { status, ...(status === MeetingParticipantStatus.APPROVED ? { requiresReadmission: false } : {}) },
+      data: {
+        status,
+        ...(status === MeetingParticipantStatus.APPROVED
+          ? { requiresReadmission: false }
+          : {}),
+      },
     });
     const eventType =
       status === MeetingParticipantStatus.APPROVED
@@ -340,7 +369,12 @@ export class MeetingAdmissionService {
           meetingId: meeting.id,
           status: MeetingParticipantStatus.REQUESTED,
         },
-        data: { status, ...(status === MeetingParticipantStatus.APPROVED ? { requiresReadmission: false } : {}) },
+        data: {
+          status,
+          ...(status === MeetingParticipantStatus.APPROVED
+            ? { requiresReadmission: false }
+            : {}),
+        },
       }),
       this.prisma.meetingEvent.createMany({
         data: requests.map((request) => ({

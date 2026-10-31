@@ -1,3 +1,4 @@
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
 import {
   Body,
   Controller,
@@ -30,6 +31,7 @@ export function requireAssistantKey(key: string | undefined) {
   )
     throw new UnauthorizedException();
 }
+@IndependentAuthentication()
 @Controller('internal/work-assistant')
 export class WorkAssistantController {
   constructor(private readonly service: WorkAssistantService) {}

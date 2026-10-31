@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { withSessionLock } from "./session-lock";
 import {
   ApiResponse,
   ForgotPasswordRequest,
@@ -26,25 +27,38 @@ export const registerApi = async (
 export const loginApi = async (
   payload: LoginRequest,
 ): Promise<ApiResponse<LoginResponse>> => {
-  const response = await api.post("/api/auth/login", payload);
-  return response.data;
+  return withSessionLock(async () => {
+    const response = await api.post("/api/auth/login", payload);
+    return response.data;
+  });
 };
 
 export const socialLoginApi = async (
   payload: SocialLoginRequest,
 ): Promise<ApiResponse<LoginResponse>> => {
-  const response = await api.post("/api/auth/social", payload);
-  return response.data;
+  return withSessionLock(async () => {
+    const response = await api.post("/api/auth/social", payload);
+    return response.data;
+  });
 };
 
-export const refreshApi = async (): Promise<ApiResponse<RefreshResponse>> => {
-  const response = await api.post("/api/auth/refresh");
-  return response.data;
+let pendingRefresh: Promise<ApiResponse<RefreshResponse>> | null = null;
+
+export const refreshApi = (): Promise<ApiResponse<RefreshResponse>> => {
+  if (!pendingRefresh) {
+    pendingRefresh = withSessionLock(async () => {
+      const response = await api.post("/api/auth/refresh");
+      return response.data as ApiResponse<RefreshResponse>;
+    }).finally(() => { pendingRefresh = null; });
+  }
+  return pendingRefresh;
 };
 
 export const logoutApi = async (): Promise<ApiResponse<LogoutResponse>> => {
-  const response = await api.post("/api/auth/logout");
-  return response.data;
+  return withSessionLock(async () => {
+    const response = await api.post("/api/auth/logout");
+    return response.data;
+  });
 };
 
 export const sendResetOtpApi = async (

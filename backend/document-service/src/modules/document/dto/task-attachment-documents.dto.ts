@@ -1,4 +1,11 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsEmail, IsOptional, IsUUID } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsEmail,
+  IsOptional,
+  IsUUID,
+} from 'class-validator';
 
 export class TaskAttachmentDocumentsDto {
   @IsOptional()

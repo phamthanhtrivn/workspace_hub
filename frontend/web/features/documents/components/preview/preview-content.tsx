@@ -26,7 +26,7 @@ interface PreviewContentProps {
   textContent: string | null;
   isUrlLoading: boolean;
   loadingText: boolean;
-  error: any;
+  error: Error | string | null;
   handleDownload: () => void;
   fitToContainer?: boolean;
 }

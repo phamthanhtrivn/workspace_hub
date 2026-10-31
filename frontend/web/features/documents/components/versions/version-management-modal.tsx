@@ -1,5 +1,6 @@
 "use client";
 
+import { getApiErrorMessage } from "@/lib/api-error";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useCallback, useRef } from "react";
@@ -130,13 +131,11 @@ export function VersionManagementModal({
         setUploadProgress(0);
       }, 2000);
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       console.error("Failed to upload version", err);
       setUploadState(UploadState.ERROR);
       const errMsg =
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to upload new version.";
+        getApiErrorMessage(err, "Failed to upload new version.");
       toast.error(errMsg);
       setTimeout(() => {
         setUploadState(UploadState.IDLE);

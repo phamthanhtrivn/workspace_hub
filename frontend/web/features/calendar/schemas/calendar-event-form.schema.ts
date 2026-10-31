@@ -16,7 +16,7 @@ import {
 
 const reminderSchema = z.object({
   minutesBefore: z
-    .number({ invalid_type_error: copy.reminderInvalidAmount })
+    .number({ error: copy.reminderInvalidAmount })
     .int(copy.reminderInvalidAmount)
     .min(0, copy.reminderInvalidAmount)
     .max(CALENDAR_MAX_REMINDER_MINUTES_BEFORE, copy.reminderTooEarly),

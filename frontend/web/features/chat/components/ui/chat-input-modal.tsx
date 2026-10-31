@@ -30,7 +30,7 @@ export interface ChatInputModalProps {
   onCancel: () => void;
 }
 
-export function ChatInputModal({
+function ChatInputModalForm({
   open,
   title,
   description,
@@ -51,8 +51,6 @@ export function ChatInputModal({
 
   useEffect(() => {
     if (open) {
-      setValue(defaultValue);
-      setError(null);
       setTimeout(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
@@ -137,3 +135,7 @@ export function ChatInputModal({
 }
 
 export default ChatInputModal;
+
+export function ChatInputModal(props: ChatInputModalProps) {
+  return props.open ? <ChatInputModalForm key={props.defaultValue ?? ""} {...props} /> : null;
+}

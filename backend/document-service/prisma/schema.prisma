@@ -43,6 +43,20 @@ model StorageCleanupJob {
   @@map("storage_cleanup_jobs")
 }
 
+model StorageUploadIntent {
+  s3Key            String   @id @map("s3_key")
+  actorId          String   @map("actor_id") @db.Uuid
+  publicDocumentId String?  @map("public_document_id") @db.Uuid
+  sizeBytes        BigInt   @map("size_bytes")
+  mimeType         String   @map("mime_type")
+  expiresAt        DateTime @map("expires_at")
+  target           String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([expiresAt])
+  @@map("storage_upload_intents")
+}
+
 model DocumentItem {
   id             String          @id @default(uuid()) @db.Uuid
   ownerUserId    String          @map("owner_user_id") @db.Uuid

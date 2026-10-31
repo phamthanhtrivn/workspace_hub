@@ -1,5 +1,6 @@
 "use client";
 
+import type { SendSocketMessageMedia } from "../../types/chat-socket.types";
 import { IconButton } from "@/components/ui/icon-button";
 import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 import { useId as useControlledPopupId } from "react";
@@ -38,7 +39,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 
 export interface DirectMessageInputProps {
-  onSendMessage?: (content: string, media?: any[]) => void;
+  onSendMessage?: (content: string, media?: SendSocketMessageMedia[]) => void;
   onTypingChange?: (isTyping: boolean) => void;
   placeholder?: string;
   compact?: boolean;
@@ -821,11 +822,12 @@ const DirectMessageInput = React.memo(
               )}
             </div>
           </div>
-          <MyFilesSelectModal
+          {activeConversationId && activeChatType && <MyFilesSelectModal
+            context={{ chatId: activeConversationId, chatType: activeChatType }}
             isOpen={isMyFilesModalOpen}
             onClose={() => setIsMyFilesModalOpen(false)}
             onSelect={handleSelectMyFiles}
-          />
+          />}
         </div>
       );
     },

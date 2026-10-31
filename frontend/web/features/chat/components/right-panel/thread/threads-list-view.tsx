@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
 import { IconButton } from "@/components/ui/icon-button";
 
 import { QueryFeedback } from "@/components/common/query-feedback";
@@ -46,7 +47,7 @@ export default function ThreadsListView({
   const senderOptions = useMemo(() => {
     if (!isDirect || !activeConversation?.members) return [];
     return activeConversation.members
-      .map((member: any) => {
+      .map((member) => {
         const profile = memberProfiles[member.userId];
         return {
           id: member.userId,
@@ -54,12 +55,12 @@ export default function ThreadsListView({
             member.userId === currentUserId
               ? "You"
               : profile?.fullName ||
-                member.fullName ||
+                member.profile?.fullName ||
                 "User",
         };
       })
       .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label));
-  }, [activeConversation?.members, currentUserId, isDirect, memberProfiles]);
+  }, [activeConversation, currentUserId, isDirect, memberProfiles]);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError, isFetching, refetch } =
     useInfiniteQuery({
@@ -116,7 +117,7 @@ export default function ThreadsListView({
 
   const threads = data?.pages.flatMap((page) => page.messages || []) || [];
 
-  const handleOpenThread = (message: any) => {
+  const handleOpenThread = (message: ChatMessageResponse) => {
     dispatch(setActiveThreadRootMessage(message));
   };
 
@@ -168,7 +169,7 @@ export default function ThreadsListView({
         {isError && threads.length === 0 ? <QueryFeedback label="conversation threads" error retrying={isFetching} onRetry={() => refetch()} /> : isLoading ? (
           <LoadingState label="Loading threads..." layout="centered" className="text-center py-8 text-xs text-muted-foreground italic" />
         ) : threads.length > 0 ? (
-          threads.map((msg: any) => {
+          threads.map((msg) => {
             const sender = msg.senderProfile || memberProfiles[msg.senderId];
             const senderName =
               sender?.fullName || "User";

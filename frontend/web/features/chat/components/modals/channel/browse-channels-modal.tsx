@@ -1,4 +1,7 @@
 "use client";
+import { getApiErrorMessage } from "@/lib/api-error";
+import type { ChannelResponse } from "@/features/chat/types/chat.types";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
 
 import { IconButton } from "@/components/ui/icon-button";
@@ -30,11 +33,11 @@ interface BrowseChannelsModalProps {
   spaceId: string;
   currentUserId: string | null;
   isSpaceAdmin?: boolean;
-  onJoinSuccess?: (channel: any) => void;
+  onJoinSuccess?: (channel: ChannelResponse) => void;
   onDeleteSuccess?: (channelId: string) => void;
 }
 
-export default function BrowseChannelsModal({
+function BrowseChannelsModalForm({
   isOpen,
   onClose,
   spaceId,
@@ -45,7 +48,7 @@ export default function BrowseChannelsModal({
 }: BrowseChannelsModalProps) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const { confirm: confirmAction, confirmDialogProps } = useChatConfirmDialog();
 
   const { data: spaceDetail } = useQuery({
@@ -56,16 +59,8 @@ export default function BrowseChannelsModal({
   const allowMemberDeleteOwnChannel =
     spaceDetail?.setting?.allowMemberDeleteOwnChannel ?? false;
 
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
 
-  useEffect(() => {
-    if (isOpen) {
-      setSearchQuery("");
-    }
-  }, [isOpen]);
+
 
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
@@ -96,15 +91,15 @@ export default function BrowseChannelsModal({
       const joinedChannel =
         response?.success && response.data
           ? response.data
-          : channels.find((c: any) => c.id === channelId);
+          : channels.find((c) => c.id === channelId);
       if (joinedChannel && onJoinSuccess) {
         onJoinSuccess(joinedChannel);
       }
       onClose();
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       toast.error(
-        err.response?.data?.message || "Failed to join channel",
+        getApiErrorMessage(err, "Failed to join channel"),
       );
     },
   });
@@ -119,9 +114,9 @@ export default function BrowseChannelsModal({
       onDeleteSuccess?.(channelId);
       refetch();
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       toast.error(
-        err.response?.data?.message || "Failed to delete channel",
+        getApiErrorMessage(err, "Failed to delete channel"),
       );
     },
   });
@@ -187,9 +182,9 @@ export default function BrowseChannelsModal({
               <span className="text-xs">Loading channels...</span>
             </div>
           ) : filteredChannels.length > 0 ? (
-            filteredChannels.map((channel: any) => {
+            filteredChannels.map((channel) => {
               const isJoined = channel.members?.some(
-                (m: any) => m.userId === currentUserId,
+                (m) => m.userId === currentUserId,
               );
               const memberCount = channel.members?.length || 0;
 
@@ -279,3 +274,7 @@ export default function BrowseChannelsModal({
     </div>}</DialogSurface>;
 }
 
+
+export default function BrowseChannelsModal(props: BrowseChannelsModalProps) {
+  return props.isOpen ? <BrowseChannelsModalForm key={props.spaceId} {...props} /> : null;
+}

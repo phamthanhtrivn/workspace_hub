@@ -3,6 +3,8 @@ import { MAX_FILE_SIZE } from '../../common/utils/file.util';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { PresignRequestDto } from './dto/presign-request.dto';
 import { S3_UPLOAD_TYPE } from '../../common/types/file.enums';
+import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
+import { MediaAccessService } from './media-access.service';
 import {
   MEDIA_SUCCESS_MESSAGES,
   MEDIA_ERROR_MESSAGES,
@@ -10,11 +12,22 @@ import {
 
 @Injectable()
 export class MediaService {
-  constructor(private readonly s3Service: S3Service) {}
+  constructor(
+    private readonly s3Service: S3Service,
+    private readonly access: MediaAccessService,
+  ) {}
 
-  async generatePresignedUrls(body: PresignRequestDto) {
+  async generatePresignedUrls(body: PresignRequestDto, userId: string) {
     this.validatePresignRequest(body);
     const referenceId = this.getReferenceId(body);
+    const chatType =
+      body.chatType ??
+      (body.channelId
+        ? CHAT_CONTEXT_TYPE.CHANNEL
+        : CHAT_CONTEXT_TYPE.DIRECT_MESSAGE);
+    for (const file of body.files)
+      this.validateFileSize(file.fileName, file.sizeBytes);
+    await this.access.assertCanUpload(referenceId, chatType, userId);
 
     const results: {
       fileName: string;
@@ -25,14 +38,13 @@ export class MediaService {
     }[] = [];
 
     for (const file of body.files) {
-      this.validateFileSize(file.fileName, file.sizeBytes);
-
       const { presignedUrl, s3Key } =
         await this.s3Service.generatePresignedUploadUrl(
           S3_UPLOAD_TYPE.CHAT_MEDIA,
           referenceId,
           file.fileName,
           file.mimeType,
+          { actorId: userId, referenceId, chatType, sizeBytes: file.sizeBytes },
         );
 
       results.push({
@@ -51,6 +63,22 @@ export class MediaService {
   }
 
   private validatePresignRequest(body: PresignRequestDto): void {
+    if (
+      (body.chatId && !body.chatType) ||
+      (body.channelId && body.conversationId) ||
+      (body.chatId &&
+        body.channelId &&
+        (body.chatId !== body.channelId ||
+          body.chatType !== CHAT_CONTEXT_TYPE.CHANNEL)) ||
+      (body.chatId &&
+        body.conversationId &&
+        (body.chatId !== body.conversationId ||
+          body.chatType !== CHAT_CONTEXT_TYPE.DIRECT_MESSAGE))
+    ) {
+      throw new BadRequestException(
+        MEDIA_ERROR_MESSAGES.MISSING_REQUIRED_FIELDS,
+      );
+    }
     if (!this.getReferenceId(body)) {
       throw new BadRequestException(
         MEDIA_ERROR_MESSAGES.MISSING_REQUIRED_FIELDS,
@@ -79,7 +107,11 @@ export class MediaService {
   }
 
   private validateFileSize(fileName: string, sizeBytes: number): void {
-    if (sizeBytes > MAX_FILE_SIZE) {
+    if (
+      !Number.isSafeInteger(sizeBytes) ||
+      sizeBytes < 0 ||
+      sizeBytes > MAX_FILE_SIZE
+    ) {
       throw new BadRequestException(
         MEDIA_ERROR_MESSAGES.FILE_TOO_LARGE.replace('{fileName}', fileName),
       );

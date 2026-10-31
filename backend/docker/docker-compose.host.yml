@@ -16,7 +16,7 @@ services:
     environment:
       KONG_DATABASE: 'off'
       KONG_DECLARATIVE_CONFIG: /tmp/kong.yml
-      KONG_PLUGINS: bundled,jwt-user-context
+      KONG_PLUGINS: bundled,gateway-boundary,jwt-user-context
       KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
     ports:
       - '127.0.0.1:8000:8000'

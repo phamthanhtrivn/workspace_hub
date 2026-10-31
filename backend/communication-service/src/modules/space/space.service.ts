@@ -6,7 +6,8 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices';
+import { DurableKafkaProducer } from '../../infrastructure/kafka/durable-kafka-producer';
+import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   Prisma,
@@ -52,7 +53,8 @@ import {
 export class SpaceService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
+    @Inject('KAFKA_PRODUCER')
+    private readonly kafkaClient: DurableKafkaProducer,
     private readonly chatSocketPublisher: ChatSocketPublisher,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
     private readonly projectNames: ProjectNameClient,
@@ -76,7 +78,7 @@ export class SpaceService {
       where: { spaceId_userId: { spaceId, userId } },
     });
     if (!member) {
-      throw new BadRequestException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
+      throw new ForbiddenException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
     }
     return member;
   }
@@ -84,7 +86,7 @@ export class SpaceService {
   private async assertSpaceAdmin(spaceId: string, userId: string) {
     const member = await this.assertSpaceMember(spaceId, userId);
     if (member.role !== SpaceRole.ADMIN) {
-      throw new BadRequestException(SPACE_ERROR_MESSAGES.ADMIN_REQUIRED);
+      throw new ForbiddenException(SPACE_ERROR_MESSAGES.ADMIN_REQUIRED);
     }
     return member;
   }
@@ -133,7 +135,7 @@ export class SpaceService {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
     }
     if (!member) {
-      throw new BadRequestException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
+      throw new ForbiddenException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
     }
     if (space.createdBy === userId) {
       return space;
@@ -160,7 +162,7 @@ export class SpaceService {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
     }
     if (!member) {
-      throw new BadRequestException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
+      throw new ForbiddenException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
     }
     if (space.createdBy === userId) {
       return space;
@@ -187,12 +189,12 @@ export class SpaceService {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
     }
     if (!member) {
-      throw new BadRequestException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
+      throw new ForbiddenException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
     }
 
     const isOwner = space.createdBy === userId;
     if (!isOwner && member.role !== SpaceRole.ADMIN) {
-      throw new BadRequestException(SPACE_ERROR_MESSAGES.ADMIN_REQUIRED);
+      throw new ForbiddenException(SPACE_ERROR_MESSAGES.ADMIN_REQUIRED);
     }
 
     return { space, member, isOwner };
@@ -332,6 +334,7 @@ export class SpaceService {
     },
     spaceName?: string | null,
     fallbackSnapshot?: UserProfileSnapshot | null,
+    transaction?: Prisma.TransactionClient,
   ) {
     const inviterProfile =
       (await this.getProfileMap([invitation.invitedBy])).get(
@@ -349,29 +352,35 @@ export class SpaceService {
       invitation.invitedBy,
     );
 
-    this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-      key: invitation.invitedUserId,
-      value: {
-        recipientId: invitation.invitedUserId,
-        senderId: invitation.invitedBy,
-        senderName: inviterName,
-        senderAvatar: inviterProfile?.avatarUrl,
-        type: KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION,
-        title: 'Space invitation',
-        content: `You were invited to join ${spaceName} by ${inviterName}`,
-        link: '/chat',
-        metadata: {
-          invitationId: invitation.id,
-          spaceId: invitation.spaceId,
-          spaceName,
-          senderProfile: {
-            userId: invitation.invitedBy,
-            fullName: inviterProfile.fullName,
-            avatarUrl: inviterProfile.avatarUrl,
+    await firstValueFrom(
+      this.kafkaClient.emit(
+        KAFKA_TOPICS.NOTIFICATION_TOPIC,
+        {
+          key: invitation.invitedUserId,
+          value: {
+            recipientId: invitation.invitedUserId,
+            senderId: invitation.invitedBy,
+            senderName: inviterName,
+            senderAvatar: inviterProfile?.avatarUrl,
+            type: KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION,
+            title: 'Space invitation',
+            content: `You were invited to join ${spaceName} by ${inviterName}`,
+            link: '/chat',
+            metadata: {
+              invitationId: invitation.id,
+              spaceId: invitation.spaceId,
+              spaceName,
+              senderProfile: {
+                userId: invitation.invitedBy,
+                fullName: inviterProfile.fullName,
+                avatarUrl: inviterProfile.avatarUrl,
+              },
+            },
           },
         },
-      },
-    });
+        transaction,
+      ),
+    );
   }
 
   private publishSpaceActionNotification(params: {
@@ -588,14 +597,32 @@ export class SpaceService {
     members: { userId: string; role: SpaceRole }[],
   ) {
     await tx.$queryRaw`SELECT id FROM spaces WHERE id = ${existingSpace.id}::uuid FOR UPDATE`;
-    const current = await tx.space.findUnique({ where: { id: existingSpace.id } });
+    const current = await tx.space.findUnique({
+      where: { id: existingSpace.id },
+    });
     const currentRevision = current?.accessSyncRevision ?? 0n;
     const requestedRevision = dto.syncRevision ? BigInt(dto.syncRevision) : 0n;
     if (currentRevision > requestedRevision) {
-      const channel = await this.ensureDefaultProjectChannel(tx, existingSpace.id, existingSpace.createdBy);
-      return { projectId: dto.projectId, spaceId: existingSpace.id, channelId: channel.id, channelIds: [], joinedMembers: [], removedMembers: [], privateMembershipChanges: [] };
+      const channel = await this.ensureDefaultProjectChannel(
+        tx,
+        existingSpace.id,
+        existingSpace.createdBy,
+      );
+      return {
+        projectId: dto.projectId,
+        spaceId: existingSpace.id,
+        channelId: channel.id,
+        channelIds: [],
+        joinedMembers: [],
+        removedMembers: [],
+        privateMembershipChanges: [],
+      };
     }
-    if (dto.syncRevision) await tx.space.update({ where: { id: existingSpace.id }, data: { accessSyncRevision: requestedRevision } });
+    if (dto.syncRevision)
+      await tx.space.update({
+        where: { id: existingSpace.id },
+        data: { accessSyncRevision: requestedRevision },
+      });
     const space =
       existingSpace.name === trimmedName
         ? existingSpace
@@ -1070,7 +1097,9 @@ export class SpaceService {
               name: trimmedName,
               createdBy: dto.ownerId,
               projectId: dto.projectId,
-              accessSyncRevision: dto.syncRevision ? BigInt(dto.syncRevision) : 0n,
+              accessSyncRevision: dto.syncRevision
+                ? BigInt(dto.syncRevision)
+                : 0n,
             },
           });
 
@@ -1991,17 +2020,19 @@ export class SpaceService {
     if (!existingInvitation) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.INVITATION_NOT_FOUND);
     }
-    const invitation = await this.prisma.spaceInvitation.update({
-      where: { id: invitationId },
-      data: {
-        invitedBy: userId,
-        status: InvitationStatus.PENDING,
-        respondedAt: null,
-        createdAt: new Date(),
-      },
+    const invitation = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.spaceInvitation.update({
+        where: { id: invitationId },
+        data: {
+          invitedBy: userId,
+          status: InvitationStatus.PENDING,
+          respondedAt: null,
+          createdAt: new Date(),
+        },
+      });
+      await this.emitSpaceInvitation(updated, space?.name, undefined, tx);
+      return updated;
     });
-
-    await this.emitSpaceInvitation(invitation, space?.name);
     const [enrichedInvitation] =
       await this.userProfileSnapshotService.attachProfilesToInvitations([
         invitation,
@@ -2196,18 +2227,7 @@ export class SpaceService {
   }
 
   async getSpaceChannels(userId: string, spaceId: string, search?: string) {
-    const isMember = await this.prisma.spaceMember.findUnique({
-      where: {
-        spaceId_userId: {
-          spaceId,
-          userId,
-        },
-      },
-    });
-
-    if (!isMember) {
-      throw new BadRequestException('You are not a member of this space');
-    }
+    await this.assertSpaceMember(spaceId, userId);
 
     const whereClause: Prisma.ChannelWhereInput = {
       spaceId,
@@ -2290,100 +2310,97 @@ export class SpaceService {
       select: { name: true },
     });
 
-    return this.prisma
-      .$transaction(async (tx) => {
-        const invitationsToNotify: {
-          userId: string;
-          invitationId: string;
-        }[] = [];
-        const alreadyMembers: string[] = [];
-        const alreadyPending: string[] = [];
-        for (const invitee of invitees) {
-          const invitedId = invitee.userId;
-          if (!invitedId || invitedId === userId) {
-            continue;
-          }
-
-          const exists = await tx.spaceMember.findUnique({
-            where: {
-              spaceId_userId: {
-                spaceId,
-                userId: invitedId,
-              },
-            },
-          });
-
-          if (exists) {
-            alreadyMembers.push(invitedId);
-            continue;
-          }
-
-          const existingInvitation = await tx.spaceInvitation.findUnique({
-            where: {
-              spaceId_invitedUserId: {
-                spaceId,
-                invitedUserId: invitedId,
-              },
-            },
-          });
-
-          if (existingInvitation?.status === InvitationStatus.PENDING) {
-            alreadyPending.push(invitedId);
-            continue;
-          }
-
-          if (existingInvitation) {
-            const invitation = await tx.spaceInvitation.update({
-              where: { id: existingInvitation.id },
-              data: {
-                invitedBy: userId,
-                status: InvitationStatus.PENDING,
-                respondedAt: null,
-              },
-            });
-            invitationsToNotify.push({
-              userId: invitedId,
-              invitationId: invitation.id,
-            });
-          } else {
-            const invitation = await tx.spaceInvitation.create({
-              data: {
-                spaceId,
-                invitedUserId: invitedId,
-                invitedBy: userId,
-              },
-            });
-            invitationsToNotify.push({
-              userId: invitedId,
-              invitationId: invitation.id,
-            });
-          }
+    return this.prisma.$transaction(async (tx) => {
+      const invitationsToNotify: {
+        userId: string;
+        invitationId: string;
+      }[] = [];
+      const alreadyMembers: string[] = [];
+      const alreadyPending: string[] = [];
+      for (const invitee of invitees) {
+        const invitedId = invitee.userId;
+        if (!invitedId || invitedId === userId) {
+          continue;
         }
 
-        return {
-          count: invitationsToNotify.length,
-          invitationsToNotify,
-          alreadyMemberCount: alreadyMembers.length,
-          pendingCount: alreadyPending.length,
-        };
-      })
-      .then(async (result) => {
-        await Promise.all(
-          result.invitationsToNotify.map((invitation) =>
-            this.emitSpaceInvitation(
-              {
-                id: invitation.invitationId,
-                spaceId,
-                invitedUserId: invitation.userId,
-                invitedBy: userId,
-              },
-              space?.name,
-              invitedBySnapshot,
-            ),
-          ),
-        );
+        const exists = await tx.spaceMember.findUnique({
+          where: {
+            spaceId_userId: {
+              spaceId,
+              userId: invitedId,
+            },
+          },
+        });
 
-        return result;
-      });
+        if (exists) {
+          alreadyMembers.push(invitedId);
+          continue;
+        }
+
+        const existingInvitation = await tx.spaceInvitation.findUnique({
+          where: {
+            spaceId_invitedUserId: {
+              spaceId,
+              invitedUserId: invitedId,
+            },
+          },
+        });
+
+        if (existingInvitation?.status === InvitationStatus.PENDING) {
+          alreadyPending.push(invitedId);
+          continue;
+        }
+
+        if (existingInvitation) {
+          const invitation = await tx.spaceInvitation.update({
+            where: { id: existingInvitation.id },
+            data: {
+              invitedBy: userId,
+              status: InvitationStatus.PENDING,
+              respondedAt: null,
+            },
+          });
+          invitationsToNotify.push({
+            userId: invitedId,
+            invitationId: invitation.id,
+          });
+        } else {
+          const invitation = await tx.spaceInvitation.create({
+            data: {
+              spaceId,
+              invitedUserId: invitedId,
+              invitedBy: userId,
+            },
+          });
+          invitationsToNotify.push({
+            userId: invitedId,
+            invitationId: invitation.id,
+          });
+        }
+      }
+
+      await Promise.all(
+        invitationsToNotify.map((invitation) =>
+          this.emitSpaceInvitation(
+            {
+              id: invitation.invitationId,
+              spaceId,
+              invitedUserId: invitation.userId,
+              invitedBy: userId,
+            },
+            space?.name,
+            invitedBySnapshot,
+            tx,
+          ),
+        ),
+      );
+
+      return {
+        count: invitationsToNotify.length,
+        invitationsToNotify,
+        alreadyMemberCount: alreadyMembers.length,
+        pendingCount: alreadyPending.length,
+      };
+    });
   }
 }

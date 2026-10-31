@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import ChatSidebar from "./sidebar/chat-sidebar";
 import ChatArea from "./chat-area/chat-area";
@@ -18,22 +19,23 @@ import { useElementMinWidth } from "@/components/ui/use-element-min-width";
 import { ChatContextType } from "../types/chat.types";
 
 export default function ChatLayout() {
+  const urlParams = useSearchParams();
+  const urlSpaceId = urlParams.get("spaceId");
+  const urlChannelId = urlParams.get("channelId");
+  const urlThreadId = urlParams.get("threadId");
+  const activeChatId = useAppSelector((state) => state.chat.activeChatId);
   const canvasRef = useRef<HTMLDivElement>(null);
   const wideCanvas = useElementMinWidth(canvasRef, 1060);
   const dispatch = useAppDispatch();
-  const [showRightPanel, setShowRightPanel] = useState(false);
+  const [showRightPanel, setShowRightPanel] = useState(Boolean(urlSpaceId && urlChannelId && urlThreadId));
   const [rightPanelTab, setRightPanelTab] = useState<"search" | null>(null);
-  const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
-  const activeChatId = useAppSelector((state) => state.chat.activeChatId);
+  const [mobileView, setMobileView] = useState<"sidebar" | "chat">((urlSpaceId && urlChannelId) || activeChatId ? "chat" : "sidebar");
   const activeThreadRootMessageId = useAppSelector(
     (state) => state.chat.activeThreadRootMessageId,
   );
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const spaceId = searchParams.get("spaceId");
-    const channelId = searchParams.get("channelId");
-    const threadId = searchParams.get("threadId");
+    const spaceId = urlSpaceId, channelId = urlChannelId, threadId = urlThreadId;
     if (!spaceId || !channelId) return;
 
     dispatch(setActiveSpaceId(spaceId));
@@ -49,22 +51,20 @@ export default function ChatLayout() {
           id: threadId,
           channelId,
           content: "",
+          type: "TEXT",
           senderId: "",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        } as any),
+        }),
       );
-      setShowRightPanel(true);
-      setRightPanelTab(null);
     }
-    setMobileView("chat");
-  }, [dispatch]);
+  }, [dispatch, urlSpaceId, urlChannelId, urlThreadId]);
 
-  useEffect(() => {
-    if (activeChatId) {
-      setMobileView("chat");
-    }
-  }, [activeChatId]);
+  const [previousChatId, setPreviousChatId] = useState(activeChatId);
+  if (previousChatId !== activeChatId) {
+    setPreviousChatId(activeChatId);
+    if (activeChatId) setMobileView("chat");
+  }
 
   const toggleRightPanel = () => {
     setShowRightPanel((prev) => !prev);

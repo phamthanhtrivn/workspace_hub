@@ -1,3 +1,4 @@
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
 import {
   BadRequestException,
   Body,
@@ -10,6 +11,7 @@ import { isEmail, isUUID } from 'class-validator';
 import { assertServiceKey } from '../../common/internal-service-key';
 import { DocumentService } from './document.service';
 
+@IndependentAuthentication()
 @Controller('internal/document-access')
 export class InternalDocumentAccessController {
   constructor(private readonly documents: DocumentService) {}

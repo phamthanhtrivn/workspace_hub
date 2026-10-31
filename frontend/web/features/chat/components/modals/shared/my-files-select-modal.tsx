@@ -2,7 +2,9 @@
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { toast } from "sonner";
+import { copyDocumentsToChat, type AttachmentChatContext } from "../../../api/document-attachment.api";
 import { useQuery } from "@tanstack/react-query";
 import { Folder, FileText, X, ChevronRight, Check } from "lucide-react";
 
@@ -17,6 +19,7 @@ import { LoadingState } from "@/components/ui/loading-state";
 
 
 interface MyFilesSelectModalProps {
+  context: AttachmentChatContext;
   isOpen: boolean;
   onClose: () => void;
   overlayClassName?: string;
@@ -37,6 +40,7 @@ interface FolderHistoryItem {
 }
 
 export default function MyFilesSelectModal({
+  context,
   isOpen,
   onClose,
   overlayClassName = "z-50",
@@ -44,6 +48,11 @@ export default function MyFilesSelectModal({
   onSelect,
 }: MyFilesSelectModalProps) {
   const isDarkTone = tone === "dark";
+  const [isPreparing, setIsPreparing] = useState(false);
+  const preparation = useRef<AbortController | null>(null);
+  useEffect(() => {
+    return () => { preparation.current?.abort(); };
+  }, [context.chatId, context.chatType, isOpen]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderHistory, setFolderHistory] = useState<FolderHistoryItem[]>([
     { id: null, name: "Home" },
@@ -96,20 +105,30 @@ export default function MyFilesSelectModal({
     });
   }, []);
 
-  const handleAttachSelected = useCallback(() => {
-    const filesToAttach = Array.from(selectedFiles.values()).map((file) => ({
-      name: file.name,
-      s3Key: file.s3Key || "",
-      mimeType: file.mimeType || "application/octet-stream",
-      sizeBytes: file.sizeBytes,
-    }));
-    onSelect(filesToAttach);
-    setSelectedFiles(new Map());
-    handleNavigateToFolder(null, "Home");
-    onClose();
-  }, [selectedFiles, onSelect, onClose, handleNavigateToFolder]);
+  const handleAttachSelected = useCallback(async () => {
+    if (isPreparing) return;
+    const controller = new AbortController();
+    preparation.current = controller;
+    setIsPreparing(true);
+    try {
+      const attachments = await copyDocumentsToChat(Array.from(selectedFiles.values()), context, controller.signal);
+      controller.signal.throwIfAborted();
+      onSelect(attachments);
+      setSelectedFiles(new Map());
+      handleNavigateToFolder(null, "Home");
+      onClose();
+    } catch (error) {
+      if (!controller.signal.aborted) toast.error(error instanceof Error ? error.message : "Could not attach the selected documents.");
+    } finally {
+      if (preparation.current === controller) {
+        preparation.current = null;
+        setIsPreparing(false);
+      }
+    }
+  }, [selectedFiles, context, isPreparing, onSelect, onClose, handleNavigateToFolder]);
 
   const handleCloseModal = useCallback(() => {
+    preparation.current?.abort();
     setSelectedFiles(new Map());
     handleNavigateToFolder(null, "Home");
     onClose();
@@ -346,14 +365,14 @@ export default function MyFilesSelectModal({
           <Button variant="unstyled"
             type="button"
             onClick={handleAttachSelected}
-            disabled={selectedFiles.size === 0}
+            disabled={selectedFiles.size === 0 || isPreparing}
             className={`cursor-pointer px-5 py-2 text-xs font-semibold text-foreground disabled:opacity-50 disabled:cursor-not-allowed rounded-control transition disabled:shadow-none ${
               isDarkTone
                 ? "bg-primary hover:bg-primary"
                 : "bg-primary hover:bg-primary"
             }`}
           >
-            {`Attach Selected (${selectedFiles.size})`}
+            {isPreparing ? "Preparing attachments…" : `Attach Selected (${selectedFiles.size})`}
           </Button>
         </div>
       </div>

@@ -206,15 +206,19 @@ export class MeetingPresenterService {
       existingParticipant?.role ??
       (meeting.hostId === userId ? MeetingRole.HOST : MeetingRole.PARTICIPANT);
     const canJoinWithoutApproval =
-      !(existingParticipant?.requiresReadmission || existingParticipant?.status === MeetingParticipantStatus.REMOVED) && (meeting.autoAdmit ||
-      canJoinLockedMeeting({
-        hostId: meeting.hostId,
-        userId,
-        role: participantRole,
-        participantStatus: existingParticipant?.status,
-      }) ||
-      (existingParticipant?.status === MeetingParticipantStatus.APPROVED &&
-        meeting.hasApprovedJoinRequest === true));
+      !(
+        existingParticipant?.requiresReadmission ||
+        existingParticipant?.status === MeetingParticipantStatus.REMOVED
+      ) &&
+      (meeting.autoAdmit ||
+        canJoinLockedMeeting({
+          hostId: meeting.hostId,
+          userId,
+          role: participantRole,
+          participantStatus: existingParticipant?.status,
+        }) ||
+        (existingParticipant?.status === MeetingParticipantStatus.APPROVED &&
+          meeting.hasApprovedJoinRequest === true));
 
     return {
       meetingId: meeting.id,

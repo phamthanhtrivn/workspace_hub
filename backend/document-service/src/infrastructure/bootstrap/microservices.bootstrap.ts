@@ -6,7 +6,8 @@ import { logger } from '../logger/bootstrap-logger';
 export async function setupMicroservices(app: INestApplication): Promise<void> {
   app.connectMicroservice(getKafkaConfig());
 
-  await app.startAllMicroservices()
+  await app
+    .startAllMicroservices()
     .then(() => {
       logger.log(KAFKA_CONFIG.LOG_MESSAGES.CONSUMER_STARTED);
     })

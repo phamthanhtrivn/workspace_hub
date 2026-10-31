@@ -1,5 +1,6 @@
 "use client";
 
+import { Details, DetailsSummary } from "@/components/ui/details";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,18 +52,18 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
         mục, lưu tiến độ và có thể lâu hơn chat.
       </p>
       {notebook.artifacts.map((artifact) => (
-        <details
+        <Details
           className="rounded-lg border p-3"
           key={artifact.id}
           open={artifact.status === "RUNNING" || artifact.status === "QUEUED"}
         >
-          <summary className="cursor-pointer text-sm font-medium">
+          <DetailsSummary className="cursor-pointer text-sm font-medium">
             {["QUEUED", "RUNNING"].includes(artifact.status) && <Spinner size={14} className="mr-2 inline-block align-middle" />}
             {artifact.kind === "SUMMARY" ? "Tóm tắt toàn văn" : "Tổng quan"} ·{" "}
             {artifact.status === "COMPLETED"
               ? "Hoàn tất"
               : `${artifact.status} ${artifact.progress}%`}
-          </summary>
+          </DetailsSummary>
           {artifact.hidden ? (
             <p className="mt-3 text-xs">
               Nội dung đã ẩn vì nguồn không còn hợp lệ.
@@ -112,7 +113,7 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
               )}
             </>
           )}
-        </details>
+        </Details>
       ))}
       <form
         className="space-y-2 border-t pt-4"
@@ -148,10 +149,10 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
         </Button>
       </form>
       {notebook.notes.map((note) => (
-        <details key={note.id} className="rounded-lg border p-3">
-          <summary className="cursor-pointer break-words text-sm font-medium">
+        <Details key={note.id} className="rounded-lg border p-3">
+          <DetailsSummary className="cursor-pointer break-words text-sm font-medium">
             {note.title}
-          </summary>
+          </DetailsSummary>
           {note.hidden ? (
             <p className="mt-2 text-xs">
               Ghi chú bị ẩn do nguồn không còn hợp lệ.
@@ -177,7 +178,7 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
           >
             Xóa ghi chú
           </Button>
-        </details>
+        </Details>
       ))}
     </section>
   );

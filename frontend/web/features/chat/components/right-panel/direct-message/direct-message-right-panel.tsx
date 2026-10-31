@@ -1,11 +1,15 @@
 "use client";
 
+import { useChatMediaPreview } from "../../../hooks/useChatMediaPreview";
+import { ChatScope } from "../../../types/chat.constant";
+import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
+
+
 import { QueryFeedback } from "@/components/common/query-feedback";
-import { useState, useEffect, useRef } from "react";
-import { socketService } from "../../../api/chat-socket.service";
-import { ChatEvent } from "../../../api/chat.events";
+import { useState } from "react";
+
+
 import {
-  getDirectConversationMedia,
   muteDirectConversation,
   pinDirectConversation,
 } from "../../../api/chat.api";
@@ -31,7 +35,6 @@ import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { ChatQueryKey } from "../../../types/chat.constant";
 
 import { useActiveChat } from "../../../hooks/useChatQueries";
-import { logApiError } from "@/lib/interceptors";
 import MediaDetailView from "../files/media-detail-view";
 import { Button } from "@/components/ui/button";
 
@@ -41,7 +44,7 @@ interface DirectMessageRightPanelProps {
   initialDetailView?: "files" | "polls" | "search" | "threads" | null;
 }
 
-function getMessageChatId(message: any) {
+function getMessageChatId(message: ChatMessageResponse) {
   return (
     message?.chatId ?? message?.channelId ?? message?.conversationId ?? null
   );
@@ -51,39 +54,40 @@ export default function DirectMessageRightPanel({
   onClose,
   initialDetailView,
 }: DirectMessageRightPanelProps) {
-  const [isMuted, setIsMuted] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "pinned",
   );
   const [detailView, setDetailView] = useState<
     "files" | "polls" | "search" | "threads" | "pinned" | null
   >(initialDetailView || null);
-  const [mediaError, setMediaError] = useState(false);
-  const [mediaLoading, setMediaLoading] = useState(false);
-  const [mediaRetry, setMediaRetry] = useState(0);
-  const [mediaItems, setMediaItems] = useState<any[]>([]);
+
+
+
+
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
-  const lastFetchedChatId = useRef<string | null>(null);
+
 
   const { activeChat: activeConversation } = useActiveChat();
   const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
+  const mediaQuery = useChatMediaPreview(ChatScope.DIRECT, activeConversation?.id, expandedSection === "files");
+  const mediaItems = mediaQuery.medias;
+  const mediaLoading = mediaQuery.isFetching;
+  const mediaError = mediaQuery.isError;
 
-  useEffect(() => {
-    if (initialDetailView !== undefined) {
-      setDetailView(initialDetailView);
-    }
-  }, [initialDetailView]);
+  const [previousDetailView, setPreviousDetailView] = useState(initialDetailView);
+  if (previousDetailView !== initialDetailView) {
+    setPreviousDetailView(initialDetailView);
+    if (initialDetailView !== undefined) setDetailView(initialDetailView);
+  }
 
   const currentMember = activeConversation?.members?.find(
-    (m: any) => m.userId === currentUserId,
+    (m) => m.userId === currentUserId,
   );
 
-  useEffect(() => {
-    setIsMuted(currentMember?.muted || false);
-  }, [currentMember]);
+  const isMuted = currentMember?.muted ?? false;
 
   const isPinned = currentMember?.pinned || false;
 
@@ -91,30 +95,30 @@ export default function DirectMessageRightPanel({
     conversationId: string,
     memberPatch: { muted?: boolean; pinned?: boolean },
   ) => {
-    queryClient.setQueriesData(
+    queryClient.setQueriesData<import("../../../hooks/useChatQueries").DirectMessagesQueryData>(
       { queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS] },
-      (oldData: any) => {
-        if (!oldData?.conversations) return oldData;
+      (oldData) => {
+        if (!oldData?.directMessages) return oldData;
         return {
           ...oldData,
-          conversations: oldData.conversations
-            .map((conversation: any) => {
+          directMessages: oldData.directMessages
+            .map((conversation) => {
               if (conversation.id !== conversationId) return conversation;
               return {
                 ...conversation,
-                members: conversation.members?.map((member: any) =>
+                members: conversation.members?.map((member) =>
                   member.userId === currentUserId
                     ? { ...member, ...memberPatch }
                     : member,
                 ),
               };
             })
-            .sort((a: any, b: any) => {
+            .sort((a, b) => {
               const aPinned = a.members?.find(
-                (member: any) => member.userId === currentUserId,
+                (member) => member.userId === currentUserId,
               )?.pinned;
               const bPinned = b.members?.find(
-                (member: any) => member.userId === currentUserId,
+                (member) => member.userId === currentUserId,
               )?.pinned;
               if (aPinned !== bPinned) return aPinned ? -1 : 1;
               return (
@@ -130,7 +134,7 @@ export default function DirectMessageRightPanel({
   const handleToggleMute = async () => {
     if (!activeConversation || !currentUserId) return;
     const targetMuted = !isMuted;
-    setIsMuted(targetMuted);
+    updateDirectConversationMemberCache(activeConversation.id, { muted: targetMuted });
 
     try {
       await muteDirectConversation(activeConversation.id, targetMuted);
@@ -141,11 +145,9 @@ export default function DirectMessageRightPanel({
           muted: targetMuted,
         }),
       );
-      updateDirectConversationMemberCache(activeConversation.id, {
-        muted: targetMuted,
-      });
+
     } catch (error) {
-      setIsMuted(isMuted);
+      updateDirectConversationMemberCache(activeConversation.id, { muted: isMuted });
       console.error("Failed to update mute status:", error);
     }
   };
@@ -215,56 +217,16 @@ export default function DirectMessageRightPanel({
     onClose();
   };
 
-  const handleOpenThread = (message: any) => {
+  const handleOpenThread = (message: ChatMessageResponse) => {
     if (getMessageChatId(message) !== activeConversation?.id) return;
     dispatch(setActiveThreadRootMessage(message));
   };
 
-  useEffect(() => {
-    if (
-      activeConversation?.id &&
-      expandedSection === "files" &&
-      lastFetchedChatId.current !== activeConversation.id
-    ) {
-      setMediaLoading(true); setMediaError(false);
-      getDirectConversationMedia(activeConversation.id)
-        .then((res: any) => {
-          if (res.data && res.data.medias) {
-            setMediaItems(res.data.medias);
-            lastFetchedChatId.current = activeConversation.id;
-          }
-        })
-        .catch((err: unknown) => { setMediaError(true); logApiError(err, "Could not load conversation files"); }).finally(() => setMediaLoading(false));
-    }
-  }, [activeConversation?.id, expandedSection, mediaRetry]);
 
-  useEffect(() => {
-    if (
-      activeConversation?.id &&
-      lastFetchedChatId.current !== activeConversation.id
-    ) {
-      setMediaItems([]);
-    }
-  }, [activeConversation?.id]);
 
-  useEffect(() => {
-    const socket = socketService.getSocket();
-    if (socket) {
-      const getEventChannelId = (payload: any) =>
-        payload?.channelId ?? payload?.conversationId;
 
-      const handleMediaUpdated = (data: any) => {
-        if (getEventChannelId(data) === activeConversation?.id && data.media) {
-          setMediaItems((prev) => [...data.media, ...prev]);
-        }
-      };
 
-      socket.on(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
-      return () => {
-        socket.off(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
-      };
-    }
-  }, [activeConversation]);
+
 
   if (detailView === "files") {
     return (
@@ -404,7 +366,7 @@ export default function DirectMessageRightPanel({
             onOpenThread={handleOpenThread}
           />
 
-          {expandedSection === "files" && <QueryFeedback label="conversation files" pending={mediaLoading} error={mediaError} retrying={mediaLoading} onRetry={() => setMediaRetry(value => value + 1)} />}
+          {expandedSection === "files" && <QueryFeedback label="conversation files" pending={mediaLoading} error={mediaError} retrying={mediaLoading} onRetry={() => { void mediaQuery.refetch(); }} />}
           <FilesSection
             isExpanded={expandedSection === "files"}
             onToggle={() => toggleSection("files")}

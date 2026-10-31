@@ -52,7 +52,7 @@ const ChannelItem = React.memo(function ChannelItem({
   const menuRef = useRef<HTMLDivElement>(null);
 
   const currentMember = channel.members?.find(
-    (member: any) => member.userId === currentUserId,
+    (member) => member.userId === currentUserId,
   );
   const isMuted = currentMember?.muted || false;
   const isPinned = currentMember?.pinned || false;

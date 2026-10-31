@@ -2,6 +2,7 @@ _format_version: "3.0"
 _transform: true
 
 consumers:
+  - username: workspace-hub-anonymous
   - username: workspace-hub-api
     jwt_secrets:
       - key: workspace-hub
@@ -76,13 +77,11 @@ services:
       - name: project-routes
         paths:
           - /api/projects
-          - /api/sprints
           - /api/project-invitations
           - /api/tasks
           - /api/checklists
           - /api/labels
           - /api/task-comments
-          - /api/pomodoros
         strip_path: false
 
       - name: project-websocket-route
@@ -101,7 +100,6 @@ services:
         strip_path: false
       - name: communication-routes
         paths:
-          - /api/conversations
           - /api/direct-conversations
           - /api/channels
           - /api/spaces
@@ -166,6 +164,7 @@ services:
         response_buffering: false
 
 plugins:
+  - name: gateway-boundary
   # ==========================================
   # GLOBAL PLUGINS (Applied to all routes)
   # ==========================================
@@ -198,6 +197,8 @@ plugins:
 
   - name: rate-limiting
     config:
+      limit_by: header
+      header_name: X-User-Id
       minute: 600
       policy: local
 
@@ -321,6 +322,12 @@ plugins:
       header_user_avatar: X-User-Avatar
 
   # document-public-routes
+  - name: jwt
+    route: document-public-routes
+    config:
+      claims_to_verify: [exp]
+      anonymous: workspace-hub-anonymous
+
   - name: jwt-user-context
     route: document-public-routes
     config:

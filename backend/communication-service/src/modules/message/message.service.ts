@@ -4,6 +4,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
   Inject,
   forwardRef,
 } from '@nestjs/common';
@@ -126,6 +127,13 @@ export class MessageService {
           }
         }
       }
+
+      if (medias?.length)
+        await this.s3Service.assertAttachments(medias, {
+          actorId: senderId,
+          referenceId: channelId,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        });
 
       if (threadParentId) {
         const parentMsg = await tx.message.findUnique({
@@ -1029,6 +1037,20 @@ export class MessageService {
     userId: string,
     messageId: string,
   ) {
+    const member = await this.prisma.channelMember.findUnique({
+      where: { channelId_userId: { channelId, userId } },
+      select: { id: true },
+    });
+    if (!member)
+      throw new ForbiddenException(
+        MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL,
+      );
+    const message = await this.prisma.message.findFirst({
+      where: { id: messageId, channelId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!message)
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     return this.prisma.channelMember.update({
       where: {
         channelId_userId: {
@@ -1069,19 +1091,19 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new Error('Message not found');
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     }
 
     if (message.senderId !== userId) {
-      throw new Error('You can only edit your own messages');
+      throw new ForbiddenException(MESSAGE_ERROR_MESSAGES.EDIT_OWNER_REQUIRED);
     }
 
     if (message.type !== MessageType.TEXT) {
-      throw new Error('Only text messages can be edited');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.TEXT_EDIT_REQUIRED);
     }
 
     if (content.trim().length === 0) {
-      throw new Error('Message content cannot be empty');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.CONTENT_REQUIRED);
     }
 
     if (isTaskCardContent(MessageType.TEXT, content) && message.channelId) {
@@ -1120,7 +1142,7 @@ export class MessageService {
     const hoursDifference = (now - createdAt) / (1000 * 60 * 60);
 
     if (hoursDifference > 24) {
-      throw new Error('Messages can only be edited within 24 hours');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.EDIT_WINDOW_EXPIRED);
     }
 
     return this.prisma.message.update({
@@ -1160,17 +1182,21 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new Error('Message not found');
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     }
 
     if (message.senderId !== userId) {
-      throw new Error('You can only recall your own messages');
+      throw new ForbiddenException(
+        MESSAGE_ERROR_MESSAGES.RECALL_OWNER_REQUIRED,
+      );
     }
 
     const now = new Date();
     const createdAt = new Date(message.createdAt);
     if (now.getTime() - createdAt.getTime() > 24 * 60 * 60 * 1000) {
-      throw new Error('Messages can only be recalled within 24 hours');
+      throw new BadRequestException(
+        MESSAGE_ERROR_MESSAGES.RECALL_WINDOW_EXPIRED,
+      );
     }
 
     // Delete medias from S3
@@ -1229,7 +1255,7 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     }
 
     if (message.pinned) {
@@ -1299,7 +1325,7 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     }
 
     if (!message.pinned) {

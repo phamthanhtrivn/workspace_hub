@@ -2,6 +2,23 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model NotificationDeliveryOutbox {
+  id            String    @id @default(uuid()) @db.Uuid
+  topic         String
+  messageKey    String    @map("message_key")
+  payload       Json
+  status        String    @default("PENDING")
+  attemptCount  Int       @default(0) @map("attempt_count")
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
+  leaseToken    String?   @map("lease_token") @db.Uuid
+  leaseUntil    DateTime? @map("lease_until") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz(6)
+
+  @@index([status, nextAttemptAt], map: "notification_delivery_outbox_pending_idx")
+  @@map("notification_delivery_outbox")
+}
+
 model ProjectTaskSnapshot {
   taskId    String @id @map("task_id") @db.Uuid
   projectId String @map("project_id") @db.Uuid
@@ -779,7 +796,7 @@ model MeetingRecording {
   stoppedAt       DateTime?              @map("stopped_at")
   completedAt     DateTime?              @map("completed_at")
   deletedAt       DateTime?              @map("deleted_at")
-  updatedAt       DateTime               @updatedAt @map("updated_at")
+  updatedAt       DateTime               @default(now()) @updatedAt @map("updated_at")
   failureCode     String?                @map("failure_code")
   version         Int                    @default(0)
   egressUpdatedAt BigInt                 @default(0) @map("egress_updated_at")
@@ -818,7 +835,7 @@ model MeetingRecordingPermission {
   grantedBy   String @map("granted_by") @db.Uuid
   canDownload Boolean @default(false) @map("can_download")
   createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
   recording   MeetingRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
 
   @@unique([recordingId, userId])
@@ -840,7 +857,7 @@ model MeetingRecordingJob {
   requestKey     String? @unique @map("request_key")
   requestHash    String? @map("request_hash")
   createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
   recording      MeetingRecording @relation(fields: [recordingId], references: [id], onDelete: Cascade)
 
   @@unique([recordingId, kind])
@@ -899,7 +916,7 @@ model ConversationAiOutbox {
  nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.Timestamptz
  attempts Int @default(0)
  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
- request ConversationAiRequest @relation(fields:[requestId],references:[id],onDelete:Cascade)
+ request ConversationAiRequest @relation(fields:[requestId],references:[id],onDelete:Cascade,onUpdate:NoAction)
  @@index([status,nextAttemptAt],map:"conversation_ai_outbox_pending")
  @@map("conversation_ai_outbox")
 }

@@ -16,13 +16,15 @@ import { SocketEventEmitter } from './services/socket-event-emitter';
 import { SocketRoomService } from './services/socket-room.service';
 import { verifyRecordingUserToken } from '../../common/auth/recording-auth.guard';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  allowSocketRequest,
+  socketCorsOptions,
+} from '../../common/auth/socket-origin';
 
 @WebSocketGateway({
   path: '/communication.io',
-  cors: {
-    origin: true,
-    credentials: true,
-  },
+  cors: socketCorsOptions,
+  allowRequest: allowSocketRequest,
 })
 export class CommunicationGateway
   extends ChatSocketHandler

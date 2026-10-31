@@ -22,11 +22,17 @@ export function useChatTypingIndicator(
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const typingTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
 
-  // Reset khi đổi conversation
-  useEffect(() => {
+  const [previousConversationId, setPreviousConversationId] = useState(conversationId);
+  if (previousConversationId !== conversationId) {
+    setPreviousConversationId(conversationId);
     setTypingUsers([]);
-    Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
-    typingTimeoutsRef.current = {};
+  }
+  useEffect(() => {
+    const timers = typingTimeoutsRef.current;
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+      typingTimeoutsRef.current = {};
+    };
   }, [conversationId]);
 
   const handleTypingEvent = useCallback(

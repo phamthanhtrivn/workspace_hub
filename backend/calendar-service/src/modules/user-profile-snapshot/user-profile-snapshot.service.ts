@@ -121,6 +121,14 @@ export class UserProfileSnapshotService {
 
       try {
         const response = await fetch(url, {
+          ...(process.env.INTERNAL_SERVICE_KEY &&
+          process.env.INTERNAL_SERVICE_KEY.length >= 32
+            ? {
+                headers: {
+                  'x-internal-service-key': process.env.INTERNAL_SERVICE_KEY,
+                },
+              }
+            : {}),
           signal: AbortSignal.timeout(3000),
         });
         if (!response.ok) {

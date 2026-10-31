@@ -1,5 +1,7 @@
 "use client";
 
+import { getApiErrorMessage } from "@/lib/api-error";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { IconButton } from "@/components/ui/icon-button";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
@@ -28,7 +30,7 @@ interface InviteSpaceMembersModalProps {
   onInvited?: () => void;
 }
 
-export default function InviteSpaceMembersModal({
+function InviteSpaceMembersModalForm({
   isOpen,
   onClose,
   spaceId,
@@ -42,66 +44,38 @@ export default function InviteSpaceMembersModal({
   const [isInviting, setIsInviting] = useState(false);
   const currentUserId = useAppSelector((state) => state.auth.userId);
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  const mounted = useHydrated();
+
+
 
   useEffect(() => {
-    if (isOpen) {
-      setEmail("");
-      setResults([]);
+    if (!email.trim()) return;
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setLoading(true);
       setError("");
-      setSelectedUsers([]);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!email.trim()) {
-      setResults([]);
-      setError("");
-      return;
-    }
-    const delayDebounceFn = setTimeout(() => {
-      handleSearch();
-    }, 500);
-    return () => clearTimeout(delayDebounceFn);
-  }, [email, selectedUsers]);
-
-  const handleSearch = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const response = await searchUserByEmail(email);
-      const users = response?.success ? response.data : [];
-
-      const filtered = users.filter(
-        (u: UserSearchResponse) =>
-          u.id !== currentUserId &&
-          !selectedUsers.some((selected) => selected.id === u.id),
-      );
-      setResults(filtered);
-
-      if (filtered.length === 0 && users.length > 0) {
-        setError("Selected user is already added");
-      } else if (filtered.length === 0) {
-        setError("User not found");
+      try {
+        const response = await searchUserByEmail(email);
+        const users = response?.success ? response.data : [];
+        const filtered = users.filter(user => user.id !== currentUserId && !selectedUsers.some(selected => selected.id === user.id));
+        if (cancelled) return;
+        setResults(filtered);
+        if (!filtered.length) setError(users.length ? "Selected user is already added" : "User not found");
+      } catch (error) {
+        if (!cancelled) { setError(getApiErrorMessage(error, "Failed to search user")); setResults([]); }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (err: any) {
-      setError(
-        err.response?.data?.message || "Failed to search user",
-      );
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    }, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [email, selectedUsers, currentUserId]);
 
   const handleSelectUser = (user: UserSearchResponse) => {
     setSelectedUsers((prev) => [...prev, user]);
     setEmail("");
     setResults([]);
+    setError("");
+    setLoading(false);
   };
 
   const handleRemoveUser = (userId: string) => {
@@ -124,9 +98,9 @@ export default function InviteSpaceMembersModal({
       toast.success("Space invitations sent successfully");
       onInvited?.();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.error(
-        err.response?.data?.message || "Failed to send invitations",
+        getApiErrorMessage(err, "Failed to send invitations"),
       );
     } finally {
       setIsInviting(false);
@@ -185,7 +159,7 @@ export default function InviteSpaceMembersModal({
               type="text"
               placeholder="Enter user email to search..."
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => { setEmail(event.target.value); setResults([]); setError(""); setLoading(false); }}
               className="w-full pl-9 pr-4 py-2.5 bg-background border border-transparent focus:bg-card rounded-control text-sm outline-none transition"
             />
           </div>
@@ -264,3 +238,7 @@ export default function InviteSpaceMembersModal({
     </div>}</DialogSurface>;
 }
 
+
+export default function InviteSpaceMembersModal(props: InviteSpaceMembersModalProps) {
+  return props.isOpen ? <InviteSpaceMembersModalForm key={props.spaceId} {...props} /> : null;
+}

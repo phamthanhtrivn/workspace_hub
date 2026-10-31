@@ -1,3 +1,4 @@
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
 import { CreateChannelDto } from '../channel/dto/create-channel.dto';
 import {
   Controller,
@@ -14,6 +15,7 @@ import {
   UnauthorizedException,
   ValidationPipe,
 } from '@nestjs/common';
+import { isServiceKeyValid } from '../../common/auth/service-key';
 import { SpaceService } from './space.service';
 import { SpaceMemberCandidatesService } from './space-member-candidates.service';
 import { SpaceMemberCandidatesQueryDto } from './dto/space-member-candidates-query.dto';
@@ -63,8 +65,13 @@ export class SpaceController {
     };
   }
 
-  @Post('project')
-  async ensureProjectSpace(@Body() body: EnsureProjectSpaceDto) {
+  @IndependentAuthentication()
+  @Post('internal/project')
+  async ensureProjectSpace(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Body() body: EnsureProjectSpaceDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
     const result = await this.spaceService.ensureProjectSpace(body);
     return {
       message: SPACE_SUCCESS_MESSAGES_LABEL.CREATED,
@@ -72,6 +79,7 @@ export class SpaceController {
     };
   }
 
+  @IndependentAuthentication()
   @Get('internal/project/:projectId')
   async getProjectSpaceStatus(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -85,6 +93,7 @@ export class SpaceController {
     };
   }
 
+  @IndependentAuthentication()
   @Post('internal/project/:projectId/task-channel')
   async ensureTaskChannel(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -104,6 +113,7 @@ export class SpaceController {
     };
   }
 
+  @IndependentAuthentication()
   @Post('internal/project/:projectId/task-thread')
   async ensureTaskThread(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -138,6 +148,7 @@ export class SpaceController {
     };
   }
 
+  @IndependentAuthentication()
   @Patch('internal/project/:projectId/name')
   async renameProjectSpaceFromProject(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -469,7 +480,7 @@ export class SpaceController {
   }
 
   private assertInternalServiceKey(serviceKey?: string): void {
-    if (!serviceKey || serviceKey !== this.config.internalServiceKey) {
+    if (!isServiceKeyValid(serviceKey, this.config.internalServiceKey)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
   }

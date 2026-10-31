@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import {
   S3Client,
   PutObjectCommand,
@@ -11,6 +15,14 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 import { Readable } from 'stream';
 import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
+import { UploadIntentService } from './upload-intent.service';
+import {
+  UploadConfirmation,
+  UploadScope,
+  UPLOAD_POLICY,
+  validateUploadContent,
+  validateUploadMetadata,
+} from './upload-policy';
 
 @Injectable()
 export class S3Service {
@@ -47,7 +59,7 @@ export class S3Service {
     };
   }
 
-  constructor() {
+  constructor(private readonly uploadIntents: UploadIntentService) {
     this.bucketName = process.env.AWS_S3_BUCKET_NAME!;
 
     this.s3Client = new S3Client({
@@ -66,22 +78,28 @@ export class S3Service {
     userId: string,
     fileName: string,
     mimeType: string,
-    folder = DOCUMENT_CONSTANTS.S3_FOLDER,
+    sizeBytes: number,
+    scope: UploadScope,
   ): Promise<{ presignedUrl: string; s3Key: string }> {
+    validateUploadMetadata(fileName, mimeType);
     try {
       const cleanFileName = fileName.replace(/\s+/g, '_');
       const uniqueFileName = `${uuidv4()}_${cleanFileName}`;
-      const s3Key = `${folder}/${userId}/${uniqueFileName}`;
+      const s3Key = `${DOCUMENT_CONSTANTS.S3_FOLDER}/${userId}/${uniqueFileName}`;
 
       const command = new PutObjectCommand({
         Bucket: this.bucketName,
         Key: s3Key,
         ContentType: mimeType,
+        ContentLength: sizeBytes,
+        IfNoneMatch: '*',
       });
 
       const presignedUrl = await getSignedUrl(this.s3Client, command, {
-        expiresIn: 600, // 10 minutes
+        expiresIn: UPLOAD_POLICY.URL_LIFETIME_SECONDS,
       });
+
+      await this.uploadIntents.create(s3Key, sizeBytes, mimeType, scope);
 
       return { presignedUrl, s3Key };
     } catch (error) {
@@ -104,19 +122,67 @@ export class S3Service {
     }
   }
 
-  async assertUploadSize(s3Key: string, expectedBytes: number): Promise<void> {
-    const object = await this.s3Client.send(new HeadObjectCommand({ Bucket: this.bucketName, Key: s3Key }));
-    if (!Number.isSafeInteger(expectedBytes) || expectedBytes < 0 || object.ContentLength !== expectedBytes) {
-      throw new BadRequestException('Uploaded file size does not match its metadata');
+  async assertUploadSize(
+    s3Key: string,
+    expectedBytes: number,
+    scope?: UploadConfirmation,
+  ): Promise<void> {
+    if (scope)
+      await this.uploadIntents.assertScope(s3Key, expectedBytes, scope);
+    const object = await this.s3Client.send(
+      new HeadObjectCommand({ Bucket: this.bucketName, Key: s3Key }),
+    );
+    if (
+      !Number.isSafeInteger(expectedBytes) ||
+      expectedBytes < 0 ||
+      (scope && expectedBytes > UPLOAD_POLICY.MAX_SIZE_BYTES) ||
+      object.ContentLength !== expectedBytes
+    ) {
+      throw new BadRequestException(
+        'Uploaded file size does not match its metadata',
+      );
+    }
+    if (scope) {
+      if (object.ContentType !== scope.mimeType) {
+        throw new BadRequestException(
+          'Uploaded content type does not match its metadata',
+        );
+      }
+      if (expectedBytes > 0) {
+        const content = await this.s3Client.send(
+          new GetObjectCommand({
+            Bucket: this.bucketName,
+            Key: s3Key,
+            Range: `bytes=0-${UPLOAD_POLICY.SIGNATURE_BYTES - 1}`,
+            IfMatch: object.ETag,
+          }),
+        );
+        if (!content.Body)
+          throw new BadRequestException('Uploaded content is missing');
+        validateUploadContent(
+          Buffer.from(await content.Body.transformToByteArray()),
+          scope.mimeType,
+        );
+      } else {
+        validateUploadContent(Buffer.alloc(0), scope.mimeType);
+      }
+      await this.uploadIntents.bind(s3Key, scope.target);
     }
   }
 
-  async copyFile(sourceKey: string, ownerUserId: string, fileName: string): Promise<string> {
+  async copyFile(
+    sourceKey: string,
+    ownerUserId: string,
+    fileName: string,
+  ): Promise<string> {
     const key = `${DOCUMENT_CONSTANTS.S3_FOLDER}/${ownerUserId}/${uuidv4()}_${fileName.replace(/\s+/g, '_')}`;
-    await this.s3Client.send(new CopyObjectCommand({
-      Bucket: this.bucketName, Key: key,
-      CopySource: `${this.bucketName}/${sourceKey.split('/').map(encodeURIComponent).join('/')}`,
-    }));
+    await this.s3Client.send(
+      new CopyObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        CopySource: `${this.bucketName}/${sourceKey.split('/').map(encodeURIComponent).join('/')}`,
+      }),
+    );
     return key;
   }
 

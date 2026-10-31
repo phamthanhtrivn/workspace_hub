@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { MeetingRole, MessageType } from '@prisma/client';
+import { CHAT_CONTEXT_TYPE } from '../../../common/types/chat.enums';
 import { getMediaType, mapMediaWithUrl } from '../../../common/utils/file.util';
 import { S3Service } from '../../../infrastructure/s3/s3.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -129,6 +130,13 @@ export class MeetingMessageService {
         MEETING_ERROR_MESSAGES.INVALID_MESSAGE_DATA,
       );
     }
+
+    if (medias.length)
+      await this.s3Service.assertAttachments(medias, {
+        actorId: userId,
+        referenceId: meeting.id,
+        chatType: CHAT_CONTEXT_TYPE.MEETING,
+      });
 
     const createdMessage = await this.prisma.$transaction(async (tx) => {
       const message = await tx.meetingMessage.create({

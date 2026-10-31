@@ -21,9 +21,7 @@ import {
 
 @Controller('api/direct-conversations')
 export class DirectMessageController {
-  constructor(
-    private readonly directMessageService: DirectMessageService,
-  ) {}
+  constructor(private readonly directMessageService: DirectMessageService) {}
 
   @Post(':id/messages')
   async createDirectMessage(
@@ -72,6 +70,7 @@ export class DirectMessageController {
   @Get(':id/messages')
   async getDirectConversationMessages(
     @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
     @Query('direction') direction?: MESSAGE_DIRECTION,
@@ -86,6 +85,7 @@ export class DirectMessageController {
     const messages =
       await this.directMessageService.getDirectConversationMessages(
         conversationId,
+        userId,
         cursor,
         parsedLimit,
         direction,
@@ -100,6 +100,7 @@ export class DirectMessageController {
   @Get(':id/media')
   async getDirectConversationMedia(
     @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
     @Query('mediaType') mediaType?: string,
@@ -114,6 +115,7 @@ export class DirectMessageController {
       : MESSAGE_CONSTANTS.DEFAULT_LIMIT;
     const media = await this.directMessageService.getDirectConversationMedia(
       conversationId,
+      userId,
       cursor,
       parsedLimit,
       mediaType,
@@ -129,6 +131,7 @@ export class DirectMessageController {
   @Get(':id/pinned-messages')
   async getDirectPinnedMessages(
     @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
     @Query('senderId') senderId?: string,
@@ -143,6 +146,7 @@ export class DirectMessageController {
       : MESSAGE_CONSTANTS.DEFAULT_LIMIT;
     const messages = await this.directMessageService.getDirectPinnedMessages(
       conversationId,
+      userId,
       cursor,
       parsedLimit,
       senderId,
@@ -158,6 +162,7 @@ export class DirectMessageController {
   @Get(':id/messages/search')
   async searchDirectConversationMessages(
     @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
     @Query('q') q?: string,
     @Query('senderId') senderId?: string,
     @Query('type') type?: string,
@@ -168,6 +173,7 @@ export class DirectMessageController {
 
     const messages = await this.directMessageService.searchDirectMessages(
       conversationId,
+      userId,
       q,
       senderId,
       type,
@@ -196,6 +202,7 @@ export class DirectMessageController {
   @Get(':id/threads')
   async getDirectConversationThreads(
     @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
     @Query('senderId') senderId?: string,
@@ -210,6 +217,7 @@ export class DirectMessageController {
     const threads =
       await this.directMessageService.getDirectConversationThreads(
         conversationId,
+        userId,
         cursor,
         parsedLimit,
         senderId,
@@ -221,13 +229,18 @@ export class DirectMessageController {
   }
 
   @Get('messages/:id/thread')
-  async getDirectThreadMessages(@Param('id') messageId: string) {
+  async getDirectThreadMessages(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
     if (!messageId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
 
-    const result =
-      await this.directMessageService.getDirectThreadMessages(messageId);
+    const result = await this.directMessageService.getDirectThreadMessages(
+      messageId,
+      userId,
+    );
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREAD_RETRIEVED,
       data: result,
@@ -244,12 +257,11 @@ export class DirectMessageController {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
     }
 
-    const result =
-      await this.directMessageService.markDirectConversationAsRead(
-        conversationId,
-        userId,
-        messageId,
-      );
+    const result = await this.directMessageService.markDirectConversationAsRead(
+      conversationId,
+      userId,
+      messageId,
+    );
 
     return {
       message: MESSAGE_SUCCESS_MESSAGES.READ_RECEIPT_UPDATED,
@@ -459,5 +471,4 @@ export class DirectMessageController {
       data: result,
     };
   }
-
 }

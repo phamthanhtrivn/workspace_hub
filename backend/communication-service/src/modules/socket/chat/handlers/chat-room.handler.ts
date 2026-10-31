@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
+import { socketUserId } from '../../../../common/auth/socket-user';
+import { DirectMessagePermissionService } from '../../../direct-message/direct-message-permission.service';
 import {
   CHAT_CONTEXT_TYPE,
   CHAT_RESPONSE_STATUS,
@@ -9,11 +11,18 @@ import { ChannelAccessService } from '../../../channel/access/channel-access.ser
 
 @Injectable()
 export class ChatRoomHandler {
-  constructor(private readonly chatSocketPublisher: ChatSocketPublisher, private readonly access: ChannelAccessService) {}
+  constructor(
+    private readonly chatSocketPublisher: ChatSocketPublisher,
+    private readonly access: ChannelAccessService,
+    private readonly directAccess: DirectMessagePermissionService,
+  ) {}
 
   async handleJoinConversation(data: { channelId: string }, client: Socket) {
     if (data.channelId) {
-      await this.access.assertPrivateAccess(data.channelId, client.data.userId as string | undefined);
+      await this.access.assertPrivateAccess(
+        data.channelId,
+        socketUserId(client),
+      );
       await client.join(data.channelId);
       return {
         status: CHAT_RESPONSE_STATUS.JOINED,
@@ -24,12 +33,16 @@ export class ChatRoomHandler {
     }
   }
 
-  handleJoinDirectConversation(
+  async handleJoinDirectConversation(
     data: { conversationId: string },
     client: Socket,
   ) {
     if (data.conversationId) {
-      client.join(data.conversationId);
+      await this.directAccess.assertCanRead(
+        data.conversationId,
+        socketUserId(client) ?? '',
+      );
+      await client.join(data.conversationId);
       return {
         status: CHAT_RESPONSE_STATUS.JOINED,
         chatId: data.conversationId,
@@ -43,11 +56,11 @@ export class ChatRoomHandler {
     data: { channelId: string; isTyping: boolean },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (!userId || !data.channelId) return;
 
     try {
-      await this.access.assertPrivateAccess(data.channelId, userId as string);
+      await this.access.assertPrivateAccess(data.channelId, userId);
       await this.chatSocketPublisher.publishTyping(
         CHAT_CONTEXT_TYPE.CHANNEL,
         data.channelId,
@@ -65,10 +78,11 @@ export class ChatRoomHandler {
     data: { conversationId: string; isTyping: boolean },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (!userId || !data.conversationId) return;
 
     try {
+      await this.directAccess.assertCanRead(data.conversationId, userId);
       await this.chatSocketPublisher.publishTyping(
         CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
         data.conversationId,

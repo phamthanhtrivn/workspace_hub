@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { Lock, Globe, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -40,9 +40,11 @@ export function ShareModalLink({
   const [linkAccess, setLinkAccess] = useState<LinkAccess>(initialLinkAccess);
   const [isCopied, setIsCopied] = useState(false);
 
-  useEffect(() => {
+  const [previousAccess, setPreviousAccess] = useState(initialLinkAccess);
+  if (previousAccess !== initialLinkAccess) {
+    setPreviousAccess(initialLinkAccess);
     setLinkAccess(initialLinkAccess);
-  }, [initialLinkAccess]);
+  }
 
   const queryClient = useQueryClient();
 

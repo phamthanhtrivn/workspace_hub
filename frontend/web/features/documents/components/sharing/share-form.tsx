@@ -1,5 +1,6 @@
 "use client";
 
+import { getApiErrorMessage } from "@/lib/api-error";
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Plus, Mail } from "lucide-react";
 import { toast } from "sonner";
@@ -47,8 +48,6 @@ export function ShareModalForm({
 
     const trimmedInput = emailInput.trim();
     if (!trimmedInput || trimmedInput.length < 2) {
-      setSearchResults([]);
-      setShowSuggestions(false);
       return;
     }
 
@@ -125,12 +124,10 @@ export function ShareModalForm({
       });
       onShareAdded?.();
     },
-    onError: (err: any) => {
+    onError: (err: unknown) => {
       console.error("Failed to add share", err);
       const errMsg =
-        err.response?.data?.message ||
-        err.message ||
-        "Failed to share access";
+        getApiErrorMessage(err, "Failed to share access");
       toast.error(errMsg);
     },
   });
@@ -161,7 +158,7 @@ export function ShareModalForm({
             filter={null}
             value={null}
             inputValue={emailInput}
-            onInputValueChange={setEmailInput}
+            onInputValueChange={value => { setEmailInput(value); setSearchResults([]); setShowSuggestions(false); }}
             itemToStringLabel={(user) => user?.email ?? ""}
             open={showSuggestions && searchResults.length > 0}
             onOpenChange={setShowSuggestions}

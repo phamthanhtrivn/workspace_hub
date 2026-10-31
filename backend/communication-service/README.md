@@ -15,12 +15,11 @@ keeps incremental metadata inside `dist`, so deleting build output also invalida
 its cache. Do not start the obsolete `dist/src/main` entry point.
 
 Apply reviewed Prisma migrations explicitly. Existing recording databases have
-baseline requirements: see [recording setup](../../meeting-recording-setup.md).
+baseline requirements: see [migration guidance](../../docs/migrations.md).
 Do not reset existing data. Follow [local setup](../../docs/local-development.md)
 for gateway, environment scopes and readiness.
 
 ```powershell
-npm test -- --runInBand
 npm run build
 ```
 

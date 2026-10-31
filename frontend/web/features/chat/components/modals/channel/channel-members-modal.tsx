@@ -1,8 +1,9 @@
 "use client";
 
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Search, X } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
@@ -24,7 +25,7 @@ interface ChannelMembersModalProps {
   spaceCreatorId?: string | null;
 }
 
-export default function ChannelMembersModal({
+function ChannelMembersModalForm({
   channelId,
   fallbackMemberCount,
   isOpen,
@@ -32,19 +33,11 @@ export default function ChannelMembersModal({
   spaceCreatorId,
 }: ChannelMembersModalProps) {
   const dispatch = useAppDispatch();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
 
-  useEffect(() => {
-    if (isOpen) {
-      setSearchQuery("");
-    }
-  }, [isOpen]);
+
 
   const { membersResponse, isLoading, isFetching, isError } =
     useChannelMembersSearch({
@@ -130,3 +123,7 @@ export default function ChannelMembersModal({
     </div>}</DialogSurface>;
 }
 
+
+export default function ChannelMembersModal(props: ChannelMembersModalProps) {
+  return props.isOpen ? <ChannelMembersModalForm key={props.channelId} {...props} /> : null;
+}

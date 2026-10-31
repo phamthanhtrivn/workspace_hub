@@ -1,9 +1,10 @@
 "use client";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 import { X } from "lucide-react";
 import RichTextTextarea from "../../input/rich-text-textarea";
@@ -26,11 +27,8 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
   const inputFieldId = useInputFieldId();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!isOpen) return null;
 

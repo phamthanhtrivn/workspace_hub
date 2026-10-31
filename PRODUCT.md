@@ -45,7 +45,7 @@ Use the existing WorkspaceHub name, assets, and clear action-oriented English in
 
 ## Evidence on Hand
 
-Routes, feature components, API integrations, and regression tests provide evidence of current behavior. The repository README includes broader thesis ambitions and some older capability descriptions; resolve discrepancies against current implementation. Development and deployment instructions live in [local development](docs/local-development.md) and [deployment](docs/deployment.md). Recording behavior and operational limits remain documented in the existing recording specification and setup guide.
+Routes, feature components, API integrations, and archived verification results provide evidence of current behavior. The repository README includes broader thesis ambitions and some older capability descriptions; resolve discrepancies against current implementation. Development and deployment instructions live in [local development](docs/local-development.md) and [deployment](docs/deployment.md). Recording setup and operational limits are documented in the [LiveKit guide](backend/livekit/README.md).
 
 ## Product Principles
 

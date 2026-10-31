@@ -465,6 +465,11 @@
   text-decoration: none;
 }
 
+.calendar-shell .fc-day-other .fc-daygrid-day-top,
+.calendar-mini-shell .fc-day-other .fc-daygrid-day-top {
+  opacity: 1;
+}
+
 .calendar-shell .fc-event {
   border-radius: 6px;
   border: 0;

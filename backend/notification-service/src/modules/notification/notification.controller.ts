@@ -1,3 +1,4 @@
+import { IndependentAuthentication } from "../../common/decorators/http-authentication.decorator";
 import {
   Controller,
   Get,
@@ -15,6 +16,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from "@nestjs/common";
+import { isServiceKeyValid } from "../../common/service-key";
 import { NotificationService } from "./notification.service";
 import { EmailService } from "./email.service";
 import { SendProjectInvitationEmailDto } from "./dtos/send-project-invitation-email.dto";
@@ -22,9 +24,7 @@ import { CreateNotificationDto } from "./dtos/create-notification.dto";
 import { PushService } from "./push.service";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
 import { ResolveProjectInvitationDto } from "./dtos/resolve-project-invitation.dto";
-import {
-  isNotificationCategory,
-} from "./types/notification.types";
+import { isNotificationCategory } from "./types/notification.types";
 import type {
   NotificationDateRange,
   NotificationCategory,
@@ -38,6 +38,7 @@ export class NotificationController {
     private readonly pushService: PushService,
   ) {}
 
+  @IndependentAuthentication()
   @Post("project-invitations/email")
   async sendProjectInvitationEmail(
     @Headers("x-internal-service-key") serviceKey: string,
@@ -45,7 +46,7 @@ export class NotificationController {
   ) {
     const expectedKey = process.env.INTERNAL_SERVICE_KEY;
 
-    if (!expectedKey || serviceKey !== expectedKey) {
+    if (!isServiceKeyValid(serviceKey, expectedKey)) {
       throw new UnauthorizedException("Invalid internal service key");
     }
 
@@ -57,29 +58,29 @@ export class NotificationController {
     };
   }
 
+  @IndependentAuthentication()
   @Post("internal")
   async createInternalNotification(
     @Headers("x-internal-service-key") serviceKey: string,
     @Body() dto: CreateNotificationDto,
   ) {
-    const expectedKey =
-      process.env.INTERNAL_SERVICE_KEY || "local-internal-key";
-    if (serviceKey !== expectedKey) {
+    const expectedKey = process.env.INTERNAL_SERVICE_KEY;
+    if (!isServiceKeyValid(serviceKey, expectedKey)) {
       throw new UnauthorizedException("Invalid internal service key");
     }
     const notification = await this.notificationService.createNotification(dto);
     return { message: "Notification created successfully", data: notification };
   }
 
+  @IndependentAuthentication()
   @Patch("internal/project-invitations/:invitationId")
   async resolveProjectInvitation(
     @Headers("x-internal-service-key") serviceKey: string,
     @Param("invitationId") invitationId: string,
     @Body() dto: ResolveProjectInvitationDto,
   ) {
-    const expectedKey =
-      process.env.INTERNAL_SERVICE_KEY || "local-internal-key";
-    if (serviceKey !== expectedKey) {
+    const expectedKey = process.env.INTERNAL_SERVICE_KEY;
+    if (!isServiceKeyValid(serviceKey, expectedKey)) {
       throw new UnauthorizedException("Invalid internal service key");
     }
     const notification =
@@ -113,14 +114,13 @@ export class NotificationController {
 
     const parsedPage = page ? parseInt(page, 10) : 1;
     const parsedLimit = limit ? parseInt(limit, 10) : 10;
-    const pageNum = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+    const pageNum =
+      Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
     const limitNum =
       Number.isInteger(parsedLimit) && parsedLimit > 0
         ? Math.min(parsedLimit, 50)
         : 10;
-    const category = isNotificationCategory(categoryStr)
-      ? categoryStr
-      : "ALL";
+    const category = isNotificationCategory(categoryStr) ? categoryStr : "ALL";
 
     let isRead: boolean | undefined = undefined;
     if (isReadStr === "true") isRead = true;

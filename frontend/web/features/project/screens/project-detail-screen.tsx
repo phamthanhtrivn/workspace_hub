@@ -3,7 +3,7 @@ import { ProjectAccessStatus } from "../components/project-access-status";
 import { useProjectAccessState } from "../hooks/use-project-access-state";
 
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -151,27 +151,19 @@ export default function ProjectDetailScreen() {
     : null;
   const [chatTask, setChatTask] = useState<Task | null>(null);
   const [showMembers, setShowMembers] = useState(false);
-  const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showProjectSettings, setShowProjectSettings] = useState(() => searchParams.get("view") === "settings");
   const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const hasOpenedUrlTaskRef = useRef<string | null>(null);
+  const [openedUrlTaskId, setOpenedUrlTaskId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const query = new URLSearchParams(window.location.search);
-    if (query.get("view") !== "settings") return;
-    const timer = window.setTimeout(() => setShowProjectSettings(true), 0);
-    return () => window.clearTimeout(timer);
-  }, []);
 
-  useEffect(() => {
-    const targetTaskId = requestedTaskId;
-    if (!targetTaskId || hasOpenedUrlTaskRef.current === targetTaskId || serverTasks.length === 0) return;
 
-    const foundTask = serverTasks.find((task) => task.id === targetTaskId);
+  if (requestedTaskId && openedUrlTaskId !== requestedTaskId) {
+    const foundTask = serverTasks.find(task => task.id === requestedTaskId);
     if (foundTask) {
-      hasOpenedUrlTaskRef.current = targetTaskId;
+      setOpenedUrlTaskId(requestedTaskId);
       setSelectedTask(foundTask);
     }
-  }, [serverTasks, requestedTaskId]);
+  }
 
   const {
     isOpen: showTaskForm,

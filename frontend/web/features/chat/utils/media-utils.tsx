@@ -1,6 +1,7 @@
 import { formatDateTime } from "@/lib/date";
+import type { ChatMediaResponse } from "../types/chat.types";
 
-export const isAudioFile = (media: any): boolean => {
+export const isAudioFile = (media: ChatMediaResponse | null | undefined): boolean => {
   if (!media) return false;
   return (
     media.mimeType?.startsWith("audio/") ||
@@ -10,7 +11,7 @@ export const isAudioFile = (media: any): boolean => {
   );
 };
 
-export const renderAudioPlayer = (media: any, isMe: boolean) => {
+export const renderAudioPlayer = (media: ChatMediaResponse, isMe: boolean) => {
   return (
     <div
       key={media.id}

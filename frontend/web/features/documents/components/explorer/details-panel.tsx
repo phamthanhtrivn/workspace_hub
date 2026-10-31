@@ -46,7 +46,7 @@ export function DetailsPanel({
 }: DetailsPanelProps) {
   if (!item) return null;
 
-  const isFolder = item.type === DocumentItemType.FOLDER || (item.type as any) === "FOLDER";
+  const isFolder = item.type === DocumentItemType.FOLDER;
 
   return (
     <SheetPanel open aria-label={`Document details: ${item.name}`} onClose={onClose} modalBelow={800} modalContainerSelector="[data-document-canvas]" className="absolute inset-0 z-40 flex h-full min-h-0 min-w-0 w-full shrink-0 flex-col overflow-hidden @min-[800px]/document-canvas:static @min-[800px]/document-canvas:w-80 border-l border-border bg-card text-foreground animate-in slide-in-from-right-4 duration-200">

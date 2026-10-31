@@ -1,3 +1,4 @@
+import type { ChatMediaResponse } from "@/features/chat/types/chat.types";
 import { toast } from "sonner";
 
 import { IconButton } from "@/components/ui/icon-button";
@@ -54,7 +55,7 @@ interface MediaDetailViewProps {
   onBack: () => void;
 }
 
-function getMediaKind(item: any) {
+function getMediaKind(item: ChatMediaResponse) {
   const mimeType = item.mimeType || "";
   const name = (item.name || "").toLowerCase();
 
@@ -113,7 +114,7 @@ function getMediaKind(item: any) {
   return "other";
 }
 
-function getFileIcon(item: any) {
+function getFileIcon(item: ChatMediaResponse) {
   const kind = getMediaKind(item);
   const className = "text-inherit";
 
@@ -131,7 +132,7 @@ function getFileIcon(item: any) {
   return <File size={20} className={className} />;
 }
 
-function getFileIconBg(item: any) {
+function getFileIconBg(item: ChatMediaResponse) {
   const kind = getMediaKind(item);
   if (kind === "image") return "bg-success text-success-foreground";
   if (kind === "video") return "bg-primary text-primary-foreground";
@@ -144,7 +145,7 @@ function getFileIconBg(item: any) {
   return "bg-primary text-primary-foreground";
 }
 
-function formatMediaDate(item: any) {
+function formatMediaDate(item: ChatMediaResponse) {
   return formatDateTime(item.message?.createdAt || item.createdAt);
 }
 
@@ -213,21 +214,21 @@ export default function MediaDetailView({
   const allItems = useMemo(() => {
     if (!data?.pages) return [];
     return data.pages.flatMap((page) => page.medias || []);
-  }, [data?.pages]);
+  }, [data]);
 
   const previewItems = useMemo(
     () =>
-      allItems.filter((item: any) =>
+      allItems.filter((item) =>
         ["image", "video"].includes(getMediaKind(item)),
       ),
     [allItems],
   );
 
-  const openItem = (item: any) => {
+  const openItem = (item: ChatMediaResponse) => {
     const kind = getMediaKind(item);
     if (["image", "video"].includes(kind)) {
       const index = previewItems.findIndex(
-        (media: any) => media.id === item.id,
+        (media) => media.id === item.id,
       );
       setLightboxIndex(index >= 0 ? index : 0);
       return;
@@ -238,7 +239,7 @@ export default function MediaDetailView({
     }
   };
 
-  const handleDownload = async (e: React.MouseEvent, item: any) => {
+  const handleDownload = async (e: React.MouseEvent, item: ChatMediaResponse) => {
     e.preventDefault();
     e.stopPropagation();
     try {
@@ -311,7 +312,7 @@ export default function MediaDetailView({
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {allItems.map((item: any) => {
+            {allItems.map((item) => {
               const kind = getMediaKind(item);
 
               return (

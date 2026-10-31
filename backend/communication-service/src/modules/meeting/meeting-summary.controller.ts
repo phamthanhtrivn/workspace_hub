@@ -1,3 +1,4 @@
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
 import {
   Body,
   Controller,
@@ -91,6 +92,7 @@ export class MeetingSummaryController {
   }
 }
 
+@IndependentAuthentication()
 @Controller('internal/meeting-summaries')
 export class MeetingSummarySourceController {
   constructor(private readonly recordings: MeetingRecordingService) {}

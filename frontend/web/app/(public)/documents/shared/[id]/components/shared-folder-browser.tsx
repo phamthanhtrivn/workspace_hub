@@ -1,7 +1,8 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { QueryFeedback } from "@/components/common/query-feedback";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import {
   Folder,
   Download,
@@ -50,9 +51,6 @@ function SharedFolderBrowserInner({
   rootId,
   userRole,
 }: SharedFolderBrowserProps) {
-  const [loadError, setLoadError] = useState(false);
-  const [children, setChildren] = useState<DocumentItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [currentFolderId, setCurrentFolderId] = useState<string>(rootId);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbEntry[]>([
     { id: rootId, name: rootItem.name },
@@ -60,32 +58,12 @@ function SharedFolderBrowserInner({
 
   const { enqueueDownload } = useDownloadQueue();
 
-  const loadChildren = useCallback(
-    async (folderId: string) => {
-      setIsLoading(true); setLoadError(false);
-      try {
-        const items = await documentsApi.getPublicFolderChildren(
-          rootId,
-          folderId,
-        );
-        setChildren(items);
-      } catch (err) {
-        console.error("Failed to load folder children", err);
-        setLoadError(true);
-        toast.error("Could not load this folder");
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [rootId],
-  );
-
-  useEffect(() => {
-    void loadChildren(currentFolderId);
-  }, [currentFolderId, loadChildren]);
+  const { data: children = [], isPending: isLoading, isError: loadError, refetch } = useQuery({
+    queryKey: ["documents", "public-children", rootId, currentFolderId],
+    queryFn: () => documentsApi.getPublicFolderChildren(rootId, currentFolderId),
+  });
 
   const handleNavigateInto = (folder: DocumentItem) => {
-    setChildren([]);
     setCurrentFolderId(folder.id);
     setBreadcrumbs((prev) => [...prev, { id: folder.id, name: folder.name }]);
   };
@@ -93,7 +71,6 @@ function SharedFolderBrowserInner({
   const handleBreadcrumbClick = (index: number) => {
     const target = breadcrumbs[index];
     setBreadcrumbs(breadcrumbs.slice(0, index + 1));
-    setChildren([]);
     setCurrentFolderId(target.id);
   };
 
@@ -168,7 +145,7 @@ function SharedFolderBrowserInner({
       )}
 
       {/* File/Folder List */}
-      {loadError && <QueryFeedback label="shared folder contents" error retrying={isLoading} onRetry={() => loadChildren(currentFolderId)} />}
+      {loadError && <QueryFeedback label="shared folder contents" error retrying={isLoading} onRetry={() => { void refetch(); }} />}
       {loadError && children.length === 0 ? null : isLoading ? (
         <div role="status" className="flex items-center justify-center py-16">
           <Spinner size={24} />

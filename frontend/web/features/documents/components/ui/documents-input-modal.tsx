@@ -30,7 +30,7 @@ export interface DocumentsInputModalProps {
   onCancel: () => void;
 }
 
-export function DocumentsInputModal({
+function DocumentsInputModalForm({
   open,
   title,
   description,
@@ -51,8 +51,6 @@ export function DocumentsInputModal({
 
   useEffect(() => {
     if (open) {
-      setValue(defaultValue);
-      setError(null);
       setTimeout(() => {
         inputRef.current?.focus();
         inputRef.current?.select();
@@ -134,4 +132,8 @@ export function DocumentsInputModal({
       </DialogContent>
     </Dialog>
   );
+}
+
+export function DocumentsInputModal(props: DocumentsInputModalProps) {
+  return props.open ? <DocumentsInputModalForm key={props.defaultValue ?? ""} {...props} /> : null;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import React, { useState, useEffect, useRef } from "react";
 import { DialogSurface } from "@/components/ui/dialog";
 import { saveAs } from "file-saver";
@@ -41,22 +42,8 @@ export default function MediaLightbox({
 
   const imgRef = useRef<HTMLImageElement>(null);
 
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Close on Escape
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-
-      if (e.key === "ArrowLeft") handlePrev();
-      if (e.key === "ArrowRight") handleNext();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex, onClose]);
 
   const resetView = () => {
     setScale(1);
@@ -77,6 +64,17 @@ export default function MediaLightbox({
       resetView();
     }
   };
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+
+      if (e.key === "ArrowLeft") handlePrev();
+      if (e.key === "ArrowRight") handleNext();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handlePrev, handleNext]);
 
   const handleZoomIn = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();

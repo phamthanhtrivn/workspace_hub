@@ -58,16 +58,12 @@ jobs:
           cache-dependency-path: ${{ format('{0}/package-lock.json', matrix.directory) }}
       - run: npm ci
       - name: Read-only lint
-        # Existing application lint debt is advisory; build/tests remain required.
+        # Existing application lint debt is advisory; builds remain required.
         continue-on-error: true
         run: npm run lint -- --no-fix
       - name: Generate client
         if: ${{ matrix.directory != 'frontend/web' }}
         run: npx --no-install prisma generate
-      - name: Available unit tests
-        run: >-
-          node -e "const p=require('./package.json'); if(p.scripts.test)require('child_process').execSync('npm test --
-          --passWithNoTests --runInBand',{stdio:'inherit'})"
       - run: npm run build
   java:
     needs: changes

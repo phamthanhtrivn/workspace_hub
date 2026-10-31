@@ -39,7 +39,7 @@ export default function WorkAssistantLauncher() {
         type="button"
         size="lg"
         onClick={() => setOpen((value) => !value)}
-        aria-label={open ? "Đóng trợ lý công việc" : "Mở trợ lý công việc"}
+        aria-label={open ? "Đóng Trợ lý AI" : "Mở Trợ lý AI"}
         aria-expanded={open}
         aria-controls={open ? "work-assistant-panel" : undefined}
         className="fixed bottom-5 right-5 z-50 h-12 gap-2 rounded-full px-4 shadow-lg"

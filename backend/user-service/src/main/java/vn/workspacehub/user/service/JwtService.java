@@ -10,6 +10,7 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
+import vn.workspacehub.user.common.AuthPolicy;
 
 @Service
 public class JwtService {
@@ -37,6 +38,7 @@ public class JwtService {
                 .subject(userId.toString())
                 .claim("email", email)
                 .claim("role", role)
+                .claim(AuthPolicy.TOKEN_USE_CLAIM, AuthPolicy.ACCESS_TOKEN_USE)
                 .claim("fullName", fullName)
                 .claim("avatarUrl", avatarUrl)
                 .issuedAt(now)
@@ -48,9 +50,18 @@ public class JwtService {
     public Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(secretKey)
+                .requireIssuer(issuer)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    public Claims extractAccessClaims(String token) {
+        var parsed = Jwts.parser().verifyWith(secretKey).requireIssuer(issuer).build().parseSignedClaims(token);
+        if (!"HS256".equals(parsed.getHeader().getAlgorithm())) {
+            throw new IllegalArgumentException("Invalid access token");
+        }
+        return parsed.getPayload();
     }
 
     public String extractEmail(String token) {
@@ -72,16 +83,32 @@ public class JwtService {
     public String generateResetToken(UUID userId, String email) {
         Date now = new Date();
         // 15 phút (15 * 60 * 1000)
-        Date expiry = new Date(now.getTime() + 900000); 
+        Date expiry = new Date(now.getTime() + AuthPolicy.RESET_TTL_SECONDS * 1000L);
 
         return Jwts.builder()
                 .issuer(issuer)
                 .subject(userId.toString())
                 .claim("email", email)
                 .claim("role", "RESET_PASSWORD_ROLE")
+                .id(UUID.randomUUID().toString())
+                .audience().add(AuthPolicy.RESET_AUDIENCE).and()
+                .claim(AuthPolicy.TOKEN_USE_CLAIM, AuthPolicy.RESET_TOKEN_USE)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey, Jwts.SIG.HS256)
                 .compact();
+    }
+
+    public Claims extractResetClaims(String token) {
+        Claims claims = extractAllClaims(token);
+        if (!AuthPolicy.RESET_ROLE.equals(claims.get("role", String.class))
+                || !AuthPolicy.RESET_TOKEN_USE.equals(claims.get(AuthPolicy.TOKEN_USE_CLAIM, String.class))
+                || claims.getAudience() == null || !claims.getAudience().contains(AuthPolicy.RESET_AUDIENCE)
+                || claims.getExpiration() == null || !claims.getExpiration().after(new Date())) {
+            throw new IllegalArgumentException(AuthPolicy.INVALID_RESET);
+        }
+        UUID.fromString(claims.getId());
+        UUID.fromString(claims.getSubject());
+        return claims;
     }
 }

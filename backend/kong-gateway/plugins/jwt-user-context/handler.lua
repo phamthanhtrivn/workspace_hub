@@ -6,8 +6,8 @@ local ngx_log = ngx.log
 local ngx_ERR = ngx.ERR
 
 local JwtUserContextHandler = {
-  PRIORITY = 999, -- Run after the official jwt plugin (priority 1005)
-  VERSION = "1.0.0",
+  PRIORITY = 999, -- Run after the bundled jwt authenticator.
+  VERSION = "1.1.0",
 }
 
 local function decode_base64_url(input)
@@ -32,8 +32,10 @@ function JwtUserContextHandler:access(config)
 
   -- Never certify a decoded-only token if the official authentication plugin is missing.
   local use_gateway_proof = type(config.gateway_service_key) == "string" and #config.gateway_service_key >= 32
-  if use_gateway_proof
-    and not kong.client.get_credential() then
+  if not kong.client.get_credential() then
+    if config.optional then
+      return
+    end
     return kong.response.exit(401, { message = "Unauthorized: Verified credentials required" })
   end
 
@@ -48,7 +50,7 @@ function JwtUserContextHandler:access(config)
     return kong.response.exit(401, { message = "Unauthorized: Missing Authorization header" })
   end
 
-  local token = auth_header:match("Bearer%s+(.+)")
+  local token = auth_header:match("^[Bb][Ee][Aa][Rr][Ee][Rr]%s+([^%s]+)$")
   if not token then
     if config.optional then
       return
@@ -74,7 +76,7 @@ function JwtUserContextHandler:access(config)
 
   -- 5. Parse JSON safely
   local payload, err = cjson_safe.decode(payload_json)
-  if err or not payload then
+  if err or type(payload) ~= "table" then
     ngx_log(ngx_ERR, "[jwt-user-context] Failed to parse JWT payload JSON: ", err)
     return kong.response.exit(401, { message = "Unauthorized: Invalid JWT payload JSON" })
   end
@@ -86,20 +88,34 @@ function JwtUserContextHandler:access(config)
   local full_name = payload.fullName
   local avatar_url = payload.avatarUrl
 
+  local uuid_pattern = "^%x%x%x%x%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%-%x%x%x%x%x%x%x%x%x%x%x%x$"
+  local now = ngx.time()
+  if type(sub) ~= "string" or not sub:match(uuid_pattern)
+    or (role ~= "USER" and role ~= "ADMIN")
+    or (payload.token_use ~= nil and payload.token_use ~= "access")
+    or type(payload.exp) ~= "number" or payload.exp ~= payload.exp or payload.exp == math.huge or payload.exp <= now
+    or (payload.nbf ~= nil and (type(payload.nbf) ~= "number" or payload.nbf ~= payload.nbf or payload.nbf == math.huge or payload.nbf > now)) then
+    return kong.response.exit(401, { message = "Unauthorized: A valid access identity is required" })
+  end
+
+  local function safe_text(value)
+    return type(value) == "string" and not value:find("[%z\1-\31\127]")
+  end
+
   if sub then
     kong.service.request.set_header(config.header_user_id, tostring(sub))
   end
-  if email then
-    kong.service.request.set_header(config.header_user_email, tostring(email))
+  if safe_text(email) then
+    kong.service.request.set_header(config.header_user_email, email)
   end
   if role then
     kong.service.request.set_header(config.header_user_role, tostring(role))
   end
-  if full_name then
-    kong.service.request.set_header(config.header_user_name, tostring(full_name))
+  if safe_text(full_name) then
+    kong.service.request.set_header(config.header_user_name, full_name)
   end
-  if avatar_url then
-    kong.service.request.set_header(config.header_user_avatar, tostring(avatar_url))
+  if safe_text(avatar_url) then
+    kong.service.request.set_header(config.header_user_avatar, avatar_url)
   end
   if use_gateway_proof then
     kong.service.request.set_header("X-Workspace-Gateway-Key", config.gateway_service_key)

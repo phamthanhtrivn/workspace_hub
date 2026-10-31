@@ -79,5 +79,3 @@ one transaction. Timed task dates must include a timezone offset or `Z`; null
 start/due dates clear the field. Project task discussions use the persisted
 comment API, refreshed every five seconds while open. Sprint metrics display
 current recorded progress; historical burndown is not generated without history.
-
-To run unit tests, use `npm test`.

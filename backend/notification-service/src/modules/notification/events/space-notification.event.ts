@@ -1,14 +1,16 @@
-import { BadRequestException, Controller, Logger } from "@nestjs/common";
+import { BadRequestException, Controller, Logger, UseInterceptors } from "@nestjs/common";
 import { EventPattern, Payload } from "@nestjs/microservices";
 import { KAFKA_EVENTS, KAFKA_TOPICS } from "../../../common/constants/kafka.constants";
 import { NotificationService } from "../notification.service";
 import { SpaceInvitationNotificationHandler } from "./space-invitation-notification.service";
+import { InvalidKafkaEventInterceptor } from '../../../common/interceptors/invalid-kafka-event.interceptor';
 import type {
   KafkaNotificationMessage,
   KafkaNotificationPayload,
 } from "../types/notification.types";
 
 @Controller()
+@UseInterceptors(InvalidKafkaEventInterceptor)
 export class SpaceNotificationEvent {
   private readonly logger = new Logger(SpaceNotificationEvent.name);
 
@@ -29,7 +31,7 @@ export class SpaceNotificationEvent {
     }
 
     if (!this.isSupportedNotification(payload)) {
-      this.logger.warn(`Ignoring unsupported notification type: ${payload.type}`);
+      this.logger.warn('Ignoring unsupported notification type');
       return;
     }
 
@@ -55,11 +57,33 @@ export class SpaceNotificationEvent {
       }
     }
 
+    this.validateNotification(payload);
     await this.spaceInvitationHandler.handle(payload);
   }
 
   private toPayload(data: KafkaNotificationMessage): KafkaNotificationPayload {
-    return (data.value ?? data) as KafkaNotificationPayload;
+    if (!data || typeof data !== 'object' || Array.isArray(data))
+      throw new BadRequestException('Invalid notification payload');
+    const payload: unknown = 'value' in data ? data.value : data;
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload))
+      throw new BadRequestException('Invalid notification payload');
+    const candidate = payload as Record<string, unknown>;
+    if (typeof candidate.type !== 'string')
+      throw new BadRequestException('Invalid notification payload');
+    return payload as KafkaNotificationPayload;
+  }
+
+  private validateNotification(payload: KafkaNotificationPayload): void {
+    if (typeof payload.recipientId !== 'string' || !payload.recipientId ||
+        typeof payload.title !== 'string' || !payload.title ||
+        typeof payload.content !== 'string' || !payload.content ||
+        ['senderId', 'senderName', 'senderAvatar', 'link'].some(key => {
+          const value = (payload as unknown as Record<string, unknown>)[key];
+          return value !== undefined && value !== null && typeof value !== 'string';
+        }) ||
+        (payload.metadata !== undefined &&
+          (!payload.metadata || typeof payload.metadata !== 'object' || Array.isArray(payload.metadata))))
+      throw new BadRequestException('Invalid notification payload');
   }
 
   private isSupportedNotification(payload: KafkaNotificationPayload): boolean {
@@ -89,7 +113,7 @@ export class SpaceNotificationEvent {
   private async handleMeetingInvitationStatus(
     payload: KafkaNotificationPayload,
   ): Promise<void> {
-    if (!payload.recipientId) {
+    if (typeof payload.recipientId !== 'string' || !payload.recipientId) {
       throw new BadRequestException("Missing notification recipientId");
     }
     const meetingId = payload.metadata?.meetingId;

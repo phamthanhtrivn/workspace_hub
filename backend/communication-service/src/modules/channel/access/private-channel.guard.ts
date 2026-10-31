@@ -24,10 +24,11 @@ export class PrivateChannelGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     if (context.getType() !== 'http') return true;
-    const resource = this.reflector.getAllAndOverride<ChannelResourceOptions | null>(
-      CHANNEL_RESOURCE_KEY,
-      [context.getHandler(), context.getClass()],
-    );
+    const resource =
+      this.reflector.getAllAndOverride<ChannelResourceOptions | null>(
+        CHANNEL_RESOURCE_KEY,
+        [context.getHandler(), context.getClass()],
+      );
     if (!resource) return true;
     const request = context.switchToHttp().getRequest<Request>();
     const id = request.params[resource.parameter];

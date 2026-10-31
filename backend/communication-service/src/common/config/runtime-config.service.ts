@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { requireInternalServiceKey } from '../auth/service-key';
 
 @Injectable()
 export class RuntimeConfigService {
@@ -8,8 +9,9 @@ export class RuntimeConfigService {
   readonly projectServiceUrl = this.baseUrl(
     process.env.PROJECT_SERVICE_URL ?? 'http://localhost:8082',
   );
-  readonly internalServiceKey =
-    this.optional(process.env.INTERNAL_SERVICE_KEY) ?? 'local-internal-key';
+  readonly internalServiceKey = requireInternalServiceKey(
+    process.env.INTERNAL_SERVICE_KEY,
+  );
   readonly httpTimeoutMs = this.positiveInteger(
     process.env.SERVICE_HTTP_TIMEOUT_MS,
     5_000,

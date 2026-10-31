@@ -1,3 +1,5 @@
+import { OptionalIdentity } from '../../common/decorators/http-authentication.decorator';
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
 import {
   Controller,
   Post,
@@ -13,6 +15,7 @@ import {
   Res,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { isServiceKeyValid } from '../../common/auth/service-key';
 import type { Response } from 'express';
 import { DocumentService } from './document.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
@@ -41,12 +44,13 @@ export class DocumentController {
   }
 
   private assertInternalServiceKey(serviceKey?: string): void {
-    const expected = process.env.INTERNAL_SERVICE_KEY || 'local-internal-key';
-    if (!serviceKey || serviceKey !== expected) {
+    const expected = process.env.INTERNAL_SERVICE_KEY;
+    if (!isServiceKeyValid(serviceKey, expected)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
   }
 
+  @IndependentAuthentication()
   @Post('internal/projects/:projectId/root-folder')
   async ensureProjectRootFolder(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -68,6 +72,7 @@ export class DocumentController {
     };
   }
 
+  @IndependentAuthentication()
   @Post('internal/task-attachments/resolve')
   async resolveTaskAttachmentDocuments(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -86,6 +91,7 @@ export class DocumentController {
     };
   }
 
+  @IndependentAuthentication()
   @Post('internal/task-attachments/import')
   async importTaskAttachmentDocuments(
     @Headers('x-internal-service-key') serviceKey: string,
@@ -583,11 +589,15 @@ export class DocumentController {
   @Post(':id/sharing/check-permissions')
   async checkPermissions(
     @Param('id') id: string,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
     @Body() dto: CheckPermissionsDto,
   ) {
     const result = await this.documentService.checkEmailsPermissions(
       id,
       dto.emails,
+      userId,
+      userEmail,
     );
     return {
       message: 'Permissions checked successfully',
@@ -648,6 +658,7 @@ export class DocumentController {
     };
   }
 
+  @OptionalIdentity()
   @Get('public/:id')
   async getPublicDocument(
     @Param('id') id: string,
@@ -665,6 +676,7 @@ export class DocumentController {
     };
   }
 
+  @OptionalIdentity()
   @Get('public/:id/download-url')
   async getPublicDownloadUrl(
     @Param('id') id: string,
@@ -692,6 +704,7 @@ export class DocumentController {
     };
   }
 
+  @OptionalIdentity()
   @Get('public/:id/preview-url')
   async getPublicPreviewUrl(
     @Param('id') id: string,
@@ -719,6 +732,7 @@ export class DocumentController {
     };
   }
 
+  @OptionalIdentity()
   @Get('public/:id/versions')
   async getPublicVersions(
     @Param('id') id: string,
@@ -736,6 +750,7 @@ export class DocumentController {
     };
   }
 
+  @OptionalIdentity()
   @Post('public/:id/versions')
   async createPublicVersion(
     @Param('id') id: string,
@@ -755,6 +770,7 @@ export class DocumentController {
     };
   }
 
+  @OptionalIdentity()
   @Put('public/:id/rename')
   async renamePublicItem(
     @Param('id') id: string,
@@ -774,6 +790,7 @@ export class DocumentController {
     };
   }
 
+  @OptionalIdentity()
   @Post('public/:id/upload/initiate')
   async initiatePublicUpload(
     @Param('id') id: string,
@@ -793,6 +810,7 @@ export class DocumentController {
     };
   }
 
+  @OptionalIdentity()
   @Get('public/:id/download-folder')
   async downloadPublicFolder(
     @Param('id') id: string,
@@ -803,6 +821,7 @@ export class DocumentController {
     await this.documentService.downloadFolderAsZip(userId, userEmail, id, res);
   }
 
+  @OptionalIdentity()
   @Get('public/:id/children')
   async getPublicFolderChildren(
     @Param('id') id: string,

@@ -267,12 +267,12 @@ export class ChatSocketPublisher {
     });
   }
 
-  async publishConversationMuteUpdated(
+  publishConversationMuteUpdated(
     userId: string,
     chatType: CHAT_CONTEXT_TYPE,
     chatId: string,
     muted: boolean,
-  ): Promise<void> {
+  ): void {
     this.publishToRooms(userId, ChatEvent.CONVERSATION_MUTE_UPDATED, {
       chatId,
       chatType,

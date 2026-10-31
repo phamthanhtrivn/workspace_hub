@@ -46,17 +46,43 @@ export class PollService {
     return this.userProfileSnapshotService.attachCreatorProfilesToPolls(polls);
   }
 
-  async votePoll(channelId: string, messageId: string, pollOptionId: string, userId: string, selected?: boolean) {
-    const message = await this.prisma.$transaction(async tx => {
+  async votePoll(
+    channelId: string,
+    messageId: string,
+    pollOptionId: string,
+    userId: string,
+    selected?: boolean,
+  ) {
+    const message = await this.prisma.$transaction(async (tx) => {
       const poll = await this.lockPoll(tx, channelId, messageId, userId);
-      if (poll.isLocked) throw new BadRequestException(POLL_ERROR_MESSAGES.LOCKED);
-      const option = poll.options.find(candidate => candidate.id === pollOptionId);
-      if (!option) throw new BadRequestException(POLL_ERROR_MESSAGES.OPTION_NOT_FOUND);
-      const shouldSelect = selected ?? !option.votes.some(vote => vote.userId === userId);
-      if (!shouldSelect) await tx.pollVote.deleteMany({ where: { pollOptionId, userId } });
+      if (poll.isLocked)
+        throw new BadRequestException(POLL_ERROR_MESSAGES.LOCKED);
+      const option = poll.options.find(
+        (candidate) => candidate.id === pollOptionId,
+      );
+      if (!option)
+        throw new BadRequestException(POLL_ERROR_MESSAGES.OPTION_NOT_FOUND);
+      const shouldSelect =
+        selected ?? !option.votes.some((vote) => vote.userId === userId);
+      if (!shouldSelect)
+        await tx.pollVote.deleteMany({ where: { pollOptionId, userId } });
       else {
-        if (!poll.multipleChoice) await tx.pollVote.deleteMany({ where: { userId, pollOptionId: { in: poll.options.filter(candidate => candidate.id !== pollOptionId).map(candidate => candidate.id) } } });
-        await tx.pollVote.upsert({ where: { pollOptionId_userId: { pollOptionId, userId } }, create: { pollOptionId, userId }, update: {} });
+        if (!poll.multipleChoice)
+          await tx.pollVote.deleteMany({
+            where: {
+              userId,
+              pollOptionId: {
+                in: poll.options
+                  .filter((candidate) => candidate.id !== pollOptionId)
+                  .map((candidate) => candidate.id),
+              },
+            },
+          });
+        await tx.pollVote.upsert({
+          where: { pollOptionId_userId: { pollOptionId, userId } },
+          create: { pollOptionId, userId },
+          update: {},
+        });
       }
       return this.readUpdatedMessage(tx, messageId);
     });
@@ -86,14 +112,30 @@ export class PollService {
     return updatedMessage;
   }
 
-  async addPollOption(channelId: string, messageId: string, text: string, userId: string) {
-    if (!text.trim()) throw new BadRequestException(POLL_ERROR_MESSAGES.EMPTY_OPTION);
-    const message = await this.prisma.$transaction(async tx => {
+  async addPollOption(
+    channelId: string,
+    messageId: string,
+    text: string,
+    userId: string,
+  ) {
+    if (!text.trim())
+      throw new BadRequestException(POLL_ERROR_MESSAGES.EMPTY_OPTION);
+    const message = await this.prisma.$transaction(async (tx) => {
       const poll = await this.lockPoll(tx, channelId, messageId, userId);
-      if (poll.isLocked) throw new BadRequestException(POLL_ERROR_MESSAGES.LOCKED);
-      if (!poll.allowAddOptions) throw new BadRequestException(POLL_ERROR_MESSAGES.ADD_OPTION_PREVENTED);
-      const option = await tx.pollOption.create({ data: { pollId: poll.id, text: text.trim(), createdBy: userId } });
-      if (!poll.multipleChoice) await tx.pollVote.deleteMany({ where: { userId, pollOptionId: { in: poll.options.map(candidate => candidate.id) } } });
+      if (poll.isLocked)
+        throw new BadRequestException(POLL_ERROR_MESSAGES.LOCKED);
+      if (!poll.allowAddOptions)
+        throw new BadRequestException(POLL_ERROR_MESSAGES.ADD_OPTION_PREVENTED);
+      const option = await tx.pollOption.create({
+        data: { pollId: poll.id, text: text.trim(), createdBy: userId },
+      });
+      if (!poll.multipleChoice)
+        await tx.pollVote.deleteMany({
+          where: {
+            userId,
+            pollOptionId: { in: poll.options.map((candidate) => candidate.id) },
+          },
+        });
       await tx.pollVote.create({ data: { userId, pollOptionId: option.id } });
       return this.readUpdatedMessage(tx, messageId);
     });
@@ -121,18 +163,36 @@ export class PollService {
     return updatedMessage;
   }
 
-  async updatePoll(channelId: string, messageId: string, title: string, multipleChoice: boolean, allowAddOptions: boolean, userId: string, anonymous?: boolean, isLocked?: boolean) {
-    const message = await this.prisma.$transaction(async tx => {
+  async updatePoll(
+    channelId: string,
+    messageId: string,
+    title: string,
+    multipleChoice: boolean,
+    allowAddOptions: boolean,
+    userId: string,
+    anonymous?: boolean,
+    isLocked?: boolean,
+  ) {
+    const message = await this.prisma.$transaction(async (tx) => {
       const poll = await this.lockPoll(tx, channelId, messageId, userId);
-      if (poll.createdBy !== userId) throw new BadRequestException(POLL_ERROR_MESSAGES.EDIT_ACCESS_DENIED);
+      if (poll.createdBy !== userId)
+        throw new BadRequestException(POLL_ERROR_MESSAGES.EDIT_ACCESS_DENIED);
       if (!multipleChoice) {
         const voters = new Set<string>();
-        for (const option of poll.options) for (const vote of option.votes) {
-          if (voters.has(vote.userId)) throw new BadRequestException({ code: POLL_ERROR_CODES.MULTIPLE_VOTES_EXIST, message: POLL_ERROR_MESSAGES.MULTIPLE_VOTES_EXIST });
-          voters.add(vote.userId);
-        }
+        for (const option of poll.options)
+          for (const vote of option.votes) {
+            if (voters.has(vote.userId))
+              throw new BadRequestException({
+                code: POLL_ERROR_CODES.MULTIPLE_VOTES_EXIST,
+                message: POLL_ERROR_MESSAGES.MULTIPLE_VOTES_EXIST,
+              });
+            voters.add(vote.userId);
+          }
       }
-      await tx.poll.update({ where: { id: poll.id }, data: { title, multipleChoice, allowAddOptions, anonymous, isLocked } });
+      await tx.poll.update({
+        where: { id: poll.id },
+        data: { title, multipleChoice, allowAddOptions, anonymous, isLocked },
+      });
       return this.readUpdatedMessage(tx, messageId);
     });
     return this.enrichMessage(message);
@@ -167,16 +227,40 @@ export class PollService {
     return updatedMessage;
   }
 
-  private async lockPoll(tx: Prisma.TransactionClient, channelId: string, messageId: string, userId: string) {
+  private async lockPoll(
+    tx: Prisma.TransactionClient,
+    channelId: string,
+    messageId: string,
+    userId: string,
+  ) {
     await tx.$queryRaw`SELECT id FROM polls WHERE message_id = ${messageId}::uuid FOR UPDATE`;
-    const poll = await tx.poll.findUnique({ where: { messageId }, include: { message: { select: { channelId: true } }, options: { include: { votes: true } } } });
-    if (!poll || poll.message.channelId !== channelId) throw new BadRequestException(POLL_ERROR_MESSAGES.NOT_FOUND);
-    const member = await tx.channelMember.findUnique({ where: { channelId_userId: { channelId, userId } } });
-    if (!member) throw new BadRequestException(POLL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+    const poll = await tx.poll.findUnique({
+      where: { messageId },
+      include: {
+        message: { select: { channelId: true } },
+        options: { include: { votes: true } },
+      },
+    });
+    if (!poll || poll.message.channelId !== channelId)
+      throw new BadRequestException(POLL_ERROR_MESSAGES.NOT_FOUND);
+    const member = await tx.channelMember.findUnique({
+      where: { channelId_userId: { channelId, userId } },
+    });
+    if (!member)
+      throw new BadRequestException(POLL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
     return poll;
   }
   private readUpdatedMessage(tx: Prisma.TransactionClient, messageId: string) {
-    return tx.message.update({ where: { id: messageId }, data: { createdAt: new Date() }, include: { poll: { include: { options: { include: { votes: true } } } }, note: true, medias: true, reactions: true } });
+    return tx.message.update({
+      where: { id: messageId },
+      data: { createdAt: new Date() },
+      include: {
+        poll: { include: { options: { include: { votes: true } } } },
+        note: true,
+        medias: true,
+        reactions: true,
+      },
+    });
   }
 
   private async assertPollChannelMember(

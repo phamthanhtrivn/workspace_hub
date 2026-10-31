@@ -37,7 +37,9 @@ export class ProjectNameClient {
     name: string,
     actorId: string,
   ): Promise<RenameProjectResponse> {
-    const response = await this.http.request<ApiResponse<RenameProjectResponse>>({
+    const response = await this.http.request<
+      ApiResponse<RenameProjectResponse>
+    >({
       service: 'project-service',
       url: `${this.config.projectServiceUrl}/api/projects/internal/${projectId}/name`,
       method: 'PATCH',
@@ -60,7 +62,9 @@ export class ProjectNameClient {
       exists?: boolean;
     },
   ): Promise<PublishProjectSpaceEventResponse> {
-    const response = await this.http.request<ApiResponse<PublishProjectSpaceEventResponse>>({
+    const response = await this.http.request<
+      ApiResponse<PublishProjectSpaceEventResponse>
+    >({
       service: 'project-service',
       url: `${this.config.projectServiceUrl}/api/projects/internal/${projectId}/space-events`,
       method: 'POST',

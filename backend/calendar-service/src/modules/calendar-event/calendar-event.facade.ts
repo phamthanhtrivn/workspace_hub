@@ -49,7 +49,10 @@ export class CalendarEventService {
   async retryConference(userId: string, eventId: string) {
     const event = await this.accessPolicy.findEventOrThrow(eventId);
     this.accessPolicy.assertCanManageEvent(userId, event);
-    await this.prisma.calendarConference.updateMany({ where: { eventId, enabled: true }, data: { status: 'PENDING', nextAttemptAt: new Date(), attemptCount: 0 } });
+    await this.prisma.calendarConference.updateMany({
+      where: { eventId, enabled: true },
+      data: { status: 'PENDING', nextAttemptAt: new Date(), attemptCount: 0 },
+    });
     return this.getEventById(userId, eventId);
   }
 
@@ -82,7 +85,12 @@ export class CalendarEventService {
         reminders,
         async (tx, firstId) => {
           await this.conferenceSync?.reconcileCalendar(tx, calendar.id);
-          await this.notificationOutbox.enqueueEventInvitations(tx, { eventTitle: dto.title, eventId: firstId, creatorId: userId, recipientIds: attendees.map(attendee => attendee.userId) });
+          await this.notificationOutbox.enqueueEventInvitations(tx, {
+            eventTitle: dto.title,
+            eventId: firstId,
+            creatorId: userId,
+            recipientIds: attendees.map((attendee) => attendee.userId),
+          });
         },
       );
       return this.getEventById(userId, eventId);
@@ -147,7 +155,11 @@ export class CalendarEventService {
     const enriched = await this.userProfiles.attachProfilesToEvents(events);
 
     return {
-      items: this.conferenceSync ? await this.conferenceSync.attach(enriched.map(event => this.mapper.toPublicEvent(userId, event))) : enriched.map(event => this.mapper.toPublicEvent(userId, event)),
+      items: this.conferenceSync
+        ? await this.conferenceSync.attach(
+            enriched.map((event) => this.mapper.toPublicEvent(userId, event)),
+          )
+        : enriched.map((event) => this.mapper.toPublicEvent(userId, event)),
       total,
       page: filters.page,
       limit: filters.limit,
@@ -197,7 +209,9 @@ export class CalendarEventService {
     this.accessPolicy.assertCanViewEvent(userId, event);
     const [enriched] = await this.userProfiles.attachProfilesToEvents([event]);
     const mapped = this.mapper.toPublicEvent(userId, enriched);
-    return this.conferenceSync ? (await this.conferenceSync.attach([mapped]))[0] : mapped;
+    return this.conferenceSync
+      ? (await this.conferenceSync.attach([mapped]))[0]
+      : mapped;
   }
 
   async updateEvent(
@@ -245,10 +259,20 @@ export class CalendarEventService {
     const recipientIds = (event.attendees ?? []).map(
       (attendee) => attendee.userId,
     );
-    await this.recurrenceMutations.cancelEvent(userId, event, scope, async tx => {
-      await this.notificationOutbox.enqueueEventCancellation(tx, { eventTitle: event.title, eventId: event.id, cancellerId: userId, recipientIds });
-      await this.conferenceSync?.reconcileCalendar(tx, event.calendarId);
-    });
+    await this.recurrenceMutations.cancelEvent(
+      userId,
+      event,
+      scope,
+      async (tx) => {
+        await this.notificationOutbox.enqueueEventCancellation(tx, {
+          eventTitle: event.title,
+          eventId: event.id,
+          cancellerId: userId,
+          recipientIds,
+        });
+        await this.conferenceSync?.reconcileCalendar(tx, event.calendarId);
+      },
+    );
   }
 
   async updateTaskCompletion(
@@ -365,7 +389,12 @@ export class CalendarEventService {
     );
   }
 
-  private async enqueueUpdateEffects(tx: Prisma.TransactionClient, userId: string, event: EventWithRelations, dto: UpdateCalendarEventDto) {
+  private async enqueueUpdateEffects(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    event: EventWithRelations,
+    dto: UpdateCalendarEventDto,
+  ) {
     const oldAttendeeIds = (event.attendees ?? []).map((a) => a.userId);
     let keptAttendeeIds = oldAttendeeIds.filter((id) => id !== userId);
 
@@ -412,7 +441,6 @@ export class CalendarEventService {
       });
     }
 
-
     await this.conferenceSync?.reconcileCalendar(tx, event.calendarId);
   }
 
@@ -428,7 +456,13 @@ export class CalendarEventService {
         event,
         calendar,
         dto,
-        (tx, updatedId) => this.enqueueUpdateEffects(tx, userId, { ...event, id: updatedId }, dto),
+        (tx, updatedId) =>
+          this.enqueueUpdateEffects(
+            tx,
+            userId,
+            { ...event, id: updatedId },
+            dto,
+          ),
       );
     }
     if (dto.recurrenceRule) {
@@ -437,7 +471,13 @@ export class CalendarEventService {
         event,
         calendar,
         dto,
-        (tx, updatedId) => this.enqueueUpdateEffects(tx, userId, { ...event, id: updatedId }, dto),
+        (tx, updatedId) =>
+          this.enqueueUpdateEffects(
+            tx,
+            userId,
+            { ...event, id: updatedId },
+            dto,
+          ),
       );
     }
     await this.updateStandaloneEvent(userId, event, calendar, dto);

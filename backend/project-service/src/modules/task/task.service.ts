@@ -3,10 +3,13 @@ import {
   BadRequestException,
   BadGatewayException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+import { ServiceHttpError } from '../../common/adapters/http-json.client';
 import { isTerminalTaskStatus, TaskStatus } from "../project/project.enums";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { CreateTaskDto } from "./dto/create-task.dto";
@@ -48,6 +51,15 @@ import { TaskDocumentAttachmentSource } from "./task-document.enums";
 import { TaskSyncOutboxService } from "../task-sync/task-sync-outbox.service";
 
 const taskWithCount = taskInclude;
+const DOCUMENT_REJECTION_STATUSES = new Set<number>([
+  HttpStatus.BAD_REQUEST,
+  HttpStatus.FORBIDDEN,
+  HttpStatus.NOT_FOUND,
+  HttpStatus.CONFLICT,
+  HttpStatus.PAYLOAD_TOO_LARGE,
+  HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+  HttpStatus.UNPROCESSABLE_ENTITY,
+]);
 const TASK_PROGRESS_FIELDS = new Set<keyof UpdateTaskDto>(['status', 'rank']);
 const PARENT_SUBTASK_DEPENDENCY_ERROR =
   "A task cannot depend on its parent or subtask.";
@@ -618,7 +630,10 @@ export class TaskService {
         userEmail,
         documentItemIds,
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof ServiceHttpError && error.status && DOCUMENT_REJECTION_STATUSES.has(error.status)) {
+        throw new HttpException('Selected documents cannot be attached. Check their size and access.', error.status);
+      }
       throw new BadGatewayException('Unable to prepare task documents');
     }
   }

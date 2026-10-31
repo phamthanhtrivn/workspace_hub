@@ -2,7 +2,7 @@
 
 Mã mới, không phục hồi Python AI service cũ. Frontend `/ai` → notebook → ba vùng Nguồn / Hỏi đáp / Studio. Không có flashcard/quiz. Chỉ có notebook cá nhân và một dòng lịch sử hỏi đáp/notebook ở MVP.
 
-Cấu trúc mã Node.js theo feature module và ranh giới hạ tầng/jobs: [kiến trúc AI service](../../docs/testing/ai-comprehensive/architecture.md). Entry point/lệnh Docker, env và endpoint không đổi sau refactor.
+Cấu trúc mã Node.js theo feature module và ranh giới hạ tầng/jobs: [kiến trúc hệ thống và AI](../../docs/architecture.md). Entry point/lệnh Docker, env và endpoint không đổi sau refactor.
 
 ## Thành phần
 
@@ -63,7 +63,6 @@ Image CPU ghim cặp `torch==2.14.1+cpu` / `torchvision==0.29.1+cpu` từ PyTorc
 - API `/ready` kiểm cả hai queue và heartbeat `ready:split-v1` của cả hai consumer; không nhận heartbeat `ready` của worker phiên bản cũ. Recovery tìm cả job legacy và queue summary mới. Shutdown hai consumer/queue; lặp tín hiệu shutdown không đóng DB hai lần. Lỗi startup dọn kết nối và đặt exit code lỗi.
 - Log JSON `event=ai_pipeline`: index có `authorize_ms`, `download_ms`, `encode_ms`, `rag_ms`, `finalize_ms`; job có `processing_ms`, `job_age_ms`, `attempt`. `queue_wait_ms` chỉ có ở lần chạy đầu, không gán nhầm tổng tuổi job/retry/backoff thành thời gian chờ thuần. Preflight ghi encode/RAG RPC.
 - Log JSON `event=rag_pipeline`: `parse_ms`, `chunk_ms`, `embedding_ms`, `qdrant_ms`, `decode_hash_ms`, `index_lock_ms`, `prepare_cache_hit`, `chunk_count`, `embedding_chunks_per_sec`, `total_ms`, `status`. Warm-up embedding có operation riêng. Giá trị stage không chạy do cache hit là0; không cộng các duration lồng nhau để suy tổng. Metrics không chứa tên/nội dung file, URL, hash nội dung, user/notebook ID hay key. Log rotation hiện có tiếp tục giới hạn dung lượng log.
-- Benchmark local trên PDF **mẫu** 12 trang,13.407 ký tự,12 chunk: phần parse/chunk cho3 lượt xử lý median88,63ms →31,70ms (6 mẫu mỗi cách, cache bắt đầu trống). Đây chỉ là giảm xử lý lặp của parser, **không phải** tổng upload→READY, embedding thật hoặc file BT_Buoi1.pdf. Docker chưa chạy nên chưa có số đo S3/Qdrant/embedding và E2E hai queue thật của bản này; cần benchmark nguồn thật sau rebuild/restart.
 
 - API `/health` chỉ là liveness. `/ready` kiểm tra SQL, Redis, RAG đã warm-up, heartbeat worker (TTL45s, cập nhật 10s) và endpoint nội bộ Document Service bằng khóa AI; Document chết/sai khóa trả 503. Probe dùng body rỗng hợp lệ về transport, kỳ vọng validation400, không truy xuất tài liệu. Chưa kiểm tra LLM trên health để tránh sinh chi phí/quota.
 - Quét recovery30s: nguồn INDEXING quá6 phút hoặc summary RUNNING quá10 phút **và** BullMQ job đã failed/completed/missing được chuyển FAILED có mã lỗi. Không giành job active/waiting/delayed; BullMQ xử lý stalled lock. Không tự replay LLM, giữ checkpoint cho người dùng chủ động tiếp tục.
@@ -82,7 +81,6 @@ PDF chỉ nhận văn bản, không mã hóa, ≤100 trang. OCR tắt ở MVP. D
 ## Giới hạn, thời gian chờ và tính đúng đắn
 
 - Tối ưu nội bộ: nguồn còn hợp lệ kiểm quyền theo batch1–5 file/lần, chỉ tách kiểm từng file sau403 để xác định nguồn mất quyền; không cache quyền và không fan-out sau lỗi503. Lịch sử/notes/artifacts đọc song song sau kiểm quyền. Index không embedding lại chunk đầu. Query vector cache128 mục/120s trong RAM, khóa băm; cache **không** giữ kết quả tìm kiếm, nội dung nguồn hoặc quyết định quyền. Mỗi lần vẫn query Qdrant theo notebook/source và kiểm quyền ở API.
-- Benchmark local cùng BT_Buoi1.pdf/câu hỏi: retrieval warm median52ms trước sửa →16ms sau (5 lượt sau lượt đầu), lượt đầu sau restart123ms. Cả6 lượt sau sửa trả8 đoạn đúng source. Đây chỉ là số đo nhỏ cho câu hỏi lặp, không phải cam kết mọi query nhanh hơn hay tổng thời gian LLM. Chạy lại từ gốc repo: `node backend/scripts/benchmark-ai.mjs BT_Buoi1.pdf` khi tên nguồn READY là duy nhất. Script chỉ in thời gian/số kết quả, xác minh quyền từng lượt và không gọi LLM.
 
 - 5 nguồn/notebook, 20 MiB/file, 50 MiB/notebook; 40.000 token sau parse/file, tối đa 2.000 chunk/file. Giới hạn token đo bằng tokenizer của LlamaIndex; không suy từ kích thước byte file.
 - Luồng tải file AI kiểm tra toàn bộ lô trước khi lưu vào Document Service/S3: trình duyệt kiểm tra tên/định dạng, file rỗng, 20 MiB/file, số nguồn và tổng 50 MiB (bao gồm nguồn đã có). `POST /api/ai/notebooks/:id/upload-checks?name=...` nhận bytes `application/octet-stream` tạm thời, header `X-File-Size`, `X-Upload-Count`, `X-Upload-Bytes`; kiểm quyền notebook trước khi đọc, giới hạn đọc 20 MiB/30s rồi gọi RAG `/validate` (45s). Đây là truyền dữ liệu tạm để kiểm tra, **không phải lưu vào thư viện hoặc embedding**. PDF scan/mã hóa/>100 trang, >40.000 token, file hỏng bị từ chối trước upload lưu trữ. Nếu một file không hợp lệ, cả lô chưa bắt đầu lưu file. Giao diện hiển thị “Đang kiểm tra file…” riêng với bước tải/lưu.
@@ -109,34 +107,11 @@ Kiểm quyền khi add, xử lý nền, hỏi, finalize, preview và đọc lị
 
 Các kiểm tra này là fail-closed khi Document Service không sẵn sàng. Poll UI3s và permission check khi stream có cửa sổ trễ; không thể thu hồi dữ liệu đã được người dùng hợp lệ đọc/lưu trước đó. Cần test thu hồi thực tế với hai tài khoản trước rollout.
 
-## Kiểm thử
+## Kiểm tra cấu hình và build
 
-Đợt ổn định:29 test AI +13 test Python đạt; image API/jobs/RAG build và triển khai thành công. Readiness thực tế chuyển503 khi tắt job worker và trở lại200 sau bật; BT_Buoi1.pdf READY20 chunk, retrieval8 kết quả đúng source. RAG khoảng967MiB dưới cap2GiB, restart0 trong lượt xác minh ngắn. Chưa phải soak test/tải nhiều user hoặc chứng minh mọi PDF/DOCX/LLM đều ổn định; recovery orphan mới kiểm bằng fixture, chưa crash-test giữa provider call thật.
+Trong `backend/ai-service`, dùng `npm run typecheck` và `npm run build`. Trong frontend dùng `npm run typecheck`, `npm run lint` và `npm run build`. Kiểm readiness của API, jobs và RAG sau khi khởi động.
 
-Kiểm tra bảo mật gồm HTTP guard AI (giả mạo context bị 401), chạy mã Lua plugin trong WASM với Kong PDK giả lập, tách khóa/rotation, kiểm quyền Document, batch Calendar và script setup idempotent. Đây là kiểm chứng local/fixture, **không phải E2E qua Kong thật** hay đánh giá model thật. Docker Desktop chưa chạy nên chưa build image/chạy E2E; không coi việc YAML hợp lệ là stack đã hoạt động.
-
-```powershell
-# backend/ai-service
-npm.cmd ci
-npm.cmd test
-
-# backend/document-service
-npm.cmd run build
-node --test test/notebook-bridge.test.cjs test/internal-access.test.cjs
-
-# backend/calendar-service
-npm.cmd test -- --runInBand resource-access.service.spec.ts
-
-# frontend/web
-node --test scripts/notebook-stream.test.mjs
-npx.cmd tsc --noEmit --incremental false
-npx.cmd eslint features/ai "app/(workspace)/ai" components/layout/workspace-shell.tsx
-
-# backend/rag-worker (sau pip install -r requirements.txt)
-python -m unittest discover -s tests -v
-```
-
-AI tests dùng PostgreSQL WASM/PGlite trong bộ nhớ, Python dùng Qdrant in-memory và embedding fixture ghi rõ trong test. Không gửi tài liệu thật, không dùng key/model thật và không chạm DB cũ. Cần chạy thêm Docker build, server Qdrant (full-text index không hoạt động như server ở in-memory), PDF/DOCX thật, E2E hai user, revoke/version/delete khi đang stream, benchmark 1/2/5 file, crash recovery và backup/restore. Chưa có CI/production rollout cho stack mới. Không tick nghiệm thu các hạng mục này chỉ vì unit test đã qua.
+Test suites/runner cũ đã được gỡ. Báo cáo kiểm thử lịch sử được lưu local, không thay thế xác minh provider, quyền truy cập và dữ liệu thật khi triển khai.
 
 ## OCR và đọc hình
 
@@ -148,7 +123,6 @@ Preflight chỉ kiểm tra cấu trúc/kích thước; OCR/Vision chạy nền. 
 
 Sau khi đổi flag, build/restart RAG worker và AI API/jobs, chạy migration hiện có. Nguồn READY cũ vẫn đọc được; dùng **Lập lại chỉ mục** để bổ sung OCR/hình. Các bản tóm tắt đã tạo là checkpoint cũ, cần tạo lại sau khi thêm nội dung hình.
 
-Kiểm thử bổ sung: `node --test test/visual-ingestion.test.cjs` trong AI service; `python -m unittest discover -s tests -v` trong image RAG đã build. Bộ mẫu tạo ảnh tiếng Việt, PDF scan, sơ đồ vector để kiểm chứng OCR và trích xuất mà không dùng tài liệu người dùng.
 
 ## Rollback an toàn
 
@@ -166,5 +140,5 @@ cho cập nhật bình thường. Khi cần dừng thủ công, dùng
 Conversation worker lưu token nhận việc vào Redis trước khi gọi model. Job
 khởi động lại có token nhưng chưa có câu trả lời sẽ gửi thông báo gián đoạn;
 job đã có câu trả lời chỉ gửi lại kết quả đó. Không gọi lại model khi kết quả
-lần gọi trước chưa xác định. Xem `backend/ai-service/CONVERSATION_AI.md` để biết
-kiểm thử khôi phục và giới hạn ở khoảng giữa SQL claim/Redis checkpoint.
+lần gọi trước chưa xác định. Xem [kiến trúc](../../docs/architecture.md) và theo dõi
+trạng thái job/checkpoint trước khi khởi chạy lại tác vụ có provider side effect.

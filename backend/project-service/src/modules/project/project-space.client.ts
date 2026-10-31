@@ -52,8 +52,9 @@ export class ProjectSpaceClient {
   ): Promise<ProjectSpaceResponse> {
     const response = await this.http.request<ApiResponse<ProjectSpaceResponse>>({
       service: 'communication-service',
-      url: `${this.config.communicationServiceUrl}/api/spaces/project`,
+      url: `${this.config.communicationServiceUrl}/api/spaces/internal/project`,
       method: 'POST',
+      headers: this.internalHeaders(),
       body: payload,
     });
     return response.data;

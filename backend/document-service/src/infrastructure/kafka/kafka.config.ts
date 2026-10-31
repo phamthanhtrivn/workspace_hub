@@ -3,8 +3,7 @@ import { KAFKA_CONFIG } from './kafka.constants';
 
 export const getKafkaConfig = (): KafkaOptions => {
   const kafkaBrokers = (
-    process.env[KAFKA_CONFIG.BROKER_ENV] ??
-    KAFKA_CONFIG.DEFAULT_BROKER
+    process.env[KAFKA_CONFIG.BROKER_ENV] ?? KAFKA_CONFIG.DEFAULT_BROKER
   )
     .split(',')
     .map((broker) => broker.trim())

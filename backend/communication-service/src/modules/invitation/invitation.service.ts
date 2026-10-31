@@ -4,10 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SpaceRole } from '@prisma/client';
+import {
+  SpaceRole,
+  InvitationStatus as INVITATION_STATUS,
+} from '@prisma/client';
 import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { MessageService } from '../message/message.service';
-import { INVITATION_STATUS } from './types/invitation.enums';
 import { InvitationPublisher } from './events/invitation.publisher';
 import { UserProfileSnapshot } from '../../common/types/user.types';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';

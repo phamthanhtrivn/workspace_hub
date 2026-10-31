@@ -108,7 +108,9 @@ export class UserProfileSnapshotService {
 
   async attachProfilesToDocumentVersions<T extends { uploadedBy: string }>(
     versions: T[],
-  ): Promise<Array<T & { uploaderProfile: UserProfileSnapshotResponse | null }>> {
+  ): Promise<
+    Array<T & { uploaderProfile: UserProfileSnapshotResponse | null }>
+  > {
     const profileByUserId = await this.getProfilesByUserIds(
       versions.map((version) => version.uploadedBy),
     );
@@ -119,9 +121,13 @@ export class UserProfileSnapshotService {
     }));
   }
 
-  async attachProfilesToDocumentShares<T extends { shareWithUserId?: string | null }>(
+  async attachProfilesToDocumentShares<
+    T extends { shareWithUserId?: string | null },
+  >(
     shares: T[],
-  ): Promise<Array<T & { shareWithProfile: UserProfileSnapshotResponse | null }>> {
+  ): Promise<
+    Array<T & { shareWithProfile: UserProfileSnapshotResponse | null }>
+  > {
     const userIds = shares
       .map((share) => share.shareWithUserId)
       .filter((userId): userId is string => Boolean(userId));
@@ -131,7 +137,7 @@ export class UserProfileSnapshotService {
     return shares.map((share) => ({
       ...share,
       shareWithProfile: share.shareWithUserId
-        ? profileByUserId.get(share.shareWithUserId) ?? null
+        ? (profileByUserId.get(share.shareWithUserId) ?? null)
         : null,
     }));
   }

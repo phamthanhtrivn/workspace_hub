@@ -1,4 +1,13 @@
-import { IsString, IsNotEmpty, IsInt, Min, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsInt,
+  Min,
+  Max,
+  IsOptional,
+  IsUUID,
+} from 'class-validator';
+import { UPLOAD_POLICY } from '../../../infrastructure/s3/upload-policy';
 
 export class ConfirmUploadDto {
   @IsString()
@@ -11,6 +20,7 @@ export class ConfirmUploadDto {
 
   @IsInt()
   @Min(0)
+  @Max(UPLOAD_POLICY.MAX_SIZE_BYTES)
   @IsNotEmpty({ message: 'File size cannot be empty' })
   sizeBytes: number;
 

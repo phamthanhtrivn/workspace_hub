@@ -51,7 +51,7 @@ enum RecurrenceExceptionType {
 }
 
 model Calendar {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   ownerUserId String   @map("owner_user_id") @db.Uuid
   projectId   String?  @map("project_id") @db.Uuid
   name        String
@@ -75,7 +75,7 @@ model Calendar {
 
 model RecurrenceSeries {
   conferenceEnabled Boolean @default(false) @map("conference_enabled")
-  id                       String          @id @default(uuid()) @db.Uuid
+  id                       String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   calendarId               String          @map("calendar_id") @db.Uuid
   createdBy                String          @map("created_by") @db.Uuid
   updatedBy                String?         @map("updated_by") @db.Uuid
@@ -94,7 +94,7 @@ model RecurrenceSeries {
   recurrenceGeneratedUntil DateTime?       @map("recurrence_generated_until") @db.Timestamptz(3)
   cancelledAt              DateTime?       @map("cancelled_at") @db.Timestamptz(3)
   createdAt                DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt                DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt                DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   calendar   Calendar                   @relation(fields: [calendarId], references: [id], onDelete: Cascade)
   events     CalendarEvent[]
@@ -110,7 +110,7 @@ model RecurrenceSeries {
 
 model CalendarEvent {
   conferenceEnabled Boolean @default(false) @map("conference_enabled")
-  id                   String          @id @default(uuid()) @db.Uuid
+  id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   calendarId           String          @map("calendar_id") @db.Uuid
   createdBy            String          @map("created_by") @db.Uuid
   updatedBy            String?         @map("updated_by") @db.Uuid
@@ -190,7 +190,7 @@ model RecurrenceSeriesDocument {
 }
 
 model CalendarEventAttendee {
-  id             String                 @id @default(uuid()) @db.Uuid
+  id             String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   eventId        String                 @map("event_id") @db.Uuid
   userId         String                 @map("user_id") @db.Uuid
   responseStatus AttendeeResponseStatus @default(NEEDS_ACTION) @map("response_status")
@@ -206,7 +206,7 @@ model CalendarEventAttendee {
 }
 
 model Reminder {
-  id             String                 @id @default(uuid()) @db.Uuid
+  id             String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   eventId        String                 @map("event_id") @db.Uuid
   minutesBefore  Int                    @map("minutes_before")
   method         ReminderMethod
@@ -239,7 +239,7 @@ model CalendarEventDocument {
 }
 
 model RecurrenceException {
-  id              String                  @id @default(uuid()) @db.Uuid
+  id              String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   seriesId        String                  @map("series_id") @db.Uuid
   occurrenceStart DateTime                @map("occurrence_start") @db.Timestamptz(3)
   type            RecurrenceExceptionType @default(EXCLUDED)
@@ -350,7 +350,7 @@ model PomodoroConfig {
   ambientTrackId      String   @default("lofi_relax") @map("ambient_track_id") @db.VarChar(128)
   ambientVolume       Float    @default(0.5) @map("ambient_volume")
   ambientAutoPlayOnFocus Boolean @default(true) @map("ambient_auto_play_on_focus")
-  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("calendar_pomodoro_configs")
 }
@@ -375,13 +375,13 @@ model PomodoroTimerState {
   activeTask       Json?                @map("active_task")
   notes            String               @default("")
   version          Int                  @default(1)
-  updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  updatedAt        DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   @@map("calendar_pomodoro_timer_states")
 }
 
 model NotificationOutbox {
-  id            String    @id @default(uuid()) @db.Uuid
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   eventType     String    @map("event_type") @db.VarChar(50)
   payload       Json
   status        String    @default("PENDING") @db.VarChar(20)
@@ -409,7 +409,7 @@ model CalendarConference {
   lastError String? @map("last_error")
   attemptCount Int @default(0) @map("attempt_count")
   nextAttemptAt DateTime @default(now()) @map("next_attempt_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
   @@index([status, nextAttemptAt])
   @@index([calendarId])
   @@map("calendar_conferences")

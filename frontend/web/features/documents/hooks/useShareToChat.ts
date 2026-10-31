@@ -72,9 +72,9 @@ function patchChannelSetting(
 }
 
 export function useShareToChat({ item, onSuccess, projectId }: UseShareToChatProps) {
-  const [activeTab, setActiveTab] = useState<ShareTabType>(ShareTabType.CHANNEL);
-  const [selectedChatId, setSelectedChatId] = useState<string>("");
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string>("");
+  const [requestedActiveTab, setActiveTab] = useState<ShareTabType>(ShareTabType.CHANNEL);
+  const [chosenChatId, setSelectedChatId] = useState<string>("");
+  const [chosenSpaceId, setSelectedSpaceId] = useState<string>("");
   const [introMessage, setIntroMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingUnauthorizedEmails, setPendingUnauthorizedEmails] = useState<string[]>([]);
@@ -85,6 +85,7 @@ export function useShareToChat({ item, onSuccess, projectId }: UseShareToChatPro
   const accessToken = useAppSelector((state) => state.auth.accessToken);
   const activeSpaceIdFromStore = useAppSelector((state) => state.chat.activeSpaceId);
   const isProjectDocuments = Boolean(projectId);
+  const activeTab = isProjectDocuments ? ShareTabType.CHANNEL : requestedActiveTab;
 
   const isOwner = useMemo(() => {
     return item && currentUserId ? item.ownerUserId === currentUserId : false;
@@ -98,18 +99,10 @@ export function useShareToChat({ item, onSuccess, projectId }: UseShareToChatPro
   });
   const projectSpaceId = projectSpaceStatus?.spaceId ?? "";
 
-  useEffect(() => {
-    if (isProjectDocuments) {
-      setActiveTab(ShareTabType.CHANNEL);
-      setSelectedSpaceId(projectSpaceId);
-      return;
-    }
-    if (activeSpaceIdFromStore) {
-      setSelectedSpaceId(activeSpaceIdFromStore);
-    } else if (spaces && spaces.length > 0) {
-      setSelectedSpaceId(spaces[0].id);
-    }
-  }, [spaces, activeSpaceIdFromStore, isProjectDocuments, projectSpaceId]);
+  const selectedSpaceId = isProjectDocuments ? projectSpaceId
+    : spaces?.some(space => space.id === chosenSpaceId) ? chosenSpaceId
+      : spaces?.some(space => space.id === activeSpaceIdFromStore) ? activeSpaceIdFromStore!
+        : spaces?.[0]?.id ?? "";
 
   const channelSpaceId = isProjectDocuments ? projectSpaceId : selectedSpaceId;
   const { data: channelsData } = useSpaceChannelsQuery(
@@ -131,16 +124,14 @@ export function useShareToChat({ item, onSuccess, projectId }: UseShareToChatPro
   );
   const directConversations = directConversationsData?.directMessages || [];
 
-  useEffect(() => {
+  const [selectionContext, setSelectionContext] = useState({ activeTab, channelSpaceId });
+  if (selectionContext.activeTab !== activeTab || selectionContext.channelSpaceId !== channelSpaceId) {
+    setSelectionContext({ activeTab, channelSpaceId });
     setSelectedChatId("");
-  }, [activeTab, channelSpaceId]);
-
-  useEffect(() => {
-    if (activeTab !== ShareTabType.CHANNEL && !isProjectDocuments) return;
-    if (!selectedChatId) return;
-    if (channels.some((channel) => channel.id === selectedChatId)) return;
-    setSelectedChatId("");
-  }, [activeTab, channels, isProjectDocuments, selectedChatId]);
+  }
+  const selectedChatId = activeTab === ShareTabType.CHANNEL || isProjectDocuments
+    ? channels.some(channel => channel.id === chosenChatId) ? chosenChatId : ""
+    : chosenChatId;
 
   useEffect(() => {
     if (!item || !accessToken || !channelSpaceId) return;

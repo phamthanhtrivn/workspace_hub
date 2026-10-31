@@ -18,6 +18,12 @@ import { UserSettingTab } from "../types/settings.enums";
 import PasswordInput from "./password-input";
 import { SettingInput } from "./ui/setting-form-controls";
 import { Spinner } from "@/components/ui/spinner";
+import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { useQueryClient } from "@tanstack/react-query";
+import { clearCredentials } from "@/store/auth/auth-slice";
+import { logoutApi } from "@/features/auth/api/auth.api";
+import { AuthRouteTarget } from "@/features/auth/types/auth.constants";
 
 interface PasswordForm {
   currentPassword: string;
@@ -32,6 +38,9 @@ const EMPTY_PW_FORM: PasswordForm = {
 };
 
 const PasswordTab = React.memo(function PasswordTab() {
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const profileQuery = useUserProfileQuery();
   const { data: profileResponse, isLoading } = profileQuery;
   const sendOtpMutation = useSendPasswordOtpMutation();
@@ -46,6 +55,18 @@ const PasswordTab = React.memo(function PasswordTab() {
   const [otpSent, setOtpSent] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const signInAgain = async (message: string) => {
+    setPwForm(EMPTY_PW_FORM);
+    setOtp("");
+    setOtpSent(false);
+    try { await logoutApi(); } catch { /* The password operation already revoked server sessions. */ }
+    dispatch(clearCredentials());
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    toast.success(message);
+    router.replace(AuthRouteTarget.LOGIN);
+  };
 
   useEffect(
     () => () => {
@@ -125,14 +146,7 @@ const PasswordTab = React.memo(function PasswordTab() {
         confirmPassword: pwForm.confirmPassword,
       },
       {
-        onSuccess: () => {
-          toast.success(
-            "Password set successfully! Your other sessions have been signed out.",
-          );
-          setPwForm(EMPTY_PW_FORM);
-          setOtp("");
-          setOtpSent(false);
-        },
+        onSuccess: () => signInAgain("Password set successfully. Please sign in again."),
         onError: (error) => {
           toast.error(
             getUserSettingErrorMessage(
@@ -155,12 +169,7 @@ const PasswordTab = React.memo(function PasswordTab() {
         confirmPassword: pwForm.confirmPassword,
       },
       {
-        onSuccess: () => {
-          toast.success(
-            "Password updated! Your other sessions have been signed out.",
-          );
-          setPwForm(EMPTY_PW_FORM);
-        },
+        onSuccess: () => signInAgain("Password updated. Please sign in again."),
         onError: (error) => {
           toast.error(
             getUserSettingErrorMessage(error, "Failed to update password."),

@@ -2,7 +2,10 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { MeetingRole, MeetingStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserProfileSnapshotService } from '../../user-profile-snapshot/user-profile-snapshot.service';
-import { MEETING_ERROR_MESSAGES, MeetingHistoryVisibility } from '../types/meeting.enums';
+import {
+  MEETING_ERROR_MESSAGES,
+  MeetingHistoryVisibility,
+} from '../types/meeting.enums';
 import type {
   ListMeetingHistoryParams,
   ListMeetingHistorySummaryParams,
@@ -10,7 +13,11 @@ import type {
 } from '../types/meeting.types';
 import { MeetingPresenterService } from './meeting-presenter.service';
 import { meetingHistoryMutationWhere } from '../utils/meeting-history-visibility.utils';
-import { DEFAULT_HISTORY_LIMIT, MAX_HISTORY_LIMIT, PARTICIPANT_PREVIEW_LIMIT } from '../types/meeting.constants';
+import {
+  DEFAULT_HISTORY_LIMIT,
+  MAX_HISTORY_LIMIT,
+  PARTICIPANT_PREVIEW_LIMIT,
+} from '../types/meeting.constants';
 
 function normalizePositiveNumber(value: unknown, fallback: number) {
   const numericValue =
@@ -51,14 +58,20 @@ export class MeetingHistoryService {
     const preferenceWhere = { userId, hiddenAt: { not: null } };
     const meetingWhere: Prisma.MeetingWhereInput = {
       ...this.getJoinedMeetingWhere(userId),
-      historyPreferences: query?.visibility === MeetingHistoryVisibility.HIDDEN
-        ? { some: preferenceWhere }
-        : { none: preferenceWhere },
+      historyPreferences:
+        query?.visibility === MeetingHistoryVisibility.HIDDEN
+          ? { some: preferenceWhere }
+          : { none: preferenceWhere },
     };
 
     const [total, actionableTotal, meetings] = await this.prisma.$transaction([
       this.prisma.meeting.count({ where: meetingWhere }),
-      this.prisma.meeting.count({ where: meetingHistoryMutationWhere(userId, query?.visibility !== MeetingHistoryVisibility.HIDDEN) }),
+      this.prisma.meeting.count({
+        where: meetingHistoryMutationWhere(
+          userId,
+          query?.visibility !== MeetingHistoryVisibility.HIDDEN,
+        ),
+      }),
       this.prisma.meeting.findMany({
         where: meetingWhere,
         select: {
@@ -233,7 +246,8 @@ export class MeetingHistoryService {
     const totalMinutes = durationMeetings.reduce((total, meeting) => {
       if (!meeting.startedAt || !meeting.endedAt) return total;
 
-      const durationMs = meeting.endedAt.getTime() - meeting.startedAt.getTime();
+      const durationMs =
+        meeting.endedAt.getTime() - meeting.startedAt.getTime();
       return total + Math.max(0, Math.round(durationMs / 60000));
     }, 0);
     const lastMeetingAt = lastMeeting

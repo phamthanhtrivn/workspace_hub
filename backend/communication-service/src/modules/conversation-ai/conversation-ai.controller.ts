@@ -1,3 +1,4 @@
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
 import {
   Controller,
   Post,
@@ -11,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { timingSafeEqual } from 'node:crypto';
 import { ConversationAiService } from './conversation-ai.service';
+@IndependentAuthentication()
 @Controller('internal/conversation-ai')
 export class ConversationAiController {
   constructor(private readonly ai: ConversationAiService) {}

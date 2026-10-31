@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { DEFAULT_UPLOAD_MIME_TYPE } from "@/lib/upload-policy";
 import { ApiResponse, ChatContextType } from "../types/chat.types";
 
 export interface PresignRequest {
@@ -60,7 +61,8 @@ export const uploadToS3 = async (
       body: file,
       signal,
       headers: {
-        "Content-Type": file.type,
+        "Content-Type": file.type || DEFAULT_UPLOAD_MIME_TYPE,
+        "If-None-Match": "*",
       },
     });
 

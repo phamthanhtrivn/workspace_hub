@@ -1,11 +1,14 @@
 "use client";
 
+import { useChatMediaPreview } from "../../../hooks/useChatMediaPreview";
+import { ChatScope } from "../../../types/chat.constant";
+
+import type { ChatContextPayload, ChatSocketMemberPayload } from "@/features/chat/types/chat-socket.types";
 import { QueryFeedback } from "@/components/common/query-feedback";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { socketService } from "../../../api/chat-socket.service";
 import { ChatEvent } from "../../../api/chat.events";
 import {
-  getChannelMedia,
   muteChannel,
   pinChannel,
 } from "../../../api/chat.api";
@@ -33,8 +36,7 @@ import {
 } from "@/store/chat/chat-slice";
 import { chatKeys } from "../../../types/chat.constant";
 import { ChannelResponse } from "../../../types/chat.types";
-import { useActiveChat } from "../../../hooks/useChatQueries";
-import { logApiError } from "@/lib/interceptors";
+import { useActiveChat, type SpaceChannelsQueryData } from "../../../hooks/useChatQueries";
 import { sortChannelsByPin } from "../../../utils/direct-conversation-utils";
 import MediaDetailView from "../files/media-detail-view";
 import { Button } from "@/components/ui/button";
@@ -49,20 +51,19 @@ export default function ChannelRightPanel({
   onClose,
   initialDetailView,
 }: ChannelRightPanelProps) {
-  const [isMuted, setIsMuted] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "pinned",
   );
   const [detailView, setDetailView] = useState<
     "files" | "polls" | "notes" | "search" | "threads" | "pinned" | null
   >(initialDetailView || null);
-  const [mediaError, setMediaError] = useState(false);
-  const [mediaLoading, setMediaLoading] = useState(false);
-  const [mediaRetry, setMediaRetry] = useState(0);
-  const [mediaItems, setMediaItems] = useState<any[]>([]);
+
+
+
+
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const lastFetchedChatId = useRef<string | null>(null);
+
 
   const { activeChat: activeConversation } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);
@@ -70,21 +71,24 @@ export default function ChannelRightPanel({
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
 
-  const activeChannel = activeConversation as ChannelResponse;
 
-  useEffect(() => {
-    if (initialDetailView !== undefined) {
-      setDetailView(initialDetailView);
-    }
-  }, [initialDetailView]);
+  const activeChannel = activeConversation as ChannelResponse;
+  const mediaQuery = useChatMediaPreview(ChatScope.CHANNEL, activeChannel?.id, expandedSection === "files");
+  const mediaItems = mediaQuery.medias;
+  const mediaLoading = mediaQuery.isFetching;
+  const mediaError = mediaQuery.isError;
+
+  const [previousDetailView, setPreviousDetailView] = useState(initialDetailView);
+  if (previousDetailView !== initialDetailView) {
+    setPreviousDetailView(initialDetailView);
+    if (initialDetailView !== undefined) setDetailView(initialDetailView);
+  }
 
   const currentMember = activeChannel?.members?.find(
-    (m: any) => m.userId === currentUserId,
+    (m) => m.userId === currentUserId,
   );
 
-  useEffect(() => {
-    setIsMuted(currentMember?.muted || false);
-  }, [currentMember]);
+  const isMuted = currentMember?.muted ?? false;
 
   const isPinned = currentMember?.pinned || false;
 
@@ -93,27 +97,27 @@ export default function ChannelRightPanel({
     memberPatch: { muted?: boolean; pinned?: boolean },
   ) => {
     const queryKey = chatKeys.channels(activeSpaceId);
-    queryClient.setQueryData(queryKey, (oldData: any) => {
+    queryClient.setQueryData<SpaceChannelsQueryData>(queryKey, (oldData) => {
       if (!oldData) return oldData;
-      const nextChannels = oldData.map((channel: any) => {
+      const nextChannels = oldData.channels.map((channel) => {
         if (channel.id !== channelId) return channel;
         return {
           ...channel,
-          members: channel.members?.map((member: any) =>
+          members: channel.members?.map((member) =>
             member.userId === currentUserId
               ? { ...member, ...memberPatch }
               : member,
           ),
         };
       });
-      return sortChannelsByPin(nextChannels, currentUserId);
+      return { ...oldData, channels: sortChannelsByPin(nextChannels, currentUserId) };
     });
   };
 
   const handleToggleMute = async () => {
     if (!activeChannel || !currentUserId) return;
     const targetMuted = !isMuted;
-    setIsMuted(targetMuted);
+    updateChannelMemberCache(activeChannel.id, { muted: targetMuted });
 
     try {
       await muteChannel(activeChannel.id, targetMuted);
@@ -124,11 +128,9 @@ export default function ChannelRightPanel({
           muted: targetMuted,
         }),
       );
-      updateChannelMemberCache(activeChannel.id, {
-        muted: targetMuted,
-      });
+
     } catch (error) {
-      setIsMuted(isMuted);
+      updateChannelMemberCache(activeChannel.id, { muted: isMuted });
       console.error("Failed to update mute status:", error);
     }
   };
@@ -178,51 +180,27 @@ export default function ChannelRightPanel({
     onClose();
   };
 
-  useEffect(() => {
-    if (
-      activeChannel?.id &&
-      expandedSection === "files" &&
-      lastFetchedChatId.current !== activeChannel.id
-    ) {
-      setMediaLoading(true); setMediaError(false);
-      getChannelMedia(activeChannel.id)
-        .then((res: any) => {
-          if (res.data && res.data.medias) {
-            setMediaItems(res.data.medias);
-            lastFetchedChatId.current = activeChannel.id;
-          }
-        })
-        .catch((err: unknown) => { setMediaError(true); logApiError(err, "Could not load conversation files"); }).finally(() => setMediaLoading(false));
-    }
-  }, [activeChannel?.id, expandedSection, mediaRetry]);
 
-  useEffect(() => {
-    if (activeChannel?.id && lastFetchedChatId.current !== activeChannel.id) {
-      setMediaItems([]);
-    }
-  }, [activeChannel?.id]);
+
+
 
   useEffect(() => {
     const socket = socketService.getSocket();
     if (socket) {
-      const getEventChannelId = (payload: any) =>
+      const getEventChannelId = (payload: Partial<ChatContextPayload>) =>
         payload?.channelId ?? payload?.conversationId;
 
-      const handleMediaUpdated = (data: any) => {
-        if (getEventChannelId(data) === activeChannel?.id && data.media) {
-          setMediaItems((prev) => [...data.media, ...prev]);
-        }
-      };
 
-      const handleMemberJoin = (data: any) => {
+      const handleMemberJoin = (data: ChatSocketMemberPayload) => {
         if (
           activeChannel &&
           getEventChannelId(data) === activeChannel.id &&
           data.member &&
           data.profile
         ) {
+          const joinedUserId = data.member.userId;
           const isAlreadyMember = activeChannel.members?.some(
-            (m) => m.userId === data.member.userId,
+            (m) => m.userId === joinedUserId,
           );
           if (!isAlreadyMember) {
             queryClient.invalidateQueries({ queryKey: ["channels"] });
@@ -230,11 +208,9 @@ export default function ChannelRightPanel({
         }
       };
 
-      socket.on(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
       socket.on(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
 
       return () => {
-        socket.off(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
         socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
       };
     }
@@ -384,7 +360,7 @@ export default function ChannelRightPanel({
             onJumpToMessage={handleJumpToMessage}
           />
 
-          {expandedSection === "files" && <QueryFeedback label="conversation files" pending={mediaLoading} error={mediaError} retrying={mediaLoading} onRetry={() => setMediaRetry(value => value + 1)} />}
+          {expandedSection === "files" && <QueryFeedback label="conversation files" pending={mediaLoading} error={mediaError} retrying={mediaLoading} onRetry={() => { void mediaQuery.refetch(); }} />}
           <FilesSection
             isExpanded={expandedSection === "files"}
             onToggle={() => toggleSection("files")}

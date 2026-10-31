@@ -2,7 +2,7 @@
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
 import { DocumentItem } from "../../types/documents.types";
@@ -40,8 +40,6 @@ export function FilePreviewModal({
   onDownload,
 }: FilePreviewModalProps) {
   const isModalOpen = open ?? isOpen ?? false;
-  const [textContent, setTextContent] = useState<string | null>(null);
-  const [loadingText, setLoadingText] = useState(false);
 
   const {
     data: previewUrl,
@@ -64,36 +62,22 @@ export function FilePreviewModal({
 
   const isText = previewType === PreviewFileType.TEXT;
 
-  useEffect(() => {
-    if (isModalOpen && isText && previewUrl) {
-      setLoadingText(true);
-      setTextContent(null);
-      fetch(previewUrl)
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to load text content");
-          return res.text();
-        })
-        .then((text) => {
-          if (text.length > MAX_TEXT_PREVIEW_SIZE) {
-            setTextContent(
-              text.slice(0, MAX_TEXT_PREVIEW_SIZE) +
-                "\n\n... [Content too long, please download to view full file] ..."
-            );
-          } else {
-            setTextContent(text);
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          setTextContent("Could not load text file content.");
-        })
-        .finally(() => {
-          setLoadingText(false);
-        });
-    } else {
-      setTextContent(null);
-    }
-  }, [isModalOpen, isText, previewUrl]);
+  const textQuery = useQuery({
+    queryKey: ["document-text-preview", item?.id, versionId, previewUrl],
+    enabled: isModalOpen && isText && !!previewUrl,
+    queryFn: async ({ signal }) => {
+      const response = await fetch(previewUrl!, { signal });
+      if (!response.ok) throw new Error("Failed to load text content");
+      const text = await response.text();
+      return text.length > MAX_TEXT_PREVIEW_SIZE
+        ? text.slice(0, MAX_TEXT_PREVIEW_SIZE) + "\n\n... [Content too long, please download to view full file] ..."
+        : text;
+    },
+  });
+  const loadingText = isModalOpen && isText && textQuery.isFetching;
+  const textContent = isModalOpen && isText
+    ? textQuery.isError ? "Could not load text file content." : textQuery.data ?? null
+    : null;
 
   const handleDownload = useCallback(async () => {
     if (onDownload && item) {

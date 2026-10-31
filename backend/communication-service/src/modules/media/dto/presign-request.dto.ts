@@ -1,7 +1,10 @@
 import {
   IsArray,
   IsString,
-  IsNumber,
+  IsInt,
+  Min,
+  Max,
+  IsUUID,
   ValidateNested,
   ArrayMinSize,
   IsOptional,
@@ -9,6 +12,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CHAT_CONTEXT_TYPE } from '../../../common/types/chat.enums';
+import { UPLOAD_POLICY } from '../../../infrastructure/s3/attachment-upload.policy';
 
 class FileDto {
   @IsString()
@@ -17,13 +21,15 @@ class FileDto {
   @IsString()
   mimeType: string;
 
-  @IsNumber()
+  @IsInt()
+  @Min(0)
+  @Max(UPLOAD_POLICY.MAX_SIZE_BYTES)
   sizeBytes: number;
 }
 
 export class PresignRequestDto {
   @IsOptional()
-  @IsString()
+  @IsUUID('4')
   chatId?: string;
 
   @IsOptional()
@@ -31,11 +37,11 @@ export class PresignRequestDto {
   chatType?: CHAT_CONTEXT_TYPE;
 
   @IsOptional()
-  @IsString()
+  @IsUUID('4')
   channelId?: string;
 
   @IsOptional()
-  @IsString()
+  @IsUUID('4')
   conversationId?: string;
 
   @IsArray()

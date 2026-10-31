@@ -1,6 +1,7 @@
 export const AMBIENT_PREFERENCES_ROUTE = 'ambient-preferences';
 export const MAX_AMBIENT_TRACK_ID_LENGTH = 128;
-export const AMBIENT_TRACK_ID_PATTERN = /^(?!custom_)[A-Za-z0-9][A-Za-z0-9_-]*$/;
+export const AMBIENT_TRACK_ID_PATTERN =
+  /^(?!custom_)[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
 export const DEFAULT_AMBIENT_PREFERENCES = {
   trackId: 'lofi_relax',

@@ -49,7 +49,7 @@ for name, service in app.items():
         env = service['environment']
         require('kafka:' not in env.get('KAFKA_BROKER', ''), f'Cross-host Docker Kafka DNS: {name}')
 require(all(re.fullmatch(r'sha-[0-9a-f]{40}', tag) for tag in tags), 'Invalid per-image release tags')
-require(len(app) == 17, 'Expected ten application and seven migration services')
+require(set(app) == set(IMAGES), 'Application services do not match deployment catalog')
 require(app['project-service']['environment']['NOTIFICATION_SERVICE_URL'] == 'http://notification-service:8084', 'Project notification URL is not configured')
 require(app['communication-service']['environment']['USER_SERVICE_URL'] == 'http://user-service:8081', 'Communication user URL is not configured')
 internal_keys = {app[name]['environment'].get('INTERNAL_SERVICE_KEY') for name in ('user-service', 'project-service', 'communication-service', 'document-service', 'notification-service')}

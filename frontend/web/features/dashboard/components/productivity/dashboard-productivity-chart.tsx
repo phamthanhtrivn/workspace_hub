@@ -27,6 +27,7 @@ export default function DashboardProductivityChart({
   }));
   return (
     <div
+      role="group"
       className="h-60 min-w-0"
       aria-label="Daily focus time in minutes for the last seven days"
     >

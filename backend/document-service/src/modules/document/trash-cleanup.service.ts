@@ -55,7 +55,7 @@ export class TrashCleanupService {
         }
       } catch (error) {
         this.logger.error(
-          `Error while automatically cleaning up item ${item.id}: ${error.message}`,
+          `Error while automatically cleaning up item ${item.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
         );
       }
     }

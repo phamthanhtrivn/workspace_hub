@@ -1,9 +1,8 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useGoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, type CredentialResponse } from "@react-oauth/google";
 import { useDispatch } from "react-redux";
 import { toast } from "sonner";
 import { setCredentials } from "@/store/auth/auth-slice";
@@ -15,7 +14,6 @@ import {
   getAuthenticatedHomePath,
   getReturnToFromSearch,
 } from "../utils/auth-redirect";
-import { Button } from "@/components/ui/button";
 
 
 const SocialLoginButtons = React.memo(function SocialLoginButtons() {
@@ -23,12 +21,12 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
   const router = useRouter();
   const socialLoginMutation = useSocialLoginMutation();
 
-  const login = useGoogleLogin({
-    onSuccess: (tokenResponse) => {
+  const handleSuccess = (tokenResponse: CredentialResponse) => {
+      if (!tokenResponse.credential || socialLoginMutation.isPending) return;
       socialLoginMutation.mutate(
         {
           provider: AuthProvider.GOOGLE,
-          credential: tokenResponse.access_token,
+          credential: tokenResponse.credential,
         },
         {
           onSuccess: (response) => {
@@ -63,27 +61,17 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
           },
         },
       );
-    },
-    onError: () =>
-      toast.error("Google Sign In failed"),
-  });
+  };
 
   return (
     <div className="flex justify-between items-center gap-2 ">
-      <Button loading={socialLoginMutation.isPending} variant="unstyled"
-        type="button"
-        onClick={() => login()}
-        disabled={socialLoginMutation.isPending}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-5 text-sm font-bold text-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-input hover:bg-background active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer disabled:opacity-70"
-      >
-        {!socialLoginMutation.isPending && <Image
-          src="https://thesvg.org/icons/google/default.svg"
-          alt="Google"
-          width={20}
-          height={20}
-        />}
-        Google
-      </Button>
+      <GoogleLogin
+        onSuccess={handleSuccess}
+        onError={() => toast.error("Google Sign In failed")}
+        text="continue_with"
+        size="large"
+        shape="pill"
+      />
     </div>
   );
 });

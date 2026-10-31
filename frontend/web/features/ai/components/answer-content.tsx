@@ -1,5 +1,6 @@
 import type { Element, ElementContent, Root } from "hast";
 import type { ReactNode } from "react";
+import { Table } from "@/components/ui/table";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -72,9 +73,9 @@ export function AnswerContent({
           ),
           table: ({ children }) => (
             <div className="my-4 max-w-full overflow-x-auto rounded-lg border">
-              <table className="w-full border-collapse text-sm">
+              <Table unstyled className="w-full border-collapse text-sm">
                 {children}
-              </table>
+              </Table>
             </div>
           ),
         }}

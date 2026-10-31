@@ -1,10 +1,11 @@
 "use client";
 
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { IconButton } from "@/components/ui/icon-button";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { Settings, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -62,15 +63,15 @@ interface SpaceConfirmState {
   onConfirm: () => void;
 }
 
-export default function SpaceSettingsModal({
+function SpaceSettingsModalForm({
   isOpen,
   onClose,
   space,
   currentUserId,
   onSpaceDeletedOrLeft,
 }: SpaceSettingsModalProps) {
-  const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<SpaceSettingsTab>(
+  const mounted = useHydrated();
+  const [requestedActiveTab, setActiveTab] = useState<SpaceSettingsTab>(
     SpaceSettingsTab.OVERVIEW,
   );
   const [memberSearch, setMemberSearch] = useState("");
@@ -92,20 +93,8 @@ export default function SpaceSettingsModal({
     onSpaceDeletedOrLeft,
   });
 
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
 
-  useEffect(() => {
-    if (isOpen) {
-      settings.setSpaceName(space.name);
-      setActiveTab(SpaceSettingsTab.OVERVIEW);
-      setMemberSearch("");
-      setIsInviteModalOpen(false);
-      setConfirmState(null);
-    }
-  }, [isOpen, settings.setSpaceName, space.name]);
+
 
   const isOwner =
     (settings.detail?.createdBy || space.createdBy) === currentUserId;
@@ -129,11 +118,7 @@ export default function SpaceSettingsModal({
     [canManagePermissions, isProjectSpace, settings.isAdmin],
   );
 
-  useEffect(() => {
-    if (!visibleTabs.some((tab) => tab.id === activeTab)) {
-      setActiveTab(SpaceSettingsTab.OVERVIEW);
-    }
-  }, [activeTab, visibleTabs]);
+  const activeTab = visibleTabs.some(tab => tab.id === requestedActiveTab) ? requestedActiveTab : SpaceSettingsTab.OVERVIEW;
 
   const openConfirm = (nextConfirm: SpaceConfirmState) => {
     setConfirmState(nextConfirm);
@@ -407,3 +392,7 @@ export default function SpaceSettingsModal({
     </div>}</DialogSurface>;
 }
 
+
+export default function SpaceSettingsModal(props: SpaceSettingsModalProps) {
+  return props.isOpen ? <SpaceSettingsModalForm key={JSON.stringify([props.space.id, props.space.name])} {...props} /> : null;
+}

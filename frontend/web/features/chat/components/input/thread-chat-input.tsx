@@ -1,5 +1,7 @@
 "use client";
 
+import type { SendSocketMessageMedia } from "../../types/chat-socket.types";
+import { MAX_ATTACHMENT_SIZE_BYTES, ATTACHMENT_SIZE_LIMIT_MESSAGE } from "@/lib/upload-policy";
 import { IconButton } from "@/components/ui/icon-button";
 import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 import { useId as useControlledPopupId } from "react";
@@ -68,7 +70,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 
 interface ThreadChatInputProps {
-  onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
+  onSendMessage?: (content: string, media?: SendSocketMessageMedia[], mentions?: string[]) => void;
 }
 
 interface UploadingMedia {
@@ -104,7 +106,7 @@ const ThreadChatInput = React.memo(
 
     const { activeChat: activeConversation, activeChatType } = useActiveChat();
     const memberProfiles = useChatMemberProfiles();
-    const authUserId = useAppSelector((state: any) => state.auth.userId);
+    const authUserId = useAppSelector((state) => state.auth.userId);
 
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionStartIndex, setMentionStartIndex] = useState<number>(-1);
@@ -308,7 +310,7 @@ const ThreadChatInput = React.memo(
     );
 
     const insertMention = useCallback(
-      (user: any) => {
+      (user: import("../../utils/mention-member-utils").MentionMemberOption) => {
         if (mentionStartIndex === -1) return;
         const before = message.substring(0, mentionStartIndex);
         const after = message.substring(
@@ -364,9 +366,9 @@ const ThreadChatInput = React.memo(
     }, [activeConversationId]);
 
     const uploadFilesList = async (files: File[]) => {
-      const validFiles = files.filter((f) => f.size <= 100 * 1024 * 1024);
+      const validFiles = files.filter((f) => f.size <= MAX_ATTACHMENT_SIZE_BYTES);
       if (validFiles.length < files.length) {
-        toast.error("File size limit exceeded (max 100MB).");
+        toast.error(ATTACHMENT_SIZE_LIMIT_MESSAGE);
       }
       if (validFiles.length === 0) return;
 
@@ -982,11 +984,12 @@ const ThreadChatInput = React.memo(
               )}
             </div>
           </div>
-          <MyFilesSelectModal
+          {activeConversationId && activeChatType && <MyFilesSelectModal
+            context={{ chatId: activeConversationId, chatType: activeChatType }}
             isOpen={isMyFilesModalOpen}
             onClose={() => setIsMyFilesModalOpen(false)}
             onSelect={handleSelectMyFiles}
-          />
+          />}
         </div>
       </div>
     );

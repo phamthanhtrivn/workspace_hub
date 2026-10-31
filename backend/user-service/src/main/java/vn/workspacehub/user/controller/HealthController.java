@@ -119,7 +119,7 @@ public class HealthController {
         Map<String, String> check = new HashMap<>();
         check.put("name", name);
         check.put("status", "error");
-        check.put("message", message == null || message.isBlank() ? "Unavailable" : message);
+        check.put("message", "Dependency unavailable");
         return check;
     }
 }

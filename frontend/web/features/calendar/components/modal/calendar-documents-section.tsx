@@ -3,13 +3,7 @@
 import { useQueries } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  Download,
-  FileText,
-  Paperclip,
-  Trash2,
-  Upload,
-} from "lucide-react";
+import { Download, FileText, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { formatBytes } from "@/features/documents/utils/documents.utils";

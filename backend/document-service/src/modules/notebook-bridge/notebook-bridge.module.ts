@@ -13,8 +13,10 @@ import { isEmail, isUUID } from 'class-validator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { S3Module } from '../../infrastructure/s3/s3.module';
 import { S3Service } from '../../infrastructure/s3/s3.service';
+import { IndependentAuthentication } from '../../common/decorators/http-authentication.decorator';
 
 type Ref = { documentId: string; versionId?: string };
+@IndependentAuthentication()
 @Controller('internal/notebook-documents')
 export class NotebookBridgeController {
   constructor(

@@ -245,6 +245,7 @@ export const CalendarGrid = memo(function CalendarGrid({
         dayMaxEvents={3}
         moreLinkText={renderMoreLinkText}
         moreLinkClick="popover"
+        moreLinkDidMount={({ el }) => el.setAttribute("role", "button")}
         slotEventOverlap={false}
         views={{
           timeGrid: {

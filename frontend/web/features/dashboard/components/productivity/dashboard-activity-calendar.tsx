@@ -37,7 +37,7 @@ export function DashboardActivityCalendar({ activity }: { activity: DashboardAct
                 return (
                   <Tooltip key={day.date}>
                     <TooltipTrigger asChild>
-                      <span tabIndex={-1} aria-label={description} className={styles.cell} data-today={day.isToday || undefined}
+                      <span role="img" aria-label={description} className={styles.cell} data-today={day.isToday || undefined}
                         style={{ backgroundColor: `var(--activity-${day.level})` }} />
                     </TooltipTrigger>
                     <TooltipContent>{description}</TooltipContent>
@@ -50,7 +50,7 @@ export function DashboardActivityCalendar({ activity }: { activity: DashboardAct
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
         <span>{activity.rangeLabel}</span>
-        <span className="flex items-center gap-[3px]" aria-label="Daily activity levels: 0, 1, 2, 3, 4 or more completed tasks">
+        <span role="img" className="flex items-center gap-[3px]" aria-label="Daily activity levels: 0, 1, 2, 3, 4 or more completed tasks">
           <span className="mr-1">Less</span>
           {ACTIVITY_LEVELS.map((level) => <span key={level} aria-hidden="true" className={styles.cell} style={{ backgroundColor: `var(--activity-${level})` }} />)}
           <span className="ml-1">More</span>

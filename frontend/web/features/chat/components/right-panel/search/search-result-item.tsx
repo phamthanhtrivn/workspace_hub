@@ -11,10 +11,10 @@ import {
 import { UserProfileSnapshotResponse } from "../../../types/chat.types";
 import { formatDateTime } from "@/lib/date";
 import { formatMessageContent } from "../../../utils/message-formatter";
-import { RenderableChatMessage } from "../../message/chat-message.types";
+import { ChatMessageResponse } from "../../../types/chat.types";
 
 interface SearchResultItemProps {
-  message: RenderableChatMessage;
+  message: ChatMessageResponse;
   currentUserId: string | null;
   memberProfiles: Record<string, UserProfileSnapshotResponse>;
   isDirect: boolean;

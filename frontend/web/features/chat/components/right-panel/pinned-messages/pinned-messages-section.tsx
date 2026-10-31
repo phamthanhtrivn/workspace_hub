@@ -1,3 +1,4 @@
+import type { ChatMessageResponse, PinnedMessagesResponse } from "@/features/chat/types/chat.types";
 import { QueryFeedback } from "@/components/common/query-feedback";
 
 import { IconButton } from "@/components/ui/icon-button";
@@ -25,7 +26,7 @@ interface PinnedMessagesSectionProps {
   onJumpToMessage: (messageId: string) => void;
 }
 
-function getPinnedPreviewText(message: any) {
+function getPinnedPreviewText(message: ChatMessageResponse) {
   if (message.content) return message.content;
   if (message.medias?.length) return "Attachment";
   if (message.poll) return "Poll";
@@ -71,14 +72,14 @@ export default function PinnedMessagesSection({
       await unpinDirectPinnedMessage(conversationId, messageId);
       queryClient.setQueryData(
         chatKeys.pinnedMessagesDetail(ChatScope.DIRECT, conversationId),
-        (oldData: any) => {
+        (oldData: import("@tanstack/react-query").InfiniteData<PinnedMessagesResponse> | undefined) => {
           if (!oldData) return oldData;
           return {
             ...oldData,
-            pages: oldData.pages.map((page: any) => ({
+            pages: oldData.pages.map((page) => ({
               ...page,
               messages: page.messages.filter(
-                (message: any) => message.id !== messageId,
+                (message) => message.id !== messageId,
               ),
             })),
           };
@@ -96,14 +97,14 @@ export default function PinnedMessagesSection({
 
     queryClient.setQueryData(
       chatKeys.pinnedMessagesDetail(ChatScope.CHANNEL, conversationId),
-      (oldData: any) => {
+      (oldData: import("@tanstack/react-query").InfiniteData<PinnedMessagesResponse> | undefined) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
-          pages: oldData.pages.map((page: any) => ({
+          pages: oldData.pages.map((page) => ({
             ...page,
             messages: page.messages.filter(
-              (message: any) => message.id !== messageId,
+              (message) => message.id !== messageId,
             ),
           })),
         };
@@ -145,7 +146,7 @@ export default function PinnedMessagesSection({
             </div>
           ) : (
             <div className="space-y-1">
-              {pinnedMessages.map((message: any) => (
+              {pinnedMessages.map((message) => (
                 <div
                   key={message.id}
 

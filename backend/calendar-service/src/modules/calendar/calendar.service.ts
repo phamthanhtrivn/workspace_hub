@@ -17,9 +17,11 @@ import { CalendarNotificationOutboxService } from '../calendar-event/calendar-no
 
 @Injectable()
 export class CalendarService {
-  constructor(private readonly prisma: PrismaService,
+  constructor(
+    private readonly prisma: PrismaService,
     @Optional() private readonly conferences?: CalendarConferenceSyncService,
-    @Optional() private readonly notifications?: CalendarNotificationOutboxService,
+    @Optional()
+    private readonly notifications?: CalendarNotificationOutboxService,
   ) {}
 
   async createCalendar(
@@ -128,14 +130,22 @@ export class CalendarService {
       );
     }
 
-    await this.prisma.$transaction(async tx => {
+    await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM calendars WHERE id = ${calendar.id}::uuid FOR UPDATE`;
-      const events = await tx.calendarEvent.findMany({ where: { calendarId }, include: { attendees: true } });
-      await tx.calendar.delete({ where: { id: calendar.id } });
-      for (const event of events) await this.notifications?.enqueueEventCancellation(tx, {
-        eventId: event.id, eventTitle: event.title, cancellerId: userId,
-        recipientIds: event.attendees.filter(attendee => attendee.userId !== userId).map(attendee => attendee.userId),
+      const events = await tx.calendarEvent.findMany({
+        where: { calendarId },
+        include: { attendees: true },
       });
+      await tx.calendar.delete({ where: { id: calendar.id } });
+      for (const event of events)
+        await this.notifications?.enqueueEventCancellation(tx, {
+          eventId: event.id,
+          eventTitle: event.title,
+          cancellerId: userId,
+          recipientIds: event.attendees
+            .filter((attendee) => attendee.userId !== userId)
+            .map((attendee) => attendee.userId),
+        });
       await this.conferences?.reconcileCalendar(tx, calendar.id);
     });
   }

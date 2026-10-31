@@ -1,5 +1,7 @@
 "use client";
 import { useId as useControlledPopupId } from "react";
+import { ChatContextType } from "@/features/chat/types/chat.types";
+import { MAX_ATTACHMENT_SIZE_BYTES, ATTACHMENT_SIZE_LIMIT_MESSAGE } from "@/lib/upload-policy";
 
 import {
   forwardRef,
@@ -32,7 +34,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 interface UploadingMeetingMedia extends MeetingMessageMediaPayload {
   id: string;
@@ -120,9 +121,9 @@ export const MeetingMessageInput = forwardRef<
 
   const uploadFiles = useCallback(
     async (files: File[]) => {
-      const validFiles = files.filter((file) => file.size <= MAX_FILE_SIZE);
+      const validFiles = files.filter((file) => file.size <= MAX_ATTACHMENT_SIZE_BYTES);
       if (validFiles.length !== files.length) {
-        toast.error("Some files are larger than 100 MB");
+        toast.error(ATTACHMENT_SIZE_LIMIT_MESSAGE);
       }
       if (validFiles.length === 0) return;
 
@@ -388,6 +389,7 @@ export const MeetingMessageInput = forwardRef<
       </div>
 
       <MyFilesSelectModal
+        context={{ chatId: meetingId, chatType: ChatContextType.MEETING }}
         isOpen={isMyFilesModalOpen}
         onClose={() => setIsMyFilesModalOpen(false)}
         overlayClassName="z-[150]"

@@ -1,8 +1,9 @@
 "use client";
 
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 
 import { X } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
@@ -27,12 +28,9 @@ export default function ViewNoteModal({
   note,
   conversationId,
 }: ViewNoteModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const dispatch = useAppDispatch();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!isOpen || !mounted || !note) return null;
 

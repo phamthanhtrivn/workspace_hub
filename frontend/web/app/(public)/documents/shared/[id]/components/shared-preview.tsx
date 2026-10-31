@@ -11,7 +11,7 @@ interface SharedPreviewProps {
   textContent: string | null;
   isUrlLoading: boolean;
   loadingText: boolean;
-  error: any;
+  error: Error | string | null;
   onDownload: () => void;
 }
 

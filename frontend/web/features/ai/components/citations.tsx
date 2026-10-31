@@ -1,4 +1,5 @@
 "use client";
+import { Details, DetailsSummary } from "@/components/ui/details";
 import { Button } from "@/components/ui/button";
 
 import { useId, useState } from "react";
@@ -66,7 +67,7 @@ export function Citations({
               if (!item) return `[[${label}]]`;
               const description = `Nguồn ${item.label}: ${item.name}${item.page ? `, trang ${item.page}` : ""}`;
               return (
-                <button
+                <Button variant="unstyled"
                   type="button"
                   title={description}
                   aria-label={description}
@@ -74,7 +75,7 @@ export function Citations({
                   className="mx-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-primary/20 bg-primary/5 px-1 align-super text-[10px] font-semibold leading-none text-primary transition-colors hover:border-primary/40 hover:bg-primary/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 >
                   {item.label.slice(1)}
-                </button>
+                </Button>
               );
             }}
           />
@@ -87,32 +88,32 @@ export function Citations({
         <div className="space-y-2 text-xs">
           <p className="font-medium text-muted-foreground">Nguồn tham khảo</p>
           {items.map((item) => (
-            <details
+            <Details
               key={`${item.label}-${item.id}`}
               id={sourceId(item)}
               className="rounded-md border bg-slate-50 p-2"
             >
-              <summary className="cursor-pointer break-words font-medium">
+              <DetailsSummary className="cursor-pointer break-words font-medium">
                 <span className="mr-1.5 inline-flex min-w-5 items-center justify-center rounded border border-primary/20 bg-primary/5 px-1 py-0.5 text-[10px] font-semibold text-primary">
                   {item.label.slice(1)}
                 </span>
                 {item.name} ·{" "}
                 {item.page ? `trang ${item.page}` : `đoạn ${item.position + 1}`}
-              </summary>
+              </DetailsSummary>
               <blockquote className="my-2 whitespace-pre-wrap break-words border-l-2 pl-3 leading-relaxed">
                 {item.text}
               </blockquote>
               {item.imageId && (
                 <SourceImage notebookId={notebookId} citation={item} />
               )}
-              <button
+              <Button variant="unstyled"
                 type="button"
                 className="text-primary underline"
                 onClick={() => preview(item)}
               >
                 Mở bản gốc
-              </button>
-            </details>
+              </Button>
+            </Details>
           ))}
         </div>
       )}

@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import {
@@ -66,10 +66,12 @@ export function useChatMessageList({
   >([]);
 
   // Reset khi đổi conversation
-  useEffect(() => {
-    setJumpTargetId(null);
+  const [previousConversationId, setPreviousConversationId] = useState(conversationId);
+  if (previousConversationId !== conversationId) {
+    setPreviousConversationId(conversationId);
+    setJumpTargetId(initialJumpTargetId);
     setNewSocketMessages([]);
-  }, [conversationId]);
+  }
 
   const {
     data,

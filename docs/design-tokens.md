@@ -109,8 +109,14 @@ Preferences exposes Light and Dark. Selecting an option edits the form; Save Set
 </span>
 ```
 
+## Shared control ownership
+
+`frontend/web/components/ui` owns native controls and vendor primitives. Feature wrappers supply domain options, labels and density. Reuse the shared Button, Input, Select, date/time pickers, Dialog and AlertDialog before adding a custom interaction.
+
+Hidden file inputs and poll form controls are intentional native exceptions. FullCalendar, charts, document content and media retain their existing adapters. Avoid nested interactive controls; give secondary card actions their own buttons. Keep keyboard focus visible in light and dark themes.
+
 ## Verification
 
-The dashboard utility test, project i18n audit script, and temporary theme/color tests and browser suite from the UI work were removed at the user's request. Previous verification results remain documented in `docs/ui-audit.md`.
+Historical audit reports are archived locally; they are not runtime configuration. The repository's test suites and test-only tooling have been removed.
 
 Run commands from `frontend/web`. Also run TypeScript, lint, and a production build. Check both themes on desktop/mobile, saved/failed preferences, account changes, keyboard focus, overlays, emoji pickers, chart tooltips, and loading/empty/error states. Normal text must reach 4.5:1 contrast; meaningful control boundaries must reach 3:1.

@@ -10,6 +10,7 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { logger } from './infrastructure/logger/bootstrap-logger';
 import { setupMicroservices } from './infrastructure/bootstrap/microservices.bootstrap';
+import { socketCorsOptions } from './common/auth/socket-origin';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -17,6 +18,10 @@ async function bootstrap() {
   });
   const port = process.env.PORT ?? '8083';
   app.enableShutdownHooks();
+  // Prisma revisions are bigint; expose them losslessly in JSON responses.
+  app.set('json replacer', (_key: string, value: unknown) =>
+    typeof value === 'bigint' ? value.toString() : value,
+  );
 
   app.useBodyParser('json', {
     type: ['application/json', 'application/*+json'],
@@ -24,9 +29,8 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: true,
+    ...socketCorsOptions,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
   });
 
   // Setup Global Pipes, Interceptors, and Filters

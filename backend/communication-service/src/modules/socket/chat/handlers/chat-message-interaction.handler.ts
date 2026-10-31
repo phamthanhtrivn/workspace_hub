@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Socket } from 'socket.io';
+import { socketUserId } from '../../../../common/auth/socket-user';
 import {
   CHAT_ERROR_MESSAGES,
   CHAT_REACTION_ACTION,
@@ -28,7 +29,7 @@ export class ChatMessageInteractionHandler {
     },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (!userId || !data.messageId || !data.channelId || !data.emoji) return;
 
     try {
@@ -74,7 +75,7 @@ export class ChatMessageInteractionHandler {
     data: { channelId: string; messageId: string; pollOptionId: string },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (!userId || !data.messageId || !data.channelId || !data.pollOptionId)
       return;
 
@@ -104,7 +105,7 @@ export class ChatMessageInteractionHandler {
     data: { channelId: string; messageId: string; text: string },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (!userId || !data.messageId || !data.channelId || !data.text) return;
 
     try {
@@ -141,7 +142,7 @@ export class ChatMessageInteractionHandler {
     },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (!userId || !data.messageId || !data.channelId || !data.title) return;
 
     try {
@@ -179,7 +180,7 @@ export class ChatMessageInteractionHandler {
     },
     client: Socket,
   ) {
-    const userId = client.data.userId;
+    const userId = socketUserId(client);
     if (
       !userId ||
       !data.messageId ||

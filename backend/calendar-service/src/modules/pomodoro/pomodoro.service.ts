@@ -17,8 +17,16 @@ import { GetPomodoroSessionsQueryDto } from './dto/get-pomodoro-sessions-query.d
 import { SavePomodoroConfigDto } from './dto/save-pomodoro-config.dto';
 import { SavePomodoroTimerStateDto } from './dto/save-pomodoro-timer-state.dto';
 import { SavePomodoroAmbientPreferencesDto } from './dto/save-pomodoro-ambient-preferences.dto';
-import { AMBIENT_PREFERENCES_SELECT, DEFAULT_AMBIENT_PREFERENCES, AMBIENT_TRACK_ID_PATTERN, MAX_AMBIENT_TRACK_ID_LENGTH } from './constants/pomodoro-ambient.constants';
-import { POMODORO_AUDIO_BASE_URL_ENV, POMODORO_AUDIO_MESSAGES } from './constants/pomodoro-audio.constants';
+import {
+  AMBIENT_PREFERENCES_SELECT,
+  DEFAULT_AMBIENT_PREFERENCES,
+  AMBIENT_TRACK_ID_PATTERN,
+  MAX_AMBIENT_TRACK_ID_LENGTH,
+} from './constants/pomodoro-ambient.constants';
+import {
+  POMODORO_AUDIO_BASE_URL_ENV,
+  POMODORO_AUDIO_MESSAGES,
+} from './constants/pomodoro-audio.constants';
 import type { PomodoroAudioResponse } from './types/pomodoro-audio';
 import { buildPomodoroAudioUrl } from './utils/pomodoro-audio-url';
 
@@ -111,13 +119,21 @@ export class PomodoroService {
       where: { isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
       select: {
-        id: true, name: true, description: true, icon: true,
-        category: true, s3Key: true, sortOrder: true,
+        id: true,
+        name: true,
+        description: true,
+        icon: true,
+        category: true,
+        s3Key: true,
+        sortOrder: true,
       },
     });
     return audios.map((audio) => ({
       ...audio,
-      url: buildPomodoroAudioUrl(process.env[POMODORO_AUDIO_BASE_URL_ENV], audio.s3Key),
+      url: buildPomodoroAudioUrl(
+        process.env[POMODORO_AUDIO_BASE_URL_ENV],
+        audio.s3Key,
+      ),
     }));
   }
 
@@ -126,15 +142,23 @@ export class PomodoroService {
       where: { userId },
       select: AMBIENT_PREFERENCES_SELECT,
     });
-    return config ? {
-      trackId: config.ambientTrackId,
-      volume: config.ambientVolume,
-      autoPlayOnFocus: config.ambientAutoPlayOnFocus,
-    } : { ...DEFAULT_AMBIENT_PREFERENCES };
+    return config
+      ? {
+          trackId: config.ambientTrackId,
+          volume: config.ambientVolume,
+          autoPlayOnFocus: config.ambientAutoPlayOnFocus,
+        }
+      : { ...DEFAULT_AMBIENT_PREFERENCES };
   }
 
-  async saveAmbientPreferences(userId: string, dto: SavePomodoroAmbientPreferencesDto) {
-    if (dto.trackId.length > MAX_AMBIENT_TRACK_ID_LENGTH || !AMBIENT_TRACK_ID_PATTERN.test(dto.trackId)) {
+  async saveAmbientPreferences(
+    userId: string,
+    dto: SavePomodoroAmbientPreferencesDto,
+  ) {
+    if (
+      dto.trackId.length > MAX_AMBIENT_TRACK_ID_LENGTH ||
+      !AMBIENT_TRACK_ID_PATTERN.test(dto.trackId)
+    ) {
       throw new BadRequestException(POMODORO_AUDIO_MESSAGES.unavailable);
     }
     if (dto.trackId !== 'none') {
@@ -142,7 +166,8 @@ export class PomodoroService {
         where: { id: dto.trackId, isActive: true },
         select: { id: true },
       });
-      if (!audio) throw new BadRequestException(POMODORO_AUDIO_MESSAGES.unavailable);
+      if (!audio)
+        throw new BadRequestException(POMODORO_AUDIO_MESSAGES.unavailable);
     }
     const preferences = {
       ambientTrackId: dto.trackId,

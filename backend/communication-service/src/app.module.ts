@@ -1,3 +1,5 @@
+import { APP_GUARD } from '@nestjs/core';
+import { JwtIdentityGuard } from './common/guards/jwt-identity.guard';
 import { Module } from '@nestjs/common';
 import { TaskSyncModule } from './modules/task-sync/task-sync.module';
 import { ChannelAccessModule } from './modules/channel/access/channel-access.module';
@@ -43,6 +45,6 @@ import { RuntimeConfigModule } from './common/config/runtime-config.module';
     UserProfileSnapshotModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: JwtIdentityGuard }],
 })
 export class AppModule {}

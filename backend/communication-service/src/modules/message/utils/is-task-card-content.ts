@@ -13,8 +13,8 @@ export function isTaskCardContent(type: MessageType, content: string): boolean {
     return (
       typeof payload === 'object' &&
       payload !== null &&
-      ('type' in payload && payload.type === 'TASK' ||
-        'taskId' in payload && Boolean(payload.taskId))
+      (('type' in payload && payload.type === 'TASK') ||
+        ('taskId' in payload && Boolean(payload.taskId)))
     );
   } catch {
     return false;

@@ -4,6 +4,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { MessageType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -63,7 +64,16 @@ export class DirectMessageService {
     attachmentMediaId?: string,
   ) {
     assertClientMessageType(type);
-    await this.directMessagePermissionService.assertCanSend(conversationId, senderId);
+    await this.directMessagePermissionService.assertCanSend(
+      conversationId,
+      senderId,
+    );
+    if (medias?.length)
+      await this.s3Service.assertAttachments(medias, {
+        actorId: senderId,
+        referenceId: conversationId,
+        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
+      });
     const createdMessage = await this.prisma.$transaction(async (tx) => {
       const participant = await tx.directConversationParticipant.findUnique({
         where: {
@@ -172,7 +182,14 @@ export class DirectMessageService {
         },
       });
 
-      await this.conversationAi.register(message, senderId, conversationId, "DIRECT_MESSAGE", tx, attachmentMediaId);
+      await this.conversationAi.register(
+        message,
+        senderId,
+        conversationId,
+        'DIRECT_MESSAGE',
+        tx,
+        attachmentMediaId,
+      );
       return this.mapDirectMessage(message);
     });
     this.conversationAi.notify(createdMessage);
@@ -193,10 +210,15 @@ export class DirectMessageService {
 
   async getDirectConversationMessages(
     conversationId: string,
+    userId: string,
     cursor?: string,
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     direction: MESSAGE_DIRECTION = MESSAGE_DIRECTION.OLDER,
   ) {
+    await this.directMessagePermissionService.assertCanRead(
+      conversationId,
+      userId,
+    );
     const includeQuery = {
       reactions: true,
       medias: true,
@@ -324,11 +346,16 @@ export class DirectMessageService {
 
   async getDirectConversationMedia(
     conversationId: string,
+    userId: string,
     cursor?: string,
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     mediaType?: string,
     q?: string,
   ) {
+    await this.directMessagePermissionService.assertCanRead(
+      conversationId,
+      userId,
+    );
     const nameWhere = q
       ? { name: { contains: q, mode: 'insensitive' as const } }
       : {};
@@ -384,11 +411,16 @@ export class DirectMessageService {
 
   async getDirectPinnedMessages(
     conversationId: string,
+    userId: string,
     cursor?: string,
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     senderId?: string,
     q?: string,
   ) {
+    await this.directMessagePermissionService.assertCanRead(
+      conversationId,
+      userId,
+    );
     const matchedUsers = q
       ? await this.prisma.userProfileSnapshot.findMany({
           where: {
@@ -458,10 +490,15 @@ export class DirectMessageService {
 
   async searchDirectMessages(
     conversationId: string,
+    userId: string,
     q?: string,
     senderId?: string,
     type?: string,
   ) {
+    await this.directMessagePermissionService.assertCanRead(
+      conversationId,
+      userId,
+    );
     const whereClause: Prisma.DirectMessageWhereInput = {
       conversationId,
       deletedAt: null,
@@ -506,10 +543,15 @@ export class DirectMessageService {
 
   async getDirectConversationThreads(
     conversationId: string,
+    userId: string,
     cursor?: string,
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     senderId?: string,
   ) {
+    await this.directMessagePermissionService.assertCanRead(
+      conversationId,
+      userId,
+    );
     const messages = await this.prisma.directMessage.findMany({
       where: {
         conversationId,
@@ -624,7 +666,8 @@ export class DirectMessageService {
     );
   }
 
-  async getDirectThreadMessages(messageId: string) {
+  async getDirectThreadMessages(messageId: string, userId: string) {
+    await this.assertDirectMessageMember(messageId, userId);
     const includeQuery = {
       reactions: true,
       medias: true,
@@ -704,6 +747,16 @@ export class DirectMessageService {
     userId: string,
     messageId: string,
   ) {
+    await this.directMessagePermissionService.assertCanRead(
+      conversationId,
+      userId,
+    );
+    const message = await this.prisma.directMessage.findFirst({
+      where: { id: messageId, conversationId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!message)
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     const result = await this.prisma.directConversationParticipant.update({
       where: {
         conversationId_userId: {
@@ -764,12 +817,15 @@ export class DirectMessageService {
     });
     const conversationId = await this.getDirectMessageConversationId(messageId);
 
-    await this.chatSocketPublisher.publishDirectReactionUpdated(conversationId, {
-      messageId,
-      userId,
-      emoji,
-      action: CHAT_REACTION_ACTION.REMOVE,
-    });
+    await this.chatSocketPublisher.publishDirectReactionUpdated(
+      conversationId,
+      {
+        messageId,
+        userId,
+        emoji,
+        action: CHAT_REACTION_ACTION.REMOVE,
+      },
+    );
 
     return result;
   }
@@ -959,12 +1015,15 @@ export class DirectMessageService {
   ) {
     const conversationId = await this.getDirectMessageConversationId(messageId);
 
-    await this.chatSocketPublisher.publishDirectReactionUpdated(conversationId, {
-      messageId,
-      userId,
-      emoji: result.emoji,
-      action: result.action,
-    });
+    await this.chatSocketPublisher.publishDirectReactionUpdated(
+      conversationId,
+      {
+        messageId,
+        userId,
+        emoji: result.emoji,
+        action: result.action,
+      },
+    );
   }
 
   private async publishDirectMessageUpdate(
@@ -1039,20 +1098,10 @@ export class DirectMessageService {
       throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     }
 
-    const participant =
-      await this.prisma.directConversationParticipant.findUnique({
-        where: {
-          conversationId_userId: {
-            conversationId: message.conversationId,
-            userId,
-          },
-        },
-      });
-    if (!participant) {
-      throw new BadRequestException(
-        MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
-      );
-    }
+    await this.directMessagePermissionService.assertCanRead(
+      message.conversationId,
+      userId,
+    );
     return message;
   }
 
@@ -1060,7 +1109,9 @@ export class DirectMessageService {
     messageId: string,
     userId: string,
   ): Promise<Prisma.DirectMessageGetPayload<Record<string, never>>>;
-  private async getOwnedDirectMessage<TInclude extends Prisma.DirectMessageInclude>(
+  private async getOwnedDirectMessage<
+    TInclude extends Prisma.DirectMessageInclude,
+  >(
     messageId: string,
     userId: string,
     include: TInclude,
@@ -1078,7 +1129,9 @@ export class DirectMessageService {
       throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     }
     if (message.senderId !== userId) {
-      throw new BadRequestException('You can only modify your own messages');
+      throw new ForbiddenException(
+        MESSAGE_ERROR_MESSAGES.MODIFY_OWNER_REQUIRED,
+      );
     }
     return message;
   }
@@ -1091,9 +1144,7 @@ export class DirectMessageService {
     }
   }
 
-  private getMediaTypeWhere(
-    mediaType?: string,
-  ): Prisma.DirectMediaWhereInput {
+  private getMediaTypeWhere(mediaType?: string): Prisma.DirectMediaWhereInput {
     switch (mediaType) {
       case 'image':
         return { mimeType: { startsWith: 'image/' } };

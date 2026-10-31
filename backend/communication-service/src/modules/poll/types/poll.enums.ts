@@ -18,4 +18,6 @@ export enum POLL_ERROR_MESSAGES {
   NOT_MEMBER_OF_CHANNEL = 'You are not a member of this channel',
 }
 
-export const POLL_ERROR_CODES = { MULTIPLE_VOTES_EXIST: 'POLL_MULTIPLE_VOTES_EXIST' } as const;
+export const POLL_ERROR_CODES = {
+  MULTIPLE_VOTES_EXIST: 'POLL_MULTIPLE_VOTES_EXIST',
+} as const;

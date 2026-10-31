@@ -1,3 +1,4 @@
+import type { MentionMemberOption } from "../../utils/mention-member-utils";
 import { User, Users } from "lucide-react";
 import React from "react";
 import { Button } from "@/components/ui/button";
@@ -6,9 +7,9 @@ import { Button } from "@/components/ui/button";
 interface MentionDropdownProps {
   query: string | null;
   id: string;
-  members: any[];
+  members: MentionMemberOption[];
   selectedIndex: number;
-  onSelect: (user: any) => void;
+  onSelect: (user: MentionMemberOption) => void;
 }
 
 export default React.memo(function MentionDropdown({

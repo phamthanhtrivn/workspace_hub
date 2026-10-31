@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { CommunicationGateway } from './communication.gateway';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { ChannelAccessModule } from '../channel/access/channel-access.module';
+import { DirectMessagePermissionModule } from '../direct-message/direct-message-permission.module';
 import { MessageModule } from '../message/message.module';
 import { SocketEventEmitter } from './services/socket-event-emitter';
 import { SocketRoomService } from './services/socket-room.service';
@@ -12,7 +13,12 @@ import { ChatRoomHandler } from './chat/handlers/chat-room.handler';
 import { MeetingSocketHandler } from './meeting/meeting-socket.handler';
 
 @Module({
-  imports: [PrismaModule, ChannelAccessModule, forwardRef(() => MessageModule)],
+  imports: [
+    PrismaModule,
+    ChannelAccessModule,
+    DirectMessagePermissionModule,
+    forwardRef(() => MessageModule),
+  ],
   providers: [
     CommunicationGateway,
     {

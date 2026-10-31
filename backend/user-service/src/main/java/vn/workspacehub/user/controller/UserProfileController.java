@@ -1,9 +1,8 @@
 package vn.workspacehub.user.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.workspacehub.user.common.ApiResponse;
@@ -14,7 +13,7 @@ import vn.workspacehub.user.dto.response.PresignedUrlResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
 import vn.workspacehub.user.service.UserProfileService;
 import vn.workspacehub.user.util.CookieUtils;
-import vn.workspacehub.user.util.HashUtils;
+import vn.workspacehub.user.common.AuthPolicy;
 
 import java.util.UUID;
 
@@ -24,11 +23,6 @@ import java.util.UUID;
 public class UserProfileController {
 
     private final UserProfileService userProfileService;
-
-    @Value("${jwt.secret_key}")
-    private String jwtSecret;
-
-    private static final String REFRESH_TOKEN_COOKIE = "refreshToken";
 
     @GetMapping
     public ResponseEntity<ApiResponse<UserProfileResponse>> getMyProfile(
@@ -85,14 +79,9 @@ public class UserProfileController {
     public ResponseEntity<ApiResponse<Void>> setFirstPassword(
             @RequestHeader(value = "X-User-Id") UUID userId,
             @Valid @RequestBody SetFirstPasswordRequest request,
-            HttpServletRequest httpRequest) {
-
-        String rawToken = CookieUtils.extractCookie(httpRequest, REFRESH_TOKEN_COOKIE);
-        String currentTokenHash = (rawToken != null && !rawToken.isBlank())
-                ? HashUtils.hmacSha256(rawToken, jwtSecret)
-                : null;
-
-        userProfileService.setFirstPassword(userId, request, currentTokenHash);
+            HttpServletResponse httpResponse) {
+        userProfileService.setFirstPassword(userId, request);
+        CookieUtils.clearCookie(httpResponse, AuthPolicy.REFRESH_COOKIE, "/");
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .message("Password set successfully")
@@ -103,14 +92,9 @@ public class UserProfileController {
     public ResponseEntity<ApiResponse<Void>> updatePassword(
             @RequestHeader(value = "X-User-Id") UUID userId,
             @Valid @RequestBody UpdatePasswordRequest request,
-            HttpServletRequest httpRequest) {
-
-        String rawToken = CookieUtils.extractCookie(httpRequest, REFRESH_TOKEN_COOKIE);
-        String currentTokenHash = (rawToken != null && !rawToken.isBlank())
-                ? HashUtils.hmacSha256(rawToken, jwtSecret)
-                : null;
-
-        userProfileService.updatePassword(userId, request, currentTokenHash);
+            HttpServletResponse httpResponse) {
+        userProfileService.updatePassword(userId, request);
+        CookieUtils.clearCookie(httpResponse, AuthPolicy.REFRESH_COOKIE, "/");
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .message("Password updated successfully")

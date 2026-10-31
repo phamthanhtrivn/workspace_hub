@@ -2,7 +2,7 @@
 
 Local LiveKit is included by `backend/docker/docker-compose.host.yml`.
 Applications run on the host. See [local setup](../../docs/local-development.md)
-and [recording setup](../../meeting-recording-setup.md).
+and the [migration guide](../../docs/migrations.md) before changing existing databases.
 
 Keep existing `backend/docker/.env` and `backend/livekit/.env` values. Share
 LIVEKIT_API_KEY/SECRET with Communication Service. Host/browser use

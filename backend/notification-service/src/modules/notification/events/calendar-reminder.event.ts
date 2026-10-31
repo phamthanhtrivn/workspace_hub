@@ -1,28 +1,14 @@
-import { Controller, Logger } from "@nestjs/common";
+import { Controller, Logger, UseInterceptors } from "@nestjs/common";
 import { EventPattern, Payload } from "@nestjs/microservices";
 import { KAFKA_TOPICS } from "../../../common/constants/kafka.constants";
 import { NotificationType } from "../dtos/create-notification.dto";
 import { EmailService } from "../email.service";
 import { NotificationService } from "../notification.service";
-
-interface CalendarReminderPayload {
-  eventType: "CALENDAR_REMINDER_DUE";
-  deliveryId: string;
-  method: "ALERT" | "PUSH" | "EMAIL";
-  event: {
-    id: string;
-    title: string;
-    startAt: string;
-    location?: string | null;
-  };
-  recipients: Array<{
-    userId: string;
-    email?: string | null;
-    fullName?: string | null;
-  }>;
-}
+import { parseCalendarReminder } from './calendar-reminder.payload';
+import { InvalidKafkaEventInterceptor } from '../../../common/interceptors/invalid-kafka-event.interceptor';
 
 @Controller()
+@UseInterceptors(InvalidKafkaEventInterceptor)
 export class CalendarReminderEvent {
   private readonly logger = new Logger(CalendarReminderEvent.name);
 
@@ -32,9 +18,9 @@ export class CalendarReminderEvent {
   ) {}
 
   @EventPattern(KAFKA_TOPICS.CALENDAR_REMINDER_TOPIC)
-  async handle(@Payload() message: CalendarReminderPayload | { value: CalendarReminderPayload }) {
-    const payload = "value" in message ? message.value : message;
-    if (payload.eventType !== "CALENDAR_REMINDER_DUE") return;
+  async handle(@Payload() message: unknown) {
+    const payload = parseCalendarReminder(message);
+    if (!payload) return;
 
     for (const recipient of payload.recipients) {
       const content = `${payload.event.title} starts at ${new Date(payload.event.startAt).toLocaleString()}`;

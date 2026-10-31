@@ -1,3 +1,4 @@
+import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
 import { useId as useControlledPopupId } from "react";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useState, useRef, useMemo } from "react";
@@ -40,7 +41,7 @@ export default function SearchMessagesSection({
   const [searched, setSearched] = useState(false);
   const [query, setQuery] = useState("");
   const [senderId, setSenderId] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<ChatMessageResponse[]>([]);
   const [loading, setLoading] = useState(false);
 
   const { activeChat: activeConversation, activeChatType } = useActiveChat();
@@ -57,7 +58,7 @@ export default function SearchMessagesSection({
   const filteredMembers = useMemo(() => {
     const term = senderSearch.toLowerCase();
     return (
-      activeConversation?.members?.filter((m: any) => {
+      activeConversation?.members?.filter((m) => {
         const name =
           m.userId === currentUserId
             ? "you"
@@ -180,7 +181,7 @@ export default function SearchMessagesSection({
                   {!senderId && <Check size={14} className="shrink-0" />}
                 </Button>
 
-                {filteredMembers.map((m: any) => {
+                {filteredMembers.map((m) => {
                   const profile = memberProfiles?.[m.userId];
                   const avatarUrl = profile?.avatarUrl;
                   const isMe = m.userId === currentUserId;
@@ -235,7 +236,7 @@ export default function SearchMessagesSection({
           <LoadingState label="Searching..." layout="centered" className="p-4 text-center text-sm text-muted-foreground" />
         ) : results.length > 0 ? (
           <div className="flex flex-col gap-1">
-            {results.map((msg: any) => (
+            {results.map((msg) => (
               <SearchResultItem
                 key={msg.id}
                 message={msg}

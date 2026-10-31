@@ -6,7 +6,11 @@ import { UserDirectMessageSettingsClient } from './user-direct-message-settings.
 
 @Module({
   imports: [PrismaModule],
-  providers: [HttpJsonClient, UserDirectMessageSettingsClient, DirectMessagePermissionService],
+  providers: [
+    HttpJsonClient,
+    UserDirectMessageSettingsClient,
+    DirectMessagePermissionService,
+  ],
   exports: [DirectMessagePermissionService],
 })
 export class DirectMessagePermissionModule {}

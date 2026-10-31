@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
 import DocumentExplorer from "./document-explorer";
 import { DocumentsSidebar } from "./explorer/documents-sidebar";
 import { DocumentViewType, NavigationLabel } from "../types/documents.enums";
@@ -9,60 +10,33 @@ import { useSearchParams } from "next/navigation";
 import { DOCUMENT_QUERY_PARAMS } from "../types/documents.constants";
 import { documentsApi } from "../api/documents.api";
 
+type PathEntry = { id: string | null; name: string };
+
 function DocumentsView() {
-  const [activeView, setActiveView] = useState<DocumentViewType>(
-    DocumentViewType.MY_FILES,
-  );
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  const params = useSearchParams();
+  const view = params.get(DOCUMENT_QUERY_PARAMS.VIEW);
+  const initialView = [DocumentViewType.SHARED, DocumentViewType.STARRED, DocumentViewType.TRASH].find(candidate => candidate === view) ?? DocumentViewType.MY_FILES;
+  return <DocumentsWorkspace key={params.toString()} initialView={initialView} initialFolderId={params.get(DOCUMENT_QUERY_PARAMS.FOLDER_ID)} />;
+}
 
-  const [path, setPath] = useState<{ id: string | null; name: string }[]>([
-    { id: null, name: NavigationLabel.ROOT },
-  ]);
-
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const viewParam = searchParams.get(DOCUMENT_QUERY_PARAMS.VIEW);
-    const folderIdParam = searchParams.get(DOCUMENT_QUERY_PARAMS.FOLDER_ID);
-
-    let activeV = DocumentViewType.MY_FILES;
-    if (viewParam === DocumentViewType.SHARED) {
-      activeV = DocumentViewType.SHARED;
-    } else if (viewParam === DocumentViewType.STARRED) {
-      activeV = DocumentViewType.STARRED;
-    } else if (viewParam === DocumentViewType.TRASH) {
-      activeV = DocumentViewType.TRASH;
-    }
-
-    if (viewParam) {
-      setActiveView(activeV);
-    }
-
-    if (folderIdParam) {
-      setCurrentFolderId(folderIdParam);
-      const rootLabel =
-        activeV === DocumentViewType.STARRED
-          ? NavigationLabel.STARRED
-          : activeV === DocumentViewType.SHARED
-            ? NavigationLabel.SHARED
-            : activeV === DocumentViewType.TRASH
-              ? NavigationLabel.TRASH
-              : NavigationLabel.ROOT;
-
-      documentsApi
-        .getBreadcrumbs(folderIdParam)
-        .then((breadcrumbs) => {
-          setPath([{ id: null, name: rootLabel }, ...breadcrumbs]);
-        })
-        .catch((err) => {
-          console.error("Failed to load breadcrumbs", err);
-          setPath([
-            { id: null, name: rootLabel },
-            { id: folderIdParam, name: "Folder" },
-          ]);
-        });
-    }
-  }, [searchParams]);
+function DocumentsWorkspace({ initialView, initialFolderId }: { initialView: DocumentViewType; initialFolderId: string | null }) {
+  const [activeView, setActiveView] = useState(initialView);
+  const [currentFolderId, setCurrentFolderId] = useState(initialFolderId);
+  const rootLabel = initialView === DocumentViewType.STARRED ? NavigationLabel.STARRED : initialView === DocumentViewType.SHARED ? NavigationLabel.SHARED : initialView === DocumentViewType.TRASH ? NavigationLabel.TRASH : NavigationLabel.ROOT;
+  const [navigationPath, setNavigationPath] = useState<PathEntry[] | null>(null);
+  const breadcrumbs = useQuery({
+    queryKey: ["documents", "breadcrumbs", initialFolderId],
+    queryFn: () => documentsApi.getBreadcrumbs(initialFolderId!),
+    enabled: !!initialFolderId,
+  });
+  const initialPath: PathEntry[] = [
+    { id: null, name: rootLabel },
+    ...(initialFolderId ? breadcrumbs.data ?? [{ id: initialFolderId, name: "Folder" }] : []),
+  ];
+  const path = navigationPath ?? initialPath;
+  const setPath: React.Dispatch<React.SetStateAction<PathEntry[]>> = update => {
+    setNavigationPath(previous => typeof update === "function" ? update(previous ?? initialPath) : update);
+  };
 
   const handleNavigate = (
     folderId: string | null,

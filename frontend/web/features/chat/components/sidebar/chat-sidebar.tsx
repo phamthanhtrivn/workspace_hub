@@ -672,11 +672,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const canCreateChannelInActiveSpace =
     isActiveSpaceAdmin || canMembersCreateChannels(activeSpace);
 
-  useEffect(() => {
-    if (!canCreateChannelInActiveSpace && isCreateChannelModalOpen) {
-      setIsCreateChannelModalOpen(false);
-    }
-  }, [canCreateChannelInActiveSpace, isCreateChannelModalOpen]);
+  if (!canCreateChannelInActiveSpace && isCreateChannelModalOpen) setIsCreateChannelModalOpen(false);
 
   const handleChannelDeleted = useCallback(
     (channelId: string) => {

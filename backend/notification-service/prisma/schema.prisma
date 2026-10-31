@@ -66,3 +66,16 @@ model PushSubscription {
   @@index([userId])
   @@map("push_subscriptions")
 }
+
+model RejectedKafkaEvent {
+  id            String   @id @default(uuid())
+  topic         String
+  partition     Int
+  offset        String
+  payloadDigest String   @map("payload_digest")
+  reason        String
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([topic, partition, offset])
+  @@map("rejected_kafka_events")
+}

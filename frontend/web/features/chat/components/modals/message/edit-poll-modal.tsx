@@ -1,11 +1,12 @@
 "use client";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { useId as useInputFieldId } from "react";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ interface EditPollModalProps {
   }) => void | Promise<unknown>;
 }
 
-const EditPollModal: React.FC<EditPollModalProps> = ({
+const EditPollForm: React.FC<EditPollModalProps> = ({
   isOpen,
   singleChoiceBlocked = false,
   onClose,
@@ -43,26 +44,15 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
 }) => {
   const inputFieldId = useInputFieldId();
   const [pending, setPending] = useState(false);
-  const [title, setTitle] = useState("");
-  const [multipleChoice, setMultipleChoice] = useState(true);
-  const [allowAddOptions, setAllowAddOptions] = useState(true);
-  const [anonymous, setAnonymous] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [title, setTitle] = useState(poll?.title ?? "");
+  const [multipleChoice, setMultipleChoice] = useState(poll?.multipleChoice ?? true);
+  const [allowAddOptions, setAllowAddOptions] = useState(poll?.allowAddOptions ?? true);
+  const [anonymous, setAnonymous] = useState(poll?.anonymous ?? false);
+  const [isLocked, setIsLocked] = useState(poll?.isLocked ?? false);
+  const mounted = useHydrated();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
-  useEffect(() => {
-    if (isOpen && poll) {
-      setTitle(poll.title);
-      setMultipleChoice(poll.multipleChoice);
-      setAllowAddOptions(poll.allowAddOptions);
-      setAnonymous(poll.anonymous ?? false);
-      setIsLocked(poll.isLocked ?? false);
-    }
-  }, [isOpen, poll]);
+
 
   if (!isOpen || !poll) return null;
 
@@ -177,5 +167,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
     </div>}</DialogSurface>;
 };
 
-export default EditPollModal;
+export default function EditPollModal(props: EditPollModalProps) {
+  return props.isOpen && props.poll ? <EditPollForm key={JSON.stringify(props.poll)} {...props} /> : null;
+}
 

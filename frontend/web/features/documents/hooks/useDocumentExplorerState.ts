@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { ViewLayout, DocumentSortBy } from "../types/documents.types";
 import { DocumentViewType } from "../types/documents.enums";
 
@@ -29,10 +29,12 @@ export function useDocumentExplorerState({
   const [sortBy, setSortBy] = useState<DocumentSortBy>(DocumentSortBy.LATEST);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
+  const [selectionContext, setSelectionContext] = useState({ activeView, initialFolderId });
+  if (selectionContext.activeView !== activeView || selectionContext.initialFolderId !== initialFolderId) {
+    setSelectionContext({ activeView, initialFolderId });
     setSelectedItemId(null);
     setActiveMenuId(null);
-  }, [activeView, initialFolderId]);
+  }
 
   const handleNavigate = useCallback(
     (folderId: string | null, folderName?: string) => {

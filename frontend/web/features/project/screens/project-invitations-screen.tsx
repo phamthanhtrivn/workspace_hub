@@ -75,7 +75,7 @@ export default function ProjectInvitationsScreen({
             {invitation.expiresAt && (
               <p className="text-xs text-muted-foreground">
                 Expires on:{" "}
-                {new Date(invitation.expiresAt).toLocaleDateString(undefined, {
+                {new Date(invitation.expiresAt).toLocaleString(undefined, {
                   dateStyle: "medium",
                   timeStyle: "short",
                 })}

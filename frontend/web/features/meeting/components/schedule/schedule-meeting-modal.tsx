@@ -655,8 +655,8 @@ export function ScheduleMeetingModal({
                   }
                 />
                 <label className="flex items-center gap-3 rounded-md border p-3 text-sm">
-                  <input type="checkbox" checked={values.autoRecord}
-                    onChange={(event) => form.setValue("autoRecord", event.target.checked, { shouldDirty: true })} />
+                  <Checkbox checked={values.autoRecord}
+                    onCheckedChange={(checked) => form.setValue("autoRecord", checked, { shouldDirty: true })} />
                   Automatically record when the host joins
                 </label>
               </div>

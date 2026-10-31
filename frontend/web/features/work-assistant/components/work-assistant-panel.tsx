@@ -365,7 +365,7 @@ function Conversation({
             disabled={!!assistant.status || !assistant.history.isSuccess}
             onChange={(event) => setQuestion(event.target.value)}
             placeholder="Hỏi về công việc của bạn…"
-            className="max-h-32 min-h-16 flex-1 resize-y rounded-lg border bg-background p-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="max-h-32 min-h-16 flex-1 resize-y rounded-lg border bg-background p-2 text-sm"
             onKeyDown={(event) => {
               if (
                 event.key === "Enter" &&

@@ -1,10 +1,11 @@
 "use client";
 
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { IconButton } from "@/components/ui/icon-button";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 import { X, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,11 +37,8 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
   const [multipleChoice, setMultipleChoice] = useState(true);
   const [allowAddOptions, setAllowAddOptions] = useState(true);
   const [anonymous, setAnonymous] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (!isOpen) return null;
 

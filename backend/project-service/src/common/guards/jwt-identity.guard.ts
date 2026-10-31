@@ -3,11 +3,15 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
-} from '@nestjs/common';
-import { Request } from 'express';
-import { Reflector } from '@nestjs/core';
-import { isUUID } from 'class-validator';
-import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+} from "@nestjs/common";
+import { Request } from "express";
+import { Reflector } from "@nestjs/core";
+import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
+import { verifyAccessClaims } from "../auth/access-token";
+import {
+  applyIdentityHeaders,
+  clearIdentityHeaders,
+} from "../auth/identity-headers";
 
 export interface AuthenticatedRequest extends Request {
   authenticatedUserId?: string;
@@ -22,39 +26,19 @@ export class JwtIdentityGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
+    if (context.getType() !== "http") return true;
     if (isPublic) return true;
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const gatewayUserId =
-      request.header('x-user-id') ||
-      (request.headers['x-user-id'] as string | undefined);
-
-    if (gatewayUserId && isUUID(gatewayUserId)) {
-      request.authenticatedUserId = gatewayUserId;
-      return true;
-    }
-
-    // Fallback: extract sub from Authorization header payload if x-user-id header was not populated
-    const authHeader = request.header('authorization');
-    if (authHeader?.startsWith('Bearer ')) {
-      try {
-        const token = authHeader.substring(7);
-        const payloadBase64 = token.split('.')[1];
-        if (payloadBase64) {
-          const decoded = JSON.parse(
-            Buffer.from(payloadBase64, 'base64').toString(),
-          );
-          const userId = decoded.sub || decoded.id;
-          if (userId && isUUID(userId)) {
-            request.authenticatedUserId = userId;
-            return true;
-          }
-        }
-      } catch {
-        // Ignore fallback decode error
-      }
-    }
-
-    throw new UnauthorizedException('Missing or invalid authenticated user');
+    clearIdentityHeaders(request);
+    const authHeader = request.header("authorization");
+    const token = authHeader?.match(/^Bearer\s+([^\s]+)$/i)?.[1];
+    if (!token)
+      throw new UnauthorizedException("A valid access token is required");
+    const claims = verifyAccessClaims(token);
+    const userId = claims.sub;
+    request.authenticatedUserId = userId;
+    applyIdentityHeaders(request, claims);
+    return true;
   }
 }
