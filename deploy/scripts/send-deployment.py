@@ -15,8 +15,8 @@ from contextlib import contextmanager
 ROOT = Path(__file__).resolve().parents[2]
 ROLES = {'app', 'infra', 'realtime'}
 RUNTIME_FILES = (
-    'bootstrap-app-env.sh', 'common.sh', 'deploy-app.sh', 'health-check.sh',
-    'install-release.sh', 'migrate.sh', 'render-runtime.py', 'rollback.sh',
+    'common.sh', 'deploy-app.sh', 'health-check.sh',
+    'install-release.sh', 'render-runtime.py', 'rollback.sh',
     'requirements.txt',
     'catalog.py', 'release_state.py', 'release-app.py', 'release-host.py', 'verify-host-plan.py',
 )

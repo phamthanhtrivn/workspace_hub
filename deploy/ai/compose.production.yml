@@ -1,0 +1,121 @@
+name: workspacehub-ai
+x-logging: &bounded-logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+services:
+  notebook-qdrant:
+    image: qdrant/qdrant:v1.19.2@sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad
+    volumes: [notebook-qdrant:/qdrant/storage]
+    restart: unless-stopped
+  rag-worker:
+    image: ${RAG_IMAGE:?Set an immutable RAG_IMAGE}
+    # Only the worker's own credential and model settings; never gateway, LLM or DB secrets.
+    environment:
+      RAG_SERVICE_KEY: ${RAG_SERVICE_KEY:?Configure dedicated RAG credentials first}
+      RAG_SERVICE_KEY_PREVIOUS: ${RAG_SERVICE_KEY_PREVIOUS:-}
+      QDRANT_URL: ${QDRANT_URL:-http://notebook-qdrant:6333}
+      QDRANT_API_KEY: ${QDRANT_API_KEY:-}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-intfloat/multilingual-e5-small}
+      EMBEDDING_DEVICE: ${EMBEDDING_DEVICE:-cpu}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+      INDEX_PIPELINE_VERSION: ${INDEX_PIPELINE_VERSION:-notebook-v1}
+      VISUAL_ENABLED: ${VISUAL_ENABLED:-false}
+      OMP_NUM_THREADS: ${OMP_NUM_THREADS:-2}
+      TOKENIZERS_PARALLELISM: ${TOKENIZERS_PARALLELISM:-false}
+    volumes: [notebook-models:/models]
+    depends_on: [notebook-qdrant]
+    restart: unless-stopped
+    mem_limit: ${RAG_MEMORY_LIMIT:-2g}
+    logging: *bounded-logs
+    healthcheck:
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "import os,urllib.request; r=urllib.request.Request('http://127.0.0.1:8088/ready',headers={'x-internal-service-key':os.environ['RAG_SERVICE_KEY']}); urllib.request.urlopen(r,timeout=10).close()",
+        ]
+      interval: 30s
+      timeout: 12s
+      retries: 3
+      start_period: 180s
+  speech-worker:
+    profiles: [meeting-summary]
+    image: ${SPEECH_IMAGE:?Set an immutable SPEECH_IMAGE}
+    environment:
+      SPEECH_SERVICE_KEY: ${MEETING_STT_SERVICE_KEY:-}
+      STT_MODEL_PATH: /models/small
+      STT_CPU_THREADS: ${MEETING_STT_CPU_THREADS:-4}
+      HF_HUB_OFFLINE: "1"
+    expose: ["8090"]
+    restart: unless-stopped
+    mem_limit: 3g
+    logging: *bounded-logs
+    healthcheck:
+      test:
+        [
+          CMD,
+          python,
+          -c,
+          "import os,urllib.request; r=urllib.request.Request('http://127.0.0.1:8090/ready',headers={'x-internal-service-key':os.environ['SPEECH_SERVICE_KEY']}); urllib.request.urlopen(r,timeout=5).close()",
+        ]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 120s
+  migrate:
+    image: ${AI_IMAGE:?Set an immutable AI_IMAGE}
+    env_file: .env.production
+    command: [node, dist/migrate.js]
+    networks: [default, workspace]
+    restart: "no"
+  notebook-api:
+    image: ${AI_IMAGE:?Set an immutable AI_IMAGE}
+    env_file: .env.production
+    environment:
+      LLM_API_KEY: ${LLM_API_KEY:?Configure production LLM_API_KEY before starting AI}
+    stop_grace_period: 4m
+    expose: ["8087"]
+    networks: [default, workspace]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      rag-worker: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *bounded-logs
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:8087/ready',{signal:AbortSignal.timeout(8000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+  notebook-jobs:
+    image: ${AI_IMAGE:?Set an immutable AI_IMAGE}
+    env_file: .env.production
+    environment:
+      LLM_API_KEY: ${LLM_API_KEY:?Configure production LLM_API_KEY before starting AI}
+    command: [node, dist/worker.js]
+    # Let active model calls checkpoint and deliver before Docker stops the worker.
+    stop_grace_period: 4m
+    networks: [default, workspace]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      rag-worker: { condition: service_healthy }
+    restart: unless-stopped
+    logging: *bounded-logs
+volumes:
+  notebook-qdrant:
+  notebook-models:
+networks:
+  workspace:
+    name: ${AI_APP_NETWORK:-workspacehub-app_default}
+    external: true

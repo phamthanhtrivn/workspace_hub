@@ -36,6 +36,28 @@ Kafka to the published host ports. Service URLs use `http://localhost:<port>`.
 Use the same JWT secret and internal service credential across services that
 share them. Do not use container DNS names in host application configuration.
 
+### Authentication and service credentials
+
+Environment examples are not stored in the repo. Keep private env files and
+configure the required names below; obtain secret values separately.
+
+| Variable | Where it belongs |
+| --- | --- |
+| `JWT_SECRET_KEY`, `JWT_ISSUER` | User and services that verify access tokens. Use the same signing secret and issuer; Kong receives `JWT_SECRET_KEY`. AI trusts Kong proof instead. |
+| `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` | Configure the actual browser origin for HTTP/socket access; Kong uses `FRONTEND_URL`. |
+| `INTERNAL_SERVICE_KEY` | Existing internal callers/receivers that use the legacy shared credential. |
+| `CALENDAR_DOCUMENT_SERVICE_KEY` | Calendar and Document, at least 32 random characters; optional `CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS` on Document during rotation. |
+| `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY`, `RAG_SERVICE_KEY` | Dedicated AI links to Kong, Document and RAG; each purpose uses a different key. Document accepts `AI_DOCUMENT_SERVICE_KEY_PREVIOUS` during rotation. See [AI configuration](../deploy/ai/README.md#các-nhóm-biến-cấu-hình-ai). |
+| `WORK_ASSISTANT_SERVICE_KEY` | AI, Project and Calendar must match. |
+| `AI_COMMUNICATION_SERVICE_KEY`, `AI_SERVICE_URL` | AI/Communication share the key; Communication calls AI at `AI_SERVICE_URL`. Set matching `CONVERSATION_AI_ENABLED` and/or `MEETING_SUMMARY_ENABLED` only when configured. |
+| `COMMUNICATION_SERVICE_URL` | Calendar's conference integration and other internal callers; use the host URL when running locally. |
+
+The existing `node backend/scripts/configure-ai-security.mjs` command provisions
+missing local service keys and rejects mismatches. It writes the existing env
+files; keep their provider/database credentials and restart affected processes
+after an intentional configuration change. Recording/media variables are listed
+in the [LiveKit guide](../backend/livekit/README.md#recording-environment).
+
 ## Schema preparation
 
 Run schema changes explicitly after reviewing the target database. This cleanup
@@ -75,6 +97,15 @@ variables through your IDE run configuration or terminal environment before Mave
 Notebook AI is a Node API/jobs service with separate Python workers; follow
 [Notebook AI setup](../deploy/ai/README.md). Install each Python worker from its
 `requirements.txt`. Preserve existing `.env` files and runtime environments.
+
+AI shares `wh_postgres` (PostgreSQL 15) and `wh_redis`: dedicated database
+`notebook_db`, restricted login `notebook`, Redis DB 3 and prefix `wh-notebook`.
+Use the idempotent PostgreSQL 15 bootstrap command in the AI guide before its
+migrations, including on an existing infrastructure volume. Docker uses
+`postgres:5432` / `redis:6379/3` on `wh_network`; host Node uses published ports.
+Keep the AI database password separate from the infrastructure admin password.
+The shared Redis uses AOF/everysec/noeviction; enable AOF online and wait for its
+rewrite before recreating a pre-existing Redis that has only RDB persistence.
 
 Check each service's readiness directly, then through Kong at
 `http://localhost:8000/health/<service>` (for example `/health/document`). Open

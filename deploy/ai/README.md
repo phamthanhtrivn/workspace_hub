@@ -9,37 +9,60 @@ Cấu trúc mã Node.js theo feature module và ranh giới hạ tầng/jobs: [k
 - NestJS API `backend/ai-service`: danh tính do Kong xác thực/chuyển tiếp, notebook CRUD, quyền nguồn, SSE chat, notes, summary cache.
 - BullMQ trong process jobs: hai queue/consumer riêng cho index+cleanup và tóm tắt có checkpoint; không đưa chat vào hàng đợi parse.
 - `backend/rag-worker`: pypdf cho PDF văn bản, Docling cho DOCX, LlamaIndex SentenceSplitter, embedding đa ngôn ngữ, Qdrant dense + lexical fusion. Qdrant chỉ tìm trong notebook và các source ID do API xác minh.
-- PostgreSQL riêng `notebook_db`, schema `notebook_ai`. Không đụng `ai_db`/volume cũ. Redis riêng AOF/noeviction. File gốc vẫn thuộc Document Service/S3; xóa notebook không xóa file gốc.
+- Dùng chung PostgreSQL 15 (`wh_postgres`) và Redis (`wh_redis`). AI sở hữu database `notebook_db`, schema `notebook_ai`, role `notebook` không có quyền quản trị; không đụng `ai_db`. Redis dùng DB 3 và prefix `wh-notebook`, AOF/everysec/noeviction. DB 3 chỉ tách namespace, vẫn chia sẻ RAM và persistence. File gốc vẫn thuộc Document Service/S3; xóa notebook không xóa file gốc.
 
 ## Khởi động local
 
 1. Bật Docker Desktop, khởi động hạ tầng WorkSpaceHub hiện có để có network `wh_network`. Document Service và User Service phải đang chạy. Dùng bộ nhớ Docker đủ cho parser và embedding; chưa có số đo RAM thực tế để cam kết cấu hình tối thiểu. Image Python và lần tải model đầu có thể tốn vài phút, khác với thời gian trả lời sau khi index.
-2. Sao chép `.env.example` trong thư mục này thành `.env` (file đã được ignore). Không dùng nguyên `.env` Python cũ.
+2. Giữ `.env` đã cấu hình trong thư mục này. Với máy mới, tạo private `.env` theo các nhóm biến bên dưới; file này được Git ignore. Không ghi đè env đang dùng hoặc dùng nguyên env Python cũ.
 3. Điền các biến:
-   - `POSTGRES_PASSWORD`: mật khẩu riêng cho DB notebook. Thay `CHANGE_ME` trong `DATABASE_URL` bằng cùng mật khẩu, URL-encode nếu chứa ký tự đặc biệt.
+   - `NOTEBOOK_POSTGRES_USER=notebook`, `NOTEBOOK_POSTGRES_PASSWORD`: mật khẩu AI riêng ≥32 ký tự. `DATABASE_URL` phải dùng đúng role và mật khẩu đó, URL-encode phần mật khẩu. Docker dùng `postgres:5432/notebook_db`, Redis `redis://redis:6379/3`; Node trên host dùng cổng publish trong `backend/docker/.env` (ví dụ `localhost:5433`) và Redis `localhost:6379/3`. Không đặt mật khẩu PostgreSQL quản trị trong env AI.
    - AI **không cần `JWT_SECRET_KEY` hay `JWT_ISSUER`**. User Service phát token, Kong kiểm tra JWT và plugin `jwt-user-context` xóa header danh tính từ client rồi gán lại `x-user-id`, `x-user-email`, `x-user-role`. AI chỉ chấp nhận danh tính hợp lệ từ gateway, không tự decode token làm fallback.
    - Dùng khóa **khác nhau cho từng luồng**, ≥32 ký tự, không còn fallback `local-internal-key` kể cả local. `AI_GATEWAY_KEY` khớp giữa Kong/AI; `AI_DOCUMENT_SERVICE_KEY` khớp giữa AI/Document Service; `RAG_SERVICE_KEY` khớp giữa AI/RAG worker. `CALENDAR_DOCUMENT_SERVICE_KEY` khớp giữa Calendar/Document Service. Không thay `INTERNAL_SERVICE_KEY` legacy của các luồng khác.
-   - Sau `npm.cmd ci` trong `backend/ai-service`, từ **gốc repo** chạy `node backend/scripts/configure-ai-security.mjs --apply`, rồi `node backend/scripts/configure-ai-security.mjs --check`. Script yêu cầu 5 file `.env` hiện hữu: AI, `deploy/ai`, Kong, Document, Calendar; chỉ thêm/đồng bộ khóa mới còn thiếu, giữ nguyên khóa/LLM/DB cũ, từ chối nếu khóa đang có không khớp, không in giá trị. Không copy `.env.example` đè `.env` đã cấu hình sau bước này. File `security.env.example` trong từng service mô tả khóa cần nhận. Production provision bằng secret manager hoặc env vận hành, không tự sao chép khóa local lên EC2.
+   - Sau `npm.cmd ci` trong `backend/ai-service`, từ **gốc repo** chạy `node backend/scripts/configure-ai-security.mjs`. Script cần env AI host, `deploy/ai`, Kong, Document, RAG, Communication, Project và Calendar; bổ sung khóa còn thiếu, từ chối khóa đang có bị lệch, không in giá trị. Lệnh này có ghi file; không có chế độ `--check`. Kiểm tra cấu hình hạ tầng bằng lệnh bên dưới. Không copy file mẫu đè env đã cấu hình. Production cấp khóa riêng, không sao chép khóa local.
    - `BIND_HOST=127.0.0.1` khi chạy API trên host; cấu hình Docker dùng `0.0.0.0` bên trong container nhưng chỉ publish `127.0.0.1:8087`. AI kiểm tra proof riêng từ Kong **trước** khi nhận `x-user-*`, nên gọi thẳng với header danh tính giả trả 401. Vẫn không mở trực tiếp service ra mạng không tin cậy.
    - `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`: endpoint tương thích OpenAI chat/completions có hỗ trợ SSE. VIBI chỉ là cấu hình mẫu, chưa xác nhận chất lượng/độ trễ/quota của tài khoản.
    - `AI_ENABLED=true` sau khi cấu hình đầy đủ. Cờ mặc định `false`; guard sẽ từ chối các API nghiệp vụ khi tắt.
    - `DOCUMENT_SERVICE_URL=http://host.docker.internal:8085` nếu service chạy host. Nếu chạy cùng Docker network, dùng `http://document-service:8085`.
 4. Rebuild/restart Document Service và Calendar sau khi đồng bộ env. `/internal/notebook-documents/resolve` chỉ nhận khóa AI, body `userId`, `userEmail`, `refs`, `download`; `/internal/document-access/resolve` chỉ nhận khóa Calendar, body `userId`, `userEmail`, `documentIds`. Các endpoint này không được mở qua Kong. Document Service vẫn kiểm tra quyền từng file; Calendar dùng nhóm tối đa 50 ID, không cache kết quả quyền, không retry tự động. Thiếu/sai khóa hoặc dependency lỗi trả lỗi an toàn, không chuyển sang gọi external API bằng header giả. Không đưa khóa lên frontend.
-5. Từ `deploy/ai`:
+5. Từ **gốc repo**, bootstrap bằng PostgreSQL client 15 rồi khởi động AI:
 
 ```powershell
-docker compose --env-file .env config --quiet
-docker compose --env-file .env up -d --build
-docker compose --env-file .env ps
-docker compose --env-file .env logs --tail 50 notebook-api notebook-jobs rag-worker
+node backend/scripts/check-ai-infrastructure.mjs --env deploy/ai/.env
+docker compose --env-file backend/docker/.env --env-file deploy/ai/.env -f deploy/ai/bootstrap.compose.yml run --rm notebook-bootstrap
+docker compose --env-file deploy/ai/.env -f deploy/ai/compose.yml config --quiet
+docker compose --env-file deploy/ai/.env -f deploy/ai/compose.yml up -d --build
+docker compose --env-file deploy/ai/.env -f deploy/ai/compose.yml ps
 ```
 
-Migration chạy một lần trước API/worker, chỉ tạo schema/bảng/index mới. Mật khẩu DB đã khởi tạo được lưu trong volume: đổi biến env sau đó không tự đổi mật khẩu tài khoản PostgreSQL.
+Bootstrap tạo role/database theo cách idempotent cho cả volume mới và đang có; từ chối role có quyền quản trị, membership hoặc database có owner khác. Không tự xoay mật khẩu role đã tồn tại; credential sai khiến bước kiểm tra kết nối thất bại. Admin credential chỉ có trong container bootstrap dùng xong xóa. Migration AI chạy trước API/jobs trên database riêng; không restore trực tiếp PostgreSQL 17 xuống 15. Không tự tạo lại database đã có dữ liệu.
+
+Redis chung cần `appendonly yes`, `appendfsync everysec`, `maxmemory-policy noeviction`. Với volume cũ chưa có AOF, backup RDB và bật AOF online, chờ rewrite/write thành công trước khi recreate riêng Redis. Không chạy FLUSHDB/FLUSHALL; giữ nguyên giới hạn RAM. Recreate Redis trước khi bật AOF online có thể làm mất dữ liệu chưa có snapshot.
 
 6. Rebuild/restart Kong dùng template vừa cập nhật. Cả hai template đều phải nạp **hai** plugin `jwt` và `jwt-user-context` cho `notebook-ai-routes`; thiếu plugin chuyển tiếp danh tính thì AI trả 401. `kong.host.yml` trỏ `host.docker.internal:8087`; `kong.docker.yml` trỏ `notebook-api:8087` qua `wh_network`. Route SSE không buffer và **không retry** ở gateway. Khi chạy Node trên host Linux, cấu hình địa chỉ bind riêng mà gateway truy cập được và firewall chỉ cho gateway; không mở `0.0.0.0` công khai. Không chạy `docker compose down -v` trên hạ tầng cũ.
-7. Chạy frontend như hiện tại, mở `http://localhost:3000/ai`. `NEXT_PUBLIC_API_URL` vẫn trỏ Kong. API mới có `/health` và `/ready` tại `http://localhost:8087`; RAG worker/Redis/Qdrant/DB không publish port host.
+7. Chạy frontend như hiện tại, mở `http://localhost:3000/ai`. `NEXT_PUBLIC_API_URL` vẫn trỏ Kong. API có `/health` và `/ready` tại `http://localhost:8087`; RAG/Qdrant/speech không publish port host. PostgreSQL/Redis chung giữ các cổng localhost của hạ tầng chính.
 
-`.env.example` của `backend/ai-service` phục vụ cách chạy Node trên host (thay URL DB/Redis bằng địa chỉ thực tương ứng); compose dùng `.env` trong **thư mục này**, không tự đọc file env đang mở trong IDE.
+Node trên host đọc `backend/ai-service/.env`; Compose đọc `deploy/ai/.env`, không tự đọc file env đang mở trong IDE. Đồng bộ credential giữa hai file, nhưng giữ URL/bind phù hợp với nơi chạy. API trên host bind `127.0.0.1`; trong container bind `0.0.0.0`, chỉ publish cổng localhost.
+
+## Các nhóm biến cấu hình AI
+
+Các tên dưới đây thay cho file env mẫu; secret được cấp riêng và chỉ lưu trong private env. Biến tùy chọn có thể bỏ để dùng mặc định trong mã nguồn, trừ khi cần bật tính năng tương ứng.
+
+| Nhóm | Biến và cách dùng |
+| --- | --- |
+| Tiến trình | `AI_ENABLED`, `NODE_ENV`, `BIND_HOST`, `PORT`; `AI_SHUTDOWN_TIMEOUT_MS`, `CHAT_CANCEL_POLL_MS` điều chỉnh shutdown/poll. |
+| Database/queue | `NOTEBOOK_POSTGRES_USER`, `NOTEBOOK_POSTGRES_PASSWORD`, `DATABASE_URL`, `REDIS_URL`; role `notebook`, database `notebook_db`, Redis DB 3. |
+| Proof gateway | `AI_GATEWAY_KEY` khớp Kong; `AI_GATEWAY_KEY_PREVIOUS` chỉ dùng trong cửa sổ xoay khóa. |
+| Document/RAG | `AI_DOCUMENT_SERVICE_KEY`, `DOCUMENT_SERVICE_URL`; `RAG_SERVICE_KEY`, `RAG_SERVICE_KEY_PREVIOUS`, `RAG_WORKER_URL`. Khóa khớp receiver, URL dùng DNS Docker hoặc localhost tương ứng. |
+| Provider | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`; ngân sách qua `LLM_TIMEOUT_MS`, `LLM_MAX_TOKENS`, `LLM_REQUESTS_PER_MINUTE`, `LLM_TOKENS_PER_MINUTE`, `LLM_REQUESTS_PER_DAY`. `FRONTEND_URL` là origin frontend. |
+| Retrieval | `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DEVICE`, `EMBEDDING_BASE_URL`, `EMBEDDING_API_KEY`, `INDEX_PIPELINE_VERSION`. Credential embedding chỉ cần khi provider yêu cầu. |
+| Tài nguyên RAG | `OMP_NUM_THREADS`, `TOKENIZERS_PARALLELISM`, `RAG_MEMORY_LIMIT`; đặt theo RAM/CPU thực tế. |
+| OCR/Vision | `VISUAL_ENABLED`, `VISION_MAX_TOKENS`; chỉ bật sau khi chấp thuận gửi hình tới provider theo phần OCR bên dưới. |
+| Bot chat | `CONVERSATION_AI_ENABLED`, `AI_COMMUNICATION_SERVICE_KEY`, `COMMUNICATION_SERVICE_URL`, `CONVERSATION_AI_CONCURRENCY`, `CONVERSATION_AI_QUOTA_WAIT_MS`; khóa khớp Communication. |
+| Trợ lý công việc | `WORK_ASSISTANT_ENABLED`, `WORK_ASSISTANT_SERVICE_KEY`, `WORK_ASSISTANT_PROJECT_URL`, `WORK_ASSISTANT_CALENDAR_URL`; cùng khóa ở Project/Calendar. |
+| Tóm tắt họp | `MEETING_SUMMARY_ENABLED`, `MEETING_STT_SERVICE_KEY`, `MEETING_STT_URL`, `MEETING_STT_CONCURRENCY`, `MEETING_STT_TIMEOUT_MS`, `MEETING_FFMPEG_PATH`, `MEETING_SUMMARY_MAX_SECONDS`, `MEETING_SUMMARY_MAX_BYTES`, `MEETING_MEDIA_HOSTS`. Khi chạy speech trong Docker, bật `COMPOSE_PROFILES=meeting-summary`; `MEETING_STT_CPU_THREADS` điều chỉnh CPU. |
+| Network/bootstrap | `AI_APP_NETWORK`; production thêm `NOTEBOOK_ADMIN_HOST`, `NOTEBOOK_ADMIN_PORT`. Admin user/password chỉ được nạp riêng cho bootstrap, không đưa vào runtime AI. |
+| Image production | `AI_IMAGE`, `RAG_IMAGE`, `SPEECH_IMAGE` phải có digest hoặc SHA tag; thiếu image/provider credential sẽ không qua preflight. |
 
 ## Embedding và parser
 
@@ -124,9 +147,29 @@ Preflight chỉ kiểm tra cấu trúc/kích thước; OCR/Vision chạy nền. 
 Sau khi đổi flag, build/restart RAG worker và AI API/jobs, chạy migration hiện có. Nguồn READY cũ vẫn đọc được; dùng **Lập lại chỉ mục** để bổ sung OCR/hình. Các bản tóm tắt đã tạo là checkpoint cũ, cần tạo lại sau khi thêm nội dung hình.
 
 
+## Production: stack AI riêng trên APP
+
+`compose.production.yml` dùng image có digest hoặc tag `sha-<40 hex>`, không build trên server và không tạo PostgreSQL/Redis. Migration/API/jobs tham gia network external `workspacehub-app_default`; RAG/Qdrant/speech ở mạng riêng AI. Database và Redis trỏ private IP của INFRA; không publish cổng AI. Catalog và pipeline APP hiện có không triển khai AI.
+
+Quản lý `.env.production` riêng theo các nhóm biến trên, với `NODE_ENV=production`, URL service trên APP và database/Redis ở INFRA. Đồng bộ `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY`, `AI_COMMUNICATION_SERVICE_KEY`, `WORK_ASSISTANT_SERVICE_KEY` với env APP, mật khẩu `NOTEBOOK_POSTGRES_PASSWORD` với env INFRA dùng cho bootstrap. Cấp riêng khóa RAG/speech. Không dùng lại khóa local, không đổi PostgreSQL admin credential. `NOTEBOOK_ADMIN_HOST` là private IP INFRA; bootstrap chạy trên network APP và dùng env admin chỉ cho bước bootstrap.
+
+Chuẩn bị image ở máy build/registry và điền `AI_IMAGE`, `RAG_IMAGE`, `SPEECH_IMAGE` bằng digest hoặc tag SHA. Điền LLM account production riêng; không sao chép tài khoản local. Env được chuẩn bị nhưng chưa có image/key không phải cấu hình sẵn sàng deploy. Validator và Compose chặn khởi động khi thiếu các đầu vào này.
+
+Các lệnh dưới đây dành cho operator **sau khi** được duyệt triển khai; không tự chạy khi chỉ chuẩn bị cấu hình. Cần `npm ci` trong AI service để dùng validator, hoặc chạy kiểm tra tại máy build trước khi chuyển env an toàn sang APP:
+
+```powershell
+node backend/scripts/check-ai-infrastructure.mjs --env deploy/ai/.env.production --production
+docker compose --env-file deploy/prod/app/.env --env-file deploy/ai/.env.production -f deploy/ai/bootstrap.compose.yml run --rm notebook-bootstrap
+docker compose --env-file deploy/ai/.env.production -f deploy/ai/compose.production.yml config --quiet
+docker compose --env-file deploy/ai/.env.production -f deploy/ai/compose.production.yml pull
+docker compose --env-file deploy/ai/.env.production -f deploy/ai/compose.production.yml up -d
+```
+
+Network APP phải tồn tại, INFRA chỉ cho phép truy cập private từ APP. Tạo `notebook_db` trước migration; không nâng PostgreSQL hoặc sửa schema service khác. Giữ các flag tùy chọn tắt cho tới khi đã đồng bộ caller/receiver và xác minh provider. `MEETING_SUMMARY_ENABLED=true` cần `COMPOSE_PROFILES=meeting-summary`, model speech trong image và cùng khóa speech ở API/jobs/worker.
+
 ## Rollback an toàn
 
-Tắt `AI_ENABLED`, restart API/jobs hoặc `docker compose stop notebook-api notebook-jobs rag-worker`. Frontend/Document Service ngoài AI tiếp tục hoạt động. Giữ nguyên các volume để bảo toàn notebook/checkpoint; không drop database/collection và không xóa file Document Service khi rollback.
+Tắt `AI_ENABLED`, restart API/jobs hoặc dừng chúng bằng Compose với đúng file env. Giữ database `notebook_db` trên PostgreSQL chung, Redis DB 3, Qdrant và model cache. Sau khi đã có dữ liệu mới, không tự đổi URL về PostgreSQL/Redis AI cũ: phải backup, đối chiếu và có phương án chuyển đầy đủ notebook/checkpoint/queue. Không drop database/collection, FLUSH Redis hoặc xóa file Document Service khi rollback.
 
 Không đưa `.env`, key hoặc presigned URL vào Git/log/chat. Các key đã từng dán vào hội thoại cần được thu hồi và cấp mới trước khi sử dụng.
 
