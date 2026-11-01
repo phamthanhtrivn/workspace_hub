@@ -1,6 +1,5 @@
 "use client";
 
-import { Pause, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Carousel,
@@ -15,10 +14,7 @@ import { useChatWelcomeCarousel } from "../../hooks/use-chat-welcome-carousel";
 import { ChatWelcomeIllustration } from "./chat-welcome-illustration";
 
 export default function ChatWelcomeCarousel() {
-  const { api, setApi, selected, paused, setPaused, reducedMotion, carouselRef, plugins } = useChatWelcomeCarousel();
-  const playbackLabel = reducedMotion
-    ? "Automatic slides are off for reduced motion"
-    : paused ? "Start automatic slides" : "Pause automatic slides";
+  const { api, setApi, selected, reducedMotion, carouselRef, plugins } = useChatWelcomeCarousel();
 
   return (
     <div className="flex min-h-0 flex-1 overflow-y-auto bg-card px-5 py-8 @min-[1060px]/messages:px-10">
@@ -30,7 +26,7 @@ export default function ChatWelcomeCarousel() {
         aria-label="Get started with WorkspaceHub Messages"
         className="m-auto w-full max-w-xl"
       >
-        <CarouselContent aria-live={paused || reducedMotion ? "polite" : "off"} aria-atomic="true">
+        <CarouselContent aria-live={reducedMotion ? "polite" : "off"} aria-atomic="true">
           {CHAT_WELCOME_SLIDES.map((slide, index) => (
             <CarouselItem key={slide.id} aria-label={`${index + 1} of ${CHAT_WELCOME_SLIDES.length}`} aria-hidden={selected !== index}>
               <ChatWelcomeIllustration slide={slide.id} />
@@ -71,19 +67,6 @@ export default function ChatWelcomeCarousel() {
             ))}
           </div>
           <CarouselNext variant="ghost" className="static size-9 translate-y-0 rounded-full text-muted-foreground" />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="ml-2 rounded-full text-muted-foreground"
-            aria-label={playbackLabel}
-            title={playbackLabel}
-            aria-pressed={paused || reducedMotion}
-            disabled={!api || reducedMotion}
-            onClick={() => setPaused((current) => !current)}
-          >
-            {paused || reducedMotion ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
-          </Button>
         </div>
       </Carousel>
     </div>

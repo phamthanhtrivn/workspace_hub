@@ -1,35 +1,27 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { getPageTitle, SITE_NAME } from "@/lib/page-metadata";
-import type { PomodoroCompletionStatus, PomodoroMode, PomodoroStatus } from "../types/pomodoro";
+import { setPomodoroTitlePrefix } from "@/lib/document-title";
+import type { PomodoroCompletionStatus, PomodoroStatus } from "../types/pomodoro";
 import { POMODORO_SESSION_COPY } from "../constants/pomodoro-session";
 
-const MODE_TITLES: Record<PomodoroMode, string> = {
-  FOCUS: "🎯 Focus", SHORT_BREAK: "☕ Short Break", LONG_BREAK: "🌴 Long Break",
-};
-
-export function usePomodoroDocumentTitle(status: PomodoroStatus, mode: PomodoroMode, timeLeft: number, completionStatus: PomodoroCompletionStatus = "idle") {
-  const pathname = usePathname();
-
+export function usePomodoroDocumentTitle(status: PomodoroStatus, timeLeft: number, completionStatus: PomodoroCompletionStatus = "idle") {
   useEffect(() => {
     if (status === "RUNNING" && timeLeft === 0) {
-      document.title = `${completionStatus === "error" ? POMODORO_SESSION_COPY.waiting : POMODORO_SESSION_COPY.saving} - ${SITE_NAME}`;
+      setPomodoroTitlePrefix(`${completionStatus === "error" ? POMODORO_SESSION_COPY.waiting : POMODORO_SESSION_COPY.saving} ·`);
       return;
     }
     if (status !== "RUNNING") {
-      document.title = getPageTitle(pathname);
+      setPomodoroTitlePrefix(null);
       return;
     }
     const remaining = Math.max(0, timeLeft);
     const minutes = Math.floor(remaining / 60).toString().padStart(2, "0");
     const seconds = (remaining % 60).toString().padStart(2, "0");
-    document.title = `(${minutes}:${seconds}) ${MODE_TITLES[mode]} - ${SITE_NAME}`;
-  }, [pathname, status, mode, timeLeft, completionStatus]);
+    setPomodoroTitlePrefix(`(${minutes}:${seconds})`);
+  }, [status, timeLeft, completionStatus]);
 
   useEffect(() => () => {
-    // The provider can unmount after navigation; restore the destination, not its opener.
-    document.title = getPageTitle(window.location.pathname);
+    setPomodoroTitlePrefix(null);
   }, []);
 }

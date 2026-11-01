@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isRecoverableApiError } from "@/lib/api-error-policy";
 import { DEFAULT_POMODORO_CONFIG, getPomodoroConfig, savePomodoroConfig } from "../api/pomodoro-server.api";
 import { POMODORO_CONFIG_RETRY_INTERVAL_MS, POMODORO_CONFIG_STALE_TIME_MS } from "../constants/pomodoro-settings";
 import type { PomodoroConfig } from "../types/pomodoro";
@@ -68,7 +69,8 @@ export function usePomodoroConfigState(userId: string | null) {
     }
     const retry = () => {
       sync.retry();
-      if (sync.getStatus() === "idle" && queryClient.getQueryState(queryKey)?.status === "error") {
+      const state = queryClient.getQueryState(queryKey);
+      if (sync.getStatus() === "idle" && state?.status === "error" && isRecoverableApiError(state.error)) {
         void queryClient.fetchQuery({ queryKey, queryFn: ({ signal }) => loadServerConfig(signal) }).catch(() => {});
       }
     };
@@ -89,6 +91,13 @@ export function usePomodoroConfigState(userId: string | null) {
     return sync.submit(config);
   }, [queryClient, queryKey, sync, userId]);
 
+  const retryConfig = useCallback(() => {
+    sync.retry(true);
+    if (queryClient.getQueryState(queryKey)?.status === "error") {
+      void queryClient.fetchQuery({ queryKey, queryFn: ({ signal }) => loadServerConfig(signal) }).catch(() => {});
+    }
+  }, [loadServerConfig, queryClient, queryKey, sync]);
+
   return {
     config: query.data ?? DEFAULT_POMODORO_CONFIG,
     isReady: Boolean(userId) && !query.isPending,
@@ -96,5 +105,6 @@ export function usePomodoroConfigState(userId: string | null) {
     syncStatus,
     saveConfig,
     ensureConfigLoaded,
+    retryConfig,
   };
 }

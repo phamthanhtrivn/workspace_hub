@@ -1,4 +1,4 @@
-/** Public, generic copy only: this module is also used by the Pomodoro title. */
+/** Public, generic copy shared by server metadata and the browser title manager. */
 export const SITE_NAME = "WorkspaceHub";
 export const HOME_TITLE = "WorkspaceHub — Projects, Tasks & Team Collaboration";
 
@@ -68,8 +68,12 @@ export const PAGE_METADATA = {
     description: "Open a document shared through WorkspaceHub using the access granted by its owner.",
   },
   "/ai": {
-    title: "AI Assistant — Coming Soon",
-    description: "The WorkspaceHub AI Assistant is coming soon. Continue working with your existing workspace tools.",
+    title: "Notebook AI",
+    description: "Organize research notebooks, add sources, ask questions grounded in your documents and save notes in WorkspaceHub.",
+  },
+  "/ai/notebooks/[id]": {
+    title: "Notebook AI",
+    description: "Work with notebook sources, explore cited answers and save research notes in your WorkspaceHub notebook.",
   },
 } as const;
 
@@ -82,6 +86,7 @@ export function getPageTitle(pathname: string): string {
   else if (/^\/projects\/[^/]+$/.test(path)) page = "/projects/[id]";
   else if (/^\/meetings\/[^/]+$/.test(path)) page = "/meetings/[joinToken]";
   else if (/^\/documents\/shared\/[^/]+$/.test(path)) page = "/documents/shared/[id]";
+  else if (/^\/ai\/notebooks\/[^/]+$/.test(path)) page = "/ai/notebooks/[id]";
 
   if (!page) return SITE_NAME;
   return page === "/" ? HOME_TITLE : `${PAGE_METADATA[page].title} | ${SITE_NAME}`;

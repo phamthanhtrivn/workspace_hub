@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
 import { POMODORO_AUDIO_MESSAGES } from "../constants/pomodoro-audio";
 import { LoadingState } from "@/components/ui/loading-state";
+import { PomodoroSyncStatus } from "./pomodoro-sync-status";
 
 export function PomodoroView() {
   const userId = useAppSelector((state) => state.auth.userId);
@@ -28,7 +29,9 @@ export function PomodoroView() {
 function UserPomodoroView({ userId }: { userId: string }) {
   const {
     isReady,
-    loadError,
+    syncStatus,
+    retrySync,
+    configLoadError,
     sessionRevision,
     completionStatus,
     retryCompletion,
@@ -165,11 +168,7 @@ function UserPomodoroView({ userId }: { userId: string }) {
             <LoadingState label="Loading Pomodoro..." className="text-xs text-warning-content" />
           )}
           {isReady && busy && <LoadingState label={copy.savingAction} className="text-xs" />}
-          {isReady && loadError && (
-            <p role="status" className="text-xs text-warning-content">
-              Using local data. Sync will resume automatically when Calendar is available again.
-            </p>
-          )}
+          {isReady && <PomodoroSyncStatus status={syncStatus} settingsPending={configLoadError} onRetry={retrySync} />}
           {isReady && status === "RUNNING" && timeLeft === 0 && (
             <div className="text-center text-xs text-muted-foreground">
               <p>{copy.pendingHelp}</p>

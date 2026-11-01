@@ -1,5 +1,6 @@
 import type { PomodoroAmbientPreferences } from "../types/ambient";
 import type { AmbientPreferencesSyncStatus } from "../types/pomodoro-preferences";
+import { isRecoverableApiError } from "@/lib/api-error-policy";
 
 // One request at a time; a queued snapshot replaces older queued changes.
 export function createAmbientPreferencesSync(
@@ -14,6 +15,7 @@ export function createAmbientPreferencesSync(
   let timer: ReturnType<typeof setTimeout> | undefined;
   let requestController: AbortController | undefined;
   let status: AmbientPreferencesSyncStatus = "idle";
+  let retryable = true;
   const listeners = new Set<() => void>();
 
   function setStatus(next: AmbientPreferencesSyncStatus) {
@@ -40,7 +42,8 @@ export function createAmbientPreferencesSync(
         onSaved(saved);
         setStatus(queued ? "saving" : "idle");
       }
-    } catch {
+    } catch (error) {
+      retryable = isRecoverableApiError(error);
       // A newer change takes precedence over the failed snapshot.
       queued ??= snapshot;
       clearTimeout(timer);
@@ -62,6 +65,7 @@ export function createAmbientPreferencesSync(
     start() { active = true; },
     stop() { active = false; clearTimeout(timer); requestController?.abort(); },
     schedule(preferences: PomodoroAmbientPreferences, delay = 0) {
+      retryable = true;
       revision += 1;
       queued = preferences;
       dueAt = Date.now() + delay;
@@ -69,6 +73,6 @@ export function createAmbientPreferencesSync(
       setStatus("saving");
       timer = setTimeout(() => void flush(), delay);
     },
-    retry() { void flush(); },
+    retry() { if (retryable) void flush(); },
   };
 }

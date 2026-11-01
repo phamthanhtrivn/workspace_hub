@@ -1,4 +1,4 @@
-export const CHAT_WELCOME_AUTOPLAY_DELAY_MS = 6_000;
+export const CHAT_WELCOME_AUTOPLAY_DELAY_MS = 3_000;
 
 export const CHAT_WELCOME_SLIDES = [
   {

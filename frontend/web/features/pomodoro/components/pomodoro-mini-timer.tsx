@@ -9,10 +9,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { useAppSelector } from "@/store/store";
 import { usePomodoroSession } from "./pomodoro-session-provider";
 import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
+import { PomodoroSyncStatus } from "./pomodoro-sync-status";
 
 function ActiveMiniTimer() {
   const pathname = usePathname();
-  const { status, mode, activeTask, timeLeft, pause, resume, stopSession, busy, completionStatus, retryCompletion } = usePomodoroSession();
+  const { status, mode, activeTask, timeLeft, pause, resume, stopSession, busy, completionStatus, retryCompletion, syncStatus, retrySync, configLoadError } = usePomodoroSession();
   const finished = status === "RUNNING" && timeLeft === 0;
   if (status === "IDLE" || pathname === "/pomodoro") return null;
   return (
@@ -25,6 +26,7 @@ function ActiveMiniTimer() {
             {finished ? (completionStatus === "error" ? copy.waiting : copy.saving) : status === "PAUSED" ? "Paused" : mode === "FOCUS" ? "Focus in progress" : "Break in progress"}
           </p>
           <Link href="/pomodoro" className="block truncate text-sm font-semibold text-foreground outline-none hover:text-info-content focus-visible:ring-2 focus-visible:ring-ring" title={activeTask?.title || "Free focus"}>{activeTask?.title || "Free focus"}</Link>
+          <PomodoroSyncStatus status={syncStatus} settingsPending={configLoadError} onRetry={retrySync} compact />
         </div>
       </div>
       <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-3">
