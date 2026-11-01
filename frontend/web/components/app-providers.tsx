@@ -10,6 +10,7 @@ import { AccountThemeSync } from "@/features/user-setting/components/account-the
 import StoreProvider from "@/store/store-provider";
 import QueryProvider from "@/store/query-provider";
 import NotificationManagers from "@/features/notification/components/notification-managers";
+import { DocumentTitleManager } from "./document-title-manager";
 
 export function AppProviders({
   children,
@@ -23,6 +24,7 @@ export function AppProviders({
   if (pathname === "/recording-template") return <>{children}</>;
   return (
     <ThemeProvider>
+      <DocumentTitleManager />
       <GoogleOAuthProvider clientId={googleClientId} locale="en">
         <QueryProvider>
           <StoreProvider>

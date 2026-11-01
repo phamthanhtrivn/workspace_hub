@@ -52,7 +52,7 @@ export function usePomodoroTimer(userId: string) {
   const [timeLeft, setTimeLeft] = useState<number>(25 * 60);
   const [completionStatus, setCompletionStatus] = useState<PomodoroCompletionStatus>("idle");
   const [completion] = useState(createPomodoroCompletion);
-  usePomodoroDocumentTitle(status, mode, timeLeft, completionStatus);
+  usePomodoroDocumentTitle(status, timeLeft, completionStatus);
 
   const [totalDuration, setTotalDurationState] = useState<number>(25 * 60);
   const totalDurationRef = useRef(totalDuration);

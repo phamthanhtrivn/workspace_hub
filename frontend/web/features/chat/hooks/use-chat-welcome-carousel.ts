@@ -19,14 +19,13 @@ const getServerReducedMotion = () => true;
 export function useChatWelcomeCarousel() {
   const [api, setApi] = useState<CarouselApi>();
   const [selected, setSelected] = useState(0);
-  const [paused, setPaused] = useState(false);
   const carouselRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useSyncExternalStore(
     subscribeToMotionPreference,
     getReducedMotion,
     getServerReducedMotion,
   );
-  // Own playback here so mouse/focus events cannot undo an explicit pause.
+  // Suspend playback while reading/interacting or while the tab is hidden.
   const [plugins] = useState(() => [Autoplay({
     delay: CHAT_WELCOME_AUTOPLAY_DELAY_MS,
     playOnInit: false,
@@ -44,7 +43,7 @@ export function useChatWelcomeCarousel() {
     let dragging = false;
 
     const syncPlayback = () => {
-      if (!paused && !reducedMotion && !hovered && !focused && !dragging
+      if (!reducedMotion && !hovered && !focused && !dragging
         && document.visibilityState === "visible" && api.rootNode().clientWidth > 0
         && api.scrollSnapList().length > 1) {
         autoplay.play();
@@ -93,7 +92,7 @@ export function useChatWelcomeCarousel() {
       window.removeEventListener("pointercancel", onPointerUp);
       document.removeEventListener("visibilitychange", syncPlayback);
     };
-  }, [api, paused, plugins, reducedMotion]);
+  }, [api, plugins, reducedMotion]);
 
-  return { api, setApi, selected, paused, setPaused, reducedMotion, carouselRef, plugins };
+  return { api, setApi, selected, reducedMotion, carouselRef, plugins };
 }
