@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { featureSyncRequest } from "@/lib/api-error-policy";
 import {
   ApiResponse,
   ApiPagination,
@@ -17,9 +18,9 @@ import {
   RecurrenceScope,
 } from "../types/calendar.types";
 
-export async function getCalendarPomodoroTimerState() {
+export async function getCalendarPomodoroTimerState(signal?: AbortSignal) {
   const response = await api.get<ApiResponse<CalendarPomodoroTimerState | null>>(
-    "/api/calendar/pomodoro/state",
+    "/api/calendar/pomodoro/state", featureSyncRequest(signal),
   );
   return unwrap(response);
 }
@@ -28,38 +29,38 @@ export async function saveCalendarPomodoroTimerState(
   state: Omit<CalendarPomodoroTimerState, "version" | "updatedAt" | "status"> & {
     status: "IDLE" | "RUNNING" | "PAUSED";
     expectedVersion: number;
-  },
+  }, signal?: AbortSignal,
 ) {
   const response = await api.put<ApiResponse<CalendarPomodoroTimerState>>(
-    "/api/calendar/pomodoro/state", state,
+    "/api/calendar/pomodoro/state", state, featureSyncRequest(signal),
   );
   return unwrap(response);
 }
 
 export async function clearCalendarPomodoroTimerState(expectedVersion: number) {
   const response = await api.delete<ApiResponse<CalendarPomodoroTimerState>>(
-    "/api/calendar/pomodoro/state", { data: { expectedVersion } },
+    "/api/calendar/pomodoro/state", { ...featureSyncRequest(), data: { expectedVersion } },
   );
   return unwrap(response);
 }
 
 export async function getCalendarPomodoroConfig(signal?: AbortSignal) {
   const response = await api.get<ApiResponse<CalendarPomodoroConfig>>(
-    "/api/calendar/pomodoro/config", { signal },
+    "/api/calendar/pomodoro/config", featureSyncRequest(signal),
   );
   return unwrap(response);
 }
 
 export async function saveCalendarPomodoroConfig(config: CalendarPomodoroConfig, signal?: AbortSignal) {
   const response = await api.put<ApiResponse<CalendarPomodoroConfig>>(
-    "/api/calendar/pomodoro/config", config, { signal },
+    "/api/calendar/pomodoro/config", config, featureSyncRequest(signal),
   );
   return unwrap(response);
 }
 
 export async function getCalendarPomodoroDailyStats(date?: string, timeZone?: string) {
   const response = await api.get<ApiResponse<CalendarPomodoroDailyStats>>(
-    "/api/calendar/pomodoro/stats/daily", { params: { date, timeZone } },
+    "/api/calendar/pomodoro/stats/daily", { ...featureSyncRequest(), params: { date, timeZone } },
   );
   return unwrap(response);
 }
@@ -76,13 +77,13 @@ export async function listCalendarPomodoroSessions(params: {
     sessions: CalendarPomodoroSession[];
     summary: { focusSeconds: number; completedFocusSessions: number };
     pagination: ApiPagination;
-  }>>("/api/calendar/pomodoro/sessions", { params, signal });
+  }>>("/api/calendar/pomodoro/sessions", { ...featureSyncRequest(signal), params });
   return unwrap(response);
 }
 
 export async function getTodayCalendarPomodoroSessions(timeZone?: string) {
   const response = await api.get<ApiResponse<CalendarPomodoroSession[]>>(
-    "/api/calendar/pomodoro/sessions/today", { params: { timeZone } },
+    "/api/calendar/pomodoro/sessions/today", { ...featureSyncRequest(), params: { timeZone } },
   );
   return unwrap(response);
 }
@@ -112,7 +113,7 @@ export async function createCalendarPomodoroSession(payload: {
   interruptionReason?: string;
 }) {
   const response = await api.post<ApiResponse<CalendarPomodoroSession>>(
-    "/api/calendar/pomodoro/sessions", payload,
+    "/api/calendar/pomodoro/sessions", payload, featureSyncRequest(),
   );
   return unwrap(response);
 }

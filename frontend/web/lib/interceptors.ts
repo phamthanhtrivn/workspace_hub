@@ -4,6 +4,7 @@ import { store } from "@/store/store";
 import { setCredentials, clearCredentials } from "@/store/auth/auth-slice";
 import { refreshApi } from "@/features/auth/api/auth.api";
 import { getLoginRedirectPath } from "@/features/auth/utils/auth-redirect";
+import { isRecoverableApiError } from "./api-error-policy";
 
 const API_ERROR_LOG_THROTTLE_MS = 10_000;
 const apiErrorLogTimes = new Map<string, number>();
@@ -43,14 +44,16 @@ export function logApiError(error: unknown, context = "API request failed") {
   const gatewayHint = error.response
     ? undefined
     : "Gateway/upstream service may not be ready, or the connection was reset before an HTTP response.";
-  const logKey = `${context}:${method}:${url}:${status}:${message}`;
+  const handledSyncFailure = error.config?.errorPolicy === "feature-sync" && isRecoverableApiError(error);
+  const logKey = `${handledSyncFailure ? "feature-sync" : "default"}:${context}:${method}:${url}:${status}:${message}`;
   const now = Date.now();
   const lastLoggedAt = apiErrorLogTimes.get(logKey) || 0;
 
   if (now - lastLoggedAt < API_ERROR_LOG_THROTTLE_MS) return;
   apiErrorLogTimes.set(logKey, now);
 
-  console.error(context, {
+  const log = handledSyncFailure ? console.warn : console.error;
+  log(context, {
     method,
     url,
     status,
