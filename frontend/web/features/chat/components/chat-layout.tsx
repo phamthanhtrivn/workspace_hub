@@ -7,7 +7,7 @@ import ChatArea from "./chat-area/chat-area";
 import ChatRightPanel from "./right-panel/chat-right-panel";
 import ThreadSidePanel from "./right-panel/thread/thread-side-panel";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { MessageCircle } from "lucide-react";
+import ChatWelcomeCarousel from "./welcome/chat-welcome-carousel";
 import UserProfileModal from "./modals/shared/user-profile-modal";
 import {
   setActiveChat,
@@ -86,14 +86,14 @@ export default function ChatLayout() {
     <div ref={canvasRef} className="@container/messages relative flex h-full min-h-0 min-w-0 w-full overflow-hidden bg-card">
       {/* Sidebar */}
       <div
-        className={`z-20 min-h-0 w-full shrink-0 @min-[720px]/messages:w-80 ${mobileView === "sidebar" ? "block" : "hidden @min-[720px]/messages:block"}`}
+        className={`z-20 min-h-0 w-full shrink-0 @min-[720px]/messages:w-80 ${mobileView === "sidebar" || !activeChatId ? "block" : "hidden @min-[720px]/messages:block"}`}
       >
         <ChatSidebar onSelectChat={handleSelectChat} />
       </div>
 
       {/* Main Chat Area or Empty State */}
       <div
-        className={`flex-1 min-w-0 h-full min-h-0 z-10 relative ${mobileView === "chat" ? "flex" : "hidden @min-[720px]/messages:flex"} flex-col bg-background`}
+        className={`flex-1 min-w-0 h-full min-h-0 z-10 relative ${mobileView === "chat" && activeChatId ? "flex" : "hidden @min-[720px]/messages:flex"} flex-col bg-background`}
       >
         {activeChatId ? (
           <ChatArea
@@ -102,17 +102,7 @@ export default function ChatLayout() {
             onBack={() => setMobileView("sidebar")}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-card">
-            <div className="w-24 h-24 bg-info-soft rounded-full flex items-center justify-center mb-6">
-              <MessageCircle size={48} className="text-info-content" />
-            </div>
-            <h2 className="text-section-title font-semibold text-foreground mb-2">
-              Welcome to Workspace Hub Chat
-            </h2>
-            <p className="text-muted-foreground max-w-md text-center mb-6">
-              Select a channel or direct message from the sidebar to start communicating with your team.
-            </p>
-          </div>
+          <ChatWelcomeCarousel />
         )}
       </div>
 
