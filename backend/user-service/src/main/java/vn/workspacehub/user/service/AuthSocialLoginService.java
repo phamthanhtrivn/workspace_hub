@@ -114,6 +114,6 @@ public class AuthSocialLoginService {
         String rawRefreshToken = tokens.createAndSaveRefreshToken(user, request, ipAddress);
         servlet.setRefreshTokenCookie(response, rawRefreshToken);
 
-        return responses.buildLoginResponse(user);
+        return responses.buildLoginResponse(user, tokens.sessionId(rawRefreshToken));
     }
 }

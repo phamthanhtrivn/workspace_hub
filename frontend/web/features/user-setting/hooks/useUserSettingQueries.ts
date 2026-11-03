@@ -1,3 +1,4 @@
+import { confirmAvatarUpload } from '../api/user-setting.api';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { store, useAppSelector } from "@/store/store";
@@ -138,8 +139,8 @@ export const useUploadAvatarMutation = () => {
       file,
       currentProfile,
     }: UploadAvatarRequest): Promise<ApiResponse<UserProfile>> => {
-      const presignResponse = await getAvatarPresignedUrl(file.name, file.type);
-      const { presignedUrl, fileUrl } = presignResponse.data;
+      const presignResponse = await getAvatarPresignedUrl(file.name, file.type, file.size);
+      const { presignedUrl, uploadId } = presignResponse.data;
 
       await axios.put(presignedUrl, file, {
         headers: {
@@ -147,6 +148,8 @@ export const useUploadAvatarMutation = () => {
         },
       });
 
+      const confirmed = await confirmAvatarUpload(uploadId);
+      const fileUrl = confirmed.data.fileUrl;
       return {
         ...presignResponse,
         data: {

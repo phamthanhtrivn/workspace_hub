@@ -157,7 +157,7 @@ const ProfileTab = React.memo(function ProfileTab() {
             type="file"
             ref={fileInputRef}
             className="hidden"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             onChange={handleAvatarChange}
           />
         </div>

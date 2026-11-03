@@ -9,6 +9,7 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { installSocketSessions } from '../../common/auth/socket-session';
 import { ChatSocketHandler } from './chat/chat-socket.handler';
 import { ChatRoomHandler } from './chat/handlers/chat-room.handler';
 import { MeetingEvent } from './meeting/meeting-socket.events';
@@ -43,6 +44,7 @@ export class CommunicationGateway
   }
 
   afterInit(server: Server): void {
+    installSocketSessions(server);
     this.server = server;
     this.socketEventEmitter.bindServer(server);
   }

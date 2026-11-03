@@ -1,3 +1,4 @@
+import { DocumentContentService } from './document-content.service';
 import {
   Injectable,
   NotFoundException,
@@ -20,18 +21,20 @@ export class DocumentDownloadService {
     private readonly s3Service: S3Service,
     private readonly access: DocumentAccessService,
     private readonly tree: DocumentTreeService,
+    private readonly content: DocumentContentService,
   ) {}
   async getPreviewUrl(
     userId: string | undefined,
     userEmail: string | undefined,
     id: string,
     versionId?: string,
+    authorization?: string,
   ): Promise<string> {
     const item = await this.access.checkPermission(
       id,
       userId,
       userEmail,
-      DocumentRole.VIEWER,
+      versionId ? DocumentRole.EDITOR : DocumentRole.VIEWER,
     );
 
     if (item.type === ItemType.FOLDER) {
@@ -54,7 +57,7 @@ export class DocumentDownloadService {
       throw new BadRequestException('Document has no attached file');
     }
 
-    return this.s3Service.generatePresignedDownloadUrl(s3Key);
+    return this.content.issue(id, false, versionId, authorization);
   }
 
   async getDownloadUrl(
@@ -62,12 +65,13 @@ export class DocumentDownloadService {
     userEmail: string | undefined,
     id: string,
     versionId?: string,
+    authorization?: string,
   ): Promise<string> {
     const item = await this.access.checkPermission(
       id,
       userId,
       userEmail,
-      DocumentRole.VIEWER,
+      versionId ? DocumentRole.EDITOR : DocumentRole.VIEWER,
     );
 
     if (item.type === ItemType.FOLDER) {
@@ -97,7 +101,7 @@ export class DocumentDownloadService {
       throw new BadRequestException('Document has no attached file');
     }
 
-    return this.s3Service.generatePresignedDownloadUrl(s3Key, fileName);
+    return this.content.issue(id, true, versionId, authorization);
   }
 
   async downloadFolderAsZip(
@@ -148,6 +152,7 @@ export class DocumentDownloadService {
     archive.pipe(res);
 
     for (const file of files) {
+      await this.access.checkPermission(file.id, userId, userEmail);
       if (!file.s3Key) continue;
       try {
         const stream = await this.s3Service.getFileStream(file.s3Key);

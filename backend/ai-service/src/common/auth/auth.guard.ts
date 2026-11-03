@@ -1,3 +1,5 @@
+import { verifyAccessClaims } from './access-token';
+import { assertActiveSession } from './session-authorization';
 import {
   CanActivate,
   ExecutionContext,
@@ -20,7 +22,7 @@ const gatewayIdentity = z
   .refine((headers) => headers["x-user-role"] !== "RESET_PASSWORD_ROLE");
 @Injectable()
 export class AuthGuard implements CanActivate {
-  canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext) {
     if (config.AI_ENABLED !== "true")
       throw new ServiceUnavailableException("Notebook AI chưa được bật");
     const req = context.switchToHttp().getRequest<AuthRequest>();
@@ -39,6 +41,10 @@ export class AuthGuard implements CanActivate {
     const result = gatewayIdentity.safeParse(req.headers);
     if (!result.success)
       throw new UnauthorizedException("Missing or invalid gateway identity");
+    const identity = verifyAccessClaims(req.headers.authorization?.match(/^Bearer\s+([^\s]+)$/i)?.[1]);
+    await assertActiveSession(identity);
+    if (identity.sub !== result.data['x-user-id'] || identity.email !== result.data['x-user-email'])
+      throw new UnauthorizedException('Identity mismatch');
     req.actor = {
       id: result.data["x-user-id"],
       email: result.data["x-user-email"],

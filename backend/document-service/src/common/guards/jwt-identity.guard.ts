@@ -1,3 +1,4 @@
+import { assertActiveSession } from '../auth/session-authorization';
 import {
   CanActivate,
   ExecutionContext,
@@ -17,7 +18,7 @@ import {
 export class JwtIdentityGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     if (context.getType() !== 'http') return true;
     const mode = this.reflector.getAllAndOverride<string>(HTTP_AUTHENTICATION, [
       context.getHandler(),
@@ -31,7 +32,9 @@ export class JwtIdentityGuard implements CanActivate {
     const token = authorization?.match(/^Bearer\s+([^\s]+)$/i)?.[1];
     if (!token)
       throw new UnauthorizedException('A valid access token is required');
-    applyIdentityHeaders(request, verifyAccessClaims(token));
+    const claims = verifyAccessClaims(token);
+    await assertActiveSession(claims);
+    applyIdentityHeaders(request, claims);
     return true;
   }
 }

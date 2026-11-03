@@ -77,7 +77,7 @@ export class DocumentPublicQueryService {
       id,
       userId,
       userEmail,
-      DocumentRole.VIEWER,
+      DocumentRole.EDITOR,
     );
 
     if (item.type === ItemType.FOLDER) {
@@ -159,7 +159,8 @@ export class DocumentPublicQueryService {
           sizeBytes = containedSizeBytes;
         }
         return {
-          ...item,
+          id: item.id, name: item.name, type: item.type, mimeType: item.mimeType,
+          createdAt: item.createdAt, updatedAt: item.updatedAt, parentFolderId: item.parentFolderId,
           sizeBytes,
           ...(containedSizeBytes !== undefined ? { containedSizeBytes } : {}),
         };

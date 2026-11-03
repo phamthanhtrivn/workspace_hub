@@ -214,14 +214,14 @@ export const documentsApi = {
     const response = await api.get(`/api/documents/${id}/preview`, {
       params: { versionId },
     });
-    return response.data.data.url;
+    return new URL(response.data.data.url, api.defaults.baseURL).toString();
   },
 
   getDownloadUrl: async (id: string, versionId?: string): Promise<string> => {
     const response = await api.get(`/api/documents/${id}/download-url`, {
       params: { versionId },
     });
-    return response.data.data.url;
+    return new URL(response.data.data.url, api.defaults.baseURL).toString();
   },
 
   getVersions: async (id: string): Promise<DocumentVersion[]> => {
@@ -322,7 +322,7 @@ export const documentsApi = {
     const response = await api.get(`/api/documents/public/${id}/download-url`, {
       params: { versionId },
     });
-    return response.data.data.url;
+    return new URL(response.data.data.url, api.defaults.baseURL).toString();
   },
 
   getPublicPreviewUrl: async (
@@ -332,7 +332,7 @@ export const documentsApi = {
     const response = await api.get(`/api/documents/public/${id}/preview-url`, {
       params: { versionId },
     });
-    return response.data.data.url;
+    return new URL(response.data.data.url, api.defaults.baseURL).toString();
   },
 
   getPublicVersions: async (id: string): Promise<DocumentVersion[]> => {

@@ -35,28 +35,36 @@ public class OtpService {
 
     public String generateAndSaveOtp(String email) {
         attemptLimiter.beforeForgotPassword(email);
+        return generateAndSaveOtp(email, "FORGOT_PASSWORD");
+    }
+
+    public String generateAndSaveOtp(String email, String purpose) {
         // Generate a 6-digit OTP
         int number = 100000 + secureRandom.nextInt(900000);
         String otp = String.valueOf(number);
         
         String normalized = EmailUtils.normalize(email);
-        redis.opsForValue().set(OTP_PREFIX + normalized, otp, Duration.ofSeconds(AuthPolicy.OTP_TTL_SECONDS));
-        redis.delete(ATTEMPTS_PREFIX + normalized);
+        redis.opsForValue().set(OTP_PREFIX + purpose + ":" + normalized, otp, Duration.ofSeconds(AuthPolicy.OTP_TTL_SECONDS));
+        redis.delete(ATTEMPTS_PREFIX + purpose + ":" + normalized);
         
         return otp;
     }
 
     public boolean validateOtp(String email, String otp) {
+        return validateOtp(email, otp, "FORGOT_PASSWORD");
+    }
+
+    public boolean validateOtp(String email, String otp, String purpose) {
         if (email == null || otp == null || !otp.matches("[0-9]{6}")) return false;
         String normalized = EmailUtils.normalize(email);
         Long accepted = redis.execute(VERIFY_AND_CONSUME,
-                List.of(OTP_PREFIX + normalized, ATTEMPTS_PREFIX + normalized),
+                List.of(OTP_PREFIX + purpose + ":" + normalized, ATTEMPTS_PREFIX + purpose + ":" + normalized),
                 otp, Integer.toString(AuthPolicy.OTP_LIMIT), Integer.toString(AuthPolicy.OTP_TTL_SECONDS));
         return Long.valueOf(1).equals(accepted);
     }
 
     public void clearOtp(String email) {
         String normalized = EmailUtils.normalize(email);
-        redis.delete(List.of(OTP_PREFIX + normalized, ATTEMPTS_PREFIX + normalized));
+        redis.delete(List.of(OTP_PREFIX + "FORGOT_PASSWORD:" + normalized, ATTEMPTS_PREFIX + "FORGOT_PASSWORD:" + normalized));
     }
 }

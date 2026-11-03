@@ -62,6 +62,7 @@ export interface AvatarPresignedUrlRequest {
 }
 
 export interface AvatarPresignedUrlResponse {
+  uploadId: string;
   presignedUrl: string;
   fileUrl: string;
 }

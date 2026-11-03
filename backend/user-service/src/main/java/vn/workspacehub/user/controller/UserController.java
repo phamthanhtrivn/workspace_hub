@@ -14,6 +14,7 @@ import vn.workspacehub.user.dto.request.RevokeSessionRequest;
 import vn.workspacehub.user.dto.response.AccountSettingResponse;
 import vn.workspacehub.user.dto.response.DirectMessageSettingsResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
+import vn.workspacehub.user.dto.response.PublicUserProfileResponse;
 import vn.workspacehub.user.dto.response.UserSearchResponse;
 import vn.workspacehub.user.dto.response.UserSessionResponse;
 import vn.workspacehub.user.service.AuthService;
@@ -118,11 +119,11 @@ public class UserController {
     }
 
     @GetMapping("/{id}/profile")
-    public ResponseEntity<ApiResponse<UserProfileResponse>> getPublicProfile(
+    public ResponseEntity<ApiResponse<PublicUserProfileResponse>> getPublicProfile(
             @PathVariable UUID id) {
 
-        UserProfileResponse profile = userService.getPublicProfile(id);
-        return ResponseEntity.ok(ApiResponse.<UserProfileResponse>builder()
+        PublicUserProfileResponse profile = userService.getPublicProfile(id);
+        return ResponseEntity.ok(ApiResponse.<PublicUserProfileResponse>builder()
                 .success(true)
                 .message("User profile retrieved successfully")
                 .data(profile)
@@ -130,11 +131,11 @@ public class UserController {
     }
 
     @GetMapping("/profiles/bulk")
-    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getBulkProfiles(
+    public ResponseEntity<ApiResponse<List<PublicUserProfileResponse>>> getBulkProfiles(
             @RequestParam(required = false) List<UUID> ids,
             @RequestParam(required = false) List<String> emails) {
-        List<UserProfileResponse> profiles = userService.getBulkProfiles(ids, emails);
-        return ResponseEntity.ok(ApiResponse.<List<UserProfileResponse>>builder()
+        List<PublicUserProfileResponse> profiles = userService.getBulkProfiles(ids, emails);
+        return ResponseEntity.ok(ApiResponse.<List<PublicUserProfileResponse>>builder()
                 .success(true)
                 .message("User profiles retrieved successfully")
                 .data(profiles)

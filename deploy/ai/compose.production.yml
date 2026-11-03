@@ -78,6 +78,9 @@ services:
     env_file: .env.production
     environment:
       LLM_API_KEY: ${LLM_API_KEY:?Configure production LLM_API_KEY before starting AI}
+      USER_SERVICE_URL: http://user-service:8081
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
     stop_grace_period: 4m
     expose: ["8087"]
     networks: [default, workspace]

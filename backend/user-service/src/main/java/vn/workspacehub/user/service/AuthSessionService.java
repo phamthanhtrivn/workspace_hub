@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class AuthSessionService {
+    private final SessionRevocationPublisher revocations;
+    private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -40,10 +42,25 @@ public class AuthSessionService {
             refreshTokenRepository.findUserIdByTokenHash(tokenHash).ifPresent(userId -> {
                 userRepository.findForUpdateById(userId);
                 refreshTokenRepository.findForUpdateByTokenHash(tokenHash)
-                        .ifPresent(token -> refreshTokenRepository.revokeFamily(token.getFamilyId(), LocalDateTime.now()));
+                        .ifPresent(token -> { refreshTokenRepository.revokeFamily(token.getFamilyId(), LocalDateTime.now()); revocations.revoked(userId, token.getFamilyId()); });
             });
         }
 
+        if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
+            String authorization = request.getHeader("Authorization");
+            if (authorization != null && authorization.length() <= AuthPolicy.MAX_CREDENTIAL_LENGTH + 16 && authorization.matches("(?i)^Bearer\\s+[^\\s]+$")) {
+                try {
+                    var claims = jwtService.extractAccessClaims(authorization.replaceFirst("(?i)^Bearer\\s+", ""));
+                    UUID userId = UUID.fromString(claims.getSubject());
+                    UUID sessionId = UUID.fromString(claims.get("sid", String.class));
+                    userRepository.findForUpdateById(userId);
+                    refreshTokenRepository.revokeFamily(sessionId, LocalDateTime.now());
+                    revocations.revoked(userId, sessionId);
+                } catch (IllegalArgumentException | NullPointerException | io.jsonwebtoken.JwtException invalidOrExpired) {
+                    // Logging out an already invalid access token is idempotent.
+                }
+            }
+        }
         servlet.clearRefreshTokenCookie(response);
     }
 
@@ -88,5 +105,6 @@ public class AuthSessionService {
                 .orElseThrow(() -> new ResourceNotFoundException(AuthPolicy.SESSION_NOT_FOUND));
 
         refreshTokenRepository.revokeFamily(token.getFamilyId(), LocalDateTime.now());
+        revocations.revoked(userId, token.getFamilyId());
     }
 }

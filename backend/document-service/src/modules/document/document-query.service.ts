@@ -122,7 +122,8 @@ export class DocumentQueryService {
     const limit = options.limit || 12;
     const skip = (page - 1) * limit;
 
-    const [items, totalCount] = await Promise.all([
+    const filterPermissions = Boolean(options.isStarredOnly || options.isSharedOnly);
+    const [candidates, rawTotalCount] = await Promise.all([
       this.prisma.documentItem.findMany({
         where,
         include: {
@@ -132,12 +133,15 @@ export class DocumentQueryService {
           },
         },
         orderBy: orderDirections,
-        skip,
-        take: limit,
+        skip: filterPermissions ? undefined : skip,
+        take: filterPermissions ? undefined : limit,
       }),
       this.prisma.documentItem.count({ where }),
     ]);
 
+    const readable = await this.access.filterReadable(candidates, userId, userEmail);
+    const totalCount = filterPermissions ? readable.length : rawTotalCount;
+    const items = filterPermissions ? readable.slice(skip, skip + limit) : readable;
     const mappedItems = await Promise.all(
       items.map(async (item) => {
         const userRole = await this.access.getPermissionRole(
@@ -174,7 +178,7 @@ export class DocumentQueryService {
     userId: string,
     userEmail: string,
   ): Promise<DocumentItem[]> {
-    return this.prisma.documentItem.findMany({
+    const candidates = await this.prisma.documentItem.findMany({
       where: {
         isArchived: false,
         OR: [
@@ -194,6 +198,7 @@ export class DocumentQueryService {
       },
       orderBy: { createdAt: 'desc' },
     });
+    return this.access.filterReadable(candidates, userId, userEmail);
   }
 
   async getVersions(
@@ -212,7 +217,7 @@ export class DocumentQueryService {
       id,
       userId,
       userEmail,
-      DocumentRole.VIEWER,
+      DocumentRole.EDITOR,
     );
 
     if (item.type === ItemType.FOLDER) {

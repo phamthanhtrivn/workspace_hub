@@ -1,3 +1,5 @@
+import { store } from "@/store/store";
+import { EMAIL_VERIFICATION } from '../types/email-verification.constants';
 import { api } from "@/lib/axios";
 import { withSessionLock } from "./session-lock";
 import {
@@ -56,7 +58,8 @@ export const refreshApi = (): Promise<ApiResponse<RefreshResponse>> => {
 
 export const logoutApi = async (): Promise<ApiResponse<LogoutResponse>> => {
   return withSessionLock(async () => {
-    const response = await api.post("/api/auth/logout");
+    const token = store.getState().auth.accessToken;
+    const response = await api.post("/api/auth/logout", undefined, { headers: token ? { Authorization: `Bearer ${token}` } : undefined });
     return response.data;
   });
 };
@@ -80,4 +83,11 @@ export const resetPasswordApi = async (
 ): Promise<ApiResponse<ResetPasswordResponse>> => {
   const response = await api.post("/api/auth/reset-password", payload);
   return response.data;
+};
+
+export const sendEmailVerificationApi = async (email: string): Promise<ApiResponse<null>> => {
+  const response = await api.post(EMAIL_VERIFICATION.send, { email }); return response.data;
+};
+export const confirmEmailApi = async (payload: { email: string; otp: string }): Promise<ApiResponse<null>> => {
+  const response = await api.post(EMAIL_VERIFICATION.confirm, payload); return response.data;
 };

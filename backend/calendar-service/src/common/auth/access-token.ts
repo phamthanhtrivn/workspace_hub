@@ -7,6 +7,8 @@ const ACCESS_ROLES = new Set(['USER', 'ADMIN']);
 const AUTHENTICATION_ERROR = 'A valid access token is required';
 
 export interface AccessClaims {
+  sid?: unknown;
+  email_verified?: unknown;
   email?: unknown;
   fullName?: unknown;
   avatarUrl?: unknown;
@@ -20,7 +22,7 @@ export interface AccessClaims {
 
 export function verifyAccessClaims(
   token: unknown,
-): AccessClaims & { sub: string; role: string } {
+): AccessClaims & { sub: string; role: string; sid: string; exp: number } {
   try {
     const secret = process.env.JWT_SECRET_KEY;
     if (
@@ -65,12 +67,12 @@ export function verifyAccessClaims(
       claims.iss !== (process.env.JWT_ISSUER || 'workspace-hub') ||
       typeof claims.role !== 'string' ||
       !ACCESS_ROLES.has(claims.role) ||
-      (claims.token_use !== undefined && claims.token_use !== 'access') ||
+      (claims.token_use !== 'access' || claims.email_verified !== true || typeof claims.sid !== 'string' || !isUUID(claims.sid)) ||
       typeof claims.sub !== 'string' ||
       !isUUID(claims.sub)
     )
       throw new Error(AUTHENTICATION_ERROR);
-    return claims as AccessClaims & { sub: string; role: string };
+    return claims as AccessClaims & { sub: string; role: string; sid: string; exp: number };
   } catch {
     throw new UnauthorizedException(AUTHENTICATION_ERROR);
   }

@@ -22,6 +22,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AuthRefreshService {
+    private final SessionRevocationPublisher revocations;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final AuthTokenIssuer tokens;
@@ -53,11 +54,13 @@ public class AuthRefreshService {
         if (storedToken.isRevoked()) {
             if (storedToken.getRotatedAt() != null)
                 refreshTokenRepository.revokeFamily(storedToken.getFamilyId(), LocalDateTime.now());
+            revocations.revoked(userId.get(), storedToken.getFamilyId());
             return null;
         }
 
-        if (userOpt.get().getStatus() != UserStatus.ACTIVE) {
+        if (userOpt.get().getStatus() != UserStatus.ACTIVE || !userOpt.get().isEmailVerified()) {
             refreshTokenRepository.revokeAllForUser(userId.get(), LocalDateTime.now());
+            revocations.revoked(userId.get(), null);
             return null;
         }
 
@@ -77,7 +80,8 @@ public class AuthRefreshService {
                 && !storedToken.getOperatingSystem().equals(currentOs);
 
         if (ipMismatch || browserMismatch || osMismatch) {
-            revokeToken(storedToken);
+            refreshTokenRepository.revokeFamily(storedToken.getFamilyId(), LocalDateTime.now());
+            revocations.revoked(userId.get(), storedToken.getFamilyId());
             throw new BusinessException("A security anomaly was detected. Please sign in again.");
         }
 
@@ -86,7 +90,7 @@ public class AuthRefreshService {
         String replacement = tokens.createAndSaveRefreshToken(userOpt.get(), request, currentIp,
                 storedToken.getFamilyId(), storedToken.getExpiresAt());
         servlet.setRefreshTokenCookie(response, replacement, storedToken.getExpiresAt());
-        return responses.buildLoginResponse(userOpt.get());
+        return responses.buildLoginResponse(userOpt.get(), storedToken.getFamilyId());
     }
 
     public void revokeToken(RefreshToken token) {

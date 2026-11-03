@@ -8,6 +8,7 @@
 | [Migration và reconciliation](migrations.md) | Lịch sử schema, thứ tự triển khai và xử lý dữ liệu cũ |
 | [Design tokens](design-tokens.md) | Token và quy tắc dùng UI chung |
 | [SEO](seo-metadata.md) | Domain, metadata, indexing và ảnh chia sẻ |
+| [Security rollout](security-rollout.md) | Migration, cấu hình và checklist kiểm tra quyền truy cập |
 
 Tài liệu theo thành phần:
 

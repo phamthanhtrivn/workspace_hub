@@ -23,6 +23,15 @@ type DelegatedPermission =
 export class ProjectAccessService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async authorizeResource(userId: string, projectId: string, operation: 'READ' | 'EDIT_DOCUMENTS') {
+    const project = await this.requireReadAccess(userId, projectId);
+    const owner = project.ownerId === userId;
+    const member = owner ? null : await this.getActiveMember(projectId, userId);
+    const canEditDocuments = owner || member?.role === 'ADMIN' || member?.canEditDocuments === true;
+    if (operation === 'EDIT_DOCUMENTS' && !canEditDocuments) throw new ForbiddenException('Document editing is not allowed');
+    return { owner, canEditDocuments };
+  }
+
   async requireReadAccess(
     userId: string,
     projectId: string,

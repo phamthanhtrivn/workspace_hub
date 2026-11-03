@@ -1,3 +1,4 @@
+import { assertActiveSession } from '../auth/session-authorization';
 import {
   CanActivate,
   ExecutionContext,
@@ -21,7 +22,7 @@ export interface AuthenticatedRequest extends Request {
 export class JwtIdentityGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -36,6 +37,7 @@ export class JwtIdentityGuard implements CanActivate {
     if (!token)
       throw new UnauthorizedException("A valid access token is required");
     const claims = verifyAccessClaims(token);
+    await assertActiveSession(claims);
     const userId = claims.sub;
     request.authenticatedUserId = userId;
     applyIdentityHeaders(request, claims);

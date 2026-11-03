@@ -28,9 +28,10 @@ export const updateUserProfile = async (
 export const getAvatarPresignedUrl = async (
   fileName: string,
   contentType: string,
+  sizeBytes: number,
 ): Promise<ApiResponse<AvatarPresignedUrlResponse>> => {
   const response = await api.get("/api/users/me/profile/avatar/presigned-url", {
-    params: { fileName, contentType },
+    params: { fileName, contentType, sizeBytes },
   });
   return response.data;
 };
@@ -89,5 +90,10 @@ export const updatePassword = async (
   data: UpdatePasswordRequest,
 ): Promise<ApiResponse<null>> => {
   const response = await api.patch("/api/users/me/profile/password", data);
+  return response.data;
+};
+
+export const confirmAvatarUpload = async (uploadId: string): Promise<ApiResponse<{ fileUrl: string }>> => {
+  const response = await api.post("/api/users/me/profile/avatar/confirm", { uploadId });
   return response.data;
 };

@@ -1,4 +1,5 @@
 "use client";
+import { EMAIL_VERIFICATION } from '../types/email-verification.constants';
 
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -8,7 +9,6 @@ import { Eye, EyeOff, Lock, Mail, User, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
 import { useRegisterMutation } from "../hooks/useAuthMutations";
-import { AuthRouteTarget } from "../types/auth.constants";
 import {
   registerFormSchema,
   type RegisterFormValues,
@@ -52,7 +52,7 @@ const RegisterForm = React.memo(function RegisterForm() {
       });
       toast.success(response.message);
       form.reset();
-      router.replace(AuthRouteTarget.LOGIN);
+      router.replace(`${EMAIL_VERIFICATION.page}?email=${encodeURIComponent(values.email)}`);
     },
   );
 

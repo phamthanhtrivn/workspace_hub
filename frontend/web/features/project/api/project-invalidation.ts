@@ -35,6 +35,9 @@ export function projectQueriesForEvent(event: ProjectChange): ProjectQueryInvali
     add([...projectKey, 'members'], [...projectKey, 'access-sync'], [...projectKey, 'tasks'],
       ['documents'], [...projectKey, 'documents']);
   }
+  if (event.resource === 'PROJECT' || event.resource === 'MEMBER' || invitationAccepted) {
+    add(['projects', 'calendar-list']);
+  }
 
   const resourceKeys: Partial<Record<ProjectChangedEvent['resource'], QueryKey[]>> = {
     PROJECT: [[...projectKey, 'access-sync'], [...projectKey, 'space-status']],

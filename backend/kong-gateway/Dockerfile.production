@@ -2,6 +2,8 @@ FROM kong:3.9.1@sha256:76c14b93e989f7f4418039f7f9789ca32564016211c86ac1a18022f47
 ENV KONG_DATABASE=off \
     KONG_PLUGINS=bundled,gateway-boundary,jwt-user-context \
     KONG_ADMIN_LISTEN=off \
+    KONG_PROXY_ACCESS_LOG=off \
+    KONG_PROXY_ERROR_LOG=/dev/null \
     KONG_DECLARATIVE_CONFIG=/tmp/kong.yml
 USER root
 COPY plugins/jwt-user-context/ /usr/local/share/lua/5.1/kong/plugins/jwt-user-context/

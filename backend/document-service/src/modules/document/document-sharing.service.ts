@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   Injectable,
   NotFoundException,
@@ -71,7 +72,7 @@ export class DocumentSharingService {
 
     const updated = await this.prisma.documentItem.update({
       where: { id },
-      data: { linkAccess },
+      data: { linkAccess: linkAccess === LinkAccess.NONE ? LinkAccess.NONE : LinkAccess.VIEWER, shareToken: randomUUID() },
     });
     await this.events.publishProjectDocumentEvent(updated, userId, 'UPDATED');
     return updated;

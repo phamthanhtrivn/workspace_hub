@@ -9,6 +9,8 @@ const require = createRequire(resolve(repo, "backend/ai-service/package.json"));
 const { parse } = require("dotenv");
 const ai = ["backend/ai-service/.env", "deploy/ai/.env"];
 export const groups = {
+  INTERNAL_SERVICE_KEY: [...ai, "backend/user-service/.env"],
+  JWT_SECRET_KEY: [...ai, "backend/user-service/.env"],
   AI_GATEWAY_KEY: [...ai, "backend/kong-gateway/.env"],
   AI_DOCUMENT_SERVICE_KEY: [...ai, "backend/document-service/.env"],
   RAG_SERVICE_KEY: [...ai, "backend/rag-worker/.env"],
@@ -40,7 +42,7 @@ export function planSecurity(root = repo) {
       throw new Error(
         name + " differs between services; reconcile the intended key first",
       );
-    if (existing[0] && existing[0].length < 32)
+    if (existing[0] && existing[0].length < 32 && name !== "INTERNAL_SERVICE_KEY")
       throw new Error(name + " must contain at least 32 characters");
     selected.set(name, existing[0] || randomBytes(32).toString("base64url"));
   }

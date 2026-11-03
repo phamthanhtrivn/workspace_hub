@@ -1,3 +1,4 @@
+import { installSocketSessions } from '../../common/auth/socket-session';
 import { Logger } from '@nestjs/common';
 import {
   ConnectedSocket,
@@ -39,14 +40,7 @@ export class ProjectGateway
   ) {}
 
   afterInit(server: Server): void {
-    server.use((client, next) => {
-      try {
-        verifyAccessToken(this.accessToken(client));
-        next();
-      } catch {
-        next(new Error('A valid access token is required'));
-      }
-    });
+    installSocketSessions(server);
     this.events.bindServer(server);
   }
 

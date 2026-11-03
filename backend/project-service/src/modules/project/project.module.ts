@@ -6,6 +6,7 @@ import { ProjectEventPublisher } from "./project-event-publisher.service";
 import { ProjectMutationService } from "./project-mutation.service";
 import { ProjectAccessSyncWorker } from "./project-access-sync.worker";
 import { Module } from "@nestjs/common";
+import { ProjectAuthorizationController } from './project-authorization.controller';
 import { ProjectController } from "./project.controller";
 
 import { ProjectService } from "./project.service";
@@ -17,7 +18,7 @@ import { ProjectSpaceClient } from "./project-space.client";
 
 @Module({
   imports: [ProjectAccessModule, SocketModule, UserProfileSnapshotModule],
-  controllers: [ProjectController],
+  controllers: [ProjectController, ProjectAuthorizationController],
   providers: [
     ProjectService,
     ProjectQueryService,

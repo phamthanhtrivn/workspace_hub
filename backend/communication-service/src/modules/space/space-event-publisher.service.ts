@@ -240,6 +240,8 @@ export class SpaceEventPublisher {
     ];
 
     for (const member of removedMembers) {
+      for (const channelId of result.channelIds ?? [result.channelId])
+        this.chatSocketPublisher.removeUserFromChannel(member.userId, channelId);
       this.chatSocketPublisher.publishMemberKicked(
         [...new Set([member.userId, ...targetRooms])],
         {

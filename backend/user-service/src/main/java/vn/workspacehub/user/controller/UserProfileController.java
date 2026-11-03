@@ -23,6 +23,7 @@ import java.util.UUID;
 public class UserProfileController {
 
     private final UserProfileService userProfileService;
+    private final vn.workspacehub.user.service.AvatarUploadService avatars;
 
     @GetMapping
     public ResponseEntity<ApiResponse<UserProfileResponse>> getMyProfile(
@@ -53,15 +54,23 @@ public class UserProfileController {
     public ResponseEntity<ApiResponse<PresignedUrlResponse>> getAvatarPresignedUrl(
             @RequestHeader(value = "X-User-Id") UUID userId,
             @RequestParam("fileName") String fileName,
-            @RequestParam("contentType") String contentType) {
+            @RequestParam("contentType") String contentType, @RequestParam("sizeBytes") long sizeBytes) {
 
-        PresignedUrlResponse response = userProfileService.generateAvatarPresignedUrl(userId, fileName, contentType);
+        PresignedUrlResponse response = userProfileService.generateAvatarPresignedUrl(userId, fileName, contentType, sizeBytes);
 
         return ResponseEntity.ok(ApiResponse.<PresignedUrlResponse>builder()
                 .success(true)
                 .message("Presigned URL generated successfully")
                 .data(response)
                 .build());
+    }
+
+    public record ConfirmAvatarRequest(@jakarta.validation.constraints.NotNull UUID uploadId) {}
+
+    @PostMapping("/avatar/confirm")
+    public ApiResponse<java.util.Map<String, String>> confirmAvatar(@RequestHeader("X-User-Id") UUID userId,
+            @Valid @RequestBody ConfirmAvatarRequest request) {
+        return ApiResponse.success(java.util.Map.of("fileUrl", avatars.confirm(userId, request.uploadId())), "Avatar verified");
     }
 
     @PostMapping("/password/send-otp")

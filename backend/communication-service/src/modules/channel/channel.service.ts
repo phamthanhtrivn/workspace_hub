@@ -1,3 +1,5 @@
+import { ChannelAccessService } from './access/channel-access.service';
+import { NotFoundException } from '@nestjs/common';
 import { SystemMessageService } from '../message/system-message.service';
 import {
   Injectable,
@@ -39,6 +41,7 @@ import {
 @Injectable()
 export class ChannelService {
   constructor(
+    private readonly channelAccess: ChannelAccessService,
     private readonly systemMessages: SystemMessageService,
     private readonly prisma: PrismaService,
     private readonly chatSocketPublisher: ChatSocketPublisher,
@@ -53,7 +56,7 @@ export class ChannelService {
   }
 
   async getUserChannels(userId: string) {
-    const channels = await this.prisma.channel.findMany({
+    const candidates = await this.prisma.channel.findMany({
       where: {
         members: {
           some: {
@@ -79,6 +82,11 @@ export class ChannelService {
       },
     });
 
+    const channels: typeof candidates = [];
+    for (const channel of candidates) {
+      try { await this.channelAccess.assertPrivateAccess(channel.id, userId); channels.push(channel); }
+      catch (error) { if (!(error instanceof ForbiddenException || error instanceof NotFoundException)) throw error; }
+    }
     const channelsWithUnread = await Promise.all(
       channels.map(async (channel) => {
         const member = channel.members.find((item) => item.userId === userId);
@@ -705,6 +713,7 @@ export class ChannelService {
       privateMembershipChanges,
       this.kafkaClient,
     );
+    for (const channel of spaceChannels) this.chatSocketPublisher.removeUserFromChannel(memberId, channel.id);
 
     const targetRooms = [
       ...new Set([
@@ -947,6 +956,7 @@ export class ChannelService {
       privateMembershipChanges,
       this.kafkaClient,
     );
+    for (const channel of spaceChannels) this.chatSocketPublisher.removeUserFromChannel(userId, channel.id);
 
     this.chatSocketPublisher.publishMemberLeft(
       [userId, ...spaceChannels.map((spaceChannel) => spaceChannel.id)],

@@ -22,13 +22,13 @@ interface ShareModalLinkProps {
 const LINK_ACCESS_LABELS: Record<LinkAccess, string> = {
   [LinkAccess.NONE]: "Restricted",
   [LinkAccess.VIEWER]: "Anyone with the link (Viewer)",
-  [LinkAccess.EDITOR]: "Anyone with the link (Editor)",
+  [LinkAccess.EDITOR]: "Anyone with the link (Viewer)",
 };
 
 const LINK_ACCESS_DESCRIPTIONS: Record<LinkAccess, string> = {
   [LinkAccess.NONE]: "Only people with granted access can open with this link",
   [LinkAccess.VIEWER]: "Anyone on the internet with this link can view this item",
-  [LinkAccess.EDITOR]: "Anyone on the internet with this link can edit this item",
+  [LinkAccess.EDITOR]: "Anyone on the internet with this link can view this item",
 };
 
 export function ShareModalLink({
@@ -37,13 +37,13 @@ export function ShareModalLink({
   onLinkAccessChanged,
   isOwner = false,
 }: ShareModalLinkProps) {
-  const [linkAccess, setLinkAccess] = useState<LinkAccess>(initialLinkAccess);
+  const [linkAccess, setLinkAccess] = useState<LinkAccess>(initialLinkAccess === LinkAccess.EDITOR ? LinkAccess.VIEWER : initialLinkAccess);
   const [isCopied, setIsCopied] = useState(false);
 
   const [previousAccess, setPreviousAccess] = useState(initialLinkAccess);
   if (previousAccess !== initialLinkAccess) {
     setPreviousAccess(initialLinkAccess);
-    setLinkAccess(initialLinkAccess);
+    setLinkAccess(initialLinkAccess === LinkAccess.EDITOR ? LinkAccess.VIEWER : initialLinkAccess);
   }
 
   const queryClient = useQueryClient();
@@ -121,7 +121,7 @@ export function ShareModalLink({
                 }
                 triggerClassName="bg-transparent border border-input rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-semibold text-foreground outline-hidden transition-all cursor-pointer"
               >
-                {Object.entries(LINK_ACCESS_LABELS).map(([value, label]) => (
+                {Object.entries(LINK_ACCESS_LABELS).filter(([value]) => value !== LinkAccess.EDITOR).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>

@@ -1,6 +1,7 @@
 package vn.workspacehub.user.common;
 
 public final class AuthPolicy {
+    public static final String EMAIL_VERIFICATION_PURPOSE = "VERIFY_EMAIL";
     public static final String REFRESH_COOKIE = "refreshToken";
     public static final String INVALID_CREDENTIALS = "Email or password is incorrect";
     public static final String GOOGLE_FAILED = "Google authentication failed";
@@ -9,6 +10,8 @@ public final class AuthPolicy {
     public static final String SESSION_NOT_FOUND = "Session does not exist or has already been revoked";
     public static final String RETRY_LATER = "Too many attempts. Please try again later.";
     public static final String FORGOT_ACCEPTED = "If the account is eligible, a verification code will be sent.";
+    public static final int AVATAR_UPLOAD_LIMIT = 5;
+    public static final int VERIFICATION_IP_LIMIT = 30;
     public static final int LOGIN_LIMIT = 10;
     public static final int LOGIN_WINDOW_SECONDS = 900;
     public static final int FORGOT_LIMIT = 3;

@@ -1,3 +1,5 @@
+import { DocumentContentService } from './document-content.service';
+import { DocumentContentController } from './document-content.controller';
 import { DocumentAccessService } from './document-access.service';
 import { DocumentLocationService } from './document-location.service';
 import { DocumentEventPublisher } from './document-event-publisher.service';
@@ -30,7 +32,7 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     S3Module,
     UserProfileSnapshotModule,
   ],
-  controllers: [DocumentController, InternalDocumentAccessController],
+  controllers: [DocumentContentController, DocumentController, InternalDocumentAccessController],
   providers: [
     DocumentService,
     DocumentAccessService,
@@ -45,10 +47,11 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     DocumentSharingService,
     ProjectDocumentAttachmentService,
     DocumentDownloadService,
+    DocumentContentService,
     TrashCleanupService,
     ProjectDocumentRealtimeClient,
     StorageCleanupService,
   ],
-  exports: [DocumentService],
+  exports: [DocumentService, DocumentAccessService],
 })
 export class DocumentModule {}

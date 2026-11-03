@@ -37,6 +37,15 @@ public class AuthAttemptLimiter {
         consume(FORGOT_PREFIX + fingerprint(email), AuthPolicy.FORGOT_LIMIT, AuthPolicy.FORGOT_WINDOW_SECONDS);
     }
 
+    public void beforeAvatarUpload(String userId) {
+        consume("AVATAR_UPLOAD:" + userId, AuthPolicy.AVATAR_UPLOAD_LIMIT, AuthPolicy.LOGIN_WINDOW_SECONDS);
+    }
+
+    public void beforeEmailVerification(String email, String clientIp) {
+        consume("AUTH_VERIFY_EMAIL:" + fingerprint(email), AuthPolicy.FORGOT_LIMIT, AuthPolicy.FORGOT_WINDOW_SECONDS);
+        consume("AUTH_VERIFY_IP:" + fingerprint(clientIp), AuthPolicy.VERIFICATION_IP_LIMIT, AuthPolicy.FORGOT_WINDOW_SECONDS);
+    }
+
     private void consume(String key, int limit, int seconds) {
         Long attempts = redis.execute(INCREMENT, List.of(key), Integer.toString(seconds));
         if (attempts == null) throw new IllegalStateException("Authentication attempt store unavailable");

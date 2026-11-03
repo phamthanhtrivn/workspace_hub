@@ -28,11 +28,12 @@ public class S3Service {
     @Value("${aws.s3.cloudfront-url:}")
     private String cloudfrontUrl;
 
-    public PresignedUrlResponse generatePresignedUrl(String objectKey, String contentType) {
+    public PresignedUrlResponse generatePresignedUrl(String objectKey, String contentType, long sizeBytes, String uploadId) {
         PutObjectRequest objectRequest = PutObjectRequest.builder()
                 .bucket(bucketName)
                 .key(objectKey)
                 .contentType(contentType)
+                .contentLength(sizeBytes)
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
@@ -46,12 +47,13 @@ public class S3Service {
         String fileUrl = generateFileUrl(objectKey);
 
         return PresignedUrlResponse.builder()
+                .uploadId(uploadId)
                 .presignedUrl(presignedUrl)
                 .fileUrl(fileUrl)
                 .build();
     }
 
-    private String generateFileUrl(String objectKey) {
+    public String generateFileUrl(String objectKey) {
         if (cloudfrontUrl != null && !cloudfrontUrl.isEmpty()) {
             return cloudfrontUrl.endsWith("/") ? cloudfrontUrl + objectKey : cloudfrontUrl + "/" + objectKey;
         }
