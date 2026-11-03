@@ -24,11 +24,12 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UserProfileService {
+    private final SessionRevocationPublisher revocations;
     private final vn.workspacehub.user.repository.PasswordResetGrantRepository passwordResetGrants;
 
     private final UserProfileRepository userProfileRepository;
     private final UserProfileMapper userProfileMapper;
-    private final S3Service s3Service;
+    private final AvatarUploadService avatars;
     private final UserProfileEventPublisher userProfileEventPublisher;
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -49,6 +50,7 @@ public class UserProfileService {
         UserProfile userProfile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException("User profile not found"));
 
+        avatars.assertConfirmed(userId, userProfile.getAvatarUrl(), request.getAvatarUrl());
         userProfileMapper.updateEntityFromRequest(request, userProfile);
 
         UserProfile savedProfile = userProfileRepository.save(userProfile);
@@ -56,15 +58,8 @@ public class UserProfileService {
         return userProfileMapper.toResponse(savedProfile);
     }
 
-    public PresignedUrlResponse generateAvatarPresignedUrl(UUID userId, String fileName, String contentType) {
-        String extension = "";
-        int i = fileName.lastIndexOf('.');
-        if (i > 0) {
-            extension = fileName.substring(i);
-        }
-
-        String objectKey = "avatars/" + userId + "/" + UUID.randomUUID() + extension;
-        return s3Service.generatePresignedUrl(objectKey, contentType);
+    public PresignedUrlResponse generateAvatarPresignedUrl(UUID userId, String fileName, String contentType, long sizeBytes) {
+        return avatars.initiate(userId, fileName, contentType, sizeBytes);
     }
 
     @Transactional
@@ -104,6 +99,7 @@ public class UserProfileService {
         userRepository.save(user);
 
         refreshTokenRepository.revokeAllForUser(userId, LocalDateTime.now());
+        revocations.revoked(userId, null);
         passwordResetGrants.invalidateForUser(userId, LocalDateTime.now(java.time.ZoneOffset.UTC));
     }
 
@@ -129,6 +125,7 @@ public class UserProfileService {
         userRepository.save(user);
 
         refreshTokenRepository.revokeAllForUser(userId, LocalDateTime.now());
+        revocations.revoked(userId, null);
         passwordResetGrants.invalidateForUser(userId, LocalDateTime.now(java.time.ZoneOffset.UTC));
     }
 }

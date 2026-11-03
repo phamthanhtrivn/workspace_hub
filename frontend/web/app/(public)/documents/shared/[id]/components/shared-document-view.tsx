@@ -57,7 +57,7 @@ export default function SharedDocumentView({ id }: { id: string }) {
         if (!active) return;
 
         metadataAvailable = true;
-        setItem(data.item);
+        setItem({ ...data.item, userRole: data.userRole as DocumentRole });
         setUserRole(data.userRole as DocumentRole);
 
         // Folders don't have preview/download URLs — skip steps 2 & 3
@@ -155,7 +155,7 @@ export default function SharedDocumentView({ id }: { id: string }) {
     try {
       // Refresh public metadata
       const data = await documentsApi.getPublicDocument(id);
-      setItem(data.item);
+      setItem({ ...data.item, userRole: data.userRole as DocumentRole });
 
       // Refresh preview url
       const url = await documentsApi.getPublicPreviewUrl(id);
@@ -218,8 +218,8 @@ export default function SharedDocumentView({ id }: { id: string }) {
           item={item}
           userRole={userRole}
           onDownload={handleDownload}
-          onViewVersions={() => setIsVersionModalOpen(true)}
-          onRename={userRole === DocumentRole.EDITOR ? () => setRenameOpen(true) : undefined}
+          onViewVersions={userRole === DocumentRole.OWNER || userRole === DocumentRole.EDITOR ? () => setIsVersionModalOpen(true) : undefined}
+          onRename={userRole === DocumentRole.OWNER || userRole === DocumentRole.EDITOR ? () => setRenameOpen(true) : undefined}
         />
 
         {previewError && <QueryFeedback label="document preview" error onRetry={() => setRetryKey(value => value + 1)} />}

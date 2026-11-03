@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Provider } from "react-redux";
 import { store, useAppDispatch } from "./store";
 import { setCredentials, clearCredentials } from "./auth/auth-slice";
@@ -9,6 +10,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { refreshApi } from "@/features/auth/api/auth.api";
 import axios from "axios";
 import { clearCopiedMessage } from "@/features/chat/utils/message-clipboard";
+import { socketService } from "@/features/chat/api/chat-socket.service";
+import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
+import { projectSocketService } from "@/features/project/api/project-socket.service";
 import {
   getLoginRedirectPath,
   getReturnToFromSearch,
@@ -18,6 +22,7 @@ const PUBLIC_PATHS = [
   "/login",
   "/register",
   "/forgot-password",
+  "/verify-email",
   "/",
   "/documents/shared",
 ];
@@ -40,6 +45,7 @@ function getCurrentSearch() {
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const [isInitializing, setIsInitializing] = useState(true);
@@ -50,6 +56,11 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
     const unsubscribe = store.subscribe(() => {
       const nextUserId = store.getState().auth.userId;
       if (nextUserId !== userId) {
+        socketService.disconnect();
+        notificationSocketService.disconnect();
+        projectSocketService.disconnect();
+        void queryClient.cancelQueries();
+        queryClient.clear();
         clearCopiedMessage();
         userId = nextUserId;
       }
@@ -58,7 +69,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
       unsubscribe();
       clearCopiedMessage();
     };
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     const replaceIfNeeded = (targetPath: string) => {

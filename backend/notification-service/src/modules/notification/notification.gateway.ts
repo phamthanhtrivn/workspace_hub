@@ -1,3 +1,4 @@
+import { installSocketSessions } from '../../common/auth/socket-session';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -21,14 +22,7 @@ export class NotificationGateway
   server: Server;
 
   afterInit(server: Server): void {
-    server.use((client, next) => {
-      try {
-        verifyAccessToken(client.handshake.auth?.token || client.handshake.query?.token);
-        next();
-      } catch {
-        next(new Error('A valid access token is required'));
-      }
-    });
+    installSocketSessions(server);
   }
 
   handleConnection(client: Socket) {

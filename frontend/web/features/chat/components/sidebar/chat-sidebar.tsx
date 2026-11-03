@@ -689,7 +689,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       {/* Header with Space Selector Dropdown */}
       <div className="p-3 border-b border-border relative" ref={dropdownRef}>
         <div
-          className="flex items-center justify-between px-3 py-2 bg-background border border-border hover:bg-muted hover:border-border rounded-panel cursor-pointer transition-all duration-200 select-none group"
+          className="flex items-center justify-between px-3 py-2 bg-background rounded-panel cursor-pointer transition-all duration-200 select-none group"
         >
           <div className="flex min-w-0 flex-1 flex-col pr-2">
             <h2 className="mb-2"><Button aria-controls={`${controlledPopupId}-isSpaceDropdownOpen`} variant="unstyled" type="button" aria-haspopup="menu" aria-expanded={isSpaceDropdownOpen} onClick={() => setIsSpaceDropdownOpen(prev => !prev)} className="flex w-full min-w-0 items-start gap-1.5 text-left text-sm font-semibold leading-tight text-foreground">

@@ -16,20 +16,22 @@ import vn.workspacehub.user.common.AuthPolicy;
 public class JwtService {
 
     private final SecretKey secretKey;
+    private final SessionAuthorizationService sessions;
     private final long accessTokenExpiration;
     private final String issuer;
 
     public JwtService(
             @Value("${jwt.secret_key}") String secret,
             @Value("${jwt.access-token-expiration}") long accessTokenExpiration,
-            @Value("${jwt.issuer}") String issuer
+            @Value("${jwt.issuer}") String issuer, SessionAuthorizationService sessions
     ) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpiration = accessTokenExpiration;
         this.issuer = issuer;
+        this.sessions = sessions;
     }
 
-    public String generateAccessToken(UUID userId, String email, String role, String fullName, String avatarUrl) {
+    public String generateAccessToken(UUID userId, String email, String role, String fullName, String avatarUrl, UUID sessionId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + accessTokenExpiration);
 
@@ -37,6 +39,8 @@ public class JwtService {
                 .issuer(issuer)
                 .subject(userId.toString())
                 .claim("email", email)
+                .claim("sid", sessionId.toString())
+                .claim("email_verified", true)
                 .claim("role", role)
                 .claim(AuthPolicy.TOKEN_USE_CLAIM, AuthPolicy.ACCESS_TOKEN_USE)
                 .claim("fullName", fullName)
@@ -61,7 +65,12 @@ public class JwtService {
         if (!"HS256".equals(parsed.getHeader().getAlgorithm())) {
             throw new IllegalArgumentException("Invalid access token");
         }
-        return parsed.getPayload();
+        Claims claims = parsed.getPayload();
+        if (!Boolean.TRUE.equals(claims.get("email_verified", Boolean.class))
+                || !AuthPolicy.ACCESS_TOKEN_USE.equals(claims.get(AuthPolicy.TOKEN_USE_CLAIM, String.class))
+                || !sessions.isActive(UUID.fromString(claims.getSubject()), UUID.fromString(claims.get("sid", String.class))))
+            throw new IllegalArgumentException("Session is no longer active");
+        return claims;
     }
 
     public String extractEmail(String token) {

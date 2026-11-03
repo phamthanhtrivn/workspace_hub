@@ -45,6 +45,7 @@ public class AuthCredentialLoginService {
             throw new BusinessException(AuthPolicy.INVALID_CREDENTIALS);
         }
         User user = candidate.get();
+        if (!user.isEmailVerified()) throw new BusinessException("Verify your email before signing in.");
         attemptLimiter.loginSucceeded(email);
 
         String ipAddress = servlet.getClientIpAddress(request);
@@ -52,6 +53,6 @@ public class AuthCredentialLoginService {
         String rawRefreshToken = tokens.createAndSaveRefreshToken(user, request, ipAddress);
         servlet.setRefreshTokenCookie(response, rawRefreshToken);
 
-        return responses.buildLoginResponse(user);
+        return responses.buildLoginResponse(user, tokens.sessionId(rawRefreshToken));
     }
 }

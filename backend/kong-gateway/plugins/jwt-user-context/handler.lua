@@ -92,7 +92,8 @@ function JwtUserContextHandler:access(config)
   local now = ngx.time()
   if type(sub) ~= "string" or not sub:match(uuid_pattern)
     or (role ~= "USER" and role ~= "ADMIN")
-    or (payload.token_use ~= nil and payload.token_use ~= "access")
+    or payload.token_use ~= "access" or payload.email_verified ~= true
+    or type(payload.sid) ~= "string" or not payload.sid:match(uuid_pattern)
     or type(payload.exp) ~= "number" or payload.exp ~= payload.exp or payload.exp == math.huge or payload.exp <= now
     or (payload.nbf ~= nil and (type(payload.nbf) ~= "number" or payload.nbf ~= payload.nbf or payload.nbf == math.huge or payload.nbf > now)) then
     return kong.response.exit(401, { message = "Unauthorized: A valid access identity is required" })

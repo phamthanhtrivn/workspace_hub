@@ -57,13 +57,13 @@ export class TaskSyncService {
       for (const message of candidates) {
         if (!matchesTaskCard(message.content, event.taskId)) continue;
         const content = JSON.stringify(payload);
+        if (message.content === content && message.type === MessageType.TASK)
+          continue;
         updated.push(
-          message.content === content && message.type === MessageType.TASK
-            ? message
-            : await tx.message.update({
-                where: { id: message.id },
-                data: { content, type: MessageType.TASK },
-              }),
+          await tx.message.update({
+            where: { id: message.id },
+            data: { content, type: MessageType.TASK },
+          }),
         );
       }
       return updated;

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException }  from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SpaceRole, ChannelVisibility } from '@prisma/client';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
@@ -17,7 +17,7 @@ export class SpaceQueryService {
     private readonly presentation: SpacePresentationService,
   ) {}
   async getUserSpaces(userId: string) {
-    const spaces = await this.prisma.space.findMany({
+    const candidates = await this.prisma.space.findMany({
       where: {
         members: {
           some: {
@@ -33,6 +33,11 @@ export class SpaceQueryService {
       },
     });
 
+    const spaces: typeof candidates = [];
+    for (const space of candidates) {
+      try { await this.access.assertSpaceMember(space.id, userId); spaces.push(space); }
+      catch (error) { if (!(error instanceof ForbiddenException)) throw error; }
+    }
     const creatorIds = Array.from(new Set(spaces.map((s) => s.createdBy)));
     const profiles =
       await this.userProfileSnapshotService.getProfilesByUserIds(creatorIds);

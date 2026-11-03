@@ -337,6 +337,7 @@ export class SpaceMembershipService {
       privateMembershipChanges,
       this.kafkaClient,
     );
+    for (const channel of channels) this.chatSocketPublisher.removeUserFromChannel(targetUserId, channel.id);
 
     this.chatSocketPublisher.publishMemberKicked(
       [
@@ -447,6 +448,7 @@ export class SpaceMembershipService {
       privateMembershipChanges,
       this.kafkaClient,
     );
+    for (const channel of channels) this.chatSocketPublisher.removeUserFromChannel(userId, channel.id);
 
     this.events.emitSpaceMemberRemoved(
       spaceId,

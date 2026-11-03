@@ -8,6 +8,7 @@ import {
   updateLabel,
   type LabelPayload,
 } from "../api/label.api";
+import { invalidateProjectChange } from "../api/project-invalidation";
 
 export const labelKeys = {
   project: (projectId: string) => ["projects", projectId, "labels"] as const,
@@ -28,8 +29,7 @@ export function useCreateLabel(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: LabelPayload) => createLabel(projectId, payload),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["projects", projectId] }),
+    onSuccess: () => invalidateProjectChange(queryClient, { projectId, resource: 'LABEL' }),
   });
 }
 
@@ -37,8 +37,7 @@ export function useDeleteLabel(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (labelId: string) => deleteLabel(labelId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["projects", projectId] }),
+    onSuccess: () => invalidateProjectChange(queryClient, { projectId, resource: 'LABEL' }),
   });
 }
 
@@ -52,8 +51,7 @@ export function useUpdateLabel(projectId: string) {
       labelId: string;
       payload: LabelPayload;
     }) => updateLabel(labelId, payload),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["projects", projectId] }),
+    onSuccess: () => invalidateProjectChange(queryClient, { projectId, resource: 'LABEL' }),
   });
 }
 
@@ -62,12 +60,7 @@ export function useAttachLabel(projectId: string) {
   return useMutation({
     mutationFn: ({ taskId, labelId }: { taskId: string; labelId: string }) =>
       attachLabel(taskId, labelId),
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
-      void queryClient.invalidateQueries({
-        queryKey: ["tasks", variables.taskId],
-      });
-    },
+    onSuccess: (_, variables) => invalidateProjectChange(queryClient, { projectId, resource: 'LABEL', taskId: variables.taskId }),
   });
 }
 
@@ -76,11 +69,6 @@ export function useDetachLabel(projectId: string) {
   return useMutation({
     mutationFn: ({ taskId, labelId }: { taskId: string; labelId: string }) =>
       detachLabel(taskId, labelId),
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: ["projects", projectId] });
-      void queryClient.invalidateQueries({
-        queryKey: ["tasks", variables.taskId],
-      });
-    },
+    onSuccess: (_, variables) => invalidateProjectChange(queryClient, { projectId, resource: 'LABEL', taskId: variables.taskId }),
   });
 }

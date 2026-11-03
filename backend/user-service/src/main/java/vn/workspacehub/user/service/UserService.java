@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.workspacehub.user.dto.request.UpdateAccountSettingsRequest;
 import vn.workspacehub.user.dto.response.AccountSettingResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
+import vn.workspacehub.user.dto.response.PublicUserProfileResponse;
 import vn.workspacehub.user.dto.response.UserSearchResponse;
 import vn.workspacehub.user.entity.AccountSetting;
 import vn.workspacehub.user.entity.User;
@@ -91,14 +92,14 @@ public class UserService {
         return accountSettingMapper.toResponse(saved);
     }
 
-    public UserProfileResponse getPublicProfile(UUID id) {
+    public PublicUserProfileResponse getPublicProfile(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("User not found"));
 
-        return userProfileMapper.toResponse(user);
+        return PublicUserProfileResponse.from(user);
     }
 
-    public List<UserProfileResponse> getBulkProfiles(List<UUID> ids, List<String> emails) {
+    public List<PublicUserProfileResponse> getBulkProfiles(List<UUID> ids, List<String> emails) {
         List<User> users;
         if (ids != null && !ids.isEmpty()) {
             users = userRepository.findAllById(ids);
@@ -109,7 +110,7 @@ public class UserService {
         }
 
         return users.stream()
-                .map(userProfileMapper::toResponse)
+                .map(PublicUserProfileResponse::from)
                 .collect(Collectors.toList());
     }
 }

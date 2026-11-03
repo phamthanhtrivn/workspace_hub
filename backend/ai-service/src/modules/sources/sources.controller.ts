@@ -102,6 +102,7 @@ export class SourcesController {
         id,
         sourceId,
         parse(z.enum(["retry", "remove", "preview"]), action),
+        req.headers.authorization,
       ),
     };
   }

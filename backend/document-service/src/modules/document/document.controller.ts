@@ -431,6 +431,7 @@ export class DocumentController {
     @Headers('x-user-email') userEmail: string,
     @Param('id') id: string,
     @Query('versionId') versionId?: string,
+    @Headers('authorization') authorization?: string,
   ) {
     this.validateUserHeaders(userId, userEmail);
     const url = await this.documentService.getPreviewUrl(
@@ -438,6 +439,7 @@ export class DocumentController {
       userEmail,
       id,
       versionId,
+      authorization,
     );
     return {
       message: 'Preview link initialized successfully',
@@ -451,6 +453,7 @@ export class DocumentController {
     @Headers('x-user-email') userEmail: string,
     @Param('id') id: string,
     @Query('versionId') versionId?: string,
+    @Headers('authorization') authorization?: string,
   ) {
     this.validateUserHeaders(userId, userEmail);
     const url = await this.documentService.getDownloadUrl(
@@ -458,6 +461,7 @@ export class DocumentController {
       userEmail,
       id,
       versionId,
+      authorization,
     );
     return {
       message: 'Download link initialized successfully',
@@ -683,6 +687,7 @@ export class DocumentController {
     @Query('versionId') versionId?: string,
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
+    @Headers('authorization') authorization?: string,
   ) {
     const item = await this.documentService.checkPermission(
       id,
@@ -697,6 +702,7 @@ export class DocumentController {
       userEmail,
       id,
       versionId,
+      authorization,
     );
     return {
       message: 'Public download link initialized successfully',
@@ -711,6 +717,7 @@ export class DocumentController {
     @Query('versionId') versionId?: string,
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
+    @Headers('authorization') authorization?: string,
   ) {
     const item = await this.documentService.checkPermission(
       id,
@@ -725,6 +732,7 @@ export class DocumentController {
       userEmail,
       id,
       versionId,
+      authorization,
     );
     return {
       message: 'Public preview link initialized successfully',

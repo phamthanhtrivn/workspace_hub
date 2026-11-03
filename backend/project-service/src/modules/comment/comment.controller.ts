@@ -1,3 +1,4 @@
+import { ProjectChange } from '../socket/project-change.decorator';
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiResponse } from '../../common/utils/api-response';
 import { PaginationQueryDto } from '../../common/utils/pagination';
@@ -21,6 +22,7 @@ export class CommentController {
   }
 
   @Post('tasks/:taskId/comments')
+  @ProjectChange('COMMENT', 'CREATED')
   async create(
     @CurrentUserId() userId: string,
     @Param('taskId', new ParseUUIDPipe()) taskId: string,
@@ -30,6 +32,7 @@ export class CommentController {
   }
 
   @Patch('task-comments/:commentId')
+  @ProjectChange('COMMENT', 'UPDATED')
   async update(
     @CurrentUserId() userId: string,
     @Param('commentId', new ParseUUIDPipe()) commentId: string,
@@ -39,6 +42,7 @@ export class CommentController {
   }
 
   @Delete('task-comments/:commentId')
+  @ProjectChange('COMMENT', 'DELETED')
   async delete(
     @CurrentUserId() userId: string,
     @Param('commentId', new ParseUUIDPipe()) commentId: string,

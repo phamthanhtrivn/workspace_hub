@@ -1,3 +1,4 @@
+import { authorizeProject } from '../../../common/auth/project-authorization';
 import {
   CanActivate,
   ExecutionContext,
@@ -29,8 +30,13 @@ export class PrivateChannelGuard implements CanActivate {
         CHANNEL_RESOURCE_KEY,
         [context.getHandler(), context.getClass()],
       );
-    if (!resource) return true;
     const request = context.switchToHttp().getRequest<Request>();
+    const userId = request.headers['x-user-id'];
+    if (typeof userId === 'string' && typeof request.params.spaceId === 'string') {
+      const space = await this.prisma.space.findUnique({ where: { id: request.params.spaceId }, select: { projectId: true } });
+      if (space?.projectId) await authorizeProject(userId, space.projectId);
+    }
+    if (!resource) return true;
     const id = request.params[resource.parameter];
     if (typeof id !== 'string') return true;
     let channelId: string | null = id;

@@ -1,3 +1,4 @@
+import { authorizeProject } from '../../../common/auth/project-authorization';
 import { ChannelVisibility } from '@prisma/client';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -10,10 +11,11 @@ export class ChannelAccessService {
   async assertPrivateAccess(channelId: string, userId?: string) {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
-      select: { visibility: true, spaceId: true },
+      select: { visibility: true, spaceId: true, space: { select: { projectId: true } } },
     });
     if (!channel)
       throw new NotFoundException(CHANNEL_ERROR_MESSAGES.PRIVATE_ACCESS_DENIED);
+    if (channel.space.projectId) await authorizeProject(userId, channel.space.projectId);
     if (channel.visibility !== ChannelVisibility.PRIVATE) {
       const spaceMembership =
         userId &&

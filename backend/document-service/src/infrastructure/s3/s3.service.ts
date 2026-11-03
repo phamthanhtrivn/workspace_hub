@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -28,6 +29,16 @@ import {
 export class S3Service {
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
+
+  async readAuthorizedContent(key: string, range: string | undefined, head: boolean, signal: AbortSignal) {
+    if (range && !/^bytes=(\d+-\d*|-\d+)$/.test(range)) throw new HttpException('Invalid byte range', 416);
+    if (head) return { ...await this.s3Client.send(new HeadObjectCommand({ Bucket: this.bucketName, Key: key }), { abortSignal: signal }), Body: undefined };
+    try { return await this.s3Client.send(new GetObjectCommand({ Bucket: this.bucketName, Key: key, Range: range }), { abortSignal: signal }); }
+    catch (error) {
+      if ((error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 416) throw new HttpException('Invalid byte range', 416);
+      throw error;
+    }
+  }
 
   async describeAiSource(key: string, withDownload: boolean) {
     const object = await this.s3Client.send(

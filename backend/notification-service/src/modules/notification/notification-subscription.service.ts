@@ -1,4 +1,6 @@
-import { Injectable } from "@nestjs/common";
+import { timingSafeEqual } from 'node:crypto';
+import { assertPushEndpoint, PUSH_POLICY } from './push-policy';
+import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
 import { PushService } from "./push.service";
@@ -15,31 +17,21 @@ export class NotificationSubscriptionService {
     userId: string,
     dto: SaveSubscriptionDto,
   ): Promise<PushSubscription> {
-    const existing = await this.prisma.pushSubscription.findUnique({
-      where: { endpoint: dto.endpoint },
-    });
-
-    if (existing) {
-      if (existing.userId === userId) {
-        return existing;
+    assertPushEndpoint(dto.endpoint);
+    return this.prisma.$transaction(async tx => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`;
+      const existing = await tx.pushSubscription.findUnique({ where: { endpoint: dto.endpoint } });
+      if (existing) {
+        const supplied = Buffer.from(dto.keys.auth), saved = Buffer.from(existing.auth);
+        if (existing.userId !== userId && (existing.p256dh !== dto.keys.p256dh || supplied.length !== saved.length || !timingSafeEqual(supplied, saved)))
+          throw new ForbiddenException('This push subscription belongs to another account');
+        if (existing.userId !== userId && await tx.pushSubscription.count({ where: { userId } }) >= PUSH_POLICY.subscriptions)
+          throw new BadRequestException('Too many push subscriptions');
+        return tx.pushSubscription.update({ where: { id: existing.id }, data: { userId, p256dh: dto.keys.p256dh, auth: dto.keys.auth } });
       }
-      return this.prisma.pushSubscription.update({
-        where: { endpoint: dto.endpoint },
-        data: {
-          userId,
-          p256dh: dto.keys.p256dh,
-          auth: dto.keys.auth,
-        },
-      });
-    }
-
-    return this.prisma.pushSubscription.create({
-      data: {
-        userId,
-        endpoint: dto.endpoint,
-        p256dh: dto.keys.p256dh,
-        auth: dto.keys.auth,
-      },
+      if (await tx.pushSubscription.count({ where: { userId } }) >= PUSH_POLICY.subscriptions)
+        throw new BadRequestException('Too many push subscriptions');
+      return tx.pushSubscription.create({ data: { userId, endpoint: dto.endpoint, p256dh: dto.keys.p256dh, auth: dto.keys.auth } });
     });
   }
 

@@ -16,6 +16,7 @@ import java.util.UUID;
 
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID> {
+    boolean existsByUser_IdAndFamilyIdAndRevokedFalseAndExpiresAtAfter(UUID userId, UUID familyId, LocalDateTime now);
     @Query("SELECT t.user.id FROM RefreshToken t WHERE t.tokenHash = :tokenHash")
     Optional<UUID> findUserIdByTokenHash(@Param("tokenHash") String tokenHash);
     @Lock(LockModeType.PESSIMISTIC_WRITE)

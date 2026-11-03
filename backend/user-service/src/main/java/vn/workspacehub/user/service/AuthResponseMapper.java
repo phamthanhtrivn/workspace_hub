@@ -14,13 +14,13 @@ public class AuthResponseMapper {
     private final JwtService jwtService;
 
 
-    public LoginResponseDto buildLoginResponse(User user) {
+    public LoginResponseDto buildLoginResponse(User user, java.util.UUID sessionId) {
         UserProfile profile = user.getProfile();
         String fullName = profile != null ? profile.getFullName() : null;
         String avatarUrl = profile != null ? profile.getAvatarUrl() : null;
 
         String accessToken = jwtService.generateAccessToken(
-                user.getId(), user.getEmail(), user.getRole().name(), fullName, avatarUrl);
+                user.getId(), user.getEmail(), user.getRole().name(), fullName, avatarUrl, sessionId);
 
         return LoginResponseDto.builder()
                 .userId(user.getId())

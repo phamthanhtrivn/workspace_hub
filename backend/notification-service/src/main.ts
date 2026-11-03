@@ -1,3 +1,4 @@
+import { SessionRedisIoAdapter } from './common/auth/session-redis.adapter';
 import * as dotenv from "dotenv";
 // Load environment variables from .env file before anything else
 dotenv.config();
@@ -15,6 +16,9 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Enable CORS
+  const socketAdapter = new SessionRedisIoAdapter(app);
+  await socketAdapter.connect();
+  app.useWebSocketAdapter(socketAdapter);
   app.enableCors({
     ...socketCorsOptions,
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",

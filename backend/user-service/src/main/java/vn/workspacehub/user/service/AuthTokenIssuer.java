@@ -24,6 +24,11 @@ public class AuthTokenIssuer {
     @Value("${jwt.refresh-token-expiration}")
     private long refreshTokenExpirationMs;
 
+    public UUID sessionId(String rawRefreshToken) {
+        return refreshTokenRepository.findByTokenHashAndRevokedFalse(HashUtils.hmacSha256(rawRefreshToken, jwtSecret))
+                .orElseThrow(() -> new IllegalStateException("Session not found")).getFamilyId();
+    }
+
     public String createAndSaveRefreshToken(User user, HttpServletRequest request, String ipAddress) {
         return createAndSaveRefreshToken(user, request, ipAddress, UUID.randomUUID(),
                 LocalDateTime.now().plusSeconds(refreshTokenExpirationMs / 1000));

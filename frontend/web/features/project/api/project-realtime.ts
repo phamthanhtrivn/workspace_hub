@@ -1,92 +1,10 @@
-import type { QueryKey } from '@tanstack/react-query';
 import { normalizeTask, type TaskApiModel } from './task.api';
 import type { ProjectSpaceStatusResponse } from './project.api';
 import type { ProjectChangedEvent } from './project-socket.service';
 import type { Task } from '../types/project';
 
-export interface ProjectQueryInvalidation {
-  queryKey: QueryKey;
-  exact?: boolean;
-}
-
-export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQueryInvalidation[] {
-  const projectKey = ['projects', event.projectId];
-  const invalidations: ProjectQueryInvalidation[] = [];
-
-  if (
-    event.resource === 'PROJECT' ||
-    event.resource === 'TASK' ||
-    event.resource === 'MEMBER' ||
-    event.resource === 'INVITATION'
-  ) {
-    invalidations.push({ queryKey: ['projects'] });
-  }
-  if (
-    event.resource === 'PROJECT' ||
-    event.resource === 'MEMBER' ||
-    event.resource === 'INVITATION'
-  ) {
-    invalidations.push({ queryKey: projectKey, exact: true });
-  }
-
-  const resourceKeys: Partial<Record<ProjectChangedEvent['resource'], QueryKey[]>> = {
-    TASK: [[...projectKey, 'tasks'], [...projectKey, 'task-status-counts']],
-    MEMBER: [[...projectKey, 'members'], ['documents'], [...projectKey, 'documents']],
-    INVITATION: [
-      [...projectKey, 'members'],
-      [...projectKey, 'invitations', 'pending'],
-      ['projects', 'invitations', 'mine'],
-      ['documents'],
-      [...projectKey, 'documents'],
-    ],
-    PROJECT_SPACE: [[...projectKey, 'space-status']],
-    CHECKLIST: [[...projectKey, 'tasks']],
-    TASK_DOCUMENT: [[...projectKey, 'tasks']],
-    LABEL: [[...projectKey, 'labels'], [...projectKey, 'tasks']],
-    DEPENDENCY: [[...projectKey, 'dependencies'], [...projectKey, 'tasks']],
-    DOCUMENT: [
-      ['documents'],
-      ['document-versions'],
-      ['document-preview'],
-      ['folder-picker'],
-      [...projectKey, 'documents'],
-    ],
-  };
-
-  for (const queryKey of resourceKeys[event.resource] ?? []) {
-    invalidations.push({ queryKey });
-  }
-  if (event.resource === 'DOCUMENT' && event.entityId) {
-    invalidations.push({ queryKey: ['document-versions', event.entityId] });
-    invalidations.push({ queryKey: ['document-preview', event.entityId] });
-  }
-  if (event.resource === 'TASK_DOCUMENT' && event.taskId) {
-    invalidations.push({ queryKey: ['tasks', event.taskId] });
-    invalidations.push({ queryKey: ['tasks', event.taskId, 'documents'] });
-    invalidations.push({ queryKey: ['tasks', event.taskId, 'activities'] });
-  }
-
-  const taskIds = new Set(event.taskIds ?? []);
-  if (event.taskId) taskIds.add(event.taskId);
-  if (event.resource === 'TASK' && event.entityId) taskIds.add(event.entityId);
-  if (event.resource === 'DEPENDENCY' && event.data && typeof event.data === 'object') {
-    const dependency = event.data as Partial<{
-      predecessorTaskId: unknown;
-      successorTaskId: unknown;
-    }>;
-    if (typeof dependency.predecessorTaskId === 'string') {
-      taskIds.add(dependency.predecessorTaskId);
-    }
-    if (typeof dependency.successorTaskId === 'string') {
-      taskIds.add(dependency.successorTaskId);
-    }
-  }
-  for (const taskId of taskIds) {
-    invalidations.push({ queryKey: ['tasks', taskId] });
-  }
-
-  return invalidations;
-}
+export { projectQueriesForEvent } from './project-invalidation';
+export type { ProjectQueryInvalidation } from './project-invalidation';
 
 function isTaskPayload(value: unknown): value is TaskApiModel {
   if (!value || typeof value !== 'object') return false;

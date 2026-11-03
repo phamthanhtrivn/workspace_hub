@@ -65,6 +65,7 @@ const LoginForm = React.memo(function LoginForm() {
 
   return (
     <form noValidate onSubmit={onSubmit} className="space-y-5">
+      <Link href="/verify-email" className="block text-sm text-link">Verify your email to activate your account</Link>
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-4">
           <label

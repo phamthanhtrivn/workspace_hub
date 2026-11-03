@@ -33,8 +33,10 @@ export const notebooksApi = {
     id: string,
     sourceId: string,
     action: "remove" | "retry" | "preview",
-  ): Promise<{ url?: string }> =>
-    (await api.post(`${path(id)}/sources/${sourceId}/${action}`)).data.data,
+  ): Promise<{ url?: string }> => {
+    const result = (await api.post(`${path(id)}/sources/${sourceId}/${action}`)).data.data;
+    return result.url ? { ...result, url: new URL(result.url, api.defaults.baseURL).toString() } : result;
+  },
   sourceImage: async (
     id: string,
     sourceId: string,

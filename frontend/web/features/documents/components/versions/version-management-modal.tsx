@@ -59,7 +59,7 @@ export function VersionManagementModal({
         ? documentsApi.getPublicVersions(item.id)
         : documentsApi.getVersions(item.id);
     },
-    enabled: isModalOpen && !!item && item.type !== DocumentItemType.FOLDER,
+    enabled: isModalOpen && !!item && item.type !== DocumentItemType.FOLDER && (item.userRole === DocumentRole.OWNER || item.userRole === DocumentRole.EDITOR),
   });
 
   const { data: versions = [], isLoading } = versionsQuery;

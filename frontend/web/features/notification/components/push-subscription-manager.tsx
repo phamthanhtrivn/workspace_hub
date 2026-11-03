@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import axios from "axios";
-import { useAppSelector } from "@/store/store";
+import { store, useAppSelector } from "@/store/store";
 import { urlBase64ToUint8Array } from "../utils/push-subscription.utils";
 
 let hasLoggedPushSetupFailure = false;
@@ -11,6 +11,14 @@ export default function PushSubscriptionManager() {
   const accessToken = useAppSelector((state) => state.auth.accessToken);
 
   useEffect(() => {
+    if (!accessToken && "serviceWorker" in navigator) {
+      let cancelled = false;
+      void navigator.serviceWorker.getRegistration().then(async registration => {
+        const subscription = await registration?.pushManager.getSubscription();
+        if (!cancelled && !store.getState().auth.accessToken) await subscription?.unsubscribe();
+      }).catch(() => undefined);
+      return () => { cancelled = true; };
+    }
     if (
       !accessToken ||
       typeof window === "undefined" ||

@@ -1,3 +1,4 @@
+import { ProjectChange } from '../socket/project-change.decorator';
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiResponse } from '../../common/utils/api-response';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
@@ -15,26 +16,31 @@ export class LabelController {
   }
 
   @Post('projects/:projectId/labels')
+  @ProjectChange('LABEL', 'CREATED')
   async create(@CurrentUserId() userId: string, @Param('projectId', new ParseUUIDPipe()) projectId: string, @Body() dto: CreateLabelDto) {
     return ApiResponse.success(await this.labels.create(userId, projectId, dto), 'Label created successfully');
   }
 
   @Patch('labels/:labelId')
+  @ProjectChange('LABEL', 'UPDATED')
   async update(@CurrentUserId() userId: string, @Param('labelId', new ParseUUIDPipe()) labelId: string, @Body() dto: UpdateLabelDto) {
     return ApiResponse.success(await this.labels.update(userId, labelId, dto), 'Label updated successfully');
   }
 
   @Delete('labels/:labelId')
+  @ProjectChange('LABEL', 'DELETED')
   async remove(@CurrentUserId() userId: string, @Param('labelId', new ParseUUIDPipe()) labelId: string) {
     return ApiResponse.success(await this.labels.remove(userId, labelId), 'Label deleted successfully');
   }
 
   @Post('tasks/:taskId/labels/:labelId')
+  @ProjectChange('LABEL', 'CREATED')
   async attach(@CurrentUserId() userId: string, @Param('taskId', new ParseUUIDPipe()) taskId: string, @Param('labelId', new ParseUUIDPipe()) labelId: string) {
     return ApiResponse.success(await this.labels.attach(userId, taskId, labelId), 'Label attached successfully');
   }
 
   @Delete('tasks/:taskId/labels/:labelId')
+  @ProjectChange('LABEL', 'DELETED')
   async detach(@CurrentUserId() userId: string, @Param('taskId', new ParseUUIDPipe()) taskId: string, @Param('labelId', new ParseUUIDPipe()) labelId: string) {
     return ApiResponse.success(await this.labels.detach(userId, taskId, labelId), 'Label detached successfully');
   }

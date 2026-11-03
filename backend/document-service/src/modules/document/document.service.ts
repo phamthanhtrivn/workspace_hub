@@ -216,8 +216,9 @@ export class DocumentService {
     userEmail: string | undefined,
     id: string,
     versionId?: string,
+    authorization?: string,
   ): Promise<string> {
-    return this.downloads.getPreviewUrl(userId, userEmail, id, versionId);
+    return this.downloads.getPreviewUrl(userId, userEmail, id, versionId, authorization);
   }
 
   async getDownloadUrl(
@@ -225,8 +226,9 @@ export class DocumentService {
     userEmail: string | undefined,
     id: string,
     versionId?: string,
+    authorization?: string,
   ): Promise<string> {
-    return this.downloads.getDownloadUrl(userId, userEmail, id, versionId);
+    return this.downloads.getDownloadUrl(userId, userEmail, id, versionId, authorization);
   }
 
   async getVersions(

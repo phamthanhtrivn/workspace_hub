@@ -1,3 +1,4 @@
+import { documentPreviewUrl } from '../../infrastructure/integrations/document.client';
 import {
   BadRequestException,
   ForbiddenException,
@@ -140,6 +141,7 @@ export class SourcesService {
     id: string,
     sourceId: string,
     action: "remove" | "retry" | "preview",
+    authorization?: string,
   ) {
     await ownedNotebook(actor, id);
     const source = (await this.sources(id)).find(
@@ -154,9 +156,9 @@ export class SourcesService {
     const [manifest] = await authorizeSources(
       actor,
       [source],
-      action === "preview",
+      false,
     );
-    if (action === "preview") return { url: manifest.downloadUrl };
+    if (action === "preview") return { url: await documentPreviewUrl(manifest.documentId, authorization) };
     if (!["FAILED", "QUEUED", "READY"].includes(source.status))
       throw new BadRequestException("Nguồn đang xử lý");
     await withUploadCheck(async () => {

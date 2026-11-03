@@ -1,3 +1,4 @@
+import { ProjectChange } from '../socket/project-change.decorator';
 import { Body, Controller, Delete, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { ApiResponse } from '../../common/utils/api-response';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
@@ -10,6 +11,7 @@ export class ChecklistController {
   constructor(private readonly checklists: ChecklistService) {}
 
   @Post('tasks/:taskId/checklists')
+  @ProjectChange('CHECKLIST', 'CREATED')
   async create(
     @CurrentUserId() userId: string,
     @Param('taskId', new ParseUUIDPipe()) taskId: string,
@@ -19,6 +21,7 @@ export class ChecklistController {
   }
 
   @Patch('checklists/:checklistId')
+  @ProjectChange('CHECKLIST', 'UPDATED')
   async update(
     @CurrentUserId() userId: string,
     @Param('checklistId', new ParseUUIDPipe()) checklistId: string,
@@ -28,6 +31,7 @@ export class ChecklistController {
   }
 
   @Delete('checklists/:checklistId')
+  @ProjectChange('CHECKLIST', 'DELETED')
   async remove(
     @CurrentUserId() userId: string,
     @Param('checklistId', new ParseUUIDPipe()) checklistId: string,

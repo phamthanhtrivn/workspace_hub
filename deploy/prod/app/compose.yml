@@ -54,6 +54,7 @@ services:
       USER_SERVICE_URL: http://user-service:8081
       COMMUNICATION_SERVICE_URL: http://communication-service:8083
       NOTIFICATION_SERVICE_URL: http://notification-service:8084
+      REDIS_URL: redis://${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:6379
     expose:
       - '8082'
     restart: unless-stopped
@@ -126,6 +127,9 @@ services:
       PORT: '8084'
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD_URLENCODED:?POSTGRES_PASSWORD_URLENCODED is required}@${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:5432/notification_db?schema=public
       INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?INTERNAL_SERVICE_KEY is required}
+      REDIS_URL: redis://${INFRA_PRIVATE_HOST:?INFRA_PRIVATE_HOST is required}:6379
+      USER_SERVICE_URL: http://user-service:8081
+      WEB_PUSH_ALLOWED_HOSTS: ${WEB_PUSH_ALLOWED_HOSTS:-}
     expose:
       - '8084'
     restart: unless-stopped
@@ -159,6 +163,7 @@ services:
       AI_DOCUMENT_SERVICE_KEY_PREVIOUS: ${AI_DOCUMENT_SERVICE_KEY_PREVIOUS:-}
       CALENDAR_DOCUMENT_SERVICE_KEY: ${CALENDAR_DOCUMENT_SERVICE_KEY:?CALENDAR_DOCUMENT_SERVICE_KEY is required}
       CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS: ${CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS:-}
+      USER_SERVICE_URL: http://user-service:8081
     expose:
       - '8085'
     restart: unless-stopped
@@ -207,6 +212,8 @@ services:
   kong:
     image: ${DOCKERHUB_USERNAME:?DOCKERHUB_USERNAME is required}/workspacehub-kong:${KONG_IMAGE_TAG:?KONG_IMAGE_TAG is required}
     environment:
+      KONG_PROXY_ACCESS_LOG: 'off'
+      KONG_PROXY_ERROR_LOG: /dev/null
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
       AI_GATEWAY_KEY: ${AI_GATEWAY_KEY:-}

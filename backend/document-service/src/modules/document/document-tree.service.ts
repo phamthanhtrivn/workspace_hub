@@ -103,7 +103,7 @@ export class DocumentTreeService {
     while (queue.length > 0) {
       const { id: currentId, relativePath } = queue.shift()!;
       const children = await this.prisma.documentItem.findMany({
-        where: { parentFolderId: currentId },
+        where: { parentFolderId: currentId, isArchived: false },
       });
 
       for (const child of children) {

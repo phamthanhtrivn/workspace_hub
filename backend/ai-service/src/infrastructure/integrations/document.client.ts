@@ -134,3 +134,14 @@ export async function resolveChatAttachment(
     }
   ).data;
 }
+
+export async function documentPreviewUrl(documentId: string, authorization?: string): Promise<string> {
+  if (!authorization) throw new ForbiddenException('Authentication required');
+  let response: Response;
+  try { response = await fetch(new URL('/api/documents/' + encodeURIComponent(documentId) + '/preview', config.DOCUMENT_SERVICE_URL), {
+    headers: { authorization }, signal: AbortSignal.timeout(10000), redirect: 'error',
+  }); } catch { throw new ServiceUnavailableException('Document service unavailable'); }
+  if (response.status === 401 || response.status === 403 || response.status === 404) throw new ForbiddenException('Document access denied');
+  if (!response.ok) throw new ServiceUnavailableException('Document service unavailable');
+  return ((await response.json()) as { data: { url: string } }).data.url;
+}

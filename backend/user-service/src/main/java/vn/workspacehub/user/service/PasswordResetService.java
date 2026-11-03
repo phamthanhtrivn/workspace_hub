@@ -23,6 +23,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class PasswordResetService {
+    private final SessionRevocationPublisher revocations;
 
     private final UserRepository userRepository;
     private final OtpService otpService;
@@ -84,5 +85,6 @@ public class PasswordResetService {
         userRepository.save(user);
         grants.invalidateForUser(user.getId(), now);
         refreshTokens.revokeAllForUser(user.getId(), LocalDateTime.now());
+        revocations.revoked(user.getId(), null);
     }
 }

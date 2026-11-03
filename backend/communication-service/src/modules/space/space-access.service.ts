@@ -4,6 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { authorizeProject } from '../../common/auth/project-authorization';
 import { SpaceRole } from '@prisma/client';
 import { SPACE_ERROR_MESSAGES } from './types/space.enums';
 
@@ -17,6 +18,8 @@ export class SpaceAccessService {
     if (!member) {
       throw new ForbiddenException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
     }
+    const space = await this.prisma.space.findUnique({ where: { id: spaceId }, select: { projectId: true } });
+    if (space?.projectId) await authorizeProject(userId, space.projectId);
     return member;
   }
 

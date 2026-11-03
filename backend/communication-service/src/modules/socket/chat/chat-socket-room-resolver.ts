@@ -11,7 +11,7 @@ export class ChatSocketRoomResolver {
       select: { userId: true },
     });
 
-    return [channelId, ...members.map((member) => member.userId)];
+    return members.map((member) => member.userId);
   }
 
   async getDirectTargetRooms(conversationId: string): Promise<string[]> {

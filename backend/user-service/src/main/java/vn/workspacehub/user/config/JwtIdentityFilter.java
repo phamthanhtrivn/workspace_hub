@@ -30,7 +30,7 @@ public final class JwtIdentityFilter extends OncePerRequestFilter {
             "x-user-id", "x-user-email", "x-user-role", "x-user-name", "x-user-avatar");
     private static final Set<String> PUBLIC_AUTH_PATHS = Set.of(
             "/api/auth/register", "/api/auth/login", "/api/auth/social", "/api/auth/refresh",
-            "/api/auth/logout", "/api/auth/forgot-password", "/api/auth/verify-reset-otp", "/api/auth/reset-password");
+            "/api/auth/verification/send", "/api/auth/verification/confirm", "/api/auth/logout", "/api/auth/forgot-password", "/api/auth/verify-reset-otp", "/api/auth/reset-password");
     private static final int MAX_TOKEN_LENGTH = 16_384;
     private final JwtService jwtService;
     private final ObjectMapper objectMapper;
@@ -49,9 +49,9 @@ public final class JwtIdentityFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         boolean isPublic = ("GET".equals(request.getMethod()) && Set.of("/health", "/ready").contains(path))
                 || ("POST".equals(request.getMethod()) && PUBLIC_AUTH_PATHS.contains(path));
-        boolean isInternal = "GET".equals(request.getMethod())
+        boolean isInternal = (("POST".equals(request.getMethod()) && path.equals("/api/users/internal/sessions/authorize")) || "GET".equals(request.getMethod())
                 && (path.matches("/api/users/internal/[^/]+/direct-message-settings")
-                    || path.equals("/api/users/profiles/bulk"))
+                    || path.equals("/api/users/profiles/bulk")))
                 && ServiceCredentials.matches(request.getHeader("X-Internal-Service-Key"), internalServiceKey);
         if (!isPublic && !isInternal) {
             try {

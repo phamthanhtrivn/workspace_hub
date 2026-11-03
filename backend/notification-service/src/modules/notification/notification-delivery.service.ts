@@ -1,3 +1,4 @@
+import { emitWithActiveSessions } from '../../common/auth/socket-session';
 import { Injectable } from "@nestjs/common";
 import { Notification } from "@prisma/client";
 import { NotificationGateway } from "./notification.gateway";
@@ -19,7 +20,7 @@ export class NotificationDeliveryService {
     event: NotificationEventName,
     payload: TPayload,
   ): void {
-    this.gateway.server.to(recipientId).emit(event, payload);
+    void emitWithActiveSessions(this.gateway.server, recipientId, event, payload).catch(() => undefined);
   }
 
   deliverCreated(saved: Notification, options: { sendPush?: boolean }): void {

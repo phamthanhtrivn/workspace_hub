@@ -1,3 +1,4 @@
+import { ProjectChange } from '../socket/project-change.decorator';
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ApiResponse } from '../../common/utils/api-response';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
@@ -9,6 +10,7 @@ export class InvitationController {
   constructor(private readonly invitations: InvitationService) {}
 
   @Post('projects/:projectId/invitations')
+  @ProjectChange('INVITATION', 'CREATED')
   async create(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -34,6 +36,7 @@ export class InvitationController {
   }
 
   @Post('projects/:projectId/invitations/:invitationId/resend')
+  @ProjectChange('INVITATION', 'CREATED')
   async resend(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -46,6 +49,7 @@ export class InvitationController {
   }
 
   @Post('project-invitations/:invitationId/accept')
+  @ProjectChange('INVITATION', 'UPDATED')
   async accept(
     @CurrentUserId() userId: string,
     @Param('invitationId', new ParseUUIDPipe()) invitationId: string,
@@ -54,6 +58,7 @@ export class InvitationController {
   }
 
   @Post('project-invitations/:invitationId/decline')
+  @ProjectChange('INVITATION', 'UPDATED')
   async decline(
     @CurrentUserId() userId: string,
     @Param('invitationId', new ParseUUIDPipe()) invitationId: string,
@@ -62,6 +67,7 @@ export class InvitationController {
   }
 
   @Delete('projects/:projectId/invitations/:invitationId')
+  @ProjectChange('INVITATION', 'DELETED')
   async cancel(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,

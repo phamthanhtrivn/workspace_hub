@@ -1,3 +1,4 @@
+import { sendEmailVerificationApi, confirmEmailApi } from '../api/auth.api';
 import { useMutation } from "@tanstack/react-query";
 import {
   loginApi,
@@ -37,3 +38,6 @@ export const useRefreshMutation = () =>
     mutationKey: [AuthMutationKey.REFRESH],
     mutationFn: refreshApi,
   });
+
+export const useSendEmailVerificationMutation = () => useMutation({ mutationFn: sendEmailVerificationApi });
+export const useConfirmEmailMutation = () => useMutation({ mutationFn: confirmEmailApi });

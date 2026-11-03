@@ -1,3 +1,4 @@
+import { ProjectChange } from '../socket/project-change.decorator';
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiResponse } from '../../common/utils/api-response';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
@@ -13,11 +14,13 @@ export class TaskController {
   constructor(private readonly tasks: TaskService) {}
 
   @Post(TASK_LIFECYCLE.reopenRoute)
+  @ProjectChange('TASK', 'UPDATED')
   async reopen(@CurrentUserId() userId: string, @Param('taskId', new ParseUUIDPipe()) taskId: string) {
     return ApiResponse.success(await this.tasks.reopen(userId, taskId), 'Task reopened successfully');
   }
 
   @Post('projects/:projectId/tasks')
+  @ProjectChange('TASK', 'CREATED')
   async create(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -64,6 +67,7 @@ export class TaskController {
   }
 
   @Post('tasks/:taskId/documents')
+  @ProjectChange('TASK_DOCUMENT', 'CREATED')
   async attachDocuments(
     @CurrentUserId() userId: string,
     @Param('taskId', new ParseUUIDPipe()) taskId: string,
@@ -76,6 +80,7 @@ export class TaskController {
   }
 
   @Delete('tasks/:taskId/documents/:attachmentId')
+  @ProjectChange('TASK_DOCUMENT', 'DELETED')
   async detachDocument(
     @CurrentUserId() userId: string,
     @Param('taskId', new ParseUUIDPipe()) taskId: string,
@@ -88,6 +93,7 @@ export class TaskController {
   }
 
   @Patch('tasks/:taskId')
+  @ProjectChange('TASK', 'UPDATED')
   async update(
     @CurrentUserId() userId: string,
     @Param('taskId', new ParseUUIDPipe()) taskId: string,
@@ -97,6 +103,7 @@ export class TaskController {
   }
 
   @Delete('tasks/:taskId')
+  @ProjectChange('TASK', 'DELETED')
   async delete(
     @CurrentUserId() userId: string,
     @Param('taskId', new ParseUUIDPipe()) taskId: string,

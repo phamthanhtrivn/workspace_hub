@@ -215,6 +215,14 @@ plugins:
   - name: file-log
     config:
       path: /dev/stdout
+      custom_fields_by_lua:
+        request_id: "return kong.request.get_header('X-Request-ID')"
+        request.headers: "return nil"
+        response.headers: "return nil"
+        request.querystring: "return nil"
+        request.uri: "return kong.request.get_path()"
+        request.url: "return kong.request.get_path()"
+        upstream_uri: "return nil"
 
   # ==========================================
   # ROUTE-SPECIFIC PLUGINS (Authentication)
