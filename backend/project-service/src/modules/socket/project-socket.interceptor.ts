@@ -5,6 +5,7 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Request } from 'express';
+import { Reflector } from '@nestjs/core';
 import { Observable, tap } from 'rxjs';
 import { AuthenticatedRequest } from '../../common/guards/jwt-identity.guard';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -14,6 +15,7 @@ import {
   ProjectResource,
 } from './project-socket.types';
 import { ProjectSocketPublisher } from './project-socket.publisher';
+import { PROJECT_CHANGE_METADATA, ProjectChangeMetadata } from './project-change.decorator';
 
 interface MutationLocation {
   projectId?: string;
@@ -36,15 +38,16 @@ export class ProjectSocketInterceptor implements NestInterceptor {
   constructor(
     private readonly prisma: PrismaService,
     private readonly socketPublisher: ProjectSocketPublisher,
+    private readonly reflector: Reflector,
   ) {}
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
     if (context.getType() !== 'http') return next.handle();
 
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const resource = this.resourceFrom(request);
-    const action = request.originalUrl.split('?')[0].endsWith('/reopen') ? 'UPDATED' : this.actionFrom(request.method);
-    if (!resource || !action || !request.authenticatedUserId) return next.handle();
+    const change = this.reflector.get<ProjectChangeMetadata>(PROJECT_CHANGE_METADATA, context.getHandler());
+    if (!change || !request.authenticatedUserId) return next.handle();
+    const { resource, action } = change;
 
     const location = await this.resolveLocation(request);
     return next.handle().pipe(
@@ -119,30 +122,6 @@ export class ProjectSocketInterceptor implements NestInterceptor {
       return {};
     }
     return {};
-  }
-
-  private resourceFrom(request: Request): ProjectResource | undefined {
-    const path = request.originalUrl.split('?')[0];
-    if (path.includes('/invitations') || path.includes('/project-invitations')) {
-      return 'INVITATION';
-    }
-    if (path.includes('/members')) return 'MEMBER';
-    if (path.includes('/checklists')) return 'CHECKLIST';
-    if (path.includes('/task-comments') || path.includes('/comments')) return 'COMMENT';
-    if (path.includes('/tasks') && path.includes('/documents')) return 'TASK_DOCUMENT';
-    if (path.includes('/dependencies')) return 'DEPENDENCY';
-    if (path.includes('/labels')) return 'LABEL';
-    if (path.includes('/tasks')) return 'TASK';
-    if (path.includes('/space')) return undefined;
-    if (path.includes('/projects')) return 'PROJECT';
-    return undefined;
-  }
-
-  private actionFrom(method: string): ProjectChangeAction | undefined {
-    if (method === 'POST') return 'CREATED';
-    if (method === 'PATCH' || method === 'PUT') return 'UPDATED';
-    if (method === 'DELETE') return 'DELETED';
-    return undefined;
   }
 
   private entityId(request: Request): string | undefined {

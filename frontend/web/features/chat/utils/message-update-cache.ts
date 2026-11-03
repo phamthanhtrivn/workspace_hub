@@ -1,6 +1,8 @@
-import type { QueryClient } from '@tanstack/react-query';
-import { chatKeys } from '../types/chat.constant';
-import type { ApiResponse, ChatMessageResponse, FollowedThreadResponse, ThreadMessagesResponse } from '../types/chat.types';
+import type { Query, QueryClient } from '@tanstack/react-query';
+import { chatKeys, ChatQueryRoot, ChatScope } from '../types/chat.constant';
+import { ChatContextType } from '../types/chat.enums';
+import type { ChatContextPayload } from '../types/chat-socket.types';
+import type { ApiResponse, ChatMessageResponse, FollowedThreadResponse, PaginatedMessagesResponse, ThreadMessagesResponse } from '../types/chat.types';
 
 export type ChatMessageUpdate = Pick<ChatMessageResponse, 'id'> & Partial<ChatMessageResponse>;
 
@@ -21,8 +23,37 @@ export function mergeChatMessageUpdate(message: ChatMessageResponse, update: Cha
   return { ...message, ...update };
 }
 
-export function patchThreadMessageCaches(client: QueryClient, update: ChatMessageUpdate): void {
-  client.setQueriesData<ApiResponse<ThreadMessagesResponse>>({ queryKey: chatKeys.allThreadMessages() }, response => {
+export async function applyChatMessageUpdate(client: QueryClient, update: ChatMessageUpdate & Partial<ChatContextPayload>): Promise<void> {
+  const chatId = update.channelId ?? update.conversationId ?? update.chatId;
+  const context = update.chatType ?? (update.conversationId ? ChatContextType.DIRECT_MESSAGE : update.channelId ? ChatContextType.CHANNEL : undefined);
+  const scope = context === ChatContextType.CHANNEL ? ChatScope.CHANNEL : ChatScope.DIRECT;
+  const threadIds = new Set([update.id, update.threadParentId].filter(Boolean));
+  const matchesThread = (query: Query): boolean => {
+    if (query.queryKey[0] !== ChatQueryRoot.THREAD_MESSAGES) return false;
+    if (context && query.queryKey[1] !== scope) return false;
+    if (typeof query.queryKey[2] === 'string' && threadIds.has(query.queryKey[2])) return true;
+    const response = query.state.data as ApiResponse<ThreadMessagesResponse> | undefined;
+    return response?.data?.rootMessage?.id === update.id ||
+      Boolean(response?.data?.replies.some(reply => reply.id === update.id));
+  };
+  const matchesConversation = (query: Query): boolean => {
+    if (!chatId || !context) return false;
+    if (query.queryKey[0] === ChatQueryRoot.MESSAGES) {
+      return query.queryKey[1] === context && query.queryKey[2] === chatId;
+    }
+    return [ChatQueryRoot.PINNED_MESSAGES_PREVIEW, ChatQueryRoot.PINNED_MESSAGES_DETAIL, ChatQueryRoot.THREADS]
+      .some(root => root === query.queryKey[0]) && query.queryKey[1] === scope && query.queryKey[2] === chatId;
+  };
+  const predicate = (query: Query) => matchesThread(query) || matchesConversation(query);
+  // Cancel older requests before patching, then reconcile only the affected caches.
+  await client.cancelQueries({ predicate });
+  client.setQueriesData<{ pages?: PaginatedMessagesResponse[] }>({ queryKey: chatKeys.allMessages(), predicate: matchesConversation }, previous => {
+    if (!previous?.pages) return previous;
+    return { ...previous, pages: previous.pages.map(page => ({ ...page,
+      messages: page.messages.map(message => mergeChatMessageUpdate(message, update)),
+    })) };
+  });
+  client.setQueriesData<ApiResponse<ThreadMessagesResponse>>({ predicate: matchesThread }, response => {
     if (!response?.data) return response;
     return { ...response, data: { ...response.data,
       rootMessage: response.data.rootMessage ? mergeChatMessageUpdate(response.data.rootMessage, update) : undefined,
@@ -31,9 +62,5 @@ export function patchThreadMessageCaches(client: QueryClient, update: ChatMessag
   });
   client.setQueriesData<FollowedThreadResponse[]>({ queryKey: chatKeys.allFollowedThreads() }, threads =>
     Array.isArray(threads) ? threads.map(thread => ({ ...thread, rootMessage: mergeChatMessageUpdate(thread.rootMessage, update) })) : threads);
-  // Refetch after patching so a request started before this event cannot restore an older root.
-  void client.invalidateQueries({ queryKey: chatKeys.allThreadMessages() });
-  for (const queryKey of [chatKeys.allPinnedMessagesPreview(), chatKeys.allPinnedMessagesDetail(), chatKeys.allThreads()]) {
-    void client.invalidateQueries({ queryKey });
-  }
+  await client.invalidateQueries({ predicate });
 }

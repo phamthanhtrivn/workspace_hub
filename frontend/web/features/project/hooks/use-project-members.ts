@@ -4,7 +4,7 @@ import {
   updateProjectMemberPermissions,
 } from "../api/member.api";
 import type { ProjectMemberPermissions } from "../types/project";
-import { projectKeys } from "./use-projects";
+import { invalidateProjectChange } from "../api/project-invalidation";
 
 export function useRemoveProjectMember(projectId: string) {
   const queryClient = useQueryClient();
@@ -12,14 +12,7 @@ export function useRemoveProjectMember(projectId: string) {
   return useMutation({
     mutationFn: (memberUserId: string) =>
       removeProjectMember(projectId, memberUserId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.members(projectId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.detail(projectId),
-      });
-    },
+    onSuccess: () => invalidateProjectChange(queryClient, { projectId, resource: 'MEMBER', action: 'DELETED' }),
   });
 }
 
@@ -34,13 +27,6 @@ export function useUpdateProjectMemberPermissions(projectId: string) {
       memberUserId: string;
       permissions: ProjectMemberPermissions;
     }) => updateProjectMemberPermissions(projectId, memberUserId, permissions),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.members(projectId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: projectKeys.detail(projectId),
-      });
-    },
+    onSuccess: () => invalidateProjectChange(queryClient, { projectId, resource: 'MEMBER', action: 'UPDATED' }),
   });
 }

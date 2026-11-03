@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { isAxiosError } from 'axios';
 import { Button } from '@/components/ui/button';
 import { reopenTask } from '../../api/task.api';
+import { invalidateProjectChange } from '../../api/project-invalidation';
 import type { Task } from '../../types/project';
 
 export function TaskReopenButton({ task, parent, onTaskClick }: {
@@ -12,8 +13,7 @@ export function TaskReopenButton({ task, parent, onTaskClick }: {
 }) {
   const cache = useQueryClient();
   const reopen = useMutation({ mutationFn: () => reopenTask(task.id), onSuccess: () => {
-    void cache.invalidateQueries({ queryKey: ['projects'] });
-    void cache.invalidateQueries({ queryKey: ['tasks', task.id] });
+    void invalidateProjectChange(cache, { projectId: task.projectId, resource: 'TASK', action: 'UPDATED', taskId: task.id });
     toast.success('Task reopened');
   }, onError: error => {
     const message = isAxiosError(error) ? error.response?.data?.message : undefined;

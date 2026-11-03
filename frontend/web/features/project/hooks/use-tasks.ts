@@ -18,6 +18,7 @@ import {
   type UpdateTaskPayload,
 } from "../api/task.api";
 import type { ProjectTaskQuery } from "../project-task-view";
+import { invalidateProjectChange } from "../api/project-invalidation";
 
 export const taskKeys = {
   project: (projectId: string, query?: ProjectTaskQuery) =>
@@ -56,10 +57,7 @@ export function useCreateTask(projectId: string) {
 
   return useMutation({
     mutationFn: (payload: CreateTaskPayload) => createTask(projectId, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
-      queryClient.invalidateQueries({ queryKey: taskKeys.statusCounts(projectId) });
-    },
+    onSuccess: (task) => invalidateProjectChange(queryClient, { projectId, resource: 'TASK', action: 'CREATED', taskId: task.id }),
   });
 }
 
@@ -69,11 +67,7 @@ export function useUpdateTask(projectId: string) {
   return useMutation({
     mutationFn: ({ taskId, payload }: { taskId: string; payload: UpdateTaskPayload }) =>
       updateTask(taskId, payload),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
-      queryClient.invalidateQueries({ queryKey: taskKeys.statusCounts(projectId) });
-      queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.taskId) });
-    },
+    onSuccess: (_, variables) => invalidateProjectChange(queryClient, { projectId, resource: 'TASK', action: 'UPDATED', taskId: variables.taskId }),
   });
 }
 
@@ -81,7 +75,7 @@ export function useCreateChecklist(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ taskId, title }: { taskId: string; title: string }) => createChecklist(taskId, title),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) }),
+    onSuccess: (_, variables) => invalidateProjectChange(queryClient, { projectId, resource: 'CHECKLIST', taskId: variables.taskId }),
   });
 }
 
@@ -89,7 +83,7 @@ export function useUpdateChecklist(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ checklistId, completed }: { checklistId: string; completed: boolean }) => updateChecklist(checklistId, completed),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) }),
+    onSuccess: () => invalidateProjectChange(queryClient, { projectId, resource: 'CHECKLIST' }),
   });
 }
 
@@ -97,7 +91,7 @@ export function useDeleteChecklist(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (checklistId: string) => deleteChecklist(checklistId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) }),
+    onSuccess: () => invalidateProjectChange(queryClient, { projectId, resource: 'CHECKLIST' }),
   });
 }
 
@@ -128,10 +122,7 @@ export function useAttachTaskDocuments(projectId: string, taskId: string) {
     },
     onSuccess: () => {
       operation.current = null;
-      queryClient.invalidateQueries({ queryKey: taskKeys.documents(taskId) });
-      queryClient.invalidateQueries({ queryKey: taskKeys.detail(taskId) });
-      queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) });
-      queryClient.invalidateQueries({ queryKey: taskKeys.activities(taskId) });
+      void invalidateProjectChange(queryClient, { projectId, resource: 'TASK_DOCUMENT', taskId });
     },
   });
 }
@@ -141,10 +132,7 @@ export function useDetachTaskDocument(projectId: string, taskId: string) {
   return useMutation({
     mutationFn: (attachmentId: string) => detachTaskDocument(taskId, attachmentId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: taskKeys.documents(taskId) });
-      queryClient.invalidateQueries({ queryKey: taskKeys.detail(taskId) });
-      queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) });
-      queryClient.invalidateQueries({ queryKey: taskKeys.activities(taskId) });
+      void invalidateProjectChange(queryClient, { projectId, resource: 'TASK_DOCUMENT', taskId });
     },
   });
 }

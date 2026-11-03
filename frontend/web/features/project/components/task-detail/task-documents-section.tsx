@@ -282,7 +282,7 @@ function TaskDocumentPickerDialog({
 }: TaskDocumentPickerDialogProps) {
   const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const projectDocumentsQuery = useProjectDocuments(task.projectId);
+  const projectDocumentsQuery = useProjectDocuments(task.projectId, open);
   const attachDocuments = useAttachTaskDocuments(task.projectId, task.id);
   const rootFolderId = projectDocumentsQuery.data?.folderId;
 

@@ -11,8 +11,8 @@ import {
 import {
   applyProjectSpaceSocketEvent,
   applyTaskSocketEvent,
-  projectQueriesForEvent,
 } from "../api/project-realtime";
+import { invalidateProjectChange } from "../api/project-invalidation";
 import {
   projectSocketService,
   type ProjectChangedEvent,
@@ -63,9 +63,7 @@ export default function ProjectRealtimeManager() {
           (current) => applyProjectSpaceSocketEvent(current, event),
         );
       }
-      for (const invalidation of projectQueriesForEvent(event)) {
-        void queryClient.invalidateQueries(invalidation);
-      }
+      void invalidateProjectChange(queryClient, event);
       if (
         event.resource === "PROJECT" ||
         event.resource === "MEMBER" ||

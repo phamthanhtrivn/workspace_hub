@@ -14,7 +14,6 @@ import {
   ChatContextType,
   SpaceRole,
   SpaceSettingResponse,
-  PaginatedMessagesResponse,
 } from "../../types/chat.types";
 import {
   ChatSocketMemberPayload,
@@ -44,7 +43,7 @@ import {
   updateChannelsCache,
   updateDirectMessagesCache,
 } from "../../utils/chat-cache";
-import { mergeChatMessageUpdate, patchThreadMessageCaches } from '../../utils/message-update-cache';
+import { applyChatMessageUpdate, mergeChatMessageUpdate } from '../../utils/message-update-cache';
 
 function isChannelPayload(payload: {
   chatType?: ChatContextType;
@@ -253,33 +252,8 @@ export function useChatSocket() {
     const handleMessageUpdated = (message: ChatSocketMessageUpdatePayload) => {
       const chatId = getMessageChatId(message);
       if (!chatId) return;
-      patchThreadMessageCaches(queryClient, message);
+      void applyChatMessageUpdate(queryClient, message);
       dispatch(patchActiveThreadRootMessage(message));
-
-      queryClient.setQueriesData<{ pages?: PaginatedMessagesResponse[] }>({ queryKey: [ChatQueryRoot.MESSAGES] }, (oldData) => {
-        if (!oldData) return oldData;
-
-        if (oldData.pages && Array.isArray(oldData.pages)) {
-          return {
-            ...oldData,
-            pages: oldData.pages.map((page) => {
-              if (!page?.messages || !Array.isArray(page.messages)) return page;
-              return {
-                ...page,
-                messages: page.messages.map((m) =>
-                  mergeChatMessageUpdate(m, message),
-                ),
-              };
-            }),
-          };
-        }
-
-        return oldData;
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: [ChatQueryRoot.MESSAGES],
-      });
 
       if (isChannelPayload(message)) {
         updateChannelsCache(queryClient, chatId, (channel) =>

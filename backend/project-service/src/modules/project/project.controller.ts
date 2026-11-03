@@ -1,3 +1,4 @@
+import { ProjectChange } from '../socket/project-change.decorator';
 import {
   Body,
   Controller,
@@ -42,6 +43,7 @@ export class ProjectController {
   }
 
   @Post()
+  @ProjectChange('PROJECT', 'CREATED')
   async create(@CurrentUserId() userId: string, @Body() dto: CreateProjectDto) {
     return ApiResponse.success(await this.projects.create(userId, dto), 'Project created successfully');
   }
@@ -166,6 +168,7 @@ export class ProjectController {
   }
 
   @Patch(':projectId')
+  @ProjectChange('PROJECT', 'UPDATED')
   async update(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -175,6 +178,7 @@ export class ProjectController {
   }
 
   @Delete(':projectId')
+  @ProjectChange('PROJECT', 'DELETED')
   async archive(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
