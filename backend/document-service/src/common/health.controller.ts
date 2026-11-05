@@ -1,3 +1,4 @@
+import { kafkaConsumerState } from '../infrastructure/kafka/consumer-lifecycle';
 import { Public } from './decorators/http-authentication.decorator';
 import {
   Controller,
@@ -31,6 +32,7 @@ export class HealthController {
   @Get('ready')
   async ready() {
     const checks = await Promise.all([this.checkDatabase(), this.checkKafka()]);
+    checks.push({ name: 'kafka-consumer', status: kafkaConsumerState.ready() ? 'ok' : 'error' });
     const isReady = checks.every((check) => check.status === 'ok');
 
     if (!isReady) {

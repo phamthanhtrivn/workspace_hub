@@ -132,7 +132,7 @@ export class ProjectController {
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
     @Body() dto: InternalRenameProjectDto,
   ) {
-    this.assertInternalServiceKey(serviceKey);
+    this.assertInternalServiceKey(serviceKey, this.config.communicationCallerKey);
     return ApiResponse.success(
       await this.projects.renameProjectFromSpace(projectId, dto),
       'Project name synced successfully',
@@ -146,7 +146,7 @@ export class ProjectController {
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
     @Body() dto: InternalDocumentEventDto,
   ) {
-    this.assertInternalServiceKey(serviceKey);
+    this.assertInternalServiceKey(serviceKey, this.config.documentCallerKey);
     return ApiResponse.success(
       await this.projects.publishDocumentEvent(projectId, dto),
       'Project document event published successfully',
@@ -160,7 +160,7 @@ export class ProjectController {
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
     @Body() dto: InternalProjectSpaceEventDto,
   ) {
-    this.assertInternalServiceKey(serviceKey);
+    this.assertInternalServiceKey(serviceKey, this.config.communicationCallerKey);
     return ApiResponse.success(
       await this.projects.publishProjectSpaceEvent(projectId, dto),
       'Project space event published successfully',
@@ -187,8 +187,8 @@ export class ProjectController {
     return ApiResponse.success(null, 'Project archived successfully');
   }
 
-  private assertInternalServiceKey(serviceKey?: string): void {
-    if (!isServiceKeyValid(serviceKey, this.config.internalServiceKey)) {
+  private assertInternalServiceKey(serviceKey: string | undefined, expected: string): void {
+    if (!isServiceKeyValid(serviceKey, expected)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
   }

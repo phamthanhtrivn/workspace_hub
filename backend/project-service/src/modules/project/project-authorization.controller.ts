@@ -25,7 +25,10 @@ export class ProjectAuthorizationController {
     @Headers("x-internal-service-key") key: string,
     @Body() request: ProjectAuthorizationRequest,
   ) {
-    if (!isServiceKeyValid(key, process.env.INTERNAL_SERVICE_KEY))
+    const documentCaller = isServiceKeyValid(key, process.env.DOCUMENT_TO_PROJECT_KEY);
+    const communicationCaller = request.operation === "READ" &&
+      isServiceKeyValid(key, process.env.COMMUNICATION_TO_PROJECT_KEY);
+    if (!documentCaller && !communicationCaller)
       throw new UnauthorizedException();
     return this.access.authorizeResource(
       request.userId,

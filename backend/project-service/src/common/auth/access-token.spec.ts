@@ -48,9 +48,9 @@ test("access identity requires a verified email, access purpose, sid and valid l
 test("session authorization rechecks revocation and refuses dependency failures", async () => {
   const originalFetch = globalThis.fetch;
   const previousUrl = process.env.USER_SERVICE_URL,
-    previousKey = process.env.INTERNAL_SERVICE_KEY;
+    previousKey = process.env.PROJECT_TO_USER_KEY;
   process.env.USER_SERVICE_URL = "https://user-service.invalid";
-  process.env.INTERNAL_SERVICE_KEY = "test-only-internal-service-key-32-bytes";
+  process.env.PROJECT_TO_USER_KEY = "test-only-internal-service-key-32-bytes";
   const identity = {
     sub: "00000000-0000-4000-8000-000000000001",
     sid: "00000000-0000-4000-8000-000000000002",
@@ -75,7 +75,7 @@ test("session authorization rechecks revocation and refuses dependency failures"
     globalThis.fetch = originalFetch;
     if (previousUrl === undefined) delete process.env.USER_SERVICE_URL;
     else process.env.USER_SERVICE_URL = previousUrl;
-    if (previousKey === undefined) delete process.env.INTERNAL_SERVICE_KEY;
-    else process.env.INTERNAL_SERVICE_KEY = previousKey;
+    if (previousKey === undefined) delete process.env.PROJECT_TO_USER_KEY;
+    else process.env.PROJECT_TO_USER_KEY = previousKey;
   }
 });

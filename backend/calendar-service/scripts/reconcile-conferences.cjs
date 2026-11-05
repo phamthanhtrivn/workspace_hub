@@ -4,8 +4,8 @@ require('dotenv').config({ quiet: true });
 async function main() {
   const prisma = new PrismaClient();
   try {
-    const serviceUrl = process.env.COMMUNICATION_SERVICE_URL, key = process.env.INTERNAL_SERVICE_KEY;
-    if (!serviceUrl || !key) throw new Error('Configure COMMUNICATION_SERVICE_URL and INTERNAL_SERVICE_KEY first');
+    const serviceUrl = process.env.COMMUNICATION_SERVICE_URL, key = process.env.CALENDAR_TO_COMMUNICATION_KEY;
+    if (!serviceUrl || !key) throw new Error('Configure COMMUNICATION_SERVICE_URL and CALENDAR_TO_COMMUNICATION_KEY first');
     const events = await prisma.calendarEvent.findMany({ select: { id: true, createdBy: true, calendarId: true, recurrenceSeriesId: true, location: true, startAt: true, endAt: true } });
     const report = { mode: process.argv.includes('--apply') ? 'apply' : 'dry-run', verified: [], unresolved: [] };
     const adopted = new Set();

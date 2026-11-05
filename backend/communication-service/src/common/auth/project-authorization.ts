@@ -10,7 +10,7 @@ export async function authorizeProject(
 ): Promise<{ owner: boolean; canEditDocuments: boolean }> {
   if (!userId) throw new ForbiddenException('Project membership required');
   const baseUrl = process.env.PROJECT_SERVICE_URL;
-  const key = process.env.INTERNAL_SERVICE_KEY;
+  const key = process.env.COMMUNICATION_TO_PROJECT_KEY;
   if (!baseUrl || !key?.trim())
     throw new ServiceUnavailableException(
       'Project authorization is not configured',

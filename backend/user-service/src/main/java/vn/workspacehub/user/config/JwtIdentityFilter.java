@@ -11,7 +11,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import vn.workspacehub.user.common.ApiResponse;
 import vn.workspacehub.user.common.AuthPolicy;
 import vn.workspacehub.user.service.JwtService;
-import vn.workspacehub.user.util.ServiceCredentials;
+import vn.workspacehub.user.service.InternalServiceAuthorization;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -34,12 +34,12 @@ public final class JwtIdentityFilter extends OncePerRequestFilter {
     private static final int MAX_TOKEN_LENGTH = 16_384;
     private final JwtService jwtService;
     private final ObjectMapper objectMapper;
-    private final String internalServiceKey;
+    private final InternalServiceAuthorization internalAuthorization;
 
-    public JwtIdentityFilter(JwtService jwtService, ObjectMapper objectMapper, String internalServiceKey) {
+    public JwtIdentityFilter(JwtService jwtService, ObjectMapper objectMapper, InternalServiceAuthorization internalAuthorization) {
         this.jwtService = jwtService;
         this.objectMapper = objectMapper;
-        this.internalServiceKey = internalServiceKey;
+        this.internalAuthorization = internalAuthorization;
     }
 
     @Override
@@ -49,10 +49,19 @@ public final class JwtIdentityFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         boolean isPublic = ("GET".equals(request.getMethod()) && Set.of("/health", "/ready").contains(path))
                 || ("POST".equals(request.getMethod()) && PUBLIC_AUTH_PATHS.contains(path));
-        boolean isInternal = (("POST".equals(request.getMethod()) && path.equals("/api/users/internal/sessions/authorize")) || "GET".equals(request.getMethod())
-                && (path.matches("/api/users/internal/[^/]+/direct-message-settings")
-                    || path.equals("/api/users/profiles/bulk")))
-                && ServiceCredentials.matches(request.getHeader("X-Internal-Service-Key"), internalServiceKey);
+        String key = request.getHeader("X-Internal-Service-Key");
+        boolean sessionRoute = "POST".equals(request.getMethod()) && path.equals("/api/users/internal/sessions/authorize");
+        boolean privacyRoute = "GET".equals(request.getMethod()) && path.matches("/api/users/internal/[^/]+/direct-message-settings");
+        boolean profilesRoute = "GET".equals(request.getMethod()) && path.equals("/api/users/profiles/bulk") && key != null;
+        boolean isInternal = sessionRoute && internalAuthorization.matchesSession(key)
+                || privacyRoute && internalAuthorization.matchesPrivacy(key)
+                || profilesRoute && internalAuthorization.matchesProfiles(key);
+        if ((sessionRoute || privacyRoute || profilesRoute) && !isInternal) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
+            objectMapper.writeValue(response.getOutputStream(), ApiResponse.fail("Internal service access denied"));
+            return;
+        }
         if (!isPublic && !isInternal) {
             try {
                 String authorization = request.getHeader("Authorization");

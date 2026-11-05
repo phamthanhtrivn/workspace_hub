@@ -17,7 +17,7 @@ export class ConversationController {
     @Param("id", ParseUUIDPipe) id: string,
     @Headers("x-internal-service-key") key?: string,
   ) {
-    const expected = config.AI_COMMUNICATION_SERVICE_KEY;
+    const expected = config.COMMUNICATION_TO_AI_KEY;
     if (
       config.AI_ENABLED !== "true" ||
       config.CONVERSATION_AI_ENABLED !== "true" ||

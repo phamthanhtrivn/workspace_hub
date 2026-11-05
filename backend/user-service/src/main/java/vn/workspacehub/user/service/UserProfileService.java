@@ -54,7 +54,7 @@ public class UserProfileService {
         userProfileMapper.updateEntityFromRequest(request, userProfile);
 
         UserProfile savedProfile = userProfileRepository.save(userProfile);
-        userProfileEventPublisher.publishSnapshotUpsertedAfterCommit(savedProfile.getUser());
+        userProfileEventPublisher.enqueueSnapshot(savedProfile.getUser());
         return userProfileMapper.toResponse(savedProfile);
     }
 

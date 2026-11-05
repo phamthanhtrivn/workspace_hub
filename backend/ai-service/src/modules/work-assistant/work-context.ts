@@ -123,7 +123,8 @@ export class WorkContextService {
     body: object,
     signal?: AbortSignal,
   ) {
-    if (config.WORK_ASSISTANT_SERVICE_KEY.length < 32)
+    const serviceKey = service === "project" ? config.AI_TO_PROJECT_KEY : config.AI_TO_CALENDAR_KEY;
+    if (serviceKey.length < 32)
       throw new ServiceUnavailableException(
         "Trợ lý công việc chưa được cấu hình.",
       );
@@ -141,7 +142,7 @@ export class WorkContextService {
           : AbortSignal.timeout(10000),
         headers: {
           "content-type": "application/json",
-          "x-internal-service-key": config.WORK_ASSISTANT_SERVICE_KEY,
+          "x-internal-service-key": serviceKey,
         },
         body: JSON.stringify(body),
       },

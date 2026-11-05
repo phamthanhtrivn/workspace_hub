@@ -86,7 +86,7 @@ public class AuthSocialLoginService {
                         .build();
                 userProfile = userProfileRepository.save(userProfile);
                 user.setProfile(userProfile);
-                userProfileEventPublisher.publishSnapshotUpsertedAfterCommit(user);
+                userProfileEventPublisher.enqueueSnapshot(user);
 
                 AccountSetting accountSetting = AccountSetting.builder()
                         .user(user)

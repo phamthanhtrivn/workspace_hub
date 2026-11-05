@@ -480,7 +480,7 @@ export class SpaceController {
   }
 
   private assertInternalServiceKey(serviceKey?: string): void {
-    if (!isServiceKeyValid(serviceKey, this.config.internalServiceKey)) {
+    if (!isServiceKeyValid(serviceKey, this.config.projectCallerKey)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
   }

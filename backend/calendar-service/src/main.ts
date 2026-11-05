@@ -47,6 +47,7 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new GlobalExceptionFilter());
 
+  app.enableShutdownHooks();
   await setupMicroservices(app);
 
   await app.listen(port);

@@ -23,7 +23,7 @@ export async function meetingSource(
       signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
       headers: {
         "content-type": "application/json",
-        "x-internal-service-key": config.AI_COMMUNICATION_SERVICE_KEY,
+        "x-internal-service-key": config.AI_TO_COMMUNICATION_KEY,
       },
       body: JSON.stringify({ actorId }),
     },

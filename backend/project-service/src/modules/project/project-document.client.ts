@@ -52,6 +52,6 @@ export class ProjectDocumentClient {
   }
 
   private internalHeaders(): Record<string, string> {
-    return { 'x-internal-service-key': this.config.internalServiceKey };
+    return { 'x-internal-service-key': this.config.documentServiceKey };
   }
 }

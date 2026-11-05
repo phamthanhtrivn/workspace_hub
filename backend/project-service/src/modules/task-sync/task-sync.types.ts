@@ -38,3 +38,12 @@ export function taskSyncEvent(task: SyncableTask): TaskSyncEvent {
 export const TASK_SYNC_BATCH_SIZE = 100;
 export const TASK_SYNC_RETRY_MAX_MS = 60_000;
 export const TASK_SYNC_SEND_TIMEOUT_MS = 30_000;
+export const TASK_SYNC_LEASE_MS = 60_000;
+
+export interface ClaimedTaskSync {
+  id: string;
+  taskId: string;
+  payload: Record<string, unknown>;
+  attemptCount: number;
+  leaseToken: string;
+}

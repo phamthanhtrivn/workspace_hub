@@ -28,6 +28,7 @@ async function bootstrap(): Promise<void> {
   );
   app.useGlobalFilters(new GlobalExceptionFilter());
 
+  app.enableShutdownHooks();
   await setupMicroservices(app);
 
   const port = Number(process.env.PORT ?? 8082);

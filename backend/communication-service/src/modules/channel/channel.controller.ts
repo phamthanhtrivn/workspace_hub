@@ -54,7 +54,7 @@ export class ChannelController {
     @Headers('x-internal-service-key') serviceKey: string,
     @Body() request: CheckChannelTaskPermissionDto,
   ) {
-    if (!isServiceKeyValid(serviceKey, this.config.internalServiceKey)) {
+    if (!isServiceKeyValid(serviceKey, this.config.projectCallerKey)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
     await this.channelService.assertCanCreateTaskInChannel(

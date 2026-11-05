@@ -47,13 +47,15 @@ export const config = z
       .min(256)
       .max(8192)
       .optional(),
-    AI_COMMUNICATION_SERVICE_KEY: z.string().default(""),
+    AI_TO_COMMUNICATION_KEY: z.string().default(""),
+    COMMUNICATION_TO_AI_KEY: z.string().default(""),
     COMMUNICATION_SERVICE_URL: z
       .string()
       .url()
       .default("http://localhost:8083"),
     WORK_ASSISTANT_ENABLED: z.enum(["true", "false"]).default("true"),
-    WORK_ASSISTANT_SERVICE_KEY: z.string().default(""),
+    AI_TO_PROJECT_KEY: z.string().default(""),
+    AI_TO_CALENDAR_KEY: z.string().default(""),
     WORK_ASSISTANT_PROJECT_URL: z
       .string()
       .url()
@@ -115,7 +117,8 @@ export const config = z
       value.MEETING_SUMMARY_ENABLED === "true" &&
       (!value.MEETING_MEDIA_HOSTS ||
         value.MEETING_STT_SERVICE_KEY.length < 32 ||
-        value.AI_COMMUNICATION_SERVICE_KEY.length < 32)
+        value.AI_TO_COMMUNICATION_KEY.length < 32 ||
+        value.COMMUNICATION_TO_AI_KEY.length < 32)
     )
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -134,11 +137,11 @@ export const config = z
       });
     if (
       value.CONVERSATION_AI_ENABLED === "true" &&
-      value.AI_COMMUNICATION_SERVICE_KEY.length < 32
+      (value.AI_TO_COMMUNICATION_KEY.length < 32 || value.COMMUNICATION_TO_AI_KEY.length < 32)
     )
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["AI_COMMUNICATION_SERVICE_KEY"],
+        path: ["AI_TO_COMMUNICATION_KEY"],
         message: "Configure a dedicated communication key",
       });
     if (value.AI_ENABLED !== "true") return;

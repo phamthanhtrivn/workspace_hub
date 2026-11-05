@@ -35,7 +35,7 @@ export class MeetingSummaryController {
     }
     // Only the owner may authorize paid transcription and external processing.
     if (start) await this.recordings.summarySource(id, userId);
-    const key = process.env.AI_COMMUNICATION_SERVICE_KEY || '';
+    const key = process.env.COMMUNICATION_TO_AI_KEY || '';
     if (key.length < 32) throw new ServiceUnavailableException();
     let response: Response;
     try {
@@ -103,7 +103,7 @@ export class MeetingSummarySourceController {
     @Headers('x-internal-service-key') key: string,
     @Body('actorId', ParseUUIDPipe) actorId: string,
   ) {
-    const expected = process.env.AI_COMMUNICATION_SERVICE_KEY || '';
+    const expected = process.env.AI_TO_COMMUNICATION_KEY || '';
     if (process.env.MEETING_SUMMARY_ENABLED !== 'true' || expected.length < 32)
       throw new ServiceUnavailableException();
     if (

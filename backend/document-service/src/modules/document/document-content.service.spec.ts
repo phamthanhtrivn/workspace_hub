@@ -88,11 +88,11 @@ void test('a signed content URL cannot keep a revoked user session alive', async
   const previous = {
     jwt: process.env.JWT_SECRET_KEY,
     user: process.env.USER_SERVICE_URL,
-    key: process.env.INTERNAL_SERVICE_KEY,
+    key: process.env.DOCUMENT_TO_USER_KEY,
   };
   process.env.JWT_SECRET_KEY = 'document-test-signing-secret-at-least-32-bytes';
   process.env.USER_SERVICE_URL = 'https://user-service.invalid';
-  process.env.INTERNAL_SERVICE_KEY = 'test-internal-key';
+  process.env.DOCUMENT_TO_USER_KEY = 'test-internal-key';
   let active = true;
   globalThis.fetch = () =>
     Promise.resolve(new globalThis.Response(JSON.stringify({ active })));
@@ -145,7 +145,7 @@ void test('a signed content URL cannot keep a revoked user session alive', async
     for (const [name, value] of [
       ['JWT_SECRET_KEY', previous.jwt],
       ['USER_SERVICE_URL', previous.user],
-      ['INTERNAL_SERVICE_KEY', previous.key],
+      ['DOCUMENT_TO_USER_KEY', previous.key],
     ] as const)
       if (value === undefined) delete process.env[name];
       else process.env[name] = value;

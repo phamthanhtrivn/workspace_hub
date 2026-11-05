@@ -25,7 +25,7 @@ export class CalendarMeetingSyncController {
     return { data: await this.syncService.lookup(joinToken) };
   }
   private assertKey(key: string) {
-    const expected = process.env.INTERNAL_SERVICE_KEY;
+    const expected = process.env.CALENDAR_TO_COMMUNICATION_KEY;
     if (!isServiceKeyValid(key, expected))
       throw new UnauthorizedException('Invalid internal service key');
   }

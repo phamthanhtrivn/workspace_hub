@@ -44,7 +44,7 @@ export class NotificationController {
     @Headers("x-internal-service-key") serviceKey: string,
     @Body() dto: SendProjectInvitationEmailDto,
   ) {
-    const expectedKey = process.env.INTERNAL_SERVICE_KEY;
+    const expectedKey = process.env.PROJECT_TO_NOTIFICATION_KEY;
 
     if (!isServiceKeyValid(serviceKey, expectedKey)) {
       throw new UnauthorizedException("Invalid internal service key");
@@ -64,7 +64,7 @@ export class NotificationController {
     @Headers("x-internal-service-key") serviceKey: string,
     @Body() dto: CreateNotificationDto,
   ) {
-    const expectedKey = process.env.INTERNAL_SERVICE_KEY;
+    const expectedKey = process.env.PROJECT_TO_NOTIFICATION_KEY;
     if (!isServiceKeyValid(serviceKey, expectedKey)) {
       throw new UnauthorizedException("Invalid internal service key");
     }
@@ -79,7 +79,7 @@ export class NotificationController {
     @Param("invitationId") invitationId: string,
     @Body() dto: ResolveProjectInvitationDto,
   ) {
-    const expectedKey = process.env.INTERNAL_SERVICE_KEY;
+    const expectedKey = process.env.PROJECT_TO_NOTIFICATION_KEY;
     if (!isServiceKeyValid(serviceKey, expectedKey)) {
       throw new UnauthorizedException("Invalid internal service key");
     }

@@ -13,7 +13,7 @@ import { meetingSource } from "./source";
 @Injectable()
 export class MeetingSummaryService {
   authorize(key?: string) {
-    const expected = config.AI_COMMUNICATION_SERVICE_KEY;
+    const expected = config.COMMUNICATION_TO_AI_KEY;
     if (
       config.AI_ENABLED !== "true" ||
       config.MEETING_SUMMARY_ENABLED !== "true" ||

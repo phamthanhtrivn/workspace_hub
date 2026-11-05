@@ -920,3 +920,24 @@ model ConversationAiOutbox {
  @@index([status,nextAttemptAt],map:"conversation_ai_outbox_pending")
  @@map("conversation_ai_outbox")
 }
+
+model UserEventCursor {
+  topic String
+  userId String @map("user_id") @db.Uuid
+  revision BigInt
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz
+  @@id([topic, userId])
+  @@map("user_event_cursors")
+}
+
+model RejectedKafkaEvent {
+  id String @id @default(uuid()) @db.Uuid
+  topic String
+  partition Int
+  offset String
+  payloadDigest String @map("payload_digest")
+  reason String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  @@unique([topic, partition, offset])
+  @@map("rejected_kafka_events")
+}
