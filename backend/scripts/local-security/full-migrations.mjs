@@ -8,7 +8,7 @@ import { REPOSITORY_ROOT, readEnvironment } from './env-files.mjs';
 const sqlDirectories = {
   user: 'backend/user-service/src/main/resources/db/migration',
   project: 'backend/project-service/database/migrations',
-  ai: 'backend/ai-service/migrations',
+  ai: 'backend/ai-service/api/migrations',
 };
 const prismaServices = new Set(['communication', 'document', 'calendar', 'notification']);
 

@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-const require = createRequire(resolve(REPOSITORY_ROOT, 'backend/ai-service/package.json'));
+const require = createRequire(resolve(REPOSITORY_ROOT, 'backend/ai-service/api/package.json'));
 export const { parse } = require('dotenv');
 export const isPlaceholder = (value = '') => /REPLACE_|replace-with-|ci-placeholder|^(?:changeme|change[-_]?me|your[-_].*|example|secret)$/i.test(value);
 

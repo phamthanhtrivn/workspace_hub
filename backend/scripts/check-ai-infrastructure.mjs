@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 
-const require = createRequire(new URL('../ai-service/package.json', import.meta.url));
+const require = createRequire(new URL('../ai-service/api/package.json', import.meta.url));
 const { parse } = require('dotenv');
 const immutableImage = /(?:@sha256:[a-f0-9]{64}|:sha-[a-f0-9]{40})$/;
 

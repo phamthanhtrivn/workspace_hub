@@ -63,8 +63,8 @@ export function prepareLocalEnvironments({ root = REPOSITORY_ROOT } = {}) {
   pair('CALENDAR_DOCUMENT_SERVICE_KEY', [service('calendar'), service('document')]);
   pair('AI_GATEWAY_KEY', [service('ai'), entries.get('kong-gateway')]);
   pair('AI_DOCUMENT_SERVICE_KEY', [service('ai'), service('document')]);
-  pair('RAG_SERVICE_KEY', [service('ai'), entries.get('rag-worker')]);
-  pair('MEETING_STT_SERVICE_KEY', [service('ai'), entries.get('speech-worker')], ['MEETING_STT_SERVICE_KEY', 'SPEECH_SERVICE_KEY']);
+  pair('RAG_SERVICE_KEY', [service('ai'), entries.get('ai-service/rag-worker')]);
+  pair('MEETING_STT_SERVICE_KEY', [service('ai'), entries.get('ai-service/speech-worker')], ['MEETING_STT_SERVICE_KEY', 'SPEECH_SERVICE_KEY']);
 
   for (const entry of entries.values()) {
     for (const key of Object.keys(entry.values)) {
@@ -73,7 +73,7 @@ export function prepareLocalEnvironments({ root = REPOSITORY_ROOT } = {}) {
   }
   unsetPlaceholder(communication, 'APTION_SERVICE_URL');
   if (!service('calendar').values.FRONTEND_URL) setEnvironment(service('calendar'), 'FRONTEND_URL', service('ai').values.FRONTEND_URL);
-  const speech = entries.get('speech-worker');
+  const speech = entries.get('ai-service/speech-worker');
   for (const [key, value] of Object.entries({ STT_CPU_THREADS: service('ai').values.MEETING_STT_CPU_THREADS ?? '4', STT_MODEL_PATH: service('ai').values.MEETING_STT_MODEL_PATH ?? 'models/small' })) {
     if (!speech.original || !speech.values[key]) setEnvironment(speech, key, value);
   }

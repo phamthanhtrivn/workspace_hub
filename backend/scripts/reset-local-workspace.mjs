@@ -10,7 +10,7 @@ import { applyFullMigrations } from './local-security/full-migrations.mjs';
 import { rehearseFreshDatabases } from './rehearse-local-databases.mjs';
 import { REPOSITORY_ROOT, readEnvironment } from './local-security/env-files.mjs';
 
-const require = createRequire(resolve(REPOSITORY_ROOT, 'backend/ai-service/package.json'));
+const require = createRequire(resolve(REPOSITORY_ROOT, 'backend/ai-service/api/package.json'));
 const requireProject = createRequire(resolve(REPOSITORY_ROOT, 'backend/project-service/package.json'));
 const Redis = require('ioredis');
 const { Kafka } = requireProject('kafkajs');
@@ -177,7 +177,7 @@ async function resetKafka() {
 }
 
 async function resetRedis() {
-  const ai = readEnvironment('backend/ai-service/.env').values;
+  const ai = readEnvironment('backend/ai-service/api/.env').values;
   const redisUrl = new URL(ai.REDIS_URL);
   if (!['127.0.0.1', 'localhost', '[::1]'].includes(redisUrl.hostname)) throw new Error('Redis cleanup requires local Redis.');
   const redis = new Redis(ai.REDIS_URL);
@@ -197,7 +197,7 @@ async function resetRedis() {
 }
 
 export async function resetQdrant() {
-  const env = readEnvironment('backend/rag-worker/.env').values;
+  const env = readEnvironment('backend/ai-service/rag-worker/.env').values;
   const url = new URL(env.QDRANT_URL);
   if (!['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) throw new Error('Qdrant cleanup requires a local endpoint.');
   const headers = env.QDRANT_API_KEY ? { 'api-key': env.QDRANT_API_KEY } : {};

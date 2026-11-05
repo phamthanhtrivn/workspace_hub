@@ -12,9 +12,9 @@ WorkSpaceHub gồm frontend Next.js, Kong và các dịch vụ sở hữu dữ l
 | Document | File/folder, version, chia sẻ, quota, upload intent và dọn storage | `backend/document-service` |
 | Calendar | Lịch, recurrence, attendee, reminder, Pomodoro và liên kết conference | `backend/calendar-service` |
 | Notification | Notification PostgreSQL, Kafka consumer và realtime delivery | `backend/notification-service` |
-| AI API/jobs | Notebook/source, SSE Q&A, Studio, conversation/work/meeting summaries | `backend/ai-service` |
-| RAG worker | Parse/OCR, chia đoạn, embedding, scoped retrieval qua Qdrant | `backend/rag-worker` |
-| Speech worker | Nhận dạng WAV bằng faster-whisper CPU cho meeting summary | `backend/speech-worker` |
+| AI API/jobs | Notebook/source, SSE Q&A, Studio, conversation/work/meeting summaries | `backend/ai-service/api` |
+| RAG worker | Parse/OCR, chia đoạn, embedding, scoped retrieval qua Qdrant | `backend/ai-service/rag-worker` |
+| Speech worker | Nhận dạng WAV bằng faster-whisper CPU cho meeting summary | `backend/ai-service/speech-worker` |
 
 ## Dữ liệu và tích hợp
 

@@ -6,7 +6,7 @@ import { LOCAL_SERVICE_DIRECTORIES } from './contract.mjs';
 import { REPOSITORY_ROOT, readEnvironment } from './env-files.mjs';
 
 export const DATABASE_PLAN_PATH = 'backend/.env.security-db-plan.json';
-const require = createRequire(resolve(REPOSITORY_ROOT, 'backend/ai-service/package.json'));
+const require = createRequire(resolve(REPOSITORY_ROOT, 'backend/ai-service/api/package.json'));
 const { Client } = require('pg');
 export const identifier = (name) => {
   if (!/^[a-z_][a-z0-9_]*$/.test(name)) throw new Error('Invalid local database identifier.');

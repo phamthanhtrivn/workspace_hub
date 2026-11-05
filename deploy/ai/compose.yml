@@ -10,7 +10,7 @@ services:
     volumes: [notebook-qdrant:/qdrant/storage]
     restart: unless-stopped
   rag-worker:
-    build: ../../backend/rag-worker
+    build: ../../backend/ai-service/rag-worker
     # Only the worker's own credential and model settings; never gateway, LLM or DB secrets.
     environment:
       RAG_SERVICE_KEY: ${RAG_SERVICE_KEY:?Configure dedicated RAG credentials first}
@@ -45,7 +45,7 @@ services:
       start_period: 180s
   speech-worker:
     profiles: [meeting-summary]
-    build: ../../backend/speech-worker
+    build: ../../backend/ai-service/speech-worker
     environment:
       SPEECH_SERVICE_KEY: ${MEETING_STT_SERVICE_KEY:-}
       STT_MODEL_PATH: /models/small
@@ -68,13 +68,13 @@ services:
       retries: 3
       start_period: 120s
   migrate:
-    build: ../../backend/ai-service
+    build: ../../backend/ai-service/api
     env_file: .env
     command: [node, dist/migrate.js]
     networks: [default, workspace]
     restart: "no"
   notebook-api:
-    build: ../../backend/ai-service
+    build: ../../backend/ai-service/api
     env_file: .env
     stop_grace_period: 4m
     ports: ["127.0.0.1:8087:8087"]
@@ -98,7 +98,7 @@ services:
       retries: 3
       start_period: 180s
   notebook-jobs:
-    build: ../../backend/ai-service
+    build: ../../backend/ai-service/api
     env_file: .env
     command: [node, dist/worker.js]
     # Let active model calls checkpoint and deliver before Docker stops the worker.

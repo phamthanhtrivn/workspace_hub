@@ -10,11 +10,11 @@ const databaseNames = {
   document: 'document_db', calendar: 'calendar_db', notification: 'notification_db', ai: 'notebook_db',
 };
 const dedicated = [
-  ['AI_GATEWAY_KEY', 'ai-service', 'kong-gateway'],
-  ['AI_DOCUMENT_SERVICE_KEY', 'ai-service', 'document-service'],
-  ['RAG_SERVICE_KEY', 'ai-service', 'rag-worker'],
+  ['AI_GATEWAY_KEY', 'ai-service/api', 'kong-gateway'],
+  ['AI_DOCUMENT_SERVICE_KEY', 'ai-service/api', 'document-service'],
+  ['RAG_SERVICE_KEY', 'ai-service/api', 'ai-service/rag-worker'],
   ['CALENDAR_DOCUMENT_SERVICE_KEY', 'calendar-service', 'document-service'],
-  ['MEETING_STT_SERVICE_KEY', 'ai-service', 'speech-worker', 'SPEECH_SERVICE_KEY'],
+  ['MEETING_STT_SERVICE_KEY', 'ai-service/api', 'ai-service/speech-worker', 'SPEECH_SERVICE_KEY'],
 ];
 
 function duplicateNames(raw) {

@@ -11,7 +11,7 @@ Run from the repository root:
 ```powershell
 node backend/scripts/prepare-local-security-env.mjs
 node backend/scripts/validate-local-env.mjs
-node backend/scripts/check-ai-infrastructure.mjs --env backend/ai-service/.env
+node backend/scripts/check-ai-infrastructure.mjs --env backend/ai-service/api/.env
 ```
 
 Preparation is a dry run unless `--write` is supplied. It generates a distinct

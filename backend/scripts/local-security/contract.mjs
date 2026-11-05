@@ -5,7 +5,7 @@ export const LOCAL_SERVICE_DIRECTORIES = {
   document: 'document-service',
   calendar: 'calendar-service',
   notification: 'notification-service',
-  ai: 'ai-service',
+  ai: 'ai-service/api',
 };
 
 // Each credential belongs to exactly one caller/receiver edge. Route scopes are

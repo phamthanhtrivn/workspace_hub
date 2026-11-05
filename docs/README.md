@@ -12,7 +12,7 @@
 
 Tài liệu theo thành phần:
 
-- [Notebook AI](../deploy/ai/README.md), [speech worker](../backend/speech-worker/README.md).
+- [Chạy AI local](../backend/ai-service/README.md), [AI deployment](../deploy/ai/README.md), [speech worker](../backend/ai-service/speech-worker/README.md).
 - [LiveKit và recording](../backend/livekit/README.md).
 - [Kong](../backend/kong-gateway/README.md), [hạ tầng local](../backend/docker/README.md).
 - [Project](../backend/project-service/README.md), [Communication](../backend/communication-service/README.md), [Calendar](../backend/calendar-service/README.md).

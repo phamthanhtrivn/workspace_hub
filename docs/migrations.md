@@ -7,7 +7,7 @@ Không dùng reset database, xóa volume hoặc `db push` để xử lý drift t
 | User | `backend/user-service/src/main/resources/db/migration` |
 | Project | `backend/project-service/database/migrations` |
 | Communication, Document, Calendar, Notification | `prisma/migrations` trong từng service |
-| Notebook AI | `backend/ai-service/migrations` |
+| Notebook AI | `backend/ai-service/api/migrations` |
 
 User/Project production dùng SQL runner trong `deploy/shared/sql-migrations`: thứ tự file, checksum và khóa migration được giữ. Prisma services dùng `prisma migrate deploy`. Không thay SQL migration Project bằng Prisma schema push.
 

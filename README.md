@@ -21,7 +21,7 @@ Nền tảng quản lý công việc và cộng tác: project/task, lịch và n
 | `backend/{project,communication,notification,document,calendar}-service` | NestJS: nghiệp vụ và dữ liệu theo dịch vụ |
 | `backend/kong-gateway` | HTTP/WebSocket gateway |
 | `backend/docker`, `backend/livekit` | Hạ tầng local và media |
-| `backend/ai-service`, `backend/rag-worker`, `backend/speech-worker` | AI API/jobs, retrieval và speech |
+| `backend/ai-service` | AI API/jobs, retrieval và speech trong các thư mục con riêng |
 | `deploy` | Migration, image và vận hành EC2 |
 
 PostgreSQL lưu dữ liệu theo dịch vụ; Redis phục vụ cache/session/queue/realtime; Kafka chuyển event. S3 lưu file gốc, LiveKit/Egress xử lý media, Qdrant phục vụ retrieval của stack AI riêng.

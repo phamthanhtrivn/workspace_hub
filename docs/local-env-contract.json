@@ -1570,109 +1570,109 @@
         }
       }
     },
-    "ai-service": {
+    "ai-service/api": {
       "current_variables": {
         "AI_DOCUMENT_SERVICE_KEY": [
-          "backend/ai-service/src/config/env.config.ts:89"
+          "backend/ai-service/api/src/config/env.config.ts:89"
         ],
         "AI_ENABLED": [
-          "backend/ai-service/src/config/env.config.ts:68"
+          "backend/ai-service/api/src/config/env.config.ts:68"
         ],
         "AI_GATEWAY_KEY": [
-          "backend/ai-service/src/config/env.config.ts:87"
+          "backend/ai-service/api/src/config/env.config.ts:87"
         ],
         "AI_GATEWAY_KEY_PREVIOUS": [
-          "backend/ai-service/src/config/env.config.ts:88"
+          "backend/ai-service/api/src/config/env.config.ts:88"
         ],
         "AI_SHUTDOWN_TIMEOUT_MS": [
-          "backend/ai-service/src/config/env.config.ts:69"
+          "backend/ai-service/api/src/config/env.config.ts:69"
         ],
         "AI_TO_CALENDAR_KEY": [
-          "backend/ai-service/src/config/env.config.ts:58"
+          "backend/ai-service/api/src/config/env.config.ts:58"
         ],
         "AI_TO_COMMUNICATION_KEY": [
-          "backend/ai-service/src/config/env.config.ts:50"
+          "backend/ai-service/api/src/config/env.config.ts:50"
         ],
         "AI_TO_PROJECT_KEY": [
-          "backend/ai-service/src/config/env.config.ts:57"
+          "backend/ai-service/api/src/config/env.config.ts:57"
         ],
         "AI_TO_USER_KEY": [
-          "backend/ai-service/src/common/auth/session-authorization.ts:17"
+          "backend/ai-service/api/src/common/auth/session-authorization.ts:17"
         ],
         "BIND_HOST": [
-          "backend/ai-service/src/config/env.config.ts:84"
+          "backend/ai-service/api/src/config/env.config.ts:84"
         ],
         "CHAT_CANCEL_POLL_MS": [
-          "backend/ai-service/src/config/env.config.ts:75"
+          "backend/ai-service/api/src/config/env.config.ts:75"
         ],
         "COMMUNICATION_SERVICE_URL": [
-          "backend/ai-service/src/config/env.config.ts:52"
+          "backend/ai-service/api/src/config/env.config.ts:52"
         ],
         "COMMUNICATION_TO_AI_KEY": [
-          "backend/ai-service/src/config/env.config.ts:51"
+          "backend/ai-service/api/src/config/env.config.ts:51"
         ],
         "CONVERSATION_AI_CONCURRENCY": [
-          "backend/ai-service/src/config/env.config.ts:31"
+          "backend/ai-service/api/src/config/env.config.ts:31"
         ],
         "CONVERSATION_AI_ENABLED": [
-          "backend/ai-service/src/config/env.config.ts:30"
+          "backend/ai-service/api/src/config/env.config.ts:30"
         ],
         "CONVERSATION_AI_MAX_TOKENS": [
-          "backend/ai-service/src/config/env.config.ts:44"
+          "backend/ai-service/api/src/config/env.config.ts:44"
         ],
         "CONVERSATION_AI_MODEL": [
-          "backend/ai-service/src/config/env.config.ts:43"
+          "backend/ai-service/api/src/config/env.config.ts:43"
         ],
         "CONVERSATION_AI_QUOTA_WAIT_MS": [
-          "backend/ai-service/src/config/env.config.ts:37"
+          "backend/ai-service/api/src/config/env.config.ts:37"
         ],
         "DATABASE_URL": [
-          "backend/ai-service/src/config/env.config.ts:85"
+          "backend/ai-service/api/src/config/env.config.ts:85"
         ],
         "DOCUMENT_SERVICE_URL": [
-          "backend/ai-service/src/config/env.config.ts:91"
+          "backend/ai-service/api/src/config/env.config.ts:91"
         ],
         "FRONTEND_URL": [
-          "backend/ai-service/src/config/env.config.ts:93"
+          "backend/ai-service/api/src/config/env.config.ts:93"
         ],
         "JWT_ISSUER": [
-          "backend/ai-service/src/common/auth/access-token.ts:68"
+          "backend/ai-service/api/src/common/auth/access-token.ts:68"
         ],
         "JWT_SECRET_KEY": [
-          "backend/ai-service/src/common/auth/access-token.ts:28"
+          "backend/ai-service/api/src/common/auth/access-token.ts:28"
         ],
         "LLM_API_KEY": [
-          "backend/ai-service/src/config/env.config.ts:95"
+          "backend/ai-service/api/src/config/env.config.ts:95"
         ],
         "LLM_BASE_URL": [
-          "backend/ai-service/src/config/env.config.ts:94"
+          "backend/ai-service/api/src/config/env.config.ts:94"
         ],
         "LLM_MAX_TOKENS": [
-          "backend/ai-service/src/config/env.config.ts:100"
+          "backend/ai-service/api/src/config/env.config.ts:100"
         ],
         "LLM_MODEL": [
-          "backend/ai-service/src/config/env.config.ts:96"
+          "backend/ai-service/api/src/config/env.config.ts:96"
         ],
         "LLM_REQUESTS_PER_DAY": [
-          "backend/ai-service/src/config/env.config.ts:103"
+          "backend/ai-service/api/src/config/env.config.ts:103"
         ],
         "LLM_REQUESTS_PER_MINUTE": [
-          "backend/ai-service/src/config/env.config.ts:101"
+          "backend/ai-service/api/src/config/env.config.ts:101"
         ],
         "LLM_TIMEOUT_MS": [
-          "backend/ai-service/src/config/env.config.ts:99"
+          "backend/ai-service/api/src/config/env.config.ts:99"
         ],
         "LLM_TOKENS_PER_MINUTE": [
-          "backend/ai-service/src/config/env.config.ts:102"
+          "backend/ai-service/api/src/config/env.config.ts:102"
         ],
         "MEETING_FFMPEG_PATH": [
-          "backend/ai-service/src/config/env.config.ts:28"
+          "backend/ai-service/api/src/config/env.config.ts:28"
         ],
         "MEETING_MEDIA_HOSTS": [
-          "backend/ai-service/src/config/env.config.ts:29"
+          "backend/ai-service/api/src/config/env.config.ts:29"
         ],
         "MEETING_STT_CONCURRENCY": [
-          "backend/ai-service/src/config/env.config.ts:6"
+          "backend/ai-service/api/src/config/env.config.ts:6"
         ],
         "MEETING_STT_CPU_THREADS": [
           "backend/scripts/start-local-speech.mjs"
@@ -1684,55 +1684,55 @@
           "backend/scripts/start-local-speech.mjs"
         ],
         "MEETING_STT_SERVICE_KEY": [
-          "backend/ai-service/src/config/env.config.ts:8"
+          "backend/ai-service/api/src/config/env.config.ts:8"
         ],
         "MEETING_STT_TIMEOUT_MS": [
-          "backend/ai-service/src/config/env.config.ts:9"
+          "backend/ai-service/api/src/config/env.config.ts:9"
         ],
         "MEETING_STT_URL": [
-          "backend/ai-service/src/config/env.config.ts:7"
+          "backend/ai-service/api/src/config/env.config.ts:7"
         ],
         "MEETING_SUMMARY_ENABLED": [
-          "backend/ai-service/src/config/env.config.ts:15"
+          "backend/ai-service/api/src/config/env.config.ts:15"
         ],
         "MEETING_SUMMARY_MAX_BYTES": [
-          "backend/ai-service/src/config/env.config.ts:22"
+          "backend/ai-service/api/src/config/env.config.ts:22"
         ],
         "MEETING_SUMMARY_MAX_SECONDS": [
-          "backend/ai-service/src/config/env.config.ts:16"
+          "backend/ai-service/api/src/config/env.config.ts:16"
         ],
         "NODE_ENV": [
-          "backend/ai-service/src/config/env.config.ts:81"
+          "backend/ai-service/api/src/config/env.config.ts:81"
         ],
         "PORT": [
-          "backend/ai-service/src/config/env.config.ts:67"
+          "backend/ai-service/api/src/config/env.config.ts:67"
         ],
         "RAG_SERVICE_KEY": [
-          "backend/ai-service/src/config/env.config.ts:90"
+          "backend/ai-service/api/src/config/env.config.ts:90"
         ],
         "RAG_WORKER_URL": [
-          "backend/ai-service/src/config/env.config.ts:92"
+          "backend/ai-service/api/src/config/env.config.ts:92"
         ],
         "REDIS_URL": [
-          "backend/ai-service/src/config/env.config.ts:86"
+          "backend/ai-service/api/src/config/env.config.ts:86"
         ],
         "USER_SERVICE_URL": [
-          "backend/ai-service/src/common/auth/session-authorization.ts:16"
+          "backend/ai-service/api/src/common/auth/session-authorization.ts:16"
         ],
         "VISION_MAX_TOKENS": [
-          "backend/ai-service/src/config/env.config.ts:98"
+          "backend/ai-service/api/src/config/env.config.ts:98"
         ],
         "VISUAL_ENABLED": [
-          "backend/ai-service/src/config/env.config.ts:97"
+          "backend/ai-service/api/src/config/env.config.ts:97"
         ],
         "WORK_ASSISTANT_CALENDAR_URL": [
-          "backend/ai-service/src/config/env.config.ts:63"
+          "backend/ai-service/api/src/config/env.config.ts:63"
         ],
         "WORK_ASSISTANT_ENABLED": [
-          "backend/ai-service/src/config/env.config.ts:56"
+          "backend/ai-service/api/src/config/env.config.ts:56"
         ],
         "WORK_ASSISTANT_PROJECT_URL": [
-          "backend/ai-service/src/config/env.config.ts:59"
+          "backend/ai-service/api/src/config/env.config.ts:59"
         ]
       },
       "variables": {
@@ -2053,40 +2053,40 @@
         }
       }
     },
-    "rag-worker": {
+    "ai-service/rag-worker": {
       "current_variables": {
         "EMBEDDING_API_KEY": [
-          "backend/rag-worker/app/engine.py:51"
+          "backend/ai-service/rag-worker/app/engine.py:51"
         ],
         "EMBEDDING_BASE_URL": [
-          "backend/rag-worker/app/engine.py:47"
+          "backend/ai-service/rag-worker/app/engine.py:47"
         ],
         "EMBEDDING_DEVICE": [
-          "backend/rag-worker/app/engine.py:63"
+          "backend/ai-service/rag-worker/app/engine.py:63"
         ],
         "EMBEDDING_MODEL": [
-          "backend/rag-worker/app/engine.py:30"
+          "backend/ai-service/rag-worker/app/engine.py:30"
         ],
         "EMBEDDING_PROVIDER": [
-          "backend/rag-worker/app/engine.py:29"
+          "backend/ai-service/rag-worker/app/engine.py:29"
         ],
         "INDEX_PIPELINE_VERSION": [
-          "backend/rag-worker/app/engine.py:42"
+          "backend/ai-service/rag-worker/app/engine.py:42"
         ],
         "QDRANT_API_KEY": [
-          "backend/rag-worker/app/engine.py:28"
+          "backend/ai-service/rag-worker/app/engine.py:28"
         ],
         "QDRANT_URL": [
-          "backend/rag-worker/app/engine.py:27"
+          "backend/ai-service/rag-worker/app/engine.py:27"
         ],
         "RAG_SERVICE_KEY": [
-          "backend/rag-worker/app/main.py:19"
+          "backend/ai-service/rag-worker/app/main.py:19"
         ],
         "RAG_SERVICE_KEY_PREVIOUS": [
-          "backend/rag-worker/app/main.py:20"
+          "backend/ai-service/rag-worker/app/main.py:20"
         ],
         "VISUAL_ENABLED": [
-          "backend/rag-worker/app/visual.py:27"
+          "backend/ai-service/rag-worker/app/visual.py:27"
         ]
       },
       "variables": {
@@ -2147,20 +2147,20 @@
         }
       }
     },
-    "speech-worker": {
+    "ai-service/speech-worker": {
       "current_variables": {
         "SPEECH_SERVICE_KEY": [
-          "backend/speech-worker/app.py:85"
+          "backend/ai-service/speech-worker/app.py:85"
         ],
         "STT_CPU_THREADS": [
-          "backend/speech-worker/app.py:44"
+          "backend/ai-service/speech-worker/app.py:44"
         ],
         "STT_MODEL": [
-          "backend/speech-worker/prepare.py:8"
+          "backend/ai-service/speech-worker/prepare.py:8"
         ],
         "STT_MODEL_PATH": [
-          "backend/speech-worker/prepare.py:7",
-          "backend/speech-worker/app.py:37"
+          "backend/ai-service/speech-worker/prepare.py:7",
+          "backend/ai-service/speech-worker/app.py:37"
         ]
       },
       "variables": {

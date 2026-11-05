@@ -6,12 +6,14 @@ Cấu trúc mã Node.js theo feature module và ranh giới hạ tầng/jobs: [k
 
 ## Thành phần
 
-- NestJS API `backend/ai-service`: danh tính do Kong xác thực/chuyển tiếp, notebook CRUD, quyền nguồn, SSE chat, notes, summary cache.
+- NestJS API `backend/ai-service/api`: danh tính do Kong xác thực/chuyển tiếp, notebook CRUD, quyền nguồn, SSE chat, notes, summary cache.
 - BullMQ trong process jobs: hai queue/consumer riêng cho index+cleanup và tóm tắt có checkpoint; không đưa chat vào hàng đợi parse.
-- `backend/rag-worker`: pypdf cho PDF văn bản, Docling cho DOCX, LlamaIndex SentenceSplitter, embedding đa ngôn ngữ, Qdrant dense + lexical fusion. Qdrant chỉ tìm trong notebook và các source ID do API xác minh.
+- `backend/ai-service/rag-worker`: pypdf cho PDF văn bản, Docling cho DOCX, LlamaIndex SentenceSplitter, embedding đa ngôn ngữ, Qdrant dense + lexical fusion. Qdrant chỉ tìm trong notebook và các source ID do API xác minh.
 - Dùng chung PostgreSQL 15 (`wh_postgres`) và Redis (`wh_redis`). AI sở hữu database `notebook_db`, schema `notebook_ai`; local hiện dùng cùng tài khoản `postgres` với sáu service còn lại. Redis dùng prefix `wh-notebook`; host và Compose có thể dùng DB index khác nhau theo URL riêng. File gốc vẫn thuộc Document Service/S3; xóa notebook không xóa file gốc.
 
 ## Khởi động local
+
+Hướng dẫn start/stop toàn bộ stack nằm tại [AI Service](../../backend/ai-service/README.md).
 
 1. Bật Docker Desktop, khởi động hạ tầng WorkSpaceHub hiện có để có network `wh_network`. Document Service và User Service phải đang chạy. Dùng bộ nhớ Docker đủ cho parser và embedding; chưa có số đo RAM thực tế để cam kết cấu hình tối thiểu. Image Python và lần tải model đầu có thể tốn vài phút, khác với thời gian trả lời sau khi index.
 2. Giữ `.env` đã cấu hình trong thư mục này. Với máy mới, tạo private `.env` theo các nhóm biến bên dưới; file này được Git ignore. Không ghi đè env đang dùng hoặc dùng nguyên env Python cũ.
@@ -19,7 +21,7 @@ Cấu trúc mã Node.js theo feature module và ranh giới hạ tầng/jobs: [k
    - Local hiện dùng `NOTEBOOK_POSTGRES_USER=postgres` và `NOTEBOOK_POSTGRES_PASSWORD` khớp `backend/docker/.env`; `DATABASE_URL` dùng cùng credential cho `notebook_db`. Docker dùng `postgres:5432/notebook_db`; Node trên host dùng cổng publish trong `backend/docker/.env` (hiện là 5433). Mỗi process giữ `REDIS_URL` phù hợp môi trường chạy. Credential chung này không giới hạn quyền DB theo service.
    - AI cần `JWT_SECRET_KEY` khớp User Service và `JWT_ISSUER` hiệu lực giống User. Kong kiểm tra JWT và plugin `jwt-user-context` gán lại header danh tính; AI kiểm tra thêm chữ ký, phiên và việc header khớp token trước khi xử lý request.
    - Dùng khóa **khác nhau cho từng luồng**, ≥32 ký tự, không còn fallback `local-internal-key` kể cả local. `AI_GATEWAY_KEY` khớp giữa Kong/AI; `AI_DOCUMENT_SERVICE_KEY` khớp giữa AI/Document Service; `RAG_SERVICE_KEY` khớp giữa AI/RAG worker. `CALENDAR_DOCUMENT_SERVICE_KEY` khớp giữa Calendar/Document Service. Không thay `INTERNAL_SERVICE_KEY` legacy của các luồng khác.
-   - Sau `npm.cmd ci` trong `backend/ai-service`, từ **gốc repo** chạy `node backend/scripts/prepare-local-security-env.mjs` để xem thay đổi, thêm `--write` khi cần áp dụng. Chạy `node backend/scripts/validate-local-env.mjs` và `node backend/scripts/check-ai-infrastructure.mjs --env deploy/ai/.env` để kiểm tra tên biến và cấu hình local mà không in secret. Production cấp khóa riêng, không sao chép khóa local.
+   - Sau `npm.cmd ci` trong `backend/ai-service/api`, từ **gốc repo** chạy `node backend/scripts/prepare-local-security-env.mjs` để xem thay đổi, thêm `--write` khi cần áp dụng. Chạy `node backend/scripts/validate-local-env.mjs` và `node backend/scripts/check-ai-infrastructure.mjs --env deploy/ai/.env` để kiểm tra tên biến và cấu hình local mà không in secret. Production cấp khóa riêng, không sao chép khóa local.
    - `BIND_HOST=127.0.0.1` khi chạy API trên host; cấu hình Docker dùng `0.0.0.0` bên trong container nhưng chỉ publish `127.0.0.1:8087`. AI kiểm tra proof riêng từ Kong **trước** khi nhận `x-user-*`, nên gọi thẳng với header danh tính giả trả 401. Vẫn không mở trực tiếp service ra mạng không tin cậy.
    - `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`: endpoint tương thích OpenAI chat/completions có hỗ trợ SSE. VIBI chỉ là cấu hình mẫu, chưa xác nhận chất lượng/độ trễ/quota của tài khoản.
    - `AI_ENABLED=true` sau khi cấu hình đầy đủ. Cờ mặc định `false`; guard sẽ từ chối các API nghiệp vụ khi tắt.
@@ -29,9 +31,8 @@ Cấu trúc mã Node.js theo feature module và ranh giới hạ tầng/jobs: [k
 
 ```powershell
 node backend/scripts/check-ai-infrastructure.mjs --env deploy/ai/.env
-docker compose --env-file backend/docker/.env --env-file deploy/ai/.env -f deploy/ai/bootstrap.compose.yml run --rm notebook-bootstrap
-docker compose --env-file deploy/ai/.env -f deploy/ai/compose.yml config --quiet
-docker compose --env-file deploy/ai/.env -f deploy/ai/compose.yml up -d --build
+docker compose --env-file deploy/ai/.env -f deploy/ai/compose.yml --profile meeting-summary config --quiet
+docker compose --env-file deploy/ai/.env -f deploy/ai/compose.yml --profile meeting-summary up -d --build
 docker compose --env-file deploy/ai/.env -f deploy/ai/compose.yml ps
 ```
 
@@ -42,7 +43,7 @@ Redis chung cần `appendonly yes`, `appendfsync everysec`, `maxmemory-policy no
 6. Rebuild/restart Kong dùng template vừa cập nhật. Cả hai template đều phải nạp **hai** plugin `jwt` và `jwt-user-context` cho `notebook-ai-routes`; thiếu plugin chuyển tiếp danh tính thì AI trả 401. `kong.host.yml` trỏ `host.docker.internal:8087`; `kong.docker.yml` trỏ `notebook-api:8087` qua `wh_network`. Route SSE không buffer và **không retry** ở gateway. Khi chạy Node trên host Linux, cấu hình địa chỉ bind riêng mà gateway truy cập được và firewall chỉ cho gateway; không mở `0.0.0.0` công khai. Không chạy `docker compose down -v` trên hạ tầng cũ.
 7. Chạy frontend như hiện tại, mở `http://localhost:3000/ai`. `NEXT_PUBLIC_API_URL` vẫn trỏ Kong. API có `/health` và `/ready` tại `http://localhost:8087`; RAG/Qdrant/speech không publish port host. PostgreSQL/Redis chung giữ các cổng localhost của hạ tầng chính.
 
-Node trên host đọc `backend/ai-service/.env`; Compose đọc `deploy/ai/.env`, không tự đọc file env đang mở trong IDE. Đồng bộ credential giữa hai file, nhưng giữ URL/bind phù hợp với nơi chạy. API trên host bind `127.0.0.1`; trong container bind `0.0.0.0`, chỉ publish cổng localhost.
+Node trên host đọc `backend/ai-service/api/.env`; Compose đọc `deploy/ai/.env`, không tự đọc file env đang mở trong IDE. Đồng bộ credential giữa hai file, nhưng giữ URL/bind phù hợp với nơi chạy. API trên host bind `127.0.0.1`; trong container bind `0.0.0.0`, chỉ publish cổng localhost.
 
 ## Các nhóm biến cấu hình AI
 
@@ -70,7 +71,7 @@ Các tên dưới đây thay cho file env mẫu; secret được cấp riêng v�
 
 Chat nhận yêu cầu tóm tắt toàn bộ file/tài liệu sẽ tạo tác vụ `SUMMARY` cho đúng các nguồn đang chọn. Tin nhắn được liên kết với tác vụ, tự cập nhật thành bản tóm tắt và trích dẫn ngay trong cuộc trò chuyện khi hoàn tất; không cần chuyển sang Studio. Không cho lưu tin nhắn đang chờ thành ghi chú. Tác vụ tách từng file, xử lý toàn bộ đoạn chỉ mục, lưu checkpoint và chờ khi chạm hạn mức model theo phút trước khi gửi request. Kết quả viết tự nhiên theo nội dung/tên file, không hiển thị số phần xử lý hoặc số đoạn chỉ mục. Không tự phát lại lời gọi đã nhận nội dung hoặc không rõ kết quả; hạn mức ngày vẫn trả lỗi để người dùng kiểm tra.
 
-Mặc định `LLM_MAX_TOKENS=4096`, `LLM_TIMEOUT_MS=90000`; Docker đọc `deploy/ai/.env`, host đọc `backend/ai-service/.env`. Đây là giới hạn đầu ra của từng lời gọi, không phải cam kết model hỗ trợ mọi mức token. Gateway chờ đọc 120 giây, frontend chờ tối đa 150 giây. Nếu provider kết thúc vì `length`, chat giữ phần đã hiển thị với nhãn chưa hoàn tất, không lưu như câu trả lời thành công. Log `ai_model` ghi model, giới hạn, finish reason, số ký tự nội dung/lập luận và thời gian; không ghi nội dung hay khóa.
+Mặc định `LLM_MAX_TOKENS=4096`, `LLM_TIMEOUT_MS=90000`; Docker đọc `deploy/ai/.env`, host đọc `backend/ai-service/api/.env`. Đây là giới hạn đầu ra của từng lời gọi, không phải cam kết model hỗ trợ mọi mức token. Gateway chờ đọc 120 giây, frontend chờ tối đa 150 giây. Nếu provider kết thúc vì `length`, chat giữ phần đã hiển thị với nhãn chưa hoàn tất, không lưu như câu trả lời thành công. Log `ai_model` ghi model, giới hạn, finish reason, số ký tự nội dung/lập luận và thời gian; không ghi nội dung hay khóa.
 
 PDF có lớp văn bản dùng pypdf theo từng trang, không nạp model bố cục/bảng Docling để giảm RAM; đổi lại không cam kết giữ cấu trúc bảng/cột phức tạp. Trang chỉ có ảnh bị chặn vì OCR chưa bật. DOCX vẫn dùng Docling. Pipeline `text-pdf-v2` tách collection mới; nguồn cũ cần lập lại chỉ mục, không tự xóa collection cũ. Mỗi consumer chạy một job/lần; Python vẫn tuần tự hóa index và chỉ tải một model embedding. Docker chỉ cấp ~3,83 GiB đã ghi nhận OOM khi dùng Docling PDF; `mem_limit: 6g` không thể tăng RAM VM Docker. Cần tăng RAM Docker nếu dùng parser bố cục nặng.
 
@@ -132,7 +133,7 @@ Các kiểm tra này là fail-closed khi Document Service không sẵn sàng. Po
 
 ## Kiểm tra cấu hình và build
 
-Trong `backend/ai-service`, dùng `npm run typecheck` và `npm run build`. Trong frontend dùng `npm run typecheck`, `npm run lint` và `npm run build`. Kiểm readiness của API, jobs và RAG sau khi khởi động.
+Trong `backend/ai-service/api`, dùng `npm run typecheck` và `npm run build`. Trong frontend dùng `npm run typecheck`, `npm run lint` và `npm run build`. Kiểm readiness của API, jobs và RAG sau khi khởi động.
 
 Test suites/runner cũ đã được gỡ. Báo cáo kiểm thử lịch sử được lưu local, không thay thế xác minh provider, quyền truy cập và dữ liệu thật khi triển khai.
 
