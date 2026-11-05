@@ -37,7 +37,7 @@ export function prepareLocalEnvironments({ root = REPOSITORY_ROOT } = {}) {
   // recover a value already present in this file AND independently matching the
   // configured receiver/storage peer; never invent provider credentials.
   const communication = service('communication');
-  for (const key of ['AWS_S3_BUCKET_NAME', 'AWS_REGION', 'AWS_CLOUDFRONT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET']) {
+  for (const key of ['AWS_S3_BUCKET_NAME', 'AWS_REGION', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET']) {
     const peer = key.startsWith('LIVEKIT_') ? entries.get('livekit') : service('user');
     const candidates = communication.raw.split(/\r?\n/).map((line) => parse(line)[key]).filter(usable);
     const recoverable = candidates.find((value) => value === peer.values[key]);

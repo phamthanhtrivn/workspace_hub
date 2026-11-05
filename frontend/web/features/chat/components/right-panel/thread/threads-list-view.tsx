@@ -15,7 +15,7 @@ import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setActiveThreadRootMessage } from "@/store/chat/chat-slice";
 import { Filter, X, MessageSquare, User, MessageCircle } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { formatDateTime } from "@/lib/date";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";

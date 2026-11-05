@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { CheckCircle2, Clock3, Search, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { searchUsers, type UserSearchResult } from "@/features/project/api/user.api";

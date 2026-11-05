@@ -1,4 +1,6 @@
 "use client";
+import { StorageImg } from "@/components/common/storage-media";
+
 
 import { getApiErrorMessage } from "@/lib/api-error";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
@@ -135,7 +137,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
             <div className="flex flex-col items-center">
               <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center overflow-hidden border-2 border-border mb-4">
                 {userProfile?.avatarUrl ? (
-                  <img
+                  <StorageImg
                     src={userProfile.avatarUrl}
                     alt="User Avatar"
                     className="w-full h-full object-cover"

@@ -5,6 +5,7 @@ import { PresignRequestDto } from './dto/presign-request.dto';
 import { S3_UPLOAD_TYPE } from '../../common/types/file.enums';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { MediaAccessService } from './media-access.service';
+import { ATTACHMENT_READ_TTL_SECONDS } from '../../common/types/media.constants';
 import {
   MEDIA_SUCCESS_MESSAGES,
   MEDIA_ERROR_MESSAGES,
@@ -16,6 +17,12 @@ export class MediaService {
     private readonly s3Service: S3Service,
     private readonly access: MediaAccessService,
   ) {}
+
+  async getAccessUrl(key: string, userId: string) {
+    await this.access.assertCanRead(key, userId);
+    return { data: { url: await this.s3Service.generateAttachmentDownloadUrl(key),
+      expiresAt: new Date(Date.now() + ATTACHMENT_READ_TTL_SECONDS * 1000).toISOString() } };
+  }
 
   async generatePresignedUrls(body: PresignRequestDto, userId: string) {
     this.validatePresignRequest(body);

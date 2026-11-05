@@ -17,7 +17,7 @@ function fixture() {
     return [directory, { variables: {}, current_variables: {} }];
   }));
   write('docs/local-env-contract.json', JSON.stringify({ services }));
-  const storage = 'AWS_S3_BUCKET_NAME=fixture-bucket\nAWS_REGION=fixture-region\nAWS_CLOUDFRONT_URL=https://media.invalid\n';
+  const storage = 'AWS_S3_BUCKET_NAME=fixture-bucket\nAWS_REGION=fixture-region\n';
   const livekit = `LIVEKIT_API_KEY=${'a'.repeat(32)}\nLIVEKIT_API_SECRET=${'b'.repeat(64)}\n`;
   write('backend/user-service/.env', storage + `JWT_SECRET_KEY=${'j'.repeat(64)}\n`);
   write('backend/communication-service/.env', storage + livekit + 'MEETING_SUMMARY_ENABLED=false\n');

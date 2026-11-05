@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import { Search, X, User } from "lucide-react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 import {
   inviteSpaceMembers,

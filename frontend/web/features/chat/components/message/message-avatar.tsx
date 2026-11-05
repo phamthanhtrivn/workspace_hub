@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { User } from "lucide-react";
 import { FaKey } from "react-icons/fa";
 import { cn } from "@/lib/utils";

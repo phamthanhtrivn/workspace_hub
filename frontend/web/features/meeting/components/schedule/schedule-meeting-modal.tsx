@@ -15,7 +15,7 @@ import {
   User,
   X,
 } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";

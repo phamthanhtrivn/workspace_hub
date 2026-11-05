@@ -1,3 +1,5 @@
+import { StorageVideo, StorageImg } from "@/components/common/storage-media";
+import { fetchStorageAsset, openStorageAsset } from "@/features/storage/api/storage.api";
 import type { ChatMediaResponse } from "@/features/chat/types/chat.types";
 import { toast } from "sonner";
 
@@ -38,7 +40,7 @@ function isVisualFile(item: ChatMediaResponse) {
 function FileThumb({ item }: { item: ChatMediaResponse }) {
   if (item.mimeType?.startsWith("image/") && item.fileUrl) {
     return (
-      <img
+      <StorageImg
         src={item.fileUrl}
         alt={item.name}
         className="h-full w-full object-cover"
@@ -47,7 +49,7 @@ function FileThumb({ item }: { item: ChatMediaResponse }) {
   }
 
   if (item.mimeType?.startsWith("video/") && item.fileUrl) {
-    return <video src={item.fileUrl} className="h-full w-full object-cover" />;
+    return <StorageVideo src={item.fileUrl} className="h-full w-full object-cover" />;
   }
 
   const Icon = item.mimeType?.startsWith("image/")
@@ -81,7 +83,7 @@ export default function FilesSection({
     e.preventDefault();
     e.stopPropagation();
     try {
-      const response = await fetch(item.fileUrl);
+      const response = await fetchStorageAsset(item.fileUrl);
       const blob = await response.blob();
       saveAs(blob, item.name);
     } catch (error) {
@@ -128,11 +130,7 @@ export default function FilesSection({
                         return;
                       }
                       if (item.fileUrl) {
-                        window.open(
-                          item.fileUrl,
-                          "_blank",
-                          "noopener,noreferrer",
-                        );
+                        void openStorageAsset(item.fileUrl).catch(() => {});
                       }
                     }} className="flex min-w-0 flex-1 items-center gap-3 text-left"><span className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
                       <FileThumb item={item} />

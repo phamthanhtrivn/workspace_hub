@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { Camera, Save, User } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";

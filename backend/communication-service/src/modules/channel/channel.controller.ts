@@ -214,26 +214,6 @@ export class ChannelController {
   //   };
   // }
 
-  @Get(':id/avatar/presigned-url')
-  getAvatarPresignedUrl(
-    @Param('id') channelId: string,
-    @Headers('x-user-id') userId: string,
-    @Query('fileName') fileName: string,
-    @Query('contentType') contentType: string,
-  ) {
-    if (!userId || !channelId || !fileName || !contentType) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
-      );
-    }
-    return this.channelService.getAvatarUploadPresignedUrl(
-      channelId,
-      userId,
-      fileName,
-      contentType,
-    );
-  }
-
   @Patch(':id/info')
   async updateChannelInfo(
     @Param('id') channelId: string,

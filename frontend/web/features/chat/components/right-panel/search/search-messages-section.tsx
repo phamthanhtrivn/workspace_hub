@@ -1,3 +1,4 @@
+import { StorageImg } from "@/components/common/storage-media";
 import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
 import { useId as useControlledPopupId } from "react";
 import { QueryFeedback } from "@/components/common/query-feedback";
@@ -201,7 +202,7 @@ export default function SearchMessagesSection({
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center shrink-0 overflow-hidden">
                           {avatarUrl ? (
-                            <img
+                            <StorageImg
                               src={avatarUrl}
                               alt={name}
                               className="w-full h-full object-cover"

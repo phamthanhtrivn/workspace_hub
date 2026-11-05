@@ -93,4 +93,4 @@ export function AvatarStack({
     </div>
   );
 }
-import Image from "next/image";
+import Image from "@/components/common/storage-image";

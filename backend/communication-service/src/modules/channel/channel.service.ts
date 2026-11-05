@@ -16,13 +16,10 @@ import {
 } from './private-channel.service';
 import { PrivateChannelMembershipAction } from './types/private-channel-system-message.types';
 import { PrismaService } from '../../prisma/prisma.service';
-import { S3Service } from '../../infrastructure/s3/s3.service';
 import { UpdateChannelSettingDto } from './dto/update-channel-setting.dto';
 import { SPACE_ERROR_MESSAGES } from '../space/types/space.enums';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
-import { getMediaUrl } from '../../common/utils/file.util';
-import { S3_UPLOAD_TYPE } from '../../common/types/file.enums';
 import {
   CHANNEL_ERROR_MESSAGES,
   CHANNEL_MEMBER_SEARCH_DEFAULT_LIMIT,
@@ -45,7 +42,6 @@ export class ChannelService {
     private readonly systemMessages: SystemMessageService,
     private readonly prisma: PrismaService,
     private readonly chatSocketPublisher: ChatSocketPublisher,
-    private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
     private readonly privateChannels: PrivateChannelService,
@@ -1067,45 +1063,6 @@ export class ChannelService {
     });
 
     return { success: true };
-  }
-
-  async getAvatarUploadPresignedUrl(
-    channelId: string,
-    userId: string,
-    fileName: string,
-    contentType: string,
-  ) {
-    const channel = await this.prisma.channel.findUnique({
-      where: { id: channelId },
-    });
-    if (!channel) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
-    }
-
-    const spaceMember = await this.prisma.spaceMember.findUnique({
-      where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
-    });
-
-    if (
-      !spaceMember ||
-      (channel.visibility === ChannelVisibility.PRIVATE
-        ? channel.ownerId !== userId
-        : spaceMember.role !== SpaceRole.ADMIN && channel.createdBy !== userId)
-    ) {
-      throw new ForbiddenException(CHANNEL_ERROR_MESSAGES.UPDATE_ACCESS_DENIED);
-    }
-
-    const { presignedUrl, s3Key } =
-      await this.s3Service.generatePresignedUploadUrl(
-        S3_UPLOAD_TYPE.AVATAR,
-        channelId,
-        fileName,
-        contentType,
-      );
-
-    const fileUrl = getMediaUrl(s3Key);
-
-    return { presignedUrl, s3Key, fileUrl };
   }
 
   async joinChannel(channelId: string, userId: string, userName?: string) {

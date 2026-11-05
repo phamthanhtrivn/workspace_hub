@@ -3,7 +3,7 @@
 import React from "react";
 import { Notification } from "../../types/notification.types";
 import { Bell } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { formatTimeAgo } from "@/lib/date";
 import { NotificationListRow } from "../notification-list-row";
 import { Button } from "@/components/ui/button";

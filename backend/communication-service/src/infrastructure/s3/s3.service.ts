@@ -20,6 +20,7 @@ import {
   RecordingUploadOptions,
 } from './recording-multipart-upload';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { ATTACHMENT_READ_TTL_SECONDS } from '../../common/types/media.constants';
 import { generateS3Key } from '../../common/utils/s3-key.util';
 import { S3_UPLOAD_TYPE } from '../../common/types/file.enums';
 import {
@@ -58,7 +59,7 @@ export class S3Service {
     return getSignedUrl(
       this.s3Client,
       new GetObjectCommand({ Bucket: this.bucketName, Key: s3Key }),
-      { expiresIn: 120 },
+      { expiresIn: ATTACHMENT_READ_TTL_SECONDS },
     );
   }
 

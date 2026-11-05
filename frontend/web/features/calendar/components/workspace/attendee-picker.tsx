@@ -1,7 +1,7 @@
 "use client";
 
 import { Search, User, X } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

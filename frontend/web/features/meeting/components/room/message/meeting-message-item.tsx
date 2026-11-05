@@ -1,4 +1,6 @@
 "use client";
+import { StorageImg } from "@/components/common/storage-media";
+
 
 import { useId } from "react";
 import { useMemo, useState } from "react";
@@ -88,7 +90,7 @@ export function MeetingMessageItem({
             >
               {profile?.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <StorageImg
                   src={profile.avatarUrl}
                   alt={senderName}
                   className="h-full w-full object-cover"

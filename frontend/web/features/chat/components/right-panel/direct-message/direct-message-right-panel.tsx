@@ -21,7 +21,7 @@ import PinnedMessagesDetailView from "../pinned-messages/pinned-messages-detail-
 import SearchMessagesSection from "../search/search-messages-section";
 import ThreadsListView from "../thread/threads-list-view";
 import { X, Bell, BellOff, Pin, User } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {

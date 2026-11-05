@@ -10,7 +10,6 @@ import {
   MAX_AMBIENT_TRACK_ID_LENGTH,
 } from './constants/pomodoro-ambient.constants';
 import {
-  POMODORO_AUDIO_BASE_URL_ENV,
   POMODORO_AUDIO_MESSAGES,
 } from './constants/pomodoro-audio.constants';
 import type { PomodoroAudioResponse } from './types/pomodoro-audio';
@@ -52,10 +51,7 @@ export class PomodoroConfigService {
     });
     return audios.map((audio) => ({
       ...audio,
-      url: buildPomodoroAudioUrl(
-        process.env[POMODORO_AUDIO_BASE_URL_ENV],
-        audio.s3Key,
-      ),
+      url: buildPomodoroAudioUrl(audio.id),
     }));
   }
 

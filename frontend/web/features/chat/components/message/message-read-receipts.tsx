@@ -1,5 +1,5 @@
 import { User } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { MemberProfilesMap } from "./chat-message.types";
 
 interface MessageReadReceiptsProps {

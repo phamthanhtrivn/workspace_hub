@@ -2,7 +2,7 @@
 import { useId as useControlledPopupId } from "react";
 
 import React, { useRef, useState } from "react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { useRouter } from "next/navigation";
 import { WorkspaceHelpDialog } from "./workspace-help-dialog";
 import { HelpCircle, LogOut, Settings, User } from "lucide-react";

@@ -40,3 +40,6 @@ service URLs already configured on this machine. Kong inside Docker reaches
 host services via `host.docker.internal`. Optional flags remain at their
 existing values; a disabled feature does not require unused optional keys.
 Production/CI still have a separate legacy contract and need their own rollout.
+
+Local S3 credentials, private asset references and bucket requirements are
+documented in [local S3](local-s3.md).

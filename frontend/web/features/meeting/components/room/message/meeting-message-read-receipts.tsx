@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import type { MeetingParticipantProfile } from "../../../types/meeting.types";
 import { AvatarFallback } from "../../common/avatar-fallback";
 

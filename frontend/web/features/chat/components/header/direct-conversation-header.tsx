@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, Info, Search, User, Video } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { useActiveChat } from "../../hooks/useChatQueries";

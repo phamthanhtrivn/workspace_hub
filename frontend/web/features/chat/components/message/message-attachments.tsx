@@ -1,5 +1,7 @@
+import { StorageVideo } from "@/components/common/storage-media";
+import { fetchStorageAsset } from "@/features/storage/api/storage.api";
 import { Download, FileText, Play } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { saveAs } from "file-saver";
 import { cn } from "@/lib/utils";
 import { formatFileSize } from "@/lib/file";
@@ -27,7 +29,7 @@ async function handleDownload(
   event.stopPropagation();
 
   try {
-    const response = await fetch(url);
+    const response = await fetchStorageAsset(url);
     const blob = await response.blob();
     saveAs(blob, name);
   } catch (error) {
@@ -82,7 +84,7 @@ export function MessageVisualMedias({
             )}
             onClick={() => onPreview(mediaIndex)}
           >
-            <video
+            <StorageVideo
               src={media.fileUrl}
               className={cn(
                 "w-full",

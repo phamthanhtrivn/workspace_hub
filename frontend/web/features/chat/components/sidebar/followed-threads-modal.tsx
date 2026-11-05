@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { formatDateTime } from "@/lib/date";
 import {
   getFollowedChannelThreads,

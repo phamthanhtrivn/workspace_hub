@@ -1,3 +1,4 @@
+import { StorageImg } from "@/components/common/storage-media";
 import type { ChatMessageResponse, PinnedMessagesResponse } from "@/features/chat/types/chat.types";
 import { QueryFeedback } from "@/components/common/query-feedback";
 
@@ -255,7 +256,7 @@ export default function PinnedMessagesDetailView({
                 className="group flex items-start gap-3 rounded-lg border border-border bg-background p-3 hover:bg-muted transition"
               >
                 {message.senderProfile?.avatarUrl ? (
-                  <img
+                  <StorageImg
                     src={message.senderProfile.avatarUrl || ""}
                     alt={
                       message.senderProfile.fullName || "User"

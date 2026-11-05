@@ -1,7 +1,7 @@
 "use client";
 
 import { Clock3, RotateCw, Trash2, User } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { toast } from "sonner";
 import type { ProjectInvitationWithUser } from "@/features/project/api/invitation.api";
 import {

@@ -2,7 +2,7 @@ import { useId as useControlledPopupId } from "react";
 
 import { IconButton } from "@/components/ui/icon-button";
 import React, { useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { Bell, BellOff, MoreVertical, Pin, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";

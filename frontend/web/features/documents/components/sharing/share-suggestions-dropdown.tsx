@@ -2,7 +2,7 @@
 
 import React from "react";
 import { User } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { ComboboxContent, ComboboxList, ComboboxItem } from "@/components/ui/combobox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";

@@ -1,4 +1,5 @@
 import { copyContentToClipboard, copyTextToClipboard } from "@/lib/clipboard";
+import { fetchStorageAsset } from "@/features/storage/api/storage.api";
 import { MessageType } from "../types/chat.enums";
 import {
   CHAT_ATTACHMENT_MAX_SIZE_BYTES,
@@ -72,7 +73,7 @@ export function insertCopiedText(value: string, text: string, start: number, end
 
 export async function downloadCopiedMessageFile(media: CopiedMessageMedia, signal: AbortSignal): Promise<File> {
   if (media.sizeBytes > CHAT_ATTACHMENT_MAX_SIZE_BYTES) throw new Error(MESSAGE_CLIPBOARD_MESSAGES.fileTooLarge);
-  const response = await fetch(media.fileUrl, { signal });
+  const response = await fetchStorageAsset(media.fileUrl, signal);
   if (!response.ok) throw new Error(MESSAGE_CLIPBOARD_MESSAGES.fileFailed);
   const blob = await response.blob();
   if (blob.size > CHAT_ATTACHMENT_MAX_SIZE_BYTES) throw new Error(MESSAGE_CLIPBOARD_MESSAGES.fileTooLarge);

@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 
 import { IconButton } from "@/components/ui/icon-button";
 import { Search, Crown, Trash2, User, Shield, ShieldOff } from "lucide-react";

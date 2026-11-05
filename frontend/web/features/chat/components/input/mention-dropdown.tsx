@@ -1,3 +1,4 @@
+import { StorageImg } from "@/components/common/storage-media";
 import type { MentionMemberOption } from "../../utils/mention-member-utils";
 import { User, Users } from "lucide-react";
 import React from "react";
@@ -43,7 +44,7 @@ export default React.memo(function MentionDropdown({
             {user.id === "all" ? (
               <Users size={15} className="text-info-content" />
             ) : user.avatarUrl ? (
-              <img
+              <StorageImg
                 src={user.avatarUrl}
                 alt={user.name}
                 className="w-full h-full object-cover"

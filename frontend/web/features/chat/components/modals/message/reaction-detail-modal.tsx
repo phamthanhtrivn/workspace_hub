@@ -1,4 +1,6 @@
 "use client";
+import { StorageImg } from "@/components/common/storage-media";
+
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
@@ -88,7 +90,7 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-accent overflow-hidden">
                     {reaction.user?.avatarUrl ? (
-                      <img
+                      <StorageImg
                         src={reaction.user.avatarUrl}
                         alt={reaction.user?.name}
                         className="w-full h-full object-cover"

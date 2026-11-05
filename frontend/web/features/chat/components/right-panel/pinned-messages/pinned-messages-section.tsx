@@ -1,3 +1,4 @@
+import { StorageImg } from "@/components/common/storage-media";
 import type { ChatMessageResponse, PinnedMessagesResponse } from "@/features/chat/types/chat.types";
 import { QueryFeedback } from "@/components/common/query-feedback";
 
@@ -153,7 +154,7 @@ export default function PinnedMessagesSection({
                   className="w-full cursor-pointer flex items-start gap-2 rounded-control p-2 text-left hover:bg-muted transition"
                 >
                   <Button variant="unstyled" type="button" onClick={() => onJumpToMessage(message.id)} className="flex min-w-0 flex-1 items-start gap-2 text-left">{message.senderProfile?.avatarUrl ? (
-                    <img
+                    <StorageImg
                       src={message.senderProfile.avatarUrl || ""}
                       alt={
                         message.senderProfile.fullName || "User"

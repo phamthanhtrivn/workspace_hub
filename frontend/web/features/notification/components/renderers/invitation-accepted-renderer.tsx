@@ -6,7 +6,7 @@ import {
   InvitationResponseMetadata,
 } from "../../types/notification.types";
 import { CheckCircle2, User } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { NotificationListRow } from "../notification-list-row";
 import { Button } from "@/components/ui/button";
 

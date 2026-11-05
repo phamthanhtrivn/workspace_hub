@@ -5,7 +5,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import React, { useCallback, useMemo } from "react";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DocumentShare } from "../../types/documents.types";
 import { SharePermission } from "../../types/documents.enums";

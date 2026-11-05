@@ -9,9 +9,6 @@
         "AWS_ACCESS_KEY": [
           "backend/user-service/src/main/resources/application.yml:61"
         ],
-        "AWS_CLOUDFRONT_URL": [
-          "backend/user-service/src/main/resources/application.yml:63"
-        ],
         "AWS_REGION": [
           "backend/user-service/src/main/resources/application.yml:60"
         ],
@@ -146,11 +143,6 @@
           "secret": true,
           "source": "runtime",
           "requiredLocal": false
-        },
-        "AWS_CLOUDFRONT_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
         },
         "AWS_REGION": {
           "secret": false,
@@ -550,9 +542,6 @@
           "backend/communication-service/src/infrastructure/livekit/livekit.service.ts:92",
           "backend/communication-service/src/infrastructure/livekit/livekit.service.ts:148"
         ],
-        "AWS_CLOUDFRONT_URL": [
-          "backend/communication-service/src/common/utils/file.util.ts:8"
-        ],
         "AWS_REGION": [
           "backend/communication-service/src/infrastructure/s3/s3.service.ts:44",
           "backend/communication-service/src/infrastructure/livekit/livekit.service.ts:91",
@@ -788,11 +777,6 @@
         },
         "AWS_ACCESS_KEY": {
           "secret": true,
-          "source": "runtime",
-          "requiredLocal": false
-        },
-        "AWS_CLOUDFRONT_URL": {
-          "secret": false,
           "source": "runtime",
           "requiredLocal": false
         },
@@ -1208,9 +1192,6 @@
         "AI_TO_CALENDAR_KEY": [
           "backend/calendar-service/src/modules/work-assistant/work-assistant.controller.ts:24"
         ],
-        "AWS_CLOUDFRONT_URL": [
-          "backend/calendar-service/src/modules/pomodoro/constants/pomodoro-audio.constants.ts:2"
-        ],
         "CALENDAR_DOCUMENT_SERVICE_KEY": [
           "backend/calendar-service/src/infrastructure/integrations/resource-access.service.ts:26"
         ],
@@ -1263,6 +1244,18 @@
         "USER_SERVICE_URL": [
           "backend/calendar-service/src/common/config/service-endpoints.ts:4",
           "backend/calendar-service/src/common/auth/session-authorization.ts:16"
+        ],
+        "AWS_REGION": [
+          "backend/calendar-service/src/modules/pomodoro/pomodoro-audio-access.service.ts"
+        ],
+        "AWS_S3_BUCKET_NAME": [
+          "backend/calendar-service/src/modules/pomodoro/pomodoro-audio-access.service.ts"
+        ],
+        "AWS_ACCESS_KEY": [
+          "backend/calendar-service/src/modules/pomodoro/pomodoro-audio-access.service.ts"
+        ],
+        "AWS_SECRET_KEY": [
+          "backend/calendar-service/src/modules/pomodoro/pomodoro-audio-access.service.ts"
         ]
       },
       "variables": {
@@ -1326,11 +1319,6 @@
           "source": "runtime",
           "requiredLocal": false
         },
-        "AWS_CLOUDFRONT_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": false
-        },
         "CALENDAR_DOCUMENT_SERVICE_KEY": {
           "secret": true,
           "source": "runtime",
@@ -1375,6 +1363,26 @@
             ]
           },
           "requiredLocal": true
+        },
+        "AWS_REGION": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
+        "AWS_S3_BUCKET_NAME": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
+        "AWS_ACCESS_KEY": {
+          "secret": true,
+          "source": "runtime",
+          "requiredLocal": false
+        },
+        "AWS_SECRET_KEY": {
+          "secret": true,
+          "source": "runtime",
+          "requiredLocal": false
         }
       }
     },

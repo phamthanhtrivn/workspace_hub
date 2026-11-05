@@ -1,4 +1,6 @@
 "use client";
+import { StorageImg } from "@/components/common/storage-media";
+
 
 import {
   ChannelMemberListItem,
@@ -55,7 +57,7 @@ export default function ChannelMemberRow({
       <div className="relative h-11 w-11 shrink-0">
         <div className="h-full w-full overflow-hidden rounded-full border border-border bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
           {member.profile?.avatarUrl ? (
-            <img
+            <StorageImg
               src={member.profile.avatarUrl}
               alt=""
               className="h-full w-full object-cover"

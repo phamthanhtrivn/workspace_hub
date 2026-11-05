@@ -1,4 +1,6 @@
 "use client";
+import { StorageImg } from "@/components/common/storage-media";
+
 
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
@@ -140,7 +142,7 @@ export default function PollVotersModal({
                         >
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted ring-1 ring-ring">
                             {voter.profile?.avatarUrl ? (
-                              <img
+                              <StorageImg
                                 src={voter.profile.avatarUrl}
                                 alt={displayName}
                                 className="h-full w-full object-cover"

@@ -1,4 +1,6 @@
 "use client";
+import { StorageImg } from "@/components/common/storage-media";
+
 
 import { getApiErrorMessage } from "@/lib/api-error";
 import type { DirectConversationResponse } from "@/features/chat/types/chat.types";
@@ -243,7 +245,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                       <Button variant="unstyled" type="button" onClick={() => handleSelectUser(user)} className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden text-left">
                         <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center overflow-hidden shrink-0 border border-border">
                           {user.avatarUrl ? (
-                            <img
+                            <StorageImg
                               src={user.avatarUrl}
                               alt="Avatar"
                               className="w-full h-full object-cover"
@@ -290,7 +292,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
               <div className="flex flex-col items-center">
                 <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center overflow-hidden border-2 border-border mb-4">
                   {userProfile?.avatarUrl || selectedUser.avatarUrl ? (
-                    <img
+                    <StorageImg
                       src={
                         userProfile?.avatarUrl || selectedUser.avatarUrl || ""
                       }

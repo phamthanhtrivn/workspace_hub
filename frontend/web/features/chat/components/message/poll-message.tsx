@@ -1,4 +1,6 @@
 "use client";
+import { StorageImg } from "@/components/common/storage-media";
+
 
 import { IconButton } from "@/components/ui/icon-button";
 
@@ -239,7 +241,7 @@ const PollMessage = React.memo(function PollMessage({
                                 title={profile?.fullName || "User"}
                               >
                                 {profile?.avatarUrl ? (
-                                  <img
+                                  <StorageImg
                                     src={profile.avatarUrl}
                                     alt="Avatar"
                                     className="w-full h-full object-cover"

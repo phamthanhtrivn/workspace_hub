@@ -13,7 +13,7 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import {
   acceptInvitation,
   declineInvitation,

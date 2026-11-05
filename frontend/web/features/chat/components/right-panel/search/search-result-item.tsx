@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import {
   User,
   Image as ImageIcon,

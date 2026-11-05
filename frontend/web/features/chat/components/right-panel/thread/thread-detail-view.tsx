@@ -1,3 +1,4 @@
+import { StorageVideo, StorageLink, StorageImg } from "@/components/common/storage-media";
 import type { ChatMediaResponse } from "@/features/chat/types/chat.types";
 import AiTypingIndicator from "../../message/ai-typing-indicator";
 import { useAiTypingIndicator } from "../../../hooks/message/useAiTypingIndicator";
@@ -458,7 +459,7 @@ export default function ThreadDetailView({
                     }}
                     className="cursor-pointer overflow-hidden rounded-control block border border-border text-left w-full focus:outline-none"
                   >
-                    <img
+                    <StorageImg
                       src={media.fileUrl}
                       alt={media.name}
                       className="w-full max-h-[160px] object-cover hover:opacity-90 transition"
@@ -476,7 +477,7 @@ export default function ThreadDetailView({
                     }}
                     className="relative w-full rounded-control overflow-hidden border border-border bg-overlay/5 block text-left focus:outline-none cursor-pointer"
                   >
-                    <video
+                    <StorageVideo
                       src={media.fileUrl}
                       className="w-full max-h-[160px] object-cover"
                     />
@@ -530,7 +531,7 @@ export default function ThreadDetailView({
                       </span>
                     </div>
                   </div>
-                  <a
+                  <StorageLink
                     href={media.fileUrl}
                     download={media.name}
                     target="_blank"
@@ -538,7 +539,7 @@ export default function ThreadDetailView({
                     className="p-1 hover:bg-muted rounded-full text-muted-foreground hover:text-foreground transition"
                   >
                     <Download size={14} />
-                  </a>
+                  </StorageLink>
                 </div>
               );
             })}
