@@ -11,7 +11,7 @@ Run from the repository root:
 ```powershell
 node backend/scripts/prepare-local-security-env.mjs
 node backend/scripts/validate-local-env.mjs
-node backend/scripts/prepare-local-database.mjs --verify
+node backend/scripts/check-ai-infrastructure.mjs --env backend/ai-service/.env
 ```
 
 Preparation is a dry run unless `--write` is supplied. It generates a distinct
@@ -21,12 +21,13 @@ provider keys and database URLs, and backs up each changed file under ignored
 Its reader inventory is `docs/local-env-contract.json`; the 16 caller/receiver
 edges and route scopes are defined in `backend/scripts/local-security/contract.mjs`.
 
-Each runtime database role (`wh_user`, `wh_project`, `wh_communication`,
-`wh_document`, `wh_calendar`, `wh_notification`, `wh_ai`) accesses its own
-database. Use a separate administrator/migration credential for schema changes.
-Never put that credential in a service runtime env file. The private,
-Git-ignored `backend/.env.security-db-plan.json` holds local migration handoff
-credentials and must not be published.
+The current local setup uses the same `postgres` username/password from
+`backend/docker/.env` in all seven application `.env` files. Each service still
+uses its own database on the single `wh_postgres` container, including AI's
+`notebook_db`. This shared administrator credential does not provide database
+permission isolation. The private, Git-ignored
+`backend/.env.security-db-plan.json` remains available for migration tooling
+and must not be published. Restricted `wh_*` roles are an optional later cutover.
 
 Compose needs both infrastructure and LiveKit interpolation files:
 

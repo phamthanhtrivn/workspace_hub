@@ -62,8 +62,9 @@ in the [LiveKit guide](../backend/livekit/README.md#recording-environment).
 
 ## Schema preparation
 
-Run schema changes explicitly with migration credentials after reviewing the
-target database. Runtime roles must not run migrations.
+Run schema changes explicitly after reviewing the target database. This local
+setup uses the shared `postgres` credential for both application connections
+and migrations; it does not isolate database privileges between services.
 
 | Owner | Schema mechanism |
 | --- | --- |
@@ -92,14 +93,16 @@ run the guarded local reset if a clean development state is needed:
 ```powershell
 node backend/scripts/reset-local-workspace.mjs
 node backend/scripts/reset-local-workspace.mjs --apply
-node backend/scripts/prepare-local-database.mjs --verify
 node backend/scripts/validate-local-env.mjs
 ```
 
 The reset rehearses every migration chain on scratch databases, backs up and
-restore-tests the seven existing application databases, recreates their real
-migration histories, and reapplies the restricted runtime roles. It also resets
-the six WorkspaceHub Kafka topics and their dedicated consumer groups, removes
+restore-tests the seven existing application databases, and recreates their real
+migration histories. It preserves the credential mode read from the current
+`.env` files: shared `postgres` credentials do not create restricted `wh_*`
+roles; a configured restricted mode reapplies its role grants. It also recreates
+the six WorkspaceHub Kafka topics,
+clears their dedicated consumer groups, removes
 only known WorkspaceHub Redis keys and RAG collections, and preserves other
 databases, Docker volumes, S3, and private backups under ignored
 `.tmp/security-fresh-backups`. Never run this while application processes still
@@ -125,10 +128,10 @@ Notebook AI is a Node API/jobs service with separate Python workers; follow
 `requirements.txt`. Preserve existing `.env` files and runtime environments.
 
 AI shares `wh_postgres` (PostgreSQL 15) and `wh_redis`: dedicated database
-`notebook_db`, restricted runtime login `wh_ai`, and prefix `wh-notebook`.
+`notebook_db`, shared local PostgreSQL login `postgres`, and prefix `wh-notebook`.
 The local Redis DB index comes from the existing AI `REDIS_URL` (currently 0).
-Use the admin/migration credential for schema changes; host Node uses published ports.
-Keep the AI database password separate from the infrastructure admin password.
+Host Node uses published ports. AI and the other six services currently use
+the same local PostgreSQL credential from `backend/docker/.env`.
 The shared Redis uses AOF/everysec/noeviction; enable AOF online and wait for its
 rewrite before recreating a pre-existing Redis that has only RDB persistence.
 

@@ -15,6 +15,8 @@ export function validateInfrastructure(env, production = false) {
   if (deploymentContract) {
     if (env.NOTEBOOK_POSTGRES_USER !== 'notebook') invalid.add('NOTEBOOK_POSTGRES_USER');
     requireKey('NOTEBOOK_POSTGRES_PASSWORD');
+  } else if (env.NOTEBOOK_POSTGRES_USER && env.NOTEBOOK_POSTGRES_USER !== 'postgres') {
+    invalid.add('NOTEBOOK_POSTGRES_USER');
   }
   for (const key of ['POSTGRES_PASSWORD', 'POSTGRES_USER', 'PGPASSWORD']) {
     if (key in env) invalid.add(key);
@@ -22,8 +24,11 @@ export function validateInfrastructure(env, production = false) {
   try {
     const db = new URL(env.DATABASE_URL);
     if (!['postgres:', 'postgresql:'].includes(db.protocol) || db.pathname !== '/notebook_db'
-      || decodeURIComponent(db.username) !== (deploymentContract ? env.NOTEBOOK_POSTGRES_USER : 'wh_ai')
+      || (deploymentContract ? decodeURIComponent(db.username) !== env.NOTEBOOK_POSTGRES_USER
+        : !['postgres', 'wh_ai'].includes(decodeURIComponent(db.username)))
       || (deploymentContract && decodeURIComponent(db.password) !== env.NOTEBOOK_POSTGRES_PASSWORD)
+      || (!deploymentContract && env.NOTEBOOK_POSTGRES_USER && decodeURIComponent(db.username) !== env.NOTEBOOK_POSTGRES_USER)
+      || (!deploymentContract && env.NOTEBOOK_POSTGRES_PASSWORD && decodeURIComponent(db.password) !== env.NOTEBOOK_POSTGRES_PASSWORD)
       || (!deploymentContract && !db.password)
       || (production && ['localhost', '127.0.0.1', 'host.docker.internal'].includes(db.hostname))) {
       invalid.add('DATABASE_URL');

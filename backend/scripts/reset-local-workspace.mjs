@@ -35,6 +35,34 @@ function requireLocal(plan) {
     throw new Error('Local database names changed; reset refused.');
 }
 
+export function runtimeDatabaseMode(plan, read = readEnvironment) {
+  const modes = new Set();
+  for (const [name, service] of Object.entries(plan.services)) {
+    const env = read(`backend/${service.directory}/.env`).values;
+    let user, password, database, host, port;
+    if (name === 'user') {
+      ({ POSTGRES_USERNAME: user, POSTGRES_PASSWORD: password, POSTGRES_DB: database,
+        POSTGRES_HOST: host, POSTGRES_PORT: port } = env);
+    } else {
+      const url = new URL(env.DATABASE_URL);
+      user = decodeURIComponent(url.username);
+      password = decodeURIComponent(url.password);
+      database = decodeURIComponent(url.pathname.slice(1));
+      host = url.hostname;
+      port = url.port || '5432';
+    }
+    if (database !== service.database || Number(port) !== Number(plan.admin.port) ||
+        !['127.0.0.1', 'localhost', '::1', '[::1]'].includes(host)) {
+      throw new Error('Runtime database target differs from the inspected local plan.');
+    }
+    if (user === plan.admin.user && password === plan.admin.password) modes.add('shared');
+    else if (user === service.role && password === service.password) modes.add('restricted');
+    else throw new Error('Runtime database credentials differ from the private local plan.');
+  }
+  if (modes.size !== 1) throw new Error('Mixed runtime database credential modes; reset refused.');
+  return [...modes][0];
+}
+
 async function dockerTransfer(args, { input, output } = {}) {
   await new Promise((done, fail) => {
     const child = spawn('docker', args, { windowsHide: true, stdio: [input ?? 'ignore', output ?? 'ignore', 'pipe'] });
@@ -94,7 +122,7 @@ async function recreate(admin, plan, service) {
   await admin.query(`CREATE DATABASE ${identifier(service.database)} OWNER ${identifier(plan.admin.user)}`);
 }
 
-async function restoreAll(admin, plan, directory) {
+async function restoreAll(admin, plan, directory, credentialMode) {
   for (const service of Object.values(plan.services)) {
     const file = resolve(directory, `${service.database}.dump`);
     if (!existsSync(file)) throw new Error('A rollback backup is missing.');
@@ -105,8 +133,10 @@ async function restoreAll(admin, plan, directory) {
         '-d', service.database, '--no-owner', '--no-acl', '--exit-on-error'], { input });
     } finally { closeSync(input); }
   }
-  await applyDatabaseRoles(plan);
-  await verifyDatabaseRoles(plan);
+  if (credentialMode === 'restricted') {
+    await applyDatabaseRoles(plan);
+    await verifyDatabaseRoles(plan);
+  }
 }
 
 async function resetKafka() {
@@ -221,7 +251,8 @@ export async function resetQdrant() {
 export async function resetLocalWorkspace({ apply = false } = {}) {
   const plan = loadDatabasePlan();
   requireLocal(plan);
-  if (!apply) return { mode: 'dry-run', databases: Object.values(plan.services).map((service) => service.database), kafkaTopics: TOPICS, redisPrefixes: REDIS_PREFIXES, qdrantPrefix: 'wh_notebook_', noVolumesRemoved: true };
+  const credentialMode = runtimeDatabaseMode(plan);
+  if (!apply) return { mode: 'dry-run', credentialMode, databases: Object.values(plan.services).map((service) => service.database), kafkaTopics: TOPICS, redisPrefixes: REDIS_PREFIXES, qdrantPrefix: 'wh_notebook_', noVolumesRemoved: true };
   const admin = await connect(plan.admin);
   const directory = resolve(REPOSITORY_ROOT, '.tmp/security-fresh-backups', new Date().toISOString().replace(/[:.]/g, '-'));
   try {
@@ -237,17 +268,19 @@ export async function resetLocalWorkspace({ apply = false } = {}) {
         const migrations = await applyFullMigrations(plan, name, service.database);
         console.log(JSON.stringify({ rebuilt: name, migrations }));
       }
-      await applyDatabaseRoles(plan);
-      await verifyDatabaseRoles(plan);
+      if (credentialMode === 'restricted') {
+        await applyDatabaseRoles(plan);
+        await verifyDatabaseRoles(plan);
+      }
     } catch (error) {
-      try { await restoreAll(admin, plan, directory); }
+      try { await restoreAll(admin, plan, directory, credentialMode); }
       catch { throw new Error(`Database rebuild failed and automatic rollback failed. Preserve backups at ${directory}.`); }
       throw new Error(`Database rebuild failed; seven databases restored from backups at ${directory}.`);
     }
     await resetKafka();
     await resetRedis();
     await resetQdrant();
-    return { mode: 'applied', backupDirectory: directory, databases: Object.values(plan.services).map((service) => service.database), noVolumesRemoved: true };
+    return { mode: 'applied', credentialMode, backupDirectory: directory, databases: Object.values(plan.services).map((service) => service.database), noVolumesRemoved: true };
   } finally { await admin.end(); }
 }
 

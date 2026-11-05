@@ -19,7 +19,11 @@ Use the existing private .env and host URLs. See
 
 The database schema is managed by the SQL migrations under
 `database/migrations`. Prisma is used as the typed query client only; do not
-run `prisma migrate` against this database.
+run `prisma migrate` or `prisma db push` against this database. The Prisma model
+does not describe every SQL-owned table, foreign key, index, or migration ledger;
+`db push` can remove them, even before a later step reports an error. After
+applying reviewed SQL migrations, run `npm run prisma:generate` to update the
+query client.
 
 Container startup also does not mutate the database schema. Apply the SQL
 migrations through the deployment/database workflow before starting a new

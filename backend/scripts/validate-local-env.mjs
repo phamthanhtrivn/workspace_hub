@@ -79,14 +79,18 @@ export function validateLocalEnvironment({ root = REPOSITORY_ROOT } = {}) {
   }
   for (const [name, directory] of Object.entries(LOCAL_SERVICE_DIRECTORIES)) {
     const env = values(directory);
+    const postgres = values('docker');
     if (name === 'user') {
-      if (env.POSTGRES_USERNAME !== 'wh_user' || env.POSTGRES_DB !== databaseNames.user) error(directory, 'runtime_role_or_database', 'POSTGRES_USERNAME');
+      if (env.POSTGRES_USERNAME !== postgres.POSTGRES_USER || env.POSTGRES_PASSWORD !== postgres.POSTGRES_PASSWORD
+        || env.POSTGRES_HOST !== '127.0.0.1' || env.POSTGRES_PORT !== postgres.POSTGRES_PORT
+        || env.POSTGRES_DB !== databaseNames.user) error(directory, 'shared_postgres_or_database', 'POSTGRES_USERNAME');
       continue;
     }
     try {
       const url = new URL(env.DATABASE_URL);
-      if (decodeURIComponent(url.username) !== `wh_${name}` || decodeURIComponent(url.pathname.slice(1)) !== databaseNames[name]
-        || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) error(directory, 'runtime_role_or_database', 'DATABASE_URL');
+      if (decodeURIComponent(url.username) !== postgres.POSTGRES_USER || decodeURIComponent(url.password) !== postgres.POSTGRES_PASSWORD
+        || decodeURIComponent(url.pathname.slice(1)) !== databaseNames[name] || url.port !== postgres.POSTGRES_PORT
+        || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) error(directory, 'shared_postgres_or_database', 'DATABASE_URL');
     } catch { error(directory, 'invalid_url', 'DATABASE_URL'); }
   }
   for (const file of ['frontend/web/.env', 'frontend/web/.env.docker']) {
