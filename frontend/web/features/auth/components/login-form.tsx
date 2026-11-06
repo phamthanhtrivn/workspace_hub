@@ -27,12 +27,15 @@ import { Button } from "@/components/ui/button";
 import { AUTH_ACTION, AUTH_ACTIVITY_COPY, AUTH_REDIRECT_COPY, AUTH_REDIRECT_BUTTON } from "../types/auth-activity.constants";
 import { useAuthInteraction } from "./auth-interaction-provider";
 import { AuthFormStatus } from "./auth-form-status";
+import { isEmailVerificationRequired } from "../utils/auth-error";
+import { getEmailVerificationPath } from "../utils/email-verification";
 
 const LoginForm = React.memo(function LoginForm() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const loginMutation = useLoginMutation();
   const [showPassword, setShowPassword] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
     defaultValues: { email: "", password: "" },
@@ -47,7 +50,11 @@ const LoginForm = React.memo(function LoginForm() {
     ["email", "password"],
     AUTH_VALIDATION_MESSAGES.loginFailed,
     async (values) => {
-      const response = await loginMutation.mutateAsync(values);
+      setVerificationEmail(null);
+      const response = await loginMutation.mutateAsync(values).catch((error: unknown) => {
+        if (isEmailVerificationRequired(error)) setVerificationEmail(values.email);
+        throw error;
+      });
       const data = response.data;
       dispatch(
         setCredentials({
@@ -71,7 +78,6 @@ const LoginForm = React.memo(function LoginForm() {
 
   return (
     <form noValidate onSubmit={onSubmit} aria-busy={busy} className="space-y-5">
-      <Link href="/verify-email" className="block text-sm text-link">Verify your email to activate your account</Link>
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-4">
           <label
@@ -91,7 +97,7 @@ const LoginForm = React.memo(function LoginForm() {
           type="email"
           icon={Mail}
           placeholder="you@workspacehub.vn"
-          {...form.register("email")}
+          {...form.register("email", { onChange: () => setVerificationEmail(null) })}
           disabled={busy}
           error={errors.email?.message}
         />
@@ -139,6 +145,11 @@ const LoginForm = React.memo(function LoginForm() {
       </div>
 
       <AuthFormError message={activity?.action === AUTH_ACTION.GOOGLE ? undefined : errors.root?.server?.message} />
+      {verificationEmail && !busy && activity?.action !== AUTH_ACTION.GOOGLE && (
+        <Button asChild variant="outline" className="w-full">
+          <Link href={getEmailVerificationPath(verificationEmail)}>Verify your email</Link>
+        </Button>
+      )}
       <AuthFormStatus excludeAction={AUTH_ACTION.GOOGLE} />
       <Button
         loading={loginBusy}

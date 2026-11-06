@@ -73,6 +73,7 @@ export const registerFormSchema = z
   });
 
 export const forgotEmailFormSchema = z.object({ email: emailSchema });
+export const verificationEmailFormSchema = z.object({ email: emailSchema });
 export const verifyOtpFormSchema = z.object({
   otp: z
     .string()
@@ -92,5 +93,6 @@ export const resetPasswordFormSchema = z
 export type LoginFormValues = z.infer<typeof loginFormSchema>;
 export type RegisterFormValues = z.infer<typeof registerFormSchema>;
 export type ForgotEmailFormValues = z.infer<typeof forgotEmailFormSchema>;
+export type VerificationEmailFormValues = z.infer<typeof verificationEmailFormSchema>;
 export type VerifyOtpFormValues = z.infer<typeof verifyOtpFormSchema>;
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordFormSchema>;

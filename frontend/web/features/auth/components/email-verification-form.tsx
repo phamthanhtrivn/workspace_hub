@@ -1,147 +1,103 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { AuthLink as Link } from "@/features/auth/components/auth-link";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { Controller } from "react-hook-form";
+import { ArrowLeft, Mail, ShieldCheck } from "lucide-react";
 import InputField from "@/components/common/input-field";
+import { OtpInput } from "@/components/common/otp-input";
 import { Button } from "@/components/ui/button";
-import {
-  useConfirmEmailMutation,
-  useSendEmailVerificationMutation,
-} from "../hooks/useAuthMutations";
-import { getAuthErrorMessage } from "../utils/auth-error";
-import { EMAIL_VERIFICATION } from "../types/email-verification.constants";
-import { AUTH_ACTION, AUTH_ACTIVITY_COPY, AUTH_REDIRECT_COPY, AUTH_REDIRECT_BUTTON } from "../types/auth-activity.constants";
-import { useAuthInteraction } from "./auth-interaction-provider";
-import { AuthFormStatus } from "./auth-form-status";
+import { AuthLink as Link } from "./auth-link";
 import { AuthFormError } from "./auth-form-error";
+import { AuthFormStatus } from "./auth-form-status";
+import { EmailVerificationProgress } from "./email-verification-progress";
+import { useEmailVerificationFlow } from "../hooks/use-email-verification-flow";
+import { AUTH_ACTION, AUTH_ACTIVITY_COPY, AUTH_REDIRECT_BUTTON } from "../types/auth-activity.constants";
+import { EMAIL_VERIFICATION_STEP } from "../types/email-verification.constants";
+import { AUTH_VALIDATION_LIMITS } from "../types/auth-validation.constants";
 
 export function EmailVerificationForm({ initialEmail = "" }: { initialEmail?: string }) {
-  const router = useRouter();
-  const [email, setEmail] = useState(initialEmail);
-  const [otp, setOtp] = useState("");
-  const [error, setError] = useState("");
-  const [cooldown, setCooldown] = useState(0);
-  const emailInput = useRef<HTMLInputElement>(null);
-  const send = useSendEmailVerificationMutation();
-  const confirm = useConfirmEmailMutation();
-  const { busy, activity, begin, complete, fail, redirect, clear } = useAuthInteraction();
-  const sendingCode = busy && activity?.action === AUTH_ACTION.SEND_VERIFICATION_CODE;
-  const verifyingEmail = busy && activity?.action === AUTH_ACTION.VERIFY_EMAIL;
-  useEffect(() => {
-    if (!cooldown) return;
-    const timer = setTimeout(() => setCooldown((value) => value - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [cooldown]);
+  const flow = useEmailVerificationFlow(initialEmail);
+  const { step, busy, sendingCode, verifyingEmail, activity, emailForm, otpForm } = flow;
+  const emailErrors = emailForm.formState.errors;
+  const otpErrors = otpForm.formState.errors;
 
   return (
-    <form
-      className="space-y-5"
-      aria-busy={busy}
-      onSubmit={async (event) => {
-        event.preventDefault();
-        if (!event.currentTarget.reportValidity() || !begin(AUTH_ACTION.VERIFY_EMAIL)) return;
-        setError("");
-        try {
-          const response = await confirm.mutateAsync({ email: email.trim(), otp });
-          toast.success(response.message);
-          redirect(AUTH_ACTION.VERIFY_EMAIL, AUTH_REDIRECT_COPY.emailVerified);
-          router.replace("/login");
-        } catch (failure) {
-          fail(AUTH_ACTION.VERIFY_EMAIL);
-          const message = getAuthErrorMessage(failure, "Could not verify email.");
-          setError(message);
-          toast.error(message);
-        }
-      }}
-    >
-      <p className="text-sm text-muted-foreground">
-        Verify your email before using your workspace. Enter your address and
-        request a code.
-      </p>
-      <div className="space-y-2">
-        <label htmlFor="verification-email" className="text-sm font-semibold">
-          Email
-        </label>
-        <InputField
-          ref={emailInput}
-          id="verification-email"
-          type="email"
-          autoComplete="email"
-          required
-          maxLength={254}
-          value={email}
-          onChange={(event) => {
-            setEmail(event.target.value);
-            setOtp("");
-            setCooldown(0);
-            setError("");
-            clear();
-          }}
-          disabled={busy}
-        />
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        loading={sendingCode}
-        disabled={busy || !email || cooldown > 0}
-        onClick={async () => {
-          if (!emailInput.current?.reportValidity() || !begin(AUTH_ACTION.SEND_VERIFICATION_CODE)) return;
-          setError("");
-          try {
-            const response = await send.mutateAsync(email.trim());
-            toast.success(response.message);
-            setCooldown(EMAIL_VERIFICATION.resendDelaySeconds);
-            complete(AUTH_ACTION.SEND_VERIFICATION_CODE);
-          } catch (failure) {
-            fail(AUTH_ACTION.SEND_VERIFICATION_CODE);
-            const message = getAuthErrorMessage(failure, "Could not send verification code.");
-            setError(message);
-            toast.error(message);
-          }
-        }}
-      >
-        {sendingCode ? AUTH_ACTIVITY_COPY[AUTH_ACTION.SEND_VERIFICATION_CODE].button
-          : cooldown ? `Send again in ${cooldown}s` : "Send verification code"}
-      </Button>
-      <div className="space-y-2">
-        <label htmlFor="verification-code" className="text-sm font-semibold">
-          Verification code
-        </label>
-        <InputField
-          id="verification-code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          pattern="[0-9]{6}"
-          minLength={6}
-          maxLength={6}
-          required
-          value={otp}
-          onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))}
-          disabled={busy}
-        />
-      </div>
-      <AuthFormError message={error} />
+    <div className="space-y-6">
+      <EmailVerificationProgress step={step} />
       <AuthFormStatus />
-      <Button
-        type="submit"
-        loading={verifyingEmail}
-        className="w-full"
-        disabled={busy || otp.length !== 6}
-      >
-        {verifyingEmail ? activity.phase === "redirecting" ? AUTH_REDIRECT_BUTTON : AUTH_ACTIVITY_COPY[AUTH_ACTION.VERIFY_EMAIL].button : "Verify email"}
-      </Button>
-      <Link href="/login" className="block text-center text-sm text-link">
-        Back to sign in
-      </Link>
-      <Link
-        href="/forgot-password"
-        className="block text-center text-sm text-link"
-      >
-        Need to recover your account?
-      </Link>
-    </form>
+      {step === EMAIL_VERIFICATION_STEP.EMAIL ? (
+        <form noValidate onSubmit={flow.onEmailSubmit} aria-busy={busy} className="space-y-6">
+          <div className="space-y-2">
+            <label htmlFor="verification-email" className="text-sm font-semibold text-foreground">
+              Email <span className="text-destructive-content">*</span>
+            </label>
+            <InputField
+              id="verification-email" type="email" autoComplete="email" required
+              variant="auth" className="text-base sm:text-sm" icon={Mail}
+              placeholder="you@workspacehub.vn" maxLength={AUTH_VALIDATION_LIMITS.emailLength}
+              {...emailForm.register("email")} disabled={busy} error={emailErrors.email?.message}
+            />
+          </div>
+          <AuthFormError message={emailErrors.root?.server?.message || flow.deliveryError} />
+          <Button
+            type="submit" variant="unstyled" loading={sendingCode} disabled={busy || flow.emailCooldown > 0}
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md"
+          >
+            <Mail className="size-4" />
+            {sendingCode ? AUTH_ACTIVITY_COPY[AUTH_ACTION.SEND_VERIFICATION_CODE].button
+              : flow.emailCooldown > 0 ? `Send again in ${flow.emailCooldown}s` : "Send verification code"}
+          </Button>
+        </form>
+      ) : (
+        <>
+          <Button type="button" variant="unstyled" onClick={flow.changeEmail} disabled={busy}
+            className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition hover:text-foreground">
+            <ArrowLeft className="size-4" /> Change email
+          </Button>
+          <form noValidate onSubmit={flow.onCodeSubmit} aria-busy={busy} className="space-y-6">
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="mb-4 inline-flex size-12 items-center justify-center rounded-full bg-primary/10 text-link">
+                  <ShieldCheck className="size-6" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground">Enter verification code</h3>
+                <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                  Check your inbox and spam folder for the code for:<br />
+                  <span className="break-words font-semibold text-foreground">{flow.email}</span>
+                </p>
+              </div>
+              <Controller control={otpForm.control} name="otp" render={({ field, fieldState }) => (
+                <OtpInput
+                  length={AUTH_VALIDATION_LIMITS.otpLength} value={field.value} onChange={field.onChange}
+                  onBlur={field.onBlur} inputRef={field.ref} disabled={busy} error={fieldState.error?.message}
+                />
+              )} />
+              <div className="text-center text-sm">
+                <span className="text-muted-foreground">Didn&apos;t receive a code? </span>
+                <Button type="button" variant="unstyled" onClick={flow.resendCode} loading={sendingCode}
+                  disabled={busy || flow.cooldown > 0}
+                  className="font-bold text-link transition hover:text-foreground disabled:opacity-50">
+                  {sendingCode ? AUTH_ACTIVITY_COPY[AUTH_ACTION.SEND_VERIFICATION_CODE].button
+                    : flow.cooldown > 0 ? `Resend in ${flow.cooldown}s` : "Resend code"}
+                </Button>
+              </div>
+            </div>
+            <AuthFormError message={otpErrors.root?.server?.message} />
+            <Button
+              type="submit" variant="unstyled" loading={verifyingEmail} disabled={busy}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md"
+            >
+              <ShieldCheck className="size-4" />
+              {verifyingEmail ? activity?.phase === "redirecting" ? AUTH_REDIRECT_BUTTON : AUTH_ACTIVITY_COPY[AUTH_ACTION.VERIFY_EMAIL].button : "Verify email"}
+            </Button>
+          </form>
+        </>
+      )}
+      <p className="text-center text-sm text-muted-foreground">
+        Need to recover your account?{" "}
+        <Link href="/forgot-password" className="font-bold text-link underline transition hover:text-foreground">
+          Reset password
+        </Link>
+      </p>
+    </div>
   );
 }

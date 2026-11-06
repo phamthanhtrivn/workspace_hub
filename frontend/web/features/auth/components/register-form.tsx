@@ -1,5 +1,4 @@
 "use client";
-import { EMAIL_VERIFICATION } from '../types/email-verification.constants';
 
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -8,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Lock, Mail, User, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
-import { useRegisterMutation } from "../hooks/useAuthMutations";
+import { useRegisterMutation, useSendEmailVerificationMutation } from "../hooks/useAuthMutations";
 import {
   registerFormSchema,
   type RegisterFormValues,
@@ -22,10 +21,12 @@ import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 import { AUTH_ACTION, AUTH_ACTIVITY_COPY, AUTH_REDIRECT_COPY, AUTH_REDIRECT_BUTTON } from "../types/auth-activity.constants";
 import { useAuthInteraction } from "./auth-interaction-provider";
 import { AuthFormStatus } from "./auth-form-status";
+import { getEmailVerificationPath } from "../utils/email-verification";
 
 const RegisterForm = React.memo(function RegisterForm() {
   const router = useRouter();
   const registerMutation = useRegisterMutation();
+  const sendVerification = useSendEmailVerificationMutation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const form = useForm<RegisterFormValues>({
@@ -41,7 +42,7 @@ const RegisterForm = React.memo(function RegisterForm() {
     reValidateMode: "onChange",
   });
   const { errors } = form.formState;
-  const { busy, activity, redirect } = useAuthInteraction();
+  const { busy, activity, progress, redirect } = useAuthInteraction();
   const registerBusy = busy && activity?.action === AUTH_ACTION.REGISTER;
   const onSubmit = useAuthFormSubmit(
     form,
@@ -55,8 +56,12 @@ const RegisterForm = React.memo(function RegisterForm() {
         password: values.password,
       });
       toast.success(response.message);
+      progress(AUTH_ACTION.REGISTER, AUTH_ACTIVITY_COPY[AUTH_ACTION.SEND_VERIFICATION_CODE].pending);
+      // Registration has already succeeded. A delivery failure is handed to
+      // Verify Email for retry instead of submitting registration again.
+      await sendVerification.mutateAsync(values.email).catch(() => undefined);
       redirect(AUTH_ACTION.REGISTER, AUTH_REDIRECT_COPY.verification);
-      router.replace(`${EMAIL_VERIFICATION.page}?email=${encodeURIComponent(values.email)}`);
+      router.replace(getEmailVerificationPath(values.email));
     },
     AUTH_ACTION.REGISTER,
   );
@@ -218,7 +223,9 @@ const RegisterForm = React.memo(function RegisterForm() {
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-[0_16px_32px_color-mix(in_srgb,var(--primary)_22%,transparent)] transition hover:-translate-y-0.5 hover:bg-primary disabled:opacity-70"
       >
         <UserPlus className="h-4 w-4" />
-        {registerBusy ? activity.phase === "redirecting" ? AUTH_REDIRECT_BUTTON : AUTH_ACTIVITY_COPY.register.button : "Register"}
+        {registerBusy ? activity.phase === "redirecting" ? AUTH_REDIRECT_BUTTON
+          : sendVerification.isPending ? AUTH_ACTIVITY_COPY[AUTH_ACTION.SEND_VERIFICATION_CODE].button
+          : AUTH_ACTIVITY_COPY.register.button : "Register"}
       </Button>
     </form>
   );

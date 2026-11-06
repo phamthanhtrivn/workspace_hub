@@ -2,6 +2,7 @@ import {
   ApiValidationErrors,
   AuthErrorResponse,
 } from "../types/auth.types";
+import { EMAIL_VERIFICATION } from "../types/email-verification.constants";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -35,3 +36,7 @@ export const getAuthErrorMessage = (
   error: unknown,
   fallbackMessage: string,
 ): string => getAuthErrorData(error)?.message ?? fallbackMessage;
+
+// The current backend identifies this business error by its exact message.
+export const isEmailVerificationRequired = (error: unknown): boolean =>
+  getAuthErrorData(error)?.message === EMAIL_VERIFICATION.requiredMessage;

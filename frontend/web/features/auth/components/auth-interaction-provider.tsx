@@ -15,6 +15,7 @@ type AuthInteraction = {
   busy: boolean;
   isLocked: () => boolean;
   begin: (action: AuthAction) => boolean;
+  progress: (action: AuthAction, message: string) => void;
   complete: (action: AuthAction) => void;
   fail: (action: AuthAction, message?: string) => void;
   redirect: (action: AuthAction, message: string) => void;
@@ -39,6 +40,10 @@ function AuthInteractionProvider({ children }: { children: ReactNode }) {
     request.current = null;
     setActivity({ action, phase: "success", message: AUTH_ACTIVITY_COPY[action].success });
   }, []);
+  const progress = useCallback((action: AuthAction, message: string) => {
+    if (request.current?.action !== action || request.current.redirecting) return;
+    setActivity({ action, phase: "pending", message });
+  }, []);
   const fail = useCallback((action: AuthAction, message?: string) => {
     if (request.current && request.current.action !== action) return;
     request.current = null;
@@ -53,8 +58,8 @@ function AuthInteractionProvider({ children }: { children: ReactNode }) {
     if (!request.current) setActivity(null);
   }, []);
   const busy = activity?.phase === "pending" || activity?.phase === "redirecting";
-  const value = useMemo(() => ({ activity, busy, isLocked, begin, complete, fail, redirect, clear }),
-    [activity, busy, isLocked, begin, complete, fail, redirect, clear]);
+  const value = useMemo(() => ({ activity, busy, isLocked, begin, progress, complete, fail, redirect, clear }),
+    [activity, busy, isLocked, begin, progress, complete, fail, redirect, clear]);
 
   return <AuthInteractionContext value={value}>{children}</AuthInteractionContext>;
 }
