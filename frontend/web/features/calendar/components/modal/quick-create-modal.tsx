@@ -212,7 +212,7 @@ export function QuickCreateModal({
 
           {!isEditing && (
             <div
-              className="ml-12 mt-4 inline-flex rounded-panel bg-muted p-1"
+              className="ml-12 mt-4 inline-grid grid-cols-2 items-center gap-1 rounded-panel bg-muted p-1 align-middle"
               role="group" aria-label="Event or task"
             >
               {QUICK_CREATE_TABS.map((tab) => (
@@ -224,10 +224,10 @@ export function QuickCreateModal({
                   aria-pressed={kind === tab.value}
                   onClick={() => onKindChange(tab.value)}
                   className={cn(
-                    "h-8 cursor-pointer rounded-control px-4 text-sm font-semibold transition hover:bg-card",
+                    "h-9 min-w-20 rounded-control border px-4 py-0 text-sm font-semibold leading-none transition-colors focus-visible:ring-inset motion-reduce:transition-none",
                     kind === tab.value
-                      ? "bg-card text-foreground ring-1 ring-ring/60"
-                      : "text-muted-foreground hover:text-foreground",
+                      ? "border-border bg-card text-foreground hover:bg-card"
+                      : "border-transparent bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                   style={
                     kind === tab.value
