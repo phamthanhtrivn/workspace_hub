@@ -1,5 +1,5 @@
-import Image from "@/components/common/storage-image";
-import { User } from "lucide-react";
+import { UserAvatar } from "@/components/common/user-avatar";
+
 import {
   AttendeeResponseStatus,
   CalendarEventAttendee,
@@ -45,18 +45,13 @@ export function EventAttendeeList({
             >
               <div className="flex min-w-0 items-center gap-2">
                 <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-muted">
-                  {profile?.avatarUrl ? (
-                    <Image
-                      src={profile.avatarUrl}
-                      alt={displayName}
-                      width={32}
-                      height={32}
-                      unoptimized
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <User className="h-4 w-4 text-muted-foreground" />
-                  )}
+                  <UserAvatar
+                    src={profile?.avatarUrl}
+                    alt={displayName}
+                    width={32}
+                    height={32}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-foreground">

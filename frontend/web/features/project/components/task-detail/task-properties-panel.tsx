@@ -93,8 +93,6 @@ export default function TaskPropertiesPanel({
     ? taskDateKey(task.dueDate, true)
     : toDateTimeInput(task.dueDate);
 
-
-
   const taskAssignee = task.assignees[0];
   const assignedMember = taskAssignee
     ? members.find((member) => member.userId === taskAssignee.userId)
@@ -106,7 +104,7 @@ export default function TaskPropertiesPanel({
           assignedMember?.displayName ||
           taskAssignee.displayName ||
           memberDisplayName(taskAssignee.userId),
-        avatarUrl: assignedMember?.avatarUrl || taskAssignee.avatarUrl,
+        avatarUrl: assignedMember ? assignedMember.avatarUrl : taskAssignee.avatarUrl,
       }
     : undefined;
   const reporterMember = members.find((member) => member.userId === task.reporterId);
@@ -255,8 +253,6 @@ export default function TaskPropertiesPanel({
                 {TASK_DRAWER_PRIORITY_OPTIONS.map((opt) => (
                   <DropdownMenuItem closeOnClick={false}
                     key={opt.value}
-
-
 
                     onClick={() => {
                       setShowPriorityDropdown(false);

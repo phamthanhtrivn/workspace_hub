@@ -1,9 +1,9 @@
-import { StorageImg } from "@/components/common/storage-media";
+import { UserAvatar } from "@/components/common/user-avatar";
+
 import type { MentionMemberOption } from "../../utils/mention-member-utils";
-import { User, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import React from "react";
 import { Button } from "@/components/ui/button";
-
 
 interface MentionDropdownProps {
   query: string | null;
@@ -43,15 +43,11 @@ export default React.memo(function MentionDropdown({
           <div className="w-6 h-6 rounded-full bg-info-soft flex items-center justify-center text-info-content font-medium text-xs flex-shrink-0 overflow-hidden">
             {user.id === "all" ? (
               <Users size={15} className="text-info-content" />
-            ) : user.avatarUrl ? (
-              <StorageImg
-                src={user.avatarUrl}
-                alt={user.name}
+            ) : <UserAvatar
+                src={user?.avatarUrl}
+                alt={user?.name}
                 className="w-full h-full object-cover"
-              />
-            ) : (
-              <User size={15} className="text-muted-foreground" />
-            )}
+              />}
           </div>
           <span className="truncate">{user.name}</span>
         </Button>

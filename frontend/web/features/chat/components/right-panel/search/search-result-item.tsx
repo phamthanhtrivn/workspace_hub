@@ -1,13 +1,8 @@
-import React from "react";
+import { UserAvatar } from "@/components/common/user-avatar";
+
 import { Button } from "@/components/ui/button";
-import Image from "@/components/common/storage-image";
-import {
-  User,
-  Image as ImageIcon,
-  FileText,
-  Video,
-  BarChart2,
-} from "lucide-react";
+
+import { Image as ImageIcon, FileText, Video, BarChart2 } from "lucide-react";
 import { UserProfileSnapshotResponse } from "../../../types/chat.types";
 import { formatDateTime } from "@/lib/date";
 import { formatMessageContent } from "../../../utils/message-formatter";
@@ -114,17 +109,13 @@ export default function SearchResultItem({
       className="w-full text-left cursor-pointer hover:bg-muted p-3 rounded-panel transition flex gap-3 items-start"
     >
       <Button variant="unstyled" type="button" aria-label={`Open message from ${fullName}`} onClick={event => { event.stopPropagation(); onClick(message.id); }} className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center overflow-hidden bg-muted">
-        {avatarUrl ? (
-          <Image
-            src={avatarUrl}
-            alt={fullName}
-            width={40}
-            height={40}
-            className="rounded-full object-cover w-full h-full"
-          />
-        ) : (
-          <User size={20} className="text-muted-foreground" />
-        )}
+        <UserAvatar
+          src={avatarUrl}
+          alt={fullName}
+          width={40}
+          height={40}
+          className="rounded-full object-cover w-full h-full"
+        />
       </Button>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

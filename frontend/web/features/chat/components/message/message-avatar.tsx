@@ -1,5 +1,5 @@
-import Image from "@/components/common/storage-image";
-import { User } from "lucide-react";
+import { UserAvatar } from "@/components/common/user-avatar";
+
 import { FaKey } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { UserProfileSnapshotResponse } from "../../types/chat.types";
@@ -38,20 +38,13 @@ export default function MessageAvatar({
     >
       {showAvatar ? (
         <span className="relative inline-block">
-          {senderProfile?.avatarUrl ? (
-            <Image
-              src={senderProfile.avatarUrl}
-              alt={senderName}
-              width={36}
-              height={36}
-              unoptimized
-              className="rounded-full object-cover"
-            />
-          ) : (
-            <span className="w-9 h-9 rounded-full bg-accent flex items-center justify-center">
-              <User size={15} className="text-muted-foreground" />
-            </span>
-          )}
+          <UserAvatar
+            src={senderProfile?.avatarUrl}
+            alt={senderName}
+            width={36}
+            height={36}
+            className="rounded-full object-cover"
+          />
           {isCreator ? (
             <span
               className="absolute -bottom-1 -right-1 bg-warning text-warning-foreground rounded-full p-0.5 border border-border flex items-center justify-center h-4 w-4"

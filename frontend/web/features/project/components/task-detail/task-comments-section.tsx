@@ -64,7 +64,7 @@ export default function TaskCommentsSection({
       ? {
           ...comment,
           authorName: author.displayName,
-          authorAvatar: author.avatarUrl || comment.authorAvatar,
+          authorAvatar: comment.authorAvatar !== undefined ? comment.authorAvatar : author.avatarUrl,
         }
       : comment;
   });

@@ -1,16 +1,16 @@
+import { UserAvatar } from "@/components/common/user-avatar";
 import { useId as useControlledPopupId } from "react";
 
 import { IconButton } from "@/components/ui/icon-button";
 import React, { useMemo, useRef, useState } from "react";
-import Image from "@/components/common/storage-image";
-import { Bell, BellOff, MoreVertical, Pin, User } from "lucide-react";
+
+import { Bell, BellOff, MoreVertical, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
 import { DirectConversationResponse } from "../../types/chat.types";
 import { Button } from "@/components/ui/button";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-
 
 type DirectConversationListItem = DirectConversationResponse & {
   unreadCount?: number;
@@ -67,8 +67,6 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
   const isPinned = currentMember?.pinned || false;
   const unreadCount = conversation.unreadCount ?? 0;
 
-
-
   return (
     <div
       className={cn(
@@ -83,17 +81,13 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
           <div className="w-7 h-7 bg-info-soft rounded-full flex items-center justify-center overflow-hidden border border-border transition-transform duration-200">
             {isDirectProfileLoading ? (
               <span className="h-full w-full animate-pulse rounded-full bg-accent" />
-            ) : avatarUrl ? (
-              <Image
+            ) : <UserAvatar
                 src={avatarUrl}
                 alt="Avatar"
                 width={28}
                 height={28}
                 className="rounded-full animate-fade-in object-cover"
-              />
-            ) : (
-              <User size={13} className="text-muted-foreground" />
-            )}
+              />}
           </div>
         </div>
 

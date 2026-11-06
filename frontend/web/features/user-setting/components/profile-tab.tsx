@@ -1,8 +1,9 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import React, { useEffect, useRef, useState } from "react";
-import Image from "@/components/common/storage-image";
-import { Camera, Save, User } from "lucide-react";
+
+import { Camera, Save } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
@@ -128,17 +129,13 @@ const ProfileTab = React.memo(function ProfileTab() {
       <div className="flex flex-col items-center sm:flex-row sm:items-center gap-5 pb-5 border-b border-border">
         <div className="relative group shrink-0">
           <div className="relative grid h-20 w-20 place-items-center overflow-hidden rounded-full border border-input bg-card text-2xl font-semibold text-foreground">
-            {profileForm.avatarUrl ? (
-              <Image
-                src={profileForm.avatarUrl}
-                alt={profileForm.fullName}
-                fill
-                sizes="80px"
-                className="object-cover"
-              />
-            ) : (
-              <User size={30} className="text-foreground" />
-            )}
+            <UserAvatar
+              src={profileForm?.avatarUrl}
+              alt={profileForm?.fullName}
+              fill
+              sizes="80px"
+              className="object-cover"
+            />
           </div>
           <Button aria-busy={uploadAvatarMutation.isPending || undefined} variant="unstyled"
             type="button"

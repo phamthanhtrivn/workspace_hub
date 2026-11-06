@@ -1,5 +1,5 @@
-import { User } from "lucide-react";
-import Image from "@/components/common/storage-image";
+import { UserAvatar } from "@/components/common/user-avatar";
+
 import { MemberProfilesMap } from "./chat-message.types";
 
 interface MessageReadReceiptsProps {
@@ -29,20 +29,13 @@ export default function MessageReadReceipts({
               className="w-4 h-4 rounded-full bg-accent border-2 border-border overflow-hidden relative cursor-pointer hover:z-10 transition-transform"
               title={`${readerProfile?.fullName || "User"} viewed`}
             >
-              {readerProfile?.avatarUrl ? (
-                <Image
-                  src={readerProfile.avatarUrl}
-                  alt="Avatar"
-                  width={16}
-                  height={16}
-                  unoptimized
-                  className="w-full h-full object-cover animate-fade-in"
-                />
-              ) : (
-                <div className="flex items-center justify-center w-full h-full bg-muted">
-                  <User size={10} className="text-muted-foreground" />
-                </div>
-              )}
+              <UserAvatar
+                src={readerProfile?.avatarUrl}
+                alt="Avatar"
+                width={16}
+                height={16}
+                className="w-full h-full object-cover animate-fade-in"
+              />
             </div>
           );
         })}

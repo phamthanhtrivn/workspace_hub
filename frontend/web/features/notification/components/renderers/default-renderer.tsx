@@ -1,13 +1,13 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
+import { Bell } from "lucide-react";
 import React from "react";
 import { Notification } from "../../types/notification.types";
-import { Bell } from "lucide-react";
-import Image from "@/components/common/storage-image";
+
 import { formatTimeAgo } from "@/lib/date";
 import { NotificationListRow } from "../notification-list-row";
 import { Button } from "@/components/ui/button";
-
 
 export const DefaultListItemRenderer: React.FC<{
   notification: Notification;
@@ -24,16 +24,12 @@ export const DefaultModalRenderer: React.FC<{
     <div className="p-4">
       <div className="flex items-center gap-3 mb-4">
         <div className="relative h-12 w-12 rounded-full bg-muted overflow-hidden flex items-center justify-center text-muted-foreground">
-          {notification.senderAvatar ? (
-            <Image
-              src={notification.senderAvatar}
+          {notification.senderId || notification.senderAvatar ? <UserAvatar
+              src={notification?.senderAvatar}
               alt="Avatar"
               fill
               className="object-cover"
-            />
-          ) : (
-            <Bell size={24} />
-          )}
+            /> : <Bell size={24} />}
         </div>
         <div>
           <h3 className="font-semibold text-foreground">{notification.title}</h3>

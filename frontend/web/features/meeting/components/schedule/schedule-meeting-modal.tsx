@@ -1,21 +1,14 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import { IconButton } from "@/components/ui/icon-button";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  ChevronDown,
-  Eye,
-  EyeOff,
-  Lock,
-  Search,
-  User,
-  X,
-} from "lucide-react";
-import Image from "@/components/common/storage-image";
+import { ChevronDown, Eye, EyeOff, Lock, Search, X } from "lucide-react";
+
 import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
@@ -56,7 +49,6 @@ import type {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { LoadingState } from "@/components/ui/loading-state";
-
 
 interface MeetingTimeOption {
   value: string;
@@ -700,20 +692,14 @@ function Avatar({
       className="grid shrink-0 place-items-center overflow-hidden rounded-full bg-muted"
       style={{ width: size, height: size }}
     >
-      {user.avatarUrl ? (
-        <Image
-          src={user.avatarUrl}
-          alt={user.fullName || user.email}
-          width={size}
-          height={size}
-          unoptimized
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <User className="h-4 w-4 text-muted-foreground" />
-      )}
+      <UserAvatar
+        src={user?.avatarUrl}
+        alt={user?.fullName || user?.email}
+        width={size}
+        height={size}
+        className="h-full w-full object-cover"
+      />
     </span>
   );
 }
-
 

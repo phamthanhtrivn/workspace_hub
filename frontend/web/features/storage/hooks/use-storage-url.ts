@@ -29,5 +29,8 @@ export function useStorageUrl(source: string | undefined) {
   };
   const url = privateReference ? (hasToken && userId ? query.data?.url : undefined)
     : isLegacyStorageUrl(reference) ? undefined : source;
-  return { url, privateReference, refresh };
+  return {
+    url, privateReference, refresh,
+    isLoading: privateReference && Boolean(userId && hasToken) && query.isPending,
+  };
 }

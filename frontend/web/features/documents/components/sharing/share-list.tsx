@@ -1,11 +1,12 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import { IconButton } from "@/components/ui/icon-button";
 
-import React, { useCallback, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import Image from "@/components/common/storage-image";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DocumentShare } from "../../types/documents.types";
 import { SharePermission } from "../../types/documents.enums";
@@ -13,7 +14,6 @@ import { documentsApi } from "../../api/documents.api";
 import { useBulkUserProfilesByEmailsQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Spinner } from "@/components/ui/spinner";
-
 
 interface ShareModalListProps {
   documentItemId: string;
@@ -136,17 +136,13 @@ export function ShareModalList({
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 p-2">
           <div className="flex items-center gap-2 min-w-0">
             <div className="w-8 h-8 rounded-full bg-info-soft text-info-content flex items-center justify-center text-xs font-semibold uppercase tracking-wider shrink-0 relative overflow-hidden">
-              {ownerProfile?.avatarUrl ? (
-                <Image
-                  src={ownerProfile.avatarUrl}
-                  alt={ownerProfile.fullName || ownerEmail}
-                  fill
-                  sizes="32px"
-                  className="object-cover rounded-full"
-                />
-              ) : (
-                (ownerProfile?.fullName || ownerEmail).slice(0, 2)
-              )}
+              <UserAvatar
+                src={ownerProfile?.avatarUrl}
+                alt={ownerProfile?.fullName || ownerEmail}
+                fill
+                sizes="32px"
+                className="object-cover rounded-full"
+              />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-semibold text-foreground truncate max-w-[220px]">
@@ -179,17 +175,13 @@ export function ShareModalList({
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-xs font-semibold uppercase tracking-wider shrink-0 relative overflow-hidden">
-                    {profile?.avatarUrl ? (
-                      <Image
-                        src={profile.avatarUrl}
-                        alt={profile.fullName || share.shareWithEmail}
-                        fill
-                        sizes="32px"
-                        className="object-cover rounded-full"
-                      />
-                    ) : (
-                      (profile?.fullName || share.shareWithEmail).slice(0, 2)
-                    )}
+                    <UserAvatar
+                      src={profile?.avatarUrl}
+                      alt={profile?.fullName || share?.shareWithEmail}
+                      fill
+                      sizes="32px"
+                      className="object-cover rounded-full"
+                    />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-foreground truncate max-w-[220px]">

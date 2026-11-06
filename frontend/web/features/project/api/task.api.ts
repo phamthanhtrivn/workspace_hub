@@ -43,7 +43,10 @@ export interface TaskApiModel {
   updatedAt?: string | null;
   checklists?: TaskChecklist[];
   assignees?: Array<
-    Pick<TaskAssignee, "id" | "taskId" | "userId" | "assignedAt">
+    Pick<TaskAssignee, "id" | "taskId" | "userId" | "assignedAt"> & {
+      displayName?: string | null;
+      avatarUrl?: string | null;
+    }
   >;
   labels?: TaskLabel[];
   documentAttachments?: TaskDocumentAttachment[];
@@ -122,7 +125,8 @@ export function normalizeTask(task: TaskApiModel): Task {
     documentAttachments: task.documentAttachments || [],
     assignees: (task.assignees || []).map((assignee) => ({
       ...assignee,
-      displayName: "",
+      displayName: assignee.displayName?.trim() || "",
+      avatarUrl: assignee.avatarUrl?.trim() || undefined,
     })),
     comments: [],
     activities: [],

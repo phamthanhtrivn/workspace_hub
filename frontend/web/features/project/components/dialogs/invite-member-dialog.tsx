@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "@/components/common/storage-image";
-import { CheckCircle2, Clock3, Search, User, X } from "lucide-react";
+import { CheckCircle2, Clock3, Search, X } from "lucide-react";
+import { Avatar } from "../ui/avatar-stack";
 import { toast } from "sonner";
 import { searchUsers, type UserSearchResult } from "@/features/project/api/user.api";
 import type { ProjectInvitationWithUser } from "@/features/project/api/invitation.api";
@@ -214,20 +214,11 @@ export default function InviteMemberDialog({
                             : "border-border hover:border-input hover:bg-background"
                       )}
                     >
-                      {user.avatarUrl ? (
-                        <Image
-                          src={user.avatarUrl}
-                          alt=""
-                          width={36}
-                          height={36}
-                          unoptimized
-                          className="h-9 w-9 rounded-full object-cover shrink-0"
-                        />
-                      ) : (
-                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
-                          <User className="h-4 w-4" />
-                        </span>
-                      )}
+                      <Avatar
+                        user={{ userId: user.id, displayName: user.fullName || user.email || "User", avatarUrl: user.avatarUrl }}
+                        size="md"
+                        className="h-9 w-9"
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-semibold text-foreground">
                           {user.fullName || "User"}

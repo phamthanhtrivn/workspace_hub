@@ -1,13 +1,12 @@
 "use client";
-import { StorageImg } from "@/components/common/storage-media";
-
+import { UserAvatar } from "@/components/common/user-avatar";
 
 import { getApiErrorMessage } from "@/lib/api-error";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useEffect, useState } from "react";
 
-import { X, User, Phone, Calendar, Info } from "lucide-react";
+import { X, Phone, Calendar, Info } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { toast } from "sonner";
@@ -19,7 +18,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { DialogSurface } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-
 
 const UserProfileModal = React.memo(function UserProfileModal() {
   const dispatch = useAppDispatch();
@@ -136,15 +134,11 @@ const UserProfileModal = React.memo(function UserProfileModal() {
           ) : (
             <div className="flex flex-col items-center">
               <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center overflow-hidden border-2 border-border mb-4">
-                {userProfile?.avatarUrl ? (
-                  <StorageImg
-                    src={userProfile.avatarUrl}
-                    alt="User Avatar"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User size={40} className="text-muted-foreground" />
-                )}
+                <UserAvatar
+                  src={userProfile?.avatarUrl}
+                  alt="User Avatar"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <h3 className="text-section-title font-semibold text-foreground">
                 {userProfile?.fullName || "Unknown User"}

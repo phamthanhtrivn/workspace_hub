@@ -1,13 +1,13 @@
+import { UserAvatar } from "@/components/common/user-avatar";
 import { useState } from "react";
-import { ArrowLeft, Info, Search, User, Video } from "lucide-react";
-import Image from "@/components/common/storage-image";
+import { ArrowLeft, Info, Search, Video } from "lucide-react";
+
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
 import StartMeetingConfirmModal from "../modals/start-meeting-confirm-modal";
 import { Button } from "@/components/ui/button";
-
 
 interface DirectConversationHeaderProps {
   onToggleRightPanel: () => void;
@@ -77,17 +77,13 @@ export default function DirectConversationHeader({
           <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center font-semibold overflow-hidden">
             {isLoadingProfile ? (
               <div className="h-full w-full animate-pulse rounded-full bg-accent" />
-            ) : displayAvatarUrl ? (
-              <Image
+            ) : <UserAvatar
                 src={displayAvatarUrl}
                 alt="Avatar"
                 width={40}
                 height={40}
                 className="rounded-full"
-              />
-            ) : (
-              <User size={20} className="text-muted-foreground" />
-            )}
+              />}
           </div>
         </Button>
 

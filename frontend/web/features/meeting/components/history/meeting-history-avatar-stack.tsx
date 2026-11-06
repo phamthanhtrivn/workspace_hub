@@ -1,6 +1,7 @@
 "use client";
 
-import { AvatarFallback } from "../common/avatar-fallback";
+import { UserAvatar } from "@/components/common/user-avatar";
+
 import type { MeetingParticipantResponse } from "../../types/meeting.types";
 
 interface MeetingHistoryAvatarStackProps {
@@ -28,30 +29,7 @@ export function MeetingHistoryAvatarStack({
         const displayName = getParticipantName(participant);
         const avatarUrl = participant.profile?.avatarUrl;
 
-        return avatarUrl ? (
-          <span
-            key={participant.id}
-            aria-label={displayName}
-            role="img"
-            className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center ring-1 ring-ring"
-            style={{
-              backgroundImage: `url("${avatarUrl}")`,
-              marginLeft: index === 0 ? 0 : -10,
-              zIndex: participants.length - index,
-            }}
-          />
-        ) : (
-          <AvatarFallback
-            key={participant.id}
-            label={displayName}
-            className="h-9 w-9 bg-accent ring-1 ring-ring"
-            iconClassName="h-4 w-4"
-            style={{
-              marginLeft: index === 0 ? 0 : -10,
-              zIndex: participants.length - index,
-            }}
-          />
-        );
+        return <UserAvatar key={participant.id} src={avatarUrl} alt={displayName} className="h-9 w-9 shrink-0 rounded-full ring-1 ring-ring" style={{marginLeft: index === 0 ? 0 : -10, zIndex: participants.length - index}} />;
       })}
       {overflowCount > 0 ? (
         <span

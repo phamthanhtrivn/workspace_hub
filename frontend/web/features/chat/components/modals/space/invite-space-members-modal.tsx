@@ -1,5 +1,6 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { IconButton } from "@/components/ui/icon-button";
@@ -8,10 +9,10 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useState, useEffect } from "react";
 
-import { Search, X, User } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
-import Image from "@/components/common/storage-image";
+
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 import {
   inviteSpaceMembers,
@@ -21,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DialogSurface } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-
 
 interface InviteSpaceMembersModalProps {
   isOpen: boolean;
@@ -45,8 +45,6 @@ function InviteSpaceMembersModalForm({
   const currentUserId = useAppSelector((state) => state.auth.userId);
 
   const mounted = useHydrated();
-
-
 
   useEffect(() => {
     if (!email.trim()) return;
@@ -180,17 +178,13 @@ function InviteSpaceMembersModalForm({
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 bg-info-soft rounded-full flex items-center justify-center overflow-hidden border border-border">
-                      {user.avatarUrl ? (
-                        <Image
-                          src={user.avatarUrl}
-                          alt="Avatar"
-                          width={28}
-                          height={28}
-                          className="rounded-full animate-fade-in object-cover"
-                        />
-                      ) : (
-                        <User size={13} className="text-muted-foreground" />
-                      )}
+                      <UserAvatar
+                        src={user?.avatarUrl}
+                        alt="Avatar"
+                        width={28}
+                        height={28}
+                        className="rounded-full animate-fade-in object-cover"
+                      />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-xs font-semibold text-foreground">
@@ -237,7 +231,6 @@ function InviteSpaceMembersModalForm({
       </div>
     </div>}</DialogSurface>;
 }
-
 
 export default function InviteSpaceMembersModal(props: InviteSpaceMembersModalProps) {
   return props.isOpen ? <InviteSpaceMembersModalForm key={props.spaceId} {...props} /> : null;

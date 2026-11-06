@@ -38,11 +38,12 @@ export const userSettingKeys = {
     [UserSettingQueryKey.BULK_PROFILES_BY_EMAILS, emails] as const,
 };
 
-export const useUserProfileQuery = () =>
+export const useUserProfileQuery = (options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: userSettingKeys.profile,
     queryFn: getUserProfile,
     staleTime: USER_SETTING_STALE_TIME_MS,
+    enabled: options?.enabled ?? true,
   });
 
 export const useUserSettingsQuery = (options?: { enabled?: boolean }) => {
@@ -79,6 +80,8 @@ export const useUpdateUserProfileMutation = () => {
     mutationKey: [UserSettingMutationKey.UPDATE_PROFILE],
     mutationFn: updateUserProfile,
     onSuccess: (response) => {
+      const currentEmail = store.getState().auth.email;
+      if (!response.success || !currentEmail || response.data.email.trim().toLowerCase() !== currentEmail.trim().toLowerCase()) return;
       queryClient.setQueryData(userSettingKeys.profile, response);
       queryClient.invalidateQueries({ queryKey: userSettingKeys.profile });
     },

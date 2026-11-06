@@ -1,6 +1,5 @@
 "use client";
-import { StorageImg } from "@/components/common/storage-media";
-
+import { UserAvatar } from "@/components/common/user-avatar";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
@@ -9,7 +8,6 @@ import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { DialogSurface } from "@/components/ui/dialog";
-
 
 interface ReactionDetailModalProps {
   isOpen: boolean;
@@ -89,17 +87,11 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-accent overflow-hidden">
-                    {reaction.user?.avatarUrl ? (
-                      <StorageImg
-                        src={reaction.user.avatarUrl}
-                        alt={reaction.user?.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-info-soft text-info-content font-semibold">
-                        {(reaction.user?.name || "?").charAt(0).toUpperCase()}
-                      </div>
-                    )}
+                    <UserAvatar
+                      src={reaction?.user?.avatarUrl}
+                      alt={reaction?.user?.name}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="absolute -bottom-1 -right-1 bg-card rounded-full p-0.5 text-xs z-10 flex items-center justify-center min-w-[20px] min-h-[20px] shadow-panel">
                     {reaction.emoji}

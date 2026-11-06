@@ -1,15 +1,15 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import React from "react";
 import {
   Notification,
   InvitationResponseMetadata,
 } from "../../types/notification.types";
-import { XCircle, User } from "lucide-react";
-import Image from "@/components/common/storage-image";
+import { XCircle } from "lucide-react";
+
 import { NotificationListRow } from "../notification-list-row";
 import { Button } from "@/components/ui/button";
-
 
 export const InvitationDeclinedListItemRenderer: React.FC<{
   notification: Notification;
@@ -35,16 +35,12 @@ export const InvitationDeclinedModalRenderer: React.FC<{
       <div className="flex flex-col items-center justify-center mb-6 text-center">
         <div className="relative mb-4">
           <div className="relative h-16 w-16 rounded-full overflow-hidden border-2 border-border ring-4 ring-destructive-outline bg-destructive-soft flex items-center justify-center text-destructive-content">
-            {notification.senderAvatar ? (
-              <Image
-                src={notification.senderAvatar}
-                alt="Avatar"
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <User size={32} />
-            )}
+            <UserAvatar
+              src={notification?.senderAvatar}
+              alt="Avatar"
+              fill
+              className="object-cover"
+            />
           </div>
 
           <div className="absolute -bottom-1 -right-1 bg-destructive text-destructive-foreground p-1 rounded-full border-2 border-border">

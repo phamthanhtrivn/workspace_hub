@@ -23,3 +23,9 @@ test('old public storage URLs are distinguished from external identity-provider 
   assert.equal(isLegacyStorageUrl('https://old.s3.ap-southeast-2.amazonaws.com/avatars/file.png'), true);
   assert.equal(isLegacyStorageUrl('https://lh3.googleusercontent.com/avatar'), false);
 });
+
+test('signed S3 avatar URLs remain usable after resolving a private reference', () => {
+  const avatarUrl = 'https://example.s3.ap-southeast-1.amazonaws.com/avatars/photo.png?X-Amz-Signature=test-only';
+  assert.equal(isLegacyStorageUrl(avatarUrl), false);
+  assert.equal(isPrivateStorageReference(avatarUrl), false);
+});

@@ -1,8 +1,9 @@
 "use client";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { useId as useControlledPopupId } from "react";
 
 import React, { useRef, useState } from "react";
-import Image from "@/components/common/storage-image";
+
 import { useRouter } from "next/navigation";
 import { WorkspaceHelpDialog } from "./workspace-help-dialog";
 import { HelpCircle, LogOut, Settings, User } from "lucide-react";
@@ -21,7 +22,6 @@ import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { Button } from "@/components/ui/button";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-
 
 interface UserProfileDropdownProps {
   onOpenSettings: (tab: UserSettingTab) => void;
@@ -49,7 +49,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const userProfile = profileResponse?.data;
-  const avatarUrl = userProfile?.avatarUrl || authAvatarUrl;
+  const avatarUrl = userProfile ? userProfile.avatarUrl : authAvatarUrl;
   const fullName = userProfile?.fullName || authFullName;
 
   const finishLogout = () => {
@@ -79,8 +79,6 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
     });
   };
 
-
-
   return (
     <div className="relative" ref={dropdownRef}>
       <Button aria-expanded={isUserDropdownOpen} aria-controls={`${controlledPopupId}-isUserDropdownOpen`} aria-haspopup="menu" variant="unstyled"
@@ -90,17 +88,13 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
         className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-accent text-sm font-semibold text-foreground ring-1 ring-ring transition hover:bg-border focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer"
         aria-label="Open user menu"
       >
-        {avatarUrl ? (
-          <Image
-            src={avatarUrl}
-            alt={fullName || "User"}
-            fill
-            className="rounded-full object-cover"
-            sizes="44px"
-          />
-        ) : (
-          <User size={22} className="text-foreground rounded-full" />
-        )}
+        <UserAvatar
+          src={avatarUrl}
+          alt={fullName || "User"}
+          fill
+          className="rounded-full object-cover"
+          sizes="44px"
+        />
       </Button>
 
       {isUserDropdownOpen && (

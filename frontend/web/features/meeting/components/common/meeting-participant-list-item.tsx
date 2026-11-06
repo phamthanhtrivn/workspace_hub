@@ -1,5 +1,6 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import {
   Crown,
   Circle,
@@ -23,7 +24,6 @@ import {
   MeetingIconDropdown,
   type MeetingIconDropdownItem,
 } from "./meeting-icon-dropdown";
-import { AvatarFallback } from "./avatar-fallback";
 
 interface MeetingParticipantListItemProps {
   item: MeetingParticipantListItemState;
@@ -144,20 +144,7 @@ export function MeetingParticipantListItem({
   return (
     <article className="rounded-lg bg-muted p-3 ring-1 ring-border/8">
       <div className="flex items-center gap-3">
-        {item.avatarUrl ? (
-          <span
-            aria-label={item.displayName}
-            role="img"
-            className="h-10 w-10 shrink-0 rounded-full bg-cover bg-center"
-            style={{ backgroundImage: `url("${item.avatarUrl}")` }}
-          />
-        ) : (
-          <AvatarFallback
-            label={item.displayName}
-            className="h-10 w-10 bg-accent/90"
-            iconClassName="h-5 w-5 text-muted-foreground"
-          />
-        )}
+        <UserAvatar src={item.avatarUrl} alt={item.displayName} className="h-10 w-10 shrink-0 rounded-full" />
 
         <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-center gap-2">

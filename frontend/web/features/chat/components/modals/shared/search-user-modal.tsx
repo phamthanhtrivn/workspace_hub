@@ -1,6 +1,5 @@
 "use client";
-import { StorageImg } from "@/components/common/storage-media";
-
+import { UserAvatar } from "@/components/common/user-avatar";
 
 import { getApiErrorMessage } from "@/lib/api-error";
 import type { DirectConversationResponse } from "@/features/chat/types/chat.types";
@@ -10,16 +9,7 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
 
-import {
-  Search,
-  X,
-  User,
-  ArrowLeft,
-  Calendar,
-  Phone,
-  Info,
-  MessageCircle,
-} from "lucide-react";
+import { Search, X, ArrowLeft, Calendar, Phone, Info, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   UserProfileResponse,
@@ -34,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DialogSurface } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-
 
 interface SearchUserModalProps {
   isOpen: boolean;
@@ -134,7 +123,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
           id: user.id,
           email: userProfile?.email || user.email,
           fullName: userProfile?.fullName || user.fullName,
-          avatarUrl: userProfile?.avatarUrl || user.avatarUrl,
+          avatarUrl: userProfile ? userProfile.avatarUrl : user.avatarUrl,
           phoneNumber: userProfile?.phoneNumber || null,
           dob: userProfile?.dob || null,
           bio: userProfile?.bio || null,
@@ -244,15 +233,11 @@ const SearchUserModal = React.memo(function SearchUserModal({
                     >
                       <Button variant="unstyled" type="button" onClick={() => handleSelectUser(user)} className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden text-left">
                         <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center overflow-hidden shrink-0 border border-border">
-                          {user.avatarUrl ? (
-                            <StorageImg
-                              src={user.avatarUrl}
-                              alt="Avatar"
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <User size={22} className="text-muted-foreground" />
-                          )}
+                          <UserAvatar
+                            src={user?.avatarUrl}
+                            alt="Avatar"
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         <div className="overflow-hidden">
                           <p className="font-semibold text-foreground text-sm truncate group-hover:text-info-content transition-colors">
@@ -291,17 +276,11 @@ const SearchUserModal = React.memo(function SearchUserModal({
             ) : (
               <div className="flex flex-col items-center">
                 <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center overflow-hidden border-2 border-border mb-4">
-                  {userProfile?.avatarUrl || selectedUser.avatarUrl ? (
-                    <StorageImg
-                      src={
-                        userProfile?.avatarUrl || selectedUser.avatarUrl || ""
-                      }
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User size={40} className="text-muted-foreground" />
-                  )}
+                  <UserAvatar
+                    src={ userProfile ? userProfile.avatarUrl : selectedUser.avatarUrl }
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <h3 className="text-section-title font-semibold text-foreground">
                   {userProfile?.fullName ||

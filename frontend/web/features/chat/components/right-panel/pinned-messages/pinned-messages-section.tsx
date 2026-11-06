@@ -1,4 +1,5 @@
-import { StorageImg } from "@/components/common/storage-media";
+import { UserAvatar } from "@/components/common/user-avatar";
+
 import type { ChatMessageResponse, PinnedMessagesResponse } from "@/features/chat/types/chat.types";
 import { QueryFeedback } from "@/components/common/query-feedback";
 
@@ -17,7 +18,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
 
-
 interface PinnedMessagesSectionProps {
   conversationId: string;
   isDirect?: boolean;
@@ -33,10 +33,6 @@ function getPinnedPreviewText(message: ChatMessageResponse) {
   if (message.poll) return "Poll";
   if (message.note) return "Note";
   return "Message";
-}
-
-function getInitial(name?: string | null) {
-  return (name?.trim()?.charAt(0) || "U").toUpperCase();
 }
 
 export default function PinnedMessagesSection({
@@ -153,19 +149,13 @@ export default function PinnedMessagesSection({
 
                   className="w-full cursor-pointer flex items-start gap-2 rounded-control p-2 text-left hover:bg-muted transition"
                 >
-                  <Button variant="unstyled" type="button" onClick={() => onJumpToMessage(message.id)} className="flex min-w-0 flex-1 items-start gap-2 text-left">{message.senderProfile?.avatarUrl ? (
-                    <StorageImg
-                      src={message.senderProfile.avatarUrl || ""}
+                  <Button variant="unstyled" type="button" onClick={() => onJumpToMessage(message.id)} className="flex min-w-0 flex-1 items-start gap-2 text-left"><UserAvatar
+                      src={message?.senderProfile?.avatarUrl || ""}
                       alt={
-                        message.senderProfile.fullName || "User"
+                        message?.senderProfile?.fullName || "User"
                       }
                       className="h-7 w-7 shrink-0 rounded-full object-cover"
                     />
-                  ) : (
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-info-soft text-xs font-semibold text-info-content">
-                      {getInitial(message.senderProfile?.fullName)}
-                    </span>
-                  )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs font-semibold text-foreground">
                       {message.senderProfile?.fullName || "User"}

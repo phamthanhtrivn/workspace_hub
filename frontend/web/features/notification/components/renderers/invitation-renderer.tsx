@@ -1,5 +1,6 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -13,7 +14,7 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
-import Image from "@/components/common/storage-image";
+
 import {
   acceptInvitation,
   declineInvitation,
@@ -24,14 +25,10 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppDispatch } from "@/store/store";
 import { setActiveSpaceId } from "@/store/chat/chat-slice";
-import {
-  getNotificationApiErrorMessage,
-  getSpaceInvitationInitials,
-} from "../../utils/notification-display.utils";
+import { getNotificationApiErrorMessage } from "../../utils/notification-display.utils";
 import { NotificationListRow } from "../notification-list-row";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-
 
 function SenderAvatar({
   notification,
@@ -46,17 +43,13 @@ function SenderAvatar({
     <div
       className={`${sizeClass} relative flex shrink-0 items-center justify-center overflow-hidden rounded-panel border border-border bg-info-soft font-semibold text-muted-foreground ring-1 ring-ring`}
     >
-      {notification.senderAvatar ? (
-        <Image
-          src={notification.senderAvatar}
-          alt={notification.senderName || "Sender avatar"}
-          fill
-          sizes={size === "lg" ? "64px" : "44px"}
-          className="object-cover"
-        />
-      ) : (
-        <span>{getSpaceInvitationInitials(notification.senderName)}</span>
-      )}
+      <UserAvatar
+        src={notification?.senderAvatar}
+        alt={notification?.senderName || "Sender avatar"}
+        fill
+        sizes={size === "lg" ? "64px" : "44px"}
+        className="object-cover"
+      />
     </div>
   );
 }

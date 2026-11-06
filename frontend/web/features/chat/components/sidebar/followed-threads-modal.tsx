@@ -1,18 +1,13 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useCallback, useMemo, useState } from "react";
 
-import {
-  MessageSquare,
-  MessageSquareText,
-  Search,
-  User,
-  X,
-} from "lucide-react";
+import { MessageSquare, MessageSquareText, Search, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import Image from "@/components/common/storage-image";
+
 import { formatDateTime } from "@/lib/date";
 import {
   getFollowedChannelThreads,
@@ -34,7 +29,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DialogSurface } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-
 
 const EMPTY_THREADS: FollowedThreadResponse[] = [];
 
@@ -102,8 +96,6 @@ export default function FollowedThreadsModal({
     setSearchQuery("");
     onClose();
   }, [onClose]);
-
-
 
   const filteredThreads = useMemo(() => {
     const trimmedQuery = searchQuery.trim().toLowerCase();
@@ -218,17 +210,13 @@ export default function FollowedThreadsModal({
                     <span className="flex items-center justify-between gap-2">
                       <span className="min-w-0 flex items-center gap-2">
                         <span className="h-6 w-6 shrink-0 overflow-hidden rounded-full bg-muted flex items-center justify-center">
-                          {senderProfile?.avatarUrl ? (
-                            <Image
-                              src={senderProfile.avatarUrl}
-                              alt={senderName}
-                              width={24}
-                              height={24}
-                              className="h-6 w-6 rounded-full object-cover"
-                            />
-                          ) : (
-                            <User size={12} className="text-muted-foreground" />
-                          )}
+                          <UserAvatar
+                            src={senderProfile?.avatarUrl}
+                            alt={senderName}
+                            width={24}
+                            height={24}
+                            className="h-6 w-6 rounded-full object-cover"
+                          />
                         </span>
                         <span className="min-w-0">
                           <span className="block truncate text-xs font-semibold text-foreground">

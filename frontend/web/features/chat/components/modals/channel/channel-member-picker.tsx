@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { User } from "lucide-react";
+
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getSpaceMemberCandidates } from "../../../api/space.api";
 import {
@@ -11,7 +11,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { SimplePagination } from "@/components/ui/custom/simple-pagination";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
 
@@ -120,18 +120,11 @@ export default function ChannelMemberPicker({
                   )
                 }
               />
-              <Avatar
-                aria-hidden="true"
+              <UserAvatar
+                src={member.profile?.avatarUrl}
+                alt={member.profile?.fullName || member.profile?.email || "User"}
                 className="size-9 border border-border bg-muted"
-              >
-                <AvatarImage
-                  src={member.profile?.avatarUrl || undefined}
-                  alt=""
-                />
-                <AvatarFallback className="bg-muted text-muted-foreground">
-                  <User size={18} />
-                </AvatarFallback>
-              </Avatar>
+              />
               <span className="min-w-0 flex-1 text-sm">
                 <span className="block truncate font-medium">
                   {member.profile?.fullName ||

@@ -1,12 +1,11 @@
 "use client";
-import { StorageImg } from "@/components/common/storage-media";
-
+import { UserAvatar } from "@/components/common/user-avatar";
 
 import {
   ChannelMemberListItem,
   SpaceRole,
 } from "@/features/chat/types/chat.types";
-import { User } from "lucide-react";
+
 import { FaKey } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import type { ReactNode } from "react";
@@ -32,10 +31,6 @@ function getDisplayName(member: MemberProfile, fallback: string) {
   );
 }
 
-function getInitial(member: MemberProfile, fallback: string) {
-  return getDisplayName(member, fallback).charAt(0).toUpperCase();
-}
-
 export default function ChannelMemberRow({
   member,
   onOpenProfile,
@@ -56,15 +51,11 @@ export default function ChannelMemberRow({
     >
       <div className="relative h-11 w-11 shrink-0">
         <div className="h-full w-full overflow-hidden rounded-full border border-border bg-muted flex items-center justify-center text-sm font-semibold text-muted-foreground">
-          {member.profile?.avatarUrl ? (
-            <StorageImg
-              src={member.profile.avatarUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span>{getInitial(member, unknownUser) || <User size={16} />}</span>
-          )}
+          <UserAvatar
+            src={member?.profile?.avatarUrl}
+            alt=""
+            className="h-full w-full object-cover"
+          />
         </div>
         {isCreator ? (
           <span

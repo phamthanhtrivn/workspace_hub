@@ -1,4 +1,5 @@
-import { StorageImg } from "@/components/common/storage-media";
+import { UserAvatar } from "@/components/common/user-avatar";
+
 import type { ChatMessageResponse, PinnedMessagesResponse } from "@/features/chat/types/chat.types";
 import { QueryFeedback } from "@/components/common/query-feedback";
 
@@ -24,7 +25,6 @@ import { Input } from "@/components/ui/input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { LoadingState } from "@/components/ui/loading-state";
 
-
 interface PinnedMessagesDetailViewProps {
   conversationId: string;
   isDirect?: boolean;
@@ -38,10 +38,6 @@ function getPinnedPreviewText(message: ChatMessageResponse) {
   if (message.poll) return "Poll";
   if (message.note) return "Note";
   return "Message";
-}
-
-function getInitial(name?: string | null) {
-  return (name?.trim()?.charAt(0) || "U").toUpperCase();
 }
 
 export default function PinnedMessagesDetailView({
@@ -255,19 +251,11 @@ export default function PinnedMessagesDetailView({
                 key={message.id}
                 className="group flex items-start gap-3 rounded-lg border border-border bg-background p-3 hover:bg-muted transition"
               >
-                {message.senderProfile?.avatarUrl ? (
-                  <StorageImg
-                    src={message.senderProfile.avatarUrl || ""}
-                    alt={
-                      message.senderProfile.fullName || "User"
-                    }
-                    className="h-9 w-9 shrink-0 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-info-soft text-sm font-semibold text-info-content">
-                    {getInitial(message.senderProfile?.fullName)}
-                  </div>
-                )}
+                <UserAvatar
+                  src={message?.senderProfile?.avatarUrl || ""}
+                  alt={ message?.senderProfile?.fullName || "User" }
+                  className="h-9 w-9 shrink-0 rounded-full object-cover"
+                />
                 <Button variant="unstyled"
                   onClick={() => onJumpToMessage(message.id)}
                   className="min-w-0 flex-1 cursor-pointer text-left"
