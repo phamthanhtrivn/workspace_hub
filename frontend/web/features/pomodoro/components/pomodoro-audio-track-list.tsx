@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { AUDIO_OFF_TRACK, type AmbientTrack, type AmbientTrackId, type PomodoroAudio } from "../types/ambient";
-import { POMODORO_AUDIO_MESSAGES } from "../constants/pomodoro-audio";
+import { POMODORO_AUDIO_CREDITS_PATH, POMODORO_AUDIO_MESSAGES } from "../constants/pomodoro-audio";
 import { PomodoroAudioIcon } from "./pomodoro-audio-icon";
 import { cn } from "@/lib/utils";
 
@@ -38,21 +38,26 @@ function AudioTrackButton({ track, selected, onSelectTrack }: {
 
 export function PomodoroAudioTrackList({ audios, currentTrackId, isLoading, hasError, onRetry, onSelectTrack }: PomodoroAudioTrackListProps) {
   return (
-    <div className="my-3 max-h-56 space-y-1 overflow-y-auto pr-1">
-      <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Audio library</div>
-      <AudioTrackButton track={AUDIO_OFF_TRACK} selected={currentTrackId === "none"} onSelectTrack={onSelectTrack} />
-      {isLoading && <p role="status" className="px-2 py-2 text-xs text-muted-foreground">{POMODORO_AUDIO_MESSAGES.loading}</p>}
-      {hasError && (
-        <div role="status" className="px-2 py-2 text-xs text-warning-content">
-          <p>{POMODORO_AUDIO_MESSAGES.loadError}</p>
-          <Button variant="ghost" type="button" onClick={onRetry} className="mt-1 cursor-pointer font-semibold underline disabled:cursor-not-allowed">{POMODORO_AUDIO_MESSAGES.retry}</Button>
-        </div>
-      )}
-      {!isLoading && !hasError && audios.length === 0 && (
-        <p role="status" className="px-2 py-2 text-xs text-muted-foreground">{POMODORO_AUDIO_MESSAGES.empty}</p>
-      )}
-      {audios.map((audio) => <AudioTrackButton key={audio.id} track={audio}
-        selected={audio.id === currentTrackId} onSelectTrack={onSelectTrack} />)}
+    <div className="my-3 space-y-2">
+      <div className="max-h-56 space-y-1 overflow-y-auto pr-1">
+        <div className="px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Audio library</div>
+        <AudioTrackButton track={AUDIO_OFF_TRACK} selected={currentTrackId === "none"} onSelectTrack={onSelectTrack} />
+        {isLoading && <p role="status" className="px-2 py-2 text-xs text-muted-foreground">{POMODORO_AUDIO_MESSAGES.loading}</p>}
+        {hasError && (
+          <div role="status" className="px-2 py-2 text-xs text-warning-content">
+            <p>{POMODORO_AUDIO_MESSAGES.loadError}</p>
+            <Button variant="ghost" type="button" onClick={onRetry} className="mt-1 cursor-pointer font-semibold underline disabled:cursor-not-allowed">{POMODORO_AUDIO_MESSAGES.retry}</Button>
+          </div>
+        )}
+        {!isLoading && !hasError && audios.length === 0 && (
+          <p role="status" className="px-2 py-2 text-xs text-muted-foreground">{POMODORO_AUDIO_MESSAGES.empty}</p>
+        )}
+        {audios.map((audio) => <AudioTrackButton key={audio.id} track={audio}
+          selected={audio.id === currentTrackId} onSelectTrack={onSelectTrack} />)}
+      </div>
+      {audios.length > 0 && <Button variant="link" size="sm" asChild className="h-auto px-2 py-1 text-xs text-muted-foreground">
+        <a href={POMODORO_AUDIO_CREDITS_PATH} target="_blank" rel="noopener noreferrer">{POMODORO_AUDIO_MESSAGES.credits}</a>
+      </Button>}
     </div>
   );
 }

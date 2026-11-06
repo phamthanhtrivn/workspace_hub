@@ -9,11 +9,10 @@ import {
   AMBIENT_TRACK_ID_PATTERN,
   MAX_AMBIENT_TRACK_ID_LENGTH,
 } from './constants/pomodoro-ambient.constants';
-import {
-  POMODORO_AUDIO_MESSAGES,
-} from './constants/pomodoro-audio.constants';
+import { POMODORO_AUDIO_MESSAGES } from './constants/pomodoro-audio.constants';
 import type { PomodoroAudioResponse } from './types/pomodoro-audio';
 import { buildPomodoroAudioUrl } from './utils/pomodoro-audio-url';
+import { BUILTIN_POMODORO_AUDIOS } from './constants/builtin-pomodoro-audios';
 
 @Injectable()
 export class PomodoroConfigService {
@@ -30,14 +29,17 @@ export class PomodoroConfigService {
   async saveConfig(userId: string, dto: SavePomodoroConfigDto) {
     return this.prisma.pomodoroConfig.upsert({
       where: { userId },
-      create: { userId, ...dto },
+      create: {
+        userId,
+        ...dto,
+        ambientTrackId: DEFAULT_AMBIENT_PREFERENCES.trackId,
+      },
       update: { ...dto },
     });
   }
 
   async getAudios(): Promise<PomodoroAudioResponse[]> {
     const audios = await this.prisma.pomodoroAudio.findMany({
-      where: { isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
       select: {
         id: true,
@@ -47,12 +49,29 @@ export class PomodoroConfigService {
         category: true,
         s3Key: true,
         sortOrder: true,
+        isActive: true,
       },
     });
-    return audios.map((audio) => ({
-      ...audio,
-      url: buildPomodoroAudioUrl(audio.id),
-    }));
+    const configuredIds = new Set(audios.map((audio) => audio.id));
+    const configuredAudios = audios.flatMap(({ isActive, ...audio }) =>
+      isActive
+        ? [
+            {
+              ...audio,
+              url: buildPomodoroAudioUrl(audio.id),
+            },
+          ]
+        : [],
+    );
+    return [
+      ...BUILTIN_POMODORO_AUDIOS.filter(
+        (audio) => !configuredIds.has(audio.id),
+      ),
+      ...configuredAudios,
+    ].sort(
+      (first, second) =>
+        first.sortOrder - second.sortOrder || first.id.localeCompare(second.id),
+    );
   }
 
   async getAmbientPreferences(userId: string) {
@@ -81,10 +100,13 @@ export class PomodoroConfigService {
     }
     if (dto.trackId !== 'none') {
       const audio = await this.prisma.pomodoroAudio.findFirst({
-        where: { id: dto.trackId, isActive: true },
-        select: { id: true },
+        where: { id: dto.trackId },
+        select: { id: true, isActive: true },
       });
-      if (!audio)
+      const available = audio
+        ? audio.isActive
+        : BUILTIN_POMODORO_AUDIOS.some((builtin) => builtin.id === dto.trackId);
+      if (!available)
         throw new BadRequestException(POMODORO_AUDIO_MESSAGES.unavailable);
     }
     const preferences = {

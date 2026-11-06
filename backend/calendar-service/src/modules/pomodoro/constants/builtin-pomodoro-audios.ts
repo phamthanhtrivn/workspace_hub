@@ -1,0 +1,55 @@
+import type { PomodoroAudioResponse } from '../types/pomodoro-audio';
+
+// Bundled tracks; database entries with the same ID take precedence.
+export const BUILTIN_POMODORO_AUDIOS: readonly PomodoroAudioResponse[] = [
+  {
+    id: 'indigo_dreams',
+    name: 'Indigo Dreams',
+    description: 'Lo-fi by Purrple Cat',
+    icon: 'Headphones',
+    category: 'music',
+    s3Key: null,
+    sortOrder: -5,
+    url: '/assets/sounds/indigo_dreams.ogg',
+  },
+  {
+    id: 'cold_and_rainy',
+    name: 'Cold & Rainy',
+    description: 'Lo-fi by Purrple Cat',
+    icon: 'CloudRain',
+    category: 'music',
+    s3Key: null,
+    sortOrder: -4,
+    url: '/assets/sounds/cold_and_rainy.ogg',
+  },
+  {
+    id: 'reverie',
+    name: 'Reverie',
+    description: 'Ambient piano by Scott Buckley',
+    icon: 'Music',
+    category: 'music',
+    s3Key: null,
+    sortOrder: -3,
+    url: '/assets/sounds/reverie.mp3',
+  },
+  {
+    id: 'moonlight',
+    name: 'Moonlight',
+    description: 'Piano and strings by Scott Buckley',
+    icon: 'Music',
+    category: 'music',
+    s3Key: null,
+    sortOrder: -2,
+    url: '/assets/sounds/moonlight.mp3',
+  },
+  {
+    id: 'dream_culture',
+    name: 'Dream Culture',
+    description: 'Piano and percussion by Kevin MacLeod',
+    icon: 'Music',
+    category: 'music',
+    s3Key: null,
+    sortOrder: -1,
+    url: '/assets/sounds/dream_culture.mp3',
+  },
+];

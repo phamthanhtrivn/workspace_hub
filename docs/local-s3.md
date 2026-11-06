@@ -49,11 +49,16 @@ prefix `avatar/` hoặc `avatars/channels/` trong luồng mới.
 - Media chat trả reference `/api/medias/access-url?key=...`. Backend đối chiếu
   media với message chưa xóa/thu hồi và kiểm tra quyền channel, DM hoặc meeting
   trước khi cấp URL đọc 120 giây. Lỗi dependency không bỏ qua kiểm tra quyền.
-- Audio Pomodoro trả reference theo audio ID. API có xác thực chỉ ký key thuộc
+- Thư viện Pomodoro mặc định gồm 5 bài nhạc CC BY 4.0, được đóng gói tại
+  `frontend/web/public/assets/sounds/` và có sẵn kể cả khi thư viện DB chưa có dữ liệu.
+  Bản ghi DB trùng ID được ưu tiên; bản ghi đã tắt không được thay bằng âm thanh mặc định.
+  Nguồn và giấy phép của 5 bài nhạc được ghi trong `credits.txt` cùng thư mục;
+  người dùng có thể mở qua liên kết **Music credits** trong bộ chọn âm thanh.
+- Audio Pomodoro cấu hình thêm trong DB trả reference theo audio ID. API có xác thực chỉ ký key thuộc
   `pomodoro-audio/` của bản ghi audio đang active; URL đọc có hạn một giờ.
 - Bucket mới rỗng nên cần upload audio hợp lệ bằng tài khoản quản trị vào
   `pomodoro-audio/` và tạo/cập nhật metadata audio tương ứng nếu muốn sử dụng
-  thư viện này. Đổi bucket không tự tạo audio hoặc sao chép file cũ.
+  các bài từ S3. Đổi bucket không tự tạo audio hoặc sao chép file cũ.
 - Recording giữ luồng cấp URL sau kiểm tra quyền hiện có; Egress nhận credential
   từ Communication. Document tiếp tục streaming có kiểm tra quyền; URL nội bộ
   cho AI vẫn được ký ngắn hạn theo contract hiện có.
