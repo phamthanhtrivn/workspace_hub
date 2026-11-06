@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
+import { AuthLink as Link } from "@/features/auth/components/auth-link";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
@@ -24,6 +24,9 @@ import {
   getReturnToFromSearch,
 } from "../utils/auth-redirect";
 import { Button } from "@/components/ui/button";
+import { AUTH_ACTION, AUTH_ACTIVITY_COPY, AUTH_REDIRECT_COPY, AUTH_REDIRECT_BUTTON } from "../types/auth-activity.constants";
+import { useAuthInteraction } from "./auth-interaction-provider";
+import { AuthFormStatus } from "./auth-form-status";
 
 const LoginForm = React.memo(function LoginForm() {
   const router = useRouter();
@@ -36,8 +39,9 @@ const LoginForm = React.memo(function LoginForm() {
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
-  const { errors, isSubmitting } = form.formState;
-  const busy = isSubmitting || loginMutation.isPending;
+  const { errors } = form.formState;
+  const { busy, activity, redirect } = useAuthInteraction();
+  const loginBusy = busy && activity?.action === AUTH_ACTION.LOGIN;
   const onSubmit = useAuthFormSubmit(
     form,
     ["email", "password"],
@@ -55,16 +59,18 @@ const LoginForm = React.memo(function LoginForm() {
           avatarUrl: data.avatarUrl,
         }),
       );
+      redirect(AUTH_ACTION.LOGIN, AUTH_REDIRECT_COPY.workspace);
       toast.success(response.message);
       router.replace(
         getReturnToFromSearch(window.location.search) ??
           getAuthenticatedHomePath(data.role),
       );
     },
+    AUTH_ACTION.LOGIN,
   );
 
   return (
-    <form noValidate onSubmit={onSubmit} className="space-y-5">
+    <form noValidate onSubmit={onSubmit} aria-busy={busy} className="space-y-5">
       <Link href="/verify-email" className="block text-sm text-link">Verify your email to activate your account</Link>
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-4">
@@ -132,16 +138,17 @@ const LoginForm = React.memo(function LoginForm() {
         />
       </div>
 
-      <AuthFormError message={errors.root?.server?.message} />
+      <AuthFormError message={activity?.action === AUTH_ACTION.GOOGLE ? undefined : errors.root?.server?.message} />
+      <AuthFormStatus excludeAction={AUTH_ACTION.GOOGLE} />
       <Button
-        loading={busy}
+        loading={loginBusy}
         variant="unstyled"
         type="submit"
         disabled={busy}
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-[0_16px_32px_color-mix(in_srgb,var(--primary)_22%,transparent)] transition hover:-translate-y-0.5 hover:bg-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer disabled:opacity-70"
       >
         <LogIn className="h-4 w-4" />
-        {busy ? "Logging in..." : "Login"}
+        {loginBusy ? activity.phase === "redirecting" ? AUTH_REDIRECT_BUTTON : AUTH_ACTIVITY_COPY.login.button : "Login"}
       </Button>
     </form>
   );

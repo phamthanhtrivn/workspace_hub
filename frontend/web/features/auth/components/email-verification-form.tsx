@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { AuthLink as Link } from "@/features/auth/components/auth-link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
@@ -12,6 +12,10 @@ import {
 } from "../hooks/useAuthMutations";
 import { getAuthErrorMessage } from "../utils/auth-error";
 import { EMAIL_VERIFICATION } from "../types/email-verification.constants";
+import { AUTH_ACTION, AUTH_ACTIVITY_COPY, AUTH_REDIRECT_COPY, AUTH_REDIRECT_BUTTON } from "../types/auth-activity.constants";
+import { useAuthInteraction } from "./auth-interaction-provider";
+import { AuthFormStatus } from "./auth-form-status";
+import { AuthFormError } from "./auth-form-error";
 
 export function EmailVerificationForm({ initialEmail = "" }: { initialEmail?: string }) {
   const router = useRouter();
@@ -19,9 +23,12 @@ export function EmailVerificationForm({ initialEmail = "" }: { initialEmail?: st
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [cooldown, setCooldown] = useState(0);
+  const emailInput = useRef<HTMLInputElement>(null);
   const send = useSendEmailVerificationMutation();
   const confirm = useConfirmEmailMutation();
-  const busy = send.isPending || confirm.isPending;
+  const { busy, activity, begin, complete, fail, redirect, clear } = useAuthInteraction();
+  const sendingCode = busy && activity?.action === AUTH_ACTION.SEND_VERIFICATION_CODE;
+  const verifyingEmail = busy && activity?.action === AUTH_ACTION.VERIFY_EMAIL;
   useEffect(() => {
     if (!cooldown) return;
     const timer = setTimeout(() => setCooldown((value) => value - 1), 1000);
@@ -31,15 +38,21 @@ export function EmailVerificationForm({ initialEmail = "" }: { initialEmail?: st
   return (
     <form
       className="space-y-5"
+      aria-busy={busy}
       onSubmit={async (event) => {
         event.preventDefault();
+        if (!event.currentTarget.reportValidity() || !begin(AUTH_ACTION.VERIFY_EMAIL)) return;
         setError("");
         try {
-          const response = await confirm.mutateAsync({ email, otp });
+          const response = await confirm.mutateAsync({ email: email.trim(), otp });
           toast.success(response.message);
+          redirect(AUTH_ACTION.VERIFY_EMAIL, AUTH_REDIRECT_COPY.emailVerified);
           router.replace("/login");
         } catch (failure) {
-          setError(getAuthErrorMessage(failure, "Could not verify email."));
+          fail(AUTH_ACTION.VERIFY_EMAIL);
+          const message = getAuthErrorMessage(failure, "Could not verify email.");
+          setError(message);
+          toast.error(message);
         }
       }}
     >
@@ -52,6 +65,7 @@ export function EmailVerificationForm({ initialEmail = "" }: { initialEmail?: st
           Email
         </label>
         <InputField
+          ref={emailInput}
           id="verification-email"
           type="email"
           autoComplete="email"
@@ -61,6 +75,9 @@ export function EmailVerificationForm({ initialEmail = "" }: { initialEmail?: st
           onChange={(event) => {
             setEmail(event.target.value);
             setOtp("");
+            setCooldown(0);
+            setError("");
+            clear();
           }}
           disabled={busy}
         />
@@ -68,21 +85,26 @@ export function EmailVerificationForm({ initialEmail = "" }: { initialEmail?: st
       <Button
         type="button"
         variant="outline"
+        loading={sendingCode}
         disabled={busy || !email || cooldown > 0}
         onClick={async () => {
+          if (!emailInput.current?.reportValidity() || !begin(AUTH_ACTION.SEND_VERIFICATION_CODE)) return;
           setError("");
           try {
-            const response = await send.mutateAsync(email);
+            const response = await send.mutateAsync(email.trim());
             toast.success(response.message);
             setCooldown(EMAIL_VERIFICATION.resendDelaySeconds);
+            complete(AUTH_ACTION.SEND_VERIFICATION_CODE);
           } catch (failure) {
-            setError(
-              getAuthErrorMessage(failure, "Could not send verification code."),
-            );
+            fail(AUTH_ACTION.SEND_VERIFICATION_CODE);
+            const message = getAuthErrorMessage(failure, "Could not send verification code.");
+            setError(message);
+            toast.error(message);
           }
         }}
       >
-        {cooldown ? `Send again in ${cooldown}s` : "Send verification code"}
+        {sendingCode ? AUTH_ACTIVITY_COPY[AUTH_ACTION.SEND_VERIFICATION_CODE].button
+          : cooldown ? `Send again in ${cooldown}s` : "Send verification code"}
       </Button>
       <div className="space-y-2">
         <label htmlFor="verification-code" className="text-sm font-semibold">
@@ -101,17 +123,15 @@ export function EmailVerificationForm({ initialEmail = "" }: { initialEmail?: st
           disabled={busy}
         />
       </div>
-      {error && (
-        <p role="alert" className="text-sm text-destructive-content">
-          {error}
-        </p>
-      )}
+      <AuthFormError message={error} />
+      <AuthFormStatus />
       <Button
         type="submit"
+        loading={verifyingEmail}
         className="w-full"
         disabled={busy || otp.length !== 6}
       >
-        Verify email
+        {verifyingEmail ? activity.phase === "redirecting" ? AUTH_REDIRECT_BUTTON : AUTH_ACTIVITY_COPY[AUTH_ACTION.VERIFY_EMAIL].button : "Verify email"}
       </Button>
       <Link href="/login" className="block text-center text-sm text-link">
         Back to sign in

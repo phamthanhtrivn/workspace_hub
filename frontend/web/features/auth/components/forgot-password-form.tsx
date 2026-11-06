@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
+import { AuthLink as Link } from "@/features/auth/components/auth-link";
 import { ArrowLeft, Eye, EyeOff, KeyRound, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
@@ -31,6 +31,9 @@ import { handleAuthFormError } from "../utils/auth-form-error";
 import { AuthFormError } from "./auth-form-error";
 import { ForgotPasswordProgress } from "./forgot-password-progress";
 import { Button } from "@/components/ui/button";
+import { AUTH_ACTION, AUTH_ACTIVITY_COPY, AUTH_REDIRECT_COPY, AUTH_REDIRECT_BUTTON } from "../types/auth-activity.constants";
+import { useAuthInteraction } from "./auth-interaction-provider";
+import { AuthFormStatus } from "./auth-form-status";
 
 const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
   const sendResetOtpMutation = useSendResetOtpMutation();
@@ -44,7 +47,10 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
   const [resetToken, setResetToken] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const submissionLock = useRef(false);
+  const { busy: isLoading, activity, isLocked, begin, complete, fail, redirect, clear } = useAuthInteraction();
+  const sendingCode = isLoading && activity?.action === AUTH_ACTION.SEND_RESET_CODE;
+  const verifyingCode = isLoading && activity?.action === AUTH_ACTION.VERIFY_RESET_CODE;
+  const resettingPassword = isLoading && activity?.action === AUTH_ACTION.RESET_PASSWORD;
   const emailForm = useForm<ForgotEmailFormValues>({
     resolver: zodResolver(forgotEmailFormSchema),
     defaultValues: { email: "" },
@@ -66,13 +72,6 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
   const emailErrors = emailForm.formState.errors;
   const otpErrors = otpForm.formState.errors;
   const passwordErrors = passwordForm.formState.errors;
-  const isLoading =
-    sendResetOtpMutation.isPending ||
-    verifyResetOtpMutation.isPending ||
-    resetPasswordMutation.isPending ||
-    emailForm.formState.isSubmitting ||
-    otpForm.formState.isSubmitting ||
-    passwordForm.formState.isSubmitting;
 
   const onEmailSubmit = useAuthFormSubmit(
     emailForm,
@@ -87,7 +86,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
       toast.success("Verification code sent to your email");
       setStep(ForgotPasswordStep.OTP);
     },
-    submissionLock,
+    AUTH_ACTION.SEND_RESET_CODE,
   );
 
   const onOtpSubmit = useAuthFormSubmit(
@@ -107,7 +106,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
       toast.success("Verification code verified successfully");
       setStep(ForgotPasswordStep.PASSWORD);
     },
-    submissionLock,
+    AUTH_ACTION.VERIFY_RESET_CODE,
   );
 
   const onPasswordSubmit = useAuthFormSubmit(
@@ -116,6 +115,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
     messages.resetFailed,
     async (values) => {
       if (!resetToken) {
+        fail(AUTH_ACTION.RESET_PASSWORD);
         passwordForm.setError("root.server", {
           message: messages.resetExpired,
         });
@@ -127,14 +127,14 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
         newPassword: values.newPassword,
       });
       toast.success("Password updated successfully");
+      redirect(AUTH_ACTION.RESET_PASSWORD, AUTH_REDIRECT_COPY.passwordReset);
       window.location.href = AuthRouteTarget.LOGIN;
     },
-    submissionLock,
+    AUTH_ACTION.RESET_PASSWORD,
   );
 
   const handleResendCode = async () => {
-    if (!email || submissionLock.current) return;
-    submissionLock.current = true;
+    if (!email || !begin(AUTH_ACTION.SEND_RESET_CODE)) return;
     otpForm.clearErrors("root");
     try {
       await sendResetOtpMutation.mutateAsync({ email });
@@ -142,15 +142,16 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
       passwordForm.reset();
       setResetToken("");
       toast.success("Verification code sent to your email");
+      complete(AUTH_ACTION.SEND_RESET_CODE);
     } catch (error) {
+      fail(AUTH_ACTION.SEND_RESET_CODE);
       handleAuthFormError(error, otpForm, [], messages.sendCodeFailed);
-    } finally {
-      submissionLock.current = false;
     }
   };
 
   const handleBack = () => {
-    if (submissionLock.current) return;
+    if (isLocked()) return;
+    clear();
     setResetToken("");
     passwordForm.reset();
     if (step === ForgotPasswordStep.PASSWORD) {
@@ -166,6 +167,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
   return (
     <div className="space-y-6">
       <ForgotPasswordProgress step={step} />
+      <AuthFormStatus />
       {step !== ForgotPasswordStep.EMAIL && (
         <Button
           variant="unstyled"
@@ -183,6 +185,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
         <form
           noValidate
           onSubmit={onEmailSubmit}
+          aria-busy={isLoading}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
         >
           <div className="space-y-2">
@@ -208,13 +211,13 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
           </div>
           <AuthFormError message={emailErrors.root?.server?.message} />
           <Button
-            loading={sendResetOtpMutation.isPending}
+            loading={sendingCode}
             variant="unstyled"
             type="submit"
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {sendResetOtpMutation.isPending ? "Sending..." : "Send reset code"}
+            {sendingCode ? AUTH_ACTIVITY_COPY[AUTH_ACTION.SEND_RESET_CODE].button : "Send reset code"}
           </Button>
         </form>
       )}
@@ -223,6 +226,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
         <form
           noValidate
           onSubmit={onOtpSubmit}
+          aria-busy={isLoading}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
         >
           <div className="space-y-4">
@@ -266,22 +270,23 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
                 variant="unstyled"
                 type="button"
                 onClick={handleResendCode}
+                loading={sendingCode}
                 className="font-bold text-link transition hover:text-foreground cursor-pointer"
                 disabled={isLoading}
               >
-                Resend code
+                {sendingCode ? AUTH_ACTIVITY_COPY[AUTH_ACTION.SEND_RESET_CODE].button : "Resend code"}
               </Button>
             </div>
           </div>
           <AuthFormError message={otpErrors.root?.server?.message} />
           <Button
-            loading={verifyResetOtpMutation.isPending}
+            loading={verifyingCode}
             variant="unstyled"
             type="submit"
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {verifyResetOtpMutation.isPending ? "Verifying..." : "Verify code"}
+            {verifyingCode ? AUTH_ACTIVITY_COPY[AUTH_ACTION.VERIFY_RESET_CODE].button : "Verify code"}
           </Button>
         </form>
       )}
@@ -290,6 +295,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
         <form
           noValidate
           onSubmit={onPasswordSubmit}
+          aria-busy={isLoading}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
         >
           <div className="space-y-2">
@@ -356,14 +362,14 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
           </div>
           <AuthFormError message={passwordErrors.root?.server?.message} />
           <Button
-            loading={resetPasswordMutation.isPending}
+            loading={resettingPassword}
             variant="unstyled"
             type="submit"
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition hover:-translate-y-0.5 hover:bg-primary hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {resetPasswordMutation.isPending
-              ? "Updating..."
+            {resettingPassword
+              ? activity.phase === "redirecting" ? AUTH_REDIRECT_BUTTON : AUTH_ACTIVITY_COPY[AUTH_ACTION.RESET_PASSWORD].button
               : "Update password"}
           </Button>
         </form>

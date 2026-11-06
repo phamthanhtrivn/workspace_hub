@@ -1,27 +1,32 @@
-import { useRef, type FormEvent, type RefObject } from "react";
+import type { FormEvent } from "react";
 import type { FieldValues, Path, UseFormReturn } from "react-hook-form";
 import { handleAuthFormError } from "../utils/auth-form-error";
+import type { AuthAction } from "../types/auth-activity.constants";
+import { useAuthInteraction } from "../components/auth-interaction-provider";
 
 export function useAuthFormSubmit<Values extends FieldValues>(
   form: UseFormReturn<Values>,
   fields: readonly Path<Values>[],
   fallback: string,
   submit: (values: Values) => Promise<void>,
-  sharedLock?: RefObject<boolean>,
+  action: AuthAction,
 ) {
-  const localLock = useRef(false);
-  const lock = sharedLock ?? localLock;
-  return (event: FormEvent<HTMLFormElement>) =>
-    form.handleSubmit(async (values) => {
-      if (lock.current) return;
-      lock.current = true;
+  const { begin, complete, fail } = useAuthInteraction();
+  return (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!begin(action)) return;
+    return form.handleSubmit(async (values) => {
       form.clearErrors("root");
       try {
         await submit(values);
+        complete(action);
       } catch (error) {
+        fail(action);
         handleAuthFormError(error, form, fields, fallback);
-      } finally {
-        lock.current = false;
       }
-    })(event);
+    }, () => fail(action))(event).catch((error: unknown) => {
+      fail(action);
+      handleAuthFormError(error, form, fields, fallback);
+    });
+  };
 }

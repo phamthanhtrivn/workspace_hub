@@ -1,5 +1,5 @@
 import { createPageMetadata } from "@/lib/seo";
-import Link from "next/link";
+import { AuthLink as Link } from "@/features/auth/components/auth-link";
 import { ArrowLeft } from "lucide-react";
 import LoginForm from "@/features/auth/components/login-form";
 import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
