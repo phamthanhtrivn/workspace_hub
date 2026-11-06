@@ -14,7 +14,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import MessageComposerPreview from "./message-composer-preview";
+import MessageComposerPreview, { MessageComposerPreviewButton } from "./message-composer-preview";
 import PastingMessageFiles from "./pasting-message-files";
 import { useCopiedMessagePaste } from "../../hooks/input/useCopiedMessagePaste";
 import { CHAT_ATTACHMENT_MAX_SIZE_BYTES, MESSAGE_CLIPBOARD_MESSAGES } from "../../types/message-clipboard.types";
@@ -677,7 +677,7 @@ const DirectMessageInput = React.memo(
                 )}
               </div>
 
-              <MessageComposerPreview message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} compact={compact} open={showPreview} onOpenChange={setShowPreview} className="flex-1 @max-[480px]/composer:order-first @max-[480px]/composer:basis-full">
+              <MessageComposerPreview id={`${controlledPopupId}-message-preview`} message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} compact={compact} open={showPreview} className="flex-1 @max-[480px]/composer:order-first @max-[480px]/composer:basis-full">
               <Textarea unstyled focusMode="container" aria-label="Direct message"
                 ref={textareaRef}
                 value={
@@ -704,6 +704,8 @@ const DirectMessageInput = React.memo(
                 }}
               />
               </MessageComposerPreview>
+
+              <MessageComposerPreviewButton message={message} interimMessage={interimMessage} open={showPreview} onOpenChange={setShowPreview} previewId={`${controlledPopupId}-message-preview`} textareaRef={textareaRef} />
 
               {isRecording ? (
                 <div className="flex items-center gap-2.5 px-1 animate-in fade-in">

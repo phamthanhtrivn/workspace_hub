@@ -15,7 +15,7 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from "react";
-import MessageComposerPreview from "./message-composer-preview";
+import MessageComposerPreview, { MessageComposerPreviewButton } from "./message-composer-preview";
 import { composeMessageText } from "../../utils/message-draft";
 import {
   Send,
@@ -866,7 +866,7 @@ const ThreadChatInput = React.memo(
               )}
 
               {/* Textarea Input */}
-              <MessageComposerPreview message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} compact open={showPreview} onOpenChange={setShowPreview}>
+              <MessageComposerPreview id={`${controlledPopupId}-message-preview`} message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} compact open={showPreview}>
               <Textarea unstyled focusMode="container" role="combobox" aria-label="Reply in thread" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
                 id="thread-chat-input-textarea"
                 ref={textareaRef}
@@ -929,6 +929,7 @@ const ThreadChatInput = React.memo(
 
             {/* Action Buttons / Recording UI */}
             <div className="flex items-center gap-1.5 flex-shrink-0 relative @max-[480px]/composer:ml-auto">
+              <MessageComposerPreviewButton message={message} interimMessage={interimMessage} open={showPreview} onOpenChange={setShowPreview} previewId={`${controlledPopupId}-message-preview`} textareaRef={textareaRef} />
               {isRecording ? (
                 <div className="flex items-center gap-2.5 px-1 animate-in fade-in">
                   <div className="w-2 h-2 rounded-full bg-destructive-content animate-pulse"></div>
