@@ -7,10 +7,12 @@ import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
 import { Button } from "@/components/ui/button";
 import type { PomodoroSessionRecord } from "../types/pomodoro";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { SimplePagination } from "@/components/ui/custom/simple-pagination";
 import { PomodoroSessionHistoryItem } from "./pomodoro-session-history-item";
 
 interface PomodoroSessionHistoryProps {
+  embedded?: boolean;
   lastUpdated?: number;
   records?: PomodoroSessionRecord[];
   title?: string;
@@ -22,6 +24,7 @@ interface PomodoroSessionHistoryProps {
 }
 
 export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory({
+  embedded = false,
   lastUpdated = 0,
   records,
   title = "Today's session history",
@@ -42,7 +45,7 @@ export const PomodoroSessionHistory = React.memo(function PomodoroSessionHistory
   }, [page]);
 
   return (
-    <Card className="block text-inherit w-full rounded-panel border border-border bg-card p-5">
+    <Card className={cn("block w-full text-inherit", embedded ? "rounded-none border-0 bg-transparent p-0 shadow-none" : "rounded-panel border border-border bg-card p-5")}>
       <div className="mb-3.5 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="size-6 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">

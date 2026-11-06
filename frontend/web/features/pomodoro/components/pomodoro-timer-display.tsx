@@ -6,7 +6,8 @@ import { getPomodoroCycleContext } from "../utils/pomodoro-cycle";
 import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
 import { cleanTaskDescription } from "@/features/calendar/utils/calendar-event.utils";
 import { cn } from "@/lib/utils";
-import { Target, StickyNote } from "lucide-react";
+import { Target, StickyNote, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { POMODORO_MODES, POMODORO_MODE_THEMES } from "../constants/pomodoro-mode-theme";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -25,6 +26,8 @@ interface PomodoroTimerDisplayProps {
   longBreakDuration?: number;
   activeTaskTitle?: string;
   activeTaskNote?: string;
+  canClearTask?: boolean;
+  onClearTask?: () => void;
   onSwitchMode: (mode: PomodoroMode) => void;
 }
 
@@ -42,6 +45,8 @@ export function PomodoroTimerDisplay({
   longBreakDuration = 15,
   activeTaskTitle,
   activeTaskNote,
+  canClearTask = false,
+  onClearTask,
   onSwitchMode,
 }: PomodoroTimerDisplayProps) {
   const minutes = Math.floor(timeLeft / 60);
@@ -112,18 +117,18 @@ export function PomodoroTimerDisplay({
 
       {/* Segmented Mode Selector */}
       <TabsList aria-label="Timer mode"
-        className="grid h-auto w-full max-w-lg grid-cols-3 gap-1 rounded-panel border border-border bg-muted p-1">
+        className="grid h-auto w-full max-w-lg grid-cols-3 items-stretch gap-1 rounded-panel bg-muted p-1">
         {POMODORO_MODES.map((tabMode) => {
           const theme = POMODORO_MODE_THEMES[tabMode];
           const TabIcon = theme.icon;
           return (
             <TabsTrigger key={tabMode} value={tabMode} disabled={disabled}
               className={cn(
-                "flex h-auto min-w-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-control px-1 py-2 text-xs font-medium tracking-tight text-muted-foreground transition-colors duration-200 hover:bg-card hover:text-foreground focus-visible:ring-2 data-[state=active]:bg-card data-[state=active]:font-semibold sm:text-xs",
+                "flex h-auto min-h-12 min-w-0 items-center justify-center gap-2 rounded-control border border-transparent px-2 py-2 text-xs text-muted-foreground transition-colors duration-150 hover:bg-accent hover:text-foreground focus-visible:ring-inset data-[state=active]:border-border data-[state=active]:bg-card data-[state=active]:text-foreground motion-reduce:transition-none sm:text-sm",
                 theme.tabClass,
               )}>
-              <TabIcon aria-hidden="true" className="size-3.5" />
-              <span>{theme.name}<span className="block text-xs">{modeDurations[tabMode]}m</span></span>
+              <TabIcon aria-hidden="true" className="hidden size-4 shrink-0 sm:block" />
+              <span className="flex min-w-0 flex-col items-center leading-snug sm:items-start"><span className="font-semibold">{theme.name}</span><span className="text-xs font-normal opacity-75">{modeDurations[tabMode]} min</span></span>
             </TabsTrigger>
           );
         })}
@@ -143,15 +148,15 @@ export function PomodoroTimerDisplay({
             <div
               title={statusText}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-all",
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors motion-reduce:transition-none",
                 modeThemes.badgeClass,
               )}
             >
               <span
                 className={cn(
-                  "size-1.5 rounded-full transition-all",
+                  "size-1.5 rounded-full transition-colors motion-reduce:transition-none",
                   isRunning
-                    ? "animate-pulse bg-success-content ring-2 ring-success-outline/80"
+                    ? "bg-success-content ring-2 ring-success-outline/80 motion-safe:animate-pulse"
                     : status === "PAUSED"
                       ? "bg-warning-content ring-2 ring-warning-outline/80"
                       : "bg-muted-foreground/70",
@@ -184,6 +189,8 @@ export function PomodoroTimerDisplay({
                   >
                     {activeTaskTitle}
                   </strong>
+                  {onClearTask && <Button type="button" variant="ghost" size="icon-sm" disabled={!canClearTask} onClick={onClearTask}
+                    aria-label="Clear selected task" title="Clear selected task" className="size-7 shrink-0 rounded-full p-0 text-muted-foreground"><X aria-hidden="true" className="size-3.5" /></Button>}
                 </div>
 
                 {/* Quiet Frameless Note Subtitle + Frosted Popover when truncated */}

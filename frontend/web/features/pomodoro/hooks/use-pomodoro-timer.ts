@@ -695,11 +695,13 @@ export function usePomodoroTimer(userId: string) {
   );
 
   const selectTask = useCallback(async (task: PomodoroActiveTask | null) => {
-    if (task?.id === activeTask?.id && task?.calendarEventId === activeTask?.calendarEventId) return;
+    if (task?.id === activeTask?.id && task?.calendarEventId === activeTask?.calendarEventId) return true;
     try {
       await transitionTask(task);
+      return true;
     } catch (error) {
       if (mountedRef.current) toast.error(error instanceof Error ? error.message : "Unable to switch tasks.");
+      return false;
     }
   }, [activeTask, transitionTask]);
 

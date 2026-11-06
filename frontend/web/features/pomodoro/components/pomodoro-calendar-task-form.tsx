@@ -24,7 +24,7 @@ import { POMODORO_TASK_MESSAGES, POMODORO_TASK_SETTINGS } from "../constants/pom
 import { usePomodoroSessionActions } from "./pomodoro-session-provider";
 import { createCalendarFocusTask } from "../api/focus-tasks.api";
 import type { PomodoroActiveTask } from "../types/pomodoro";
-import { isCalendarFocusEligible, toCalendarFocusTask, sameFocusTask } from "../utils/focus-task";
+import { isCalendarFocusEligible, toCalendarFocusTask } from "../utils/focus-task";
 
 export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSavingChange }: {
   focusDurationMinutes: number;
@@ -50,19 +50,17 @@ export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSa
   const creatingRef = useRef(false);
   const [createdTask, setCreatedTask] = useState<PomodoroActiveTask | null>(null);
   const [createdEligible, setCreatedEligible] = useState(true);
-  const { startFocus, busy, activeTask, status } = usePomodoroSessionActions();
+  const { selectFocusTask, busy, status } = usePomodoroSessionActions();
   const queryClient = useQueryClient();
   const { register, setValue, formState: { errors } } = form;
 
   useEffect(() => {
     setValue("calendarId", defaultCalendarId);
   }, [defaultCalendarId, setValue]);
-  useEffect(() => {
-    if (createdTask && sameFocusTask(createdTask, activeTask) && status === "RUNNING") onCreated();
-  }, [createdTask, activeTask, status, onCreated]);
+
 
   const submit = async (values: CalendarEventEditorValues) => {
-    if (creatingRef.current || busy || !userId) return;
+    if (creatingRef.current || busy || !userId || status !== "IDLE") return;
     creatingRef.current = true;
     setCreating(true);
     onSavingChange?.(true);
@@ -81,15 +79,15 @@ export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSa
           return;
         }
       }
-      await startFocus(target);
+      if (await selectFocusTask(target)) onCreated();
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : POMODORO_TASK_MESSAGES.createFailed);
     } finally { creatingRef.current = false; setCreating(false); onSavingChange?.(false); }
   };
-  const locked = creating || busy || Boolean(createdTask);
+  const locked = creating || busy || status !== "IDLE" || Boolean(createdTask);
 
   return <form onSubmit={(event) => void form.handleSubmit(submit)(event)} onFocusCapture={time.refreshToday} className="space-y-5">
-    <p className="text-xs text-muted-foreground">Add a personal task to My tasks and start focusing on it.</p>
+    <p className="text-xs text-muted-foreground">Add a personal Calendar task and select it for your next session. Press Start when you are ready.</p>
     <fieldset disabled={locked} className="min-w-0 space-y-5">
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground" htmlFor={`${formId}-title`}>Task title</label>
@@ -119,10 +117,10 @@ export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSa
     </fieldset>
     {!isLoading && !isError && !defaultCalendarId && <p role="status" className="text-xs text-muted-foreground">{POMODORO_TASK_MESSAGES.personalCalendarRequired}</p>}
     {isError && <p role="alert" className="text-xs text-destructive-content">Unable to load your personal task list. <Button type="button" variant="link" size="sm" onClick={() => void refetch()}>Retry</Button></p>}
-    {createdTask && <p role="status" className="text-xs text-muted-foreground">Task saved to My tasks. Your current focus is kept until you confirm the switch.</p>}
+    {createdTask && <p role="status" className="text-xs text-muted-foreground">Task saved to My tasks. Select it for the next session without starting the timer.</p>}
     {error && <p role="alert" className="text-xs text-destructive-content">{error}</p>}
-    <Button loading={creating} type="submit" className="w-full" disabled={creating || busy || !createdEligible || isLoading || isError || !defaultCalendarId}>
-      {creating ? "Preparing focus…" : createdTask ? "Start created task" : "Create task & start focus"}
+    <Button loading={creating} type="submit" className="w-full" disabled={creating || busy || status !== "IDLE" || !createdEligible || isLoading || isError || !defaultCalendarId}>
+      {creating ? "Saving task..." : createdTask ? "Select created task" : "Create task & select"}
     </Button>
   </form>;
 }

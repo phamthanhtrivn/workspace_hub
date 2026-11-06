@@ -2,6 +2,8 @@
 import { useId, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ChartNoAxesCombined, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { usePomodoroReport } from "../hooks/use-pomodoro-report";
@@ -18,11 +20,13 @@ import {
 } from "../utils/pomodoro-report";
 import type { PomodoroSessionRecord } from "../types/pomodoro";
 import { Spinner } from "@/components/ui/spinner";
+import { PomodoroPanelHeader } from "./pomodoro-panel-header";
 
 const EMPTY_SESSIONS: PomodoroSessionRecord[] = [];
 
 export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
   const id = useId();
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const dates = usePomodoroReportRange();
   const range = dates.applied;
   const [hideEmptyDays, setHideEmptyDays] = useState(false);
@@ -57,23 +61,29 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
   };
 
   return (
-    <section className="space-y-4" aria-label="Pomodoro history and reports">
-      <Card className="block min-w-0 rounded-panel border-border bg-card p-4 text-foreground sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h3 className="text-section-title font-semibold">{copy.title}</h3>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{copy.description}</p>
+    <section aria-label="Pomodoro history and reports">
+      <Card className="block min-w-0 overflow-hidden rounded-panel border-border bg-card p-0 text-foreground">
+        <PomodoroPanelHeader title={copy.title} description={copy.description} icon={ChartNoAxesCombined}>
+          <div className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-control bg-muted p-1" role="group" aria-label={copy.dateRanges}>
+            {POMODORO_REPORT_PRESETS.map(({ value: preset, label }) => {
+              const selected = dates.preset === preset;
+              return <Button key={preset} type="button" size="sm" variant="ghost" aria-pressed={selected}
+                className={cn("h-9 rounded-control border border-transparent px-3 py-0 text-xs focus-visible:ring-inset",
+                  selected ? "border-border bg-card font-semibold text-foreground hover:bg-card" : "text-muted-foreground hover:bg-accent hover:text-foreground")}
+                onClick={() => { dates.choosePreset(preset); selection.clearNotice(); resetPages(); }}>{label}</Button>;
+            })}
           </div>
-          <div className="flex max-w-full flex-wrap items-center gap-1 rounded-control bg-muted p-1" role="group" aria-label={copy.dateRanges}>
-          {POMODORO_REPORT_PRESETS.map(({ value: preset, label }) => {
-            const selected = dates.preset === preset;
-            return <Button key={preset} type="button" size="sm" variant="ghost" aria-pressed={selected}
-              className={cn("h-8 px-3 text-xs", selected && "bg-card font-semibold text-foreground shadow-sm hover:bg-card")}
-              onClick={() => { dates.choosePreset(preset); selection.clearNotice(); resetPages(); }}>{label}</Button>;
-          })}
-          </div>
-        </div>
-        <fieldset className="mt-5 min-w-0">
+        </PomodoroPanelHeader>
+        <div className="px-4 pb-5 pt-4 sm:px-5">
+          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-medium text-muted-foreground">{copy.appliedRange}: <span className="text-foreground">{formatReportRange(range)}</span></p>
+              <CollapsibleTrigger render={<Button type="button" size="sm" variant="outline" className="group gap-2" />}>
+                <SlidersHorizontal aria-hidden="true" className="size-3.5" />Filters<ChevronDown aria-hidden="true" className="size-3.5 transition-transform group-data-[panel-open]:rotate-180 motion-reduce:transition-none" />
+              </CollapsibleTrigger>
+            </div>
+            <CollapsibleContent>
+        <fieldset className="mt-4 min-w-0">
         <legend className="text-sm font-semibold text-foreground">{copy.dateRange}</legend>
         <PomodoroReportDateFilters id={id} range={dates.draft} today={dates.today}
           errors={dates.errors} onRangeChange={dates.setDraft} />
@@ -89,35 +99,32 @@ export function PomodoroReport({ lastUpdated }: { lastUpdated: number }) {
             <Spinner size={14} />{copy.updating}
           </p>}
         </div>
-        <p className="mt-2 text-xs font-medium text-foreground">{copy.appliedRange}: {formatReportRange(range)}</p>
         </fieldset>
         <PomodoroReportSessionFilters id={id} filters={filters} options={selection.options}
           disabled={!ready || query.isFetching}
           onFiltersChange={next => { selection.changeFilters(next); resetPages(); }} />
-        <p role="status" className="mt-2 text-xs leading-relaxed text-muted-foreground">{selection.notice}</p>
+
+            </CollapsibleContent>
+          </Collapsible>
+          {selection.notice && <p role="status" className="mt-2 text-xs text-muted-foreground">{selection.notice}</p>}
         {query.validationError ? <p id={`${id}-error`} role="alert" className="mt-3 text-xs text-destructive-content">{query.validationError}</p>
           : query.isError ? <div role="alert" className="mt-3 text-xs text-destructive-content">{copy.loadFailed} <Button variant="link" type="button" onClick={() => void query.refetch()}>{copy.retry}</Button></div>
           : query.isPending ? <p role="status" className="mt-4 flex items-center gap-2 text-sm text-muted-foreground"><Spinner />{copy.loading}</p> : null}
-        {ready && report && (
-          <>
+
+          {ready && report && <>
             <PomodoroReportSummary summary={report.summary} />
-            <PomodoroDailyStats
-              days={visibleDays.slice(dailyPagination.startIndex, dailyPagination.endIndex)}
+            <PomodoroDailyStats days={visibleDays.slice(dailyPagination.startIndex, dailyPagination.endIndex)}
               visibleDayCount={visibleDays.length} totalDays={report.daily.length} hideEmptyDays={hideEmptyDays}
               onHideEmptyDaysChange={hide => { setHideEmptyDays(hide); setDailyPage(1); }}
-              page={dailyPagination.currentPage} totalPages={dailyPagination.totalPages} onPageChange={setDailyPage}
-            />
-          </>
-        )}
+              page={dailyPagination.currentPage} totalPages={dailyPagination.totalPages} onPageChange={setDailyPage} />
+            <div className="mt-5 border-t border-border pt-5">
+              <PomodoroSessionHistory embedded records={report.sessions.slice(sessionPagination.startIndex, sessionPagination.endIndex)}
+                title="Session history" totalCount={report.sessions.length} showDates
+                page={sessionPagination.currentPage} totalPages={sessionPagination.totalPages} onPageChange={setSessionPage} />
+            </div>
+          </>}
+        </div>
       </Card>
-      {ready && report && (
-        <PomodoroSessionHistory
-          records={report.sessions.slice(sessionPagination.startIndex, sessionPagination.endIndex)}
-          title="Session history" totalCount={report.sessions.length} showDates
-          page={sessionPagination.currentPage} totalPages={sessionPagination.totalPages}
-          onPageChange={setSessionPage}
-        />
-      )}
     </section>
   );
 }

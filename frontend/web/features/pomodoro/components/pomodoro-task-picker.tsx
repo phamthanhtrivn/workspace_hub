@@ -1,66 +1,65 @@
 "use client";
 
-import { useState } from "react";
-import { CalendarDays, FolderKanban, Timer } from "lucide-react";
+import { useMemo } from "react";
+import { Circle, CircleDot, LockKeyhole, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 import { useFocusTaskOptions } from "../hooks/use-focus-task-options";
-import { focusTaskSource } from "../utils/focus-task";
-import { POMODORO_FOCUS_SOURCES } from "../constants/pomodoro-task";
-import type { PomodoroFocusSource } from "../types/pomodoro";
+import { useFocusPickerCalendarActions } from "../hooks/use-focus-picker-calendar-actions";
+import { isCalendarFocusEligible, isProjectFocusEligible } from "../utils/focus-task";
+import { POMODORO_TASK_MESSAGES } from "../constants/pomodoro-task";
+import type { FocusPickerTask } from "../types/focus-picker";
 import { usePomodoroSessionActions } from "./pomodoro-session-provider";
-import { PomodoroCalendarTaskPanel } from "./pomodoro-calendar-task-panel";
-import { PomodoroProjectTaskPanel } from "./pomodoro-project-task-panel";
-import type { PomodoroTaskFilters } from "./pomodoro-task-filters";
+import { PomodoroFocusTaskPanel } from "./pomodoro-focus-task-panel";
 
-const SOURCE_ICONS = { free: Timer, calendar: CalendarDays, project: FolderKanban };
-
-export function PomodoroTaskPicker({ open, onCreateCalendarTask, initialSource }: {
+export function PomodoroTaskPicker({ open, onCreateCalendarTask, twoColumns = false }: {
   open: boolean;
   onCreateCalendarTask: () => void;
-  initialSource?: PomodoroFocusSource;
+  twoColumns?: boolean;
 }) {
-  const { activeTask, focusRevision, startFreeFocus, status, busy, isReady } = usePomodoroSessionActions();
-  const focusContext = `${focusRevision}:${activeTask?.id ?? "free"}`;
-  const [selection, setSelection] = useState<{ context: string; source: PomodoroFocusSource } | null>(null);
-  const source = selection?.context === focusContext ? selection.source : initialSource ?? focusTaskSource(activeTask);
-  const [calendarFilters, setCalendarFilters] = useState<PomodoroTaskFilters>({ scope: "today", search: "" });
-  const [projectFilters, setProjectFilters] = useState<PomodoroTaskFilters>({ scope: "today", search: "" });
-  const [projectId, setProjectId] = useState("");
-  const { userId, calendar, project } = useFocusTaskOptions(source, open);
+  const { activeTask, selectFocusTask, status, busy, isReady } = usePomodoroSessionActions();
+  const { userId, calendar, project } = useFocusTaskOptions("all", open);
+  const actions = useFocusPickerCalendarActions();
+  const selectionLocked = status !== "IDLE";
+  const disabled = busy || !isReady || actions.saving || selectionLocked;
+  const calendarEntries = useMemo<FocusPickerTask[]>(() => (calendar.data ?? [])
+    .filter(event => isCalendarFocusEligible(event, userId ?? "", "all"))
+    .map(event => ({ source: "calendar", id: "calendar:" + event.id, event })), [calendar.data, userId]);
+  const projectEntries = useMemo<FocusPickerTask[]>(() => (project.data ?? [])
+    .filter(({ task }) => isProjectFocusEligible(task, userId ?? "", "all"))
+    .map(({ task, project: parent }) => ({ source: "project", id: "project:" + task.id, task, project: parent })), [project.data, userId]);
+  const freeCurrent = !activeTask;
 
-  return (
-    <section hidden={!open} aria-label="Choose your focus">
-      <Tabs value={source} onValueChange={(value) => {
-        const next = POMODORO_FOCUS_SOURCES.find((candidate) => candidate.value === value);
-        if (next) setSelection({ context: focusContext, source: next.value });
-      }} className="gap-5">
-        <TabsList aria-label="Focus source" className="grid h-auto w-full grid-cols-3 gap-1 rounded-panel bg-muted p-1">
-          {POMODORO_FOCUS_SOURCES.map(({ value, label }) => {
-            const Icon = SOURCE_ICONS[value];
-            return <TabsTrigger key={value} value={value} className="h-auto min-h-10 min-w-0 whitespace-normal rounded-control px-1 py-2 text-xs leading-snug data-[state=active]:text-info-content sm:gap-2 sm:text-xs">
-              <Icon className="hidden size-3.5 shrink-0 sm:block" />{label}
-            </TabsTrigger>;
-          })}
-        </TabsList>
-        <TabsContent value="free" className="space-y-4">
-          <div className="rounded-panel bg-background px-4 py-5">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground"><Timer className="size-4 text-info-content" />Free focus</div>
-            <p className="text-xs leading-relaxed text-muted-foreground">Start a focus session without a Calendar or Project task. Your focus time will still be saved.</p>
-          </div>
-          <Button variant="outline" className="w-full" disabled={!isReady || busy} onClick={() => void startFreeFocus()}>
-            {!activeTask && status === "PAUSED" ? "Resume free focus" : !activeTask && status === "RUNNING" ? "Continue free focus" : "Start free focus"}
-          </Button>
-        </TabsContent>
-        <TabsContent value="calendar" forceMount hidden={source !== "calendar"}>
-          <PomodoroCalendarTaskPanel tasks={calendar.data ?? []} userId={userId ?? ""} onCreateTask={onCreateCalendarTask}
-            filters={calendarFilters} onFiltersChange={setCalendarFilters} isLoading={calendar.isLoading} isError={calendar.isError} onRetry={() => void calendar.refetch()} />
-        </TabsContent>
-        <TabsContent value="project">
-          <PomodoroProjectTaskPanel tasks={project.data ?? []} userId={userId ?? ""} filters={projectFilters} onFiltersChange={setProjectFilters}
-            projectId={projectId} onProjectChange={setProjectId} isLoading={project.isLoading} isError={project.isError} onRetry={() => void project.refetch()} />
-        </TabsContent>
-      </Tabs>
-    </section>
-  );
+  return <section hidden={!open} aria-label="Choose your focus" className="@container/task-panels space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <p role="status" className="flex min-w-0 flex-1 basis-64 items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+        {selectionLocked && <LockKeyhole aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />}
+        {selectionLocked ? POMODORO_TASK_MESSAGES.selectionLocked : POMODORO_TASK_MESSAGES.selectionHint}
+      </p>
+      <Button type="button" variant={freeCurrent ? "secondary" : "outline"} disabled={disabled} aria-pressed={freeCurrent}
+        className="min-h-10 gap-2" onClick={() => void selectFocusTask(null)}>
+        {freeCurrent ? <CircleDot aria-hidden="true" className="size-4 text-info-content" /> : <Circle aria-hidden="true" className="size-4 text-muted-foreground" />}
+        <Timer aria-hidden="true" className="size-4" />Free focus
+      </Button>
+    </div>
+    <div className={cn("grid min-w-0 grid-cols-1 items-stretch gap-5", twoColumns && "@min-[900px]/task-panels:grid-cols-2")}>
+      <PomodoroFocusTaskPanel source="calendar" entries={calendarEntries} loading={calendar.isLoading} error={calendar.isError} disabled={disabled}
+        onRetry={() => void calendar.refetch()} onCreateTask={onCreateCalendarTask} onDeleteCalendarTask={actions.requestDelete} />
+      <PomodoroFocusTaskPanel source="project" entries={projectEntries} loading={project.isLoading} error={project.isError} disabled={disabled}
+        onRetry={() => void project.refetch()} />
+    </div>
+    {actions.error && !actions.deleteCandidate && <p role="alert" className="text-xs text-destructive-content">{actions.error}</p>}
+    <AlertDialog open={Boolean(actions.deleteCandidate)} onOpenChange={next => { if (!next) actions.cancelDelete(); }}>
+      <AlertDialogContent showCloseButton={false} className="max-w-sm">
+        <AlertDialogTitle>Delete Calendar task?</AlertDialogTitle>
+        <AlertDialogDescription className="break-words">This removes {actions.deleteCandidate?.title} from Calendar.</AlertDialogDescription>
+        {actions.error && <p role="alert" className="text-xs text-destructive-content">{actions.error}</p>}
+        <AlertDialogFooter>
+          <Button type="button" variant="outline" disabled={actions.saving} onClick={actions.cancelDelete}>Cancel</Button>
+          <Button type="button" variant="destructive" loading={actions.saving} disabled={disabled} onClick={() => void actions.confirmDelete()}>Delete task</Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </section>;
 }

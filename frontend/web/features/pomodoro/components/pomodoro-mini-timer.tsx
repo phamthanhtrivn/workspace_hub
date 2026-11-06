@@ -1,57 +1,72 @@
 "use client";
 
-import Link from "next/link";
+import { useId, useRef } from "react";
+import { DialogPortal } from "@/components/ui/dialog";
+import { FLOATING_UTILITY_LAYER_CLASS } from "@/components/ui/floating-utility-layer";
 import { usePathname } from "next/navigation";
-import { ArrowUpRight, Pause, Play, Square, Timer } from "lucide-react";
-import { toast } from "sonner";
+import { ChevronDown, ChevronUp, CloudOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useAppSelector } from "@/store/store";
+import { cn } from "@/lib/utils";
 import { usePomodoroSession } from "./pomodoro-session-provider";
-import { POMODORO_SESSION_COPY as copy } from "../constants/pomodoro-session";
-import { PomodoroSyncStatus } from "./pomodoro-sync-status";
+import { PomodoroIslandDetails } from "./pomodoro-island-details";
+import { POMODORO_MODE_THEMES } from "../constants/pomodoro-mode-theme";
+import { formatTimerClock } from "../utils/pomodoro-timer-presentation";
+import { useMiniTimerAnchor } from "../hooks/use-mini-timer-anchor";
+import { useMiniTimerDrag } from "../hooks/use-mini-timer-drag";
+import { useMiniTimerDisclosure } from "../hooks/use-mini-timer-disclosure";
 
-function ActiveMiniTimer() {
-  const pathname = usePathname();
-  const { status, mode, activeTask, timeLeft, pause, resume, stopSession, busy, completionStatus, retryCompletion, syncStatus, retrySync, configLoadError } = usePomodoroSession();
+function ActiveMiniTimer({ userId }: { userId: string }) {
+  const { status, mode, timeLeft, busy, completionStatus, syncStatus, configLoadError } = usePomodoroSession();
+  const contentId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const finished = status === "RUNNING" && timeLeft === 0;
-  if (status === "IDLE" || pathname === "/pomodoro") return null;
-  return (
-    <aside aria-label="Active focus session" className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-3 border-b border-border bg-info-soft/60 px-4 py-3 text-xs sm:px-6">
-      <div className="flex min-w-0 flex-1 basis-full items-center gap-3 sm:basis-0">
-        <span className="grid size-9 shrink-0 place-items-center rounded-panel bg-info-soft/80 text-info-content"><Timer className="size-4" /></span>
-        <div className="min-w-0">
-          <p role="status" className="mb-0.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-            {busy ? <Spinner size={14} /> : <span aria-hidden="true" className={`size-1.5 rounded-full ${status === "RUNNING" ? "bg-link" : "bg-warning-content"}`} />}
-            {finished ? (completionStatus === "error" ? copy.waiting : copy.saving) : status === "PAUSED" ? "Paused" : mode === "FOCUS" ? "Focus in progress" : "Break in progress"}
-          </p>
-          <Link href="/pomodoro" className="block truncate text-sm font-semibold text-foreground outline-none hover:text-info-content focus-visible:ring-2 focus-visible:ring-ring" title={activeTask?.title || "Free focus"}>{activeTask?.title || "Free focus"}</Link>
-          <PomodoroSyncStatus status={syncStatus} settingsPending={configLoadError} onRetry={retrySync} compact />
-        </div>
+  const syncFailed = syncStatus === "pending" || syncStatus === "error" || configLoadError;
+  const { expanded, readyNotice, toggle, collapse } = useMiniTimerDisclosure({ mode, status,
+    needsAttention: finished || completionStatus === "error" || syncFailed,
+    noticeKey: `${finished}:${completionStatus}:${syncStatus}:${configLoadError}`,
+  });
+  const visible = status !== "IDLE" || readyNotice;
+  const { timerRef, position, headerHandlers } = useMiniTimerDrag(userId, visible);
+  const { anchorRef, anchorPosition } = useMiniTimerAnchor(visible);
+  if (!visible) return null;
+  const theme = POMODORO_MODE_THEMES[mode];
+  const ModeIcon = theme.icon;
+
+  const location = position ?? anchorPosition;
+  const timer = <aside ref={timerRef} data-modal-companion="floating-utility" style={location ? { left: location.x, top: location.y } : undefined} aria-label="Pomodoro mini timer" data-expanded={expanded}
+      className={cn(FLOATING_UTILITY_LAYER_CLASS, "fixed pointer-events-auto [--mini-timer-surface:var(--primary)] [--mini-timer-foreground:var(--primary-foreground)] dark:[--mini-timer-surface:var(--brand-ice)] dark:[--mini-timer-foreground:var(--brand-navy)] max-h-[calc(100dvh-7rem-env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain bg-(--mini-timer-surface) text-(--mini-timer-foreground) shadow-dialog transition-[width,border-radius] duration-200 ease-out motion-reduce:transition-none",
+        !position && "-translate-x-1/2", !location && "invisible",
+        expanded ? "w-[min(27rem,calc(100%-2rem))] rounded-3xl" : "w-[min(19rem,calc(100%-2rem))] rounded-full")}
+      onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); if (expanded) { collapse(); triggerRef.current?.focus({ preventScroll: true }); } } }}>
+      <Button {...headerHandlers} ref={triggerRef} type="button" title="Drag to move; click to expand or collapse" variant="unstyled" aria-expanded={expanded} aria-controls={contentId}
+        aria-label={`${expanded ? "Collapse" : "Expand"} ${theme.name.toLowerCase()} timer`}
+        className={cn("flex min-h-12 w-full touch-none select-none cursor-grab items-center active:cursor-grabbing gap-3 px-4 py-3 text-(--mini-timer-foreground) hover:bg-(--mini-timer-foreground)/5 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-(--mini-timer-foreground)",
+          expanded ? "rounded-t-3xl rounded-b-none" : "rounded-full")}
+        onClick={toggle}>
+        <span className="grid size-7 shrink-0 place-items-center rounded-full bg-(--mini-timer-foreground)/10">{busy ? <Spinner tone="inherit" size={16} /> : <ModeIcon aria-hidden="true" className="size-4" />}</span>
+        <span className="flex min-w-0 flex-1 items-center gap-2 text-left text-xs font-medium">
+          <span className="truncate">{theme.name}</span>
+          {status === "PAUSED" && <span className="rounded bg-(--mini-timer-foreground)/15 px-1.5 py-0.5 text-xs">Paused</span>}
+          {syncFailed && <CloudOff aria-label="Sync needs attention" className="size-3.5 shrink-0" />}
+        </span>
+        {!expanded && <span className="text-base font-semibold leading-none tabular-nums">{formatTimerClock(timeLeft)}</span>}
+        {expanded ? <ChevronUp aria-hidden="true" className="size-4 shrink-0" /> : <ChevronDown aria-hidden="true" className="size-4 shrink-0" />}
+      </Button>
+      <div id={contentId} className={cn("grid transition-[grid-template-rows,visibility] duration-200 ease-out motion-reduce:transition-none",
+        expanded ? "visible grid-rows-[1fr]" : "invisible grid-rows-[0fr]")} data-expanded={expanded} inert={!expanded} aria-hidden={!expanded}>
+        <div className="min-h-0 overflow-hidden"><PomodoroIslandDetails /></div>
       </div>
-      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-3">
-        {finished && completionStatus === "error" && <Button type="button" variant="outline" size="sm" onClick={() => void retryCompletion()}>{copy.retry}</Button>}
-        <div className="flex items-center gap-3 rounded-panel border border-border bg-card px-3 py-1.5">
-          <div className="text-right">
-            <p className="text-xs font-medium text-muted-foreground">{mode === "FOCUS" ? "Focus" : "Break"}</p>
-            <span className="font-mono text-lg font-semibold leading-6 tracking-tight tabular-nums text-info-content">{String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}</span>
-          </div>
-          <div className="flex items-center gap-1 border-l border-border pl-3">
-            <Button size="icon-sm" variant="ghost" className="rounded-control text-info-content hover:bg-info-soft hover:text-info-content" disabled={busy} title={status === "RUNNING" ? "Pause focus" : "Resume focus"} aria-label={status === "RUNNING" ? "Pause focus" : "Resume focus"} onClick={status === "RUNNING" ? pause : resume}>
-              {status === "RUNNING" ? <Pause className="size-4" /> : <Play className="size-4" />}
-            </Button>
-            <Button size="icon-sm" variant="ghost" className="rounded-control text-muted-foreground hover:bg-muted hover:text-foreground" disabled={busy} title="Stop and save focus session" aria-label="Stop and save focus session" onClick={() => void stopSession().catch((error) => toast.error(error instanceof Error ? error.message : "Unable to save the session."))}><Square className="size-3.5" /></Button>
-          </div>
-        </div>
-        <Button asChild size="sm" variant="ghost" className="gap-1.5 rounded-control text-info-content hover:bg-info-soft/70 hover:text-info-content">
-          <Link href="/pomodoro">Open Pomodoro<ArrowUpRight className="size-3.5" /></Link>
-        </Button>
-      </div>
-    </aside>
-  );
+    </aside>;
+  return <>
+    <div ref={anchorRef} aria-hidden="true" className="pointer-events-none h-0 shrink-0" />
+    <DialogPortal>{timer}</DialogPortal>
+  </>;
 }
 
 export function PomodoroMiniTimer() {
-  const userId = useAppSelector((state) => state.auth.userId);
-  return userId ? <ActiveMiniTimer /> : null;
+  const pathname = usePathname();
+  const userId = useAppSelector(state => state.auth.userId);
+  return userId && pathname !== "/pomodoro" ? <ActiveMiniTimer key={userId} userId={userId} /> : null;
 }
