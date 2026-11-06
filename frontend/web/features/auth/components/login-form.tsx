@@ -37,6 +37,7 @@ const LoginForm = React.memo(function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
   const form = useForm<LoginFormValues>({
+    shouldFocusError: false,
     resolver: zodResolver(loginFormSchema),
     defaultValues: { email: "", password: "" },
     mode: "onSubmit",

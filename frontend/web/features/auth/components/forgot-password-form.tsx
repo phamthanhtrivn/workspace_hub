@@ -52,18 +52,21 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
   const verifyingCode = isLoading && activity?.action === AUTH_ACTION.VERIFY_RESET_CODE;
   const resettingPassword = isLoading && activity?.action === AUTH_ACTION.RESET_PASSWORD;
   const emailForm = useForm<ForgotEmailFormValues>({
+    shouldFocusError: false,
     resolver: zodResolver(forgotEmailFormSchema),
     defaultValues: { email: "" },
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
   const otpForm = useForm<VerifyOtpFormValues>({
+    shouldFocusError: false,
     resolver: zodResolver(verifyOtpFormSchema),
     defaultValues: { otp: "" },
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
   const passwordForm = useForm<ResetPasswordFormValues>({
+    shouldFocusError: false,
     resolver: zodResolver(resetPasswordFormSchema),
     defaultValues: { newPassword: "", confirmPassword: "" },
     mode: "onSubmit",

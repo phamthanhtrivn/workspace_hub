@@ -30,10 +30,12 @@ export function useEmailVerificationFlow(initialEmail: string) {
   const confirm = useConfirmEmailMutation();
   const { busy, activity, begin, complete, fail, redirect, isLocked, clear } = useAuthInteraction();
   const emailForm = useForm<VerificationEmailFormValues>({
+    shouldFocusError: false,
     resolver: zodResolver(verificationEmailFormSchema), defaultValues: { email: initialEmail },
     mode: "onSubmit", reValidateMode: "onChange",
   });
   const otpForm = useForm<VerifyOtpFormValues>({
+    shouldFocusError: false,
     resolver: zodResolver(verifyOtpFormSchema), defaultValues: { otp: "" },
     mode: "onSubmit", reValidateMode: "onChange",
   });

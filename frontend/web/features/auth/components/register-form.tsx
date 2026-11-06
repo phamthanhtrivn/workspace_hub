@@ -30,6 +30,7 @@ const RegisterForm = React.memo(function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const form = useForm<RegisterFormValues>({
+    shouldFocusError: false,
     resolver: zodResolver(registerFormSchema),
     defaultValues: {
       fullName: "",
