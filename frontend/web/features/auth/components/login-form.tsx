@@ -9,6 +9,7 @@ import { useDispatch } from "react-redux";
 import { Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
 import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
+import { cn } from "@/lib/utils";
 import { setCredentials } from "@/store/auth/auth-slice";
 import type { AppDispatch } from "@/store/store";
 import { useLoginMutation } from "../hooks/useAuthMutations";
@@ -28,7 +29,8 @@ import { AUTH_ACTION, AUTH_ACTIVITY_COPY, AUTH_REDIRECT_COPY, AUTH_REDIRECT_BUTT
 import { useAuthInteraction } from "./auth-interaction-provider";
 import { AuthFormStatus } from "./auth-form-status";
 import { isEmailVerificationRequired } from "../utils/auth-error";
-import { getEmailVerificationPath } from "../utils/email-verification";
+import { EMAIL_VERIFICATION } from "../types/email-verification.constants";
+import { EmailVerificationNotice } from "./email-verification-notice";
 
 const LoginForm = React.memo(function LoginForm() {
   const router = useRouter();
@@ -46,6 +48,8 @@ const LoginForm = React.memo(function LoginForm() {
   const { errors } = form.formState;
   const { busy, activity, redirect } = useAuthInteraction();
   const loginBusy = busy && activity?.action === AUTH_ACTION.LOGIN;
+  const verificationRequired = verificationEmail !== null && activity?.action !== AUTH_ACTION.GOOGLE;
+  const serverError = activity?.action === AUTH_ACTION.GOOGLE ? undefined : errors.root?.server?.message;
   const onSubmit = useAuthFormSubmit(
     form,
     ["email", "password"],
@@ -145,19 +149,20 @@ const LoginForm = React.memo(function LoginForm() {
         />
       </div>
 
-      <AuthFormError message={activity?.action === AUTH_ACTION.GOOGLE ? undefined : errors.root?.server?.message} />
-      {verificationEmail && !busy && activity?.action !== AUTH_ACTION.GOOGLE && (
-        <Button asChild variant="outline" className="w-full">
-          <Link href={getEmailVerificationPath(verificationEmail)}>Verify your email</Link>
-        </Button>
+      <AuthFormError message={verificationRequired && serverError === EMAIL_VERIFICATION.requiredMessage ? undefined : serverError} />
+      {verificationRequired && !busy && verificationEmail && (
+        <EmailVerificationNotice email={verificationEmail} />
       )}
       <AuthFormStatus excludeAction={AUTH_ACTION.GOOGLE} />
       <Button
         loading={loginBusy}
-        variant="unstyled"
+        variant={verificationRequired ? "outline" : "unstyled"}
         type="submit"
         disabled={busy}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-[0_16px_32px_color-mix(in_srgb,var(--primary)_22%,transparent)] transition hover:-translate-y-0.5 hover:bg-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer disabled:opacity-70"
+        className={cn(
+          "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer disabled:opacity-70",
+          !verificationRequired && "bg-primary text-primary-foreground shadow-[0_16px_32px_color-mix(in_srgb,var(--primary)_22%,transparent)] hover:-translate-y-0.5 hover:bg-primary active:translate-y-0",
+        )}
       >
         <LogIn className="h-4 w-4" />
         {loginBusy ? activity.phase === "redirecting" ? AUTH_REDIRECT_BUTTON : AUTH_ACTIVITY_COPY.login.button : "Login"}

@@ -5,6 +5,7 @@ import { setCredentials, clearCredentials } from "@/store/auth/auth-slice";
 import { refreshApi } from "@/features/auth/api/auth.api";
 import { getLoginRedirectPath } from "@/features/auth/utils/auth-redirect";
 import { isRecoverableApiError } from "./api-error-policy";
+import { isEmailVerificationLoginError } from "@/features/auth/utils/auth-error";
 
 const API_ERROR_LOG_THROTTLE_MS = 10_000;
 const apiErrorLogTimes = new Map<string, number>();
@@ -30,6 +31,8 @@ export function logApiError(error: unknown, context = "API request failed") {
     console.error(context, error);
     return;
   }
+
+  if (isEmailVerificationLoginError(error)) return;
 
   const method = error.config?.method?.toUpperCase() || "UNKNOWN";
   const url = error.config?.url || "unknown-url";

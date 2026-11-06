@@ -7,6 +7,10 @@ export enum AuthProvider {
   GOOGLE = "GOOGLE",
 }
 
+export const AUTH_API_ROUTES = {
+  LOGIN: "/api/auth/login",
+} as const;
+
 export enum AuthRouteTarget {
   ADMIN_HOME = "/",
   USER_DASHBOARD = "/dashboard",

@@ -2,6 +2,7 @@ import { store } from "@/store/store";
 import { EMAIL_VERIFICATION } from '../types/email-verification.constants';
 import { api } from "@/lib/axios";
 import { withSessionLock } from "./session-lock";
+import { AUTH_API_ROUTES } from "../types/auth.constants";
 import {
   ApiResponse,
   ForgotPasswordRequest,
@@ -30,7 +31,7 @@ export const loginApi = async (
   payload: LoginRequest,
 ): Promise<ApiResponse<LoginResponse>> => {
   return withSessionLock(async () => {
-    const response = await api.post("/api/auth/login", payload);
+    const response = await api.post(AUTH_API_ROUTES.LOGIN, payload);
     return response.data;
   });
 };
