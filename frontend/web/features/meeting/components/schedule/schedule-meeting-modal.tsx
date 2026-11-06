@@ -3,13 +3,16 @@
 import { UserAvatar } from "@/components/common/user-avatar";
 import { IconButton } from "@/components/ui/icon-button";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
+import { DATE_RANGE_MESSAGES, getDateRangeBounds, getDateRangeErrors, hasDateRangeErrors } from "@/lib/date-range";
+import { useScheduleToday } from "@/hooks/use-schedule-today";
+import { MIN_SCHEDULED_MEETING_DURATION_MS } from "../../types/meeting.constants";
 
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, Eye, EyeOff, Lock, Search, X } from "lucide-react";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -39,7 +42,7 @@ import {
   useUpdateScheduledMeeting,
 } from "../../hooks/useScheduledMeetings";
 import {
-  scheduleMeetingSchema,
+  createScheduleMeetingSchema,
   type ScheduleMeetingValues,
 } from "../../schemas/schedule-meeting.schema";
 import type {
@@ -201,9 +204,8 @@ function createEndTimeOptions(
 
 function createDefaultScheduleValues(): ScheduleMeetingValues {
   const start = new Date();
-  start.setDate(start.getDate() + 1);
   start.setMinutes(0, 0, 0);
-  start.setHours(Math.max(9, start.getHours() + 1));
+  start.setHours(Math.min(23, Math.max(9, start.getHours() + 1)));
 
   return {
     title: DEFAULT_SCHEDULED_MEETING_TITLE,
@@ -278,10 +280,12 @@ export function ScheduleMeetingModal({
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const isEditing = Boolean(meeting);
+  const id = useId();
+  const { today, refreshToday } = useScheduleToday();
   const { data: inviteeResults = [], isFetching } =
     useMeetingInviteeSearch(inviteeQuery);
   const form = useForm<ScheduleMeetingValues>({
-    resolver: zodResolver(scheduleMeetingSchema),
+    resolver: zodResolver(createScheduleMeetingSchema(isEditing ? "edit" : "create")),
     defaultValues: createDefaultScheduleValues(),
   });
   const values = useWatch({ control: form.control }) as ScheduleMeetingValues;
@@ -289,21 +293,20 @@ export function ScheduleMeetingModal({
     () => new Set(values.inviteeIds),
     [values.inviteeIds],
   );
-  const startTimeOptions = useMemo(
-    () =>
-      createStartTimeOptions(
-        getTimeInputValue(values.scheduledStartAt),
-      ),
-    [values.scheduledStartAt],
-  );
-  const endTimeOptions = useMemo(
-    () =>
-      createEndTimeOptions(
-        values.scheduledStartAt,
-        values.scheduledEndAt,
-      ),
-    [values.scheduledEndAt, values.scheduledStartAt],
-  );
+  const bounds = getDateRangeBounds({ start: values.scheduledStartAt, end: values.scheduledEndAt,
+    mode: isEditing ? "edit" : "create", today, minDurationMs: MIN_SCHEDULED_MEETING_DURATION_MS });
+  const startTimeOptions = useMemo(() => createStartTimeOptions(getTimeInputValue(values.scheduledStartAt))
+    .map(option => ({ ...option, disabled: hasDateRangeErrors(getDateRangeErrors({
+      start: composeDateTimeLocal(getDateInputValue(values.scheduledStartAt), option.value),
+      end: values.scheduledEndAt, mode: isEditing ? "edit" : "create", today,
+      minDurationMs: MIN_SCHEDULED_MEETING_DURATION_MS,
+    })) })), [values.scheduledStartAt, values.scheduledEndAt, isEditing, today]);
+  const endTimeOptions = useMemo(() => createEndTimeOptions(values.scheduledStartAt, values.scheduledEndAt)
+    .filter(option => !hasDateRangeErrors(getDateRangeErrors({ start: values.scheduledStartAt, end: option.value,
+      mode: "edit", minDurationMs: MIN_SCHEDULED_MEETING_DURATION_MS }))),
+    [values.scheduledStartAt, values.scheduledEndAt]);
+  const startError = form.formState.errors.scheduledStartAt?.message;
+  const endError = form.formState.errors.scheduledEndAt?.message;
   const isSubmitting = isEditing ? updateMeeting.isPending : createMeeting.isPending;
 
   useEffect(() => {
@@ -342,29 +345,26 @@ export function ScheduleMeetingModal({
   const removeInvitee = (userId: string) => {
     updateInvitees(selectedUsers.filter((user) => user.id !== userId));
   };
+  const updateRange = (start: string, end: string, field: "scheduledStartAt" | "scheduledEndAt") => {
+    const errors = getDateRangeErrors({ start, end, mode: isEditing ? "edit" : "create", today: refreshToday(),
+      minDurationMs: MIN_SCHEDULED_MEETING_DURATION_MS });
+    if (hasDateRangeErrors(errors)) {
+      const message = errors.start || errors.end!;
+      form.setError(field, { type: "validate", message });
+      toast.error(message);
+      return;
+    }
+    form.clearErrors(["scheduledStartAt", "scheduledEndAt"]);
+    form.setValue("scheduledStartAt", start, { shouldDirty: true });
+    form.setValue("scheduledEndAt", end, { shouldDirty: true });
+    void form.trigger(["scheduledStartAt", "scheduledEndAt"]);
+  };
   const updateStartDate = (date: string) => {
-    const nextStartAt = composeDateTimeLocal(
-      date,
-      getTimeInputValue(values.scheduledStartAt),
-    );
-    form.setValue("scheduledStartAt", nextStartAt, { shouldDirty: true });
-    form.setValue(
-      "scheduledEndAt",
-      addMinutesToDateTimeLocal(nextStartAt, 60),
-      { shouldDirty: true, shouldValidate: true },
-    );
+    updateRange(date ? composeDateTimeLocal(date, getTimeInputValue(values.scheduledStartAt)) : "",
+      date ? values.scheduledEndAt : "", "scheduledStartAt");
   };
   const updateStartTime = (time: string) => {
-    const nextStartAt = composeDateTimeLocal(
-      getDateInputValue(values.scheduledStartAt),
-      time,
-    );
-    form.setValue("scheduledStartAt", nextStartAt, { shouldDirty: true });
-    form.setValue(
-      "scheduledEndAt",
-      addMinutesToDateTimeLocal(nextStartAt, 60),
-      { shouldDirty: true, shouldValidate: true },
-    );
+    updateRange(composeDateTimeLocal(getDateInputValue(values.scheduledStartAt), time), values.scheduledEndAt, "scheduledStartAt");
   };
   const onSubmit = form.handleSubmit(
     async (formValues) => {
@@ -420,6 +420,7 @@ export function ScheduleMeetingModal({
       >
       <form
         onSubmit={onSubmit}
+        onFocusCapture={refreshToday}
         className="flex min-h-0 max-h-[inherit] flex-col"
       >
         <DialogHeader className="flex shrink-0 flex-row flex-wrap items-center justify-between gap-2 border-b border-border px-5 py-4">
@@ -450,16 +451,25 @@ export function ScheduleMeetingModal({
                 disabled={isSubmitting}
                 ariaLabel="Meeting date"
                 required
+                allowClear
+                min={bounds.startMin?.slice(0, 10)}
+                max={bounds.startMax?.slice(0, 10)}
+                invalid={Boolean(startError)}
+                descriptionId={startError ? id + "-start-error" : undefined}
                 value={getDateInputValue(values.scheduledStartAt)}
                 onChange={updateStartDate}
                 triggerClassName="h-10"
               />
+              {startError && <p id={id + "-start-error"} role="alert" className="text-xs text-destructive-content">{startError}</p>}
             </label>
             <label className="space-y-1.5">
               <span className="text-xs font-semibold uppercase text-muted-foreground">
                 Start time
               </span>
               <MeetingSelect
+                disabled={isSubmitting || !values.scheduledStartAt}
+                invalid={Boolean(startError)}
+                descriptionId={startError ? id + "-start-error" : undefined}
                 value={getTimeInputValue(values.scheduledStartAt)}
                 ariaLabel="Start time"
                 onChange={updateStartTime}
@@ -472,17 +482,19 @@ export function ScheduleMeetingModal({
                 End time
               </span>
               <MeetingSelect
+                disabled={isSubmitting || !values.scheduledStartAt}
+                invalid={Boolean(endError)}
+                descriptionId={endError || !values.scheduledStartAt ? id + "-end-description" : undefined}
                 value={values.scheduledEndAt}
                 ariaLabel="End time"
                 onChange={(nextValue) =>
-                  form.setValue("scheduledEndAt", nextValue, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  })
+                  updateRange(values.scheduledStartAt, nextValue, "scheduledEndAt")
                 }
                 options={endTimeOptions}
                 triggerClassName="h-10 rounded-lg border-input"
               />
+              {(endError || !values.scheduledStartAt) && <p id={id + "-end-description"} role={endError ? "alert" : undefined}
+                className="text-xs text-muted-foreground">{endError || DATE_RANGE_MESSAGES.startRequired}</p>}
             </label>
           </div>
 

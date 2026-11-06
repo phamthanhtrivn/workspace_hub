@@ -160,6 +160,7 @@ export function QuickCreateModal({
       <form
         ref={dialogRef}
         onSubmit={handleSubmit}
+        onFocusCapture={controller.refreshToday}
 
 
         aria-labelledby="calendar-quick-create-heading"
@@ -249,6 +250,8 @@ export function QuickCreateModal({
           <div className="space-y-2.5">
             {/* Time & Recurrence Section */}
             <QuickCreateTimeSection
+              mode={controller.mode}
+              today={controller.today}
               disabled={submitting || formState.isSubmitting}
               form={controller.form}
               kind={kind}

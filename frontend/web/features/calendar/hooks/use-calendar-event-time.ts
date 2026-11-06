@@ -1,104 +1,59 @@
-import { useWatch, UseFormReturn } from "react-hook-form";
+import { useWatch, type UseFormReturn } from "react-hook-form";
 import { toast } from "sonner";
-import { CALENDAR_FORM_COPY as copy } from "../constants/calendar-form-copy";
-import { CalendarEventEditorValues } from "../schemas/calendar-event-form.schema";
-import {
-  composeDateTimeLocal,
-  ensureMinimumEventEndAt,
-  getDateInputValue,
-  getTimeInputValue,
-  hasMinimumEventDuration,
-} from "../utils/calendar-date.utils";
+import { getDateRangeErrors, hasDateRangeErrors } from "@/lib/date-range";
+import { useScheduleToday } from "@/hooks/use-schedule-today";
+import { CALENDAR_MIN_EVENT_DURATION_MS } from "../types/calendar.constants";
+import type { CalendarEventEditorValues } from "../schemas/calendar-event-form.schema";
+import { addMinutesToDateTimeLocal, composeDateTimeLocal, getDateInputValue, getTimeInputValue } from "../utils/calendar-date.utils";
 
-export function useCalendarEventTime(
-  form: UseFormReturn<CalendarEventEditorValues>,
-) {
+export function useCalendarEventTime(form: UseFormReturn<CalendarEventEditorValues>, mode: "create" | "edit") {
   const { control, setValue } = form;
   const startAt = useWatch({ control, name: "startAt" });
   const endAt = useWatch({ control, name: "endAt" });
   const allDay = useWatch({ control, name: "allDay" });
+  const { today, refreshToday } = useScheduleToday();
 
-  const showRangeError = () => {
-    toast.error(copy.endRangeTooShort);
-  };
-
-  const handleStartDateChange = (nextDate: string) => {
-    const nextStartAt = composeDateTimeLocal(
-      nextDate,
-      allDay ? "00:00" : getTimeInputValue(startAt),
-    );
-    const prevStartDate = getDateInputValue(startAt);
-    const prevEndDate = getDateInputValue(endAt);
-    const nextEndAt = allDay
-      ? prevStartDate === prevEndDate
-        ? composeDateTimeLocal(nextDate, "23:59")
-        : composeDateTimeLocal(prevEndDate, "23:59")
-      : endAt;
-
-    setValue("startAt", nextStartAt, { shouldDirty: true });
-    setValue(
-      "endAt",
-      hasMinimumEventDuration(nextStartAt, nextEndAt)
-        ? nextEndAt
-        : allDay
-          ? composeDateTimeLocal(nextDate, "23:59")
-          : ensureMinimumEventEndAt(nextStartAt, nextEndAt),
-      { shouldDirty: true, shouldValidate: true },
-    );
-  };
-
-  const handleStartTimeChange = (nextTime: string) => {
-    const nextStartAt = composeDateTimeLocal(
-      getDateInputValue(startAt),
-      nextTime,
-    );
-    setValue("startAt", nextStartAt, { shouldDirty: true });
-    setValue("endAt", ensureMinimumEventEndAt(nextStartAt, endAt), {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
-  };
-
-  const handleEndDateChange = (nextDate: string) => {
-    const nextEndAt = composeDateTimeLocal(
-      nextDate,
-      allDay ? "23:59" : getTimeInputValue(endAt),
-    );
-    updateEndAt(nextEndAt);
-  };
-
-  const updateEndAt = (nextEndAt: string) => {
-    if (!hasMinimumEventDuration(startAt, nextEndAt)) {
-      showRangeError();
-      return;
+  const updateRange = (nextStart: string, nextEnd: string, field: "startAt" | "endAt") => {
+    const errors = getDateRangeErrors({ start: nextStart, end: nextEnd, mode, today: refreshToday(),
+      minDurationMs: CALENDAR_MIN_EVENT_DURATION_MS });
+    if (hasDateRangeErrors(errors)) {
+      const message = errors.start || errors.end!;
+      form.setError(field, { type: "validate", message });
+      toast.error(message);
+      return false;
     }
-    setValue("endAt", nextEndAt, { shouldDirty: true, shouldValidate: true });
+    form.clearErrors(["startAt", "endAt"]);
+    setValue("startAt", nextStart, { shouldDirty: true });
+    setValue("endAt", nextEnd, { shouldDirty: true });
+    void form.trigger(["startAt", "endAt"]);
+    return true;
   };
 
+  const handleStartDateChange = (date: string) => {
+    if (!date) { updateRange("", "", "startAt"); return; }
+    updateRange(composeDateTimeLocal(date, allDay ? "00:00" : getTimeInputValue(startAt)), endAt, "startAt");
+  };
+  const handleStartTimeChange = (time: string) => {
+    if (!startAt) return;
+    updateRange(composeDateTimeLocal(getDateInputValue(startAt), time), endAt, "startAt");
+  };
+  const updateEndAt = (nextEnd: string) => { updateRange(startAt, nextEnd, "endAt"); };
+  const handleEndDateChange = (date: string) => {
+    if (!date) { updateEndAt(""); return; }
+    const defaultEnd = addMinutesToDateTimeLocal(startAt, CALENDAR_MIN_EVENT_DURATION_MS / 60_000);
+    updateEndAt(composeDateTimeLocal(date, allDay ? "23:59" : getTimeInputValue(endAt || defaultEnd)));
+  };
   const handleAllDayChange = (checked: boolean) => {
-    setValue("allDay", checked, { shouldDirty: true });
-    if (!checked) return;
-
-    const nextStartAt = composeDateTimeLocal(getDateInputValue(startAt), "00:00");
-    const nextEndAt = composeDateTimeLocal(getDateInputValue(endAt), "23:59");
-    setValue("startAt", nextStartAt, { shouldDirty: true });
-    setValue(
-      "endAt",
-      hasMinimumEventDuration(nextStartAt, nextEndAt)
-        ? nextEndAt
-        : composeDateTimeLocal(getDateInputValue(startAt), "23:59"),
-      { shouldDirty: true, shouldValidate: true },
-    );
+    const nextStart = startAt && checked ? composeDateTimeLocal(getDateInputValue(startAt), "00:00") : startAt;
+    const nextEnd = endAt && checked ? composeDateTimeLocal(getDateInputValue(endAt), "23:59") : endAt;
+    if (updateRange(nextStart, nextEnd, "endAt")) {
+      setValue("allDay", checked, { shouldDirty: true, shouldValidate: true });
+    }
   };
 
   return {
-    allDay,
-    endAt,
-    handleAllDayChange,
-    handleEndDateChange,
-    handleEndDateTimeChange: updateEndAt,
-    handleStartDateChange,
-    handleStartTimeChange,
-    startAt,
+    allDay, endAt, startAt, mode, today, refreshToday,
+    handleEndDateChange, handleEndDateTimeChange: updateEndAt,
+    handleAllDayChange, handleStartDateChange, handleStartTimeChange,
   };
 }

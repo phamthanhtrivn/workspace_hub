@@ -130,6 +130,7 @@ interface MeetingSelectProps<TValue extends string = string> {
   placeholder?: string;
   disabled?: boolean;
   invalid?: boolean;
+  descriptionId?: string;
   className?: string;
   triggerClassName?: string;
   contentClassName?: string;

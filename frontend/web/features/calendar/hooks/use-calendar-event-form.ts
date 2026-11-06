@@ -7,7 +7,7 @@ import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import { CALENDAR_FORM_COPY as copy } from "../constants/calendar-form-copy";
 import {
   CalendarEventEditorValues,
-  calendarEventFormSchema,
+  createCalendarEventFormSchema,
 } from "../schemas/calendar-event-form.schema";
 import { CALENDAR_DEFAULT_EVENT_COLOR } from "../types/calendar.constants";
 import {
@@ -50,7 +50,7 @@ export function useCalendarEventForm({
   );
 
   const form = useForm<CalendarEventEditorValues>({
-    resolver: zodResolver(calendarEventFormSchema),
+    resolver: zodResolver(createCalendarEventFormSchema(event ? "edit" : "create")),
     defaultValues: defaults.values,
   });
   
@@ -69,7 +69,7 @@ export function useCalendarEventForm({
   const savingRef = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const time = useCalendarEventTime(form);
+  const time = useCalendarEventTime(form, event ? "edit" : "create");
   const recurrence = useCalendarRecurrence(
     time.startAt,
     defaults.defaultStart,
@@ -144,6 +144,7 @@ export function useCalendarEventForm({
   ) => {
     const message =
       errors.endAt?.message ||
+      errors.startAt?.message ||
       errors.title?.message ||
       errors.calendarId?.message;
     toast.error(typeof message === "string" ? message : copy.requiredFields);

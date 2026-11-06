@@ -1,5 +1,7 @@
 "use client";
 import { CustomDateField } from "@/components/ui/custom/custom-date-time-picker";
+import { useId } from "react";
+import { DATE_RANGE_MESSAGES, getDateRangeBounds, type DateRangeErrors } from "@/lib/date-range";
 
 
 import { CalendarDays } from "lucide-react";
@@ -13,6 +15,8 @@ interface TaskDateRangeFieldsProps {
   dueDate: string;
   onDueDateChange: (date: string) => void;
   disabled?: boolean;
+  today: string;
+  errors: DateRangeErrors;
 }
 
 export function TaskDateRangeFields({
@@ -23,7 +27,11 @@ export function TaskDateRangeFields({
   dueDate,
   onDueDateChange,
   disabled = false,
+  today,
+  errors,
 }: TaskDateRangeFieldsProps) {
+  const id = useId();
+  const bounds = getDateRangeBounds({ start: startDate, end: dueDate, today, dateOnly: allDay, mode: "create" });
   return (
     <section className="border-t border-border pt-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -58,12 +66,17 @@ export function TaskDateRangeFields({
           <CustomDateField
             dateOnly={allDay}
             value={startDate}
+            min={bounds.startMin}
+            max={bounds.startMax}
+            invalid={Boolean(errors.start)}
+            descriptionId={errors.start ? `${id}-start-error` : undefined}
             disabled={disabled}
             onChange={nextValue => onStartDateChange(nextValue)}
             className="h-11 w-full rounded-control border-input text-xs font-semibold text-foreground disabled:bg-background"
             ariaLabel="Task start date"
             allowClear
           />
+          {errors.start && <p id={`${id}-start-error`} role="alert" className="mt-1.5 text-xs text-destructive-content">{errors.start}</p>}
         </label>
         <label className="block">
           <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
@@ -76,12 +89,17 @@ export function TaskDateRangeFields({
           <CustomDateField
             dateOnly={allDay}
             value={dueDate}
-            disabled={disabled}
+            min={bounds.endMin}
+            disabled={disabled || !startDate}
+            invalid={Boolean(errors.end)}
+            descriptionId={errors.end || !startDate ? `${id}-end-description` : undefined}
             onChange={nextValue => onDueDateChange(nextValue)}
             className="h-11 w-full rounded-control border-input text-xs font-semibold text-foreground disabled:bg-background"
             ariaLabel="Task due date"
             allowClear
           />
+          {(errors.end || !startDate) && <p id={`${id}-end-description`} role={errors.end ? "alert" : undefined}
+            className="mt-1.5 text-xs text-muted-foreground">{errors.end || DATE_RANGE_MESSAGES.startRequired}</p>}
         </label>
       </div>
     </section>

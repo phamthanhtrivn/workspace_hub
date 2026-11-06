@@ -20,12 +20,24 @@ interface CustomTimePickerProps {
   invalid?: boolean;
   disabled?: boolean;
   className?: string;
+  min?: string;
+  max?: string;
 }
 
-export function CustomTimePicker({ value, onChange, ariaLabel, descriptionId, invalid, disabled, className }: CustomTimePickerProps) {
+export function CustomTimePicker({ value, onChange, ariaLabel, descriptionId, invalid, disabled, className, min, max }: CustomTimePickerProps) {
   const [open, setOpen] = useState(false);
   const fieldId = useId();
   const { hour, minute } = parseTimePickerValue(value);
+  const hourOptions = HOUR_OPTIONS.map(option => ({ ...option,
+    disabled: Boolean((min && `${option.value}:59` < min) || (max && `${option.value}:00` > max)),
+  }));
+  const minuteOptions = MINUTE_OPTIONS.map(option => ({ ...option,
+    disabled: Boolean(hour && ((min && `${hour}:${option.value}` < min) || (max && `${hour}:${option.value}` > max))),
+  }));
+  const changeHour = (nextHour: string) => {
+    const next = `${nextHour}:${minute || "00"}`;
+    onChange(min && next < min ? min : max && next > max ? max : next);
+  };
   return (
     <Popover open={open && !disabled} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -39,12 +51,12 @@ export function CustomTimePicker({ value, onChange, ariaLabel, descriptionId, in
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label htmlFor={`${fieldId}-hour`} className="text-xs font-medium text-muted-foreground">Hour</label>
-            <CustomSelect id={`${fieldId}-hour`} value={hour} options={HOUR_OPTIONS} ariaLabel={`${ariaLabel}: hour`} placeholder="HH" disabled={disabled}
-              onChange={(nextHour) => onChange(`${nextHour}:${minute || "00"}`)} triggerClassName="font-normal tabular-nums" />
+            <CustomSelect id={`${fieldId}-hour`} value={hour} options={hourOptions} ariaLabel={`${ariaLabel}: hour`} placeholder="HH" disabled={disabled}
+              onChange={changeHour} triggerClassName="font-normal tabular-nums" />
           </div>
           <div className="space-y-1.5">
             <label htmlFor={`${fieldId}-minute`} className="text-xs font-medium text-muted-foreground">Minute</label>
-            <CustomSelect id={`${fieldId}-minute`} value={minute} options={MINUTE_OPTIONS} ariaLabel={`${ariaLabel}: minute`} placeholder="mm" disabled={disabled}
+            <CustomSelect id={`${fieldId}-minute`} value={minute} options={minuteOptions} ariaLabel={`${ariaLabel}: minute`} placeholder="mm" disabled={disabled || Boolean((min || max) && !hour)}
               onChange={(nextMinute) => onChange(`${hour || "00"}:${nextMinute}`)} triggerClassName="font-normal tabular-nums" />
           </div>
         </div>

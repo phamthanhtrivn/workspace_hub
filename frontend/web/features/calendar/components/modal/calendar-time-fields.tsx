@@ -1,19 +1,23 @@
 "use client";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
+import { DATE_RANGE_MESSAGES, getDateRangeBounds, getDateRangeErrors, hasDateRangeErrors } from "@/lib/date-range";
+import { CALENDAR_MIN_EVENT_DURATION_MS } from "../../types/calendar.constants";
 
 
 import { Clock3 } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
+import { useId, useMemo, type ReactNode } from "react";
 import { useWatch, type UseFormReturn } from "react-hook-form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { CALENDAR_FORM_COPY as copy, CALENDAR_FORM_LOCALE } from "../../constants/calendar-form-copy";
 import type { CalendarEventEditorValues } from "../../schemas/calendar-event-form.schema";
-import { getDateInputValue, getTimeInputValue } from "../../utils/calendar-date.utils";
+import { composeDateTimeLocal, getDateInputValue, getTimeInputValue } from "../../utils/calendar-date.utils";
 import { createEndTimeOptions, createStartTimeOptions } from "../../utils/calendar-time-options";
 import { CalendarSelect } from "./calendar-select";
 
 export interface CalendarTimeFieldsProps {
+  mode: "create" | "edit";
+  today: string;
   form: UseFormReturn<CalendarEventEditorValues>;
   onStartDateChange: (date: string) => void;
   onEndDateChange: (date: string) => void;
@@ -51,15 +55,24 @@ export function QuickRow({
 }
 
 export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
-  onStartTimeChange, onEndDateTimeChange, onAllDayChange, showTimeZone = false, disabled = false }: CalendarTimeFieldsProps) {
-  const { control, setValue } = form;
+  onStartTimeChange, onEndDateTimeChange, onAllDayChange, mode, today, showTimeZone = false, disabled = false }: CalendarTimeFieldsProps) {
+  const id = useId();
+  const { control } = form;
   const startAt = useWatch({ control, name: "startAt" });
   const endAt = useWatch({ control, name: "endAt" });
   const allDay = useWatch({ control, name: "allDay" });
   const startTime = getTimeInputValue(startAt);
+  const bounds = getDateRangeBounds({ start: startAt, end: endAt, mode, today, minDurationMs: CALENDAR_MIN_EVENT_DURATION_MS });
+  const startError = form.formState.errors.startAt?.message;
+  const endError = form.formState.errors.endAt?.message;
   const startTimeOptions = useMemo(
-    () => createStartTimeOptions(CALENDAR_FORM_LOCALE, startTime),
-    [startTime],
+    () => createStartTimeOptions(CALENDAR_FORM_LOCALE, startTime).map(option => ({ ...option,
+      disabled: hasDateRangeErrors(getDateRangeErrors({
+        start: composeDateTimeLocal(getDateInputValue(startAt), option.value), end: endAt,
+        mode, today, minDurationMs: CALENDAR_MIN_EVENT_DURATION_MS,
+      })),
+    })),
+    [startTime, startAt, endAt, mode, today],
   );
   const endTimeOptions = useMemo(
     () => createEndTimeOptions(startAt, endAt, CALENDAR_FORM_LOCALE),
@@ -85,32 +98,43 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
               disabled={disabled}
               ariaLabel={copy.startDate}
               value={getDateInputValue(startAt)}
+              min={bounds.startMin?.slice(0, 10)}
+              max={bounds.startMax?.slice(0, 10)}
+              invalid={Boolean(startError)}
+              descriptionId={startError ? `${id}-start-error` : undefined}
               onChange={nextValue => onStartDateChange(nextValue)}
               triggerClassName="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-foreground shadow-none outline-none"
               allowClear
             />
+            {startError && <p id={`${id}-start-error`} role="alert" className="mt-1 text-xs text-destructive-content">{startError}</p>}
           </label>
           <label className="min-w-0 rounded-panel border border-input bg-background px-3 py-2 transition-colors hover:bg-muted">
             <span className="block text-xs font-medium text-muted-foreground">
               {copy.endDate}
             </span>
             <CustomDatePicker
-              disabled={disabled}
+              disabled={disabled || !startAt}
               ariaLabel={copy.endDate}
               value={getDateInputValue(endAt)}
-              min={getDateInputValue(startAt)}
+              min={bounds.endMin?.slice(0, 10)}
+              invalid={Boolean(endError)}
+              descriptionId={endError || !startAt ? `${id}-end-description` : undefined}
               onChange={nextValue => onEndDateChange(nextValue)}
               triggerClassName="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-foreground shadow-none outline-none"
               allowClear
             />
+            {(endError || !startAt) && <p id={`${id}-end-description`} role={endError ? "alert" : undefined}
+              className="mt-1 text-xs text-muted-foreground">{endError || DATE_RANGE_MESSAGES.startRequired}</p>}
           </label>
         </div>
 
         {!allDay && (
           <div className="grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
             <CalendarSelect
-              disabled={disabled}
+              disabled={disabled || !startAt}
               value={startTime}
+              invalid={Boolean(startError)}
+              descriptionId={startError ? `${id}-start-error` : undefined}
               options={startTimeOptions}
               ariaLabel={copy.start}
               onChange={onStartTimeChange}
@@ -121,8 +145,10 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
               -
             </span>
             <CalendarSelect
-              disabled={disabled}
+              disabled={disabled || !startAt || !endAt}
               value={endAt}
+              invalid={Boolean(endError)}
+              descriptionId={endError || !startAt ? `${id}-end-description` : undefined}
               options={endTimeOptions}
               ariaLabel={copy.end}
               onChange={onEndDateTimeChange}
@@ -140,8 +166,7 @@ export function CalendarTimeFields({ form, onStartDateChange, onEndDateChange,
               aria-label={copy.allDay}
               checked={allDay}
               onCheckedChange={(checked) => {
-                setValue("allDay", checked, { shouldDirty: true });
-                onAllDayChange(checked);
+                onAllDayChange(Boolean(checked));
               }}
               className="h-3.5 w-3.5 rounded border-input"
             />

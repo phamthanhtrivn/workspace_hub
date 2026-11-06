@@ -83,6 +83,8 @@ export default function TaskDetailDrawer({
     handleDeleteDependency,
     handleDueDateChange,
     handleStartDateChange,
+    isSavingSchedule,
+    scheduleErrors,
   } = useTaskDetailDrawerState({
     task,
     tasks,
@@ -407,6 +409,8 @@ export default function TaskDetailDrawer({
             onAllDayChange={handleAllDayChange}
             onStartDateChange={handleStartDateChange}
             onDueDateChange={handleDueDateChange}
+            isSavingSchedule={isSavingSchedule}
+            scheduleErrors={scheduleErrors}
           />
 
           {/* Comments Section */}

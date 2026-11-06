@@ -3,6 +3,7 @@ import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 
 
 import { useState } from "react";
+import { getDateRangeBounds } from "@/lib/date-range";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,7 @@ export default function CreateProjectDialog({
     PROJECT_ICON_OPTIONS[0],
   );
   const dateErrors = getCreateProjectDateErrors(startDate, dueDate, today);
+  const bounds = getDateRangeBounds({ start: startDate, end: dueDate, today, mode: "create", dateOnly: true });
   const hasDateErrors = Boolean(dateErrors.startDate || dateErrors.dueDate);
 
   const handleStartDateChange = (nextValue: string) => {
@@ -160,7 +162,7 @@ export default function CreateProjectDialog({
                     value={startDate}
                     onChange={handleStartDateChange}
                     min={today}
-                    max={dueDate || undefined}
+                    max={bounds.startMax}
                     invalid={Boolean(dateErrors.startDate)}
                     descriptionId={dateErrors.startDate ? "project-start-date-error" : undefined}
                     triggerClassName="mt-2 h-11 rounded-control border-input bg-card text-sm font-semibold text-foreground"
