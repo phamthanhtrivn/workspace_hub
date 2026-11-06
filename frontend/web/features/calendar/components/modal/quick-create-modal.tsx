@@ -197,12 +197,13 @@ export function QuickCreateModal({
           ) : <>
           <Input
             {...register("title")}
-            data-modal-initial-focus
+            data-modal-initial-focus={isEditing || undefined}
+            focusMode="container"
             id="calendar-quick-create-title"
             aria-label={copy.addTitle}
             placeholder={copy.addTitle}
             aria-invalid={Boolean(formState.errors.title)}
-            className="ml-12 h-auto w-[calc(100%-3rem)] rounded-none border-0 border-b border-input bg-transparent px-0 pb-2 text-2xl font-medium leading-tight text-foreground shadow-none outline-none placeholder:text-muted-foreground sm:text-[1.7rem]"
+            className="ml-12 h-auto w-[calc(100%-3rem)] rounded-none border-0 border-b border-input bg-transparent px-0 pb-2 text-2xl font-medium leading-tight text-foreground shadow-none outline-none placeholder:text-muted-foreground focus:border-primary sm:text-[1.7rem]"
           />
           {formState.errors.title && (
             <p className="ml-12 mt-2 text-xs font-semibold text-destructive-content">
