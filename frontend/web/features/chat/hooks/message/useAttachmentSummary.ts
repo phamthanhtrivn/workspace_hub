@@ -15,11 +15,11 @@ export function useAttachmentSummary(message: ChatMessageResponse) {
     setIsRequesting(true);
     try {
       await requestAttachmentSummary(message, file);
-      toast.success("Đã yêu cầu AI tóm tắt. Kết quả sẽ xuất hiện trong cuộc hội thoại này.");
+      toast.success("Summary requested. The result will appear in this conversation.");
     } catch (error: unknown) {
       const response = (error as { response?: { data?: { message?: unknown } } })?.response;
       const detail = response?.data?.message;
-      toast.error(getActionErrorMessage(error, typeof detail === "string" ? detail : "Không gửi được yêu cầu tóm tắt. Vui lòng thử lại."));
+      toast.error(getActionErrorMessage(error, typeof detail === "string" ? detail : "Unable to request a summary. Try again."));
     } finally {
       pending.current = false;
       setIsRequesting(false);

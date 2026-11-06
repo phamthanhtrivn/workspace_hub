@@ -15,6 +15,7 @@ import { SourcePanel } from "./source-panel";
 import { StudioPanel } from "./studio-panel";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Spinner } from "@/components/ui/spinner";
+import { Bot } from "lucide-react";
 import type { NotebookActionKey, NotebookActionRunner } from "../types";
 
 export function NotebookWorkspace({ id }: { id: string }) {
@@ -22,7 +23,7 @@ export function NotebookWorkspace({ id }: { id: string }) {
   return userId ? (
     <Workspace key={`${userId}-${id}`} id={id} />
   ) : (
-    <p className="p-8">Vui lòng đăng nhập.</p>
+    <p className="p-8">Please sign in to open your notebooks.</p>
   );
 }
 
@@ -44,18 +45,17 @@ function Workspace({ id }: { id: string }) {
     return (
       <div className="space-y-4 p-8" role="alert">
         <p>
-          Không tải được notebook hoặc không xác minh được quyền nguồn. Nội dung
-          được tạm ẩn.
+          Unable to load this notebook or verify source access. Content is temporarily hidden.
         </p>
-        <Button onClick={() => query.refetch()}>Thử lại</Button>
+        <Button onClick={() => query.refetch()}>Retry</Button>
         <Button variant="link" asChild>
-          <Link href="/ai">Về notebook</Link>
+          <Link href="/ai">Back to notebooks</Link>
         </Button>
       </div>
     );
   if (!query.data)
     return (
-      <LoadingState label="Đang tải notebook…" size={32} className="p-8" />
+      <LoadingState label="Loading notebook..." size={32} className="p-8" />
     );
   const notebook = query.data;
   const selected = notebook.sources.filter(
@@ -69,22 +69,22 @@ function Workspace({ id }: { id: string }) {
         source.status === "READY",
     ),
   );
-  const panel = "min-h-0 rounded-xl border bg-white p-4 xl:block";
+  const panel = "min-h-0 rounded-xl border bg-background p-4 xl:block";
   return (
-    <main className="flex min-h-0 flex-1 flex-col gap-4 bg-slate-50 p-3 md:p-5 xl:h-[calc(100dvh-100px)]">
+    <main className="flex min-h-0 flex-1 flex-col gap-4 bg-muted/30 p-3 md:p-5 xl:h-[calc(100dvh-100px)]">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <Link
             href="/ai"
             className="text-xs text-muted-foreground hover:underline"
           >
-            Notebook của bạn
+            Your notebooks
           </Link>
           <h1 className="mt-1 break-words text-xl font-semibold">
             {notebook.title}
           </h1>
           <p className="text-xs text-muted-foreground">
-            Riêng tư · {notebook.sources.length} nguồn
+            Private · {notebook.sources.length} sources
           </p>
         </div>
         <div className="flex gap-2">
@@ -96,7 +96,7 @@ function Workspace({ id }: { id: string }) {
               setRenaming((value) => !value);
             }}
           >
-            Đổi tên
+            Rename
           </Button>
           <Button
             variant="ghost"
@@ -106,7 +106,7 @@ function Workspace({ id }: { id: string }) {
             onClick={() => {
               if (
                 window.confirm(
-                  "Xóa notebook và lịch sử? File gốc trong Tài liệu vẫn được giữ.",
+                  "Delete this notebook and its history? Original files in Documents will be kept.",
                 )
               )
                 run(async () => {
@@ -115,7 +115,7 @@ function Workspace({ id }: { id: string }) {
                 }, "remove");
             }}
           >
-            Xóa notebook
+            Delete notebook
           </Button>
         </div>
       </header>
@@ -131,24 +131,23 @@ function Workspace({ id }: { id: string }) {
           }}
         >
           <Input
-            aria-label="Tên notebook"
+            aria-label="Notebook title"
             maxLength={200}
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
-          <Button loading={query.saving && pendingAction === "rename"} disabled={query.saving || !name.trim()}>Lưu</Button>
+          <Button loading={query.saving && pendingAction === "rename"} disabled={query.saving || !name.trim()}>Save</Button>
         </form>
       )}
       {query.actionError && (
-        <p role="alert" className="text-sm text-red-700">
-          Thao tác chưa hoàn tất. Kiểm tra quyền nguồn, giới hạn và kết nối rồi
-          thử lại.
+        <p role="alert" className="text-sm text-destructive">
+          Unable to complete this action. Check source access and upload limits, then try again.
         </p>
       )}
-      <nav aria-label="Vùng làm việc notebook" className="flex gap-2 xl:hidden">
+      <nav aria-label="Notebook workspace" className="flex gap-2 xl:hidden">
         {[
-          ["sources", "Nguồn"],
-          ["chat", "Hỏi đáp"],
+          ["sources", "Sources"],
+          ["chat", "Chat"],
           ["studio", "Studio"],
         ].map(([value, label]) => (
           <Button
@@ -181,11 +180,13 @@ function Workspace({ id }: { id: string }) {
           />
         </aside>
         <section
-          aria-label="Hỏi đáp theo nguồn"
+          aria-label="Chat with sources"
           className={`${panel} ${tab === "chat" ? "flex" : "hidden"} flex-col xl:flex`}
         >
-          <h2 className="border-b pb-4 font-semibold">
-            Hỏi đáp theo {selected.length} nguồn đã chọn
+          <h2 className="flex items-center gap-2 border-b pb-4 font-semibold">
+            <Bot className="size-5 text-link" aria-hidden="true" />
+            AI Assistant
+            <span className="ml-auto text-xs font-normal text-muted-foreground">{selected.length} sources selected</span>
           </h2>
           <div
             className="min-h-0 flex-1 space-y-5 overflow-y-auto py-5"
@@ -195,31 +196,28 @@ function Workspace({ id }: { id: string }) {
             {!notebook.messages.length && (
               <div className="py-8 text-sm leading-relaxed text-muted-foreground">
                 <h3 className="mb-3 font-semibold text-foreground">
-                  Bắt đầu từ tài liệu của bạn
+                  Ask about your documents
                 </h3>
                 <p>
-                  Thêm tài liệu ở Nguồn. Khi chỉ mục sẵn sàng, chọn nguồn rồi
-                  đặt câu hỏi cụ thể. Mỗi câu trả lời có đoạn trích để đối
-                  chiếu.
+                  Add a source, wait until it is ready, then select it to ask questions with citations.
                 </p>
                 <p className="mt-3">
-                  Muốn đọc toàn bộ nội dung? Dùng “Tóm tắt toàn văn” trong
-                  Studio.
+                  For a full-document summary, use Studio.
                 </p>
               </div>
             )}
             {notebook.messages.map((message) => (
               <article
                 key={message.id}
-                className={`rounded-lg border p-4 ${message.role === "USER" ? "bg-slate-50" : "bg-white"}`}
+                className={message.role === "USER" ? "ml-6 rounded-xl bg-muted p-4" : "min-w-0 py-3"}
               >
-                <p className="mb-2 text-xs font-medium text-muted-foreground">
-                  {message.role === "USER" ? "Bạn" : "Trợ lý tài liệu"}
+                <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                  {message.role !== "USER" && <Bot className="size-4" aria-hidden="true" />}
+                  {message.role === "USER" ? "You" : "AI Assistant"}
                 </p>
                 {message.hidden ? (
                   <p className="text-sm text-muted-foreground">
-                    Nội dung đã ẩn vì nguồn bị xóa, đổi phiên bản hoặc mất
-                    quyền.
+                    Content is hidden because a source was removed, updated or is no longer accessible.
                   </p>
                 ) : (
                   <>
@@ -231,7 +229,7 @@ function Workspace({ id }: { id: string }) {
                         ["FAILED", "CANCELLED"].includes(
                           message.summary_status || "",
                         )
-                          ? "Bản tóm tắt chưa hoàn tất. Bạn có thể thử lại."
+                          ? "The summary is incomplete. Try again."
                           : message.content
                       }
                     />
@@ -255,7 +253,7 @@ function Workspace({ id }: { id: string }) {
                             )
                           }
                         >
-                          Thử tóm tắt lại
+                          Retry summary
                         </Button>
                       )}
                     {message.role === "ASSISTANT" &&
@@ -269,14 +267,14 @@ function Workspace({ id }: { id: string }) {
                           onClick={() =>
                             run(() =>
                               notebooksApi.note(id, {
-                                title: "Đã lưu từ hỏi đáp",
+                                title: "Saved from chat",
                                 messageId: message.id,
                               }),
                               `note:${message.id}`,
                             )
                           }
                         >
-                          Lưu vào ghi chú
+                          Save to notes
                         </Button>
                       )}
                   </>
@@ -287,8 +285,7 @@ function Workspace({ id }: { id: string }) {
               <article className="rounded-lg border p-4">
                 <p role={chat.busy ? "status" : undefined} className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
                   {chat.busy && <Spinner size={14} />}
-                  {chat.busy ? chat.stage : "Phần trả lời đã nhận được"} · Chưa
-                  hoàn tất
+                  {chat.busy ? chat.stage : "Response received so far"} · Incomplete
                 </p>
                 {chat.draft?.text ? (
                   <AnswerContent content={chat.draft.text} />
@@ -300,7 +297,7 @@ function Workspace({ id }: { id: string }) {
               </article>
             )}
             {chat.error && (
-              <p role="alert" className="text-sm text-red-700">
+              <p role="alert" className="text-sm text-destructive">
                 {chat.error}
               </p>
             )}
@@ -316,7 +313,7 @@ function Workspace({ id }: { id: string }) {
             }}
           >
             <label htmlFor="notebook-question" className="text-sm font-medium">
-              Câu hỏi
+              Question
             </label>
             <Textarea
               id="notebook-question"
@@ -325,19 +322,19 @@ function Workspace({ id }: { id: string }) {
               value={question}
               disabled={chat.busy}
               onChange={(event) => setQuestion(event.target.value)}
-              placeholder="Hỏi rõ nội dung bạn muốn tìm trong nguồn…"
+              placeholder="Ask a question about your sources..."
             />
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground">
-                AI có thể sai. Kiểm tra trích dẫn trước khi sử dụng.
+                AI can make mistakes. Check the citations.
               </p>
               {chat.busy ? (
                 <Button type="button" variant="outline" onClick={chat.cancel}>
-                  Hủy trả lời
+                  Stop response
                 </Button>
               ) : (
                 <Button disabled={!selected.length || !question.trim()}>
-                  Gửi
+                  Send
                 </Button>
               )}
             </div>

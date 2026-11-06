@@ -57,7 +57,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
     active.current = null;
     setBusy(false);
     setDraft(null);
-    setError("Đã hủy. Bạn có thể gửi câu hỏi mới.");
+    setError("Response stopped. You can ask another question.");
     void notebooksApi.cancel(request.requestId).catch(() => {});
   }, []);
   useEffect(
@@ -77,7 +77,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
     active.current = request;
     setBusy(true);
     setError("");
-    setStage("Đang tìm đoạn tài liệu liên quan…");
+    setStage("Finding relevant passages...");
     setDraft({
       question,
       text: "",
@@ -94,7 +94,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
         (event) => {
           if (active.current !== request) return;
           if (event.event === "status" && event.data.stage === "GENERATING")
-            setStage("AI đang tạo câu trả lời…");
+            setStage("Writing your answer...");
           if (event.event === "delta")
             setDraft((current) =>
               current
@@ -112,7 +112,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
         setDraft((current) => (current?.text ? current : null));
         setError(
           request.controller.signal.aborted
-            ? "Đã hết thời gian chờ; yêu cầu không tự gửi lại."
+            ? "The request timed out. It was not resent."
             : (cause as Error).message,
         );
       }

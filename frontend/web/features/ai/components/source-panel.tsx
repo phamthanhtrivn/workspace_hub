@@ -14,14 +14,16 @@ import { useSourceUpload } from "../hooks/use-source-upload";
 import { uploadError } from "../upload";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Spinner } from "@/components/ui/spinner";
+import { Details, DetailsSummary } from "@/components/ui/details";
+import { aiServiceMessage } from "@/lib/ai-feedback";
 import type { NotebookActionKey, NotebookActionRunner } from "../types";
 
 const states: Record<string, string> = {
-  QUEUED: "Chờ xử lý",
-  INDEXING: "Đang đọc và tạo chỉ mục",
-  READY: "Sẵn sàng",
-  FAILED: "Xử lý lỗi",
-  UNAVAILABLE: "Nguồn không còn hợp lệ",
+  QUEUED: "Queued",
+  INDEXING: "Indexing",
+  READY: "Ready",
+  FAILED: "Failed",
+  UNAVAILABLE: "Source unavailable",
 };
 type Props = {
   id: string;
@@ -54,11 +56,11 @@ export function SourcePanel({
   );
   const sourceBusy = busy || uploading || pickerBusy;
   return (
-    <section className="flex h-full flex-col gap-4" aria-label="Nguồn tài liệu">
+    <section className="flex h-full flex-col gap-4" aria-label="Document sources">
       <header className="flex items-center justify-between">
-        <h2 className="font-semibold">Nguồn</h2>
+        <h2 className="font-semibold">Sources</h2>
         <span className="text-xs text-muted-foreground">
-          {sources.length}/5 file
+          {sources.length}/5 files
         </span>
       </header>
       <div className="grid gap-2">
@@ -69,19 +71,19 @@ export function SourcePanel({
         >
           <Upload />
           {stage === "CHECKING"
-            ? "Đang kiểm tra file…"
+            ? "Checking file..."
             : stage === "ADDING"
-              ? "Đang thêm nguồn…"
+              ? "Adding source..."
               : uploading
-                ? "Đang tải file…"
-                : "Tải file"}
+                ? "Uploading..."
+                : "Upload file"}
         </Button>
         <Button
           variant="outline"
           disabled={sourceBusy || sources.length >= 5}
           onClick={() => setPicker((value) => !value)}
         >
-          {picker ? "Đóng danh sách" : "Chọn từ Tài liệu"}
+          {picker ? "Close document picker" : "Choose from Documents"}
         </Button>
       </div>
       <input
@@ -95,14 +97,13 @@ export function SourcePanel({
           event.target.value = "";
         }}
       />
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Tối đa 5 nguồn, 20 MiB/file, 50 MiB/notebook, 40.000 token/file. Nhận
-        PDF ≤100 trang, DOCX, TXT, MD và ảnh PNG/JPEG/WebP. Trang scan được OCR;
-        tối đa 24 trang/hình cần AI đọc ảnh mỗi file. Nội dung hình được xử lý
-        một lần khi thêm nguồn.
-      </p>
+      <Details className="text-xs leading-relaxed text-muted-foreground">
+        <DetailsSummary className="cursor-pointer">File types & limits</DetailsSummary>
+        <p className="mt-2">PDF, DOCX, TXT, MD, PNG, JPEG and WebP. Up to 20 MiB per file and 50 MiB per notebook.</p>
+        <p className="mt-2">PDFs: up to 100 pages. Each file supports up to 40,000 tokens and 24 scanned pages or images requiring image analysis.</p>
+      </Details>
       {error && (
-        <p role="alert" className="text-xs text-red-700">
+        <p role="alert" className="text-xs text-destructive">
           {error}
         </p>
       )}
@@ -118,12 +119,11 @@ export function SourcePanel({
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
         {!sources.length && (
           <p className="py-8 text-sm text-muted-foreground">
-            Thêm nguồn đầu tiên để bắt đầu. Chỉ lập chỉ mục một lần, không đọc
-            lại file mỗi câu hỏi.
+            Upload a file or choose from Documents to get started.
           </p>
         )}
         {sources.map((source) => (
-          <article key={source.id} className="rounded-lg border p-3">
+          <article key={source.id} className={`rounded-lg border p-3 ${selected.includes(source.id) ? "border-primary/30 bg-primary/5" : "bg-background"}`}>
             <label className="flex items-start gap-2 text-sm font-medium">
               <Checkbox
                 className="mt-1"
@@ -135,22 +135,22 @@ export function SourcePanel({
             </label>
             <p className="mt-2 text-xs text-muted-foreground">
               {states[source.status] || source.status}
-              {source.status === "READY" ? ` · ${source.chunk_count} đoạn` : ""}
+              {source.status === "READY" ? ` · ${source.chunk_count} passages` : ""}
             </p>
             {source.status === "INDEXING" && (
               <p role="status" className="mt-1 flex items-center gap-2 text-xs">
                 <Spinner size={14} />
                 {source.progress < 40
-                  ? "Đang đọc tài liệu và nhận diện chữ…"
+                  ? "Reading document and recognizing text..."
                   : source.progress < 85
-                    ? "Đang phân tích hình và lưu kết quả…"
-                    : "Đang tạo chỉ mục tìm kiếm…"}
+                    ? "Analyzing images..."
+                    : "Indexing..."}
                 {` ${source.progress}%`}
               </p>
             )}
             {source.error && (
-              <p className="mt-2 break-words text-xs text-red-700">
-                {source.error}
+              <p className="mt-2 break-words text-xs text-destructive">
+                {aiServiceMessage(source.error, "Unable to process this source. Check its format and limits, then retry.")}
               </p>
             )}
             <div className="mt-2 flex gap-2">
@@ -164,7 +164,7 @@ export function SourcePanel({
                     run(() => notebooksApi.source(id, source.id, "retry"), `retry:${source.id}`)
                   }
                 >
-                  Thử lại
+                  Retry
                 </Button>
               )}
               {source.status === "READY" && (
@@ -177,7 +177,7 @@ export function SourcePanel({
                     run(() => notebooksApi.source(id, source.id, "retry"), `retry:${source.id}`)
                   }
                 >
-                  Lập lại chỉ mục
+                  Reindex
                 </Button>
               )}
               <Button
@@ -190,14 +190,14 @@ export function SourcePanel({
                 }
               >
                 <X />
-                Bỏ nguồn
+                Remove source
               </Button>
             </div>
           </article>
         ))}
       </div>
       <p className="border-t pt-3 text-xs text-muted-foreground">
-        Đang chọn {selected.length} nguồn sẵn sàng
+        Selected: {selected.length} ready sources
       </p>
     </section>
   );
@@ -265,7 +265,7 @@ function DocumentPicker({
     }
   };
   return (
-    <div className="space-y-2 rounded-lg border bg-slate-50 p-2">
+    <div className="space-y-2 rounded-lg border bg-muted/40 p-2">
       <div className="flex gap-1">
         <Button
           size="sm"
@@ -276,7 +276,7 @@ function DocumentPicker({
             setPage(1);
           }}
         >
-          Của tôi
+          My files
         </Button>
         <Button
           size="sm"
@@ -287,7 +287,7 @@ function DocumentPicker({
             setPage(1);
           }}
         >
-          Được chia sẻ
+          Shared with me
         </Button>
       </div>
       <form
@@ -299,13 +299,13 @@ function DocumentPicker({
         }}
       >
         <Input
-          aria-label="Tìm tài liệu"
-          placeholder="Tên file…"
+          aria-label="Search documents"
+          placeholder="File name..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
         <Button size="sm" variant="outline">
-          Tìm
+          Search
         </Button>
       </form>
       {folders.length > 0 && (
@@ -317,19 +317,19 @@ function DocumentPicker({
             setPage(1);
           }}
         >
-          Thư mục cha
+          Parent folder
         </Button>
       )}
       {query.isPending && (
-        <LoadingState label="Đang tải…" className="text-xs" />
+        <LoadingState label="Loading documents..." className="text-xs" />
       )}
       {query.isError && (
-        <p role="alert" className="text-xs text-red-700">
-          Không tải được danh sách.
+        <p role="alert" className="text-xs text-destructive">
+          Unable to load documents. Try again.
         </p>
       )}
       {error && (
-        <p role="alert" className="text-xs text-red-700">
+        <p role="alert" className="text-xs text-destructive">
           {error}
         </p>
       )}
@@ -344,7 +344,7 @@ function DocumentPicker({
               <Button
                 size="icon-sm"
                 variant="ghost"
-                aria-label={`Mở ${file.name}`}
+                aria-label={`Open ${file.name}`}
                 disabled={shared}
                 onClick={() => {
                   setFolders((value) => [...value, file.id]);
@@ -366,7 +366,7 @@ function DocumentPicker({
                 }
                 onClick={() => void add(file.id)}
               >
-                {addedIds.includes(file.id) ? "Đã thêm" : "Thêm"}
+                {addedIds.includes(file.id) ? "Added" : "Add"}
               </Button>
             )}
           </div>
@@ -378,7 +378,7 @@ function DocumentPicker({
           disabled={page === 1}
           onClick={() => setPage((value) => value - 1)}
         >
-          Trước
+          Previous
         </Button>
         <span className="text-xs">{page}</span>
         <Button
@@ -387,7 +387,7 @@ function DocumentPicker({
           disabled={!query.data?.meta || page >= query.data.meta.totalPages}
           onClick={() => setPage((value) => value + 1)}
         >
-          Sau
+          Next
         </Button>
       </div>
     </div>

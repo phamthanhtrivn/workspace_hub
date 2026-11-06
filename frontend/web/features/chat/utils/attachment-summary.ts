@@ -8,5 +8,5 @@ export function summaryAttachments(medias?: ChatMediaResponse[]) {
 }
 
 export function attachmentSummaryPrompt(name: string) {
-  return `@ai Tóm tắt tài liệu “${name.replace(/[\r\n]/g, " ").slice(0, 300)}”.`;
+  return `@ai Summarize the document “${name.replace(/[\r\n]/g, " ").slice(0, 300)}”.`;
 }

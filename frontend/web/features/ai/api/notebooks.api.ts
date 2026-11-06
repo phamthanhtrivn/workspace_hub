@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { aiServiceMessage } from "@/lib/ai-feedback";
 import { store } from "@/store/store";
 import { notebookListSchema, notebookSchema } from "../types";
 import { readAnswer, type StreamEvent } from "./stream";
@@ -91,9 +92,7 @@ export const notebooksApi = {
     if (!response.ok || !response.body) {
       const error = await response.json().catch(() => null);
       throw new Error(
-        typeof error?.message === "string"
-          ? error.message
-          : `AI chưa sẵn sàng (HTTP ${response.status})`,
+        aiServiceMessage(error?.message, `Unable to get an AI response (HTTP ${response.status}). Check source access and try again.`),
       );
     }
     await readAnswer(response.body, onEvent);

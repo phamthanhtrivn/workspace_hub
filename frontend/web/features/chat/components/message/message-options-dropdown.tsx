@@ -129,7 +129,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
           title={file.name}
         >
           {isSummarizing ? <Loader2 size={16} className="shrink-0 motion-safe:animate-spin" /> : <Sparkles size={16} className="shrink-0" />}
-          <span className="min-w-0 break-words">{summaryFiles.length === 1 ? "Tóm tắt bằng AI" : `Tóm tắt: ${file.name}`}</span>
+          <span className="min-w-0 break-words">{summaryFiles.length === 1 ? "Summarize with AI" : `Summarize: ${file.name}`}</span>
         </DropdownMenuItem>
       ))}
 

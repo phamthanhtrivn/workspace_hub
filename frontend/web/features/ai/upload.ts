@@ -1,3 +1,5 @@
+import { aiErrorMessage } from "@/lib/ai-feedback";
+
 type FileInfo = { name: string; size: number };
 type StoredSource = { size_bytes: number };
 export type UploadBatch = { count: number; bytes: number };
@@ -33,7 +35,7 @@ export async function notebookUploadFolder(
 function folderId(conflict: FolderConflict): string {
   if (conflict.item?.type !== "FOLDER")
     throw new Error(
-      "Tên thư mục của notebook đang được dùng cho một file trong Tài liệu. Hãy đổi tên file đó rồi thử lại.",
+      "A file in Documents already uses this notebook folder name. Rename that file, then try again.",
     );
   return conflict.item.id;
 }
@@ -68,7 +70,7 @@ export async function uploadWithUniqueName<T>(
         extension;
     }
   }
-  throw new Error("Không tải được tài liệu.");
+  throw new Error("Unable to upload this document.");
 }
 
 export function validateUploadBatch(
@@ -77,7 +79,7 @@ export function validateUploadBatch(
 ): UploadBatch {
   if (!files.length || files.length + sources.length > 5)
     throw new Error(
-      "Notebook tối đa 5 file. Hãy chọn ít file hơn hoặc bỏ bớt nguồn.",
+      "A notebook can have up to 5 files. Select fewer files or remove a source.",
     );
   for (const file of files) {
     if (
@@ -85,12 +87,12 @@ export function validateUploadBatch(
       !/\.(pdf|docx|txt|md|png|jpe?g|webp)$/i.test(file.name)
     )
       throw new Error(
-        `${file.name}: chỉ nhận PDF, DOCX, TXT, MD, PNG, JPEG hoặc WebP; tên tối đa 300 ký tự.`,
+        `${file.name}: use PDF, DOCX, TXT, MD, PNG, JPEG or WebP, with a name of up to 300 characters.`,
       );
     if (!Number.isSafeInteger(file.size) || file.size <= 0)
-      throw new Error(`${file.name}: file rỗng hoặc kích thước không hợp lệ.`);
+      throw new Error(`${file.name}: the file is empty or its size is invalid.`);
     if (file.size > 20 * 1024 * 1024)
-      throw new Error(`${file.name}: vượt 20 MiB. Hãy tách file nhỏ hơn.`);
+      throw new Error(`${file.name}: exceeds 20 MiB. Split it into smaller files.`);
   }
   const bytes = files.reduce((sum, f) => sum + f.size, 0);
   if (
@@ -98,17 +100,13 @@ export function validateUploadBatch(
     50 * 1024 * 1024
   )
     throw new Error(
-      "Tổng dung lượng notebook vượt 50 MiB. Hãy giảm dung lượng hoặc bỏ bớt nguồn.",
+      "This notebook exceeds 50 MiB. Choose smaller files or remove a source.",
     );
   return { count: files.length, bytes };
 }
 
 export function uploadError(cause: unknown): string {
-  const response = (
-    cause as { response?: { data?: { message?: unknown } } } | null
-  )?.response;
-  if (typeof response?.data?.message === "string") return response.data.message;
-  return cause instanceof Error ? cause.message : "Không tải được tài liệu.";
+  return aiErrorMessage(cause, "Unable to add this document. Check its format, size and your access, then try again.");
 }
 
 export async function uploadNotebookFiles<T extends FileInfo>(
@@ -139,8 +137,8 @@ export async function uploadNotebookFiles<T extends FileInfo>(
     await actions.add(documents.map((doc) => doc.id));
   } catch (cause) {
     const saved = documents.length
-      ? " File đã lưu vẫn nằm trong Tài liệu; dùng Chọn từ Tài liệu để thêm lại."
+      ? "Uploaded files are still in Documents. Use Choose from Documents to add them again."
       : "";
-    throw new Error(uploadError(cause) + saved);
+    throw new Error([uploadError(cause), saved].filter(Boolean).join(" "));
   }
 }

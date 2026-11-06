@@ -26,15 +26,15 @@ export default function WorkConversationList({
   return (
     <section
       id="work-conversation-list"
-      aria-label="Các cuộc trò chuyện trong phạm vi này"
-      className="space-y-2 border-b p-4"
+      aria-label="Conversations"
+      className="space-y-4 p-4"
     >
       <h3 className="text-sm font-semibold">
-        Cuộc trò chuyện trong phạm vi này
+        Conversations
       </h3>
       {loading && (
         <p role="status" className="text-xs text-muted-foreground">
-          Đang tải danh sách…
+          Loading conversations...
         </p>
       )}
       {error && (
@@ -43,16 +43,16 @@ export default function WorkConversationList({
             {error}
           </p>
           <Button size="sm" variant="outline" onClick={onRetry}>
-            Thử lại
+            Retry
           </Button>
         </div>
       )}
       {!loading && !error && sessions.length === 0 && (
         <p className="text-xs text-muted-foreground">
-          Chưa có cuộc trò chuyện nào.
+          No conversations yet.
         </p>
       )}
-      <ul className="max-h-64 space-y-1 overflow-y-auto">
+      <ul className="space-y-1">
         {sessions.map((session) => (
           <li key={session.id}>
             <Button
@@ -62,14 +62,14 @@ export default function WorkConversationList({
               className="h-auto w-full flex-col items-start gap-1 px-3 py-2 text-left"
               onClick={() => onSelect(session.id)}
             >
-              <span className="line-clamp-2 w-full whitespace-normal break-words text-xs font-medium">
+              <span className="line-clamp-2 w-full whitespace-normal break-words text-sm font-medium">
                 {session.title}
               </span>
               <time
                 dateTime={session.updatedAt}
-                className="text-[10px] font-normal text-muted-foreground"
+                className="text-xs font-normal text-muted-foreground"
               >
-                {new Intl.DateTimeFormat("vi-VN", {
+                {new Intl.DateTimeFormat("en-US", {
                   day: "2-digit",
                   month: "2-digit",
                   hour: "2-digit",
@@ -88,7 +88,7 @@ export default function WorkConversationList({
           loading={loadingMore}
           onClick={onLoadMore}
         >
-          Xem cuộc trò chuyện cũ hơn
+          Load more
         </Button>
       )}
     </section>

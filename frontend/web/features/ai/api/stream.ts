@@ -1,3 +1,5 @@
+import { aiServiceMessage } from "@/lib/ai-feedback";
+
 export type StreamEvent = {
   event: string;
   data: { text?: string; message?: string; stage?: string };
@@ -30,21 +32,21 @@ export async function readAnswer(
       const { value, done } = await reader.read();
       if (done) break;
       pending += decoder.decode(value, { stream: true }).replace(/\r/g, "");
-      if (pending.length > 100000) throw new Error("Phản hồi vượt giới hạn");
+      if (pending.length > 100000) throw new Error("The response exceeds the size limit.");
       let boundary: number;
       while ((boundary = pending.indexOf("\n\n")) >= 0) {
         const event = parseEvent(pending.slice(0, boundary));
         pending = pending.slice(boundary + 2);
         if (!event) continue;
         if (event.event === "error")
-          throw new Error(event.data.message || "AI chưa hoàn tất");
+          throw new Error(aiServiceMessage(event.data.message, "AI did not complete the response. Check your sources and try again."));
         if (event.event === "done") completed = true;
         onEvent(event);
       }
     }
     if (!completed)
       throw new Error(
-        "Kết nối bị ngắt trước khi hoàn tất; yêu cầu không tự gửi lại.",
+        "The connection closed before the response finished. Your request was not resent.",
       );
   } finally {
     await reader.cancel().catch(() => {});

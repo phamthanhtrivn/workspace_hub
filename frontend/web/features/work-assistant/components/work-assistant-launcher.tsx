@@ -2,7 +2,7 @@
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { MessageSquareText } from "lucide-react";
+import { Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/store/store";
 const Panel = dynamic(() => import("./work-assistant-panel"), {
@@ -12,7 +12,7 @@ const Panel = dynamic(() => import("./work-assistant-panel"), {
       role="status"
       className="fixed bottom-24 right-4 z-50 rounded-xl border bg-background p-5 shadow-lg"
     >
-      Đang mở trợ lý…
+      Opening AI Assistant...
     </div>
   ),
 });
@@ -39,13 +39,13 @@ export default function WorkAssistantLauncher() {
         type="button"
         size="lg"
         onClick={() => setOpen((value) => !value)}
-        aria-label={open ? "Đóng Trợ lý AI" : "Mở Trợ lý AI"}
+        aria-label={open ? "Close AI Assistant" : "Open AI Assistant"}
         aria-expanded={open}
         aria-controls={open ? "work-assistant-panel" : undefined}
         className="fixed bottom-5 right-5 z-50 h-12 gap-2 rounded-full px-4 shadow-lg"
       >
-        <MessageSquareText className="size-5" aria-hidden="true" />
-        <span>Trợ lý AI</span>
+        <Bot className="size-5" aria-hidden="true" />
+        <span>AI Assistant</span>
       </Button>
     </>
   );
