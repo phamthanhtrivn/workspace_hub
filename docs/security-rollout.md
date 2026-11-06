@@ -12,7 +12,7 @@ Thay đổi này yêu cầu triển khai User, Project, Communication, Document,
    docker exec -e PGUSER=postgres -e PGDATABASE=user_db wh_postgres sh /tmp/workspacehub-migrate.sh
    ```
 
-2. Local services use the 16 directional caller keys in backend/scripts/local-security/contract.mjs; run node backend/scripts/validate-local-env.mjs to check placement and runtime DB roles. The production/CI credential contract still needs a separate rollout. Never put signing or service keys in NEXT_PUBLIC_* variables.
+2. Local services use the 16 directional caller keys in backend/scripts/local-security/contract.mjs; run node backend/scripts/validate-local-env.mjs to check placement and required configuration. Local runtime database credentials are currently shared by request; this does not provide per-service database isolation. The production/CI credential contract still needs a separate rollout. Never put signing or service keys in NEXT_PUBLIC_* variables.
 3. Project, Communication và Notification cần `REDIS_URL`, cùng Redis để đồng bộ room và thu hồi phiên giữa các node. Chat và Document cần `PROJECT_SERVICE_URL`. Production compose đã khai báo các endpoint này; local chỉ được bổ sung endpoint còn thiếu, không xoay credential cũ.
 4. `WEB_PUSH_ALLOWED_HOSTS` là danh sách hostname chính xác, phân cách bằng dấu phẩy, lấy từ các push provider mà ứng dụng triển khai hỗ trợ. Không dùng wildcard, địa chỉ IP hoặc tên nội bộ. Thiếu cấu hình thì Web Push không gửi, thông báo trong ứng dụng vẫn hoạt động. DNS phải trỏ toàn bộ tới địa chỉ public; kết nối được ghim vào địa chỉ đã kiểm tra. Không cần đưa VAPID private key ra frontend.
 5. Cấu hình `TRUSTED_PROXY_CIDRS` theo các proxy thực sự đứng trước User Service nếu muốn giới hạn theo IP người dùng. Không tin trực tiếp X-Forwarded-For từ nguồn ngoài danh sách này.
@@ -30,6 +30,16 @@ Thay đổi này yêu cầu triển khai User, Project, Communication, Document,
 - API preview/download vẫn trả `{ url }`, nhưng URL trình duyệt trỏ tới backend `/api/documents/public/content?ticket=...`. Ticket có hạn 10 phút, gắn với session/quyền hiện tại và thế hệ link chia sẻ; không phải access JWT dùng cho API khác. URL tương đối được API client web chuẩn hóa theo gateway.
 - Link EDITOR cũ chỉ còn cho phép xem. Owner hoặc editor đích danh đã đăng nhập và xác minh email mới sửa và xem lịch sử. Guest/viewer chỉ xem bản hiện tại.
 - Public profile không trả phoneNumber, dob hoặc hasPassword; self-profile vẫn có dữ liệu cần cho trang Settings.
+
+## Local regression verification
+
+The reusable [security integration suite](../backend/security-tests/README.md) runs
+the real User HTTP API, receiver credential checks, permission services, Kong,
+Socket.IO and Kafka failure/recovery tests against isolated infrastructure. Its
+source inventory reports HTTP/Kafka/socket declarations and the 16 caller edges.
+The README distinguishes real dependencies, stubs and untested flows. Passing
+these tests does not mark the browser checklist below as completed or certify
+every route, consumer or production environment.
 
 ## Checklist trình duyệt
 
