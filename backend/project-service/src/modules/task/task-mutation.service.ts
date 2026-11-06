@@ -31,6 +31,7 @@ import { TaskSyncOutboxService } from "../task-sync/task-sync-outbox.service";
 import { TaskLookupService } from "./task-lookup.service";
 import { TaskValidationService } from "./task-validation.service";
 import { TaskActivityService } from "./task-activity.service";
+import { buildTaskNotification } from "../../common/utils/task-notification.util";
 
 const taskWithCount = taskInclude;
 
@@ -173,16 +174,18 @@ export class TaskMutationService {
         }
         await this.activity.recordChanges(current, updated, dto, userId, tx);
         if (dto.assigneeUserId !== undefined && dto.assigneeUserId !== null) {
+          const project = await tx.project.findUniqueOrThrow({
+            where: { id: current.projectId },
+            select: { id: true, name: true },
+          });
           await this.notifications.enqueueNotification(
-            {
+            buildTaskNotification({
               recipientId: dto.assigneeUserId,
               senderId: userId,
               type: KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED,
-              title: "You were assigned a task",
-              content: `Task "${updated.title}" was assigned to you.`,
-              link: `/projects/${current.projectId}`,
-              metadata: { taskId: current.id, projectId: current.projectId },
-            },
+              project,
+              task: updated,
+            }),
             tx,
           );
         } else if (
@@ -190,18 +193,20 @@ export class TaskMutationService {
           dto.title !== undefined ||
           dto.dueDate !== undefined
         ) {
+          const project = await tx.project.findUniqueOrThrow({
+            where: { id: current.projectId },
+            select: { id: true, name: true },
+          });
           for (const assignee of current.assignees) {
             if (assignee.userId === userId) continue;
             await this.notifications.enqueueNotification(
-              {
+              buildTaskNotification({
                 recipientId: assignee.userId,
                 senderId: userId,
                 type: KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_UPDATED,
-                title: "Task updated",
-                content: `Task "${updated.title}" was just updated.`,
-                link: `/projects/${current.projectId}`,
-                metadata: { taskId: current.id, projectId: current.projectId },
-              },
+                project,
+                task: updated,
+              }),
               tx,
             );
           }

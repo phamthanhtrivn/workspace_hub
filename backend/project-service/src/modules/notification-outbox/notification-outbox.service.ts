@@ -9,6 +9,10 @@ import { Prisma } from "@prisma/client";
 import { RuntimeConfigService } from "../../common/config/runtime-config.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import {
+  isTaskNotification,
+  taskNotificationContent,
+} from "../../common/utils/task-notification.util";
+import {
   InvitationEmailInput,
   InvitationEmailService,
 } from "../invitation-delivery/invitation-email.service";
@@ -167,15 +171,27 @@ export class NotificationOutboxService
     try {
       if (record.eventType === PROJECT_NOTIFICATION) {
         const notification = this.toProjectNotification(record.payload);
-        notification.metadata = { ...notification.metadata, deliveryId: record.id };
+        notification.metadata = {
+          ...notification.metadata,
+          deliveryId: record.id,
+        };
         if (
-          notification.type === "PROJECT_INVITATION" &&
+          (notification.type === "PROJECT_INVITATION" ||
+            isTaskNotification(notification.type)) &&
           notification.senderId &&
           !notification.senderName
         ) {
           const sender = await this.users.getContact(notification.senderId);
           notification.senderName = sender.fullName;
           notification.senderAvatar = sender.avatarUrl;
+        }
+        if (isTaskNotification(notification.type)) {
+          notification.content =
+            taskNotificationContent(
+              notification.type,
+              notification.metadata ?? {},
+              notification.senderName,
+            ) ?? notification.content;
         }
         await this.gateway.send(notification);
       } else if (record.eventType === INVITATION_EMAIL) {

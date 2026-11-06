@@ -14,6 +14,7 @@ import { KAFKA_EVENTS } from "../../common/constants/kafka.constants";
 import { resolveProfilesForItem } from "../../common/utils/profile-mapper.util";
 import { TaskSyncOutboxService } from "../task-sync/task-sync-outbox.service";
 import { TaskValidationService } from "./task-validation.service";
+import { buildTaskNotification } from "../../common/utils/task-notification.util";
 
 const taskWithCount = taskInclude;
 
@@ -51,7 +52,7 @@ export class TaskCreationService {
       const projectSequence = await tx.project.update({
         where: { id: projectId },
         data: { nextTaskNumber: { increment: 1 } },
-        select: { nextTaskNumber: true },
+        select: { nextTaskNumber: true, name: true },
       });
       await this.validation.validateParent(
         projectId,
@@ -102,15 +103,13 @@ export class TaskCreationService {
       );
       if (dto.assigneeUserId && dto.assigneeUserId !== userId) {
         await this.notifications.enqueueNotification(
-          {
+          buildTaskNotification({
             recipientId: dto.assigneeUserId,
             senderId: userId,
             type: KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED,
-            title: "You were assigned a task",
-            content: `Task "${created.title}" was assigned to you.`,
-            link: `/projects/${projectId}`,
-            metadata: { taskId: created.id, projectId },
-          },
+            project: { id: projectId, name: projectSequence.name },
+            task: created,
+          }),
           tx,
         );
       }
