@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { Clock3, RotateCw, Trash2 } from "lucide-react";
 import { Avatar } from "../ui/avatar-stack";
 import { toast } from "sonner";
@@ -44,9 +45,9 @@ export default function PendingInvitationsList({
           toast.success("Invitation revoked");
         } catch (error) {
           toast.error(
-            error instanceof Error
+            getActionErrorMessage(error, error instanceof Error
               ? error.message
-              : "Failed to revoke invitation",
+              : "Failed to revoke invitation"),
           );
         }
       },
@@ -59,9 +60,9 @@ export default function PendingInvitationsList({
       toast.success("Invitation resent");
     } catch (error) {
       toast.error(
-        error instanceof Error
+        getActionErrorMessage(error, error instanceof Error
           ? error.message
-          : "Failed to resend invitation",
+          : "Failed to resend invitation"),
       );
     }
   };

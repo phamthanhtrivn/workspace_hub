@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useState } from "react";
 import {
   keepPreviousData,
@@ -80,10 +81,10 @@ export function usePrivateChannelMembers(channel: ChannelResponse) {
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Could not update channel members. Please try again.",
-        ),
+        )),
       ),
   });
   return {

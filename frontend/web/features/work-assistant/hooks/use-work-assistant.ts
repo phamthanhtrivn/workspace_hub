@@ -1,4 +1,5 @@
 "use client";
+import { getPermissionErrorMessage } from "@/lib/permission-feedback";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useInfiniteQuery,
@@ -11,6 +12,8 @@ import * as workApi from "../api/work-assistant.api";
 import { getUserSettings } from "@/features/user-setting/api/user-setting.api";
 import type { Audience, WorkMessage } from "../types";
 export function workError(error: unknown) {
+  const permissionMessage = getPermissionErrorMessage(error);
+  if (permissionMessage) return permissionMessage;
   if (axios.isAxiosError(error)) {
     if (error.response?.status === 403)
       return "Bạn không còn quyền truy cập dự án này.";

@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useCallback, useMemo, useState } from "react";
 import { useAppSelector } from "@/store/store";
 import {
@@ -65,7 +66,7 @@ export function useMeetingParticipantsPanel({
   const grant = useMutation({
     mutationFn: (participant: MeetingParticipantResponse) => recordingApi.grant(joinToken, participant.userId, !participant.canRecord),
     onSuccess: () => { void client.invalidateQueries({ queryKey: meetingKeys.participantsRoot(joinToken) }); toast.success("Recording permission updated"); },
-    onError: (error) => toast.error(recordingErrorMessage(error)),
+    onError: (error) => toast.error(getActionErrorMessage(error, recordingErrorMessage(error))),
   });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);

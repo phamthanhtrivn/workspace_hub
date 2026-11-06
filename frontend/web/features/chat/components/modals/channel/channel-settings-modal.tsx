@@ -1,4 +1,5 @@
 "use client";
+import { PERMISSION_REASON,  getActionErrorMessage } from "@/lib/permission-feedback";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
 
@@ -114,8 +115,8 @@ export default function ChannelSettingsModal({
         queryKey: chatKeys.channels(activeSpaceId),
       });
       onClose();
-    } catch {
-      toast.error("Failed to update channel settings");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to update channel settings"));
     } finally {
       setIsSaving(false);
     }
@@ -229,8 +230,8 @@ export default function ChannelSettingsModal({
           >
             Cancel
           </Button>
-          {(canEditName || canEditSettings) && (
-            <Button loading={isSaving} variant="default"
+          {(
+            <Button disabledReason={!((canEditName || canEditSettings)) ? PERMISSION_REASON.channelManage : undefined} loading={isSaving} variant="default"
               onClick={handleSave}
               disabled={isSaving}
               className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-control transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"

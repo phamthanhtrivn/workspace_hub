@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import React, { useState, useCallback } from "react";
 import { Lock, Globe, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -64,8 +65,8 @@ export function ShareModalLink({
       });
     },
     onError: (err) => {
-      console.error("Failed to update link access", err);
-      toast.error("Failed to update access configurations.");
+      logActionError("Failed to update link access", err);
+      toast.error(getActionErrorMessage(err, "Failed to update access configurations."));
     },
   });
 
@@ -86,7 +87,7 @@ export function ShareModalLink({
     setIsCopied(true);
     toast.success("Link copied to clipboard!");
     setTimeout(() => setIsCopied(false), 2000);
-    } catch { setIsCopied(false); setCopyFailed(true); toast.error("Could not copy the link. Select and copy it below."); }
+    } catch (permissionError) { setIsCopied(false); setCopyFailed(true); toast.error(getActionErrorMessage(permissionError, "Could not copy the link. Select and copy it below.")); }
     finally { setCopying(false); }
   }, [documentItemId]);
 

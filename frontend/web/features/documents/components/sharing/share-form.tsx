@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import { getApiErrorMessage } from "@/lib/api-error";
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Plus, Mail } from "lucide-react";
@@ -63,7 +64,7 @@ export function ShareModalForm({
           setShowSuggestions(false);
         }
       } catch (err) {
-        console.error("Error searching user email:", err);
+        logActionError("Error searching user email:", err);
         setSearchResults([]);
         setShowSuggestions(false);
       } finally {
@@ -125,10 +126,10 @@ export function ShareModalForm({
       onShareAdded?.();
     },
     onError: (err: unknown) => {
-      console.error("Failed to add share", err);
+      logActionError("Failed to add share", err);
       const errMsg =
         getApiErrorMessage(err, "Failed to share access");
-      toast.error(errMsg);
+      toast.error(getActionErrorMessage(err, errMsg));
     },
   });
 

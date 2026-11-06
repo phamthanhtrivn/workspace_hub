@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Circle, Square, Pause, Play, Hand } from "lucide-react";
@@ -45,6 +46,10 @@ export function MeetingRecordingControls({
     if (!active) void release();
   }, [active, release]);
   const canStop = state?.capabilities.canStop;
+  const recordingPermissionReason = state?.unavailableReason || (state && !state.needsRecordingPermission &&
+    !(active ? state.capabilities.canStop : state.capabilities.canStart)
+      ? "You don't have permission to control this recording. Ask the meeting host to grant recording access."
+      : undefined);
   const needsPermission = state?.needsRecordingPermission;
   const requesting = state?.recordingRequest?.status === "PENDING";
   const disabled =
@@ -80,9 +85,9 @@ export function MeetingRecordingControls({
       } catch (error) {
         await release();
         if (error instanceof Error)
-          toast.error(error.name === "NotAllowedError"
+          toast.error(getActionErrorMessage(error, error.name === "NotAllowedError"
             ? "Tab recording was cancelled. Choose this Meeting tab to start."
-            : error.message);
+            : error.message));
       } finally { setCapturing(false); }
     } else if (state?.recording) {
       stop.mutate({ id: state.recording.id, key: crypto.randomUUID() });
@@ -99,6 +104,7 @@ export function MeetingRecordingControls({
         }
       >
         <MeetingRoomControlButton
+          disabledReason={recordingPermissionReason}
           label={label}
           ariaLabel={
             active && !state?.recording?.stopRequestedAt && !needsPermission

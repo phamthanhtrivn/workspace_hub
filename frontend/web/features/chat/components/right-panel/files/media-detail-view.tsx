@@ -1,3 +1,4 @@
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import { StorageVideo, StorageImg } from "@/components/common/storage-media";
 import { fetchStorageAsset, openStorageAsset } from "@/features/storage/api/storage.api";
 import type { ChatMediaResponse } from "@/features/chat/types/chat.types";
@@ -249,8 +250,8 @@ export default function MediaDetailView({
       const blob = await response.blob();
       saveAs(blob, item.name);
     } catch (error) {
-      console.error("Download error:", error);
-      toast.error("Could not download this file. Please try again.");
+      logActionError("Download error:", error);
+      toast.error(getActionErrorMessage(error, "Could not download this file. Please try again."));
     }
   };
 

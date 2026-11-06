@@ -11,6 +11,7 @@ import {
   SharingSettings,
   ChatMetadataResponse,
   DocumentNameConflict,
+  AccessibleDocumentItem,
 } from "../types/documents.types";
 import { UploadState } from "../types/documents.enums";
 import axios from "axios";
@@ -566,7 +567,7 @@ export const documentsApi = {
     return response.data.data;
   },
 
-  getAccessibleItem: async (id: string): Promise<DocumentItem> => {
+  getAccessibleItem: async (id: string): Promise<AccessibleDocumentItem> => {
     const response = await api.get(`/api/documents/${id}/access`);
     return response.data.data;
   },

@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -206,7 +207,7 @@ export function useTaskDetailDrawerState({
       await onToggleLabel(task.id, label.id, attached);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update label",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to update label"),
       );
     }
   };
@@ -217,7 +218,7 @@ export function useTaskDetailDrawerState({
       await onCreateDependency(task.id, predecessorTaskId);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to create dependency",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to create dependency"),
       );
     }
   };
@@ -229,7 +230,7 @@ export function useTaskDetailDrawerState({
       toast.success("Dependency removed");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to delete dependency",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to delete dependency"),
       );
     }
   };

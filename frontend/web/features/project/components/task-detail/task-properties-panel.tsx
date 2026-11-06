@@ -27,6 +27,8 @@ import { CustomCheckbox } from "@/components/ui/custom/custom-checkbox";
 import { ProjectSelect } from "../ui/project-form-controls";
 import { AnchoredPopover, AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { PermissionHint } from "@/components/ui/permission-hint";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 
 interface TaskPropertiesPanelProps {
   task: Task;
@@ -34,6 +36,7 @@ interface TaskPropertiesPanelProps {
   dependencies: TaskDependency[];
   members: ProjectMember[];
   isReadOnly: boolean;
+  readOnlyReason?: string;
   memberDisplayName: (userId?: string | null) => string;
   onAssigneeChange: (userId: string | null) => Promise<void> | void;
   onPriorityChange: (priority: TaskPriority) => Promise<void> | void;
@@ -49,6 +52,7 @@ export default function TaskPropertiesPanel({
   dependencies,
   members,
   isReadOnly,
+  readOnlyReason = PERMISSION_REASON.projectContribute,
   memberDisplayName,
   onAssigneeChange,
   onPriorityChange,
@@ -117,7 +121,7 @@ export default function TaskPropertiesPanel({
   };
 
   return (
-    <div className="select-none overflow-hidden rounded-panel border border-border bg-card">
+    <PermissionHint block reason={isReadOnly ? readOnlyReason : undefined} className="block w-full"><div className="select-none overflow-hidden rounded-panel border border-border bg-card">
       <div className="border-b border-border bg-background px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wide text-foreground">
         Task Details
       </div>
@@ -359,6 +363,6 @@ export default function TaskPropertiesPanel({
           </div>
         </div>
       </div>
-    </div>
+    </div></PermissionHint>
   );
 }

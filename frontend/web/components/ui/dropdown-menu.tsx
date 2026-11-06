@@ -5,6 +5,7 @@ import { Menu } from "@base-ui/react/menu";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { POPUP_LAYER_CLASS } from "./popup-layer";
+import { PermissionHint } from "./permission-hint";
 
 export const DropdownMenu = Menu.Root;
 export const DropdownMenuGroup = Menu.Group;
@@ -27,8 +28,9 @@ export function DropdownMenuContent({ className, side = "bottom", align = "end",
   </Menu.Positioner></Menu.Portal>;
 }
 
-export function DropdownMenuItem({ className, ...props }: Omit<Menu.Item.Props, "className"> & { className?: string }) {
-  return <Menu.Item render={<Button type="button" variant="unstyled" />} nativeButton data-slot="dropdown-menu-item" className={cn("flex cursor-pointer items-center gap-2 rounded-control px-3 py-2 outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", className)} {...props} />;
+export function DropdownMenuItem({ className, disabledReason, ...props }: Omit<Menu.Item.Props, "className"> & { className?: string; disabledReason?: string }) {
+  const item = <Menu.Item render={<Button type="button" variant="unstyled" />} nativeButton data-slot="dropdown-menu-item" className={cn("flex cursor-pointer items-center gap-2 rounded-control px-3 py-2 outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50", className)} {...props} disabled={props.disabled || Boolean(disabledReason)} />;
+  return disabledReason ? <PermissionHint reason={disabledReason} className="w-full [&>button]:w-full">{item}</PermissionHint> : item;
 }
 
 export function DropdownMenuSeparator({ className, ...props }: React.ComponentProps<"hr">) {

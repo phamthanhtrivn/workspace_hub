@@ -12,6 +12,7 @@ import {
 
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 
 
 const VIEWPORT_GAP_PX = 12;
@@ -88,8 +89,9 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
         </DropdownMenuItem>
       )}
 
-      {isMe && canEdit && (
+      {isMe && (
         <DropdownMenuItem closeOnClick={false}
+          disabledReason={!canEdit ? PERMISSION_REASON.messageUnavailable : undefined}
           onClick={() => {
             onEdit?.();
             onClose();
@@ -131,10 +133,11 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
         </DropdownMenuItem>
       ))}
 
-      {isMe && canRecall && (
+      {isMe && (
         <>
           <div className="h-px bg-muted my-1 mx-2" />
           <DropdownMenuItem closeOnClick={false}
+            disabledReason={!canRecall ? PERMISSION_REASON.messageUnavailable : undefined}
             onClick={() => {
               onRecall?.();
               onClose();

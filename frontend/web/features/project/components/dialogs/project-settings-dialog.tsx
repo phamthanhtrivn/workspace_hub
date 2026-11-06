@@ -1,4 +1,5 @@
 "use client";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 
 
@@ -302,8 +303,8 @@ export default function ProjectSettingsDialog({
               >
                 Cancel
               </Button>
-              {canEditProject && (
-                <Button loading={isBusy && pendingAction === "save"}
+              {(
+                <Button disabledReason={!(canEditProject) ? PERMISSION_REASON.projectAdmin : undefined} loading={isBusy && pendingAction === "save"}
                   type="submit"
                   disabled={isBusy || !name.trim()}
                   className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"

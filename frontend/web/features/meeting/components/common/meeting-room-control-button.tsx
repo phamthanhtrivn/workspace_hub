@@ -19,6 +19,7 @@ interface MeetingRoomControlButtonProps {
   badgeCount?: number;
   danger?: boolean;
   disabled?: boolean;
+  disabledReason?: string;
   loading?: boolean;
   onClick?: MouseEventHandler<HTMLButtonElement>;
 }
@@ -31,6 +32,7 @@ export function MeetingRoomControlButton({
   badgeCount = 0,
   danger = false,
   disabled = false,
+  disabledReason,
   loading = false,
   onClick,
 }: MeetingRoomControlButtonProps) {
@@ -45,6 +47,7 @@ export function MeetingRoomControlButton({
       aria-label={ariaLabel}
       onClick={onClick}
       disabled={disabled}
+      disabledReason={disabledReason}
       aria-pressed={danger ? undefined : active}
       className={cn(
         "cursor-pointer relative flex h-12 w-14 sm:h-[68px] sm:w-[76px] shrink-0 flex-col items-center justify-center gap-1.5 overflow-visible rounded-control text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",

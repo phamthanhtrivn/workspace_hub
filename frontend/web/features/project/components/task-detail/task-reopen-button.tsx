@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { isAxiosError } from 'axios';
@@ -17,7 +18,7 @@ export function TaskReopenButton({ task, parent, onTaskClick }: {
     toast.success('Task reopened');
   }, onError: error => {
     const message = isAxiosError(error) ? error.response?.data?.message : undefined;
-    toast.error(message || 'Unable to reopen task', parent && onTaskClick ? {
+    toast.error(getActionErrorMessage(error, message || 'Unable to reopen task'), parent && onTaskClick ? {
       action: { label: 'Open parent', onClick: () => onTaskClick(parent) },
     } : undefined);
   } });

@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage, logActionError, PERMISSION_REASON } from "@/lib/permission-feedback";
 import type { SendSocketMessageMedia } from "../../types/chat-socket.types";
 import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { IconButton } from "@/components/ui/icon-button";
@@ -206,7 +207,7 @@ const ChannelChatInput = React.memo(
 
           onSendMessage?.(taskMessagePayload);
         } catch (error: unknown) {
-          toast.error(error instanceof Error ? error.message : "Failed to create task");
+          toast.error(getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to create task"));
         } finally {
           setIsSubmittingTask(false);
         }
@@ -537,7 +538,7 @@ const ChannelChatInput = React.memo(
           }));
         } catch (error) {
           if (signal?.aborted) return;
-          console.error("Error initiating upload:", error);
+          logActionError("Error initiating upload:", error);
           setUploadingMedia((prev) =>
             prev.map((m) =>
               newUploads.some((nu) => nu.id === m.id)
@@ -914,8 +915,9 @@ const ChannelChatInput = React.memo(
                       </DropdownMenuItem>
                     )}
 
-                    {allowCreatePoll && (
+                    {(
                       <DropdownMenuItem closeOnClick={false}
+                        disabledReason={!allowCreatePoll ? PERMISSION_REASON.channelPoll : undefined}
                         onClick={() => {
                           setShowOptions(false);
                           onCreatePoll?.();
@@ -928,8 +930,9 @@ const ChannelChatInput = React.memo(
                       </DropdownMenuItem>
                     )}
 
-                    {allowCreateNote && (
+                    {(
                       <DropdownMenuItem closeOnClick={false}
+                        disabledReason={!allowCreateNote ? PERMISSION_REASON.channelNote : undefined}
                         onClick={() => {
                           setShowOptions(false);
                           onCreateNote?.();

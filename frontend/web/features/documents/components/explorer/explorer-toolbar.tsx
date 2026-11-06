@@ -4,6 +4,7 @@ import { useId as useControlledPopupId } from "react";
 import React, { useState, useRef, useEffect } from "react";
 import { Grid, List, ChevronDown, FolderPlus, UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { DocumentViewType } from "../../types/documents.enums";
 import { ViewLayout, DocumentSortBy } from "../../types/documents.types";
 import {
@@ -23,6 +24,7 @@ interface ExplorerToolbarProps {
   onCreateFolder: () => void;
   onUploadFile?: (files: FileList | File[] | File) => void;
   canEditDocuments?: boolean;
+  editDisabledReason?: string;
   sortBy: DocumentSortBy;
   onSortByChange: (sortBy: DocumentSortBy) => void;
 }
@@ -36,6 +38,7 @@ export function ExplorerToolbar({
   onCreateFolder,
   onUploadFile,
   canEditDocuments = true,
+  editDisabledReason = PERMISSION_REASON.documentEdit,
   sortBy,
   onSortByChange,
 }: ExplorerToolbarProps) {
@@ -115,9 +118,10 @@ export function ExplorerToolbar({
         </div>
 
         {/* Create/Upload Dropdown */}
-        {activeView === DocumentViewType.MY_FILES && canEditDocuments ? (
+        {activeView === DocumentViewType.MY_FILES ? (
           <div className="relative">
             <Button aria-expanded={isNewMenuOpen} aria-controls={`${controlledPopupId}-isNewMenuOpen`} aria-haspopup="menu"
+              disabledReason={!canEditDocuments ? editDisabledReason : undefined}
               type="button"
               onClick={() => setIsNewMenuOpen((prev) => !prev)}
               className="h-10 gap-2 rounded-control bg-primary hover:bg-primary-hover text-primary-foreground px-4 text-sm font-semibold transition cursor-pointer"
@@ -161,6 +165,7 @@ export function ExplorerToolbar({
       {/* Hidden File Input */}
       <input
         type="file"
+        disabled={!canEditDocuments}
         ref={fileInputRef}
         multiple
         onChange={(e) => {

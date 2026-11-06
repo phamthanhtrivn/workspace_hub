@@ -1,4 +1,5 @@
 "use client";
+import { logActionError } from "@/lib/permission-feedback";
 import { StorageVideo, StorageImg } from "@/components/common/storage-media";
 import { fetchStorageAsset } from "@/features/storage/api/storage.api";
 
@@ -142,7 +143,7 @@ export default function MediaLightbox({
       const blob = await response.blob();
       saveAs(blob, currentMedia.name);
     } catch (error) {
-      console.error("Download error:", error);
+      logActionError("Download error:", error);
     }
   };
 

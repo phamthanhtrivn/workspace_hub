@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { StorageVideo, StorageLink, StorageImg } from "@/components/common/storage-media";
 import type { ChatMediaResponse } from "@/features/chat/types/chat.types";
 import AiTypingIndicator from "../../message/ai-typing-indicator";
@@ -218,12 +219,12 @@ export default function ThreadDetailView({
           ? "Following thread notifications"
           : "Unfollowed thread",
       );
-    } catch {
+    } catch (permissionError) {
       setFollowOverride({
         threadId: rootMessage.id,
         isFollowing: !nextFollowingState,
       });
-      toast.error("Failed to change follow status");
+      toast.error(getActionErrorMessage(permissionError, "Failed to change follow status"));
     }
   };
 
@@ -396,8 +397,8 @@ export default function ThreadDetailView({
             chatInputRef.current?.focus();
           }
         })
-        .catch(() =>
-          toast.error("Failed to send reply"),
+        .catch((permissionFailure) =>
+          toast.error(getActionErrorMessage(permissionFailure, "Failed to send reply")),
         );
       return;
     }
@@ -420,8 +421,8 @@ export default function ThreadDetailView({
           chatInputRef.current?.focus();
         }
       })
-      .catch(() =>
-        toast.error("Failed to send reply"),
+      .catch((permissionFailure) =>
+        toast.error(getActionErrorMessage(permissionFailure, "Failed to send reply")),
       );
   };
 

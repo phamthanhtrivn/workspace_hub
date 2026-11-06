@@ -1,3 +1,4 @@
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { useId as useInputFieldId } from "react";
 import { SpaceResponse } from "@/features/chat/types/chat.types";
 import { Input } from "@/components/ui/input";
@@ -61,8 +62,8 @@ export function OverviewTab({
             className="flex-1 rounded-control border border-input bg-card px-3 py-2 text-sm outline-none disabled:bg-background disabled:text-muted-foreground"
             maxLength={50}
           />
-          {isOwner && (
-            <Button loading={isSaving} variant="default"
+          {(
+            <Button disabledReason={!(isOwner) ? PERMISSION_REASON.spaceOwner : undefined} loading={isSaving} variant="default"
               type="button"
               disabled={
                 isSaving ||

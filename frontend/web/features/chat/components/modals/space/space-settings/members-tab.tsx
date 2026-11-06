@@ -1,3 +1,4 @@
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import { IconButton } from "@/components/ui/icon-button";
@@ -170,10 +171,10 @@ function MemberRow({
 
       {!isMe && (
         <div className="flex shrink-0 items-center gap-1">
-          {canCurrentUserUpdateRole && (
+          {(
             <>
               {member.role === SpaceRole.MEMBER && (
-                <IconButton label="Promote to Admin" showTooltip={false} size="icon-sm"
+                <IconButton disabledReason={!(canCurrentUserUpdateRole) ? PERMISSION_REASON.spaceAdmin : undefined} label="Promote to Admin" showTooltip={false} size="icon-sm"
                   type="button"
                   title="Promote to Admin"
                   disabled={disabled}
@@ -184,7 +185,7 @@ function MemberRow({
                 </IconButton>
               )}
               {member.role === SpaceRole.ADMIN && (
-                <IconButton label="Demote to Member" showTooltip={false} size="icon-sm"
+                <IconButton disabledReason={!(canCurrentUserUpdateRole) ? PERMISSION_REASON.spaceAdmin : undefined} label="Demote to Member" showTooltip={false} size="icon-sm"
                   type="button"
                   title="Demote to Member"
                   disabled={disabled}
@@ -209,8 +210,8 @@ function MemberRow({
               </IconButton>
             </>
           )}
-          {canCurrentUserRemove && onRemove && (
-            <IconButton label="Remove from Space" showTooltip={false} size="icon-sm"
+          {onRemove && (
+            <IconButton disabledReason={!(canCurrentUserRemove) ? PERMISSION_REASON.spaceAdmin : undefined} label="Remove from Space" showTooltip={false} size="icon-sm"
               type="button"
               title="Remove from Space"
               disabled={disabled}

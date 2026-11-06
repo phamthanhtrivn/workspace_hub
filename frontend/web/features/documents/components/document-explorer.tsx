@@ -3,7 +3,9 @@ import { LoadingState } from "@/components/ui/loading-state";
 
 import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useAppSelector } from "@/store/store";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { DndContext } from "@dnd-kit/core";
 import { documentsApi } from "../api/documents.api";
 import { DocumentItem } from "../types/documents.types";
@@ -63,6 +65,16 @@ export function DocumentExplorer({
   accessErrorDescription = "You do not have access to these documents yet",
 }: DocumentExplorerProps) {
   const isProjectDocuments = Boolean(projectId);
+  const currentUserId = useAppSelector(state => state.auth.userId);
+  const folderAccess = useQuery({
+    queryKey: ["documents", "folder-access", currentUserId, currentFolderId],
+    queryFn: () => documentsApi.getAccessibleItem(currentFolderId!),
+    enabled: Boolean(currentUserId && currentFolderId && canEditDocuments),
+    retry: false,
+    staleTime: 60_000,
+  });
+  const canWriteCurrentFolder = canEditDocuments && (!currentFolderId ||
+    folderAccess.data?.userRole === DocumentRole.OWNER || folderAccess.data?.userRole === DocumentRole.EDITOR);
   const projectRootFolderId = isProjectDocuments ? path[0]?.id ?? null : null;
   const projectRootLabel = isProjectDocuments ? path[0]?.name : undefined;
   // 1. Explorer State Hook
@@ -156,7 +168,7 @@ export function DocumentExplorer({
   } = useDocumentUpload({
     currentFolderId,
     projectId,
-    enabled: canEditDocuments,
+    enabled: canWriteCurrentFolder,
   });
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -164,7 +176,7 @@ export function DocumentExplorer({
   // 5. Drag and Drop Hook
   const { sensors, handleDragEnd } = useDocumentDragAndDrop({
     onMoveItem: (itemId, targetFolderId) =>
-      canEditDocuments
+      canWriteCurrentFolder
         ? moveResource({ id: itemId, targetFolderId })
         : Promise.resolve(),
   });
@@ -353,7 +365,9 @@ export function DocumentExplorer({
             onSearchQueryChange={setSearchQuery}
             onCreateFolder={openCreateFolder}
             onUploadFile={uploadFile}
-            canEditDocuments={canEditDocuments}
+            canEditDocuments={canWriteCurrentFolder}
+            editDisabledReason={folderAccess.isFetching && !folderAccess.data
+              ? "Checking folder permissions..." : isProjectDocuments ? PERMISSION_REASON.projectDocuments : PERMISSION_REASON.documentEdit}
           />
           {activeView === DocumentViewType.TRASH ? (
             <div className="flex items-start gap-2 rounded-panel border border-border bg-warning-soft px-3.5 py-3 text-xs font-semibold text-warning-content">

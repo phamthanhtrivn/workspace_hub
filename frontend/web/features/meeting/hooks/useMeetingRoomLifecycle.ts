@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useCallback, useState } from "react";
 import { useRoomContext } from "@livekit/components-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -268,8 +269,8 @@ export function useMeetingRoomLifecycle({
         clearMeetingRoomQueries();
         leaveRoom();
       },
-      onError: () => {
-        toast.error("Could not save leave action");
+      onError: (permissionFailure) => {
+        toast.error(getActionErrorMessage(permissionFailure, "Could not save leave action"));
       },
     });
   }, [clearMeetingRoomQueries, leaveMeetingMutation, leaveRoom]);

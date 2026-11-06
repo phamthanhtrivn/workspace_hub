@@ -1,4 +1,5 @@
 import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { useId as useControlledPopupId } from "react";
 
 import { IconButton } from "@/components/ui/icon-button";
@@ -184,8 +185,9 @@ const ChannelItem = React.memo(function ChannelItem({
                   <span>Leave</span>
                 </DropdownMenuItem>
               )}
-              {canDelete && (
+              {!channel.isDefault && (
                 <DropdownMenuItem closeOnClick={false}
+                  disabledReason={!canDelete ? PERMISSION_REASON.channelManage : undefined}
 
                   onClick={() => {
                     onDelete?.(channel);

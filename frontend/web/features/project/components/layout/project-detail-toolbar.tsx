@@ -1,4 +1,5 @@
 "use client";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 import Link from "next/link";
@@ -201,9 +202,8 @@ export default function ProjectDetailToolbar({
             </Button>
           )}
           {isMembersView
-            ? canInviteMembers &&
-              onInviteMembers && (
-                <Button
+            ? onInviteMembers && (
+                <Button disabledReason={!(canInviteMembers) ? PERMISSION_REASON.projectMembers : undefined}
                   type="button"
                   onClick={onInviteMembers}
                   className="inline-flex cursor-pointer items-center gap-1.5 rounded-control bg-primary hover:bg-primary-hover px-4 py-2 text-xs font-semibold text-primary-foreground transition"
@@ -212,9 +212,8 @@ export default function ProjectDetailToolbar({
                   Invite Member
                 </Button>
               )
-            : isTaskView &&
-              canCreateTask && (
-                <Button
+            : isTaskView && (
+                <Button disabledReason={!(canCreateTask) ? PERMISSION_REASON.projectCreateTask : undefined}
                   type="button"
                   onClick={onCreateTask}
                   className="inline-flex cursor-pointer items-center gap-1.5 rounded-control bg-primary hover:bg-primary-hover px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition"

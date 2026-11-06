@@ -38,7 +38,7 @@ export function getProjectPermissions(
   const membership = members.find((member) => member.userId === currentUserId);
   const role =
     project.ownerId === currentUserId ? ProjectRole.ADMIN : membership?.role;
-  const canManageProject = role === ProjectRole.ADMIN;
+  const canManageProject = Boolean(currentUserId && project.ownerId === currentUserId);
   const isMember = Boolean(role);
   const canEditTask = (task: Pick<Task, "createdBy">) => {
     if (canManageProject) return true;
@@ -55,7 +55,7 @@ export function getProjectPermissions(
     canInviteMembers: canManageProject || Boolean(membership?.canManageMembers),
     canManageMembers: canManageProject || Boolean(membership?.canManageMembers),
     canManageLabels: canManageProject || Boolean(membership?.canManageLabels),
-    canEditDocuments: canManageProject || Boolean(membership?.canEditDocuments),
+    canEditDocuments: role === ProjectRole.ADMIN || Boolean(membership?.canEditDocuments),
     canCreateTask: canManageProject || Boolean(membership?.canCreateTask),
     canEditTask,
     canContributeTask: (task) =>

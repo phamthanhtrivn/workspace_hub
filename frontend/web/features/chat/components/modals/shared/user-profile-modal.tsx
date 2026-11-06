@@ -1,4 +1,5 @@
 "use client";
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -53,8 +54,8 @@ const UserProfileModal = React.memo(function UserProfileModal() {
           toast.error("Failed to load user profile");
         }
       } catch (err) {
-        console.error("Failed to load selected user profile:", err);
-        toast.error("Error loading user profile");
+        logActionError("Failed to load selected user profile:", err);
+        toast.error(getActionErrorMessage(err, "Error loading user profile"));
       } finally {
         setLoading(false);
       }
@@ -103,7 +104,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
       }
     } catch (err: unknown) {
       toast.error(
-        getApiErrorMessage(err, "Failed to start direct conversation"),
+        getActionErrorMessage(err, getApiErrorMessage(err, "Failed to start direct conversation")),
       );
     }
   };

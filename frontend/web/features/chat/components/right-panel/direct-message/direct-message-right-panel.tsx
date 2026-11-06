@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { useChatMediaPreview } from "../../../hooks/useChatMediaPreview";
 import { ChatScope } from "../../../types/chat.constant";
@@ -142,7 +143,7 @@ export default function DirectMessageRightPanel({
 
     } catch (error) {
       updateDirectConversationMemberCache(activeConversation.id, { muted: isMuted });
-      console.error("Failed to update mute status:", error);
+      logActionError("Failed to update mute status:", error);
     }
   };
 
@@ -177,7 +178,7 @@ export default function DirectMessageRightPanel({
       updateDirectConversationMemberCache(activeConversation.id, {
         pinned: isPinned,
       });
-      console.error("Failed to update pin status:", error);
+      logActionError("Failed to update pin status:", error);
     }
   };
 

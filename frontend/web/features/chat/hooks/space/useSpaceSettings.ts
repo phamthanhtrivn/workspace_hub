@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -140,10 +141,10 @@ export function useSpaceSettings({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to update space",
-        ),
+        )),
       ),
   });
 
@@ -198,10 +199,10 @@ export function useSpaceSettings({
         context?.previousDetails,
       );
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to update space permissions",
-        ),
+        )),
       );
     },
   });
@@ -215,10 +216,10 @@ export function useSpaceSettings({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to transfer space ownership",
-        ),
+        )),
       ),
   });
 
@@ -230,10 +231,10 @@ export function useSpaceSettings({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to remove member",
-        ),
+        )),
       ),
   });
 
@@ -246,10 +247,10 @@ export function useSpaceSettings({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to update member role",
-        ),
+        )),
       ),
   });
 
@@ -263,10 +264,10 @@ export function useSpaceSettings({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to leave space",
-        ),
+        )),
       ),
   });
 
@@ -280,10 +281,10 @@ export function useSpaceSettings({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to delete space",
-        ),
+        )),
       ),
   });
 
@@ -296,10 +297,10 @@ export function useSpaceSettings({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to cancel invitation",
-        ),
+        )),
       ),
   });
 
@@ -312,10 +313,10 @@ export function useSpaceSettings({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to resend invitation",
-        ),
+        )),
       ),
   });
 

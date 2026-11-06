@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import {
@@ -52,10 +53,10 @@ export function useMeetingMessageActions({
         return response.data;
       } catch (error) {
         toast.error(
-          getErrorMessage(
+          getActionErrorMessage(error, getErrorMessage(
             error,
             "Could not send meeting message",
-          ),
+          )),
         );
       }
     },
@@ -72,10 +73,10 @@ export function useMeetingMessageActions({
         return response.data;
       } catch (error) {
         toast.error(
-          getErrorMessage(
+          getActionErrorMessage(error, getErrorMessage(
             error,
             "Could not edit meeting message",
-          ),
+          )),
         );
       }
     },
@@ -90,10 +91,10 @@ export function useMeetingMessageActions({
         return response.data;
       } catch (error) {
         toast.error(
-          getErrorMessage(
+          getActionErrorMessage(error, getErrorMessage(
             error,
             "Could not recall meeting message",
-          ),
+          )),
         );
       }
     },
@@ -111,10 +112,10 @@ export function useMeetingMessageActions({
         await reactMeetingMessage(joinToken, messageId, { emoji });
       } catch (error) {
         toast.error(
-          getErrorMessage(
+          getActionErrorMessage(error, getErrorMessage(
             error,
             "Could not update reaction",
-          ),
+          )),
         );
       }
     },

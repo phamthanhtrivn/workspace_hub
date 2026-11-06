@@ -1,5 +1,6 @@
 "use client";
 
+import { PERMISSION_REASON,  getActionErrorMessage } from "@/lib/permission-feedback";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -93,9 +94,9 @@ export default function ProjectMembersPanel({
           toast.success("Member removed from project");
         } catch (error) {
           toast.error(
-            error instanceof Error
+            getActionErrorMessage(error, error instanceof Error
               ? error.message
-              : "Failed to remove member",
+              : "Failed to remove member"),
           );
         }
       },
@@ -115,9 +116,9 @@ export default function ProjectMembersPanel({
       setPermissionMember(null);
     } catch (error) {
       toast.error(
-        error instanceof Error
+        getActionErrorMessage(error, error instanceof Error
           ? error.message
-          : "Failed to update member permissions",
+          : "Failed to update member permissions"),
       );
     }
   };
@@ -135,8 +136,8 @@ export default function ProjectMembersPanel({
             </span>
           )}
         </div>
-        {canInvite && (
-          <Button
+        {(
+          <Button disabledReason={!(canInvite) ? PERMISSION_REASON.projectMembers : undefined}
             type="button"
             variant="ghost"
             size="sm"
@@ -179,8 +180,8 @@ export default function ProjectMembersPanel({
               </div>
               {member.role !== ProjectRole.ADMIN && (
                 <div className="flex shrink-0 items-center">
-                  {canManagePermissions && (
-                    <Button
+                  {(
+                    <Button disabledReason={!(canManagePermissions) ? PERMISSION_REASON.projectAdmin : undefined}
                       type="button"
                       variant="ghost"
                       size="icon"
@@ -192,8 +193,8 @@ export default function ProjectMembersPanel({
                       <Settings2 className="h-3.5 w-3.5" />
                     </Button>
                   )}
-                  {canRemoveMembers && (
-                    <Button
+                  {(
+                    <Button disabledReason={!(canRemoveMembers) ? PERMISSION_REASON.projectMembers : undefined}
                       type="button"
                       variant="ghost"
                       size="icon"

@@ -3,6 +3,7 @@
 
 
 
+import { getActionErrorMessage,  PERMISSION_REASON } from "@/lib/permission-feedback";
 import {
   AlignLeft,
   Bell,
@@ -185,9 +186,9 @@ export function EventDetailModal({
       >
         {/* Top Header Action Toolbar (Google Calendar style) */}
         <div className="flex h-12 shrink-0 items-center justify-end gap-1 px-3 pt-2 text-muted-foreground">
-          {event.permissions?.canManage && (
+          {(
             <>
-              <Button
+              <Button disabledReason={!(event.permissions?.canManage) ? PERMISSION_REASON.calendarManage : undefined}
                 type="button"
                 variant="ghost"
                 size="icon"
@@ -199,7 +200,7 @@ export function EventDetailModal({
                 <Pencil className="h-4 w-4" />
               </Button>
 
-              <Button
+              <Button disabledReason={!(event.permissions?.canManage) ? PERMISSION_REASON.calendarManage : undefined}
                 type="button"
                 variant="ghost"
                 size="icon"
@@ -290,7 +291,7 @@ export function EventDetailModal({
           {event.conference?.enabled && ["PENDING", "FAILED"].includes(event.conference.status) && (
             <div role="status" className="space-y-2 rounded-control border border-border p-3 text-sm">
               <p>{event.conference.status === "FAILED" ? "Meeting preparation failed. Your event is saved; preparation will retry automatically." : "Your event is saved. The meeting link is being prepared."}</p>
-              {event.permissions?.canManage && <Button type="button" size="sm" variant="outline" loading={retryConference.isPending} onClick={() => retryConference.mutate(event.id, { onError: () => toast.error("Unable to retry meeting preparation. Please try again.") })}>Retry now</Button>}
+              {<Button disabledReason={!(event.permissions?.canManage) ? PERMISSION_REASON.calendarManage : undefined} type="button" size="sm" variant="outline" loading={retryConference.isPending} onClick={() => retryConference.mutate(event.id, { onError: (permissionFailure) => toast.error(getActionErrorMessage(permissionFailure, "Unable to retry meeting preparation. Please try again.")) })}>Retry now</Button>}
             </div>
           )}
           {hasMeeting && (

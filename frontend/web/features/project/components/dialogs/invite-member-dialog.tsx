@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Clock3, Search, X } from "lucide-react";
 import { Avatar } from "../ui/avatar-stack";
@@ -98,7 +99,7 @@ export default function InviteMemberDialog({
       toast.success("Project invitation sent successfully");
       window.setTimeout(() => inputRef.current?.focus(), 0);
     } catch (error) {
-      toast.error(getProjectErrorMessage(error, "Failed to send invitation"));
+      toast.error(getActionErrorMessage(error, getProjectErrorMessage(error, "Failed to send invitation")));
     }
   };
 

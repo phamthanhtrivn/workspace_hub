@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useCallback, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -129,7 +130,7 @@ export function useMeetingParticipantViewPreferences(joinToken: string) {
         queryClient.setQueryData(queryKey, context.previousPreferences);
       }
 
-      toast.error("Could not update participant view preference");
+      toast.error(getActionErrorMessage(_error, "Could not update participant view preference"));
     },
     onSuccess: (response) => {
       queryClient.setQueryData(queryKey, response);

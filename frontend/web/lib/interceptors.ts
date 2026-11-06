@@ -6,6 +6,7 @@ import { refreshApi } from "@/features/auth/api/auth.api";
 import { getLoginRedirectPath } from "@/features/auth/utils/auth-redirect";
 import { isRecoverableApiError } from "./api-error-policy";
 import { isEmailVerificationLoginError } from "@/features/auth/utils/auth-error";
+import { getPermissionErrorMessage } from "./permission-feedback";
 
 const API_ERROR_LOG_THROTTLE_MS = 10_000;
 const apiErrorLogTimes = new Map<string, number>();
@@ -56,7 +57,7 @@ export function logApiError(error: unknown, context = "API request failed") {
   if (now - lastLoggedAt < API_ERROR_LOG_THROTTLE_MS) return;
   apiErrorLogTimes.set(logKey, now);
 
-  const log = handledSyncFailure ? console.warn : console.error;
+  const log = handledSyncFailure || getPermissionErrorMessage(error) ? console.warn : console.error;
   log(context, {
     method,
     url,

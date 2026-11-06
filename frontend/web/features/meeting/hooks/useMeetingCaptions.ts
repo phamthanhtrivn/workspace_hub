@@ -1,4 +1,5 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useRoomContext,
@@ -156,7 +157,7 @@ export function useMeetingCaptions(joinToken: string, meetingId: string) {
         typeof failure.response?.data?.message === "string"
           ? failure.response.data.message
           : "Could not start live captions. Please try again.";
-      toast.error(message);
+      toast.error(getActionErrorMessage(failure, message));
     } finally {
       if (generation.current === version) setPending(false);
     }

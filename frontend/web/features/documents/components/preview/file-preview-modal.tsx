@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useMemo, useCallback } from "react";
@@ -96,8 +97,8 @@ export function FilePreviewModal({
         link.click();
         document.body.removeChild(link);
       } catch (err) {
-        console.error("Failed to generate download URL", err);
-        toast.error("Could not download this file. Please try again.");
+        logActionError("Failed to generate download URL", err);
+        toast.error(getActionErrorMessage(err, "Could not download this file. Please try again."));
       }
     }
   }, [item, versionId, onDownload]);

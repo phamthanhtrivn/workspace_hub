@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { EventClickArg } from "@fullcalendar/core";
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
@@ -95,9 +96,9 @@ export function useCalendarEventDetailActions({
                   toast.success(
                     "Restored",
                   );
-                } catch {
+                } catch (permissionError) {
                   toast.error(
-                    "Could not restore",
+                    getActionErrorMessage(permissionError, "Could not restore"),
 
 
                   );
@@ -106,8 +107,8 @@ export function useCalendarEventDetailActions({
             },
           },
         );
-      } catch {
-        toast.error("Failed to delete event");
+      } catch (permissionError) {
+        toast.error(getActionErrorMessage(permissionError, "Failed to delete event"));
       }
     },
     [cancelEvent, detailEvent, setDetailEvent, updateEvent],
@@ -130,8 +131,8 @@ export function useCalendarEventDetailActions({
           responseStatus,
         });
         toast.success("Response saved");
-      } catch {
-        toast.error("Failed to save response");
+      } catch (permissionError) {
+        toast.error(getActionErrorMessage(permissionError, "Failed to save response"));
       }
     },
     [currentUserId, detailEvent, setDetailEvent, updateResponse],
@@ -161,8 +162,8 @@ export function useCalendarEventDetailActions({
 
 
 
-      } catch {
-        toast.error("Failed to update task status");
+      } catch (permissionError) {
+        toast.error(getActionErrorMessage(permissionError, "Failed to update task status"));
 
 
       }

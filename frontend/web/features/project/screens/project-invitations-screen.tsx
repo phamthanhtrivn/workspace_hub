@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -33,8 +34,8 @@ export default function ProjectInvitationsScreen({
       if (action === "accept") {
         window.location.assign(`/projects/${result.projectId}`);
       }
-    } catch {
-      toast.error("Failed to respond to project invitation");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to respond to project invitation"));
     }
   };
 

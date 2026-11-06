@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError } from "@/lib/permission-feedback";
 import type { SendSocketMessageMedia } from "../../types/chat-socket.types";
 import { IconButton } from "@/components/ui/icon-button";
 import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
@@ -380,7 +381,7 @@ const DirectMessageInput = React.memo(
             }));
           } catch (error) {
             if (signal?.aborted) return;
-            console.error("Error initiating direct upload:", error);
+            logActionError("Error initiating direct upload:", error);
             setUploadingMedia((prev) =>
               prev.map((media) =>
                 newUploads.some((upload) => upload.id === media.id)

@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage, logActionError } from "@/lib/permission-feedback";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../api/documents.api";
@@ -100,7 +101,7 @@ export function useDocumentUpload({
     },
     onError: (err: unknown, { file }) => {
       setUploadState(UploadState.ERROR);
-      toast.error(isAxiosError(err) ? err.response?.data?.message || `Failed to upload ${file.name}` : `Failed to upload ${file.name}`);
+      toast.error(getActionErrorMessage(err, isAxiosError(err) ? err.response?.data?.message || `Failed to upload ${file.name}` : `Failed to upload ${file.name}`));
     },
   });
 
@@ -159,7 +160,7 @@ export function useDocumentUpload({
         } catch (err) {
           counts.failed += 1;
           failures.push(file);
-          console.error("Failed to upload file:", file.name, err);
+          logActionError("Failed to upload file:", file.name, err);
         }
       }
 

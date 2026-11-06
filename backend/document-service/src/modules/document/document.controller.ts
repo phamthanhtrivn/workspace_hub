@@ -413,6 +413,11 @@ export class DocumentController {
       userId,
       userEmail,
     );
+    const userRole = await this.documentService.getPermissionRole(
+      id,
+      userId,
+      userEmail,
+    );
     return {
       message: 'Document access verified',
       data: {
@@ -421,6 +426,7 @@ export class DocumentController {
         type: item.type,
         sizeBytes: Number(item.sizeBytes ?? 0),
         mimeType: item.mimeType,
+        userRole,
       },
     };
   }

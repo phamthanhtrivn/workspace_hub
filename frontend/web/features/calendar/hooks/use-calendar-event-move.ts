@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { CalendarEvent, RecurrenceScope } from "../types/calendar.types";
@@ -48,9 +49,9 @@ export function useCalendarEventMove(events: CalendarEvent[]) {
           },
         });
         toast.success("Event updated");
-      } catch {
+      } catch (permissionError) {
         info.revert();
-        toast.error("Failed to update event position");
+        toast.error(getActionErrorMessage(permissionError, "Failed to update event position"));
       }
     },
     [events, updateEventAsync],

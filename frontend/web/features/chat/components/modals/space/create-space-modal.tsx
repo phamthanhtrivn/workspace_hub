@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { getApiErrorMessage } from "@/lib/api-error";
 import type { SpaceResponse } from "@/features/chat/types/chat.types";
 import React, { useState } from "react";
@@ -35,7 +36,7 @@ export default function CreateSpaceModal({
         toast.error("Failed to create space");
       }
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, "Error creating space"));
+      toast.error(getActionErrorMessage(err, getApiErrorMessage(err, "Error creating space")));
     } finally {
       setIsCreating(false);
     }

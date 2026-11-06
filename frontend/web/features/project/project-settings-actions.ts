@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { toast } from "sonner";
 import type { ProjectStatus } from "./types/project";
 
@@ -29,7 +30,7 @@ export function createProjectSettingsActions({
         close();
         toast.success("Project settings updated");
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to update project settings");
+        toast.error(getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to update project settings"));
       }
     },
     archive: async () => {
@@ -38,7 +39,7 @@ export function createProjectSettingsActions({
         toast.success("Project archived");
         window.location.assign("/projects");
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to archive project");
+        toast.error(getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to archive project"));
       }
     },
   };

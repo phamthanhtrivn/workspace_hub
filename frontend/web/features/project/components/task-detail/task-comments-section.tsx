@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useState } from "react";
 import { MessageSquare, Pencil, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -78,7 +79,7 @@ export default function TaskCommentsSection({
       toast.success("Comment added");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to add comment",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to add comment"),
       );
     }
   };
@@ -96,7 +97,7 @@ export default function TaskCommentsSection({
       toast.success("Comment updated");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update comment",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to update comment"),
       );
     }
   };

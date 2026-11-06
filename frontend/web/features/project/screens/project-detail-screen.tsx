@@ -1,4 +1,5 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { ProjectAccessStatus } from "../components/project-access-status";
 import { useProjectAccessState } from "../hooks/use-project-access-state";
 
@@ -95,8 +96,8 @@ export default function ProjectDetailScreen() {
         setChatTask(null);
         router.push(`/chat?spaceId=${res.spaceId}&channelId=${res.channelId}`);
       }
-    } catch {
-      toast.error("Failed to open task channel in space chat");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to open task channel in space chat"));
     }
   };
 
@@ -117,8 +118,8 @@ export default function ProjectDetailScreen() {
           `/chat?spaceId=${res.spaceId}&channelId=${res.channelId}&threadId=${res.threadId}`,
         );
       }
-    } catch {
-      toast.error("Failed to open task discussion thread");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to open task discussion thread"));
     }
   };
   const { data: labels = [] } = useProjectLabels(projectId);
@@ -360,8 +361,8 @@ export default function ProjectDetailScreen() {
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
       toast.error(
-        apiError.response?.data?.message ||
-          "Failed to create task",
+        getActionErrorMessage(error, apiError.response?.data?.message ||
+          "Failed to create task"),
       );
     }
   };
@@ -378,8 +379,8 @@ export default function ProjectDetailScreen() {
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
       toast.error(
-        apiError.response?.data?.message ||
-          "Failed to open project chat",
+        getActionErrorMessage(error, apiError.response?.data?.message ||
+          "Failed to open project chat"),
       );
     }
   };
@@ -519,6 +520,7 @@ export default function ProjectDetailScreen() {
           canEditTask={permissions.canEditTask(selectedTask)}
           canContributeTask={permissions.canContributeTask(selectedTask)}
           canComment={Boolean(permissions.role)}
+          canEditDocuments={permissions.canEditDocuments}
           onCreateSubtask={
             permissions.canCreateTask
               ? (task) => {

@@ -10,6 +10,7 @@ import {
 import TaskCard from "../ui/task-card";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import ProjectConfirmDialog from "../ui/project-confirm-dialog";
 import { TASK_STATUS_OPTIONS } from "../../constants/task.constants";
 import { canMoveTaskToStatus } from "../../task-status-transition";
@@ -161,12 +162,13 @@ export default function BoardView({
                       {columnTasks.length}
                     </span>
                   </div>
-                  {canCreateInColumn && onAddTask && (
+                  {canCreateInColumn && (
                     <Button
+                      disabledReason={!onAddTask ? PERMISSION_REASON.projectCreateTask : undefined}
                       type="button"
                       variant="ghost"
                       size="icon"
-                      onClick={() => onAddTask(col.status)}
+                      onClick={() => onAddTask?.(col.status)}
                       className="h-6 w-6 rounded-control text-muted-foreground hover:bg-accent hover:text-foreground transition cursor-pointer"
                       title={`Create task in ${col.label}`}
                     >
@@ -198,12 +200,13 @@ export default function BoardView({
                   {columnTasks.length === 0 && (
                     <div className="flex flex-1 flex-col items-center justify-center rounded-panel border border-dashed border-input py-10 text-xs font-medium text-muted-foreground bg-background">
                       <span>No tasks</span>
-                      {onAddTask && canCreateInColumn && (
+                      {canCreateInColumn && (
                         <Button
+                          disabledReason={!onAddTask ? PERMISSION_REASON.projectCreateTask : undefined}
                           type="button"
                           variant="link"
                           size="sm"
-                          onClick={() => onAddTask(col.status)}
+                          onClick={() => onAddTask?.(col.status)}
                           className="mt-2 h-auto p-0 inline-flex items-center gap-1 font-semibold text-info-content hover:underline cursor-pointer"
                         >
                           <Plus className="h-3 w-3" strokeWidth={2.5} />
@@ -215,12 +218,13 @@ export default function BoardView({
                 </div>
 
                 {/* Inline quick create button at bottom (if tasks exist) */}
-                {columnTasks.length > 0 && onAddTask && canCreateInColumn && (
+                {columnTasks.length > 0 && canCreateInColumn && (
                   <Button
+                    disabledReason={!onAddTask ? PERMISSION_REASON.projectCreateTask : undefined}
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => onAddTask(col.status)}
+                    onClick={() => onAddTask?.(col.status)}
                     className="mt-2 flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-semibold rounded-control text-muted-foreground hover:bg-accent hover:text-foreground transition cursor-pointer text-left px-2"
                   >
                     <Plus className="h-3.5 w-3.5" strokeWidth={2} />

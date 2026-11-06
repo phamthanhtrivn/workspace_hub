@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError } from "@/lib/permission-feedback";
 import type { SendSocketMessageMedia } from "../../types/chat-socket.types";
 import { MAX_ATTACHMENT_SIZE_BYTES, ATTACHMENT_SIZE_LIMIT_MESSAGE } from "@/lib/upload-policy";
 import { IconButton } from "@/components/ui/icon-button";
@@ -438,7 +439,7 @@ const ThreadChatInput = React.memo(
           }
         });
       } catch (error) {
-        console.error("Error initiating upload:", error);
+        logActionError("Error initiating upload:", error);
         setUploadingMedia((prev) =>
           prev.map((m) =>
             newUploads.some((nu) => nu.id === m.id)

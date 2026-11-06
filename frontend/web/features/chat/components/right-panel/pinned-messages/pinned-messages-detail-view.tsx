@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import type { ChatMessageResponse, PinnedMessagesResponse } from "@/features/chat/types/chat.types";
@@ -153,8 +154,8 @@ export default function PinnedMessagesDetailView({
 
     try {
       await unpinChannelMessage(messageId);
-    } catch {
-      toast.error("Failed to unpin message");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to unpin message"));
       return;
     }
 

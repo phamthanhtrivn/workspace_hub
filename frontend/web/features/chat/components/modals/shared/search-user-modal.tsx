@@ -1,4 +1,5 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import { getApiErrorMessage } from "@/lib/api-error";
@@ -108,7 +109,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
       const response = await getPublicProfile(user.id);
       setUserProfile(response?.success ? response.data : null);
     } catch (err) {
-      toast.error("Failed to load user profile");
+      toast.error(getActionErrorMessage(err, "Failed to load user profile"));
       setSelectedUser(null); // Go back if error
     } finally {
       setLoadingProfile(false);
@@ -136,7 +137,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
       }
     } catch (err: unknown) {
       toast.error(
-        getApiErrorMessage(err, "Failed to start direct conversation"),
+        getActionErrorMessage(err, getApiErrorMessage(err, "Failed to start direct conversation")),
       );
     }
   };

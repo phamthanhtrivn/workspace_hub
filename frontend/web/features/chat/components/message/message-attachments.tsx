@@ -1,3 +1,4 @@
+import { logActionError } from "@/lib/permission-feedback";
 import { StorageVideo } from "@/components/common/storage-media";
 import { fetchStorageAsset } from "@/features/storage/api/storage.api";
 import { Download, FileText, Play } from "lucide-react";
@@ -33,7 +34,7 @@ async function handleDownload(
     const blob = await response.blob();
     saveAs(blob, name);
   } catch (error) {
-    console.error("Download error:", error);
+    logActionError("Download error:", error);
   }
 }
 

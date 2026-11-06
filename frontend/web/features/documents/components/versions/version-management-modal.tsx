@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import { getApiErrorMessage } from "@/lib/api-error";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
@@ -83,8 +84,8 @@ export function VersionManagementModal({
         document.body.removeChild(link);
         toast.success("Version download started.");
       } catch (err) {
-        console.error("Failed to download version", err);
-        toast.error("Could not generate download link for this version.");
+        logActionError("Failed to download version", err);
+        toast.error(getActionErrorMessage(err, "Could not generate download link for this version."));
       }
     },
     [item, isPublic]
@@ -132,11 +133,11 @@ export function VersionManagementModal({
       }, 2000);
     },
     onError: (err: unknown) => {
-      console.error("Failed to upload version", err);
+      logActionError("Failed to upload version", err);
       setUploadState(UploadState.ERROR);
       const errMsg =
         getApiErrorMessage(err, "Failed to upload new version.");
-      toast.error(errMsg);
+      toast.error(getActionErrorMessage(err, errMsg));
       setTimeout(() => {
         setUploadState(UploadState.IDLE);
       }, 3000);

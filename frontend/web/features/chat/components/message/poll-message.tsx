@@ -1,4 +1,5 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import { IconButton } from "@/components/ui/icon-button";
@@ -84,7 +85,7 @@ const PollMessage = React.memo(function PollMessage({
     if (onVote) {
       votingRef.current = true; setVoting(true);
       try { await onVote(optionId, !poll.options.find(option => option.id === optionId)?.votes?.some(vote => vote.userId === currentUser.userId)); }
-      catch (error) { toast.error(isAxiosError(error) ? error.response?.data?.message || "Unable to vote" : "Unable to vote"); }
+      catch (error) { toast.error(getActionErrorMessage(error, isAxiosError(error) ? error.response?.data?.message || "Unable to vote" : "Unable to vote")); }
       finally { votingRef.current = false; setVoting(false); }
     } else {
       if (poll.multipleChoice) {

@@ -1,4 +1,5 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useId as useControlledPopupId } from "react";
 import { ChatContextType } from "@/features/chat/types/chat.types";
 import { MAX_ATTACHMENT_SIZE_BYTES, ATTACHMENT_SIZE_LIMIT_MESSAGE } from "@/lib/upload-policy";
@@ -170,7 +171,7 @@ export const MeetingMessageInput = forwardRef<
             );
           }),
         );
-      } catch {
+      } catch (permissionError) {
         setUploads((current) =>
           current.map((item) =>
             nextUploads.some((upload) => upload.id === item.id)
@@ -178,7 +179,7 @@ export const MeetingMessageInput = forwardRef<
               : item,
           ),
         );
-        toast.error("Could not upload file");
+        toast.error(getActionErrorMessage(permissionError, "Could not upload file"));
       }
     },
     [meetingId],

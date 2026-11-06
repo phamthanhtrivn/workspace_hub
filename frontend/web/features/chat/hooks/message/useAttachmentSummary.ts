@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { requestAttachmentSummary } from "../../api/attachment-summary.api";
@@ -18,7 +19,7 @@ export function useAttachmentSummary(message: ChatMessageResponse) {
     } catch (error: unknown) {
       const response = (error as { response?: { data?: { message?: unknown } } })?.response;
       const detail = response?.data?.message;
-      toast.error(typeof detail === "string" ? detail : "Không gửi được yêu cầu tóm tắt. Vui lòng thử lại.");
+      toast.error(getActionErrorMessage(error, typeof detail === "string" ? detail : "Không gửi được yêu cầu tóm tắt. Vui lòng thử lại."));
     } finally {
       pending.current = false;
       setIsRequesting(false);

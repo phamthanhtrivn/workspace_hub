@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import type { Dispatch, SetStateAction } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -102,13 +103,13 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
         return next;
       });
       toast.success("Task status updated");
-    } catch {
+    } catch (permissionError) {
       options.setStatusOverrides((current) => {
         const next = { ...current };
         delete next[taskId];
         return next;
       });
-      toast.error("Failed to update task status");
+      toast.error(getActionErrorMessage(permissionError, "Failed to update task status"));
     }
   };
 
@@ -118,7 +119,7 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
       toast.success("Task created");
       options.closeTaskForm();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save task");
+      toast.error(getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to save task"));
     }
   };
 
@@ -143,7 +144,7 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
       );
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
-      toast.error(apiError.response?.data?.message || "Failed to update task");
+      toast.error(getActionErrorMessage(error, apiError.response?.data?.message || "Failed to update task"));
       throw error;
     }
   };

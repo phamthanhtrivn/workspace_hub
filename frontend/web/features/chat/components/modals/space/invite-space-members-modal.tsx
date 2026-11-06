@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
@@ -98,7 +99,7 @@ function InviteSpaceMembersModalForm({
       onClose();
     } catch (err: unknown) {
       toast.error(
-        getApiErrorMessage(err, "Failed to send invitations"),
+        getActionErrorMessage(err, getApiErrorMessage(err, "Failed to send invitations")),
       );
     } finally {
       setIsInviting(false);

@@ -1,6 +1,7 @@
 "use client";
 
 import { UserAvatar } from "@/components/common/user-avatar";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import {
   Crown,
   Circle,
@@ -79,9 +80,10 @@ export function MeetingParticipantListItem({
     });
   }
 
-  if (item.canPromoteToCohost) {
+  if (!item.isSelf && item.participant.role === MEETING_ROLE.PARTICIPANT) {
     actionItems.push({
       id: "make-cohost",
+      disabledReason: !item.canPromoteToCohost ? PERMISSION_REASON.meetingHost : undefined,
       label: "Make co-host",
       icon: ShieldCheck,
       disabled: isBusy,
@@ -89,9 +91,10 @@ export function MeetingParticipantListItem({
     });
   }
 
-  if (item.canDemoteToParticipant) {
+  if (!item.isSelf && item.participant.role === MEETING_ROLE.COHOST) {
     actionItems.push({
       id: "make-participant",
+      disabledReason: !item.canDemoteToParticipant ? PERMISSION_REASON.meetingHost : undefined,
       label: "Make participant",
       icon: ShieldOff,
       disabled: isBusy,
@@ -99,9 +102,10 @@ export function MeetingParticipantListItem({
     });
   }
 
-  if (item.canManageRole) {
+  if (!item.isSelf && item.participant.role !== MEETING_ROLE.HOST) {
     actionItems.push({
       id: "make-host",
+      disabledReason: !item.canManageRole ? PERMISSION_REASON.meetingHost : undefined,
       label: "Make host",
       icon: Crown,
       disabled: isBusy,
@@ -130,9 +134,10 @@ export function MeetingParticipantListItem({
     });
   }
 
-  if (item.canRemove) {
+  if (!item.isSelf && item.participant.role !== MEETING_ROLE.HOST) {
     actionItems.push({
       id: "remove",
+      disabledReason: !item.canRemove ? PERMISSION_REASON.meetingManage : undefined,
       label: "Remove",
       icon: UserMinus,
       disabled: isBusy,

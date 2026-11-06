@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { IconButton } from "@/components/ui/icon-button";
 
@@ -79,8 +80,8 @@ export function ShareModalList({
       onShareUpdated?.();
     },
     onError: (err) => {
-      console.error("Failed to remove share", err);
-      toast.error("Failed to revoke access");
+      logActionError("Failed to remove share", err);
+      toast.error(getActionErrorMessage(err, "Failed to revoke access"));
     },
   });
 
@@ -100,8 +101,8 @@ export function ShareModalList({
       onShareUpdated?.();
     },
     onError: (err) => {
-      console.error("Failed to update permission", err);
-      toast.error("Failed to update access permission");
+      logActionError("Failed to update permission", err);
+      toast.error(getActionErrorMessage(err, "Failed to update access permission"));
     },
   });
 

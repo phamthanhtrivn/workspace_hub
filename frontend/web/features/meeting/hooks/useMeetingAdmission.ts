@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -90,7 +91,7 @@ export function useUpdateMeetingSettings(joinToken: string) {
             ? "Could not update room admission settings"
             : "Could not update participant chat settings";
 
-      toast.error(message);
+      toast.error(getActionErrorMessage(_error, message));
     },
   });
 }
@@ -112,8 +113,8 @@ export function useMeetingJoinRequestActions(joinToken: string) {
       invalidateRequests();
       toast.success("Request approved");
     },
-    onError: () => {
-      toast.error("Could not approve request");
+    onError: (permissionFailure) => {
+      toast.error(getActionErrorMessage(permissionFailure, "Could not approve request"));
     },
   });
   const declineOne = useMutation({
@@ -122,8 +123,8 @@ export function useMeetingJoinRequestActions(joinToken: string) {
       invalidateRequests();
       toast.success("Request declined");
     },
-    onError: () => {
-      toast.error("Could not decline request");
+    onError: (permissionFailure) => {
+      toast.error(getActionErrorMessage(permissionFailure, "Could not decline request"));
     },
   });
   const approveAll = useMutation({
@@ -132,8 +133,8 @@ export function useMeetingJoinRequestActions(joinToken: string) {
       invalidateRequests();
       toast.success("All requests approved");
     },
-    onError: () => {
-      toast.error("Could not approve all requests");
+    onError: (permissionFailure) => {
+      toast.error(getActionErrorMessage(permissionFailure, "Could not approve all requests"));
     },
   });
   const declineAll = useMutation({
@@ -142,8 +143,8 @@ export function useMeetingJoinRequestActions(joinToken: string) {
       invalidateRequests();
       toast.success("All requests declined");
     },
-    onError: () => {
-      toast.error("Could not decline all requests");
+    onError: (permissionFailure) => {
+      toast.error(getActionErrorMessage(permissionFailure, "Could not decline all requests"));
     },
   });
 

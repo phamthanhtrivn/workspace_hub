@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage, PERMISSION_REASON } from "@/lib/permission-feedback";
 import {
   Calendar,
   CalendarClock,
@@ -106,8 +107,8 @@ export function UpcomingMeetingCard({
         copyTextFallback(link);
       }
       toast.success("Meeting link copied");
-    } catch {
-      toast.error("Could not copy meeting link");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Could not copy meeting link"));
     }
   };
   const cancelScheduledMeeting = async () => {
@@ -125,8 +126,8 @@ export function UpcomingMeetingCard({
     try {
       await cancelMeeting.mutateAsync();
       toast.success("Meeting cancelled");
-    } catch {
-      toast.error("Could not cancel meeting");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Could not cancel meeting"));
     }
   };
 
@@ -210,8 +211,9 @@ export function UpcomingMeetingCard({
               {primaryLabel}
             </MeetingButton>
           )}
-          {canManage ? (
+          {meeting.status === "SCHEDULED" && !isCalendarEvent ? (
             <MeetingIconButton
+              disabledReason={!canManage ? PERMISSION_REASON.meetingSchedule : undefined}
               label="Edit"
               icon={Pencil}
               tone="outline"
@@ -228,8 +230,9 @@ export function UpcomingMeetingCard({
             onClick={copyLink}
             className="h-9 w-9 rounded-control"
           />
-          {canManage ? (
+          {meeting.status === "SCHEDULED" && !isCalendarEvent ? (
             <MeetingIconButton
+              disabledReason={!canManage ? PERMISSION_REASON.meetingSchedule : undefined}
               label="Cancel meeting"
               icon={Trash2}
               loading={cancelMeeting.isPending}

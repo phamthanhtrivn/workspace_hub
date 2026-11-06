@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useLayoutEffect, useRef, useState, type ClipboardEvent } from "react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
@@ -74,8 +75,8 @@ export function useCopiedMessagePaste({ chatId, chatType, onInsertText, uploadFi
           await upload;
         } catch (error) {
           if (controller.signal.aborted) return;
-          toast.error(error instanceof Error && error.message === MESSAGE_CLIPBOARD_MESSAGES.fileTooLarge
-            ? MESSAGE_CLIPBOARD_MESSAGES.fileTooLarge : MESSAGE_CLIPBOARD_MESSAGES.fileFailed);
+          toast.error(getActionErrorMessage(error, error instanceof Error && error.message === MESSAGE_CLIPBOARD_MESSAGES.fileTooLarge
+            ? MESSAGE_CLIPBOARD_MESSAGES.fileTooLarge : MESSAGE_CLIPBOARD_MESSAGES.fileFailed));
           setPending((previous) => previous?.contextKey === contextKey
             ? { ...previous, files: previous.files.map((file) => file.id === id ? { ...file, status: "error" } : file) } : previous);
         } finally {
