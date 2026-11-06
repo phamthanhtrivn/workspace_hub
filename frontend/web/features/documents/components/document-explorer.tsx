@@ -156,10 +156,9 @@ export function DocumentExplorer({
 
   // 4. File Upload Hook
   const {
-    uploadState,
-    uploadSummary, retryFailed,
-    uploadProgress,
-    uploadingFileName,
+    uploads,
+    retryFailed,
+    dismissUploads,
     overwriteConflict,
     isDraggingOver,
     uploadFile,
@@ -339,7 +338,7 @@ export function DocumentExplorer({
       <div className="@container/explorer relative flex flex-1 flex-col min-h-0 min-w-0 h-full overflow-y-auto bg-card text-foreground">
         {/* Full Window Dropzone Overlay */}
         {isDraggingOver ? (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-primary/10 border-2 border-dashed border-info-outline">
+          <div className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center bg-primary/10 border-2 border-dashed border-info-outline">
             <div className="grid h-16 w-16 place-items-center rounded-panel bg-info-soft text-info-content ring-1 ring-ring">
               <UploadCloud className="h-8 w-8" />
             </div>
@@ -522,11 +521,9 @@ export function DocumentExplorer({
 
         {/* Floating Upload Queue Widget */}
         <UploadProgress
-          uploadState={uploadState}
-          summary={uploadSummary}
-          onRetry={() => void retryFailed()}
-          uploadProgress={uploadProgress}
-          uploadingFileName={uploadingFileName}
+          uploads={uploads}
+          onRetry={(id) => void retryFailed(id)}
+          onDismiss={dismissUploads}
         />
 
         {/* Shadcn Input Modal: Create Folder */}
@@ -633,6 +630,7 @@ export function DocumentExplorer({
         {/* Version Management Modal */}
         {isVersionModalOpen && versioningItem ? (
           <VersionManagementModal
+            key={versioningItem.id}
             open={isVersionModalOpen}
             item={versioningItem}
             onClose={closeVersionModal}

@@ -33,6 +33,8 @@ export enum DocumentSortBy {
 
 export enum UploadState {
   IDLE = "IDLE",
+  QUEUED = "QUEUED",
+  AWAITING_OVERWRITE = "AWAITING_OVERWRITE",
   INITIATING = "INITIATING",
   UPLOADING = "UPLOADING",
   CONFIRMING = "CONFIRMING",
