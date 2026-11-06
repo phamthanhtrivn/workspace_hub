@@ -41,5 +41,13 @@ host services via `host.docker.internal`. Optional flags remain at their
 existing values; a disabled feature does not require unused optional keys.
 Production/CI still have a separate legacy contract and need their own rollout.
 
+User Service requires `FRONTEND_URL` to match the browser frontend origin,
+including its scheme and port (for example, `http://localhost:3000`). Cookie-based
+refresh and logout reject other origins before changing the session. Browser
+requests must supply a matching `Origin` or `Referer`; a native client without
+browser Fetch Metadata can continue using the refresh cookie without those headers.
+Supply this setting to the User JVM through the same IDE or terminal environment
+as its other variables; merely editing `.env` does not load it into Java.
+
 Local S3 credentials, private asset references and bucket requirements are
 documented in [local S3](local-s3.md).

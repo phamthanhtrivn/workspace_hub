@@ -6,7 +6,8 @@ from functools import lru_cache
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from .engine import Engine
@@ -25,6 +26,17 @@ def authorize(x_internal_service_key: Annotated[str, Header()] = ""):
 
 app = FastAPI(title="WorkSpaceHub RAG Worker", docs_url=None, redoc_url=None, openapi_url=None,
               dependencies=[Depends(authorize)])
+
+
+@app.middleware("http")
+async def authenticate_before_body(request: Request, call_next):
+    # FastAPI resolves body models before dependencies. Reject untrusted callers
+    # before a large or malformed JSON body can be read and decoded.
+    try:
+        authorize(request.headers.get("x-internal-service-key", ""))
+    except HTTPException as error:
+        return JSONResponse(status_code=error.status_code, content={"detail": error.detail})
+    return await call_next(request)
 
 
 _engine_lock = threading.Lock()

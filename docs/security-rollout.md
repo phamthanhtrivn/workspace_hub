@@ -33,6 +33,25 @@ Thay đổi này yêu cầu triển khai User, Project, Communication, Document,
 
 ## Local regression verification
 
+Cookie-based refresh/logout require the configured frontend origin. Set
+`FRONTEND_URL` in the User JVM environment as described in
+[local environment configuration](local-env.md). A browser request from another
+origin is rejected before its refresh cookie can rotate or revoke a session.
+
+Kafka readiness tracks failed handlers by topic and partition. A successful
+record on another partition does not clear an outstanding failure; recovery or
+durable quarantine clears the corresponding partition. Rebalancing/shutdown
+clears revoked assignments and reports not-ready until the consumer rejoins.
+Invalid task-sync payloads use durable quarantine just like profile events.
+Transient Notification failures remain retriable and do not expose provider
+exception bodies through the framework logger. Document/Chat S3 failures also
+log operation names without raw provider exceptions or object keys.
+
+The RAG worker authenticates before decoding JSON; Speech rejects missing or
+weak key configuration at both startup and its protected request boundary.
+Frontend storage downloads/open actions only accept HTTP(S) URLs without
+embedded credentials, or a validated private storage reference.
+
 The reusable [security integration suite](../backend/security-tests/README.md) runs
 the real User HTTP API, receiver credential checks, permission services, Kong,
 Socket.IO and Kafka failure/recovery tests against isolated infrastructure. Its

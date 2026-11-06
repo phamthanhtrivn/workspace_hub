@@ -81,6 +81,9 @@
         ],
         "TRUSTED_PROXY_CIDRS": [
           "backend/user-service/src/main/java/vn/workspacehub/user/service/ClientIpResolver.java:15"
+        ],
+        "FRONTEND_URL": [
+          "backend/user-service/src/main/java/vn/workspacehub/user/config/SecurityConfig.java"
         ]
       },
       "variables": {
@@ -262,6 +265,11 @@
               "session.authorize"
             ]
           },
+          "requiredLocal": true
+        },
+        "FRONTEND_URL": {
+          "secret": false,
+          "source": "runtime",
           "requiredLocal": true
         }
       }

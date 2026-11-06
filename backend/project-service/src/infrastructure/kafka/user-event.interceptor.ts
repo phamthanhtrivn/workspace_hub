@@ -10,17 +10,20 @@ import { kafkaConsumerState } from './consumer-lifecycle';
 export class UserEventInterceptor implements NestInterceptor {
   constructor(private readonly prisma: PrismaService) {}
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const kafka = context.switchToRpc().getContext<KafkaContext>();
+    const recordResult = (failed: boolean) =>
+      kafkaConsumerState.recordHandlingResult(kafka.getTopic(), kafka.getPartition(), failed);
     return next.handle().pipe(
-      tap(() => { kafkaConsumerState.handlingFailed = false; }),
+      tap(() => recordResult(false)),
       catchError((error: unknown) => {
         if (!(error instanceof InvalidUserEvent)) {
-          kafkaConsumerState.handlingFailed = true;
+          recordResult(true);
           return throwError(() => new KafkaRetriableException('User event dependency unavailable'));
         }
         return from(this.quarantine(context.switchToRpc().getContext<KafkaContext>())).pipe(
-          map(() => { kafkaConsumerState.handlingFailed = false; return undefined; }),
+          map(() => { recordResult(false); return undefined; }),
           catchError(() => {
-            kafkaConsumerState.handlingFailed = true;
+            recordResult(true);
             return throwError(() => new KafkaRetriableException('User event quarantine unavailable'));
           }),
         );

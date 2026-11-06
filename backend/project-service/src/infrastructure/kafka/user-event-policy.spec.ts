@@ -26,3 +26,22 @@ test('readiness requires a joined healthy consumer with fresh heartbeats', () =>
     assert.equal(kafkaConsumerState.ready(), false);
   } finally { kafkaConsumerState.reset(); kafkaConsumerState.handlingFailed = false; }
 });
+
+test('a successful partition cannot hide another partition waiting for retry', () => {
+  try {
+    kafkaConsumerState.reset();
+    kafkaConsumerState.joined = true;
+    kafkaConsumerState.lastHeartbeat = Date.now();
+    kafkaConsumerState.recordHandlingResult('profile', 0, true);
+    kafkaConsumerState.recordHandlingResult('profile', 1, false);
+    kafkaConsumerState.recordHandlingResult('task', 0, false);
+    assert.equal(kafkaConsumerState.ready(), false);
+    kafkaConsumerState.recordHandlingResult('profile', 0, false);
+    assert.equal(kafkaConsumerState.ready(), true);
+    kafkaConsumerState.recordHandlingResult('profile', 0, true);
+    kafkaConsumerState.reset();
+    kafkaConsumerState.joined = true;
+    kafkaConsumerState.lastHeartbeat = Date.now();
+    assert.equal(kafkaConsumerState.ready(), true, 'revoked assignments cannot leave a stale failure');
+  } finally { kafkaConsumerState.reset(); }
+});

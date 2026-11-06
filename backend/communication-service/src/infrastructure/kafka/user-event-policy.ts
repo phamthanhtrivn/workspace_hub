@@ -1,8 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
+import { InvalidKafkaPayload } from './invalid-kafka-payload';
 import { Prisma } from '@prisma/client';
 import { isUUID } from 'class-validator';
 
-export class InvalidUserEvent extends BadRequestException {}
+export class InvalidUserEvent extends InvalidKafkaPayload {}
 export interface UserEventEnvelope {
   userId: string;
   eventId?: string;

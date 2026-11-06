@@ -14,3 +14,13 @@ export function isLegacyStorageUrl(source: string): boolean {
       (/\.s3[.-].*amazonaws\.com$/.test(url.hostname) && !url.searchParams.has("X-Amz-Signature"));
   } catch { return false; }
 }
+
+export function parseStorageUrl(source: string): URL {
+  try {
+    const url = new URL(source);
+    if (!["https:", "http:"].includes(url.protocol) || url.username || url.password) throw new Error();
+    return url;
+  } catch {
+    throw new Error("Invalid storage URL");
+  }
+}

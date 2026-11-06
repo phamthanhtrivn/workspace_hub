@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios";
-import { isLegacyStorageUrl, isPrivateStorageReference } from "../types/storage-reference";
+import { isLegacyStorageUrl, isPrivateStorageReference, parseStorageUrl } from "../types/storage-reference";
 export { isLegacyStorageUrl, isPrivateStorageReference } from "../types/storage-reference";
 
 export interface StorageAccess { url: string; expiresAt: string }
@@ -8,7 +8,7 @@ export async function getStorageAccess(reference: string, signal?: AbortSignal):
   if (!isPrivateStorageReference(reference)) throw new Error("Invalid private storage reference");
   const response = await api.get<{ data: StorageAccess }>(reference, { signal });
   const access = response.data.data;
-  const url = new URL(access.url);
+  const url = parseStorageUrl(access.url);
   const assetHost = process.env.NEXT_PUBLIC_ASSET_HOST;
   if (url.protocol !== "https:" || url.username || url.password || !url.searchParams.has("X-Amz-Signature") ||
       (assetHost && url.hostname !== assetHost) || !(Date.parse(access.expiresAt) > Date.now())) {
@@ -19,7 +19,7 @@ export async function getStorageAccess(reference: string, signal?: AbortSignal):
 
 export async function resolveStorageUrl(source: string, signal?: AbortSignal): Promise<string> {
   if (isLegacyStorageUrl(source)) throw new Error("This file belongs to the previous storage configuration");
-  return isPrivateStorageReference(source) ? (await getStorageAccess(source, signal)).url : source;
+  return isPrivateStorageReference(source) ? (await getStorageAccess(source, signal)).url : parseStorageUrl(source).href;
 }
 
 export async function fetchStorageAsset(source: string, signal?: AbortSignal): Promise<Response> {

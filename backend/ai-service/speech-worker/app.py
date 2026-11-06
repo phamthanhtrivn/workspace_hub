@@ -13,6 +13,7 @@ from starlette.concurrency import run_in_threadpool
 MAX_BYTES = 2 * 1024 * 1024
 MAX_SECONDS = 46
 MAX_TEXT = 12000
+MIN_SERVICE_KEY_LENGTH = 32
 
 
 def validate_audio(audio: bytes) -> None:
@@ -74,7 +75,7 @@ def recognize(model, audio: bytes) -> str:
 def create_app(model_loader=load_model, service_key: str | None = None):
     @asynccontextmanager
     async def lifespan(app):
-        if len(app.state.service_key) < 32:
+        if len(app.state.service_key) < MIN_SERVICE_KEY_LENGTH:
             raise RuntimeError("Configure a dedicated SPEECH_SERVICE_KEY of at least 32 characters")
         app.state.model = await run_in_threadpool(model_loader)
         app.state.inference_lock = asyncio.Lock()
@@ -86,7 +87,8 @@ def create_app(model_loader=load_model, service_key: str | None = None):
     app.state.model = None
 
     def authorize(x_internal_service_key: str = Header(default="")):
-        if not hmac.compare_digest(x_internal_service_key.encode(), app.state.service_key.encode()):
+        if (len(app.state.service_key) < MIN_SERVICE_KEY_LENGTH or
+                not hmac.compare_digest(x_internal_service_key.encode(), app.state.service_key.encode())):
             raise HTTPException(401, "Unauthorized")
 
     @app.get("/health")

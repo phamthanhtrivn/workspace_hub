@@ -54,7 +54,11 @@ export function inventory() {
   }
   const directory = resolve(root, 'backend/user-service/src/main/java/vn/workspacehub/user/controller');
   const filter = readFileSync(resolve(root, 'backend/user-service/src/main/java/vn/workspacehub/user/config/JwtIdentityFilter.java'), 'utf8');
-  const publicPaths = new Set([...(/PUBLIC_AUTH_PATHS = Set\.of\(([\s\S]*?)\);/.exec(filter)?.[1] ?? '').matchAll(/"([^"]+)"/g)].map((match) => match[1]));
+  const policy = readFileSync(resolve(root, 'backend/user-service/src/main/java/vn/workspacehub/user/common/AuthPolicy.java'), 'utf8');
+  const policyStrings = new Map([...policy.matchAll(/String\s+(\w+)\s*=\s*"([^"]+)"/g)].map((match) => [match[1], match[2]]));
+  const allowlist = /PUBLIC_AUTH_PATHS = Set\.of\(([\s\S]*?)\);/.exec(filter)?.[1] ?? '';
+  const publicPaths = new Set([...allowlist.matchAll(/"([^"]+)"|AuthPolicy\.(\w+)/g)]
+    .map((match) => match[1] ?? policyStrings.get(match[2])).filter(Boolean));
   for (const file of files(directory, '.java')) {
     const source = readFileSync(file, 'utf8');
     const prefix = /@RequestMapping\(([^\n]+)\)/.exec(source)?.[1] ?? '""';
