@@ -2,7 +2,7 @@
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import { useId } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { MoreHorizontal, SmilePlus } from "lucide-react";
 import { formatDateTime } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,7 @@ export function MeetingMessageItem({
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [optionsRect, setOptionsRect] = useState<DOMRect | null>(null);
+  const optionsButtonRef = useRef<HTMLButtonElement>(null);
   const [currentTime] = useState(() => Date.now());
   const isMe = message.senderId === currentUserId;
   const senderName =
@@ -187,12 +188,13 @@ export function MeetingMessageItem({
 
             {(canEdit || canRecall) && (
               <MeetingIconButton
+                ref={optionsButtonRef}
                 aria-haspopup="menu" aria-expanded={isOptionsOpen} aria-controls={optionsId}
                 label="More actions"
                 icon={MoreHorizontal}
                 onClick={(event) => {
                   setOptionsRect(event.currentTarget.getBoundingClientRect());
-                  setIsOptionsOpen(true);
+                  setIsOptionsOpen((open) => !open);
                 }}
                 className="size-8 rounded-lg border border-border bg-card text-muted-foreground"
               />
@@ -204,6 +206,7 @@ export function MeetingMessageItem({
       <MeetingMessageOptionsMenu id={optionsId}
         isOpen={isOptionsOpen}
         buttonRect={optionsRect}
+        anchorElementRef={optionsButtonRef}
         onClose={() => setIsOptionsOpen(false)}
         onEdit={() => onEdit(message)}
         onRecall={() => onRecall(message.id)}

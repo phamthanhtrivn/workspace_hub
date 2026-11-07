@@ -3,7 +3,7 @@
 
 
 import { PERMISSION_REASON } from "@/lib/permission-feedback";
-import { useRef } from "react";
+import { useRef, type RefObject } from "react";
 import { Edit2, Trash2 } from "lucide-react";
 
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
@@ -14,6 +14,7 @@ interface MeetingMessageOptionsMenuProps {
   isOpen: boolean;
   id?: string;
   buttonRect: DOMRect | null;
+  anchorElementRef: RefObject<HTMLButtonElement | null>;
   onClose: () => void;
   onEdit: () => void;
   onRecall: () => void;
@@ -25,6 +26,7 @@ export function MeetingMessageOptionsMenu({
   isOpen,
   id,
   buttonRect,
+  anchorElementRef,
   onClose,
   onEdit,
   onRecall,
@@ -41,7 +43,7 @@ export function MeetingMessageOptionsMenu({
 
 
 
-  return typeof document === "undefined" ? null : <AnchoredMenu id={id} aria-label="Meeting message options" ref={menuRef} onClose={onClose} anchorRect={buttonRect} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="end"  className="z-[100] min-w-40 rounded-lg border border-border bg-card py-1 text-sm text-muted-foreground shadow-panel">
+  return typeof document === "undefined" ? null : <AnchoredMenu id={id} aria-label="Meeting message options" ref={menuRef} onClose={onClose} anchorRect={buttonRect} anchorElementRef={anchorElementRef} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="end"  className="z-[100] min-w-40 rounded-lg border border-border bg-card py-1 text-sm text-muted-foreground shadow-panel">
       {(
         <DropdownMenuItem disabledReason={!(canEdit) ? PERMISSION_REASON.messageOwner : undefined} closeOnClick={false}
           onClick={() => {

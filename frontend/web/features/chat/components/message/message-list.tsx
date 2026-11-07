@@ -108,7 +108,7 @@ export default function MessageList({
     // Messages are stored newest first; nextMsg is the preceding visual message.
     const showSenderName = !nextMsg || nextMsg.senderId !== msg.senderId ||
       new Date(msg.createdAt).getTime() - new Date(nextMsg.createdAt).getTime() > GROUP_MESSAGES_THRESHOLD_MS ||
-      nextMsg.type === "SYSTEM";
+      ["SYSTEM", "NOTE", "POLL"].includes(nextMsg.type);
     const showAvatar = showSenderName;
     const showTime = showSenderName || !prevMsg || prevMsg.senderId !== msg.senderId;
 

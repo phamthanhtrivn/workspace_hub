@@ -1,6 +1,6 @@
 import { AI_BOT, isAiBot } from "../../constants/chat-identity";
 import { useId as useControlledPopupId } from "react";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { MoreHorizontal, Pin, MessageSquare, SmilePlus } from "lucide-react";
 import { useAttachmentSummary } from "../../hooks/message/useAttachmentSummary";
 import { summaryAttachments } from "../../utils/attachment-summary";
@@ -96,6 +96,7 @@ const ChatMessage = React.memo(function ChatMessage({
   const [isReactionDetailOpen, setIsReactionDetailOpen] = useState(false);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const [optionsMenuRect, setOptionsMenuRect] = useState<DOMRect | null>(null);
+  const optionsButtonRef = useRef<HTMLButtonElement>(null);
 
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector((state) => state.auth);
@@ -208,6 +209,21 @@ const ChatMessage = React.memo(function ChatMessage({
         message={msg}
         onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
       />
+    );
+  }
+
+  if (msg.type === "NOTE" || msg.type === "POLL") {
+    return (
+      <div
+        id={`msg-${msg.id}`}
+        className="flex w-full min-w-0 flex-col items-center [overflow-wrap:anywhere]"
+      >
+        {msg.recalled ? (
+          <div className="my-4 rounded-panel border border-border bg-muted p-3 text-sm italic text-muted-foreground">
+            Message recalled
+          </div>
+        ) : specialContent}
+      </div>
     );
   }
 
@@ -374,12 +390,13 @@ const ChatMessage = React.memo(function ChatMessage({
               </div>
 
               <Button variant="unstyled" aria-label="Message options" aria-haspopup="menu" aria-expanded={isOptionsMenuOpen} aria-controls={`${controlledPopupId}-message-options`}
+                ref={optionsButtonRef}
                 type="button"
                 onClick={(event) => {
                   setOptionsMenuRect(
                     event.currentTarget.getBoundingClientRect(),
                   );
-                  setIsOptionsMenuOpen(true);
+                  setIsOptionsMenuOpen((open) => !open);
                 }}
                 className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
               >
@@ -411,6 +428,7 @@ const ChatMessage = React.memo(function ChatMessage({
         isOpen={isOptionsMenuOpen}
         onClose={() => setIsOptionsMenuOpen(false)}
         buttonRect={optionsMenuRect}
+        anchorElementRef={optionsButtonRef}
         isMe={isMe}
         canEdit={msg.type === "TEXT" && isWithin24Hours && hasText}
         canRecall={isWithin24Hours}
