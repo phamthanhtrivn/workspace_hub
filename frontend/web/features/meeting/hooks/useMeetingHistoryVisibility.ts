@@ -1,6 +1,6 @@
 "use client";
 
-import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { showMeetingActionError } from "../utils/meeting-action-errors";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { updateMeetingHistoryVisibility } from "../api/meeting.api";
@@ -30,7 +30,7 @@ export function useMeetingHistoryVisibility() {
         toast.success(MEETING_HISTORY_LABELS.restoredSuccess);
       }
     } catch (permissionError) {
-      toast.error(getActionErrorMessage(permissionError, MEETING_HISTORY_LABELS.updateError));
+      showMeetingActionError(permissionError, MEETING_HISTORY_LABELS.updateError);
     }
   };
 

@@ -1,5 +1,6 @@
 "use client";
-import { getActionErrorMessage } from "@/lib/permission-feedback";
+
+import { showMeetingActionError } from "../utils/meeting-action-errors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   useRoomContext,
@@ -11,8 +12,7 @@ import {
   RoomEvent,
   type RemoteParticipant,
 } from "livekit-client";
-import { isAxiosError } from "axios";
-import { toast } from "sonner";
+import { isAxiosError, isCancel } from "axios";
 import { captionsApi } from "../api/meeting-captions.api";
 import {
   CAPTION_TOPIC,
@@ -99,9 +99,9 @@ export function useMeetingCaptions(joinToken: string, meetingId: string) {
     const refresh = () => {
       void captionsApi
         .start(joinToken)
-        .catch(() =>
-          setError("Captions disconnected. Turn CC off and on to retry."),
-        );
+        .catch((failure) => {
+          if (!isCancel(failure)) setError("Captions disconnected. Turn CC off and on to retry.");
+        });
     };
     refresh();
     const renew = window.setInterval(refresh, 20_000);
@@ -157,7 +157,7 @@ export function useMeetingCaptions(joinToken: string, meetingId: string) {
         typeof failure.response?.data?.message === "string"
           ? failure.response.data.message
           : "Could not start live captions. Please try again.";
-      toast.error(getActionErrorMessage(failure, message));
+      showMeetingActionError(failure, message);
     } finally {
       if (generation.current === version) setPending(false);
     }

@@ -1,4 +1,5 @@
-import { api } from "@/lib/axios";
+import { meetingHttp as api } from "./meeting-http";
+import { meetingRoomSignal } from "./meeting-room-requests";
 import { DEFAULT_UPLOAD_MIME_TYPE } from "@/lib/upload-policy";
 import { normalizeApiResponse } from "@/features/chat/api/chat.api";
 import { MEETING_API_PATHS } from "../types/meeting.constants";
@@ -144,8 +145,9 @@ export const declineScheduledMeetingInvitation = async (
 
 export const getMeetingAccess = async (
   joinToken: string,
+  signal?: AbortSignal,
 ): Promise<ApiResponse<MeetingAccessResponse>> => {
-  const response = await api.get(MEETING_API_PATHS.access(joinToken));
+  const response = await api.get(MEETING_API_PATHS.access(joinToken), { signal });
   return normalizeApiResponse<MeetingAccessResponse>(response.data);
 };
 
@@ -314,17 +316,19 @@ export const getMeetingMediaPresignedUrls = async ({
     chatId: meetingId,
     chatType: ChatContextType.MEETING,
     files,
-  });
+  }, { signal: meetingRoomSignal(meetingId) });
   return normalizeApiResponse<MeetingPresignResponse[]>(response.data).data;
 };
 
 export const uploadMeetingMediaToS3 = async (
   file: File,
   presignedUrl: string,
+  meetingId?: string,
 ): Promise<boolean> => {
   const response = await fetch(presignedUrl, {
     method: "PUT",
     body: file,
+    signal: meetingId ? meetingRoomSignal(meetingId) : undefined,
     headers: {
       "Content-Type": file.type || DEFAULT_UPLOAD_MIME_TYPE,
       "If-None-Match": "*",

@@ -1,4 +1,4 @@
-import { api } from "@/lib/axios";
+import { meetingHttp as api } from "./meeting-http";
 import { normalizeApiResponse } from "@/features/chat/api/chat.api";
 import type { CaptionSession } from "../types/meeting-captions.types";
 const path = (token: string) =>

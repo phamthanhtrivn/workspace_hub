@@ -1,6 +1,6 @@
 "use client";
 
-import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { showMeetingActionError } from "../utils/meeting-action-errors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -91,7 +91,7 @@ export function useUpdateMeetingSettings(joinToken: string) {
             ? "Could not update room admission settings"
             : "Could not update participant chat settings";
 
-      toast.error(getActionErrorMessage(_error, message));
+      showMeetingActionError(_error, message);
     },
   });
 }
@@ -114,7 +114,7 @@ export function useMeetingJoinRequestActions(joinToken: string) {
       toast.success("Request approved");
     },
     onError: (permissionFailure) => {
-      toast.error(getActionErrorMessage(permissionFailure, "Could not approve request"));
+      showMeetingActionError(permissionFailure, "Could not approve request");
     },
   });
   const declineOne = useMutation({
@@ -124,7 +124,7 @@ export function useMeetingJoinRequestActions(joinToken: string) {
       toast.success("Request declined");
     },
     onError: (permissionFailure) => {
-      toast.error(getActionErrorMessage(permissionFailure, "Could not decline request"));
+      showMeetingActionError(permissionFailure, "Could not decline request");
     },
   });
   const approveAll = useMutation({
@@ -134,7 +134,7 @@ export function useMeetingJoinRequestActions(joinToken: string) {
       toast.success("All requests approved");
     },
     onError: (permissionFailure) => {
-      toast.error(getActionErrorMessage(permissionFailure, "Could not approve all requests"));
+      showMeetingActionError(permissionFailure, "Could not approve all requests");
     },
   });
   const declineAll = useMutation({
@@ -144,7 +144,7 @@ export function useMeetingJoinRequestActions(joinToken: string) {
       toast.success("All requests declined");
     },
     onError: (permissionFailure) => {
-      toast.error(getActionErrorMessage(permissionFailure, "Could not decline all requests"));
+      showMeetingActionError(permissionFailure, "Could not decline all requests");
     },
   });
 

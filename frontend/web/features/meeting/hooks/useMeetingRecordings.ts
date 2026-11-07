@@ -1,6 +1,6 @@
 "use client";
 
-import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { showMeetingActionError } from "../utils/meeting-action-errors";
 import { useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -43,7 +43,7 @@ export function useMeetingRecordings(params: RecordingQuery) {
       refresh();
       toast.success("Recording deleted");
     },
-    onError: (error) => toast.error(getActionErrorMessage(error, recordingErrorMessage(error))),
+    onError: (error) => showMeetingActionError(error, recordingErrorMessage(error)),
   });
   return { query, remove, refresh };
 }

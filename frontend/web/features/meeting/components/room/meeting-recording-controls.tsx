@@ -1,8 +1,7 @@
 "use client";
 
-import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { showMeetingActionError } from "../../utils/meeting-action-errors";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { Circle, Square, Pause, Play, Hand } from "lucide-react";
 import {
   Dialog,
@@ -85,9 +84,9 @@ export function MeetingRecordingControls({
       } catch (error) {
         await release();
         if (error instanceof Error)
-          toast.error(getActionErrorMessage(error, error.name === "NotAllowedError"
+          showMeetingActionError(error, error.name === "NotAllowedError"
             ? "Tab recording was cancelled. Choose this Meeting tab to start."
-            : error.message));
+            : error.message);
       } finally { setCapturing(false); }
     } else if (state?.recording) {
       stop.mutate({ id: state.recording.id, key: crypto.randomUUID() });

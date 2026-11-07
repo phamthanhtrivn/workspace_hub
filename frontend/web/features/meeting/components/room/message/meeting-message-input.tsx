@@ -1,5 +1,6 @@
 "use client";
-import { getActionErrorMessage } from "@/lib/permission-feedback";
+
+import { showMeetingActionError } from "../../../utils/meeting-action-errors";
 import { useId as useControlledPopupId } from "react";
 import { ChatContextType } from "@/features/chat/types/chat.types";
 import { MAX_ATTACHMENT_SIZE_BYTES, ATTACHMENT_SIZE_LIMIT_MESSAGE } from "@/lib/upload-policy";
@@ -156,6 +157,7 @@ export const MeetingMessageInput = forwardRef<
             const success = await uploadMeetingMediaToS3(
               upload.file,
               presigned.presignedUrl,
+              meetingId,
             );
 
             setUploads((current) =>
@@ -179,7 +181,7 @@ export const MeetingMessageInput = forwardRef<
               : item,
           ),
         );
-        toast.error(getActionErrorMessage(permissionError, "Could not upload file"));
+        showMeetingActionError(permissionError, "Could not upload file");
       }
     },
     [meetingId],

@@ -3,7 +3,9 @@
 import { useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { showMeetingActionError } from "../utils/meeting-action-errors";
 import { recordingApi } from "../api/meeting-recording.api";
+import { isMeetingRoomClosing } from "../api/meeting-room-requests";
 import type {
   RecordingLayout,
   RecordingSettings,
@@ -29,13 +31,14 @@ export function useMeetingRecording(
   const userId = useAppSelector((state) => state.auth.userId);
   const client = useQueryClient();
   const refresh = useCallback(() => {
+    if (isMeetingRoomClosing(joinToken)) return;
     void client.invalidateQueries({
       queryKey: ["meeting-recording-status", userId, joinToken],
     });
     void client.invalidateQueries({ queryKey: ["meeting-recordings", userId] });
   }, [client, joinToken, userId]);
   const handleMutationError = (error: unknown) => {
-    toast.error(recordingErrorMessage(error));
+    showMeetingActionError(error, recordingErrorMessage(error));
     refresh();
   };
   const connected = useRecordingEvents(refresh, meetingId, !observeOnly);
@@ -43,7 +46,7 @@ export function useMeetingRecording(
     queryKey: ["meeting-recording-status", userId, joinToken],
     queryFn: () => recordingApi.status(joinToken),
     refetchInterval: (query) => {
-      if (observeOnly || recordingErrorIsPermanent(query.state.error))
+      if (observeOnly || isMeetingRoomClosing(joinToken) || recordingErrorIsPermanent(query.state.error))
         return false;
       if (query.state.error) return 30_000;
       return recordingPollInterval(query.state.data, connected);

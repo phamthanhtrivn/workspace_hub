@@ -1,6 +1,6 @@
 "use client";
 
-import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { showMeetingActionError } from "../../utils/meeting-action-errors";
 import { Check, Hash } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -34,7 +34,7 @@ export function MeetingJoinTokenCopyButton({
       toast.success("Join token copied");
       window.setTimeout(() => setCopied(false), 1800);
     } catch (permissionError) {
-      toast.error(getActionErrorMessage(permissionError, "Could not copy join token"));
+      showMeetingActionError(permissionError, "Could not copy join token");
     }
   };
 

@@ -1,8 +1,8 @@
 "use client";
 
-import { PERMISSION_REASON,  getActionErrorMessage } from "@/lib/permission-feedback";
+import { showMeetingActionError } from "../../utils/meeting-action-errors";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 import { Download, Play, Radio, Share2, Trash2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -52,7 +52,7 @@ export function MeetingRecordingsView() {
       const result = await recordingApi.url(id, true);
       window.location.assign(result.url);
     },
-    onError: (error) => toast.error(getActionErrorMessage(error, recordingErrorMessage(error))),
+    onError: (error) => showMeetingActionError(error, recordingErrorMessage(error)),
   });
   const edit = useMutation({
     mutationFn: () => recordingApi.rename(rename!.id, title),
@@ -60,7 +60,7 @@ export function MeetingRecordingsView() {
       setRename(null);
       refresh();
     },
-    onError: (error) => toast.error(getActionErrorMessage(error, recordingErrorMessage(error))),
+    onError: (error) => showMeetingActionError(error, recordingErrorMessage(error)),
   });
 
   const deleteRecording = async (recording: MeetingRecording) => {

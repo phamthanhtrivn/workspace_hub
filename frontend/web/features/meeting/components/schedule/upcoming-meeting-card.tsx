@@ -1,6 +1,7 @@
 "use client";
 
-import { getActionErrorMessage, PERMISSION_REASON } from "@/lib/permission-feedback";
+import { showMeetingActionError } from "../../utils/meeting-action-errors";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import {
   Calendar,
   CalendarClock,
@@ -108,7 +109,7 @@ export function UpcomingMeetingCard({
       }
       toast.success("Meeting link copied");
     } catch (permissionError) {
-      toast.error(getActionErrorMessage(permissionError, "Could not copy meeting link"));
+      showMeetingActionError(permissionError, "Could not copy meeting link");
     }
   };
   const cancelScheduledMeeting = async () => {
@@ -127,7 +128,7 @@ export function UpcomingMeetingCard({
       await cancelMeeting.mutateAsync();
       toast.success("Meeting cancelled");
     } catch (permissionError) {
-      toast.error(getActionErrorMessage(permissionError, "Could not cancel meeting"));
+      showMeetingActionError(permissionError, "Could not cancel meeting");
     }
   };
 
