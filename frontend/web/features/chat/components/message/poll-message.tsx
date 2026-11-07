@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { NativeCheckbox } from "@/components/ui/checkbox";
 import { NativeRadio } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
+import { PollOptionAttribution } from "./poll-option-attribution";
 
 interface PollMessageProps {
   poll: PollResponse;
@@ -44,7 +45,12 @@ const PollMessage = React.memo(function PollMessage({
   const [voting, setVoting] = useState(false);
   const votingRef = React.useRef(false);
   const currentUser = useAppSelector((state) => state.auth);
-  const memberProfiles = useChatMemberProfiles();
+  const memberProfiles = useChatMemberProfiles(
+    (poll?.options ?? []).flatMap((option) =>
+      option.createdBy && option.createdBy !== currentUser?.userId ? [option.createdBy] : [],
+    ),
+    { resolveMissing: true },
+  );
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [newOptionText, setNewOptionText] = useState("");
   const [isAddingOption, setIsAddingOption] = useState(false);
@@ -161,6 +167,11 @@ const PollMessage = React.memo(function PollMessage({
             const isSelected =
               selectedOptions.includes(option.id) ||
               option.votes?.some((v) => v.userId === currentUser?.userId);
+            const optionCreatorProfile = option.createdBy
+              ? memberProfiles[option.createdBy] ||
+                option.votes?.find((vote) => vote.userId === option.createdBy)?.voterProfile ||
+                (option.createdBy === poll.createdBy ? poll.creatorProfile : null)
+              : null;
 
             return (
               <div
@@ -179,8 +190,8 @@ const PollMessage = React.memo(function PollMessage({
                   />
                 )}
 
-                <div className="relative p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="relative p-3 flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div
                       className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors duration-150 ${isSelected ? "border-info-outline bg-primary" : "border-input group-hover:border-info-outline"}`}
                     >
@@ -194,15 +205,12 @@ const PollMessage = React.memo(function PollMessage({
                       >
                         {option.text}
                       </span>
-                      {option.createdBy && (
-                        <span className="text-xs text-muted-foreground font-semibold mt-0.5 uppercase tracking-wide">
-                          Added by{" "}
-                          {memberProfiles?.[option.createdBy]?.fullName ||
-                            (option.createdBy == currentUser?.userId
-                              ? "you"
-                              : "User")}
-                        </span>
-                      )}
+                      <PollOptionAttribution
+                        createdBy={option.createdBy}
+                        currentUserId={currentUser?.userId}
+                        profile={optionCreatorProfile}
+                        onUserClick={onUserClick}
+                      />
                     </div>
                   </div>
 
