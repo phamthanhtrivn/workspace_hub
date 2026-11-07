@@ -1,7 +1,8 @@
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import type { MentionMemberOption } from "../../utils/mention-member-utils";
-import { Users } from "lucide-react";
+import { Bot, Users } from "lucide-react";
+import { AI_BOT } from "../../constants/chat-identity";
 import React from "react";
 import { Button } from "@/components/ui/button";
 
@@ -43,6 +44,8 @@ export default React.memo(function MentionDropdown({
           <div className="w-6 h-6 rounded-full bg-info-soft flex items-center justify-center text-info-content font-medium text-xs flex-shrink-0 overflow-hidden">
             {user.id === "all" ? (
               <Users size={15} className="text-info-content" />
+            ) : user.id === AI_BOT.mentionId ? (
+              <Bot size={15} aria-hidden="true" />
             ) : <UserAvatar
                 src={user?.avatarUrl}
                 alt={user?.name}

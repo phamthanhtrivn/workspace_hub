@@ -33,7 +33,7 @@ import {
   releaseVoiceSession,
 } from "../../utils/voice-session-coordinator";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { MentionTextarea } from "./mention-textarea";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
@@ -678,7 +678,7 @@ const DirectMessageInput = React.memo(
               </div>
 
               <MessageComposerPreview id={`${controlledPopupId}-message-preview`} message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} compact={compact} open={showPreview} className="flex-1 @max-[480px]/composer:order-first @max-[480px]/composer:basis-full">
-              <Textarea unstyled focusMode="container" aria-label="Direct message"
+              <MentionTextarea mentionProfiles={memberProfiles} unstyled focusMode="container" aria-label="Direct message"
                 ref={textareaRef}
                 value={
                   message +

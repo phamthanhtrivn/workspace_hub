@@ -1,6 +1,7 @@
 "use client";
 
 import { Bot } from "lucide-react";
+import { AI_BOT } from "../../constants/chat-identity";
 
 export default function AiTypingIndicator({ active }: { active: boolean }) {
   if (!active) return null;
@@ -15,7 +16,7 @@ export default function AiTypingIndicator({ active }: { active: boolean }) {
       <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-hidden="true">
         <Bot className="size-4" />
       </span>
-      <span>AI is typing</span>
+      <span>{AI_BOT.name} is typing</span>
       <span className="flex items-center gap-1" aria-hidden="true">
         {[0, 150, 300].map((delay) => (
           <span

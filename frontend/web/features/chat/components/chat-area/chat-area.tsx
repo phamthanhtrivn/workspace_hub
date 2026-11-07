@@ -195,23 +195,21 @@ export default function ChatArea({
   });
 
   // ─── Member profiles ───────────────────────────────────────────────────────
-  const messageSenderIds = useMemo(() => {
+  const messageMentionIds = useMemo(() => {
     const ids = new Set<string>();
     allMessages.forEach((message: ChatMessageResponse) => {
-      if (message.senderId) ids.add(message.senderId);
-      message.reactions?.forEach((reaction) => {
-        if (reaction.userId) ids.add(String(reaction.userId));
-      });
+      message.mentions?.forEach(id => ids.add(id));
+
     });
     return Array.from(ids);
   }, [allMessages]);
 
-  const activeMemberProfiles = useChatMemberProfiles(messageSenderIds);
+  const activeMemberProfiles = useChatMemberProfiles(messageMentionIds, { resolveMissing: true });
   const memberProfiles = useMemo(() => {
     const profiles = { ...activeMemberProfiles };
     allMessages.forEach((message: ChatMessageResponse) => {
       if (message.senderId && message.senderProfile) {
-        profiles[message.senderId] = message.senderProfile;
+        profiles[message.senderId] = { ...message.senderProfile, mentionNames: profiles[message.senderId]?.mentionNames };
       }
     });
     return profiles;

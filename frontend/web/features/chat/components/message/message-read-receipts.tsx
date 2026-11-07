@@ -1,24 +1,27 @@
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import { MemberProfilesMap } from "./chat-message.types";
+import { cn } from "@/lib/utils";
 
 interface MessageReadReceiptsProps {
   readBy: string[];
   currentUserId?: string | null;
   memberProfiles: MemberProfilesMap;
+  align?: "start" | "end";
 }
 
 export default function MessageReadReceipts({
   readBy,
   currentUserId,
   memberProfiles,
+  align = "end",
 }: MessageReadReceiptsProps) {
   const otherReaders = readBy.filter((userId) => userId !== currentUserId);
 
   if (otherReaders.length === 0) return null;
 
   return (
-    <div className="flex w-full justify-end px-2 mt-0.5">
+    <div className={cn("mt-0.5 flex w-full min-w-0 px-1", align === "end" ? "justify-end" : "justify-start")}>
       <div className="flex items-center gap-1 -space-x-1.5 self-end">
         {otherReaders.slice(0, 5).map((userId) => {
           const readerProfile = memberProfiles[userId];

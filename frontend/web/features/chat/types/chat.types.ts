@@ -30,6 +30,8 @@ export interface UserProfileResponse {
 }
 
 export interface UserProfileSnapshotResponse {
+  /** Client-side aliases used when rendering mentions selected by nickname. */
+  mentionNames?: string[];
   id?: string | null;
   userId?: string | null;
   email: string | null;

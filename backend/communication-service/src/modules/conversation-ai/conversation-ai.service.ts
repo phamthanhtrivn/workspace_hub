@@ -16,11 +16,9 @@ import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 
-export const AI_BOT_ID = '00000000-0000-4000-8000-0000000000a1';
-export function aiQuestion(content: string): string | null {
-  const match = content.match(/^\s*@ai(?:\s+|$)([\s\S]*)/i);
-  return match ? match[1].trim().slice(0, 4000) || 'Bạn có thể giúp gì?' : null;
-}
+import { AI_BOT_ID, AI_BOT_NAME, aiQuestion } from './conversation-ai-mention';
+import { CONVERSATION_AI_MESSAGES } from './conversation-ai.messages';
+export { AI_BOT_ID, aiQuestion } from './conversation-ai-mention';
 type RequestRow = {
   id: string;
   actor_id: string;
@@ -80,7 +78,9 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
           attachmentMediaId,
         ))
     )
-      throw new BadRequestException('Mã file không hợp lệ.');
+      throw new BadRequestException(
+        CONVERSATION_AI_MESSAGES.invalidAttachmentId,
+      );
     if (
       attachmentMediaId &&
       (!this.enabled() ||
@@ -88,7 +88,7 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
         !aiQuestion(message.content || ''))
     )
       throw new BadRequestException(
-        'Yêu cầu tóm tắt tài liệu không hợp lệ hoặc AI chưa bật.',
+        CONVERSATION_AI_MESSAGES.invalidAttachmentRequest,
       );
     if (
       !this.enabled() ||
@@ -101,9 +101,7 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
       { count: bigint }[]
     >`SELECT count(*) AS count FROM conversation_ai_requests WHERE actor_id=${actorId}::uuid AND created_at>now()-interval '1 minute'`;
     if (Number(usage.count) >= 10)
-      throw new BadRequestException(
-        'Bạn đã gọi AI quá nhiều lần. Vui lòng chờ một phút.',
-      );
+      throw new BadRequestException(CONVERSATION_AI_MESSAGES.rateLimited);
     let attachmentHash: string | null = null;
     if (attachmentMediaId) {
       const media = await this.summaryMedia(chatType, attachmentMediaId, tx);
@@ -178,7 +176,7 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
           await this.complete(
             request.id,
             request.token!,
-            'Yêu cầu AI bị gián đoạn. Hãy gửi một tin @ai mới để thử lại.',
+            CONVERSATION_AI_MESSAGES.interrupted,
             true,
           );
         } catch {
@@ -325,7 +323,9 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
         id,
       )
     )
-      throw new BadRequestException('Mã file không hợp lệ.');
+      throw new BadRequestException(
+        CONVERSATION_AI_MESSAGES.invalidAttachmentId,
+      );
     const media =
       chatType === 'CHANNEL'
         ? await client.media.findUnique({
@@ -336,7 +336,10 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
             where: { id },
             include: { message: true },
           });
-    if (!media) throw new ForbiddenException('File không còn tồn tại.');
+    if (!media)
+      throw new ForbiddenException(
+        CONVERSATION_AI_MESSAGES.attachmentUnavailable,
+      );
     return media;
   }
   private assertSummaryMedia(
@@ -353,7 +356,7 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
       source.threadParentId !== threadParentId
     )
       throw new ForbiddenException(
-        'Không có quyền đọc file trong cuộc hội thoại này.',
+        CONVERSATION_AI_MESSAGES.attachmentForbidden,
       );
     if (
       !media.name ||
@@ -364,7 +367,7 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
       media.sizeBytes > 20 * 1024 * 1024
     )
       throw new BadRequestException(
-        'Chỉ tóm tắt PDF, DOCX, TXT, MD tối đa 20 MiB/file.',
+        CONVERSATION_AI_MESSAGES.unsupportedAttachment,
       );
     const prefix = `chat-media/${chatId}/`;
     const chatUpload =
@@ -376,7 +379,7 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
       );
     if (!chatUpload && !documentUpload)
       throw new ForbiddenException(
-        'File không thuộc kho đính kèm của cuộc hội thoại này.',
+        CONVERSATION_AI_MESSAGES.attachmentOutsideConversation,
       );
   }
   private mediaHash(
@@ -571,7 +574,7 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
       senderProfile: {
         id: AI_BOT_ID,
         userId: AI_BOT_ID,
-        fullName: 'AI',
+        fullName: AI_BOT_NAME,
         email: null,
         avatarUrl: null,
       },

@@ -64,7 +64,7 @@ import {
   getChannelMentionOptions,
 } from "../../utils/mention-member-utils";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { MentionTextarea } from "./mention-textarea";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
@@ -113,6 +113,7 @@ const ThreadChatInput = React.memo(
     const [mentionStartIndex, setMentionStartIndex] = useState<number>(-1);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [mentions, setMentions] = useState<string[]>([]);
+    const [mentionNames, setMentionNames] = useState<string[]>([]);
 
     const mentionListId = React.useId();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -318,6 +319,7 @@ const ThreadChatInput = React.memo(
           textareaRef.current?.selectionStart || message.length,
         );
         const newText = `${before}@${user.name} ${after}`;
+        setMentionNames(previous => previous.includes(user.name) ? previous : [...previous, user.name]);
         setMessage(newText);
         setMentionQuery(null);
         setMentionStartIndex(-1);
@@ -581,6 +583,7 @@ const ThreadChatInput = React.memo(
       setShowPreview(false);
       setUploadingMedia([]);
       setMentions([]);
+      setMentionNames([]);
       setMentionQuery(null);
     }, [
       message,
@@ -866,8 +869,8 @@ const ThreadChatInput = React.memo(
               )}
 
               {/* Textarea Input */}
-              <MessageComposerPreview id={`${controlledPopupId}-message-preview`} message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} compact open={showPreview}>
-              <Textarea unstyled focusMode="container" role="combobox" aria-label="Reply in thread" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
+              <MessageComposerPreview mentionNames={mentionNames} id={`${controlledPopupId}-message-preview`} message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} compact open={showPreview}>
+              <MentionTextarea mentionProfiles={memberProfiles} mentionNames={mentionNames} unstyled focusMode="container" role="combobox" aria-label="Reply in thread" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
                 id="thread-chat-input-textarea"
                 ref={textareaRef}
                 onPaste={handlePaste}

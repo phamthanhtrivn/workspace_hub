@@ -16,9 +16,9 @@ export const renderAudioPlayer = (media: ChatMediaResponse, isMe: boolean) => {
   return (
     <div
       key={media.id}
-      className={`p-2 rounded-panel ${isMe ? "bg-primary-soft" : "bg-muted"}`}
+      className={`min-w-0 max-w-full p-2 rounded-panel ${isMe ? "bg-primary-soft" : "bg-muted"}`}
     >
-      <StorageAudio controls src={media.fileUrl} className="h-10 max-w-[240px]" />
+      <StorageAudio controls src={media.fileUrl} className="h-10 w-full min-w-0 max-w-full sm:max-w-[240px]" />
     </div>
   );
 };

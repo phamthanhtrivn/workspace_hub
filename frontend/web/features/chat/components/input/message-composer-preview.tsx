@@ -13,6 +13,7 @@ interface MessageComposerPreviewProps {
   message: string;
   interimMessage?: string;
   memberProfiles?: ChatProfilesMap;
+  mentionNames?: string[];
   compact?: boolean;
   open: boolean;
   children: ReactNode;
@@ -24,6 +25,7 @@ export default function MessageComposerPreview({
   message,
   interimMessage,
   memberProfiles,
+  mentionNames,
   compact,
   open,
   children,
@@ -31,8 +33,8 @@ export default function MessageComposerPreview({
 }: MessageComposerPreviewProps) {
   const content = composeMessageText(message, interimMessage);
   const rendered = useMemo(
-    () => (open ? renderMessageContent(content, memberProfiles) : null),
-    [open, content, memberProfiles],
+    () => (open ? renderMessageContent(content, memberProfiles, mentionNames) : null),
+    [open, content, memberProfiles, mentionNames],
   );
   return (
     <div className={cn("w-full min-w-0", className)}>

@@ -1,12 +1,14 @@
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import { FaKey } from "react-icons/fa";
+import { Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserProfileSnapshotResponse } from "../../types/chat.types";
 import { Button } from "@/components/ui/button";
 
 interface MessageAvatarProps {
   showAvatar: boolean;
+  isBot?: boolean;
   senderName: string;
   senderProfile: UserProfileSnapshotResponse | null;
   memberRole?: "ADMIN" | "MEMBER";
@@ -16,6 +18,7 @@ interface MessageAvatarProps {
 
 export default function MessageAvatar({
   showAvatar,
+  isBot = false,
   senderName,
   senderProfile,
   memberRole,
@@ -28,15 +31,17 @@ export default function MessageAvatar({
   return (
     <Button variant="unstyled"
       type="button"
+      disabled={isBot || !showAvatar}
+      tabIndex={showAvatar && !isBot ? 0 : -1}
       onClick={showAvatar ? onClick : undefined}
       className={cn(
-        "w-9 h-9 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-semibold mt-1 mr-2.5",
+        "w-9 h-9 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-semibold mt-1 disabled:opacity-100",
         showAvatar &&
           "bg-muted cursor-pointer hover:ring-2 hover:ring-ring transition-all",
       )}
-      aria-label={showAvatar ? `Open ${senderName}'s profile` : undefined}
+      aria-label={showAvatar ? isBot ? senderName : `Open ${senderName}'s profile` : undefined}
     >
-      {showAvatar ? (
+      {showAvatar && isBot ? <Bot className="size-5 text-info-content" aria-hidden="true" /> : showAvatar ? (
         <span className="relative inline-block">
           <UserAvatar
             src={senderProfile?.avatarUrl}

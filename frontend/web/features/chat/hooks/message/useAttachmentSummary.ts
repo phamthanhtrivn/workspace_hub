@@ -1,6 +1,6 @@
 "use client";
 
-import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { aiErrorMessage } from "@/lib/ai-feedback";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { requestAttachmentSummary } from "../../api/attachment-summary.api";
@@ -17,9 +17,7 @@ export function useAttachmentSummary(message: ChatMessageResponse) {
       await requestAttachmentSummary(message, file);
       toast.success("Summary requested. The result will appear in this conversation.");
     } catch (error: unknown) {
-      const response = (error as { response?: { data?: { message?: unknown } } })?.response;
-      const detail = response?.data?.message;
-      toast.error(getActionErrorMessage(error, typeof detail === "string" ? detail : "Unable to request a summary. Try again."));
+      toast.error(aiErrorMessage(error, "Unable to request a summary. Try again."));
     } finally {
       pending.current = false;
       setIsRequesting(false);

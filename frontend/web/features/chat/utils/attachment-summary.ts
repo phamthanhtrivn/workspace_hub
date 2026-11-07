@@ -1,3 +1,4 @@
+import { AI_BOT } from "../constants/chat-identity";
 import type { ChatMediaResponse } from "../types/chat.types";
 
 export function summaryAttachments(medias?: ChatMediaResponse[]) {
@@ -8,5 +9,5 @@ export function summaryAttachments(medias?: ChatMediaResponse[]) {
 }
 
 export function attachmentSummaryPrompt(name: string) {
-  return `@ai Summarize the document “${name.replace(/[\r\n]/g, " ").slice(0, 300)}”.`;
+  return `${AI_BOT.mention} Summarize the document “${name.replace(/[\r\n]/g, " ").slice(0, 300)}”.`;
 }

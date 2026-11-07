@@ -77,7 +77,6 @@ export function MeetingMessageList({
 
       {messages.map((message, index) => {
         const previousMessage = messages[index - 1];
-        const nextMessage = messages[index + 1];
         const previousTime = previousMessage
           ? new Date(previousMessage.createdAt).getTime()
           : 0;
@@ -90,13 +89,7 @@ export function MeetingMessageList({
           !previousMessage ||
           previousMessage.senderId !== message.senderId ||
           currentTime - previousTime > GROUP_MESSAGES_THRESHOLD_MS;
-        const nextTime = nextMessage
-          ? new Date(nextMessage.createdAt).getTime()
-          : 0;
-        const showSenderName =
-          !nextMessage ||
-          nextMessage.senderId !== message.senderId ||
-          nextTime - currentTime > GROUP_MESSAGES_THRESHOLD_MS;
+        const showSenderName = showAvatar;
         const hasSenderChanged =
           Boolean(previousMessage) &&
           previousMessage?.senderId !== message.senderId;

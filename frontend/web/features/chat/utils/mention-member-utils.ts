@@ -4,6 +4,7 @@ import {
   ConversationMember,
   UserProfileSnapshotResponse,
 } from "../types/chat.types";
+import { AI_BOT } from "../constants/chat-identity";
 
 export interface MentionMemberOption {
   id: string;
@@ -34,10 +35,10 @@ export function getChannelMentionOptions(
     .filter((member) => member.userId !== currentUserId)
     .map(toChannelMentionOption);
 
-  const aiOption = "ai".includes(
+  const aiOption = AI_BOT.name.toLowerCase().includes(
     (options.searchQuery ?? "").trim().toLowerCase(),
   )
-    ? [{ id: "ai", name: "ai" }]
+    ? [{ id: AI_BOT.mentionId, name: AI_BOT.name }]
     : [];
   members.unshift(...aiOption);
   const limitedMembers = options.includeAll
@@ -72,8 +73,8 @@ export function getCachedMentionOptions(
   const normalizedQuery = searchQuery.trim().toLowerCase();
 
   return [
-    ...("ai".includes(normalizedQuery)
-      ? [{ id: "ai", name: "ai", avatarUrl: undefined }]
+    ...(AI_BOT.name.toLowerCase().includes(normalizedQuery)
+      ? [{ id: AI_BOT.mentionId, name: AI_BOT.name, avatarUrl: undefined }]
       : []),
     ...(members ?? [])
       .filter((member) => member.userId !== currentUserId)

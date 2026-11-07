@@ -110,7 +110,7 @@ export function MessageFileMedias({ medias, isMe }: MessageFileMediasProps) {
   if (medias.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2 max-w-full">
+    <div className="flex min-w-0 max-w-full flex-col gap-2">
       {medias.map((media) => {
         if (isAudioFile(media)) {
           return renderAudioPlayer(media, isMe);
@@ -120,16 +120,16 @@ export function MessageFileMedias({ medias, isMe }: MessageFileMediasProps) {
           <div
             key={media.id}
             className={cn(
-              "flex items-center justify-between gap-3 py-2.5 px-4 rounded-panel border transition",
+              "flex min-w-0 max-w-full items-center justify-between gap-3 py-2.5 px-4 rounded-panel border transition",
               isMe
                 ? "bg-primary-soft/80 border-info-outline/40 text-info-content"
                 : "bg-card border-border hover:bg-background text-foreground",
             )}
           >
-            <div className="flex gap-3">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
               <div
                 className={cn(
-                  "p-2 rounded-lg",
+                  "shrink-0 p-2 rounded-lg",
                   isMe
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-info-content",
@@ -137,7 +137,7 @@ export function MessageFileMedias({ medias, isMe }: MessageFileMediasProps) {
               >
                 <FileText size={20} />
               </div>
-              <div className="flex flex-col min-w-0 max-w-[180px]">
+              <div className="flex min-w-0 max-w-[180px] flex-1 flex-col">
                 <span className="text-sm font-semibold truncate">
                   {media.name}
                 </span>
@@ -157,7 +157,7 @@ export function MessageFileMedias({ medias, isMe }: MessageFileMediasProps) {
               }
               size={16}
               className={cn(
-                "ml-1 cursor-pointer transition p-1 rounded-lg",
+                "ml-1 shrink-0 cursor-pointer transition p-1 rounded-lg",
                 isMe
                   ? "text-info-content hover:bg-info-soft"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground",

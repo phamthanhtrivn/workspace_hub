@@ -77,9 +77,8 @@ export function MeetingMessageItem({
   };
 
   return (
-    <div className={cn("group flex w-full min-w-0 gap-2", isMe && "justify-end")}>
-      {!isMe && (
-        <div className="w-8 shrink-0">
+    <div className={cn("group flex w-full min-w-0 items-start gap-2", isMe && "flex-row-reverse")}>
+      <div className="w-8 shrink-0">
           {showAvatar && (
             <Button variant="unstyled"
               type="button"
@@ -94,21 +93,20 @@ export function MeetingMessageItem({
             </Button>
           )}
         </div>
-      )}
 
       <div
         className={cn(
-          "flex w-[82%] min-w-0 flex-col",
+          "flex min-w-0 max-w-[calc(100%-2.5rem)] flex-1 flex-col",
           isMe ? "items-end" : "items-start",
         )}
         onMouseLeave={() => setIsReactionPickerOpen(false)}
       >
-        {showSenderName && !isMe && (
-          <div className="mb-1 flex max-w-full items-baseline gap-2 px-1">
+        {showSenderName && (
+          <div className={cn("mb-1 flex min-w-0 max-w-full flex-wrap items-baseline gap-x-2 gap-y-0.5 px-1", isMe && "flex-row-reverse text-right")}>
             <span className="truncate text-xs font-semibold text-muted-foreground">
               {senderName}
             </span>
-            <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+            <span className="max-w-full text-xs font-semibold text-muted-foreground">
               {createdAtLabel}
             </span>
           </div>
@@ -125,7 +123,7 @@ export function MeetingMessageItem({
             {hasText && (
               <div
                 className={cn(
-                  "mt-1 max-w-full whitespace-pre-wrap break-words rounded-panel px-3 py-2 text-sm font-semibold leading-6",
+                  "mt-1 min-w-0 max-w-full text-left whitespace-pre-wrap break-words [overflow-wrap:anywhere] rounded-panel px-3 py-2 text-sm font-semibold leading-6",
                   isMe
                     ? "rounded-br-md bg-primary text-primary-foreground"
                     : "rounded-bl-md border border-border bg-accent text-muted-foreground",
@@ -151,7 +149,7 @@ export function MeetingMessageItem({
             isMe ? "justify-end" : "justify-start",
           )}
         >
-          {(!showSenderName || isMe) && <span>{createdAtLabel}</span>}
+          {!showSenderName && <span>{createdAtLabel}</span>}
           {message.edited && (
             <span>Edited</span>
           )}
@@ -168,7 +166,7 @@ export function MeetingMessageItem({
         {!message.recalled && (
           <div
             className={cn(
-              "mt-0 flex max-h-0 w-max max-w-full flex-wrap items-center gap-1 overflow-hidden opacity-0 transition-[max-height,margin,opacity] duration-150 focus-within:mt-1 focus-within:max-h-24 focus-within:opacity-100 group-hover:mt-1 group-hover:max-h-24 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100",
+              "mt-0 flex max-h-0 w-max max-w-full flex-wrap items-center gap-1 overflow-hidden opacity-0 transition-[max-height,margin,opacity] duration-150 focus-within:mt-1 focus-within:max-h-24 focus-within:opacity-100 group-hover:mt-1 group-hover:max-h-24 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 [@media(hover:none)]:max-h-24 [@media(hover:none)]:mt-1",
               isMe ? "justify-end" : "justify-start",
             )}
           >
