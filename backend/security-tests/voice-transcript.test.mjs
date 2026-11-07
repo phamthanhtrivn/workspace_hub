@@ -9,6 +9,7 @@ communication('ts-node').register({ transpileOnly: true, skipProject: true,
   compilerOptions: { module: 'CommonJS', moduleResolution: 'Node', target: 'ES2023', esModuleInterop: true, experimentalDecorators: true } });
 const ai = createRequire(new URL('../ai-service/api/package.json', import.meta.url));
 const { VoiceTranscriptService: MediaTranscripts } = communication('./src/modules/media/voice-transcript.service.ts');
+const { MediaService } = communication('./src/modules/media/media.service.ts');
 const { VoiceChatType } = communication('./src/modules/media/types/voice-transcript.constants.ts');
 const { ResponseInterceptor } = communication('./src/common/interceptors/response.interceptor.ts');
 const { lastValueFrom, of } = communication('rxjs');
@@ -52,6 +53,21 @@ function mediaService({ denied = false, found = true, mimeType = 'audio/webm' } 
     { assertPrivateAccess: authorize }, { assertCanRead: authorize });
   return { service, checks };
 }
+
+test('attachment access URL survives the real HTTP envelope and signing requires read permission', async () => {
+  const calls = [];
+  const url = 'https://media.invalid/audio?X-Amz-Signature=test-only';
+  const service = new MediaService({ generateAttachmentDownloadUrl: async key => { calls.push(['sign', key]); return url; } },
+    { assertCanRead: async (key, actor) => { calls.push(['read', key, actor]); } });
+  const response = await httpPayload(await service.getAccessUrl('private/audio', 'reader'));
+  assert.equal(response.data.url, url);
+  assert.ok(Date.parse(response.data.expiresAt) > Date.now());
+  assert.equal(response.data.data, undefined);
+  assert.deepEqual(calls, [['read', 'private/audio', 'reader'], ['sign', 'private/audio']]);
+  const denied = new MediaService({ generateAttachmentDownloadUrl: async () => assert.fail('must not sign without read permission') },
+    { assertCanRead: async () => { throw Error('Forbidden'); } });
+  await assert.rejects(denied.getAccessUrl('private/audio', 'outsider'), /Forbidden/);
+});
 
 test('voice recorder keeps MIME, filename and duration consistent across browsers', () => {
   assert.equal(audio.preferredRecordingType(type => type.startsWith('audio/mp4')), 'audio/mp4;codecs=mp4a.40.2');

@@ -1,4 +1,5 @@
 export enum MEDIA_SUCCESS_MESSAGES {
+  ACCESS_URL_GENERATED = 'Generated attachment access URL successfully',
   PRESIGNED_URLS_GENERATED = 'Generated presigned URLs successfully',
 }
 

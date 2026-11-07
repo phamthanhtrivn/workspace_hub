@@ -20,8 +20,15 @@ export class MediaService {
 
   async getAccessUrl(key: string, userId: string) {
     await this.access.assertCanRead(key, userId);
-    return { data: { url: await this.s3Service.generateAttachmentDownloadUrl(key),
-      expiresAt: new Date(Date.now() + ATTACHMENT_READ_TTL_SECONDS * 1000).toISOString() } };
+    return {
+      message: MEDIA_SUCCESS_MESSAGES.ACCESS_URL_GENERATED,
+      data: {
+        url: await this.s3Service.generateAttachmentDownloadUrl(key),
+        expiresAt: new Date(
+          Date.now() + ATTACHMENT_READ_TTL_SECONDS * 1000,
+        ).toISOString(),
+      },
+    };
   }
 
   async generatePresignedUrls(body: PresignRequestDto, userId: string) {
