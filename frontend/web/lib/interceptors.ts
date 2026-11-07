@@ -2,7 +2,7 @@ import axios from "axios";
 import { api } from "./axios";
 import { store } from "@/store/store";
 import { endSession, getSessionEpoch, redirectToLoginIfNeeded, sessionRecovery } from "@/features/auth/api/session-recovery";
-import { isRecoverableApiError } from "./api-error-policy";
+import { getExpectedApiConflictMessage, isRecoverableApiError } from "./api-error-policy";
 import { isEmailVerificationLoginError } from "@/features/auth/utils/auth-error";
 import { getPermissionErrorMessage } from "./permission-feedback";
 
@@ -22,7 +22,7 @@ export function logApiError(error: unknown, context = "API request failed") {
     return;
   }
 
-  if (isEmailVerificationLoginError(error)) return;
+  if (isEmailVerificationLoginError(error) || getExpectedApiConflictMessage(error)) return;
 
   const method = error.config?.method?.toUpperCase() || "UNKNOWN";
   const url = error.config?.url || "unknown-url";

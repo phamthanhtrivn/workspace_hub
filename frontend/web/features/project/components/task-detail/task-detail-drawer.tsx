@@ -280,7 +280,8 @@ export default function TaskDetailDrawer({
           {/* Status & Dependencies Bar */}
           <div className="flex flex-wrap items-center gap-2 select-none">
             <TaskStatusPicker
-              status={task.status}
+              task={task}
+              tasks={tasks}
               onChange={handleStatusChange}
               disabled={!canChangeStatus}
             />

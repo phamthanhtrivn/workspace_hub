@@ -3,8 +3,9 @@ import { useId as useControlledPopupId } from "react";
 
 import { useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { TaskStatus } from "@/features/project/types/project";
-import { TASK_DRAWER_STATUS_OPTIONS } from "@/features/project/constants/task.constants";
+import { TaskStatus, isTerminalTaskStatus, type Task } from "@/features/project/types/project";
+import { TASK_DRAWER_STATUS_OPTIONS, TASK_STATUS_RESTRICTIONS } from "@/features/project/constants/task.constants";
+import { getTaskStatusTransitionReason } from "../../task-status-transition";
 
 import { Button } from "@/components/ui/button";
 import { PERMISSION_REASON } from "@/lib/permission-feedback";
@@ -12,19 +13,26 @@ import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface TaskStatusPickerProps {
-  status: TaskStatus;
+  task: Task;
+  tasks?: Task[];
   onChange: (status: TaskStatus) => Promise<void> | void;
   disabled?: boolean;
 }
 
 export default function TaskStatusPicker({
-  status,
+  task,
+  tasks = [],
   onChange,
   disabled = false,
 }: TaskStatusPickerProps) {
   const controlledPopupId = useControlledPopupId();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const status = task.status;
+  const disabledReason = disabled
+    ? task.archived ? TASK_STATUS_RESTRICTIONS.archived
+      : isTerminalTaskStatus(status) ? TASK_STATUS_RESTRICTIONS.readOnly : PERMISSION_REASON.projectContribute
+    : undefined;
 
 
 
@@ -40,7 +48,7 @@ export default function TaskStatusPicker({
         size="sm"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        disabledReason={disabled ? PERMISSION_REASON.projectContribute : undefined}
+        disabledReason={disabledReason}
         className={[
           "flex h-7 items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-semibold transition border border-transparent hover:opacity-90",
           currentOption.color,
@@ -56,15 +64,14 @@ export default function TaskStatusPicker({
           {TASK_DRAWER_STATUS_OPTIONS.map((opt) => (
             <DropdownMenuItem closeOnClick={false}
               key={opt.value}
-
-
-
+              disabledReason={getTaskStatusTransitionReason(task, opt.value, tasks)}
               onClick={() => {
+                if (getTaskStatusTransitionReason(task, opt.value, tasks)) return;
                 setIsOpen(false);
                 void onChange(opt.value);
               }}
               className={[
-                "flex w-full justify-start rounded-none cursor-pointer items-center px-3 py-2 h-auto text-left text-xs font-semibold transition hover:bg-muted",
+                "flex w-full justify-start rounded-none cursor-pointer items-center px-3 py-2 h-auto text-left text-xs font-semibold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50",
                 opt.value === status
                   ? "text-info-content bg-info-soft/50 hover:bg-info-soft/80 hover:text-info-content"
                   : "text-foreground",

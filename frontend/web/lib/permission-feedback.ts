@@ -1,4 +1,5 @@
 import { isAxiosError } from "axios";
+import { getExpectedApiConflictMessage } from "./api-error-policy";
 
 export const PERMISSION_REASON = {
   projectCreateTask: 'Ask a project admin to enable "Create tasks" for your account.',
@@ -123,7 +124,7 @@ export function getPermissionErrorMessage(error: unknown): string | undefined {
 }
 
 export function getActionErrorMessage(error: unknown, fallbackMessage: string): string {
-  return getPermissionErrorMessage(error) ?? fallbackMessage;
+  return getPermissionErrorMessage(error) ?? getExpectedApiConflictMessage(error) ?? fallbackMessage;
 }
 
 export function logActionError(...details: unknown[]): void {

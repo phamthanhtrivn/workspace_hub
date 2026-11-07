@@ -480,6 +480,7 @@ export default function ProjectDetailScreen() {
           projectId={projectId}
           viewMode={viewMode}
           tasks={filteredTasks}
+          allTasks={tasks}
           members={projectWithMembers.members}
           dependencies={dependencies}
           isLoading={visibleTasksLoading}
