@@ -83,6 +83,7 @@ export class VoiceTranscriptService {
   async source(id: string, actorId: string, chatType: VoiceChatType) {
     const { media, revision } = await this.attachment(id, actorId, chatType);
     return {
+      message: VOICE_TRANSCRIPT.sourceMessage,
       data: {
         mediaId: id,
         chatType,
@@ -176,6 +177,7 @@ export class VoiceTranscriptService {
     )
       throw new ServiceUnavailableException(VOICE_TRANSCRIPT.unavailable);
     return {
+      message: VOICE_TRANSCRIPT.responseMessage,
       data: {
         status: payload.status,
         text: payload.status === 'COMPLETED' ? (payload.text as string) : null,

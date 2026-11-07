@@ -10,6 +10,9 @@ communication('ts-node').register({ transpileOnly: true, skipProject: true,
 const ai = createRequire(new URL('../ai-service/api/package.json', import.meta.url));
 const { VoiceTranscriptService: MediaTranscripts } = communication('./src/modules/media/voice-transcript.service.ts');
 const { VoiceChatType } = communication('./src/modules/media/types/voice-transcript.constants.ts');
+const { ResponseInterceptor } = communication('./src/common/interceptors/response.interceptor.ts');
+const { lastValueFrom, of } = communication('rxjs');
+const httpPayload = response => lastValueFrom(new ResponseInterceptor().intercept({}, { handle: () => of(response) }));
 const audio = communication('../../frontend/web/features/chat/utils/voice-audio.ts');
 
 function stub(file, exports) {
@@ -71,6 +74,8 @@ test('source access checks exact channel/direct membership and excludes recalled
     assert.deepEqual(checks[1], [type === VoiceChatType.CHANNEL ? 'channel' : 'conversation', 'reader']);
     assert.equal(result.data.chatType, type);
     assert.match(result.data.revision, /^[a-f0-9]{64}$/);
+    const response = await httpPayload(result);
+    assert.equal(response.data.mediaId, 'media', 'source must survive the real HTTP response interceptor without nested data');
     await assert.rejects(mediaService({ denied: true }).service.source('media', 'outsider', type), /Forbidden/);
   }
   await assert.rejects(mediaService({ found: false }).service.attachment('media', 'reader', VoiceChatType.CHANNEL), /unavailable/);
@@ -87,7 +92,8 @@ test('public proxy uses trusted actor, bounds its response and rechecks access a
       assert.deepEqual(JSON.parse(options.body), { actorId: 'reader', chatType: VoiceChatType.CHANNEL });
       return Response.json({ status: 'COMPLETED', text: 'Private words', extra: 'must not leak' });
     };
-    assert.deepEqual(await service.proxy('media', 'reader', VoiceChatType.CHANNEL, true), { data: { status: 'COMPLETED', text: 'Private words', error: null } });
+    const response = await httpPayload(await service.proxy('media', 'reader', VoiceChatType.CHANNEL, true));
+    assert.deepEqual(response.data, { status: 'COMPLETED', text: 'Private words', error: null });
     const attachment = service.attachment.bind(service); let checks = 0;
     service.attachment = async (...args) => { if (++checks === 2) throw Error('Access revoked'); return attachment(...args); };
     await assert.rejects(service.proxy('media', 'reader', VoiceChatType.CHANNEL, false), /Access revoked/);

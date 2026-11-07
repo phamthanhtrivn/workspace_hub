@@ -10,6 +10,8 @@ export const VOICE_TRANSCRIPT = {
   maxResponseBytes: 256 * 1024,
   maxText: 60000,
   maxError: 500,
+  responseMessage: 'Voice transcript',
+  sourceMessage: 'Voice message source',
   unavailable: 'Voice transcription is unavailable or not configured.',
   unsupported: 'This attachment is not a supported voice message.',
   missing: 'Voice message is unavailable.',
