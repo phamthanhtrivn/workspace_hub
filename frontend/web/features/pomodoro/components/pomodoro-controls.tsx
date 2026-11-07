@@ -41,8 +41,8 @@ export const PomodoroControls = React.memo(function PomodoroControls({
         : "Start long break";
 
   return (
-    <div className="flex flex-col items-center justify-center gap-3">
-      <div className="flex max-w-full flex-wrap items-center justify-center gap-2 sm:gap-3">
+    <div className="flex w-full min-w-0 max-w-sm flex-col items-center justify-center gap-3">
+      <div className="grid w-full min-w-0 grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-2 sm:gap-3">
         <Button
           type="button"
           variant="ghost"
@@ -61,7 +61,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             onClick={status === "IDLE" ? onStart : onResume}
             disabled={disabled}
             className={cn(
-              "h-12 min-w-40 gap-2 rounded-control px-5 text-sm font-semibold transition-colors duration-150 motion-reduce:transition-none sm:min-w-44 sm:px-8",
+              "h-12 min-w-0 gap-2 whitespace-normal rounded-control px-3 text-sm font-semibold leading-snug transition-colors duration-150 motion-reduce:transition-none sm:px-5",
               modeTheme.startButtonClass,
             )}
           >
@@ -73,7 +73,7 @@ export const PomodoroControls = React.memo(function PomodoroControls({
             type="button"
             onClick={onPause}
             disabled={disabled}
-            className="h-12 min-w-40 gap-2 rounded-control bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors duration-150 hover:bg-primary-hover motion-reduce:transition-none sm:min-w-44 sm:px-8"
+            className="h-12 min-w-0 gap-2 whitespace-normal rounded-control bg-primary px-3 text-sm font-semibold leading-snug text-primary-foreground transition-colors duration-150 hover:bg-primary-hover motion-reduce:transition-none sm:px-5"
           >
             <Pause aria-hidden="true" className="size-4 fill-current" />
             Pause

@@ -13,8 +13,8 @@ export function PomodoroPanelHeader({ title, description, icon: Icon, action, ch
       <div className="flex min-w-0 flex-1 basis-48 items-start gap-3">
         <span className="grid size-9 shrink-0 place-items-center rounded-control bg-muted text-info-content"><Icon aria-hidden="true" className="size-4" /></span>
         <div className="min-w-0 self-center">
-          <h2 className="text-base font-semibold leading-snug text-foreground">{title}</h2>
-          {description && <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>}
+          <h2 className="text-base font-semibold leading-snug text-foreground [overflow-wrap:anywhere]">{title}</h2>
+          {description && <p className="mt-1 text-xs leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">{description}</p>}
         </div>
       </div>
       {action}

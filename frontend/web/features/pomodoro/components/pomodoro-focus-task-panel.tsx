@@ -1,9 +1,10 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { CalendarDays, FolderKanban, Plus, Search, SearchX } from "lucide-react";
+import { CalendarDays, FolderKanban, Plus, RotateCcw, Search, SearchX, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { LoadingState } from "@/components/ui/loading-state";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
@@ -36,6 +37,7 @@ export function PomodoroFocusTaskPanel({ source, entries, loading, error, disabl
   const calendar = source === "calendar";
   const label = calendar ? "Calendar" : "Project";
   const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [projectId, setProjectId] = useState("");
   const [range, setRange] = useState<FocusPickerDateRange>({ startDate: "", endDate: "" });
   const timeZone = useAccountTimezone();
@@ -47,14 +49,28 @@ export function PomodoroFocusTaskPanel({ source, entries, loading, error, disabl
     [entries, search, selectedProject, range, today, timeZone]);
   const filterKey = JSON.stringify([search, selectedProject, range, today, timeZone]);
   const hasFilters = Boolean(search || selectedProject || range.startDate || range.endDate);
+  const activeFilterCount = [search.trim(), selectedProject, range.startDate, range.endDate].filter(Boolean).length;
   const clearFilters = () => { setSearch(""); setProjectId(""); setRange({ startDate: "", endDate: "" }); };
 
-  return <Card className="@container/task-panel flex h-full min-w-0 flex-col gap-0 overflow-hidden p-0" onFocusCapture={refreshToday} onPointerDownCapture={refreshToday}>
+  return <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}
+    render={<Card className="@container/task-panel flex h-full min-w-0 flex-col gap-0 overflow-hidden p-0" />}
+    onFocusCapture={refreshToday} onPointerDownCapture={refreshToday}>
     <PomodoroPanelHeader title={label + " tasks"}
       icon={calendar ? CalendarDays : FolderKanban}
-      action={onCreateTask && <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={onCreateTask}><Plus aria-hidden="true" className="size-4" />Add task</Button>} />
+      action={<div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
+        {onCreateTask && <Button type="button" variant="outline" size="sm" className="h-9" disabled={disabled} onClick={onCreateTask}><Plus aria-hidden="true" className="size-4" />{copy.addTask}</Button>}
+        <Button type="button" variant="outline" size="icon-sm" className="size-9" disabled={!hasFilters}
+          aria-label={copy.resetFilters(label)} title={copy.resetFilters(label)} onClick={clearFilters}>
+          <RotateCcw aria-hidden="true" className="size-4" />
+        </Button>
+        <CollapsibleTrigger render={<Button type="button" variant={filtersOpen || hasFilters ? "secondary" : "outline"} size="sm" className="h-9 gap-2" />}
+          aria-label={copy.filterControls(label)}>
+          <SlidersHorizontal aria-hidden="true" className="size-4" />{copy.filters}
+          {activeFilterCount > 0 && <span className="min-w-5 rounded-sm bg-background px-1 text-xs tabular-nums">{activeFilterCount}</span>}
+        </CollapsibleTrigger>
+      </div>} />
     <div className="flex flex-1 flex-col gap-4 p-4 sm:p-5">
-      <div className="space-y-3">
+      <CollapsibleContent keepMounted id={id + "-filters"} className="space-y-3">
         <label htmlFor={id + "-search"} className="block space-y-1.5 text-xs font-medium text-muted-foreground">
           <span>Task name</span>
           <span className="relative block">
@@ -85,15 +101,14 @@ export function PomodoroFocusTaskPanel({ source, entries, loading, error, disabl
         </div>
         <div className="flex items-start justify-between gap-3">
           <p id={id + "-date-help"} className="text-xs leading-relaxed text-muted-foreground">{filtered.hasDateFilter ? copy.filteredDateOrder : copy.defaultDateOrder}</p>
-          {hasFilters && <Button type="button" variant="link" size="sm" className="h-auto shrink-0 px-0 py-0 text-xs" onClick={clearFilters}>Clear filters</Button>}
         </div>
-      </div>
+      </CollapsibleContent>
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         <FocusTaskResults key={filterKey} label={label} filtered={filtered} loading={loading} error={error} onRetry={onRetry}
           disabled={disabled} onDeleteCalendarTask={onDeleteCalendarTask} />
       </div>
     </div>
-  </Card>;
+  </Collapsible>;
 }
 
 function FocusTaskResults({ label, filtered, loading, error, onRetry, disabled, onDeleteCalendarTask }: {
@@ -122,7 +137,7 @@ function FocusTaskResults({ label, filtered, loading, error, onRetry, disabled, 
   };
   return <>
     <div role="region" aria-label={label + " focus task list"} tabIndex={0} aria-busy={loading}
-      className="h-[28rem] max-h-[60dvh] shrink-0 overflow-y-auto overscroll-contain rounded-control p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
+      className="max-h-[min(28rem,60dvh)] shrink-0 overflow-y-auto overscroll-contain rounded-control p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
       {loading && <LoadingState label={"Loading " + label + " tasks..."} className="py-6 text-xs text-muted-foreground" />}
       {error && <div role="alert" className="space-y-2 py-4 text-center text-xs text-destructive-content">
         <p>{"Unable to load " + label + " tasks. Try again to refresh the list."}</p>
@@ -130,15 +145,15 @@ function FocusTaskResults({ label, filtered, loading, error, onRetry, disabled, 
       </div>}
       {visibleScheduled.length > 0 && <ul aria-label={label + " scheduled tasks"} className="space-y-2">{visibleScheduled.map(row)}</ul>}
 
-      {!loading && !error && filtered.scheduled.length === 0 && <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-xs text-muted-foreground">
+      {!loading && !error && filtered.scheduled.length === 0 && <div className="flex flex-col items-center justify-center gap-2 px-4 py-8 text-center text-xs text-muted-foreground">
         <SearchX aria-hidden="true" className="size-5" />
         <p>{total === 0 ? "No tasks found." : "No scheduled tasks."}</p>
       </div>}
     </div>
     <div className="mt-auto shrink-0 space-y-3 border-t border-border pt-3">
       <div className="flex min-h-10 flex-wrap items-center justify-between gap-2">
-      <p role="status" className="text-xs tabular-nums text-muted-foreground">Showing {shown} of {total} tasks</p>
-      {shown < total && <Button type="button" variant="outline" size="sm" onClick={() => setLimit(previous => previous + POMODORO_TASK_SETTINGS.focusPageSize)}>{copy.loadMore}</Button>}
+        <p role="status" className="text-xs tabular-nums text-muted-foreground">Showing {shown} of {total} tasks</p>
+        {shown < total && <Button type="button" variant="outline" size="sm" onClick={() => setLimit(previous => previous + POMODORO_TASK_SETTINGS.focusPageSize)}>{copy.loadMore}</Button>}
       </div>
       {filtered.missingDates.length > 0 && <PomodoroIncompleteTaskTray count={filtered.missingDates.length}>
         <ul aria-label="Project tasks missing dates" className="space-y-2">{visibleMissing.map(row)}</ul>

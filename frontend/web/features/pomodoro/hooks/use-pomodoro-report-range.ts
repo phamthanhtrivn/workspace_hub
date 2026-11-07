@@ -36,6 +36,7 @@ export function usePomodoroReportRange() {
     setDraft: (range: PomodoroReportRange) => dispatch({ type: "draft", range }),
     apply: () => dispatch({ type: "apply", today: localDateKey(new Date(), timeZone) }),
     cancel: () => dispatch({ type: "cancel" }),
+    reset: () => dispatch({ type: "reset", today: localDateKey(new Date(), timeZone) }),
     choosePreset: (preset: PomodoroReportPreset) => dispatch({ type: "preset", preset, today: localDateKey(new Date(), timeZone) }),
   };
 }

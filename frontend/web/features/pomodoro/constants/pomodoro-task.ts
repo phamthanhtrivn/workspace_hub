@@ -16,6 +16,10 @@ export const POMODORO_FOCUS_SOURCES = [
 ] as const;
 
 export const POMODORO_TASK_COPY = {
+  addTask: "Add task",
+  filters: "Filters",
+  filterControls: (source: string) => `${source} task filters`,
+  resetFilters: (source: string) => `Reset ${source} task filters`,
   defaultDateOrder: "Through today. Oldest first.",
   filteredDateOrder: "Overlapping dates. Oldest first.",
   missingDatesTitle: "Incomplete schedule",

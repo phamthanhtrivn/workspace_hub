@@ -70,8 +70,8 @@ function UserPomodoroView() {
   return (
     <div className="@container/pomodoro relative w-full min-w-0 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
       {/* Top Header & Context Bar */}
-      <div className="mx-auto mb-6 flex max-w-6xl flex-wrap items-center justify-between gap-3 border-b border-border/80 pb-4">
-        <div>
+      <div className="mb-6 flex w-full min-w-0 flex-wrap items-center justify-between gap-3 border-b border-border/80 pb-4">
+        <div className="min-w-0 flex-1 basis-64">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-page-title font-semibold tracking-tight text-foreground">
               Pomodoro Focus
@@ -90,7 +90,7 @@ function UserPomodoroView() {
         </div>
       </div>
 
-      <div className="mx-auto w-full min-w-0 max-w-6xl space-y-6">
+      <div className="w-full min-w-0 space-y-6">
         <section aria-label="Pomodoro timer" className="mx-auto flex w-full min-w-0 max-w-3xl flex-col items-center gap-4">
           <PomodoroTimerDisplay
             mode={mode} status={status} completionStatus={completionStatus} cycleCount={cycleCount}
