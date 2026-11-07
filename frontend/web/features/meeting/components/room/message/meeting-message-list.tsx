@@ -21,7 +21,6 @@ interface MeetingMessageListProps {
   loadOlderRef: (node?: Element | null) => void;
   currentUserId?: string | null;
   profilesByUserId: Record<string, MeetingParticipantProfile>;
-  readReceipts: Record<string, string>;
   onReact: (messageId: string, emoji: string, action: "add" | "remove") => void;
   onEdit: (message: MeetingMessageResponse) => void;
   onRecall: (messageId: string) => void;
@@ -36,7 +35,6 @@ export function MeetingMessageList({
   loadOlderRef,
   currentUserId,
   profilesByUserId,
-  readReceipts,
   onReact,
   onEdit,
   onRecall,
@@ -93,10 +91,6 @@ export function MeetingMessageList({
         const hasSenderChanged =
           Boolean(previousMessage) &&
           previousMessage?.senderId !== message.senderId;
-        const readBy = Object.keys(readReceipts || {}).filter(
-          (userId) =>
-            readReceipts[userId] === message.id && userId !== currentUserId,
-        );
 
         return (
           <div
@@ -117,8 +111,6 @@ export function MeetingMessageList({
               }
               showAvatar={showAvatar}
               showSenderName={showSenderName}
-              readBy={readBy}
-              profilesByUserId={profilesByUserId}
               onReact={onReact}
               onEdit={onEdit}
               onRecall={onRecall}

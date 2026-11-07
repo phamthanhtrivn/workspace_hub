@@ -126,9 +126,6 @@ export default function MessageList({
           conversationMembers?.find((m) => m.userId === msg.senderId)?.role
         }
         spaceCreatorId={spaceCreatorId}
-        readBy={Object.keys(readReceipts || {}).filter(
-          (uid) => readReceipts[uid] === msg.id && uid !== authUserId,
-        )}
         showTime={showTime}
         showSenderName={showSenderName}
         onReact={onReact}

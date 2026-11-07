@@ -28,7 +28,6 @@ import { cn } from "@/lib/utils";
 import MessageAvatar from "./message-avatar";
 import { MessageFileMedias, MessageVisualMedias } from "./message-attachments";
 import MessageReactions from "./message-reactions";
-import MessageReadReceipts from "./message-read-receipts";
 import { MemberProfilesMap, RenderableChatMessage } from "./chat-message.types";
 import ReactionDetailModal from "../modals/message/reaction-detail-modal";
 import { Button } from "@/components/ui/button";
@@ -43,7 +42,6 @@ interface ChatMessageProps {
   memberProfiles: MemberProfilesMap;
   memberRole?: "ADMIN" | "MEMBER";
   spaceCreatorId?: string | null;
-  readBy?: string[];
   showTime?: boolean;
   showSenderName?: boolean;
   onReact?: (
@@ -78,7 +76,6 @@ const ChatMessage = React.memo(function ChatMessage({
   memberProfiles,
   memberRole,
   spaceCreatorId,
-  readBy = [],
   showTime = true,
   showSenderName = false,
   onReact,
@@ -390,7 +387,6 @@ const ChatMessage = React.memo(function ChatMessage({
               </Button>
             </div>
           )}
-          <MessageReadReceipts readBy={readBy} currentUserId={currentUserId} memberProfiles={memberProfiles} align={isMe ? "end" : "start"} />
         </div>
       </div>
 

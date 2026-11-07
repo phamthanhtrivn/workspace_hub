@@ -14,7 +14,6 @@ import type {
 
 import { MeetingMessageAttachments } from "./meeting-message-attachments";
 import { MeetingMessageOptionsMenu } from "./meeting-message-options-menu";
-import { MeetingMessageReadReceipts } from "./meeting-message-read-receipts";
 import { MeetingMessageReactions } from "./meeting-message-reactions";
 import { MESSAGE_ACTION_WINDOW_MS, QUICK_REACTIONS } from "@/features/meeting/types/meeting.constants";
 import { MeetingIconButton } from "../../ui/meeting-icon-button";
@@ -26,8 +25,6 @@ interface MeetingMessageItemProps {
   profile: MeetingParticipantProfile | null;
   showAvatar: boolean;
   showSenderName: boolean;
-  readBy: string[];
-  profilesByUserId: Record<string, MeetingParticipantProfile>;
   onReact: (messageId: string, emoji: string, action: "add" | "remove") => void;
   onEdit: (message: MeetingMessageResponse) => void;
   onRecall: (messageId: string) => void;
@@ -39,8 +36,6 @@ export function MeetingMessageItem({
   profile,
   showAvatar,
   showSenderName,
-  readBy,
-  profilesByUserId,
   onReact,
   onEdit,
   onRecall,
@@ -154,14 +149,6 @@ export function MeetingMessageItem({
             <span>Edited</span>
           )}
         </div>
-
-        {isMe && (
-          <MeetingMessageReadReceipts
-            readBy={readBy}
-            currentUserId={currentUserId}
-            profilesByUserId={profilesByUserId}
-          />
-        )}
 
         {!message.recalled && (
           <div

@@ -40,7 +40,6 @@ export function MeetingRoomChatPanel({
     messages,
     profilesByUserId,
     reactToMessage,
-    readReceipts,
   } = useMeetingRoomChat({
     joinToken,
     meetingId,
@@ -60,7 +59,6 @@ export function MeetingRoomChatPanel({
           loadOlderRef={loadOlderRef}
           currentUserId={currentUserId}
           profilesByUserId={profilesByUserId}
-          readReceipts={readReceipts}
           onReact={reactToMessage}
           onEdit={handleStartEdit}
           onRecall={handleRecallMessage}
