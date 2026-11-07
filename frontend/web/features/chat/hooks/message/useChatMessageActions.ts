@@ -27,6 +27,7 @@ import { SendSocketMessageMedia } from "../../types/chat-socket.types";
 import { ChatScope, chatKeys } from "../../types/chat.constant";
 import { MessageType, ReactionAction } from "../../types/chat.enums";
 import { useDirectMessageActions } from "../useDirectMessageActions";
+import { CHAT_COMPOSER_MESSAGES } from "../../constants/composer.constants";
 
 interface UseChatMessageActionsParams {
   conversationId?: string;
@@ -86,7 +87,7 @@ export function useChatMessageActions({
       editingMessage?: ChatMessageResponse | null,
       onEditDone?: () => void,
     ) => {
-      if (!conversationId) return;
+      if (!conversationId) return false;
 
       if (editingMessage) {
         // ── Edit mode ──────────────────────────────────────────────────────
@@ -100,10 +101,11 @@ export function useChatMessageActions({
             if (edited) {
               onEditDone?.();
             }
+            return Boolean(edited);
           } catch {
             // error handled inside hook
+            return false;
           }
-          return;
         }
         try {
           await editChannelMessage(editingMessage.id, content);
@@ -111,10 +113,11 @@ export function useChatMessageActions({
             queryKey: chatKeys.messages(activeChatType, conversationId, jumpTargetId),
           });
           onEditDone?.();
+          return true;
         } catch (error: unknown) {
           toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to edit message")));
+          return false;
         }
-        return;
       }
 
       // ── Send new message ───────────────────────────────────────────────
@@ -131,7 +134,7 @@ export function useChatMessageActions({
         if (sentMessage) {
           appendRealtimeMessage(sentMessage);
         }
-        return;
+        return Boolean(sentMessage);
       }
 
       try {
@@ -143,9 +146,13 @@ export function useChatMessageActions({
 
         if (response.data) {
           appendRealtimeMessage(response.data);
+          return true;
         }
+        toast.error(CHAT_COMPOSER_MESSAGES.sendFailed);
+        return false;
       } catch (error: unknown) {
         toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to send message")));
+        return false;
       }
     },
     [

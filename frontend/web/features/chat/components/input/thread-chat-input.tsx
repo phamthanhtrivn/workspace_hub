@@ -1,8 +1,10 @@
 "use client";
 
-import { logActionError } from "@/lib/permission-feedback";
-import type { SendSocketMessageMedia } from "../../types/chat-socket.types";
-import { MAX_ATTACHMENT_SIZE_BYTES, ATTACHMENT_SIZE_LIMIT_MESSAGE } from "@/lib/upload-policy";
+import { getActionErrorMessage, logActionError } from "@/lib/permission-feedback";
+import { MAX_ATTACHMENT_SIZE_BYTES, ATTACHMENT_SIZE_LIMIT_MESSAGE, getUploadMimeType } from "@/lib/upload-policy";
+import { CHAT_COMPOSER_MESSAGES } from "../../constants/composer.constants";
+import type { ComposerSendHandler } from "../../types/composer.types";
+import { useComposerSend } from "../../hooks/input/useComposerSend";
 import { IconButton } from "@/components/ui/icon-button";
 import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 import { useId as useControlledPopupId } from "react";
@@ -71,7 +73,8 @@ import { Spinner } from "@/components/ui/spinner";
 
 
 interface ThreadChatInputProps {
-  onSendMessage?: (content: string, media?: SendSocketMessageMedia[], mentions?: string[]) => void;
+  onSendMessage?: ComposerSendHandler;
+  threadId?: string;
 }
 
 interface UploadingMedia {
@@ -91,7 +94,7 @@ export interface ThreadChatInputRef {
 
 const ThreadChatInput = React.memo(
   forwardRef<ThreadChatInputRef, ThreadChatInputProps>(function ThreadChatInput(
-    { onSendMessage },
+    { onSendMessage, threadId },
     ref,
   ) {
   const controlledPopupId = useControlledPopupId();
@@ -125,7 +128,10 @@ const ThreadChatInput = React.memo(
     );
 
     const activeConversationId = activeConversation?.id;
+    const { isSending, send: sendDraft } = useComposerSend(`${activeConversationId ?? ""}:${threadId ?? ""}`);
     const isUploading = uploadingMedia.some((m) => m.status === "uploading");
+    const isBusy = isUploading || isSending;
+    const hasFailedAttachments = uploadingMedia.some((media) => media.status === "error");
     const { membersResponse } = useChannelMembersSearch({
       channelId: activeConversationId,
       searchQuery: mentionQuery ?? "",
@@ -380,7 +386,7 @@ const ThreadChatInput = React.memo(
         file: f,
         status: "uploading",
         name: f.name,
-        mimeType: f.type,
+        mimeType: getUploadMimeType(f.name, f.type),
         sizeBytes: f.size,
       }));
 
@@ -410,7 +416,7 @@ const ThreadChatInput = React.memo(
           files: presignRequests,
         });
 
-        newUploads.forEach(async (upload, idx) => {
+        await Promise.all(newUploads.map(async (upload, idx) => {
           const presignedInfo = presignedUrls[idx];
           try {
             const success = await uploadToS3(
@@ -439,9 +445,10 @@ const ThreadChatInput = React.memo(
               ),
             );
           }
-        });
+        }));
       } catch (error) {
         logActionError("Error initiating upload:", error);
+        toast.error(getActionErrorMessage(error, CHAT_COMPOSER_MESSAGES.uploadFailed));
         setUploadingMedia((prev) =>
           prev.map((m) =>
             newUploads.some((nu) => nu.id === m.id)
@@ -554,10 +561,15 @@ const ThreadChatInput = React.memo(
       return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
     };
 
-    const handleSend = useCallback(() => {
+    const handleSend = useCallback(async () => {
+      if (isSending) return;
       if (!message.trim() && uploadingMedia.length === 0) return;
       if (isUploading) {
         toast.warning("Please wait for files to finish uploading.");
+        return;
+      }
+      if (hasFailedAttachments) {
+        toast.error(CHAT_COMPOSER_MESSAGES.uploadFailed);
         return;
       }
       if (!onSendMessage) return;
@@ -573,19 +585,25 @@ const ThreadChatInput = React.memo(
         sizeBytes: m.sizeBytes,
       }));
 
-      onSendMessage(
+      await sendDraft(() => onSendMessage(
         composeMessageText(message, interimMessage),
         mediaList.length > 0 ? mediaList : undefined,
         mentions.length > 0 ? mentions : undefined,
-      );
-      setMessage("");
-      clearInterim();
-      setShowPreview(false);
-      setUploadingMedia([]);
-      setMentions([]);
-      setMentionNames([]);
-      setMentionQuery(null);
+      ), () => {
+        setMessage((current) => current === message ? "" : current);
+        clearInterim();
+        setShowPreview(false);
+        const sentIds = new Set(uploadingMedia.map((media) => media.id));
+        setUploadingMedia((current) => current.filter((media) => !sentIds.has(media.id)));
+        setMentions([]);
+        setMentionNames([]);
+        setMentionQuery(null);
+      });
     }, [
+      isSending,
+      sendDraft,
+      hasFailedAttachments,
+      mentions,
       message,
       interimMessage,
       uploadingMedia,
@@ -656,7 +674,8 @@ const ThreadChatInput = React.memo(
                         : "Remove file"
                     } showTooltip={false} size="icon-sm"
                     type="button"
-                    onClick={() => removeFile(media.id)}
+                    disabled={isSending}
+                      onClick={() => removeFile(media.id)}
                     className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
                     title={
                       media.status === "uploading"
@@ -680,7 +699,7 @@ const ThreadChatInput = React.memo(
               accept="*/*"
               ref={fileInputRef}
               onChange={handleFileChange}
-              disabled={isUploading}
+              disabled={isBusy}
             />
 
             {/* Actions Trigger Dropdown */}
@@ -689,7 +708,7 @@ const ThreadChatInput = React.memo(
                 ref={plusButtonRef}
                 type="button"
                 onClick={() => setShowThreadOptions(!showThreadOptions)}
-                disabled={isUploading}
+                disabled={isBusy}
                 className={`cursor-pointer p-1.5 rounded-full transition-colors ${
                   showThreadOptions
                     ? "bg-info-soft text-info-content"
@@ -710,7 +729,7 @@ const ThreadChatInput = React.memo(
                       setShowThreadOptions(false);
                       fileInputRef.current?.click();
                     }}
-                    disabled={isUploading}
+                    disabled={isBusy}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
                     <Paperclip size={14} className="text-muted-foreground" />
@@ -721,7 +740,7 @@ const ThreadChatInput = React.memo(
                       setShowThreadOptions(false);
                       setIsMyFilesModalOpen(true);
                     }}
-                    disabled={isUploading}
+                    disabled={isBusy}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
                     <Folder size={14} className="text-info-content" />
@@ -794,6 +813,7 @@ const ThreadChatInput = React.memo(
                 <div className="flex items-center gap-0.5 pb-1 mb-1 border-b border-border/60 overflow-x-auto">
                   <IconButton label="Bold" showTooltip={false} size="icon-sm"
                     type="button"
+                    disabled={isSending}
                     onClick={() => applyFormatting("bold")}
                     className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Bold"
@@ -802,6 +822,7 @@ const ThreadChatInput = React.memo(
                   </IconButton>
                   <IconButton label="Italic" showTooltip={false} size="icon-sm"
                     type="button"
+                    disabled={isSending}
                     onClick={() => applyFormatting("italic")}
                     className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Italic"
@@ -810,6 +831,7 @@ const ThreadChatInput = React.memo(
                   </IconButton>
                   <IconButton label="Strikethrough" showTooltip={false} size="icon-sm"
                     type="button"
+                    disabled={isSending}
                     onClick={() => applyFormatting("strikethrough")}
                     className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Strikethrough"
@@ -819,6 +841,7 @@ const ThreadChatInput = React.memo(
                   <div className="w-px bg-accent mx-1 h-3"></div>
                   <IconButton label="Heading" showTooltip={false} size="icon-sm"
                     type="button"
+                    disabled={isSending}
                     onClick={() => applyFormatting("heading")}
                     className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Heading"
@@ -827,6 +850,7 @@ const ThreadChatInput = React.memo(
                   </IconButton>
                   <IconButton label="Link" showTooltip={false} size="icon-sm"
                     type="button"
+                    disabled={isSending}
                     onClick={() => applyFormatting("link")}
                     className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Link"
@@ -835,6 +859,7 @@ const ThreadChatInput = React.memo(
                   </IconButton>
                   <IconButton label="Code Block" showTooltip={false} size="icon-sm"
                     type="button"
+                    disabled={isSending}
                     onClick={() => applyFormatting("code")}
                     className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Code Block"
@@ -843,6 +868,7 @@ const ThreadChatInput = React.memo(
                   </IconButton>
                   <IconButton label="Quote" showTooltip={false} size="icon-sm"
                     type="button"
+                    disabled={isSending}
                     onClick={() => applyFormatting("quote")}
                     className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Quote"
@@ -851,6 +877,7 @@ const ThreadChatInput = React.memo(
                   </IconButton>
                   <IconButton label="Bulleted List" showTooltip={false} size="icon-sm"
                     type="button"
+                    disabled={isSending}
                     onClick={() => applyFormatting("bullet")}
                     className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Bulleted List"
@@ -859,6 +886,7 @@ const ThreadChatInput = React.memo(
                   </IconButton>
                   <IconButton label="Numbered List" showTooltip={false} size="icon-sm"
                     type="button"
+                    disabled={isSending}
                     onClick={() => applyFormatting("number")}
                     className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-0.5"
                     title="Numbered List"
@@ -887,7 +915,7 @@ const ThreadChatInput = React.memo(
                   }
                 }}
                 placeholder="Reply in thread..."
-                disabled={isUploading}
+                disabled={isBusy}
                 className="w-full max-h-[min(15rem,30dvh)] bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px] [@media(max-height:30rem)]:max-h-12"
                 rows={1}
                 onKeyDown={(e) => {
@@ -966,12 +994,12 @@ const ThreadChatInput = React.memo(
                       <Mic size={15} />
                     </Button>
                   )}
-                  <Button variant="unstyled" aria-label="Send message"
+                  <Button variant="unstyled" aria-label={isSending ? CHAT_COMPOSER_MESSAGES.sending : CHAT_COMPOSER_MESSAGES.send} aria-busy={isSending}
                     className={`p-1.5 rounded-full transition-colors flex items-center justify-center ${
                       (message.trim() ||
                         interimMessage.trim() ||
                         uploadingMedia.some((m) => m.status === "success")) &&
-                      !isUploading
+                      !isBusy && !hasFailedAttachments
                         ? "bg-primary text-primary-foreground hover:bg-primary cursor-pointer"
                         : "bg-accent text-muted-foreground"
                     }`}
@@ -979,11 +1007,11 @@ const ThreadChatInput = React.memo(
                       (!message.trim() &&
                         !interimMessage.trim() &&
                         uploadingMedia.length === 0) ||
-                      isUploading
+                      isBusy || hasFailedAttachments
                     }
                     onClick={handleSend}
                   >
-                    <Send size={15} />
+                    {isSending ? <Spinner size={15} tone="inherit" /> : <Send size={15} />}
                   </Button>
                 </>
               )}

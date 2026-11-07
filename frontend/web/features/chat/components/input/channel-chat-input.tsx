@@ -1,7 +1,10 @@
 "use client";
 
 import { getActionErrorMessage, logActionError, PERMISSION_REASON } from "@/lib/permission-feedback";
-import type { SendSocketMessageMedia } from "../../types/chat-socket.types";
+import { getUploadMimeType } from "@/lib/upload-policy";
+import { CHAT_COMPOSER_MESSAGES } from "../../constants/composer.constants";
+import type { ComposerSendHandler } from "../../types/composer.types";
+import { useComposerSend } from "../../hooks/input/useComposerSend";
 import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { IconButton } from "@/components/ui/icon-button";
 import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
@@ -79,7 +82,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 
 interface ChannelChatInputProps {
-  onSendMessage?: (content: string, media?: SendSocketMessageMedia[], mentions?: string[]) => void;
+  onSendMessage?: ComposerSendHandler;
   onCreatePoll?: () => void;
   onCreateNote?: () => void;
   onTypingChange?: (isTyping: boolean) => void;
@@ -170,6 +173,7 @@ const ChannelChatInput = React.memo(
       );
 
       const activeChannelId = activeChannel?.id;
+      const { isSending, send: sendDraft } = useComposerSend(activeChannelId);
       const { membersResponse } = useChannelMembersSearch({
         channelId: activeChannelId,
         searchQuery: mentionQuery ?? "",
@@ -206,7 +210,7 @@ const ChannelChatInput = React.memo(
             dueDate: createdTask.dueDate,
           });
 
-          onSendMessage?.(taskMessagePayload);
+          await onSendMessage?.(taskMessagePayload);
         } catch (error: unknown) {
           toast.error(getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to create task"));
         } finally {
@@ -478,7 +482,7 @@ const ChannelChatInput = React.memo(
           file: f,
           status: "uploading",
           name: f.name,
-          mimeType: f.type,
+          mimeType: getUploadMimeType(f.name, f.type),
           sizeBytes: f.size,
         }));
 
@@ -541,6 +545,7 @@ const ChannelChatInput = React.memo(
         } catch (error) {
           if (signal?.aborted) return;
           logActionError("Error initiating upload:", error);
+          toast.error(getActionErrorMessage(error, CHAT_COMPOSER_MESSAGES.uploadFailed));
           setUploadingMedia((prev) =>
             prev.map((m) =>
               newUploads.some((nu) => nu.id === m.id)
@@ -636,6 +641,7 @@ const ChannelChatInput = React.memo(
         uploadFiles: uploadFilesList,
       });
       const isUploading = uploadingMedia.some((media) => media.status === "uploading") || copiedPaste.isDownloading;
+      const isBusy = isUploading || isSending;
       const hasFailedAttachments = uploadingMedia.some((media) => media.status === "error") || copiedPaste.hasFailedDownloads;
 
       const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -665,7 +671,8 @@ const ChannelChatInput = React.memo(
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
       };
 
-      const handleSend = useCallback(() => {
+      const handleSend = useCallback(async () => {
+        if (isSending) return;
         if (
           !message.trim() &&
           !interimMessage.trim() &&
@@ -693,25 +700,30 @@ const ChannelChatInput = React.memo(
           sizeBytes: m.sizeBytes,
         }));
 
-        onSendMessage(
+        await sendDraft(() => onSendMessage(
           composeMessageText(message, interimMessage),
           mediaList.length > 0 ? mediaList : undefined,
           mentions.length > 0 ? mentions : undefined,
-        );
-        setMessage("");
-        clearInterim();
-        setShowPreview(false);
-        setUploadingMedia([]);
-        setMentions([]);
-        setMentionNames([]);
-        setMentionQuery(null);
+        ), () => {
+          setMessage((current) => current === message ? "" : current);
+          clearInterim();
+          setShowPreview(false);
+          const sentIds = new Set(uploadingMedia.map((media) => media.id));
+          setUploadingMedia((current) => current.filter((media) => !sentIds.has(media.id)));
+          setMentions([]);
+          setMentionNames([]);
+          setMentionQuery(null);
 
-        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-        if (isTypingRef.current) {
-          isTypingRef.current = false;
-          onTypingChange?.(false);
-        }
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          if (isTypingRef.current) {
+            isTypingRef.current = false;
+            onTypingChange?.(false);
+          }
+        });
       }, [
+        isSending,
+        sendDraft,
+        mentions,
         message,
         interimMessage,
         uploadingMedia,
@@ -831,6 +843,7 @@ const ChannelChatInput = React.memo(
                           : "Remove file"
                       } showTooltip={false} size="icon-sm"
                       type="button"
+                      disabled={isSending}
                       onClick={() => removeFile(media.id)}
                       className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
                       title={
@@ -855,7 +868,7 @@ const ChannelChatInput = React.memo(
                 accept="*/*"
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                disabled={isUploading}
+                disabled={isBusy}
               />
 
               {/* Actions Trigger */}
@@ -863,7 +876,7 @@ const ChannelChatInput = React.memo(
                 <Button aria-expanded={showOptions} aria-controls={`${controlledPopupId}-showOptions`} aria-haspopup="menu" variant="unstyled" aria-label="Message options"
                   type="button"
                   onClick={() => setShowOptions(!showOptions)}
-                  disabled={isUploading}
+                  disabled={isBusy}
                   className={`cursor-pointer p-2 rounded-full transition-colors ${
                     showOptions
                       ? "bg-info-soft text-info-content"
@@ -883,7 +896,7 @@ const ChannelChatInput = React.memo(
                         setShowOptions(false);
                         fileInputRef.current?.click();
                       }}
-                      disabled={isUploading}
+                      disabled={isBusy}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
                       <Paperclip size={16} className="text-muted-foreground" />
@@ -895,7 +908,7 @@ const ChannelChatInput = React.memo(
                         setShowOptions(false);
                         setIsMyFilesModalOpen(true);
                       }}
-                      disabled={isUploading}
+                      disabled={isBusy}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
                       <Folder size={16} className="text-info-content" />
@@ -910,7 +923,7 @@ const ChannelChatInput = React.memo(
                           setShowOptions(false);
                           setIsTaskModalOpen(true);
                         }}
-                        disabled={isUploading}
+                        disabled={isBusy}
                         className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors text-left cursor-pointer disabled:opacity-50"
                       >
                         <CheckSquare size={16} className="text-success-content" />
@@ -925,7 +938,7 @@ const ChannelChatInput = React.memo(
                           setShowOptions(false);
                           onCreatePoll?.();
                         }}
-                        disabled={isUploading}
+                        disabled={isBusy}
                         className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                       >
                         <BarChart2 size={16} className="text-info-content" />
@@ -940,7 +953,7 @@ const ChannelChatInput = React.memo(
                           setShowOptions(false);
                           onCreateNote?.();
                         }}
-                        disabled={isUploading}
+                        disabled={isBusy}
                         className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                       >
                         <FileText size={16} className="text-warning-content" />
@@ -966,6 +979,7 @@ const ChannelChatInput = React.memo(
                   <div className="flex items-center gap-0.5 pb-1.5 mb-1 border-b border-border/60 overflow-x-auto">
                     <IconButton label="Bold" showTooltip={false} size="icon-sm"
                       type="button"
+                      disabled={isSending}
                       onClick={() => applyFormatting("bold")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Bold"
@@ -974,6 +988,7 @@ const ChannelChatInput = React.memo(
                     </IconButton>
                     <IconButton label="Italic" showTooltip={false} size="icon-sm"
                       type="button"
+                      disabled={isSending}
                       onClick={() => applyFormatting("italic")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Italic"
@@ -982,6 +997,7 @@ const ChannelChatInput = React.memo(
                     </IconButton>
                     <IconButton label="Strikethrough" showTooltip={false} size="icon-sm"
                       type="button"
+                      disabled={isSending}
                       onClick={() => applyFormatting("strikethrough")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Strikethrough"
@@ -993,6 +1009,7 @@ const ChannelChatInput = React.memo(
 
                     <IconButton label="Heading" showTooltip={false} size="icon-sm"
                       type="button"
+                      disabled={isSending}
                       onClick={() => applyFormatting("heading")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Heading"
@@ -1001,6 +1018,7 @@ const ChannelChatInput = React.memo(
                     </IconButton>
                     <IconButton label="Link" showTooltip={false} size="icon-sm"
                       type="button"
+                      disabled={isSending}
                       onClick={() => applyFormatting("link")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Link"
@@ -1009,6 +1027,7 @@ const ChannelChatInput = React.memo(
                     </IconButton>
                     <IconButton label="Code Block" showTooltip={false} size="icon-sm"
                       type="button"
+                      disabled={isSending}
                       onClick={() => applyFormatting("code")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Code Block"
@@ -1017,6 +1036,7 @@ const ChannelChatInput = React.memo(
                     </IconButton>
                     <IconButton label="Quote" showTooltip={false} size="icon-sm"
                       type="button"
+                      disabled={isSending}
                       onClick={() => applyFormatting("quote")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Quote"
@@ -1025,6 +1045,7 @@ const ChannelChatInput = React.memo(
                     </IconButton>
                     <IconButton label="Bulleted List" showTooltip={false} size="icon-sm"
                       type="button"
+                      disabled={isSending}
                       onClick={() => applyFormatting("bullet")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Bulleted List"
@@ -1033,6 +1054,7 @@ const ChannelChatInput = React.memo(
                     </IconButton>
                     <IconButton label="Numbered List" showTooltip={false} size="icon-sm"
                       type="button"
+                      disabled={isSending}
                       onClick={() => applyFormatting("number")}
                       className="hover:bg-accent rounded text-muted-foreground hover:text-foreground transition cursor-pointer p-1"
                       title="Numbered List"
@@ -1072,7 +1094,7 @@ const ChannelChatInput = React.memo(
                         }...`
                       : "Type @ to mention, message " + activeChannel?.name
                   }
-                  disabled={isUploading}
+                  disabled={isBusy}
                   className="w-full max-h-[min(15rem,30dvh)] bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px] [@media(max-height:30rem)]:max-h-12"
                   rows={1}
                   onKeyDown={(e) => {
@@ -1151,7 +1173,7 @@ const ChannelChatInput = React.memo(
                           : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                       }`}
                       title="Text formatting"
-                      disabled={isUploading}
+                      disabled={isBusy}
                     >
                       <Type size={20} />
                     </Button>
@@ -1166,7 +1188,7 @@ const ChannelChatInput = React.memo(
                             ? "bg-info-soft text-info-content"
                             : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                         }`}
-                        disabled={isUploading}
+                        disabled={isBusy}
                         title="Insert emoji"
                       >
                         <Smile size={20} />
@@ -1197,7 +1219,7 @@ const ChannelChatInput = React.memo(
                               : "text-muted-foreground hover:text-muted-foreground hover:bg-accent"
                         }`}
                         title="Voice options"
-                        disabled={isUploading}
+                        disabled={isBusy}
                       >
                         <Mic size={20} />
                       </Button>
@@ -1229,12 +1251,12 @@ const ChannelChatInput = React.memo(
                     </div>
 
                     {/* Send Message Button */}
-                    <Button variant="unstyled" aria-label="Send message"
+                    <Button variant="unstyled" aria-label={isSending ? CHAT_COMPOSER_MESSAGES.sending : CHAT_COMPOSER_MESSAGES.send} aria-busy={isSending}
                       className={`p-2 rounded-full transition-colors flex items-center justify-center ${
                         (message.trim() ||
                           interimMessage.trim() ||
                           uploadingMedia.some((m) => m.status === "success")) &&
-                        !isUploading && !hasFailedAttachments
+                        !isBusy && !hasFailedAttachments
                           ? "bg-primary text-primary-foreground hover:bg-primary cursor-pointer"
                           : "bg-accent text-muted-foreground"
                       }`}
@@ -1242,11 +1264,11 @@ const ChannelChatInput = React.memo(
                         (!message.trim() &&
                           !interimMessage.trim() &&
                           uploadingMedia.length === 0) ||
-                        isUploading || hasFailedAttachments
+                        isBusy || hasFailedAttachments
                       }
                       onClick={handleSend}
                     >
-                      <Send size={18} className="mr-0.5" />
+                      {isSending ? <Spinner size={18} tone="inherit" /> : <Send size={18} className="mr-0.5" />}
                     </Button>
                   </>
                 )}

@@ -1,7 +1,10 @@
 "use client";
 
-import { logActionError } from "@/lib/permission-feedback";
-import type { SendSocketMessageMedia } from "../../types/chat-socket.types";
+import { getActionErrorMessage, logActionError } from "@/lib/permission-feedback";
+import { getUploadMimeType } from "@/lib/upload-policy";
+import { CHAT_COMPOSER_MESSAGES } from "../../constants/composer.constants";
+import type { ComposerSendHandler } from "../../types/composer.types";
+import { useComposerSend } from "../../hooks/input/useComposerSend";
 import { IconButton } from "@/components/ui/icon-button";
 import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 import { useId as useControlledPopupId } from "react";
@@ -40,7 +43,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 
 export interface DirectMessageInputProps {
-  onSendMessage?: (content: string, media?: SendSocketMessageMedia[]) => void;
+  onSendMessage?: ComposerSendHandler;
   onTypingChange?: (isTyping: boolean) => void;
   placeholder?: string;
   compact?: boolean;
@@ -86,6 +89,7 @@ const DirectMessageInput = React.memo(
   const controlledPopupId = useControlledPopupId();
       const { activeChatId: activeConversationId, activeChatType } =
         useActiveChat();
+      const { isSending, send: sendDraft } = useComposerSend(activeConversationId);
       const resolvedPlaceholder = placeholder ?? "Type a message...";
       const memberProfiles = useChatMemberProfiles();
       const [message, setMessage] = useState("");
@@ -320,7 +324,7 @@ const DirectMessageInput = React.memo(
             file,
             status: "uploading",
             name: file.name,
-            mimeType: file.type || "application/octet-stream",
+            mimeType: getUploadMimeType(file.name, file.type),
             sizeBytes: file.size,
           }));
 
@@ -382,6 +386,7 @@ const DirectMessageInput = React.memo(
           } catch (error) {
             if (signal?.aborted) return;
             logActionError("Error initiating direct upload:", error);
+            toast.error(getActionErrorMessage(error, CHAT_COMPOSER_MESSAGES.uploadFailed));
             setUploadingMedia((prev) =>
               prev.map((media) =>
                 newUploads.some((upload) => upload.id === media.id)
@@ -475,6 +480,7 @@ const DirectMessageInput = React.memo(
         uploadFiles: uploadFilesList,
       });
       const isUploading = uploadingMedia.some((media) => media.status === "uploading") || copiedPaste.isDownloading;
+      const isBusy = isUploading || isSending;
       const hasFailedAttachments = uploadingMedia.some((media) => media.status === "error") || copiedPaste.hasFailedDownloads;
 
       const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -490,7 +496,8 @@ const DirectMessageInput = React.memo(
         setUploadingMedia((prev) => prev.filter((media) => media.id !== id));
       }, []);
 
-      const handleSend = useCallback(() => {
+      const handleSend = useCallback(async () => {
+        if (isSending) return;
         if (!message.trim() && uploadingMedia.length === 0) return;
         if (isUploading) {
           toast.warning(MESSAGE_CLIPBOARD_MESSAGES.pending);
@@ -514,23 +521,27 @@ const DirectMessageInput = React.memo(
         const finalMessage =
           composeMessageText(message, interimMessage);
 
-        onSendMessage(
+        await sendDraft(() => onSendMessage(
           finalMessage.trim(),
           mediaList.length ? mediaList : undefined,
-        );
-        setMessage("");
-        clearInterim();
-        setShowPreview(false);
-        setUploadingMedia([]);
+        ), () => {
+          setMessage((current) => current === message ? "" : current);
+          clearInterim();
+          setShowPreview(false);
+          const sentIds = new Set(uploadingMedia.map((media) => media.id));
+          setUploadingMedia((current) => current.filter((media) => !sentIds.has(media.id)));
 
-        if (typingTimeoutRef.current) {
-          clearTimeout(typingTimeoutRef.current);
-        }
-        if (isTypingRef.current) {
-          isTypingRef.current = false;
-          onTypingChange?.(false);
-        }
+          if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+          }
+          if (isTypingRef.current) {
+            isTypingRef.current = false;
+            onTypingChange?.(false);
+          }
+        });
       }, [
+        isSending,
+        sendDraft,
         clearInterim,
         interimMessage,
         isUploading,
@@ -551,7 +562,7 @@ const DirectMessageInput = React.memo(
         (message.trim() ||
           interimMessage.trim() ||
           uploadingMedia.some((media) => media.status === "success")) &&
-        !isUploading && !hasFailedAttachments;
+        !isBusy && !hasFailedAttachments;
 
       return (
         <div
@@ -609,6 +620,7 @@ const DirectMessageInput = React.memo(
                     )}
                     <IconButton label="Remove file" showTooltip={false} size="icon-sm"
                       type="button"
+                      disabled={isSending}
                       onClick={() => removeFile(media.id)}
                       className="text-muted-foreground hover:text-destructive-content transition ml-1 flex-shrink-0 cursor-pointer"
                       title="Remove file"
@@ -632,7 +644,7 @@ const DirectMessageInput = React.memo(
                 accept="*/*"
                 ref={fileInputRef}
                 onChange={handleFileChange}
-                disabled={isUploading}
+                disabled={isBusy}
               />
 
               {/* Actions Trigger Dropdown */}
@@ -640,7 +652,7 @@ const DirectMessageInput = React.memo(
                 <Button aria-expanded={showDMOptions} aria-controls={`${controlledPopupId}-showDMOptions`} aria-haspopup="menu" variant="unstyled"
                   type="button"
                   onClick={() => setShowDMOptions(!showDMOptions)}
-                  disabled={isUploading}
+                  disabled={isBusy}
                   className={`cursor-pointer rounded-full transition-colors text-muted-foreground hover:bg-accent disabled:opacity-50 ${
                     compact ? "p-1.5" : "p-2"
                   }`}
@@ -656,7 +668,7 @@ const DirectMessageInput = React.memo(
                         setShowDMOptions(false);
                         fileInputRef.current?.click();
                       }}
-                      disabled={isUploading}
+                      disabled={isBusy}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
                       <Paperclip size={16} className="text-muted-foreground" />
@@ -667,7 +679,7 @@ const DirectMessageInput = React.memo(
                         setShowDMOptions(false);
                         setIsMyFilesModalOpen(true);
                       }}
-                      disabled={isUploading}
+                      disabled={isBusy}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-foreground hover:bg-muted rounded-control transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
                       <Folder size={16} className="text-info-content" />
@@ -689,7 +701,7 @@ const DirectMessageInput = React.memo(
                 onChange={(event) => handleTyping(event.target.value)}
                 onPaste={handlePaste}
                 placeholder={resolvedPlaceholder}
-                disabled={isUploading}
+                disabled={isBusy}
                 className={`flex-1 min-w-0 max-h-[min(15rem,30dvh)] bg-transparent resize-none outline-none text-foreground placeholder:text-muted-foreground disabled:opacity-50 overflow-y-auto [@media(max-height:30rem)]:max-h-12 ${
                   compact
                     ? "px-1 py-1 text-xs min-h-[24px]"
@@ -737,7 +749,7 @@ const DirectMessageInput = React.memo(
                       ref={emojiButtonRef}
                       type="button"
                       onClick={() => setShowEmojiPicker((value) => !value)}
-                      disabled={isUploading}
+                      disabled={isBusy}
                       className={`cursor-pointer rounded-full transition-colors disabled:opacity-50 ${
                         showEmojiPicker
                           ? "bg-info-soft text-info-content"
@@ -765,7 +777,7 @@ const DirectMessageInput = React.memo(
                           setShowMicOptions((value) => !value);
                         }
                       }}
-                      disabled={isUploading}
+                      disabled={isBusy}
                       className={`cursor-pointer rounded-full transition-colors disabled:opacity-50 ${
                         isDictating
                           ? "bg-destructive-soft text-destructive-content animate-pulse"
@@ -817,9 +829,11 @@ const DirectMessageInput = React.memo(
                     }`}
                     disabled={!canSend}
                     onClick={handleSend}
-                    title="Send"
+                    title={isSending ? CHAT_COMPOSER_MESSAGES.sending : CHAT_COMPOSER_MESSAGES.send}
+                    aria-label={isSending ? CHAT_COMPOSER_MESSAGES.sending : CHAT_COMPOSER_MESSAGES.send}
+                    aria-busy={isSending}
                   >
-                    <Send size={compact ? 15 : 18} />
+                    {isSending ? <Spinner size={compact ? 15 : 18} tone="inherit" /> : <Send size={compact ? 15 : 18} />}
                   </Button>
                 </>
               )}

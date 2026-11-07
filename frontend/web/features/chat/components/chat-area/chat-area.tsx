@@ -289,14 +289,13 @@ export default function ChatArea({
       medias?: SendSocketMessageMedia[],
       mentions?: string[],
     ) => {
-      await handleSendMessageAction(
+      return handleSendMessageAction(
         content,
         medias,
         mentions,
         editingMessage,
         () => {
-          setEditingMessage(null);
-          chatInputRef.current?.setMessage("");
+          setEditingMessage((current) => current?.id === editingMessage?.id ? null : current);
         },
       );
     },
@@ -911,6 +910,7 @@ export default function ChatArea({
         </div>
       ) : isDirectConversation ? (
         <DirectMessageInput
+          key={activeConversation?.id}
           ref={chatInputRef}
           onSendMessage={handleSendMessageWithMedia}
           onTypingChange={handleTypingChange}
@@ -919,6 +919,7 @@ export default function ChatArea({
         />
       ) : (
         <ChannelChatInput
+          key={activeConversation?.id}
           ref={chatInputRef}
           onSendMessage={handleSendMessageWithMedia}
           onCreatePoll={() => setIsPollModalOpen(true)}

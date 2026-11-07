@@ -60,6 +60,7 @@ import { upsertMessageById } from "../../../utils/message-state-utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
+import { CHAT_COMPOSER_MESSAGES } from "../../../constants/composer.constants";
 
 
 interface ThreadDetailViewProps {
@@ -354,19 +355,20 @@ export default function ThreadDetailView({
     return () => clearTimeout(timer);
   }, [canReplyInThread, rootMessage.id]);
 
-  const handleSendReply = (
+  const handleSendReply = async (
     content: string,
     media?: SendSocketMessageMedia[],
     mentions?: string[],
-  ) => {
+  ): Promise<boolean> => {
     if (isDirect) {
-      if (!rootChatId) return;
+      if (!rootChatId) return false;
 
-      sendDirectThreadReply({
+      const sentReply = await sendDirectThreadReply({
         conversationId: rootChatId,
         content,
         medias: media,
         threadParentId: rootMessage.id,
+        mentions,
         onSent: () => {
           queryClient.invalidateQueries({
             queryKey: chatKeys.threadMessages(ChatScope.DIRECT, rootMessage.id),
@@ -375,40 +377,37 @@ export default function ThreadDetailView({
             queryKey: chatKeys.threads(ChatScope.DIRECT, rootChatId),
           });
         },
-      })
-        .then((sentReply) => {
-          if (sentReply) {
-            appendThreadReply(sentReply);
-            chatInputRef.current?.focus();
-          }
-        })
-        .catch((permissionFailure) =>
-          toast.error(getActionErrorMessage(permissionFailure, "Failed to send reply")),
-        );
-      return;
+      });
+      if (sentReply) {
+        appendThreadReply(sentReply);
+        return true;
+      }
+      return false;
     }
 
-    if (!rootChatId) return;
+    if (!rootChatId) return false;
     if (!canReplyInThread) {
       toast.error("Only space administrators can reply in this thread.");
-      return;
+      return false;
     }
 
-    sendChannelMessage(rootChatId, {
+    try {
+      const response = await sendChannelMessage(rootChatId, {
         content,
         medias: media,
         threadParentId: rootMessage.id,
         mentions,
-      })
-      .then((response) => {
-        if (response.data) {
-          appendThreadReply(response.data);
-          chatInputRef.current?.focus();
-        }
-      })
-      .catch((permissionFailure) =>
-        toast.error(getActionErrorMessage(permissionFailure, "Failed to send reply")),
-      );
+      });
+      if (response.data) {
+        appendThreadReply(response.data);
+        return true;
+      }
+      toast.error(CHAT_COMPOSER_MESSAGES.sendFailed);
+      return false;
+    } catch (error) {
+      toast.error(getActionErrorMessage(error, "Failed to send reply"));
+      return false;
+    }
   };
 
   const getProfile = (userId: string) => {
@@ -688,7 +687,7 @@ export default function ThreadDetailView({
 
       {/* Input bar */}
       {canReplyInThread ? (
-        <ThreadChatInput ref={chatInputRef} onSendMessage={handleSendReply} />
+        <ThreadChatInput key={`${rootChatId}:${rootMessage.id}`} ref={chatInputRef} threadId={rootMessage.id} onSendMessage={handleSendReply} />
       ) : (
         <div className="w-full border-t border-border bg-card p-3">
           <div className="flex items-center justify-center rounded-panel border border-border bg-background p-3 text-sm text-muted-foreground">
