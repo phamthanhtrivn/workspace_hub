@@ -1,13 +1,13 @@
 "use client";
 
+import { logActionError } from "@/lib/permission-feedback";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { useChatMediaPreview } from "../../../hooks/useChatMediaPreview";
 import { ChatScope } from "../../../types/chat.constant";
 import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
 
-
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState } from "react";
-
 
 import {
   muteDirectConversation,
@@ -20,8 +20,8 @@ import ThreadsSection from "../thread/threads-section";
 import PinnedMessagesDetailView from "../pinned-messages/pinned-messages-detail-view";
 import SearchMessagesSection from "../search/search-messages-section";
 import ThreadsListView from "../thread/threads-list-view";
-import { X, Bell, BellOff, Pin, User } from "lucide-react";
-import Image from "next/image";
+import { X, Bell, BellOff, Pin } from "lucide-react";
+
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
@@ -37,7 +37,6 @@ import { ChatQueryKey } from "../../../types/chat.constant";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import MediaDetailView from "../files/media-detail-view";
 import { Button } from "@/components/ui/button";
-
 
 interface DirectMessageRightPanelProps {
   onClose: () => void;
@@ -61,11 +60,7 @@ export default function DirectMessageRightPanel({
     "files" | "polls" | "search" | "threads" | "pinned" | null
   >(initialDetailView || null);
 
-
-
-
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
-
 
   const { activeChat: activeConversation } = useActiveChat();
   const memberProfiles = useChatMemberProfiles();
@@ -148,7 +143,7 @@ export default function DirectMessageRightPanel({
 
     } catch (error) {
       updateDirectConversationMemberCache(activeConversation.id, { muted: isMuted });
-      console.error("Failed to update mute status:", error);
+      logActionError("Failed to update mute status:", error);
     }
   };
 
@@ -183,7 +178,7 @@ export default function DirectMessageRightPanel({
       updateDirectConversationMemberCache(activeConversation.id, {
         pinned: isPinned,
       });
-      console.error("Failed to update pin status:", error);
+      logActionError("Failed to update pin status:", error);
     }
   };
 
@@ -221,12 +216,6 @@ export default function DirectMessageRightPanel({
     if (getMessageChatId(message) !== activeConversation?.id) return;
     dispatch(setActiveThreadRootMessage(message));
   };
-
-
-
-
-
-
 
   if (detailView === "files") {
     return (
@@ -301,17 +290,13 @@ export default function DirectMessageRightPanel({
               }
             }}
           >
-            {displayAvatarUrl ? (
-              <Image
-                src={displayAvatarUrl}
-                alt="Avatar"
-                width={80}
-                height={80}
-                className="rounded-full"
-              />
-            ) : (
-              <User size={40} className="text-muted-foreground" />
-            )}
+            <UserAvatar
+              src={displayAvatarUrl}
+              alt="Avatar"
+              width={80}
+              height={80}
+              className="rounded-full"
+            />
           </Button>
           <h3 className="font-semibold text-foreground text-section-title">{displayName}</h3>
           <p className="text-sm text-muted-foreground mb-4">{displayDescription}</p>

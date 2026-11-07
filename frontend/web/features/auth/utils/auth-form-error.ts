@@ -12,9 +12,6 @@ export function handleAuthFormError<Values extends FieldValues>(
   const invalidFields = fields.filter((field) => Boolean(errors[field]));
   for (const field of invalidFields)
     form.setError(field, { type: "server", message: errors[field] });
-  const firstInvalid = invalidFields[0];
-  // The request guard disables inputs until handleSubmit settles; focus after that render.
-  if (firstInvalid) requestAnimationFrame(() => form.setFocus(firstInvalid));
 
   const unknownError = Object.entries(errors).find(
     ([field]) => !fields.some((visible) => visible === field),

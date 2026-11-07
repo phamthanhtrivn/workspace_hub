@@ -12,10 +12,11 @@ interface NotificationListRowProps extends NotificationListItemProps {
   description?: ReactNode;
   badge?: ReactNode;
   children?: ReactNode;
+  leading?: ReactNode;
 }
 
 /** List renderers own their content; row geometry and read state stay consistent. */
-export function NotificationListRow({ notification, onClick, title, description, badge, children }: NotificationListRowProps) {
+export function NotificationListRow({ notification, onClick, title, description, badge, children, leading }: NotificationListRowProps) {
   return (
     <Button
       variant="unstyled"
@@ -26,7 +27,7 @@ export function NotificationListRow({ notification, onClick, title, description,
         notification.isRead ? "bg-card" : "bg-info-soft/60",
       )}
     >
-      <NotificationCategoryIcon notification={notification} className="size-10" />
+      {leading ?? <NotificationCategoryIcon notification={notification} className="size-10" />}
       <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
         {badge && <span className="mb-1 flex flex-wrap items-center gap-2">{badge}</span>}
         <span className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">{title}</span>

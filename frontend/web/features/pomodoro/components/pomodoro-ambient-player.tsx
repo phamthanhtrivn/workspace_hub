@@ -57,7 +57,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
   };
 
   return (
-    <fieldset disabled={disabled} aria-label="Focus sounds and music" className="w-full min-w-0 max-w-lg rounded-control border border-border bg-card px-3 py-1.5 transition-all duration-200 hover:border-input disabled:opacity-60">
+    <fieldset disabled={disabled} aria-label="Focus sounds and music" className="w-full min-w-0 max-w-lg rounded-control border border-border bg-card px-3 py-2 transition-colors duration-150 hover:border-input disabled:opacity-60 motion-reduce:transition-none">
       <div className="flex items-center justify-between gap-3">
         {/* Track Selector Popover Trigger */}
         <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -176,7 +176,7 @@ export const PomodoroAmbientPlayer = React.memo(function PomodoroAmbientPlayer({
               className={cn(
                 "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-control text-primary-foreground transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40",
                 isPlaying
-                  ? "bg-warning text-warning-foreground hover:bg-warning"
+                    ? "bg-info-soft text-info-content hover:bg-info-soft"
                   : "bg-primary hover:bg-primary-hover",
               )}
             >

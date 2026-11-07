@@ -1,3 +1,4 @@
+import { TrackedKafkaServer } from './infrastructure/kafka/tracked-kafka.server';
 import { SessionRedisIoAdapter } from './common/auth/session-redis.adapter';
 import * as dotenv from "dotenv";
 // Load environment variables from .env file before anything else
@@ -5,7 +6,7 @@ dotenv.config();
 
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
-import { MicroserviceOptions, Transport } from "@nestjs/microservices";
+import { MicroserviceOptions } from "@nestjs/microservices";
 import { ValidationPipe } from "@nestjs/common";
 import { KAFKA_CLIENTS } from "./common/constants/kafka.constants";
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
@@ -36,8 +37,7 @@ async function bootstrap() {
   // Connect Kafka Microservice for receiving background notifications
   const kafkaBroker = process.env.KAFKA_BROKER!;
   app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.KAFKA,
-    options: {
+    strategy: new TrackedKafkaServer({
       client: {
         clientId: KAFKA_CLIENTS.NOTIFICATION_SERVICE.CLIENT_ID,
         brokers: [kafkaBroker],
@@ -51,9 +51,10 @@ async function bootstrap() {
       consumer: {
         groupId: KAFKA_CLIENTS.NOTIFICATION_SERVICE.GROUP_ID,
       },
-    },
+    }),
   });
 
+  app.enableShutdownHooks();
   await app.startAllMicroservices();
 
   const port = process.env.PORT!;

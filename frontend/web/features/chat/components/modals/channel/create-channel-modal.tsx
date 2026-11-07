@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useId, useState } from "react";
 import { Hash, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -62,7 +63,7 @@ function CreateChannelForm({
       onClose();
     },
     onError: (error) =>
-      toast.error(getErrorMessage(error, "Failed to create channel")),
+      toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to create channel"))),
   });
   return (
     <Dialog

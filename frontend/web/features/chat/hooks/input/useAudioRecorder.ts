@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 interface UseAudioRecorderProps {
@@ -85,9 +86,9 @@ export function useAudioRecorder({ onRecordComplete }: UseAudioRecorderProps) {
 
       return true;
     } catch (err) {
-      console.error("Error accessing microphone:", err);
+      logActionError("Error accessing microphone:", err);
       resetRecordingState();
-      toast.error("Cannot access microphone");
+      toast.error(getActionErrorMessage(err, "Cannot access microphone"));
       return false;
     }
   }, [onRecordComplete, resetRecordingState]);

@@ -1,9 +1,11 @@
+import { DATE_RANGE_MESSAGES } from "@/lib/date-range";
+
 export const PROJECT_DATE_TIME_ZONE = "Asia/Ho_Chi_Minh";
 
 export const PROJECT_DATE_MESSAGES = {
-  startDateInPast: "Start date must be today or later.",
-  startDateRequiredForEndDate: "Select a start date first.",
-  endDateBeforeStartDate: "End date cannot be before start date.",
+  startDateInPast: DATE_RANGE_MESSAGES.startInPast,
+  startDateRequiredForEndDate: DATE_RANGE_MESSAGES.startRequired,
+  endDateBeforeStartDate: DATE_RANGE_MESSAGES.endBeforeStart,
 } as const;
 
 export const PROJECT_COLOR_OPTIONS = [

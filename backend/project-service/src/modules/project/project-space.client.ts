@@ -167,6 +167,6 @@ export class ProjectSpaceClient {
   }
 
   private internalHeaders(): Record<string, string> {
-    return { 'x-internal-service-key': this.config.internalServiceKey };
+    return { 'x-internal-service-key': this.config.communicationServiceKey };
   }
 }

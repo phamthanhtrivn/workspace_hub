@@ -46,6 +46,10 @@ export interface UserStorageQuota {
   updatedAt: string;
 }
 
+export type AccessibleDocumentItem = Pick<DocumentItem, "id" | "name" | "type" | "sizeBytes" | "mimeType"> & {
+  userRole: DocumentRole;
+};
+
 export interface PaginatedResponse<T> {
   data: T;
   meta: {

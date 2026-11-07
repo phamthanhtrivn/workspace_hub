@@ -1,3 +1,6 @@
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
+import { StorageVideo, StorageImg } from "@/components/common/storage-media";
+import { fetchStorageAsset, openStorageAsset } from "@/features/storage/api/storage.api";
 import type { ChatMediaResponse } from "@/features/chat/types/chat.types";
 import { toast } from "sonner";
 
@@ -235,7 +238,7 @@ export default function MediaDetailView({
     }
 
     if (item.fileUrl) {
-      window.open(item.fileUrl, "_blank", "noopener,noreferrer");
+      void openStorageAsset(item.fileUrl).catch(() => {});
     }
   };
 
@@ -243,12 +246,12 @@ export default function MediaDetailView({
     e.preventDefault();
     e.stopPropagation();
     try {
-      const response = await fetch(item.fileUrl);
+      const response = await fetchStorageAsset(item.fileUrl);
       const blob = await response.blob();
       saveAs(blob, item.name);
     } catch (error) {
-      console.error("Download error:", error);
-      toast.error("Could not download this file. Please try again.");
+      logActionError("Download error:", error);
+      toast.error(getActionErrorMessage(error, "Could not download this file. Please try again."));
     }
   };
 
@@ -323,13 +326,13 @@ export default function MediaDetailView({
                 >
                   <Button variant="unstyled" type="button" onClick={() => openItem(item)} className="flex min-w-0 flex-1 items-center gap-3 text-left"><span className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted flex items-center justify-center">
                     {kind === "image" && item.fileUrl ? (
-                      <img
+                      <StorageImg
                         src={item.fileUrl}
                         alt={item.name}
                         className="h-full w-full object-cover"
                       />
                     ) : kind === "video" && item.fileUrl ? (
-                      <video
+                      <StorageVideo
                         src={item.fileUrl}
                         className="h-full w-full object-cover"
                       />

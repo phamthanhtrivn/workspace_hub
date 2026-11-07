@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage, logActionError } from "@/lib/permission-feedback";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useRoomContext,
@@ -290,12 +291,12 @@ export function useMeetingScreenShare({
             return;
           }
           if (error.name === "InvalidStateError") {
-            toast.error("Focus this meeting tab and click Share screen again.");
+            toast.error(getActionErrorMessage(error, "Focus this meeting tab and click Share screen again."));
             return;
           }
           if (error.name === "NotReadableError") {
             toast.error(
-              "The browser could not capture that screen. Try another window or check your system's screen recording permissions.",
+              getActionErrorMessage(error, "The browser could not capture that screen. Try another window or check your system's screen recording permissions."),
             );
             return;
           }
@@ -305,22 +306,22 @@ export function useMeetingScreenShare({
             error.name === "NotFoundError"
           ) {
             toast.error(
-              "Screen sharing is unavailable in this browser. Use a supported desktop browser on HTTPS or localhost.",
+              getActionErrorMessage(error, "Screen sharing is unavailable in this browser. Use a supported desktop browser on HTTPS or localhost."),
             );
             return;
           }
         }
-        console.error("Screen sharing failed", {
+        logActionError("Screen sharing failed", {
           stage,
           name: error instanceof Error ? error.name : undefined,
           message: error instanceof Error ? error.message : undefined,
           error,
         });
         toast.error(
-          isAxiosError(error) &&
+          getActionErrorMessage(error, isAxiosError(error) &&
             typeof error.response?.data?.message === "string"
             ? error.response.data.message
-            : "Could not start screen sharing. Please try again.",
+            : "Could not start screen sharing. Please try again."),
         );
       } finally {
         setIsScreenSharePending(false);
@@ -337,8 +338,8 @@ export function useMeetingScreenShare({
       setScreenShareEnabled(response.data.screenShareEnabled);
       setActiveScreenShareUserId(null);
       setScreenShareStartedAt(null);
-    } catch {
-      toast.error("Could not stop screen sharing");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Could not stop screen sharing"));
     } finally {
       setIsScreenSharePending(false);
     }

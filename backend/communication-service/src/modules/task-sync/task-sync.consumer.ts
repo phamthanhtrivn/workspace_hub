@@ -1,4 +1,4 @@
-import { Controller, Logger } from '@nestjs/common';
+import { Controller, Logger, UseInterceptors } from '@nestjs/common';
 import {
   EventPattern,
   KafkaRetriableException,
@@ -9,16 +9,18 @@ import { validateSync } from 'class-validator';
 import { KAFKA_TOPICS } from '../../common/constants/kafka.constants';
 import { TaskSyncEventDto } from './task-sync.dto';
 import { TaskSyncService } from './task-sync.service';
+import { InvalidKafkaPayload } from '../../infrastructure/kafka/invalid-kafka-payload';
+import { UserEventInterceptor } from '../../infrastructure/kafka/user-event.interceptor';
 
 @Controller()
+@UseInterceptors(UserEventInterceptor)
 export class TaskSyncConsumer {
   private readonly logger = new Logger(TaskSyncConsumer.name);
   constructor(private readonly tasks: TaskSyncService) {}
   @EventPattern(KAFKA_TOPICS.PROJECT_TASK_SYNC)
   async handle(@Payload() payload: unknown): Promise<void> {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-      this.logger.warn('Ignored invalid task sync payload');
-      return;
+      throw new InvalidKafkaPayload('Invalid task sync payload');
     }
     const event = plainToInstance(TaskSyncEventDto, payload);
     if (
@@ -26,16 +28,12 @@ export class TaskSyncConsumer {
         .length ||
       BigInt(event.version) > 9223372036854775807n
     ) {
-      this.logger.warn('Ignored invalid task sync contract');
-      return;
+      throw new InvalidKafkaPayload('Invalid task sync contract');
     }
     try {
       await this.tasks.apply(event);
-    } catch (error) {
-      this.logger.error(
-        `Task sync failed for ${event.taskId}`,
-        error instanceof Error ? error.stack : undefined,
-      );
+    } catch {
+      this.logger.error(`Task sync failed for ${event.taskId}`);
       throw new KafkaRetriableException('Task sync could not be persisted');
     }
   }

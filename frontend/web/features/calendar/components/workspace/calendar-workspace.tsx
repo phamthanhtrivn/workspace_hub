@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import FullCalendar from "@fullcalendar/react";
 import type { EventClickArg } from "@fullcalendar/core";
 import dynamic from "next/dynamic";
@@ -89,8 +90,8 @@ export function CalendarWorkspace() {
       });
       toast.success("Calendar created");
       return true;
-    } catch {
-      toast.error("Failed to create calendar");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to create calendar"));
       return false;
     }
   };

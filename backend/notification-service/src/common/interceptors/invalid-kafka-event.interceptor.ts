@@ -6,10 +6,11 @@ import {
   Logger,
   NestInterceptor,
 } from "@nestjs/common";
-import { KafkaContext } from "@nestjs/microservices";
+import { KafkaContext, KafkaRetriableException } from "@nestjs/microservices";
 import { createHash } from "node:crypto";
-import { catchError, from, map, Observable, throwError } from "rxjs";
+import { catchError, from, map, Observable, tap, throwError } from "rxjs";
 import { PrismaService } from "../../prisma/prisma.service";
+import { kafkaConsumerState } from "../../infrastructure/kafka/consumer-lifecycle";
 
 @Injectable()
 export class InvalidKafkaEventInterceptor implements NestInterceptor {
@@ -18,17 +19,29 @@ export class InvalidKafkaEventInterceptor implements NestInterceptor {
   constructor(private readonly prisma: PrismaService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const kafka = context.switchToRpc().getContext<KafkaContext>();
+    const recordResult = (failed: boolean) =>
+      kafkaConsumerState.recordHandlingResult(kafka.getTopic(), kafka.getPartition(), failed);
     return next.handle().pipe(
+      tap(() => recordResult(false)),
       catchError((error: unknown) => {
         // Retry transient provider/database failures. Only invalid contracts can be acknowledged.
-        if (!(error instanceof BadRequestException))
-          return throwError(() => error);
+        if (!(error instanceof BadRequestException)) {
+          recordResult(true);
+          return throwError(() => new KafkaRetriableException('Notification dependency unavailable'));
+        }
         return from(
           this.quarantine(
             context.switchToRpc().getContext<KafkaContext>(),
             error,
           ),
-        ).pipe(map(() => undefined));
+        ).pipe(
+          map(() => { recordResult(false); return undefined; }),
+          catchError(() => {
+            recordResult(true);
+            return throwError(() => new KafkaRetriableException('Notification quarantine unavailable'));
+          }),
+        );
       }),
     );
   }

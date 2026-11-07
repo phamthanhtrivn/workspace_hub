@@ -1,9 +1,12 @@
 "use client";
+import { StorageVideo, StorageLink } from "@/components/common/storage-media";
+import { fetchStorageAsset } from "@/features/storage/api/storage.api";
+
 
 import { IconButton } from "@/components/ui/icon-button";
 
 import { Download, FileText, Play } from "lucide-react";
-import Image from "next/image";
+import Image from "@/components/common/storage-image";
 import { saveAs } from "file-saver";
 import { formatFileSize } from "@/lib/file";
 import { cn } from "@/lib/utils";
@@ -26,7 +29,7 @@ async function downloadMedia(
   event.preventDefault();
   event.stopPropagation();
 
-  const response = await fetch(media.fileUrl);
+  const response = await fetchStorageAsset(media.fileUrl);
   const blob = await response.blob();
   saveAs(blob, media.name);
 }
@@ -56,7 +59,7 @@ export function MeetingMessageAttachments({
         >
           {visualMedias.map((media) =>
             media.mimeType.startsWith("image/") || media.type === "IMAGE" ? (
-              <a
+              <StorageLink
                 key={media.id}
                 href={media.fileUrl}
                 target="_blank"
@@ -76,16 +79,16 @@ export function MeetingMessageAttachments({
                       : "aspect-square h-full",
                   )}
                 />
-              </a>
+              </StorageLink>
             ) : (
-              <a
+              <StorageLink
                 key={media.id}
                 href={media.fileUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="group relative overflow-hidden bg-overlay/30"
               >
-                <video
+                <StorageVideo
                   src={media.fileUrl}
                   className={cn(
                     "w-full object-cover",
@@ -99,7 +102,7 @@ export function MeetingMessageAttachments({
                     <Play className="ml-0.5 h-5 w-5" fill="currentColor" />
                   </span>
                 </span>
-              </a>
+              </StorageLink>
             ),
           )}
         </div>

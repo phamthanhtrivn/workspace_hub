@@ -9,10 +9,10 @@ export function PomodoroReportSummary({ summary }: { summary: ReturnType<typeof 
     { label: copy.stopped, value: summary.stoppedFocusSessions, icon: PauseCircle, color: "text-warning-content" },
     { label: copy.total, value: summary.totalSessions, icon: Layers3, color: "text-muted-foreground" },
   ];
-  return <dl className="mt-5 grid grid-cols-1 gap-x-6 gap-y-5 border-y border-border py-5 @min-[400px]/pomodoro:grid-cols-2 @min-[800px]/pomodoro:grid-cols-4">
-    {metrics.map(({ label, value, icon: Icon, color }) => <div key={label} className="min-w-0">
+  return <dl className="grid grid-cols-2 gap-x-3 gap-y-5 border-b border-border py-5 @min-[480px]/pomodoro:gap-x-6 @min-[800px]/pomodoro:grid-cols-4">
+    {metrics.map(({ label, value, icon: Icon, color }) => <div key={label} className="min-w-0 @min-[800px]/pomodoro:border-r @min-[800px]/pomodoro:border-border @min-[800px]/pomodoro:pr-4 @min-[800px]/pomodoro:last:border-r-0">
       <dt className="flex items-start gap-2 text-xs font-medium text-muted-foreground"><Icon aria-hidden="true" className={`size-4 shrink-0 ${color}`} />{label}</dt>
-      <dd className="mt-2 break-words text-2xl font-semibold leading-tight tracking-tight text-foreground tabular-nums">{value}</dd>
+      <dd className="mt-2 break-words text-xl font-semibold leading-tight tracking-tight text-foreground tabular-nums @min-[480px]/pomodoro:text-2xl">{value}</dd>
       {label === copy.total && <dd className="mt-1 text-xs text-muted-foreground">{copy.totalHint}</dd>}
     </div>)}
   </dl>;

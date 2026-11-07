@@ -3,19 +3,13 @@
 
 
 
+import { getActionErrorMessage,  PERMISSION_REASON } from "@/lib/permission-feedback";
 import {
-  AlignLeft,
-  Bell,
-  Calendar,
   Check,
   Copy,
   ExternalLink,
-  ListTodo,
-  MapPin,
-  Paperclip,
   Pencil,
   Trash2,
-  Users,
   Video,
   X,
 } from "lucide-react";
@@ -23,11 +17,10 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/store/store";
-import { useAttendeeProfiles } from "../../hooks/use-calendar-users";
 import { useCalendarEvent, useRetryCalendarConference } from "../../hooks/use-calendar-queries";
 import { buildCalendarMeetingUrl } from "../../utils/calendar-conference.utils";
 
-import { CalendarDocumentsSection } from "./calendar-documents-section";
+import { CalendarEventReadonlyDetails } from "./calendar-event-readonly-details";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
@@ -35,15 +28,12 @@ import {
 } from "../../types/calendar.types";
 import {
   formatCalendarEventRange,
-  formatReminderLabel,
 } from "../../utils/calendar-date.utils";
 import {
-  cleanTaskDescription,
   isTaskCalendarEvent,
 } from "../../utils/calendar-event.utils";
 import { CalendarConfirmDialog } from "../ui/calendar-confirm-dialog";
 import { CalendarRadioGroup } from "../ui/calendar-radio-group";
-import { EventAttendeeList } from "./event-attendee-list";
 import { CalendarTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
 import { TaskFocusHistory } from "@/features/pomodoro/components/task-focus-history";
 import { DialogSurface } from "@/components/ui/dialog";
@@ -76,7 +66,6 @@ export function EventDetailModal({
   const retryConference = useRetryCalendarConference();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const resolvedProfiles = useAttendeeProfiles(event, open);
 
 
   const [copiedMeeting, setCopiedMeeting] = useState(false);
@@ -129,28 +118,12 @@ export function EventDetailModal({
   const meetingUrl = event.conference?.status === "READY" && event.conference.joinToken ? buildCalendarMeetingUrl(event.conference.joinToken) : event.location?.includes("meet.google.com") ? event.location : null;
   const hasMeeting = Boolean(meetingUrl);
 
-  const hasPhysicalLocation = event.location && !event.location.includes("meet.google.com");
-
-  const reminderText =
-    event.reminders && event.reminders.length > 0
-      ? event.reminders
-          .map((r) => formatReminderLabel(r.minutesBefore))
-          .join(", ")
-      : "No reminders";
-
-  const calendarName =
-    event.calendar?.name ||
-    event.creatorProfile?.fullName ||
-    event.creatorProfile?.email ||
-    "My Calendar";
-
   const eventColor =
     (isTask ? tasksColor : undefined) ||
     event.color ||
     event.calendar?.color ||
     "var(--warning)";
 
-  const cleanedDescription = cleanTaskDescription(event.description);
 
   return typeof document === "undefined" ? null : <DialogSurface onClose={onClose}>{(
     <div
@@ -185,9 +158,9 @@ export function EventDetailModal({
       >
         {/* Top Header Action Toolbar (Google Calendar style) */}
         <div className="flex h-12 shrink-0 items-center justify-end gap-1 px-3 pt-2 text-muted-foreground">
-          {event.permissions?.canManage && (
+          {(
             <>
-              <Button
+              <Button disabledReason={!(event.permissions?.canManage) ? PERMISSION_REASON.calendarManage : undefined}
                 type="button"
                 variant="ghost"
                 size="icon"
@@ -199,7 +172,7 @@ export function EventDetailModal({
                 <Pencil className="h-4 w-4" />
               </Button>
 
-              <Button
+              <Button disabledReason={!(event.permissions?.canManage) ? PERMISSION_REASON.calendarManage : undefined}
                 type="button"
                 variant="ghost"
                 size="icon"
@@ -260,37 +233,12 @@ export function EventDetailModal({
             </div>
           )}
 
-          {/* Row 2: Reminders (Bell icon) */}
-          <div className="flex items-start gap-4">
-            <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-              <Bell className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="min-w-0 flex-1 text-sm text-foreground">
-              {reminderText}
-            </div>
-          </div>
-
-          {/* Row 3: Calendar / Tasks Name */}
-          <div className="flex items-start gap-4">
-            <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-              {isTask ? (
-                <ListTodo
-                  className="h-4 w-4 text-info-content"
-                />
-              ) : (
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1 text-sm text-foreground">
-              {isTask ? "Tasks" : calendarName}
-            </div>
-          </div>
-
+          <CalendarEventReadonlyDetails event={event}>
           {/* Row 4: Meeting Video Conferencing (if present) */}
           {event.conference?.enabled && ["PENDING", "FAILED"].includes(event.conference.status) && (
             <div role="status" className="space-y-2 rounded-control border border-border p-3 text-sm">
               <p>{event.conference.status === "FAILED" ? "Meeting preparation failed. Your event is saved; preparation will retry automatically." : "Your event is saved. The meeting link is being prepared."}</p>
-              {event.permissions?.canManage && <Button type="button" size="sm" variant="outline" loading={retryConference.isPending} onClick={() => retryConference.mutate(event.id, { onError: () => toast.error("Unable to retry meeting preparation. Please try again.") })}>Retry now</Button>}
+              {<Button disabledReason={!(event.permissions?.canManage) ? PERMISSION_REASON.calendarManage : undefined} type="button" size="sm" variant="outline" loading={retryConference.isPending} onClick={() => retryConference.mutate(event.id, { onError: (permissionFailure) => toast.error(getActionErrorMessage(permissionFailure, "Unable to retry meeting preparation. Please try again.")) })}>Retry now</Button>}
             </div>
           )}
           {hasMeeting && (
@@ -337,74 +285,8 @@ export function EventDetailModal({
             </div>
           )}
 
-          {/* Row 5: Physical Location (if present) */}
-          {hasPhysicalLocation && (
-            <div className="flex items-start gap-4">
-              <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                    event.location!,
-                  )}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="group flex items-start gap-1.5 text-sm font-medium text-foreground transition hover:text-info-content"
-                  title="Open in Google Maps"
-                >
-                  <span className="break-words whitespace-normal leading-relaxed group-hover:underline">
-                    {event.location}
-                  </span>
-                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground transition group-hover:text-info-content" />
-                </a>
-              </div>
-            </div>
-          )}
+          </CalendarEventReadonlyDetails>
 
-          {/* Row 6: Description (if present) */}
-          {cleanedDescription && (
-            <div className="flex items-start gap-4">
-              <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-                <AlignLeft className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="min-w-0 flex-1 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                {cleanedDescription}
-              </div>
-            </div>
-          )}
-
-          {/* Row 7: Attendees (if present) */}
-          {guestAttendees.length > 0 && (
-            <div className="flex items-start gap-4">
-              <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <EventAttendeeList
-                  attendees={guestAttendees}
-                  resolvedProfiles={resolvedProfiles}
-                  currentUserId={currentUserId}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Row 8: Attached documents */}
-          {event.documentIds.length > 0 && (
-            <div className="flex items-start gap-4">
-              <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-                <Paperclip className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <CalendarDocumentsSection
-                  documentIds={event.documentIds}
-                  isReadOnly={true}
-                  hideHeader={true}
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Guest RSVP Footer Bar */}

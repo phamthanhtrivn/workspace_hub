@@ -12,19 +12,20 @@ interface PomodoroSyncStatusProps {
   settingsPending?: boolean;
   onRetry: () => void;
   compact?: boolean;
+  inverse?: boolean;
 }
 
-export function PomodoroSyncStatus({ status, settingsPending = false, onRetry, compact = false }: PomodoroSyncStatusProps) {
+export function PomodoroSyncStatus({ status, settingsPending = false, onRetry, compact = false, inverse = false }: PomodoroSyncStatusProps) {
   const waiting = status === "pending" || status === "error" || settingsPending;
   if (compact && status === "synced" && !settingsPending) return null;
   const label = status === "synced" && settingsPending ? POMODORO_SYNC_COPY.settings : POMODORO_SYNC_COPY[status];
   return (
-    <div className={cn("flex min-w-0 flex-wrap items-center gap-x-2 text-xs", compact ? "mt-1" : "justify-center", waiting ? "text-warning-content" : "text-muted-foreground")}>
+    <div className={cn("flex min-w-0 flex-wrap items-center gap-x-2 text-xs", compact ? "mt-1" : "justify-center", inverse ? "text-(--mini-timer-foreground)/80" : waiting ? "text-warning-content" : "text-muted-foreground")}>
       <span role="status" className="inline-flex min-w-0 items-center gap-1.5">
-        {status === "saving" ? <Spinner className="size-3.5 shrink-0" /> : waiting ? <CloudOff aria-hidden="true" className="size-3.5 shrink-0" /> : <CloudCheck aria-hidden="true" className="size-3.5 shrink-0" />}
+        {status === "saving" ? <Spinner tone={inverse ? "inherit" : "primary"} className="size-3.5 shrink-0" /> : waiting ? <CloudOff aria-hidden="true" className="size-3.5 shrink-0" /> : <CloudCheck aria-hidden="true" className="size-3.5 shrink-0" />}
         {label}
       </span>
-      {waiting && <Button type="button" variant="link" size="sm" className="h-auto px-1 py-1 text-xs text-warning-content" disabled={status === "saving"} onClick={onRetry}>
+      {waiting && <Button type="button" variant="link" size="sm" className={cn("h-auto px-1 py-1 text-xs", inverse ? "text-(--mini-timer-foreground)" : "text-warning-content")} disabled={status === "saving"} onClick={onRetry}>
         <RefreshCw aria-hidden="true" className="size-3" />{POMODORO_SYNC_COPY.retry}
       </Button>}
     </div>

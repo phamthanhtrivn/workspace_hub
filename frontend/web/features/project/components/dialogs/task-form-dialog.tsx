@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { getDateRangeErrors, getInitialScheduleStart, hasDateRangeErrors } from "@/lib/date-range";
+import { useScheduleToday } from "@/hooks/use-schedule-today";
 import { AlignLeft, Clock3 } from "lucide-react";
 import {
   taskDateKey,
@@ -85,15 +87,16 @@ export default function TaskFormDialog({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);
   const status = initialStatus;
-  const [startDate, setStartDate] = useState(
-    initialAllDay
+  const [startDate, setStartDate] = useState(() => getInitialScheduleStart(initialAllDay
       ? toDateInput(initialStartDate)
-      : toDateTimeInput(initialStartDate),
-  );
+      : toDateTimeInput(initialStartDate), initialAllDay));
   const [dueDate, setDueDate] = useState("");
   const [allDay, setAllDay] = useState(initialAllDay);
   const [parentTaskId, setParentTaskId] = useState(initialParentTaskId || "");
   const [assigneeUserId, setAssigneeUserId] = useState("");
+  const { today, refreshToday } = useScheduleToday();
+  const dateOptions = { start: startDate, end: dueDate, mode: "create" as const, dateOnly: allDay, today };
+  const dateErrors = getDateRangeErrors(dateOptions);
 
   const handleClose = () => {
     if (isSubmitting) return;
@@ -103,6 +106,7 @@ export default function TaskFormDialog({
   const handleSubmit = async (event?: React.FormEvent) => {
     event?.preventDefault();
     if (!title.trim() || isSubmitting) return;
+    if (hasDateRangeErrors(getDateRangeErrors({ ...dateOptions, today: refreshToday() }))) return;
 
     await onSubmit({
       title: title.trim(),
@@ -130,7 +134,7 @@ export default function TaskFormDialog({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && handleClose()}>
       <DialogContent className="flex max-w-3xl flex-col p-0 gap-0 overflow-hidden rounded-dialog border-border bg-card sm:rounded-dialog">
-        <form onSubmit={(event) => void handleSubmit(event)} className="flex min-h-0 max-h-[inherit] flex-col">
+        <form onSubmit={(event) => void handleSubmit(event)} onFocusCapture={refreshToday} className="flex min-h-0 max-h-[inherit] flex-col">
           <DialogHeader className="shrink-0 px-4 pt-5 pb-4 pr-12 text-left border-b border-border sm:px-7">
             <p className="truncate text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {projectName ? `Project: ${projectName}` : "Project"}
@@ -198,10 +202,12 @@ export default function TaskFormDialog({
               allDay={allDay}
               onAllDayChange={handleAllDayChange}
               startDate={startDate}
-              onStartDateChange={setStartDate}
+              onStartDateChange={value => { setStartDate(value); if (!value) setDueDate(""); }}
               dueDate={dueDate}
               onDueDateChange={setDueDate}
               disabled={isSubmitting}
+              today={today}
+              errors={dateErrors}
             />
 
           </div>
@@ -223,7 +229,7 @@ export default function TaskFormDialog({
               </Button>
               <Button loading={isSubmitting}
                 type="submit"
-                disabled={!title.trim() || isSubmitting}
+                disabled={!title.trim() || isSubmitting || hasDateRangeErrors(dateErrors)}
                 className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
               >
                 {isSubmitting ? "Saving..." : "Create Task"}

@@ -3,7 +3,6 @@ package vn.workspacehub.user.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +18,7 @@ import vn.workspacehub.user.dto.response.UserSearchResponse;
 import vn.workspacehub.user.dto.response.UserSessionResponse;
 import vn.workspacehub.user.service.AuthService;
 import vn.workspacehub.user.service.UserService;
-import vn.workspacehub.user.util.ServiceCredentials;
+import vn.workspacehub.user.service.InternalServiceAuthorization;
 
 import java.util.List;
 import java.util.UUID;
@@ -32,8 +31,7 @@ public class UserController {
     private final AuthService authService;
     private final UserService userService;
 
-    @Value("${INTERNAL_SERVICE_KEY:}")
-    private String internalServiceKey;
+    private final InternalServiceAuthorization internalAuthorization;
 
     @GetMapping("/me/sessions")
     public ResponseEntity<ApiResponse<List<UserSessionResponse>>> getActiveSessions(
@@ -90,9 +88,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<DirectMessageSettingsResponse>> getDirectMessageSettings(
             @PathVariable UUID id,
             @RequestHeader(value = "X-Internal-Service-Key", required = false) String serviceKey) {
-        if (!ServiceCredentials.matches(serviceKey, internalServiceKey)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid internal service key");
-        }
+        internalAuthorization.requirePrivacy(serviceKey);
         boolean allowed = userService.getAccountSettings(id).isAllowNewDirectMessages();
         return ResponseEntity.ok(ApiResponse.<DirectMessageSettingsResponse>builder()
                 .success(true)

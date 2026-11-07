@@ -50,7 +50,7 @@ export function Citations({
     } catch {
       viewer?.close();
       setError(
-        "Không mở được nguồn. Kiểm tra quyền, phiên bản và cho phép cửa sổ mới trong trình duyệt.",
+        "Unable to open this source. Check your access and allow pop-ups, then try again.",
       );
     }
   };
@@ -65,7 +65,7 @@ export function Citations({
             renderCitation={(label) => {
               const item = byLabel.get(label);
               if (!item) return `[[${label}]]`;
-              const description = `Nguồn ${item.label}: ${item.name}${item.page ? `, trang ${item.page}` : ""}`;
+              const description = `Source ${item.label}: ${item.name}${item.page ? `, page ${item.page}` : ""}`;
               return (
                 <Button variant="unstyled"
                   type="button"
@@ -86,19 +86,19 @@ export function Citations({
         ))}
       {items.length > 0 && (
         <div className="space-y-2 text-xs">
-          <p className="font-medium text-muted-foreground">Nguồn tham khảo</p>
+          <p className="font-medium text-muted-foreground">References</p>
           {items.map((item) => (
             <Details
               key={`${item.label}-${item.id}`}
               id={sourceId(item)}
-              className="rounded-md border bg-slate-50 p-2"
+              className="rounded-md border bg-muted/40 p-2"
             >
               <DetailsSummary className="cursor-pointer break-words font-medium">
                 <span className="mr-1.5 inline-flex min-w-5 items-center justify-center rounded border border-primary/20 bg-primary/5 px-1 py-0.5 text-[10px] font-semibold text-primary">
                   {item.label.slice(1)}
                 </span>
                 {item.name} ·{" "}
-                {item.page ? `trang ${item.page}` : `đoạn ${item.position + 1}`}
+                {item.page ? `page ${item.page}` : `passage ${item.position + 1}`}
               </DetailsSummary>
               <blockquote className="my-2 whitespace-pre-wrap break-words border-l-2 pl-3 leading-relaxed">
                 {item.text}
@@ -108,17 +108,17 @@ export function Citations({
               )}
               <Button variant="unstyled"
                 type="button"
-                className="text-primary underline"
+                className="text-link underline"
                 onClick={() => preview(item)}
               >
-                Mở bản gốc
+                Open original
               </Button>
             </Details>
           ))}
         </div>
       )}
       {error && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="text-destructive">
           {error}
         </p>
       )}
@@ -154,7 +154,7 @@ function SourceImage({
       setDataUrl(image.dataUrl);
     } catch {
       setError(
-        "Không mở được hình. Nguồn có thể đã thay đổi hoặc mất quyền truy cập.",
+        "Unable to open this image. The source may have changed or your access was removed.",
       );
     } finally {
       setPending(false);
@@ -168,7 +168,7 @@ function SourceImage({
           src={dataUrl}
           width={2000}
           height={2000}
-          alt={`Hình từ ${citation.name}${citation.page ? `, trang ${citation.page}` : ""}`}
+          alt={`Image from ${citation.name}${citation.page ? `, page ${citation.page}` : ""}`}
           className="h-auto w-full rounded-md border bg-white"
         />
       ) : (
@@ -178,13 +178,13 @@ function SourceImage({
           type="button"
           disabled={pending}
           onClick={load}
-          className="inline-flex items-center gap-2 text-primary underline disabled:opacity-50"
+          className="inline-flex items-center gap-2 text-link underline disabled:opacity-50"
         >
-          {pending ? "Đang mở hình…" : "Xem hình trích xuất"}
+          {pending ? "Opening image..." : "View extracted image"}
         </Button>
       )}
       {error && (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="text-destructive">
           {error}
         </p>
       )}

@@ -1,11 +1,13 @@
 "use client";
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
+import { UserAvatar } from "@/components/common/user-avatar";
 
 import { getApiErrorMessage } from "@/lib/api-error";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useEffect, useState } from "react";
 
-import { X, User, Phone, Calendar, Info } from "lucide-react";
+import { X, Phone, Calendar, Info } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { toast } from "sonner";
@@ -17,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { DialogSurface } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-
 
 const UserProfileModal = React.memo(function UserProfileModal() {
   const dispatch = useAppDispatch();
@@ -53,8 +54,8 @@ const UserProfileModal = React.memo(function UserProfileModal() {
           toast.error("Failed to load user profile");
         }
       } catch (err) {
-        console.error("Failed to load selected user profile:", err);
-        toast.error("Error loading user profile");
+        logActionError("Failed to load selected user profile:", err);
+        toast.error(getActionErrorMessage(err, "Error loading user profile"));
       } finally {
         setLoading(false);
       }
@@ -103,7 +104,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
       }
     } catch (err: unknown) {
       toast.error(
-        getApiErrorMessage(err, "Failed to start direct conversation"),
+        getActionErrorMessage(err, getApiErrorMessage(err, "Failed to start direct conversation")),
       );
     }
   };
@@ -134,15 +135,11 @@ const UserProfileModal = React.memo(function UserProfileModal() {
           ) : (
             <div className="flex flex-col items-center">
               <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center overflow-hidden border-2 border-border mb-4">
-                {userProfile?.avatarUrl ? (
-                  <img
-                    src={userProfile.avatarUrl}
-                    alt="User Avatar"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User size={40} className="text-muted-foreground" />
-                )}
+                <UserAvatar
+                  src={userProfile?.avatarUrl}
+                  alt="User Avatar"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <h3 className="text-section-title font-semibold text-foreground">
                 {userProfile?.fullName || "Unknown User"}

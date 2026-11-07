@@ -1,15 +1,10 @@
+import { UserAvatar } from "@/components/common/user-avatar";
+
 import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
 import { useId as useControlledPopupId } from "react";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useState, useRef, useMemo } from "react";
-import {
-  ArrowLeft,
-  Search,
-  ChevronDown,
-  Check,
-  User,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, Search, ChevronDown, Check, Users } from "lucide-react";
 import {
   searchChannelMessages,
   searchDirectConversationMessages,
@@ -25,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AnchoredPopover } from "@/components/ui/anchored-popup";
 import { LoadingState } from "@/components/ui/loading-state";
-
 
 interface SearchMessagesSectionProps {
   conversationId: string;
@@ -52,8 +46,6 @@ export default function SearchMessagesSection({
   const [isSenderDropdownOpen, setIsSenderDropdownOpen] = useState(false);
   const [senderSearch, setSenderSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-
 
   const filteredMembers = useMemo(() => {
     const term = senderSearch.toLowerCase();
@@ -200,15 +192,11 @@ export default function SearchMessagesSection({
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="w-6 h-6 rounded-full bg-accent flex items-center justify-center shrink-0 overflow-hidden">
-                          {avatarUrl ? (
-                            <img
-                              src={avatarUrl}
-                              alt={name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <User size={12} className="text-muted-foreground" />
-                          )}
+                          <UserAvatar
+                            src={avatarUrl}
+                            alt={name}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         <span className="truncate">{name}</span>
                       </div>

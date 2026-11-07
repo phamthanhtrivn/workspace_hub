@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -60,8 +61,8 @@ export function useMeetingParticipantActions(joinToken: string) {
       invalidateParticipants();
       toast.success("Participant removed from the meeting");
     },
-    onError: () => {
-      toast.error("Could not remove participant");
+    onError: (permissionFailure) => {
+      toast.error(getActionErrorMessage(permissionFailure, "Could not remove participant"));
     },
   });
 
@@ -77,8 +78,8 @@ export function useMeetingParticipantActions(joinToken: string) {
       invalidateParticipants();
       toast.success("Participant role updated");
     },
-    onError: () => {
-      toast.error("Could not update participant role");
+    onError: (permissionFailure) => {
+      toast.error(getActionErrorMessage(permissionFailure, "Could not update participant role"));
     },
   });
 
@@ -94,8 +95,8 @@ export function useMeetingParticipantActions(joinToken: string) {
       });
       toast.success("Screen sharing stopped");
     },
-    onError: () => {
-      toast.error("Could not stop screen sharing");
+    onError: (permissionFailure) => {
+      toast.error(getActionErrorMessage(permissionFailure, "Could not stop screen sharing"));
     },
   });
 
@@ -105,8 +106,8 @@ export function useMeetingParticipantActions(joinToken: string) {
     onSuccess: () => {
       invalidateParticipants();
     },
-    onError: () => {
-      toast.error("Could not lower participant hand");
+    onError: (permissionFailure) => {
+      toast.error(getActionErrorMessage(permissionFailure, "Could not lower participant hand"));
     },
   });
 
@@ -128,8 +129,8 @@ export function useLeaveMeeting(joinToken: string) {
 export function useEndMeeting(joinToken: string) {
   return useMutation({
     mutationFn: () => endMeeting(joinToken),
-    onError: () => {
-      toast.error("Could not end meeting");
+    onError: (permissionFailure) => {
+      toast.error(getActionErrorMessage(permissionFailure, "Could not end meeting"));
     },
   });
 }

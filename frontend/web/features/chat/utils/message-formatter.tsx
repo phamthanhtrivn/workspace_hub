@@ -436,7 +436,7 @@ export const parseBlocks = (
             {nodes.map((node, nodeIdx) => {
               if (node.type === "table") {
                 return (
-                  <div key={`table-${nodeIdx}`} role="region" aria-label="Bảng trong tin nhắn" tabIndex={0}
+                  <div key={`table-${nodeIdx}`} role="region" aria-label="Message table" tabIndex={0}
                     className="my-3 max-w-full overflow-x-auto rounded-lg border border-border bg-card whitespace-normal focus-visible:outline-2 focus-visible:outline-primary">
                     <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={{
                       table: ({ children }) => <Table unstyled className="w-full min-w-[28rem] border-collapse text-left text-sm leading-relaxed">{children}</Table>,

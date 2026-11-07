@@ -33,4 +33,5 @@ export interface TaskDetailDrawerProps {
   canEditTask?: boolean;
   canContributeTask?: boolean;
   canComment?: boolean;
+  canEditDocuments?: boolean;
 }

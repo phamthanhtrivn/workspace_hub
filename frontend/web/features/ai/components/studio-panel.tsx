@@ -9,6 +9,11 @@ import { notebooksApi } from "../api/notebooks.api";
 import type { Notebook, NotebookActionKey, NotebookActionRunner } from "../types";
 import { Citations } from "./citations";
 import { Spinner } from "@/components/ui/spinner";
+import { aiServiceMessage } from "@/lib/ai-feedback";
+
+const artifactStatus: Record<string, string> = {
+  QUEUED: "Queued", RUNNING: "Processing", FAILED: "Failed", CANCELLED: "Cancelled",
+};
 
 type Props = {
   notebook: Notebook;
@@ -28,28 +33,29 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
       <div className="grid gap-2">
         <Button
           variant="outline"
+          className="h-auto min-h-10 whitespace-normal text-left"
           loading={saving && pendingAction === "OVERVIEW"}
           disabled={!ready || saving}
           onClick={() =>
             run(() => notebooksApi.artifact(notebook.id, "OVERVIEW"), "OVERVIEW")
           }
         >
-          Tổng quan & câu hỏi gợi ý
+          Overview & questions
         </Button>
         <Button
           variant="outline"
+          className="h-auto min-h-10 whitespace-normal text-left"
           loading={saving && pendingAction === "SUMMARY"}
           disabled={!ready || saving}
           onClick={() =>
             run(() => notebooksApi.artifact(notebook.id, "SUMMARY"), "SUMMARY")
           }
         >
-          Tóm tắt toàn văn
+          Full-document summary
         </Button>
       </div>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Tổng quan dùng đoạn trích. Tóm tắt toàn văn xử lý tất cả đoạn đã lập chỉ
-        mục, lưu tiến độ và có thể lâu hơn chat.
+        Get an overview or summarize the full notebook. Full summaries may take longer and can be resumed.
       </p>
       {notebook.artifacts.map((artifact) => (
         <Details
@@ -59,14 +65,14 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
         >
           <DetailsSummary className="cursor-pointer text-sm font-medium">
             {["QUEUED", "RUNNING"].includes(artifact.status) && <Spinner size={14} className="mr-2 inline-block align-middle" />}
-            {artifact.kind === "SUMMARY" ? "Tóm tắt toàn văn" : "Tổng quan"} ·{" "}
+            {artifact.kind === "SUMMARY" ? "Full summary" : "Overview"} ·{" "}
             {artifact.status === "COMPLETED"
-              ? "Hoàn tất"
-              : `${artifact.status} ${artifact.progress}%`}
+              ? "Completed"
+              : `${artifactStatus[artifact.status] ?? "Processing"} ${artifact.progress}%`}
           </DetailsSummary>
           {artifact.hidden ? (
             <p className="mt-3 text-xs">
-              Nội dung đã ẩn vì nguồn không còn hợp lệ.
+              Content is hidden because a source is no longer available.
             </p>
           ) : (
             <>
@@ -76,7 +82,7 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
                 content={artifact.content || undefined}
               />
               {artifact.error && (
-                <p className="mt-2 text-xs text-red-700">{artifact.error}</p>
+                <p className="mt-2 text-xs text-destructive">{aiServiceMessage(artifact.error, "Unable to complete this summary. Try again.")}</p>
               )}
               {["QUEUED", "RUNNING"].includes(artifact.status) && (
                 <Button
@@ -86,7 +92,7 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
                   loading={saving && pendingAction === `cancel:${artifact.id}`}
                   onClick={() => run(() => notebooksApi.cancel(artifact.id), `cancel:${artifact.id}`)}
                 >
-                  Hủy tác vụ
+                  Cancel task
                 </Button>
               )}
               {["FAILED", "CANCELLED"].includes(artifact.status) && (
@@ -108,7 +114,7 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
                     )
                   }
                 >
-                  Tiếp tục phần chưa xong
+                  Resume summary
                 </Button>
               )}
             </>
@@ -121,7 +127,7 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
           event.preventDefault();
           run(async () => {
             await notebooksApi.note(notebook.id, {
-              title: title.trim() || "Ghi chú",
+              title: title.trim() || "Notes",
               content,
             });
             setContent("");
@@ -129,23 +135,23 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
           }, "create-note");
         }}
       >
-        <h3 className="text-sm font-semibold">Ghi chú mới</h3>
+        <h3 className="text-sm font-semibold">New note</h3>
         <Input
-          aria-label="Tiêu đề ghi chú"
-          placeholder="Tiêu đề"
+          aria-label="Note title"
+          placeholder="Title"
           maxLength={200}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
         />
         <Textarea
-          aria-label="Nội dung ghi chú"
-          placeholder="Điều bạn muốn ghi nhớ…"
+          aria-label="Note content"
+          placeholder="What would you like to remember?"
           maxLength={20000}
           value={content}
           onChange={(event) => setContent(event.target.value)}
         />
         <Button loading={saving && pendingAction === "create-note"} size="sm" disabled={saving || !content.trim()}>
-          Lưu ghi chú
+          Save note
         </Button>
       </form>
       {notebook.notes.map((note) => (
@@ -155,7 +161,7 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
           </DetailsSummary>
           {note.hidden ? (
             <p className="mt-2 text-xs">
-              Ghi chú bị ẩn do nguồn không còn hợp lệ.
+              This note is hidden because a source is no longer available.
             </p>
           ) : (
             <NoteEditor
@@ -170,13 +176,13 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
           <Button
             size="sm"
             variant="ghost"
-            className="mt-2 text-red-700"
+            className="mt-2 text-destructive"
             loading={saving && pendingAction === `remove:${note.id}`}
             onClick={() =>
               run(() => notebooksApi.deleteNote(notebook.id, note.id), `remove:${note.id}`)
             }
           >
-            Xóa ghi chú
+            Delete note
           </Button>
         </Details>
       ))}
@@ -211,13 +217,13 @@ function NoteEditor({
       }}
     >
       <Input
-        aria-label="Sửa tiêu đề ghi chú"
+        aria-label="Edit note title"
         maxLength={200}
         value={title}
         onChange={(event) => setTitle(event.target.value)}
       />
       <Textarea
-        aria-label="Sửa nội dung ghi chú"
+        aria-label="Edit note content"
         maxLength={20000}
         rows={8}
         value={content}
@@ -230,7 +236,7 @@ function NoteEditor({
         loading={saving && pendingAction === `note:${note.id}`}
         disabled={saving || !content.trim() || !title.trim()}
       >
-        Lưu thay đổi
+        Save changes
       </Button>
     </form>
   );

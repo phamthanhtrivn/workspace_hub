@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { useRef, useState } from "react";
+import { getDateRangeErrors, hasDateRangeErrors, type DateRangeErrors } from "@/lib/date-range";
 import { toast } from "sonner";
 import {
   type ProjectMember,
@@ -46,6 +48,10 @@ export function useTaskDetailDrawerState({
   canContributeTask = false,
 }: UseTaskDetailDrawerStateParams) {
   const [activeTab, setActiveTab] = useState<TaskDetailTab>("details");
+
+  const schedulePending = useRef(false);
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+  const [scheduleError, setScheduleError] = useState<{ taskId: string; errors: DateRangeErrors } | null>(null);
 
   // Inline edit states
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -171,32 +177,39 @@ export function useTaskDetailDrawerState({
     } catch {}
   };
 
-  const handleAllDayChange = async (allDay: boolean) => {
-    if (!task || isReadOnly || allDay === task.allDay) return;
+  const saveSchedule = async (payload: TaskDrawerUpdatePayload, message: string) => {
+    if (!task || isReadOnly || !onUpdateTask || schedulePending.current) return;
+    const allDay = payload.allDay ?? task.allDay;
+    const format = (value?: string | null) => allDay ? taskDateKey(value, true) : toDateTimeInput(value);
+    const errors = getDateRangeErrors({
+      start: format(payload.startDate === undefined ? task.startDate : payload.startDate),
+      end: format(payload.dueDate === undefined ? task.dueDate : payload.dueDate),
+      mode: "edit", dateOnly: allDay,
+    });
+    if (hasDateRangeErrors(errors)) {
+      setScheduleError({ taskId: task.id, errors });
+      toast.error(errors.start || errors.end);
+      return;
+    }
+    schedulePending.current = true;
+    setIsSavingSchedule(true);
+    setScheduleError(null);
     try {
-      if (onUpdateTask) {
-        await onUpdateTask(task.id, {
-          allDay,
-          startDate: task.startDate
-            ? toApiDateTime(
-                allDay
-                  ? taskDateKey(task.startDate, true)
-                  : toDateTimeInput(task.startDate),
-                allDay,
-              )
-            : null,
-          dueDate: task.dueDate
-            ? toApiDateTime(
-                allDay
-                  ? taskDateKey(task.dueDate, true)
-                  : toDateTimeInput(task.dueDate),
-                allDay,
-              )
-            : null,
-        });
-        toast.success("Task schedule updated");
-      }
-    } catch {}
+      await onUpdateTask(task.id, payload);
+      toast.success(message);
+    } catch (error) {
+      toast.error(getActionErrorMessage(error, "Could not update this task's schedule. Try again."));
+    } finally {
+      schedulePending.current = false;
+      setIsSavingSchedule(false);
+    }
+  };
+
+  const handleAllDayChange = async (allDay: boolean) => {
+    if (!task || allDay === task.allDay) return;
+    const convert = (value?: string | null) => value
+      ? toApiDateTime(allDay ? taskDateKey(value, true) : toDateTimeInput(value), allDay) : null;
+    await saveSchedule({ allDay, startDate: convert(task.startDate), dueDate: convert(task.dueDate) }, "Task schedule updated");
   };
 
   const handleToggleLabel = async (label: TaskLabel) => {
@@ -206,7 +219,7 @@ export function useTaskDetailDrawerState({
       await onToggleLabel(task.id, label.id, attached);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update label",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to update label"),
       );
     }
   };
@@ -217,7 +230,7 @@ export function useTaskDetailDrawerState({
       await onCreateDependency(task.id, predecessorTaskId);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to create dependency",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to create dependency"),
       );
     }
   };
@@ -229,33 +242,21 @@ export function useTaskDetailDrawerState({
       toast.success("Dependency removed");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to delete dependency",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to delete dependency"),
       );
     }
   };
 
-  const handleDueDateChange = async (val: string) => {
-    if (!task || isReadOnly) return;
-    try {
-      if (onUpdateTask) {
-        await onUpdateTask(task.id, {
-          dueDate: toApiDateTime(val, task.allDay),
-        });
-        toast.success("Due date updated");
-      }
-    } catch {}
+  const handleDueDateChange = async (value: string) => {
+    if (!task) return;
+    await saveSchedule({ dueDate: toApiDateTime(value, task.allDay) }, "Due date updated");
   };
 
-  const handleStartDateChange = async (val: string) => {
-    if (!task || isReadOnly) return;
-    try {
-      if (onUpdateTask) {
-        await onUpdateTask(task.id, {
-          startDate: toApiDateTime(val, task.allDay),
-        });
-        toast.success("Start date updated");
-      }
-    } catch {}
+  const handleStartDateChange = async (value: string) => {
+    if (!task) return;
+    await saveSchedule(value
+      ? { startDate: toApiDateTime(value, task.allDay) }
+      : { startDate: null, dueDate: null }, "Start date updated");
   };
 
   const handleTabChange = (tab: TaskDetailTab) => {
@@ -292,6 +293,8 @@ export function useTaskDetailDrawerState({
     handleToggleLabel,
     handleAddDependency,
     handleDeleteDependency,
+    isSavingSchedule,
+    scheduleErrors: scheduleError?.taskId === task?.id ? scheduleError?.errors : undefined,
     handleDueDateChange,
     handleStartDateChange,
   };

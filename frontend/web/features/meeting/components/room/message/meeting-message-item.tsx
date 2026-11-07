@@ -1,4 +1,5 @@
 "use client";
+import { UserAvatar } from "@/components/common/user-avatar";
 
 import { useId } from "react";
 import { useMemo, useState } from "react";
@@ -10,7 +11,7 @@ import type {
   MeetingMessageResponse,
   MeetingParticipantProfile,
 } from "../../../types/meeting.types";
-import { AvatarFallback } from "../../common/avatar-fallback";
+
 import { MeetingMessageAttachments } from "./meeting-message-attachments";
 import { MeetingMessageOptionsMenu } from "./meeting-message-options-menu";
 import { MeetingMessageReadReceipts } from "./meeting-message-read-receipts";
@@ -18,7 +19,6 @@ import { MeetingMessageReactions } from "./meeting-message-reactions";
 import { MESSAGE_ACTION_WINDOW_MS, QUICK_REACTIONS } from "@/features/meeting/types/meeting.constants";
 import { MeetingIconButton } from "../../ui/meeting-icon-button";
 import { Button } from "@/components/ui/button";
-
 
 interface MeetingMessageItemProps {
   message: MeetingMessageResponse;
@@ -86,20 +86,11 @@ export function MeetingMessageItem({
               className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-muted-foreground ring-1 ring-border/10"
               title={senderName}
             >
-              {profile?.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={profile.avatarUrl}
-                  alt={senderName}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <AvatarFallback
-                  label={senderName}
-                  className="h-full w-full bg-accent/90 ring-0 shadow-none"
-                  iconClassName="h-4 w-4 text-muted-foreground"
-                />
-              )}
+              <UserAvatar
+                src={profile?.avatarUrl}
+                alt={senderName}
+                className="h-full w-full object-cover"
+              />
             </Button>
           )}
         </div>

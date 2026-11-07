@@ -87,7 +87,7 @@ public class UserService {
 
         AccountSetting saved = accountSettingRepository.save(setting);
         if (privacyChanged) {
-            directMessagePrivacyEventPublisher.publishAfterCommit(userId, saved.isAllowNewDirectMessages());
+            directMessagePrivacyEventPublisher.enqueue(userId, saved.isAllowNewDirectMessages());
         }
         return accountSettingMapper.toResponse(saved);
     }

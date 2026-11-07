@@ -6,6 +6,7 @@ import { DirectConversationService } from './direct-conversation.service';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
 import { DirectMessagePermissionModule } from '../direct-message/direct-message-permission.module';
 import { DirectMessagePrivacyConsumer } from './direct-message-privacy.consumer';
+import { UserEventInterceptor } from '../../infrastructure/kafka/user-event.interceptor';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { DirectMessagePrivacyConsumer } from './direct-message-privacy.consumer'
     DirectMessagePermissionModule,
   ],
   controllers: [DirectConversationController, DirectMessagePrivacyConsumer],
-  providers: [DirectConversationService],
+  providers: [DirectConversationService, UserEventInterceptor],
   exports: [DirectConversationService],
 })
 export class DirectConversationModule {}

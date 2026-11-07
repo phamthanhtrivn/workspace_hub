@@ -11,7 +11,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import vn.workspacehub.user.common.ApiResponse;
 import vn.workspacehub.user.common.AuthPolicy;
 import vn.workspacehub.user.service.JwtService;
-import vn.workspacehub.user.util.ServiceCredentials;
+import vn.workspacehub.user.service.InternalServiceAuthorization;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -29,30 +29,48 @@ public final class JwtIdentityFilter extends OncePerRequestFilter {
     private static final Set<String> IDENTITY_HEADERS = Set.of(
             "x-user-id", "x-user-email", "x-user-role", "x-user-name", "x-user-avatar");
     private static final Set<String> PUBLIC_AUTH_PATHS = Set.of(
-            "/api/auth/register", "/api/auth/login", "/api/auth/social", "/api/auth/refresh",
-            "/api/auth/verification/send", "/api/auth/verification/confirm", "/api/auth/logout", "/api/auth/forgot-password", "/api/auth/verify-reset-otp", "/api/auth/reset-password");
+            "/api/auth/register", "/api/auth/login", "/api/auth/social", AuthPolicy.REFRESH_PATH,
+            "/api/auth/verification/send", "/api/auth/verification/confirm", AuthPolicy.LOGOUT_PATH, "/api/auth/forgot-password", "/api/auth/verify-reset-otp", "/api/auth/reset-password");
     private static final int MAX_TOKEN_LENGTH = 16_384;
     private final JwtService jwtService;
     private final ObjectMapper objectMapper;
-    private final String internalServiceKey;
+    private final InternalServiceAuthorization internalAuthorization;
+    private final CookieRequestOriginPolicy cookieOrigins;
 
-    public JwtIdentityFilter(JwtService jwtService, ObjectMapper objectMapper, String internalServiceKey) {
+    public JwtIdentityFilter(JwtService jwtService, ObjectMapper objectMapper, InternalServiceAuthorization internalAuthorization,
+            CookieRequestOriginPolicy cookieOrigins) {
         this.jwtService = jwtService;
         this.objectMapper = objectMapper;
-        this.internalServiceKey = internalServiceKey;
+        this.internalAuthorization = internalAuthorization;
+        this.cookieOrigins = cookieOrigins;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
+        if (!cookieOrigins.allows(request)) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
+            objectMapper.writeValue(response.getOutputStream(), ApiResponse.fail(AuthPolicy.UNTRUSTED_ORIGIN));
+            return;
+        }
         Map<String, String> identity = new LinkedHashMap<>();
         String path = request.getServletPath();
         boolean isPublic = ("GET".equals(request.getMethod()) && Set.of("/health", "/ready").contains(path))
                 || ("POST".equals(request.getMethod()) && PUBLIC_AUTH_PATHS.contains(path));
-        boolean isInternal = (("POST".equals(request.getMethod()) && path.equals("/api/users/internal/sessions/authorize")) || "GET".equals(request.getMethod())
-                && (path.matches("/api/users/internal/[^/]+/direct-message-settings")
-                    || path.equals("/api/users/profiles/bulk")))
-                && ServiceCredentials.matches(request.getHeader("X-Internal-Service-Key"), internalServiceKey);
+        String key = request.getHeader("X-Internal-Service-Key");
+        boolean sessionRoute = "POST".equals(request.getMethod()) && path.equals("/api/users/internal/sessions/authorize");
+        boolean privacyRoute = "GET".equals(request.getMethod()) && path.matches("/api/users/internal/[^/]+/direct-message-settings");
+        boolean profilesRoute = "GET".equals(request.getMethod()) && path.equals("/api/users/profiles/bulk") && key != null;
+        boolean isInternal = sessionRoute && internalAuthorization.matchesSession(key)
+                || privacyRoute && internalAuthorization.matchesPrivacy(key)
+                || profilesRoute && internalAuthorization.matchesProfiles(key);
+        if ((sessionRoute || privacyRoute || profilesRoute) && !isInternal) {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.setContentType("application/json");
+            objectMapper.writeValue(response.getOutputStream(), ApiResponse.fail("Internal service access denied"));
+            return;
+        }
         if (!isPublic && !isInternal) {
             try {
                 String authorization = request.getHeader("Authorization");

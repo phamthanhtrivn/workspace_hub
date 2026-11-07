@@ -1,3 +1,5 @@
+import { attachSocketRecovery } from "@/lib/authenticated-socket";
+import { SOCKET_RETRY } from "@/lib/socket-session.constants";
 import { io, Socket } from "socket.io-client";
 import {
   ClientToServerChatEvents,
@@ -11,47 +13,27 @@ export type ChatSocket = Socket<
 
 class SocketService {
   private socket: ChatSocket | null = null;
-  private currentToken: string | null = null;
+  private disposeRecovery?: () => void;
 
   connect(token: string): ChatSocket {
-    if (this.socket && this.currentToken === token) {
-      if (!this.socket.connected && !this.socket.active) {
-        this.socket.connect();
-      }
-      return this.socket;
-    }
-
-    if (this.socket) {
-      this.disconnect();
-    }
-
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
-    const baseUrl = apiUrl.replace(/\/api$/, "");
-
-    this.currentToken = token;
+    if (this.socket) return this.socket;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL!.replace(/\/api$/, "");
     this.socket = io(baseUrl, {
       path: "/communication.io",
       transports: ["websocket"],
-      auth: {
-        token,
-      },
+      autoConnect: false,
+      reconnection: false,
+      timeout: SOCKET_RETRY.timeoutMs,
+      auth: { token },
     }) as ChatSocket;
-
-    this.socket.on("connect", () => {});
-
-    if (!this.socket.connected && !this.socket.active) {
-      this.socket.connect();
-    }
-
+    this.disposeRecovery = attachSocketRecovery(this.socket, token, "chat");
     return this.socket;
   }
 
   disconnect() {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
-    }
-    this.currentToken = null;
+    this.disposeRecovery?.();
+    this.disposeRecovery = undefined;
+    this.socket = null;
   }
 
   getSocket(): ChatSocket | null {

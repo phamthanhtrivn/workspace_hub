@@ -201,7 +201,7 @@ export class CalendarConferenceSyncService
         });
         if (!claimed.count) continue;
         try {
-          const key = process.env.INTERNAL_SERVICE_KEY;
+          const key = process.env.CALENDAR_TO_COMMUNICATION_KEY;
           const serviceUrl = process.env.COMMUNICATION_SERVICE_URL;
           if (!key || !serviceUrl)
             throw new Error('Meeting service is not configured');

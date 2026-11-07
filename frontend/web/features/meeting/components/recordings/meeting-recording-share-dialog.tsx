@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useState } from "react";
@@ -47,7 +48,7 @@ export function MeetingRecordingShareDialog({
       });
       toast.success("Recording access updated");
     },
-    onError: (error) => toast.error(recordingErrorMessage(error)),
+    onError: (error) => toast.error(getActionErrorMessage(error, recordingErrorMessage(error))),
   });
   const runAction = (key: string, operation: () => Promise<unknown>) => {
     setPendingAction(key);

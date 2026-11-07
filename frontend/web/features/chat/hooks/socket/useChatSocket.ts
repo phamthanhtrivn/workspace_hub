@@ -507,7 +507,6 @@ export function useChatSocket() {
         updateChannelsCache(queryClient, chatId, (channel) => ({
           ...channel,
           name: data.name ?? channel.name,
-          avatarUrl: data.avatarUrl ?? channel.avatarUrl,
         }));
         return;
       }

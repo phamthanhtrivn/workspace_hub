@@ -50,7 +50,7 @@ public class AuthRegistrationService {
 
         userProfileRepository.save(userProfile);
         savedUser.setProfile(userProfile);
-        userProfileEventPublisher.publishSnapshotUpsertedAfterCommit(savedUser);
+        userProfileEventPublisher.enqueueSnapshot(savedUser);
 
         AccountSetting accountSetting = AccountSetting.builder()
                 .user(savedUser)

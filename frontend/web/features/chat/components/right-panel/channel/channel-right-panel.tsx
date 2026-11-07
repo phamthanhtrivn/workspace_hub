@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError } from "@/lib/permission-feedback";
 import { useChatMediaPreview } from "../../../hooks/useChatMediaPreview";
 import { ChatScope } from "../../../types/chat.constant";
 
@@ -131,7 +132,7 @@ export default function ChannelRightPanel({
 
     } catch (error) {
       updateChannelMemberCache(activeChannel.id, { muted: isMuted });
-      console.error("Failed to update mute status:", error);
+      logActionError("Failed to update mute status:", error);
     }
   };
 
@@ -166,7 +167,7 @@ export default function ChannelRightPanel({
       updateChannelMemberCache(activeChannel.id, {
         pinned: isPinned,
       });
-      console.error("Failed to update pin status:", error);
+      logActionError("Failed to update pin status:", error);
     }
   };
 

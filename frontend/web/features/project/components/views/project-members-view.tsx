@@ -1,5 +1,6 @@
 "use client";
 
+import { PERMISSION_REASON,  getActionErrorMessage } from "@/lib/permission-feedback";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -130,9 +131,9 @@ export default function ProjectMembersView({
           toast.success("Member removed from project");
         } catch (error) {
           toast.error(
-            error instanceof Error
+            getActionErrorMessage(error, error instanceof Error
               ? error.message
-              : "Failed to remove member",
+              : "Failed to remove member"),
           );
         }
       },
@@ -152,9 +153,9 @@ export default function ProjectMembersView({
       setPermissionMember(null);
     } catch (error) {
       toast.error(
-        error instanceof Error
+        getActionErrorMessage(error, error instanceof Error
           ? error.message
-          : "Failed to update member permissions",
+          : "Failed to update member permissions"),
       );
     }
   };
@@ -463,8 +464,8 @@ export default function ProjectMembersView({
                             </span>
                           ) : (
                             <div className="inline-flex flex-wrap items-center justify-end gap-2">
-                              {canManagePermissions && (
-                                <Button
+                              {(
+                                <Button disabledReason={!(canManagePermissions) ? PERMISSION_REASON.projectAdmin : undefined}
                                   type="button"
                                   variant="outline"
                                   size="sm"
@@ -477,8 +478,8 @@ export default function ProjectMembersView({
                                 </Button>
                               )}
 
-                              {canRemoveMembers && (
-                                <Button
+                              {(
+                                <Button disabledReason={!(canRemoveMembers) ? PERMISSION_REASON.projectMembers : undefined}
                                   type="button"
                                   variant="outline"
                                   size="sm"

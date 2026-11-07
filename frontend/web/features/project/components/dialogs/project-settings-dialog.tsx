@@ -1,8 +1,10 @@
 "use client";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 
 
 import { useState } from "react";
+import { DATE_RANGE_MESSAGES, getDateRangeErrors, hasDateRangeErrors } from "@/lib/date-range";
 import { Archive } from "lucide-react";
 import {
   ProjectStatus,
@@ -80,11 +82,14 @@ export default function ProjectSettingsDialog({
   );
   const [dueDate, setDueDate] = useState(project.dueDate?.slice(0, 10) || "");
   const [pendingAction, setPendingAction] = useState<"save" | "archive" | null>(null);
+  const datesChanged = startDate !== (project.startDate?.slice(0, 10) || "") || dueDate !== (project.dueDate?.slice(0, 10) || "");
+  const dateErrors = getDateRangeErrors({ start: startDate, end: dueDate, mode: "edit", dateOnly: true,
+    allowExistingEndWithoutStart: !datesChanged });
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!canEditProject || !name.trim() || isBusy) return;
-    if (startDate && dueDate && startDate > dueDate) return;
+    if (hasDateRangeErrors(dateErrors)) return;
     setPendingAction("save");
     try {
       await onSave({
@@ -133,31 +138,33 @@ export default function ProjectSettingsDialog({
                     <CustomDatePicker
                       disabled={isBusy}
                       value={startDate}
-                      onChange={nextValue => setStartDate(nextValue)}
+                      onChange={nextValue => { setStartDate(nextValue); if (!nextValue) setDueDate(""); }}
                       max={dueDate || undefined}
+                      invalid={Boolean(dateErrors.start)}
+                      descriptionId={dateErrors.start ? "settings-start-error" : undefined}
                       triggerClassName="mt-1 h-10 rounded-control border-input text-xs font-semibold"
                       ariaLabel="Start date"
                       allowClear
                     />
+                    {dateErrors.start && <p id="settings-start-error" role="alert" className="mt-1 text-xs text-destructive-content">{dateErrors.start}</p>}
                   </label>
                   <label className="block text-xs font-semibold text-muted-foreground">
                     Due Date
                     <CustomDatePicker
-                      disabled={isBusy}
+                      disabled={isBusy || !startDate}
                       value={dueDate}
                       onChange={nextValue => setDueDate(nextValue)}
                       min={startDate || undefined}
+                      invalid={Boolean(dateErrors.end)}
+                      descriptionId={dateErrors.end || !startDate ? "settings-end-description" : undefined}
                       triggerClassName="mt-1 h-10 rounded-control border-input text-xs font-semibold"
                       ariaLabel="Due date"
                       allowClear
                     />
+                    {(dateErrors.end || !startDate) && <p id="settings-end-description" role={dateErrors.end ? "alert" : undefined}
+                      className="mt-1 text-xs text-muted-foreground">{dateErrors.end || DATE_RANGE_MESSAGES.startRequired}</p>}
                   </label>
                 </div>
-                {startDate && dueDate && startDate > dueDate && (
-                  <p className="text-xs font-semibold text-destructive-content">
-                    Start date cannot be after due date.
-                  </p>
-                )}
 
                 <label className="block text-xs font-semibold text-muted-foreground">
                   Project Name <span className="text-destructive-content">*</span>
@@ -302,10 +309,10 @@ export default function ProjectSettingsDialog({
               >
                 Cancel
               </Button>
-              {canEditProject && (
-                <Button loading={isBusy && pendingAction === "save"}
+              {(
+                <Button disabledReason={!(canEditProject) ? PERMISSION_REASON.projectAdmin : undefined} loading={isBusy && pendingAction === "save"}
                   type="submit"
-                  disabled={isBusy || !name.trim()}
+                  disabled={isBusy || !name.trim() || hasDateRangeErrors(dateErrors)}
                   className="cursor-pointer rounded-control bg-primary font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
                 >
                   {isBusy && pendingAction === "save" ? "Saving..." : "Save Changes"}

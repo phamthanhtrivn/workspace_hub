@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { DateSelectArg } from "@fullcalendar/core";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -102,8 +103,8 @@ export function useCalendarEventEditorActions({
           setDraft(null);
         }
         toast.success(copy.eventSaved);
-      } catch {
-        toast.error(copy.eventSaveFailed);
+      } catch (permissionError) {
+        toast.error(getActionErrorMessage(permissionError, copy.eventSaveFailed));
       }
     },
     [createEvent, editingEvent, onEventUpdated, updateEvent],

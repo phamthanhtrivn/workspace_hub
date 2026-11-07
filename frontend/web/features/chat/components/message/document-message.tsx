@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Lock, Download, Eye, FolderOpen } from "lucide-react";
@@ -81,8 +82,8 @@ const DocumentMessage = React.memo(function DocumentMessage({
         toast.error("Failed to load document preview.");
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to generate download link.");
+      logActionError(err);
+      toast.error(getActionErrorMessage(err, "Failed to generate download link."));
     } finally {
       setIsProcessing(false);
     }
@@ -104,8 +105,8 @@ const DocumentMessage = React.memo(function DocumentMessage({
         document.body.removeChild(link);
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Download failed.");
+      logActionError(err);
+      toast.error(getActionErrorMessage(err, "Download failed."));
     } finally {
       setIsProcessing(false);
     }

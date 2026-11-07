@@ -1,5 +1,6 @@
 "use client";
 import { CustomDateField } from "@/components/ui/custom/custom-date-time-picker";
+import { DATE_RANGE_MESSAGES, getDateRangeBounds, type DateRangeErrors } from "@/lib/date-range";
 
 import { useId as useControlledPopupId } from "react";
 
@@ -27,6 +28,8 @@ import { CustomCheckbox } from "@/components/ui/custom/custom-checkbox";
 import { ProjectSelect } from "../ui/project-form-controls";
 import { AnchoredPopover, AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { PermissionHint } from "@/components/ui/permission-hint";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 
 interface TaskPropertiesPanelProps {
   task: Task;
@@ -34,6 +37,9 @@ interface TaskPropertiesPanelProps {
   dependencies: TaskDependency[];
   members: ProjectMember[];
   isReadOnly: boolean;
+  isSavingSchedule?: boolean;
+  scheduleErrors?: DateRangeErrors;
+  readOnlyReason?: string;
   memberDisplayName: (userId?: string | null) => string;
   onAssigneeChange: (userId: string | null) => Promise<void> | void;
   onPriorityChange: (priority: TaskPriority) => Promise<void> | void;
@@ -49,6 +55,9 @@ export default function TaskPropertiesPanel({
   dependencies,
   members,
   isReadOnly,
+  isSavingSchedule = false,
+  scheduleErrors,
+  readOnlyReason = PERMISSION_REASON.projectContribute,
   memberDisplayName,
   onAssigneeChange,
   onPriorityChange,
@@ -92,8 +101,7 @@ export default function TaskPropertiesPanel({
   const dueDateValue = task.allDay
     ? taskDateKey(task.dueDate, true)
     : toDateTimeInput(task.dueDate);
-
-
+  const bounds = getDateRangeBounds({ start: startDateValue, end: dueDateValue, mode: "edit", dateOnly: task.allDay });
 
   const taskAssignee = task.assignees[0];
   const assignedMember = taskAssignee
@@ -106,7 +114,7 @@ export default function TaskPropertiesPanel({
           assignedMember?.displayName ||
           taskAssignee.displayName ||
           memberDisplayName(taskAssignee.userId),
-        avatarUrl: assignedMember?.avatarUrl || taskAssignee.avatarUrl,
+        avatarUrl: assignedMember ? assignedMember.avatarUrl : taskAssignee.avatarUrl,
       }
     : undefined;
   const reporterMember = members.find((member) => member.userId === task.reporterId);
@@ -119,7 +127,7 @@ export default function TaskPropertiesPanel({
   };
 
   return (
-    <div className="select-none overflow-hidden rounded-panel border border-border bg-card">
+    <PermissionHint block reason={isReadOnly ? readOnlyReason : undefined} className="block w-full"><div className="select-none overflow-hidden rounded-panel border border-border bg-card">
       <div className="border-b border-border bg-background px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wide text-foreground">
         Task Details
       </div>
@@ -256,8 +264,6 @@ export default function TaskPropertiesPanel({
                   <DropdownMenuItem closeOnClick={false}
                     key={opt.value}
 
-
-
                     onClick={() => {
                       setShowPriorityDropdown(false);
                       void onPriorityChange(opt.value);
@@ -295,7 +301,7 @@ export default function TaskPropertiesPanel({
         <div className="flex flex-col gap-1 px-3.5 py-2.5">
           <CustomCheckbox
             checked={task.allDay}
-            disabled={isReadOnly}
+            disabled={isReadOnly || isSavingSchedule || (!startDateValue && Boolean(dueDateValue))}
             onCheckedChange={(checked) => void onAllDayChange(Boolean(checked))}
             label="All Day Event"
             description="Switch between date-only and date-time scheduling."
@@ -316,11 +322,15 @@ export default function TaskPropertiesPanel({
             ariaLabel="Task start date"
             dateOnly={task.allDay}
             value={startDateValue}
+            max={bounds.startMax}
+            invalid={Boolean(scheduleErrors?.start)}
+            descriptionId={scheduleErrors?.start ? `${controlledPopupId}-start-error` : undefined}
             onChange={nextValue => void onStartDateChange(nextValue)}
-            disabled={isReadOnly}
+            disabled={isReadOnly || isSavingSchedule}
             className="h-8 w-full rounded-control border-input bg-card px-2.5 text-xs font-semibold text-foreground"
             allowClear
           />
+          {scheduleErrors?.start && <p id={`${controlledPopupId}-start-error`} role="alert" className="text-xs text-destructive-content">{scheduleErrors.start}</p>}
         </div>
 
         {/* Due Date */}
@@ -333,11 +343,16 @@ export default function TaskPropertiesPanel({
             ariaLabel="Task due date"
             dateOnly={task.allDay}
             value={dueDateValue}
+            min={bounds.endMin}
+            invalid={Boolean(scheduleErrors?.end)}
+            descriptionId={scheduleErrors?.end || !startDateValue ? `${controlledPopupId}-end-description` : undefined}
             onChange={nextValue => void onDueDateChange(nextValue)}
-            disabled={isReadOnly}
+            disabled={isReadOnly || isSavingSchedule || !startDateValue}
             className="h-8 w-full rounded-control border-input bg-card px-2.5 text-xs font-semibold text-foreground"
             allowClear
           />
+          {(scheduleErrors?.end || !startDateValue) && <p id={`${controlledPopupId}-end-description`} role={scheduleErrors?.end ? "alert" : undefined}
+            className="text-xs text-muted-foreground">{scheduleErrors?.end || DATE_RANGE_MESSAGES.startRequired}</p>}
         </div>
 
         {/* Reporter */}
@@ -363,6 +378,6 @@ export default function TaskPropertiesPanel({
           </div>
         </div>
       </div>
-    </div>
+    </div></PermissionHint>
   );
 }

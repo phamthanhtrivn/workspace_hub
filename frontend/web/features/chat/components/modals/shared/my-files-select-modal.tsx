@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
@@ -118,7 +119,7 @@ export default function MyFilesSelectModal({
       handleNavigateToFolder(null, "Home");
       onClose();
     } catch (error) {
-      if (!controller.signal.aborted) toast.error(error instanceof Error ? error.message : "Could not attach the selected documents.");
+      if (!controller.signal.aborted) toast.error(getActionErrorMessage(error, error instanceof Error ? error.message : "Could not attach the selected documents."));
     } finally {
       if (preparation.current === controller) {
         preparation.current = null;

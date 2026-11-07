@@ -1,4 +1,5 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { useId as useInputFieldId } from "react";
 
@@ -69,7 +70,7 @@ const EditPollForm: React.FC<EditPollModalProps> = ({
       isLocked,
     });
     onClose();
-    } catch (error) { toast.error(isAxiosError(error) ? error.response?.data?.message || "Unable to update poll" : "Unable to update poll"); }
+    } catch (error) { toast.error(getActionErrorMessage(error, isAxiosError(error) ? error.response?.data?.message || "Unable to update poll" : "Unable to update poll")); }
     finally { setPending(false); }
   };
 

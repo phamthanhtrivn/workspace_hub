@@ -12,15 +12,15 @@ WorkSpaceHub gồm frontend Next.js, Kong và các dịch vụ sở hữu dữ l
 | Document | File/folder, version, chia sẻ, quota, upload intent và dọn storage | `backend/document-service` |
 | Calendar | Lịch, recurrence, attendee, reminder, Pomodoro và liên kết conference | `backend/calendar-service` |
 | Notification | Notification PostgreSQL, Kafka consumer và realtime delivery | `backend/notification-service` |
-| AI API/jobs | Notebook/source, SSE Q&A, Studio, conversation/work/meeting summaries | `backend/ai-service` |
-| RAG worker | Parse/OCR, chia đoạn, embedding, scoped retrieval qua Qdrant | `backend/rag-worker` |
-| Speech worker | Nhận dạng WAV bằng faster-whisper CPU cho meeting summary | `backend/speech-worker` |
+| AI API/jobs | Notebook/source, SSE Q&A, Studio, conversation/work/meeting summaries | `backend/ai-service/api` |
+| RAG worker | Parse/OCR, chia đoạn, embedding, scoped retrieval qua Qdrant | `backend/ai-service/rag-worker` |
+| Speech worker | Nhận dạng WAV bằng faster-whisper CPU cho meeting summary | `backend/ai-service/speech-worker` |
 
 ## Dữ liệu và tích hợp
 
 - PostgreSQL được chia theo dịch vụ; User dùng JPA, phần lớn Nest services dùng Prisma, AI dùng SQL qua `pg`. Chia sẻ dữ liệu qua API/event thay vì truy cập bảng dịch vụ khác.
 - Kafka chuyển sự kiện; các outbox lưu intent cùng transaction nghiệp vụ và hỗ trợ retry/idempotency.
-- Redis phục vụ session/OTP, realtime adapter và BullMQ. AI queue chạy trong worker riêng với checkpoint/recovery, DB 3/prefix `wh-notebook` trên Redis chung (AOF/everysec/noeviction); namespace riêng không tách RAM hoặc persistence. AI dùng database `notebook_db`/schema `notebook_ai`, role `notebook` không có quyền quản trị trên PostgreSQL 15 chung. Local dùng `wh_network`; production AI là stack riêng trên APP, kết nối PostgreSQL/Redis của INFRA và network `workspacehub-app_default` của APP.
+- Redis phục vụ session/OTP, realtime adapter và BullMQ. AI queue chạy trong worker riêng với checkpoint/recovery và prefix `wh-notebook` trên Redis chung; namespace riêng không tách RAM hoặc persistence. AI dùng database `notebook_db`/schema `notebook_ai` trên PostgreSQL 15 chung. Local hiện dùng tài khoản `postgres` cho cả bảy DB; production AI vẫn có contract credential riêng cần triển khai đồng bộ. Local dùng `wh_network`; production AI là stack riêng trên APP, kết nối PostgreSQL/Redis của INFRA và network `workspacehub-app_default` của APP.
 - Document sở hữu metadata và phiên bản file trên S3. Upload mới giới hạn 10 MiB/file, kiểm kích thước/nội dung và scope actor/tài liệu/chat. Attachment chat được kiểm quyền theo context.
 - LiveKit xử lý media; Communication kiểm quyền meeting, điều khiển recording và nhận webhook. Egress chạy trong hạ tầng realtime.
 

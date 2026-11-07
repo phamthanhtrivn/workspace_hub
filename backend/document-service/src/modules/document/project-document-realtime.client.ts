@@ -19,7 +19,7 @@ export class ProjectDocumentRealtimeClient {
     process.env.PROJECT_SERVICE_URL ?? 'http://localhost:8082'
   ).replace(/\/+$/, '');
   private readonly internalServiceKey = requireInternalServiceKey(
-    process.env.INTERNAL_SERVICE_KEY,
+    process.env.DOCUMENT_TO_PROJECT_KEY,
   );
   private readonly timeoutMs = this.positiveInteger(
     process.env.SERVICE_HTTP_TIMEOUT_MS,

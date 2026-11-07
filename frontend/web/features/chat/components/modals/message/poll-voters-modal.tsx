@@ -1,11 +1,12 @@
 "use client";
+import { UserAvatar } from "@/components/common/user-avatar";
 
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useMemo } from "react";
 
-import { X, User } from "lucide-react";
+import { X } from "lucide-react";
 import {
   PollOptionResponse,
   PollResponse,
@@ -14,7 +15,6 @@ import {
 } from "@/features/chat/types/chat.types";
 import { Button } from "@/components/ui/button";
 import { DialogSurface } from "@/components/ui/dialog";
-
 
 interface PollVotersModalProps {
   isOpen: boolean;
@@ -58,7 +58,6 @@ export default function PollVotersModal({
   onUserClick,
 }: PollVotersModalProps) {
   const mounted = useHydrated();
-
 
   const totalUniqueVoters = useMemo(() => {
     return new Set(
@@ -139,15 +138,11 @@ export default function PollVotersModal({
                           className="flex min-w-0 items-center gap-3 rounded-control bg-card px-2 py-2 text-left ring-1 ring-ring transition enabled:cursor-pointer enabled:hover:bg-info-soft/60 enabled:hover:ring-ring"
                         >
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted ring-1 ring-ring">
-                            {voter.profile?.avatarUrl ? (
-                              <img
-                                src={voter.profile.avatarUrl}
-                                alt={displayName}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <User size={18} className="text-muted-foreground" />
-                            )}
+                            <UserAvatar
+                              src={voter?.profile?.avatarUrl}
+                              alt={displayName}
+                              className="h-full w-full object-cover"
+                            />
                           </div>
                           <span className="min-w-0 truncate text-sm font-semibold text-foreground">
                             {displayName}

@@ -22,6 +22,8 @@ import {
   markAllAsRead,
 } from "@/features/notification/api/notification.api";
 import { useNotificationActions } from "@/features/notification/hooks/use-notification-actions";
+import { useOpenProjectTaskNotification } from "@/features/notification/hooks/use-open-project-task-notification";
+import { ProjectTaskListItemRenderer, ProjectTaskModalRenderer } from "@/features/notification/components/renderers/project-task-renderer";
 import {
   NotificationType,
 } from "@/features/notification/types/notification.types";
@@ -132,6 +134,9 @@ const categoryConfig: Record<
 // Initialize Registry
 let isRegistryInitialized = false;
 if (!isRegistryInitialized) {
+  for (const type of [NotificationType.PROJECT_TASK_ASSIGNED, NotificationType.PROJECT_TASK_UPDATED]) {
+    registerNotificationRenderer(type, ProjectTaskModalRenderer, ProjectTaskListItemRenderer);
+  }
   registerNotificationRenderer(NotificationType.CHANNEL_MEMBER_ADDED, ChannelMemberAddedModalRenderer, DefaultListItemRenderer);
   registerNotificationRenderer(NotificationType.CHANNEL_MEMBER_REMOVED, DefaultModalRenderer, DefaultListItemRenderer);
   registerNotificationRenderer(NotificationType.CHANNEL_OWNERSHIP_TRANSFERRED, ChannelOwnershipTransferredModalRenderer, DefaultListItemRenderer);
@@ -227,6 +232,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     );
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
+  const openTaskNotification = useOpenProjectTaskNotification();
   const { confirm, alertDialogProps } = useMeetingConfirmDialog();
 
   const dateRange: NotificationDateRange = React.useMemo(
@@ -380,6 +386,10 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   };
 
   const handleItemClick = (notification: Notification) => {
+    if (openTaskNotification(notification, () => {
+      setSelectedNotification(null);
+      setIsOpen(false);
+    })) return;
     setSelectedNotification(notification);
     setIsOpen(false); // Close dropdown when opening modal
   };

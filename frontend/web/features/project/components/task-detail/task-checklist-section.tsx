@@ -1,5 +1,7 @@
 "use client";
 
+import { getActionErrorMessage, PERMISSION_REASON } from "@/lib/permission-feedback";
+import { PermissionHint } from "@/components/ui/permission-hint";
 import { useState } from "react";
 import { CheckSquare, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 interface TaskChecklistSectionProps {
   task: Task;
   isReadOnly: boolean;
+  readOnlyReason?: string;
   onCreate?: (taskId: string, title: string) => Promise<TaskChecklist>;
   onUpdate?: (
     checklistId: string,
@@ -22,6 +25,7 @@ interface TaskChecklistSectionProps {
 export default function TaskChecklistSection({
   task,
   isReadOnly,
+  readOnlyReason = PERMISSION_REASON.projectContribute,
   onCreate,
   onUpdate,
   onDelete,
@@ -47,7 +51,7 @@ export default function TaskChecklistSection({
       toast.success("Checklist item added");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to add checklist item",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to add checklist item"),
       );
     }
   };
@@ -58,7 +62,7 @@ export default function TaskChecklistSection({
       await onUpdate(item.id, !item.completed);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to update checklist item",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to update checklist item"),
       );
     }
   };
@@ -70,7 +74,7 @@ export default function TaskChecklistSection({
       toast.success("Checklist item deleted");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to delete checklist item",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to delete checklist item"),
       );
     }
   };
@@ -88,8 +92,9 @@ export default function TaskChecklistSection({
               {completedCount}/{totalCount} ({progress}%)
             </span>
           )}
-          {!isReadOnly && (
+          {(
             <Button
+              disabledReason={isReadOnly ? readOnlyReason : undefined}
               type="button"
               variant="ghost"
               size="sm"
@@ -141,12 +146,12 @@ export default function TaskChecklistSection({
                   isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-background"
                 }`}
               >
-                <Checkbox
+                <PermissionHint reason={isReadOnly ? readOnlyReason : undefined}><Checkbox
                   checked={item.completed}
                   onCheckedChange={() => void handleUpdate(item)}
                   disabled={isReadOnly}
                   className="data-[state=checked]:bg-success data-[state=checked]:border-success-outline cursor-pointer"
-                />
+                /></PermissionHint>
                 <span
                   className={
                     item.completed

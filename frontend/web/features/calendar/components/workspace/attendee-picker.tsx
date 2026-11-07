@@ -1,7 +1,8 @@
 "use client";
 
-import { Search, User, X } from "lucide-react";
-import Image from "next/image";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { Search, X } from "lucide-react";
+
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,18 +99,13 @@ export function AttendeePicker({
                 disabled={attendeeIds.has(user.id)}
               >
                 <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-muted">
-                  {user.avatarUrl ? (
-                    <Image
-                      src={user.avatarUrl}
-                      alt={user.fullName || user.email}
-                      width={32}
-                      height={32}
-                      unoptimized
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <User className="h-4 w-4 text-muted-foreground" />
-                  )}
+                  <UserAvatar
+                    src={user?.avatarUrl}
+                    alt={user?.fullName || user?.email}
+                    width={32}
+                    height={32}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-foreground">
@@ -139,18 +135,13 @@ export function AttendeePicker({
                 className="inline-flex max-w-full items-center gap-2 rounded-full border border-border bg-background px-2 py-1 text-xs font-semibold text-muted-foreground"
               >
                 <div className="grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded-full bg-accent">
-                  {avatarUrl ? (
-                    <Image
-                      src={avatarUrl}
-                      alt={displayName}
-                      width={20}
-                      height={20}
-                      unoptimized
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <User className="h-3 w-3 text-muted-foreground" />
-                  )}
+                  <UserAvatar
+                    src={avatarUrl}
+                    alt={displayName}
+                    width={20}
+                    height={20}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <span className="max-w-40 truncate">{displayName}</span>
                 <Button

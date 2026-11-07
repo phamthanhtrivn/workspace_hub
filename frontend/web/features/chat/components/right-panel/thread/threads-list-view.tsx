@@ -1,5 +1,6 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
 import { IconButton } from "@/components/ui/icon-button";
 
@@ -14,8 +15,8 @@ import {
 import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setActiveThreadRootMessage } from "@/store/chat/chat-slice";
-import { Filter, X, MessageSquare, User, MessageCircle } from "lucide-react";
-import Image from "next/image";
+import { Filter, X, MessageSquare, MessageCircle } from "lucide-react";
+
 import { formatDateTime } from "@/lib/date";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
@@ -24,7 +25,6 @@ import ThreadSnippetPreview from "./thread-snippet-preview";
 import { Button } from "@/components/ui/button";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { LoadingState } from "@/components/ui/loading-state";
-
 
 interface ThreadsListViewProps {
   conversationId: string;
@@ -189,17 +189,13 @@ export default function ThreadsListView({
                 {/* Header info */}
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                    {avatarUrl ? (
-                      <Image
-                        src={avatarUrl}
-                        alt="Avatar"
-                        width={24}
-                        height={24}
-                        className="rounded-full"
-                      />
-                    ) : (
-                      <User size={12} className="text-muted-foreground" />
-                    )}
+                    <UserAvatar
+                      src={avatarUrl}
+                      alt="Avatar"
+                      width={24}
+                      height={24}
+                      className="rounded-full"
+                    />
                   </div>
                   <span className="text-xs font-semibold text-foreground truncate">
                     {senderName}

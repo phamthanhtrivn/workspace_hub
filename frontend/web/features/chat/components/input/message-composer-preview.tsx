@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, type ReactNode } from "react";
+import { useMemo, type ReactNode, type RefObject } from "react";
 import { Eye } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils";
@@ -9,75 +9,46 @@ import { renderMessageContent } from "../../utils/message-formatter";
 import { composeMessageText } from "../../utils/message-draft";
 
 interface MessageComposerPreviewProps {
+  id: string;
   message: string;
   interimMessage?: string;
   memberProfiles?: ChatProfilesMap;
   compact?: boolean;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
   children: ReactNode;
   className?: string;
 }
 
 export default function MessageComposerPreview({
+  id,
   message,
   interimMessage,
   memberProfiles,
   compact,
   open,
-  onOpenChange,
   children,
   className,
 }: MessageComposerPreviewProps) {
-  const regionId = useId();
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const content = composeMessageText(message, interimMessage);
   const rendered = useMemo(
     () => (open ? renderMessageContent(content, memberProfiles) : null),
     [open, content, memberProfiles],
   );
-  const togglePreview = () => {
-    onOpenChange(!open);
-    if (open)
-      requestAnimationFrame(() => {
-        const textarea = wrapperRef.current?.querySelector("textarea");
-        if (!textarea) return;
-        textarea.style.height = "auto";
-        textarea.style.height = `${textarea.scrollHeight + textarea.offsetHeight - textarea.clientHeight}px`;
-        textarea.focus({ preventScroll: true });
-      });
-  };
-
   return (
-    <div ref={wrapperRef} className={cn("relative w-full min-w-0", className)}>
-      <IconButton
-        label={open ? "Edit message" : "Preview message"}
-        title={open ? "Edit message" : "Preview message"}
-        showTooltip={false}
-        size="icon-sm"
-        variant={open ? "info-soft" : "ghost"}
-        aria-pressed={open}
-        aria-controls={regionId}
-        aria-expanded={open}
-        disabled={!content}
-        onClick={togglePreview}
-        className="absolute right-0 top-0 z-10 text-muted-foreground aria-pressed:text-info-content"
-      >
-        <Eye size={16} aria-hidden="true" />
-      </IconButton>
+    <div className={cn("w-full min-w-0", className)}>
       <div
         hidden={open}
-        className="min-w-0 [&_textarea]:w-full [&_textarea]:pr-12"
+        className="min-w-0 [&_textarea]:block [&_textarea]:w-full"
       >
         {children}
       </div>
       {open && (
-        <section id={regionId} aria-label="Message preview" className="min-w-0">
+        <section id={id} aria-label="Message preview" className="min-w-0">
           <h3 className="sr-only">Message preview</h3>
           <div
             tabIndex={0}
             className={cn(
-              "max-h-[min(15rem,30dvh)] min-h-9 min-w-0 overflow-y-auto overscroll-contain px-2 py-2 pr-12 font-medium text-foreground [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [@media(max-height:30rem)]:max-h-12",
+              "max-h-[min(15rem,30dvh)] min-h-9 min-w-0 overflow-y-auto overscroll-contain px-2 py-2 font-medium text-foreground [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [@media(max-height:30rem)]:max-h-12",
               compact ? "min-h-6 py-1 pl-1 text-xs" : "text-sm",
             )}
           >
@@ -92,5 +63,45 @@ export default function MessageComposerPreview({
         </section>
       )}
     </div>
+  );
+}
+
+export function MessageComposerPreviewButton({
+  message, interimMessage, open, onOpenChange, previewId, textareaRef,
+}: {
+  message: string;
+  interimMessage?: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  previewId: string;
+  textareaRef: RefObject<HTMLTextAreaElement | null>;
+}) {
+  const togglePreview = () => {
+    onOpenChange(!open);
+    if (open) requestAnimationFrame(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      textarea.style.height = "auto";
+      textarea.style.height = `${textarea.scrollHeight + textarea.offsetHeight - textarea.clientHeight}px`;
+      textarea.focus({ preventScroll: true });
+    });
+  };
+
+  return (
+    <IconButton
+      label={open ? "Edit message" : "Preview message"}
+      title={open ? "Edit message" : "Preview message"}
+      showTooltip={false}
+      size="icon-sm"
+      variant={open ? "info-soft" : "ghost"}
+      aria-pressed={open}
+      aria-controls={open ? previewId : undefined}
+      aria-expanded={open}
+      disabled={!composeMessageText(message, interimMessage)}
+      onClick={togglePreview}
+      className="shrink-0 self-center text-muted-foreground aria-pressed:text-info-content"
+    >
+      <Eye size={16} aria-hidden="true" />
+    </IconButton>
   );
 }

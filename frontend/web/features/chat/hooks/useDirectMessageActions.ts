@@ -1,3 +1,4 @@
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -89,7 +90,7 @@ export function useDirectMessageActions() {
         onSent?.();
         return sentMessage.data;
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to send message"));
+        toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to send message")));
         return null;
       }
     },
@@ -106,10 +107,10 @@ export function useDirectMessageActions() {
         return true;
       } catch (error: unknown) {
         toast.error(
-          getErrorMessage(
+          getActionErrorMessage(error, getErrorMessage(
             error,
             "Failed to edit message",
-          ),
+          )),
         );
         return false;
       }
@@ -126,10 +127,10 @@ export function useDirectMessageActions() {
         });
       } catch (error: unknown) {
         toast.error(
-          getErrorMessage(
+          getActionErrorMessage(error, getErrorMessage(
             error,
             "Failed to recall message",
-          ),
+          )),
         );
       }
     },
@@ -162,10 +163,10 @@ export function useDirectMessageActions() {
         });
       } catch (error: unknown) {
         toast.error(
-          getErrorMessage(
+          getActionErrorMessage(error, getErrorMessage(
             error,
             "Failed to update pin status",
-          ),
+          )),
         );
       }
     },
@@ -190,10 +191,10 @@ export function useDirectMessageActions() {
         });
       } catch (error: unknown) {
         toast.error(
-          getErrorMessage(
+          getActionErrorMessage(error, getErrorMessage(
             error,
             "Failed to unpin message",
-          ),
+          )),
         );
       }
     },
@@ -209,10 +210,10 @@ export function useDirectMessageActions() {
         });
       } catch (error: unknown) {
         toast.error(
-          getErrorMessage(
+          getActionErrorMessage(error, getErrorMessage(
             error,
             "Failed to react to message",
-          ),
+          )),
         );
       }
     },

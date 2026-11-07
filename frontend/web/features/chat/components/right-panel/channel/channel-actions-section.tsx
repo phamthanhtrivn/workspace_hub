@@ -1,4 +1,5 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
 
 
@@ -96,10 +97,10 @@ export default function ChannelActionsSection({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to leave channel",
-        ),
+        )),
       ),
   });
 
@@ -111,10 +112,10 @@ export default function ChannelActionsSection({
     },
     onError: (error) =>
       toast.error(
-        getErrorMessage(
+        getActionErrorMessage(error, getErrorMessage(
           error,
           "Failed to delete channel",
-        ),
+        )),
       ),
   });
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import {
   Crown,
   Circle,
@@ -23,7 +25,6 @@ import {
   MeetingIconDropdown,
   type MeetingIconDropdownItem,
 } from "./meeting-icon-dropdown";
-import { AvatarFallback } from "./avatar-fallback";
 
 interface MeetingParticipantListItemProps {
   item: MeetingParticipantListItemState;
@@ -79,9 +80,10 @@ export function MeetingParticipantListItem({
     });
   }
 
-  if (item.canPromoteToCohost) {
+  if (!item.isSelf && item.participant.role === MEETING_ROLE.PARTICIPANT) {
     actionItems.push({
       id: "make-cohost",
+      disabledReason: !item.canPromoteToCohost ? PERMISSION_REASON.meetingHost : undefined,
       label: "Make co-host",
       icon: ShieldCheck,
       disabled: isBusy,
@@ -89,9 +91,10 @@ export function MeetingParticipantListItem({
     });
   }
 
-  if (item.canDemoteToParticipant) {
+  if (!item.isSelf && item.participant.role === MEETING_ROLE.COHOST) {
     actionItems.push({
       id: "make-participant",
+      disabledReason: !item.canDemoteToParticipant ? PERMISSION_REASON.meetingHost : undefined,
       label: "Make participant",
       icon: ShieldOff,
       disabled: isBusy,
@@ -99,9 +102,10 @@ export function MeetingParticipantListItem({
     });
   }
 
-  if (item.canManageRole) {
+  if (!item.isSelf && item.participant.role !== MEETING_ROLE.HOST) {
     actionItems.push({
       id: "make-host",
+      disabledReason: !item.canManageRole ? PERMISSION_REASON.meetingHost : undefined,
       label: "Make host",
       icon: Crown,
       disabled: isBusy,
@@ -130,9 +134,10 @@ export function MeetingParticipantListItem({
     });
   }
 
-  if (item.canRemove) {
+  if (!item.isSelf && item.participant.role !== MEETING_ROLE.HOST) {
     actionItems.push({
       id: "remove",
+      disabledReason: !item.canRemove ? PERMISSION_REASON.meetingManage : undefined,
       label: "Remove",
       icon: UserMinus,
       disabled: isBusy,
@@ -144,20 +149,7 @@ export function MeetingParticipantListItem({
   return (
     <article className="rounded-lg bg-muted p-3 ring-1 ring-border/8">
       <div className="flex items-center gap-3">
-        {item.avatarUrl ? (
-          <span
-            aria-label={item.displayName}
-            role="img"
-            className="h-10 w-10 shrink-0 rounded-full bg-cover bg-center"
-            style={{ backgroundImage: `url("${item.avatarUrl}")` }}
-          />
-        ) : (
-          <AvatarFallback
-            label={item.displayName}
-            className="h-10 w-10 bg-accent/90"
-            iconClassName="h-5 w-5 text-muted-foreground"
-          />
-        )}
+        <UserAvatar src={item.avatarUrl} alt={item.displayName} className="h-10 w-10 shrink-0 rounded-full" />
 
         <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-center gap-2">

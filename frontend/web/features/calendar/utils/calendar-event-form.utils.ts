@@ -1,4 +1,5 @@
 import { CalendarEventEditorValues } from "../schemas/calendar-event-form.schema";
+import { getInitialScheduleStart } from "@/lib/date-range";
 import {
   CALENDAR_COLOR_CHOICES,
 } from "../types/calendar.constants";
@@ -79,10 +80,16 @@ export function createCalendarEventFormDefaults({
   draft,
   event,
 }: CalendarEventFormDefaultsInput): CalendarEventFormDefaults {
-  const defaultStart = event?.startAt
+  let defaultStart = event?.startAt
     ? new Date(event.startAt)
     : draft?.startAt ?? new Date();
-  const defaultEnd = getDefaultEnd(defaultStart, draft, event);
+  let defaultEnd = getDefaultEnd(defaultStart, draft, event);
+  if (!event) {
+    const nextStart = new Date(getInitialScheduleStart(toDateTimeLocal(defaultStart)));
+    const offset = nextStart.getTime() - defaultStart.getTime();
+    defaultStart = nextStart;
+    defaultEnd = new Date(defaultEnd.getTime() + offset);
+  }
   const allDay = Boolean(
     event?.allDay ||
       (event && isAllDayDateTimeRange(defaultStart, defaultEnd)) ||

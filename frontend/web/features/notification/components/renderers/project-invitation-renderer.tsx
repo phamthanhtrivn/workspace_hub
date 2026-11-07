@@ -2,26 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import {
-  CheckCircle2,
-  Clock3,
-  FolderKanban,
-  UserRound,
-  XCircle,
-} from "lucide-react";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { CheckCircle2, Clock3, FolderKanban, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAppDispatch } from "@/store/store";
 import { setProjectInvitationStatus } from "@/store/notification/notification.slice";
 import { useRespondProjectInvitation } from "@/features/project/hooks/use-invitations";
 import { useProjectInviterIdentity } from "../../hooks/use-project-inviter-identity";
 import { getNotificationApiErrorMessage } from "../../utils/notification-display.utils";
-import {
-  formatProjectInvitationExpiryDate,
-  getProjectColor,
-  getProjectInvitationMetadata,
-  getProjectInviterInitials,
-} from "../../utils/project-invitation.utils";
+import { formatProjectInvitationExpiryDate, getProjectColor, getProjectInvitationMetadata } from "../../utils/project-invitation.utils";
 import { NotificationListRow } from "../notification-list-row";
 import type {
   Notification,
@@ -29,7 +18,6 @@ import type {
 } from "../../types/notification.types";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-
 
 const statusClasses: Record<ProjectInvitationNotificationStatus, string> = {
   PENDING: "bg-warning-soft text-warning-content ring-warning-outline",
@@ -155,19 +143,7 @@ export function ProjectInvitationModalRenderer({
 
         <div className="mt-4 flex items-center gap-3 border-t border-border pt-3">
           <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-panel bg-card text-xs font-semibold text-muted-foreground ring-1 ring-ring">
-            {inviter.avatar ? (
-              <Image
-                src={inviter.avatar}
-                alt={inviterName}
-                fill
-                sizes="36px"
-                className="object-cover"
-              />
-            ) : getProjectInviterInitials(inviterName) ? (
-              getProjectInviterInitials(inviterName)
-            ) : (
-              <UserRound className="h-4 w-4" />
-            )}
+            <UserAvatar src={inviter.avatar} alt={inviterName} fill sizes="36px" />
           </span>
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

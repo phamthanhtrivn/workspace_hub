@@ -1,19 +1,13 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { UserAvatar } from "@/components/common/user-avatar";
 
 import { IconButton } from "@/components/ui/icon-button";
 
 import { toast } from "sonner";
 import { isAxiosError } from "axios";
 import React, { useState } from "react";
-import {
-  BarChart2,
-  Users,
-  CheckCircle2,
-  User,
-  Plus,
-  Edit2,
-  ChevronRight,
-} from "lucide-react";
+import { BarChart2, Users, CheckCircle2, Plus, Edit2, ChevronRight } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { formatDateTime } from "@/lib/date";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
@@ -24,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { NativeCheckbox } from "@/components/ui/checkbox";
 import { NativeRadio } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
-
 
 interface PollMessageProps {
   poll: PollResponse;
@@ -92,7 +85,7 @@ const PollMessage = React.memo(function PollMessage({
     if (onVote) {
       votingRef.current = true; setVoting(true);
       try { await onVote(optionId, !poll.options.find(option => option.id === optionId)?.votes?.some(vote => vote.userId === currentUser.userId)); }
-      catch (error) { toast.error(isAxiosError(error) ? error.response?.data?.message || "Unable to vote" : "Unable to vote"); }
+      catch (error) { toast.error(getActionErrorMessage(error, isAxiosError(error) ? error.response?.data?.message || "Unable to vote" : "Unable to vote")); }
       finally { votingRef.current = false; setVoting(false); }
     } else {
       if (poll.multipleChoice) {
@@ -238,15 +231,11 @@ const PollMessage = React.memo(function PollMessage({
                                 }`}
                                 title={profile?.fullName || "User"}
                               >
-                                {profile?.avatarUrl ? (
-                                  <img
-                                    src={profile.avatarUrl}
-                                    alt="Avatar"
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <User size={10} className="text-muted-foreground" />
-                                )}
+                                <UserAvatar
+                                  src={profile?.avatarUrl}
+                                  alt="Avatar"
+                                  className="w-full h-full object-cover"
+                                />
                               </Button>
                             );
                           })}

@@ -1,4 +1,5 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { ProjectAccessStatus } from "../components/project-access-status";
 import { useProjectAccessState } from "../hooks/use-project-access-state";
 
@@ -59,6 +60,8 @@ import { createProjectSettingsActions } from "@/features/project/project-setting
 import { usePendingProjectInvitations } from "@/features/project/hooks/use-invitations";
 import { useProjectSidebarState } from "@/features/project/hooks/use-project-sidebar-state";
 import { projectSocketService } from "../api/project-socket.service";
+import { useLinkedProjectTask } from "../hooks/use-linked-project-task";
+import { QueryFeedback } from "@/components/common/query-feedback";
 
 export default function ProjectDetailScreen() {
   const params = useParams();
@@ -93,8 +96,8 @@ export default function ProjectDetailScreen() {
         setChatTask(null);
         router.push(`/chat?spaceId=${res.spaceId}&channelId=${res.channelId}`);
       }
-    } catch {
-      toast.error("Failed to open task channel in space chat");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to open task channel in space chat"));
     }
   };
 
@@ -115,8 +118,8 @@ export default function ProjectDetailScreen() {
           `/chat?spaceId=${res.spaceId}&channelId=${res.channelId}&threadId=${res.threadId}`,
         );
       }
-    } catch {
-      toast.error("Failed to open task discussion thread");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to open task discussion thread"));
     }
   };
   const { data: labels = [] } = useProjectLabels(projectId);
@@ -154,16 +157,41 @@ export default function ProjectDetailScreen() {
   const [showProjectSettings, setShowProjectSettings] = useState(() => searchParams.get("view") === "settings");
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [openedUrlTaskId, setOpenedUrlTaskId] = useState<string | null>(null);
+  const linkedTask = useLinkedProjectTask(projectId, requestedTaskId, serverTasks, Boolean(project) && !tasksLoading);
 
 
 
   if (requestedTaskId && openedUrlTaskId !== requestedTaskId) {
-    const foundTask = serverTasks.find(task => task.id === requestedTaskId);
+    const foundTask = linkedTask.task;
     if (foundTask) {
       setOpenedUrlTaskId(requestedTaskId);
       setSelectedTask(foundTask);
+      setShowProjectSettings(false);
     }
   }
+  if (!requestedTaskId && openedUrlTaskId) {
+    setOpenedUrlTaskId(null);
+    if (selectedTaskSnapshot?.id === openedUrlTaskId) setSelectedTask(null);
+  }
+
+  const closeTaskDrawer = () => {
+    setSelectedTask(null);
+    if (!requestedTaskId) return;
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("taskId");
+    nextParams.delete("task");
+    const query = nextParams.toString();
+    router.replace(`/projects/${projectId}${query ? `?${query}` : ""}`, { scroll: false });
+  };
+
+  const selectTask = (task: Task) => {
+    setSelectedTask(task);
+    if (!requestedTaskId || requestedTaskId === task.id) return;
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("task");
+    nextParams.set("taskId", task.id);
+    router.replace(`/projects/${projectId}?${nextParams.toString()}`, { scroll: false });
+  };
 
   const {
     isOpen: showTaskForm,
@@ -333,8 +361,8 @@ export default function ProjectDetailScreen() {
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
       toast.error(
-        apiError.response?.data?.message ||
-          "Failed to create task",
+        getActionErrorMessage(error, apiError.response?.data?.message ||
+          "Failed to create task"),
       );
     }
   };
@@ -351,8 +379,8 @@ export default function ProjectDetailScreen() {
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
       toast.error(
-        apiError.response?.data?.message ||
-          "Failed to open project chat",
+        getActionErrorMessage(error, apiError.response?.data?.message ||
+          "Failed to open project chat"),
       );
     }
   };
@@ -407,6 +435,9 @@ export default function ProjectDetailScreen() {
         className="@container/project-detail flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto bg-card px-4 py-5 sm:px-6 lg:px-8 lg:py-6"
       >
         <ProjectAccessStatus projectId={projectId} />
+        {requestedTaskId && <QueryFeedback label="the requested task" pending={linkedTask.isFetching}
+          error={linkedTask.isError && !linkedTask.task} retrying={linkedTask.isFetching}
+          onRetry={() => linkedTask.refetch()} />}
         <ProjectDetailToolbar
           project={project}
           members={projectWithMembers.members}
@@ -456,7 +487,7 @@ export default function ProjectDetailScreen() {
           showMembers={showMembers}
           permissions={permissions}
           openTaskForm={openCreateTask}
-          onTaskSelect={setSelectedTask}
+          onTaskSelect={selectTask}
           onChatOpen={setChatTask}
           onTaskMove={handleTaskMove}
           onTaskPriorityChange={handleTaskPriorityChange}
@@ -474,9 +505,9 @@ export default function ProjectDetailScreen() {
           tasks={tasks}
           members={projectWithMembers.members}
           project={project}
-          onClose={() => setSelectedTask(null)}
+          onClose={closeTaskDrawer}
           onOpenChat={(task) => setChatTask(task)}
-          onTaskClick={(task) => setSelectedTask(task)}
+          onTaskClick={selectTask}
           onUpdateTask={handleUpdateTaskDirect}
           onCreateChecklist={handleCreateChecklist}
           onUpdateChecklist={handleUpdateChecklist}
@@ -489,11 +520,12 @@ export default function ProjectDetailScreen() {
           canEditTask={permissions.canEditTask(selectedTask)}
           canContributeTask={permissions.canContributeTask(selectedTask)}
           canComment={Boolean(permissions.role)}
+          canEditDocuments={permissions.canEditDocuments}
           onCreateSubtask={
             permissions.canCreateTask
               ? (task) => {
                   if (rejectCompletedTaskChange(task.id)) return;
-                  setSelectedTask(null);
+                  closeTaskDrawer();
                   openCreateTask(TaskStatus.TODO, undefined, false, task.id);
                 }
               : undefined

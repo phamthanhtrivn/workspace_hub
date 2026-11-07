@@ -44,7 +44,7 @@ export class DocumentController {
   }
 
   private assertInternalServiceKey(serviceKey?: string): void {
-    const expected = process.env.INTERNAL_SERVICE_KEY;
+    const expected = process.env.PROJECT_TO_DOCUMENT_KEY;
     if (!isServiceKeyValid(serviceKey, expected)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
@@ -413,6 +413,11 @@ export class DocumentController {
       userId,
       userEmail,
     );
+    const userRole = await this.documentService.getPermissionRole(
+      id,
+      userId,
+      userEmail,
+    );
     return {
       message: 'Document access verified',
       data: {
@@ -421,6 +426,7 @@ export class DocumentController {
         type: item.type,
         sizeBytes: Number(item.sizeBytes ?? 0),
         mimeType: item.mimeType,
+        userRole,
       },
     };
   }

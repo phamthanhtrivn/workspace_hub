@@ -1,8 +1,9 @@
 "use client";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 import Link from "next/link";
-import { Menu, MessageCircle, Plus, UserPlus } from "lucide-react";
+import { Menu, MessageCircle, Plus, RotateCcw, UserPlus } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
 import { ProjectIdentityIcon } from "../ui/project-identity";
 import { ProjectSearchInput } from "../ui/project-form-controls";
@@ -26,6 +27,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Spinner } from "@/components/ui/spinner";
+
+const RESET_FILTERS_LABEL = "Reset filters";
 
 interface ProjectDetailToolbarProps {
   project: Project;
@@ -201,9 +204,8 @@ export default function ProjectDetailToolbar({
             </Button>
           )}
           {isMembersView
-            ? canInviteMembers &&
-              onInviteMembers && (
-                <Button
+            ? onInviteMembers && (
+                <Button disabledReason={!(canInviteMembers) ? PERMISSION_REASON.projectMembers : undefined}
                   type="button"
                   onClick={onInviteMembers}
                   className="inline-flex cursor-pointer items-center gap-1.5 rounded-control bg-primary hover:bg-primary-hover px-4 py-2 text-xs font-semibold text-primary-foreground transition"
@@ -212,9 +214,8 @@ export default function ProjectDetailToolbar({
                   Invite Member
                 </Button>
               )
-            : isTaskView &&
-              canCreateTask && (
-                <Button
+            : isTaskView && (
+                <Button disabledReason={!(canCreateTask) ? PERMISSION_REASON.projectCreateTask : undefined}
                   type="button"
                   onClick={onCreateTask}
                   className="inline-flex cursor-pointer items-center gap-1.5 rounded-control bg-primary hover:bg-primary-hover px-3.5 py-1.5 text-xs font-semibold text-primary-foreground transition"
@@ -303,12 +304,14 @@ export default function ProjectDetailToolbar({
             {isFiltersActive && (
               <Button
                 type="button"
-                variant="link"
-                size="sm"
+                variant="outline"
+                size="icon-sm"
                 onClick={onClearFilters}
-                className="h-auto p-0 text-xs font-semibold text-info-content hover:underline cursor-pointer"
+                aria-label={RESET_FILTERS_LABEL}
+                title={RESET_FILTERS_LABEL}
+                className="size-9"
               >
-                Clear filters
+                <RotateCcw aria-hidden="true" className="size-4" />
               </Button>
             )}
           </div>

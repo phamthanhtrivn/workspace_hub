@@ -14,6 +14,7 @@ export interface MeetingIconDropdownItem {
   label: string;
   icon: LucideIcon;
   disabled?: boolean;
+  disabledReason?: string;
   danger?: boolean;
   onSelect: () => void;
 }
@@ -27,7 +28,7 @@ export function MeetingIconDropdown({ label, items }: MeetingIconDropdownProps) 
   const controlledPopupId = useControlledPopupId();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const hasEnabledItems = items.some((item) => !item.disabled);
+  const hasEnabledItems = items.some((item) => !item.disabled && !item.disabledReason);
 
 
 
@@ -40,6 +41,7 @@ export function MeetingIconDropdown({ label, items }: MeetingIconDropdownProps) 
         aria-label={label}
         aria-expanded={isOpen}
         disabled={!hasEnabledItems}
+        disabledReason={!hasEnabledItems ? items.find(item => item.disabledReason)?.disabledReason : undefined}
         onClick={() => setIsOpen((current) => !current)}
         className="grid h-8 w-8 cursor-pointer place-items-center rounded-control text-current transition hover:bg-overlay/15 disabled:cursor-not-allowed disabled:opacity-40"
       >
@@ -53,8 +55,9 @@ export function MeetingIconDropdown({ label, items }: MeetingIconDropdownProps) 
               key={item.id}
 
               disabled={item.disabled}
+              disabledReason={item.disabledReason}
               onClick={() => {
-                if (item.disabled) return;
+                if (item.disabled || item.disabledReason) return;
 
                 item.onSelect();
                 setIsOpen(false);

@@ -1,10 +1,10 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import React from "react";
-import { User } from "lucide-react";
-import Image from "next/image";
+
 import { ComboboxContent, ComboboxList, ComboboxItem } from "@/components/ui/combobox";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 
 import { USER_FALLBACK_NAME } from "../../types/documents.constants";
@@ -34,17 +34,13 @@ export const ShareSuggestionsDropdown = React.memo(
             className="flex items-center gap-3 px-4 py-2 hover:bg-background cursor-pointer transition-colors"
           >
             <Avatar className="relative w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
-              {user.avatarUrl ? (
-                <Image
-                  src={user.avatarUrl}
-                  alt={user.fullName || "avatar"}
-                  fill
-                  sizes="40px"
-                  className="object-cover rounded-full"
-                />
-              ) : (
-                <AvatarFallback><User size={14} className="text-muted-foreground" /></AvatarFallback>
-              )}
+              <UserAvatar
+                src={user?.avatarUrl}
+                alt={user?.fullName || "avatar"}
+                fill
+                sizes="40px"
+                className="object-cover rounded-full"
+              />
             </Avatar>
             <div className="flex-1 min-w-0 text-left">
               <p className="text-xs font-semibold text-foreground truncate">

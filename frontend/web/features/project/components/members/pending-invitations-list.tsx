@@ -1,7 +1,8 @@
 "use client";
 
-import { Clock3, RotateCw, Trash2, User } from "lucide-react";
-import Image from "next/image";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { Clock3, RotateCw, Trash2 } from "lucide-react";
+import { Avatar } from "../ui/avatar-stack";
 import { toast } from "sonner";
 import type { ProjectInvitationWithUser } from "@/features/project/api/invitation.api";
 import {
@@ -44,9 +45,9 @@ export default function PendingInvitationsList({
           toast.success("Invitation revoked");
         } catch (error) {
           toast.error(
-            error instanceof Error
+            getActionErrorMessage(error, error instanceof Error
               ? error.message
-              : "Failed to revoke invitation",
+              : "Failed to revoke invitation"),
           );
         }
       },
@@ -59,9 +60,9 @@ export default function PendingInvitationsList({
       toast.success("Invitation resent");
     } catch (error) {
       toast.error(
-        error instanceof Error
+        getActionErrorMessage(error, error instanceof Error
           ? error.message
-          : "Failed to resend invitation",
+          : "Failed to resend invitation"),
       );
     }
   };
@@ -94,20 +95,8 @@ export default function PendingInvitationsList({
               key={invitation.id}
               className="group flex items-center gap-3 rounded-panel border border-dashed border-border bg-warning-soft/40 px-3 py-2.5"
             >
-              {user.avatarUrl ? (
-                <Image
-                  src={user.avatarUrl}
-                  alt=""
-                  width={36}
-                  height={36}
-                  unoptimized
-                  className="h-9 w-9 rounded-full object-cover grayscale-[20%]"
-                />
-              ) : (
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-card text-muted-foreground">
-                  <User className="h-4 w-4" />
-                </span>
-              )}
+              <Avatar user={{ userId: user.id, displayName, avatarUrl: user.avatarUrl }}
+                size="md" className="h-9 w-9 grayscale-[20%]" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-foreground">
                   {displayName}

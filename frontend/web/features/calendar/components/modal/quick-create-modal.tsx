@@ -39,7 +39,7 @@ import {
   QuickRow,
 } from "./quick-create-time-section";
 import { CalendarTaskDeadlineFields } from "./calendar-task-deadline-fields";
-import { CalendarTaskTitleField } from "./calendar-task-title-field";
+import { CALENDAR_TASK_TITLE_MAX_LENGTH } from "../../types/calendar.constants";
 import { ReminderEditor } from "./reminder-editor";
 import { formatReminderSummary } from "../../utils/calendar-reminder.utils";
 import { DialogSurface } from "@/components/ui/dialog";
@@ -160,6 +160,7 @@ export function QuickCreateModal({
       <form
         ref={dialogRef}
         onSubmit={handleSubmit}
+        onFocusCapture={controller.refreshToday}
 
 
         aria-labelledby="calendar-quick-create-heading"
@@ -190,29 +191,28 @@ export function QuickCreateModal({
 
         {/* Title and Tabs */}
         <div className="shrink-0 px-5 pt-5 sm:px-7">
-          {kind === "task" ? (
-            <CalendarTaskTitleField {...register("title")} id="calendar-quick-create-title" data-modal-initial-focus
-              wrapperClassName="ml-12" error={formState.errors.title?.message} />
-          ) : <>
           <Input
             {...register("title")}
-            data-modal-initial-focus
+            required={kind === "task"}
+            maxLength={kind === "task" ? CALENDAR_TASK_TITLE_MAX_LENGTH : undefined}
+            data-modal-initial-focus={isEditing || undefined}
+            focusMode="container"
             id="calendar-quick-create-title"
-            aria-label={copy.addTitle}
+            aria-label={kind === "task" ? copy.taskTitle : copy.addTitle}
             placeholder={copy.addTitle}
             aria-invalid={Boolean(formState.errors.title)}
-            className="ml-12 h-auto w-[calc(100%-3rem)] rounded-none border-0 border-b border-input bg-transparent px-0 pb-2 text-2xl font-medium leading-tight text-foreground shadow-none outline-none placeholder:text-muted-foreground sm:text-[1.7rem]"
+            aria-describedby={formState.errors.title ? "calendar-quick-create-title-error" : undefined}
+            className="ml-12 h-auto w-[calc(100%-3rem)] rounded-none border-0 border-b border-input bg-transparent px-0 pb-2 text-2xl font-medium leading-tight text-foreground shadow-none outline-none placeholder:text-muted-foreground focus:border-primary sm:text-[1.7rem]"
           />
           {formState.errors.title && (
-            <p className="ml-12 mt-2 text-xs font-semibold text-destructive-content">
-              {copy.requiredFields}
+            <p id="calendar-quick-create-title-error" role="alert" className="ml-12 mt-2 text-xs font-semibold text-destructive-content">
+              {formState.errors.title.message || copy.requiredFields}
             </p>
           )}
-          </>}
 
           {!isEditing && (
             <div
-              className="ml-12 mt-4 inline-flex rounded-panel bg-muted p-1"
+              className="ml-12 mt-4 inline-grid grid-cols-2 items-center gap-1 rounded-panel bg-muted p-1 align-middle"
               role="group" aria-label="Event or task"
             >
               {QUICK_CREATE_TABS.map((tab) => (
@@ -224,10 +224,10 @@ export function QuickCreateModal({
                   aria-pressed={kind === tab.value}
                   onClick={() => onKindChange(tab.value)}
                   className={cn(
-                    "h-8 cursor-pointer rounded-control px-4 text-sm font-semibold transition hover:bg-card",
+                    "h-9 min-w-20 rounded-control border px-4 py-0 text-sm font-semibold leading-none transition-colors focus-visible:ring-inset motion-reduce:transition-none",
                     kind === tab.value
-                      ? "bg-card text-foreground ring-1 ring-ring/60"
-                      : "text-muted-foreground hover:text-foreground",
+                      ? "border-border bg-card text-foreground hover:bg-card"
+                      : "border-transparent bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
                   )}
                   style={
                     kind === tab.value
@@ -249,6 +249,8 @@ export function QuickCreateModal({
           <div className="space-y-2.5">
             {/* Time & Recurrence Section */}
             <QuickCreateTimeSection
+              mode={controller.mode}
+              today={controller.today}
               disabled={submitting || formState.isSubmitting}
               form={controller.form}
               kind={kind}

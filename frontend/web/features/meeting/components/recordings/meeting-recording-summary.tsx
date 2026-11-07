@@ -2,6 +2,8 @@
 
 import { useMeetingSummary } from "../../hooks/use-meeting-summary";
 import { MeetingButton } from "../ui/meeting-form-controls";
+import { Bot } from "lucide-react";
+import { aiServiceMessage } from "@/lib/ai-feedback";
 
 export function MeetingRecordingSummary({
   recordingId,
@@ -12,29 +14,29 @@ export function MeetingRecordingSummary({
   const summary = state.summary;
   const running = summary?.status === "QUEUED" || summary?.status === "RUNNING";
   const labels = {
-    QUEUED: "Đang chờ xử lý…",
-    EXTRACTING: "Đang chuẩn bị âm thanh…",
-    TRANSCRIBING: "Đang chuyển lời nói thành văn bản…",
-    SUMMARIZING: "Đang tổng hợp nội dung cuộc họp…",
-    COMPLETED: "Đã hoàn thành",
-    FAILED: "Xử lý chưa hoàn thành",
+    QUEUED: "Queued...",
+    EXTRACTING: "Preparing audio...",
+    TRANSCRIBING: "Transcribing...",
+    SUMMARIZING: "Summarizing meeting...",
+    COMPLETED: "Completed",
+    FAILED: "Failed",
   };
   if (state.loading)
     return (
       <p className="text-sm text-muted-foreground" role="status">
-        Đang tải bản tóm tắt…
+        Loading summary...
       </p>
     );
   if (state.unavailable)
     return (
       <div className="mt-4 text-sm" role="alert">
-        <p>Không thể tải bản tóm tắt hoặc bạn không còn quyền truy cập.</p>
+        <p>Unable to load this summary. Check your access and try again.</p>
         <MeetingButton
           tone="secondary"
           className="mt-2"
           onClick={() => void state.refresh()}
         >
-          Tải lại
+          Retry
         </MeetingButton>
       </div>
     );
@@ -44,8 +46,9 @@ export function MeetingRecordingSummary({
       className="mt-4 border-t border-border pt-4"
       aria-labelledby="meeting-summary-title"
     >
-      <h3 id="meeting-summary-title" className="text-base font-semibold">
-        Tóm tắt cuộc họp
+      <h3 id="meeting-summary-title" className="flex items-center gap-2 text-base font-semibold">
+        <Bot className="size-4 text-link" aria-hidden="true" />
+        Meeting summary
       </h3>
       {running && (
         <p
@@ -56,15 +59,13 @@ export function MeetingRecordingSummary({
           {labels[summary.stage ?? "QUEUED"]}
           {summary.stage === "TRANSCRIBING" &&
             !!summary.transcribedChunks &&
-            ` Đã xử lý ${summary.transcribedChunks} đoạn.`}
+            ` Processed ${summary.transcribedChunks} segments.`}
         </p>
       )}
       {summary.status === "COMPLETED" && (
         <>
           <p className="mt-2 text-xs text-muted-foreground">
-            Nội dung do AI tổng hợp. Hãy đối chiếu bản ghi trước khi sử dụng
-            quyết định hoặc đầu việc. Mốc thời gian chỉ gần đúng; bản ghi trộn
-            không xác định tên từng người nói.
+            AI-generated summary. Check decisions and action items against the recording. Timestamps are approximate; speakers are not identified from mixed audio.
           </p>
           <div className="mt-3 max-h-64 overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed">
             {summary.content}
@@ -73,15 +74,13 @@ export function MeetingRecordingSummary({
       )}
       {summary.status === "FAILED" && (
         <p className="mt-2 text-sm text-destructive" role="alert">
-          {summary.error || "Chưa thể tạo tóm tắt. Vui lòng thử lại."}
+          {aiServiceMessage(summary.error, "Unable to generate a summary. Try again.")}
         </p>
       )}
       {summary.canCreate && !running && summary.status !== "COMPLETED" && (
         <>
           <p className="mt-2 text-sm text-muted-foreground">
-            Tạo tóm tắt từ lời nói trong bản ghi. Âm thanh được gửi tới Google
-            để nhận dạng, văn bản được gửi tới dịch vụ AI để tổng hợp; có thể
-            phát sinh phí.
+            Audio is sent to Google for transcription, then the transcript is sent to AI for summarization. Charges may apply.
           </p>
           <MeetingButton
             className="mt-3"
@@ -89,21 +88,21 @@ export function MeetingRecordingSummary({
             onClick={state.create}
           >
             {state.creating
-              ? "Đang gửi yêu cầu…"
+              ? "Requesting summary..."
               : summary.status === "FAILED"
-                ? "Thử lại tóm tắt"
-                : "Tóm tắt bằng AI"}
+                ? "Retry summary"
+                : "Summarize with AI"}
           </MeetingButton>
         </>
       )}
       {!summary.canCreate && summary.status === "NOT_CREATED" && (
         <p className="mt-2 text-sm text-muted-foreground">
-          Chủ bản ghi có thể tạo bản tóm tắt cho cuộc họp này.
+          Only the recording owner can generate a summary.
         </p>
       )}
       {state.createError && (
         <p className="mt-2 text-sm text-destructive" role="alert">
-          Chưa thể bắt đầu. Vui lòng kiểm tra dịch vụ hoặc thử lại sau.
+          Unable to start the summary. Try again later.
         </p>
       )}
     </section>

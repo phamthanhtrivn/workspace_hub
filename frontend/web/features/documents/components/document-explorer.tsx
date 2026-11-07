@@ -3,7 +3,9 @@ import { LoadingState } from "@/components/ui/loading-state";
 
 import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useAppSelector } from "@/store/store";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { DndContext } from "@dnd-kit/core";
 import { documentsApi } from "../api/documents.api";
 import { DocumentItem } from "../types/documents.types";
@@ -63,6 +65,16 @@ export function DocumentExplorer({
   accessErrorDescription = "You do not have access to these documents yet",
 }: DocumentExplorerProps) {
   const isProjectDocuments = Boolean(projectId);
+  const currentUserId = useAppSelector(state => state.auth.userId);
+  const folderAccess = useQuery({
+    queryKey: ["documents", "folder-access", currentUserId, currentFolderId],
+    queryFn: () => documentsApi.getAccessibleItem(currentFolderId!),
+    enabled: Boolean(currentUserId && currentFolderId && canEditDocuments),
+    retry: false,
+    staleTime: 60_000,
+  });
+  const canWriteCurrentFolder = canEditDocuments && (!currentFolderId ||
+    folderAccess.data?.userRole === DocumentRole.OWNER || folderAccess.data?.userRole === DocumentRole.EDITOR);
   const projectRootFolderId = isProjectDocuments ? path[0]?.id ?? null : null;
   const projectRootLabel = isProjectDocuments ? path[0]?.name : undefined;
   // 1. Explorer State Hook
@@ -144,10 +156,9 @@ export function DocumentExplorer({
 
   // 4. File Upload Hook
   const {
-    uploadState,
-    uploadSummary, retryFailed,
-    uploadProgress,
-    uploadingFileName,
+    uploads,
+    retryFailed,
+    dismissUploads,
     overwriteConflict,
     isDraggingOver,
     uploadFile,
@@ -156,7 +167,7 @@ export function DocumentExplorer({
   } = useDocumentUpload({
     currentFolderId,
     projectId,
-    enabled: canEditDocuments,
+    enabled: canWriteCurrentFolder,
   });
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
@@ -164,7 +175,7 @@ export function DocumentExplorer({
   // 5. Drag and Drop Hook
   const { sensors, handleDragEnd } = useDocumentDragAndDrop({
     onMoveItem: (itemId, targetFolderId) =>
-      canEditDocuments
+      canWriteCurrentFolder
         ? moveResource({ id: itemId, targetFolderId })
         : Promise.resolve(),
   });
@@ -327,7 +338,7 @@ export function DocumentExplorer({
       <div className="@container/explorer relative flex flex-1 flex-col min-h-0 min-w-0 h-full overflow-y-auto bg-card text-foreground">
         {/* Full Window Dropzone Overlay */}
         {isDraggingOver ? (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-primary/10 border-2 border-dashed border-info-outline">
+          <div className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center bg-primary/10 border-2 border-dashed border-info-outline">
             <div className="grid h-16 w-16 place-items-center rounded-panel bg-info-soft text-info-content ring-1 ring-ring">
               <UploadCloud className="h-8 w-8" />
             </div>
@@ -353,7 +364,9 @@ export function DocumentExplorer({
             onSearchQueryChange={setSearchQuery}
             onCreateFolder={openCreateFolder}
             onUploadFile={uploadFile}
-            canEditDocuments={canEditDocuments}
+            canEditDocuments={canWriteCurrentFolder}
+            editDisabledReason={folderAccess.isFetching && !folderAccess.data
+              ? "Checking folder permissions..." : isProjectDocuments ? PERMISSION_REASON.projectDocuments : PERMISSION_REASON.documentEdit}
           />
           {activeView === DocumentViewType.TRASH ? (
             <div className="flex items-start gap-2 rounded-panel border border-border bg-warning-soft px-3.5 py-3 text-xs font-semibold text-warning-content">
@@ -508,11 +521,9 @@ export function DocumentExplorer({
 
         {/* Floating Upload Queue Widget */}
         <UploadProgress
-          uploadState={uploadState}
-          summary={uploadSummary}
-          onRetry={() => void retryFailed()}
-          uploadProgress={uploadProgress}
-          uploadingFileName={uploadingFileName}
+          uploads={uploads}
+          onRetry={(id) => void retryFailed(id)}
+          onDismiss={dismissUploads}
         />
 
         {/* Shadcn Input Modal: Create Folder */}
@@ -619,6 +630,7 @@ export function DocumentExplorer({
         {/* Version Management Modal */}
         {isVersionModalOpen && versioningItem ? (
           <VersionManagementModal
+            key={versioningItem.id}
             open={isVersionModalOpen}
             item={versioningItem}
             onClose={closeVersionModal}

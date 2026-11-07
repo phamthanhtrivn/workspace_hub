@@ -1,5 +1,6 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import {
   VideoTrack,
   isTrackReference,
@@ -8,7 +9,7 @@ import {
 import { Hand, MonitorUp, Pin } from "lucide-react";
 import { useMeetingParticipantTile } from "@/features/meeting/hooks/useMeetingParticipantTile";
 import { cn } from "@/lib/utils";
-import { AvatarFallback } from "../common/avatar-fallback";
+
 import { MeetingIconDropdown } from "../common/meeting-icon-dropdown";
 
 interface MeetingParticipantTileProps {
@@ -103,20 +104,7 @@ export function MeetingParticipantTile({
         />
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_top,var(--media-background),transparent_38%),var(--media-background)] text-center">
-          {avatarUrl ? (
-            <span
-              aria-label={displayName}
-              role="img"
-              className="h-24 w-24 rounded-full bg-cover bg-center ring-2 ring-border/14"
-              style={{ backgroundImage: `url("${avatarUrl}")` }}
-            />
-          ) : (
-            <AvatarFallback
-              label={displayName}
-              className="grid h-24 w-24 place-items-center rounded-full bg-accent/90 ring-1 ring-border/14"
-              iconClassName="h-11 w-11 text-muted-foreground"
-            />
-          )}
+          <UserAvatar src={avatarUrl} alt={displayName} className="h-24 w-24 rounded-full ring-2 ring-border/14" />
         </div>
       )}
 

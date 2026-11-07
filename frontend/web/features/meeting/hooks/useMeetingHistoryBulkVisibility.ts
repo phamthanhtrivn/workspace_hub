@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { undoMeetingHistoryBatch, updateMeetingHistoryBulkVisibility } from "../api/meeting.api";
@@ -29,8 +30,8 @@ export function useMeetingHistoryBulkVisibility() {
         } } : {}),
       });
       return true;
-    } catch {
-      toast.error(MEETING_HISTORY_BULK_LABELS.updateError);
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, MEETING_HISTORY_BULK_LABELS.updateError));
       return false;
     }
   };

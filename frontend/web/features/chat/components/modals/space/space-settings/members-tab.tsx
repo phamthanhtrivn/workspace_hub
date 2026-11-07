@@ -1,7 +1,8 @@
-import Image from "next/image";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
+import { UserAvatar } from "@/components/common/user-avatar";
 
 import { IconButton } from "@/components/ui/icon-button";
-import { Search, Crown, Trash2, User, Shield, ShieldOff } from "lucide-react";
+import { Search, Crown, Trash2, Shield, ShieldOff } from "lucide-react";
 import { FaKey } from "react-icons/fa";
 import {
   SpaceMemberListItem,
@@ -10,7 +11,6 @@ import {
 import { getSpaceMemberName } from "@/features/chat/types/space-settings/space-settings.types";
 import { Input } from "@/components/ui/input";
 import { LoadingState } from "@/components/ui/loading-state";
-
 
 interface MembersTabProps {
   currentUserId: string | null;
@@ -124,17 +124,13 @@ function MemberRow({
       <div className="flex min-w-0 items-center gap-3">
         <div className="relative h-9 w-9 shrink-0">
           <div className="h-full w-full overflow-hidden rounded-full bg-muted flex items-center justify-center">
-            {member.profile?.avatarUrl ? (
-              <Image
-                src={member.profile.avatarUrl}
-                alt={name}
-                width={36}
-                height={36}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <User size={16} className="text-muted-foreground" />
-            )}
+            <UserAvatar
+              src={member?.profile?.avatarUrl}
+              alt={name}
+              width={36}
+              height={36}
+              className="h-full w-full object-cover"
+            />
           </div>
           {isCreator ? (
             <span
@@ -175,10 +171,10 @@ function MemberRow({
 
       {!isMe && (
         <div className="flex shrink-0 items-center gap-1">
-          {canCurrentUserUpdateRole && (
+          {(
             <>
               {member.role === SpaceRole.MEMBER && (
-                <IconButton label="Promote to Admin" showTooltip={false} size="icon-sm"
+                <IconButton disabledReason={!(canCurrentUserUpdateRole) ? PERMISSION_REASON.spaceAdmin : undefined} label="Promote to Admin" showTooltip={false} size="icon-sm"
                   type="button"
                   title="Promote to Admin"
                   disabled={disabled}
@@ -189,7 +185,7 @@ function MemberRow({
                 </IconButton>
               )}
               {member.role === SpaceRole.ADMIN && (
-                <IconButton label="Demote to Member" showTooltip={false} size="icon-sm"
+                <IconButton disabledReason={!(canCurrentUserUpdateRole) ? PERMISSION_REASON.spaceAdmin : undefined} label="Demote to Member" showTooltip={false} size="icon-sm"
                   type="button"
                   title="Demote to Member"
                   disabled={disabled}
@@ -214,8 +210,8 @@ function MemberRow({
               </IconButton>
             </>
           )}
-          {canCurrentUserRemove && onRemove && (
-            <IconButton label="Remove from Space" showTooltip={false} size="icon-sm"
+          {onRemove && (
+            <IconButton disabledReason={!(canCurrentUserRemove) ? PERMISSION_REASON.spaceAdmin : undefined} label="Remove from Space" showTooltip={false} size="icon-sm"
               type="button"
               title="Remove from Space"
               disabled={disabled}

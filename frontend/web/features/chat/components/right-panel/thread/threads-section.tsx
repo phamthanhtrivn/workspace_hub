@@ -1,13 +1,8 @@
+import { UserAvatar } from "@/components/common/user-avatar";
 import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
-import {
-  ChevronDown,
-  ChevronRight,
-  MessageCircle,
-  MessageSquare,
-  User,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, MessageCircle, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import Image from "next/image";
+
 import { formatDateTime } from "@/lib/date";
 import {
   getChannelThreads,
@@ -20,7 +15,6 @@ import { logApiError } from "@/lib/interceptors";
 import ThreadSnippetPreview from "./thread-snippet-preview";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
-
 
 interface ThreadsSectionProps {
   conversationId: string;
@@ -123,17 +117,13 @@ export default function ThreadsSection({
                     className="w-full cursor-pointer flex items-start gap-2 rounded-control p-2 text-left hover:bg-muted transition"
                   >
                     <span className="h-7 w-7 shrink-0 overflow-hidden rounded-full bg-muted flex items-center justify-center">
-                      {profile?.avatarUrl ? (
-                        <Image
-                          src={profile.avatarUrl}
-                          alt={name}
-                          width={28}
-                          height={28}
-                          className="h-7 w-7 rounded-full object-cover"
-                        />
-                      ) : (
-                        <User size={13} className="text-muted-foreground" />
-                      )}
+                      <UserAvatar
+                        src={profile?.avatarUrl}
+                        alt={name}
+                        width={28}
+                        height={28}
+                        className="h-7 w-7 rounded-full object-cover"
+                      />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-xs font-semibold text-foreground">

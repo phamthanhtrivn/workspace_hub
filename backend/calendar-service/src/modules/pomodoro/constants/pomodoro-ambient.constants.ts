@@ -4,7 +4,7 @@ export const AMBIENT_TRACK_ID_PATTERN =
   /^(?!custom_)[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
 export const DEFAULT_AMBIENT_PREFERENCES = {
-  trackId: 'lofi_relax',
+  trackId: 'indigo_dreams',
   volume: 0.5,
   autoPlayOnFocus: true,
 };

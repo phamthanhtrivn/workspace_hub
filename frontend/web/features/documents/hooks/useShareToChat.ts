@@ -1,3 +1,4 @@
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
@@ -219,8 +220,8 @@ export function useShareToChat({ item, onSuccess, projectId }: UseShareToChatPro
       setPendingUnauthorizedEmails([]);
       onSuccess();
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to share document to chat.");
+      logActionError(error);
+      toast.error(getActionErrorMessage(error, "Failed to share document to chat."));
     } finally {
       setIsSubmitting(false);
     }
@@ -260,7 +261,7 @@ export function useShareToChat({ item, onSuccess, projectId }: UseShareToChatPro
           }
         }
       } catch (err) {
-        console.error("Failed to check permissions", err);
+        logActionError("Failed to check permissions", err);
       }
     }
 

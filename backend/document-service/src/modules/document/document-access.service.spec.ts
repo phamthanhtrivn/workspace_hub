@@ -21,8 +21,8 @@ void test('a pending email grant binds once to the verified recipient id', async
 
 void test('project shares cannot outlive authoritative project membership or bypass an outage', async () => {
   const originalFetch = globalThis.fetch;
-  const previousUrl = process.env.PROJECT_SERVICE_URL, previousKey = process.env.INTERNAL_SERVICE_KEY;
-  process.env.PROJECT_SERVICE_URL = 'https://project-service.invalid'; process.env.INTERNAL_SERVICE_KEY = 'test-only-key';
+  const previousUrl = process.env.PROJECT_SERVICE_URL, previousKey = process.env.DOCUMENT_TO_PROJECT_KEY;
+  process.env.PROJECT_SERVICE_URL = 'https://project-service.invalid'; process.env.DOCUMENT_TO_PROJECT_KEY = 'test-only-key';
   const file = { id: 'file', ownerUserId: 'owner', projectId: 'project', shares: [{ shareWithUserId: 'removed', permission: 'EDITOR' }] };
   const prisma = { documentItem: { findUnique: () => Promise.resolve(file) } } as unknown as PrismaService;
   const access = new DocumentAccessService(prisma);
@@ -36,7 +36,7 @@ void test('project shares cannot outlive authoritative project membership or byp
   } finally {
     globalThis.fetch = originalFetch;
     if (previousUrl === undefined) delete process.env.PROJECT_SERVICE_URL; else process.env.PROJECT_SERVICE_URL = previousUrl;
-    if (previousKey === undefined) delete process.env.INTERNAL_SERVICE_KEY; else process.env.INTERNAL_SERVICE_KEY = previousKey;
+    if (previousKey === undefined) delete process.env.DOCUMENT_TO_PROJECT_KEY; else process.env.DOCUMENT_TO_PROJECT_KEY = previousKey;
   }
 });
 

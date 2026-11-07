@@ -36,12 +36,15 @@ import {
   useTaskDocuments,
 } from "@/features/project/hooks/use-tasks";
 import { Spinner } from "@/components/ui/spinner";
+import { getActionErrorMessage,  PERMISSION_REASON } from "@/lib/permission-feedback";
 
 type PickerMode = "MY_FILES" | "PROJECT_DOCUMENT";
 
 interface TaskDocumentsSectionProps {
   task: Task;
   isReadOnly: boolean;
+  canEditDocuments: boolean;
+  readOnlyReason: string;
 }
 
 function sourceLabel(source: TaskDocumentAttachmentSource) {
@@ -80,6 +83,8 @@ function getTaskDocumentErrorMessage(
 export default function TaskDocumentsSection({
   task,
   isReadOnly,
+  canEditDocuments,
+  readOnlyReason,
 }: TaskDocumentsSectionProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [pickerMode, setPickerMode] = useState<PickerMode | null>(null);
@@ -91,10 +96,12 @@ export default function TaskDocumentsSection({
   const attachments = documentsQuery.data ?? task.documentAttachments;
   const isBusy =
     isUploading || attachDocuments.isPending || detachDocument.isPending;
+  const uploadReason = isReadOnly ? readOnlyReason : !canEditDocuments ? PERMISSION_REASON.projectDocuments : undefined;
 
   const handleUploadFiles = async (files: FileList | null) => {
     const selectedFiles = Array.from(files ?? []);
     if (selectedFiles.length === 0) return;
+    if (uploadReason) { toast.error(`You can't upload files to Project Documents. ${uploadReason}`); return; }
 
     setIsUploading(true);
     try {
@@ -113,7 +120,7 @@ export default function TaskDocumentsSection({
       );
     } catch (error) {
       toast.error(
-        getTaskDocumentErrorMessage(error, "Failed to attach files"),
+        getActionErrorMessage(error, getTaskDocumentErrorMessage(error, "Failed to attach files")),
       );
     } finally {
       setIsUploading(false);
@@ -125,18 +132,19 @@ export default function TaskDocumentsSection({
     try {
       const url = await documentsApi.getDownloadUrl(documentItemId);
       window.open(url, "_blank", "noopener,noreferrer");
-    } catch {
-      toast.error("Failed to open document");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to open document"));
     }
   };
 
   const handleRemove = async (attachmentId: string) => {
+    if (isReadOnly) { toast.error(`You can't remove task attachments. ${readOnlyReason}`); return; }
     try {
       await detachDocument.mutateAsync(attachmentId);
       toast.success("Attachment removed");
     } catch (error) {
       toast.error(
-        getTaskDocumentErrorMessage(error, "Failed to remove attachment"),
+        getActionErrorMessage(error, getTaskDocumentErrorMessage(error, "Failed to remove attachment")),
       );
     }
   };
@@ -151,12 +159,13 @@ export default function TaskDocumentsSection({
             {attachments.length}
           </span>
         </h3>
-        {!isReadOnly && (
+        {(
           <div className="flex flex-wrap justify-end gap-1.5">
             <input
               ref={fileInputRef}
               type="file"
               multiple
+              disabled={isBusy || Boolean(uploadReason)}
               className="hidden"
               onChange={(event) => void handleUploadFiles(event.target.files)}
             />
@@ -165,6 +174,7 @@ export default function TaskDocumentsSection({
               size="sm"
               variant="outline"
               disabled={isBusy}
+              disabledReason={uploadReason}
               onClick={() => fileInputRef.current?.click()}
               className="h-7 rounded-control px-2 text-xs"
             >
@@ -181,6 +191,7 @@ export default function TaskDocumentsSection({
               variant="outline"
               disabled={isBusy}
               onClick={() => setPickerMode("MY_FILES")}
+              disabledReason={isReadOnly ? readOnlyReason : undefined}
               className="h-7 rounded-control px-2 text-xs"
             >
               My Files
@@ -191,6 +202,7 @@ export default function TaskDocumentsSection({
               variant="outline"
               disabled={isBusy}
               onClick={() => setPickerMode("PROJECT_DOCUMENT")}
+              disabledReason={isReadOnly ? readOnlyReason : undefined}
               className="h-7 rounded-control px-2 text-xs"
             >
               Project
@@ -236,12 +248,13 @@ export default function TaskDocumentsSection({
               >
                 <Download className="h-3.5 w-3.5" />
               </Button>
-              {!isReadOnly && (
+              {(
                 <Button loading={detachDocument.isPending && detachDocument.variables === attachment.id}
                   type="button"
                   size="icon"
                   variant="ghost"
                   disabled={detachDocument.isPending}
+                  disabledReason={isReadOnly ? readOnlyReason : undefined}
                   className="h-7 w-7 rounded-control text-destructive-content hover:bg-destructive-soft hover:text-destructive-content"
                   onClick={() => void handleRemove(attachment.id)}
                   title="Remove"
@@ -257,6 +270,8 @@ export default function TaskDocumentsSection({
 
       <TaskDocumentPickerDialog
         task={task}
+        isReadOnly={isReadOnly}
+        readOnlyReason={readOnlyReason}
         mode={pickerMode}
         open={Boolean(pickerMode)}
         onOpenChange={(open) => {
@@ -269,6 +284,8 @@ export default function TaskDocumentsSection({
 
 interface TaskDocumentPickerDialogProps {
   task: Task;
+  isReadOnly: boolean;
+  readOnlyReason: string;
   mode: PickerMode | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -276,6 +293,8 @@ interface TaskDocumentPickerDialogProps {
 
 function TaskDocumentPickerDialog({
   task,
+  isReadOnly,
+  readOnlyReason,
   mode,
   open,
   onOpenChange,
@@ -331,6 +350,7 @@ function TaskDocumentPickerDialog({
 
   const handleAttach = async () => {
     if (!mode || selectedIds.length === 0) return;
+    if (isReadOnly) { toast.error(`You can't attach documents to this task. ${readOnlyReason}`); return; }
     try {
       await attachDocuments.mutateAsync({
         documentItemIds: selectedIds,
@@ -349,7 +369,7 @@ function TaskDocumentPickerDialog({
       onOpenChange(false);
     } catch (error) {
       toast.error(
-        getTaskDocumentErrorMessage(error, "Failed to attach documents"),
+        getActionErrorMessage(error, getTaskDocumentErrorMessage(error, "Failed to attach documents")),
       );
     }
   };
@@ -398,6 +418,7 @@ function TaskDocumentPickerDialog({
                 return (
                   <Button variant="unstyled"
                     key={item.id}
+                    disabledReason={isReadOnly ? readOnlyReason : undefined}
                     type="button"
                     onClick={() => toggleSelected(item)}
                     className={[
@@ -440,6 +461,7 @@ function TaskDocumentPickerDialog({
               Cancel
             </Button>
             <Button aria-busy={attachDocuments.isPending || undefined}
+              disabledReason={isReadOnly ? readOnlyReason : undefined}
               type="button"
               disabled={selectedIds.length === 0 || attachDocuments.isPending}
               onClick={() => void handleAttach()}

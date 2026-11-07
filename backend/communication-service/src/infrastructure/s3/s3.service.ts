@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import {
   S3Client,
@@ -20,6 +21,7 @@ import {
   RecordingUploadOptions,
 } from './recording-multipart-upload';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { ATTACHMENT_READ_TTL_SECONDS } from '../../common/types/media.constants';
 import { generateS3Key } from '../../common/utils/s3-key.util';
 import { S3_UPLOAD_TYPE } from '../../common/types/file.enums';
 import {
@@ -32,6 +34,7 @@ import {
 
 @Injectable()
 export class S3Service {
+  private readonly logger = new Logger(S3Service.name);
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
 
@@ -58,7 +61,7 @@ export class S3Service {
     return getSignedUrl(
       this.s3Client,
       new GetObjectCommand({ Bucket: this.bucketName, Key: s3Key }),
-      { expiresIn: 120 },
+      { expiresIn: ATTACHMENT_READ_TTL_SECONDS },
     );
   }
 
@@ -169,8 +172,8 @@ export class S3Service {
       });
 
       return { presignedUrl, s3Key };
-    } catch (error) {
-      console.error('Error generating presigned URL:', error);
+    } catch {
+      this.logger.error('S3 upload URL generation failed');
       throw new InternalServerErrorException('Failed to generate upload URL');
     }
   }
@@ -253,8 +256,8 @@ export class S3Service {
       });
 
       await this.s3Client.send(command);
-    } catch (error) {
-      console.error(`Error deleting file from S3 (${s3Key}):`, error);
+    } catch {
+      this.logger.error('S3 object deletion failed');
       throw new InternalServerErrorException('Failed to delete file from S3');
     }
   }

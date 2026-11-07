@@ -1,3 +1,4 @@
+import { getDateRangeErrors } from "@/lib/date-range";
 import { z } from "zod";
 import { CALENDAR_FORM_COPY as copy } from "../constants/calendar-form-copy";
 import {
@@ -23,7 +24,7 @@ const reminderSchema = z.object({
   method: z.nativeEnum(ReminderMethod),
 });
 
-export const calendarEventFormSchema = z
+export const createCalendarEventFormSchema = (mode: "create" | "edit") => z
   .object({
     calendarId: z.string().min(1, copy.requiredFields),
     title: z.string().trim().min(1, copy.requiredFields).max(CALENDAR_TASK_TITLE_MAX_LENGTH),
@@ -41,25 +42,14 @@ export const calendarEventFormSchema = z
     sourceType: z.nativeEnum(EventSourceType).optional(),
   })
   .superRefine((values, context) => {
-    const start = new Date(values.startAt);
-    const end = new Date(values.endAt);
-
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      context.addIssue({
-        code: "custom",
-        message: copy.endRangeInvalid,
-        path: ["endAt"],
-      });
-      return;
-    }
-
-    if (end.getTime() - start.getTime() < CALENDAR_MIN_EVENT_DURATION_MS) {
-      context.addIssue({
-        code: "custom",
-        message: copy.endRangeTooShort,
-        path: ["endAt"],
-      });
-    }
+    const errors = getDateRangeErrors({
+      start: values.startAt, end: values.endAt, mode,
+      requireStart: true, requireEnd: true, minDurationMs: CALENDAR_MIN_EVENT_DURATION_MS,
+    });
+    if (errors.start) context.addIssue({ code: "custom", message: errors.start, path: ["startAt"] });
+    if (errors.end) context.addIssue({ code: "custom", message: errors.end, path: ["endAt"] });
   });
+
+export const calendarEventFormSchema = createCalendarEventFormSchema("edit");
 
 export type CalendarEventEditorValues = z.infer<typeof calendarEventFormSchema>;

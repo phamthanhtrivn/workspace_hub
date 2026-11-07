@@ -1,6 +1,7 @@
 "use client";
 
 import { type FocusEvent as ReactFocusEvent, type RefObject, useEffect, useRef } from "react";
+import { MODAL_COMPANION_SELECTOR } from "./floating-utility-layer";
 
 const FOCUSABLE_SELECTOR = [
   "button:not([disabled])", "[href]", "input:not([disabled])",
@@ -104,16 +105,32 @@ export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!isTopmost() || event.defaultPrevented ||
         (event.target instanceof Element && event.target.closest(POPUP_SELECTOR))) return;
+      // The floating timer owns its shortcuts; Escape there must not dismiss
+      // an unrelated dialog behind it.
+      if (event.key !== "Tab" && event.target instanceof Element && event.target.closest(MODAL_COMPANION_SELECTOR)) return;
       if (event.key === "Escape") {
         event.preventDefault();
         closeRef.current();
         return;
       }
       if (!trapFocus || event.key !== "Tab") return;
-      const elements = focusableElements(dialog);
+      const companions = Array.from(document.querySelectorAll<HTMLElement>(MODAL_COMPANION_SELECTOR))
+        .filter(companion => !dialog.contains(companion)).flatMap(focusableElements);
+      const elements = [...focusableElements(dialog), ...companions];
       if (!elements.length) {
         event.preventDefault();
         focusWithoutScroll(dialog);
+        return;
+      }
+      // Portals can precede the modal in DOM order. Explicitly traverse the
+      // combined controls so Tab cannot land on the obscured page between them.
+      if (companions.length) {
+        event.preventDefault();
+        const index = elements.indexOf(document.activeElement as HTMLElement);
+        const next = event.shiftKey
+          ? (index <= 0 ? elements.length - 1 : index - 1)
+          : (index < 0 || index === elements.length - 1 ? 0 : index + 1);
+        focusWithoutScroll(elements[next]);
         return;
       }
       const first = elements[0], last = elements[elements.length - 1];
@@ -127,7 +144,7 @@ export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, 
     };
     const handleFocusIn = (event: FocusEvent) => {
       if (trapFocus && isTopmost() && event.target instanceof Element &&
-        !dialog.contains(event.target) && !event.target.closest(POPUP_SELECTOR)) {
+        !dialog.contains(event.target) && !event.target.closest(POPUP_SELECTOR) && !event.target.closest(MODAL_COMPANION_SELECTOR)) {
         focusWithoutScroll(firstFocus());
       }
     };
@@ -146,7 +163,7 @@ export function useModalDialog({ dialogRef, onClose, lockDocumentScroll = true, 
         const activeModal = modalStack[modalStack.length - 1];
         const closed = !dialog.isConnected || dialog.getAttribute("aria-hidden") === "true";
         if (trapFocus && closed && previouslyFocused?.isConnected &&
-          (!activeModal || activeModal.contains(previouslyFocused))) focusWithoutScroll(previouslyFocused);
+          (!activeModal || activeModal.contains(previouslyFocused) || previouslyFocused.closest(MODAL_COMPANION_SELECTOR))) focusWithoutScroll(previouslyFocused);
       });
     };
   }, [dialogRef, lockDocumentScroll, enabled, trapFocus]);

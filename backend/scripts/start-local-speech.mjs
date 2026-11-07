@@ -5,15 +5,15 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const require = createRequire(resolve(root, "backend/ai-service/package.json"));
+const require = createRequire(resolve(root, "backend/ai-service/api/package.json"));
 const env = require("dotenv").parse(
-  readFileSync(resolve(root, "backend/ai-service/.env")),
+  readFileSync(resolve(root, "backend/ai-service/api/.env")),
 );
 const python =
   env.MEETING_STT_PYTHON ||
   resolve(
     root,
-    "backend/ai-service/.venv",
+    "backend/ai-service/api/.venv",
     process.platform === "win32" ? "Scripts/python.exe" : "bin/python",
   );
 const worker = spawn(
@@ -29,7 +29,7 @@ const worker = spawn(
     "--no-access-log",
   ],
   {
-    cwd: resolve(root, "backend/speech-worker"),
+    cwd: resolve(root, "backend/ai-service/speech-worker"),
     windowsHide: true,
     stdio: "inherit",
     env: {
@@ -37,7 +37,7 @@ const worker = spawn(
       SPEECH_SERVICE_KEY: env.MEETING_STT_SERVICE_KEY || "",
       STT_MODEL_PATH:
         env.MEETING_STT_MODEL_PATH ||
-        resolve(root, "backend/speech-worker/models/small"),
+        resolve(root, "backend/ai-service/speech-worker/models/small"),
       STT_CPU_THREADS: env.MEETING_STT_CPU_THREADS || "4",
       HF_HUB_DISABLE_TELEMETRY: "1",
       HF_HUB_OFFLINE: "1",
@@ -47,7 +47,7 @@ const worker = spawn(
 );
 worker.on("error", () => {
   console.error(
-    "Cannot start local speech worker; install backend/speech-worker/requirements.txt first",
+    "Cannot start local speech worker; install backend/ai-service/speech-worker/requirements.txt first",
   );
   process.exitCode = 1;
 });

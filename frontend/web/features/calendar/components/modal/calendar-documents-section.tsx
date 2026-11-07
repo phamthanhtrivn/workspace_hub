@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useQueries } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
@@ -62,8 +63,8 @@ export function CalendarDocumentsSection({
           ? "File attached"
           : `${uploadedIds.length} files attached`,
       );
-    } catch {
-      toast.error("Failed to upload and attach files");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to upload and attach files"));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -87,8 +88,8 @@ export function CalendarDocumentsSection({
     try {
       const url = await documentsApi.getDownloadUrl(documentId);
       window.open(url, "_blank", "noopener,noreferrer");
-    } catch {
-      toast.error("Failed to open document");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to open document"));
     }
   };
 

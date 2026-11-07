@@ -2,6 +2,8 @@ import {
   ApiValidationErrors,
   AuthErrorResponse,
 } from "../types/auth.types";
+import { EMAIL_VERIFICATION } from "../types/email-verification.constants";
+import { AUTH_API_ROUTES } from "../types/auth.constants";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -35,3 +37,18 @@ export const getAuthErrorMessage = (
   error: unknown,
   fallbackMessage: string,
 ): string => getAuthErrorData(error)?.message ?? fallbackMessage;
+
+// The current backend identifies this business error by its exact message.
+export const isEmailVerificationRequired = (error: unknown): boolean =>
+  getAuthErrorData(error)?.message === EMAIL_VERIFICATION.requiredMessage;
+
+/** This login rejection is handled by the verification notice in the form. */
+export function isEmailVerificationLoginError(error: unknown): boolean {
+  if (!isEmailVerificationRequired(error) || !isRecord(error) || !isRecord(error.response)
+      || error.response.status !== 400 || !isRecord(error.config)
+      || typeof error.config.method !== "string" || error.config.method.toUpperCase() !== "POST"
+      || typeof error.config.url !== "string") return false;
+  try {
+    return new URL(error.config.url, "https://auth-request.invalid").pathname === AUTH_API_ROUTES.LOGIN;
+  } catch { return false; }
+}

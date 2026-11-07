@@ -1,6 +1,7 @@
 import { PRIVATE_ROBOTS } from "@/lib/seo";
-import Link from "next/link";
+import { AuthLink as Link } from "@/features/auth/components/auth-link";
 import { ArrowLeft, Sparkles } from "lucide-react";
+import { AuthInteractionBoundary } from "@/features/auth/components/auth-interaction-provider";
 
 export const metadata = { robots: PRIVATE_ROBOTS };
 
@@ -10,6 +11,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
+    <AuthInteractionBoundary>
     <main className="min-h-dvh bg-background text-foreground">
       <div className="grid min-h-dvh lg:grid-cols-[1.08fr_0.92fr]">
         <section className="hidden overflow-hidden bg-brand-navy text-brand-ice lg:grid lg:grid-cols-1 lg:grid-rows-1">
@@ -58,5 +60,6 @@ export default function AuthLayout({
         </section>
       </div>
     </main>
+    </AuthInteractionBoundary>
   );
 }

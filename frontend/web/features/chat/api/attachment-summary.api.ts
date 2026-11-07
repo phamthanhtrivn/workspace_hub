@@ -7,7 +7,7 @@ export async function requestAttachmentSummary(
   file: { id: string; name: string },
 ) {
   const chatId = message.channelId || message.conversationId;
-  if (!chatId) throw new Error("Không xác định được cuộc hội thoại.");
+  if (!chatId) throw new Error("This conversation is unavailable.");
   const scope = message.channelId ? "channels" : "direct-conversations";
   return api.post(`/api/${scope}/${chatId}/messages`, {
     type: "TEXT",

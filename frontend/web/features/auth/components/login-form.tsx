@@ -3,12 +3,13 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import Link from "next/link";
+import { AuthLink as Link } from "@/features/auth/components/auth-link";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
 import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
+import { cn } from "@/lib/utils";
 import { setCredentials } from "@/store/auth/auth-slice";
 import type { AppDispatch } from "@/store/store";
 import { useLoginMutation } from "../hooks/useAuthMutations";
@@ -24,26 +25,41 @@ import {
   getReturnToFromSearch,
 } from "../utils/auth-redirect";
 import { Button } from "@/components/ui/button";
+import { AUTH_ACTION, AUTH_ACTIVITY_COPY, AUTH_REDIRECT_COPY, AUTH_REDIRECT_BUTTON } from "../types/auth-activity.constants";
+import { useAuthInteraction } from "./auth-interaction-provider";
+import { AuthFormStatus } from "./auth-form-status";
+import { isEmailVerificationRequired } from "../utils/auth-error";
+import { EMAIL_VERIFICATION } from "../types/email-verification.constants";
+import { EmailVerificationNotice } from "./email-verification-notice";
 
 const LoginForm = React.memo(function LoginForm() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const loginMutation = useLoginMutation();
   const [showPassword, setShowPassword] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
   const form = useForm<LoginFormValues>({
+    shouldFocusError: false,
     resolver: zodResolver(loginFormSchema),
     defaultValues: { email: "", password: "" },
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
-  const { errors, isSubmitting } = form.formState;
-  const busy = isSubmitting || loginMutation.isPending;
+  const { errors } = form.formState;
+  const { busy, activity, redirect } = useAuthInteraction();
+  const loginBusy = busy && activity?.action === AUTH_ACTION.LOGIN;
+  const verificationRequired = verificationEmail !== null && activity?.action !== AUTH_ACTION.GOOGLE;
+  const serverError = activity?.action === AUTH_ACTION.GOOGLE ? undefined : errors.root?.server?.message;
   const onSubmit = useAuthFormSubmit(
     form,
     ["email", "password"],
     AUTH_VALIDATION_MESSAGES.loginFailed,
     async (values) => {
-      const response = await loginMutation.mutateAsync(values);
+      setVerificationEmail(null);
+      const response = await loginMutation.mutateAsync(values).catch((error: unknown) => {
+        if (isEmailVerificationRequired(error)) setVerificationEmail(values.email);
+        throw error;
+      });
       const data = response.data;
       dispatch(
         setCredentials({
@@ -55,17 +71,18 @@ const LoginForm = React.memo(function LoginForm() {
           avatarUrl: data.avatarUrl,
         }),
       );
+      redirect(AUTH_ACTION.LOGIN, AUTH_REDIRECT_COPY.workspace);
       toast.success(response.message);
       router.replace(
         getReturnToFromSearch(window.location.search) ??
           getAuthenticatedHomePath(data.role),
       );
     },
+    AUTH_ACTION.LOGIN,
   );
 
   return (
-    <form noValidate onSubmit={onSubmit} className="space-y-5">
-      <Link href="/verify-email" className="block text-sm text-link">Verify your email to activate your account</Link>
+    <form noValidate onSubmit={onSubmit} aria-busy={busy} className="space-y-5">
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-4">
           <label
@@ -85,7 +102,7 @@ const LoginForm = React.memo(function LoginForm() {
           type="email"
           icon={Mail}
           placeholder="you@workspacehub.vn"
-          {...form.register("email")}
+          {...form.register("email", { onChange: () => setVerificationEmail(null) })}
           disabled={busy}
           error={errors.email?.message}
         />
@@ -132,16 +149,23 @@ const LoginForm = React.memo(function LoginForm() {
         />
       </div>
 
-      <AuthFormError message={errors.root?.server?.message} />
+      <AuthFormError message={verificationRequired && serverError === EMAIL_VERIFICATION.requiredMessage ? undefined : serverError} />
+      {verificationRequired && !busy && verificationEmail && (
+        <EmailVerificationNotice email={verificationEmail} />
+      )}
+      <AuthFormStatus excludeAction={AUTH_ACTION.GOOGLE} />
       <Button
-        loading={busy}
-        variant="unstyled"
+        loading={loginBusy}
+        variant={verificationRequired ? "outline" : "unstyled"}
         type="submit"
         disabled={busy}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-[0_16px_32px_color-mix(in_srgb,var(--primary)_22%,transparent)] transition hover:-translate-y-0.5 hover:bg-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer disabled:opacity-70"
+        className={cn(
+          "inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring cursor-pointer disabled:opacity-70",
+          !verificationRequired && "bg-primary text-primary-foreground shadow-[0_16px_32px_color-mix(in_srgb,var(--primary)_22%,transparent)] hover:-translate-y-0.5 hover:bg-primary active:translate-y-0",
+        )}
       >
         <LogIn className="h-4 w-4" />
-        {busy ? "Logging in..." : "Login"}
+        {loginBusy ? activity.phase === "redirecting" ? AUTH_REDIRECT_BUTTON : AUTH_ACTIVITY_COPY.login.button : "Login"}
       </Button>
     </form>
   );

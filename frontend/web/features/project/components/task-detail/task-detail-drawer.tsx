@@ -26,6 +26,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ProjectTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
 import { TaskFocusHistory } from "@/features/pomodoro/components/task-focus-history";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
+import { useAppSelector } from "@/store/store";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function TaskDetailDrawer({
@@ -48,7 +50,9 @@ export default function TaskDetailDrawer({
   canEditTask = false,
   canContributeTask = false,
   canComment = false,
+  canEditDocuments = false,
 }: TaskDetailDrawerProps) {
+  const currentUserId = useAppSelector(state => state.auth.userId);
   const {
     activeTab,
     handleTabChange,
@@ -79,6 +83,8 @@ export default function TaskDetailDrawer({
     handleDeleteDependency,
     handleDueDateChange,
     handleStartDateChange,
+    isSavingSchedule,
+    scheduleErrors,
   } = useTaskDetailDrawerState({
     task,
     tasks,
@@ -98,6 +104,8 @@ export default function TaskDetailDrawer({
   const isTaskClosed = isTerminalTaskStatus(task.status);
   const isCollaborationReadOnly = isTaskClosed || !canContributeTask;
   const areCommentsReadOnly = isTaskClosed || !canComment;
+  const editReason = isTaskClosed ? PERMISSION_REASON.taskClosed
+    : task.createdBy === currentUserId ? PERMISSION_REASON.projectEditOwnTask : PERMISSION_REASON.projectEditOthersTask;
 
   return (
     <Sheet open onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -242,7 +250,7 @@ export default function TaskDetailDrawer({
             ) : (
               <>
                 <h2 className="min-w-0 flex-1">
-                <Button variant="unstyled" type="button" disabled={isReadOnly} aria-label="Edit task title"
+                <Button variant="unstyled" type="button" disabled={isReadOnly} disabledReason={isReadOnly ? editReason : undefined} aria-label="Edit task title"
                   onClick={
                     isReadOnly
                       ? undefined
@@ -336,7 +344,7 @@ export default function TaskDetailDrawer({
                 </div>
               </div>
             ) : (
-              <Button variant="unstyled" type="button" disabled={isReadOnly} aria-label="Edit task description"
+              <Button disabledReason={isReadOnly ? editReason : undefined} variant="unstyled" type="button" disabled={isReadOnly} aria-label="Edit task description"
                 onClick={
                   isReadOnly
                     ? undefined
@@ -370,6 +378,7 @@ export default function TaskDetailDrawer({
 
           {/* Checklist Section */}
           <TaskChecklistSection
+            readOnlyReason={isTaskClosed ? PERMISSION_REASON.taskClosed : PERMISSION_REASON.projectContribute}
             task={task}
             isReadOnly={isCollaborationReadOnly}
             onCreate={onCreateChecklist}
@@ -379,11 +388,14 @@ export default function TaskDetailDrawer({
 
           <TaskDocumentsSection
             task={task}
-            isReadOnly={isCollaborationReadOnly}
+            isReadOnly={isReadOnly}
+            readOnlyReason={editReason}
+            canEditDocuments={canEditDocuments}
           />
 
           {/* Details Accordion / Properties Panel */}
           <TaskPropertiesPanel
+            readOnlyReason={editReason}
             key={task.id}
             task={task}
             tasks={tasks}
@@ -397,6 +409,8 @@ export default function TaskDetailDrawer({
             onAllDayChange={handleAllDayChange}
             onStartDateChange={handleStartDateChange}
             onDueDateChange={handleDueDateChange}
+            isSavingSchedule={isSavingSchedule}
+            scheduleErrors={scheduleErrors}
           />
 
           {/* Comments Section */}

@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -27,8 +28,8 @@ export function useMeetingRoomInteractions({
     onSuccess: (response) => {
       onHandUpdated(response.data);
     },
-    onError: () => {
-      toast.error("Could not update hand state");
+    onError: (permissionFailure) => {
+      toast.error(getActionErrorMessage(permissionFailure, "Could not update hand state"));
     },
   });
   const roomReactionMutation = useMutation({
@@ -37,8 +38,8 @@ export function useMeetingRoomInteractions({
     onSuccess: (response) => {
       onRoomReactionSent(response.data);
     },
-    onError: () => {
-      toast.error("Could not send reaction");
+    onError: (permissionFailure) => {
+      toast.error(getActionErrorMessage(permissionFailure, "Could not send reaction"));
     },
   });
 

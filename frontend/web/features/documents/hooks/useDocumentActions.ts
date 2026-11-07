@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../api/documents.api";
@@ -40,7 +41,7 @@ export function useDocumentActions({
       refreshExplorer();
     },
     onError: (err: unknown) => {
-      toast.error(getApiErrorMessage(err, "Failed to create folder"));
+      toast.error(getActionErrorMessage(err, getApiErrorMessage(err, "Failed to create folder")));
     },
   });
 
@@ -53,7 +54,7 @@ export function useDocumentActions({
       refreshExplorer();
     },
     onError: (err: unknown) => {
-      toast.error(getApiErrorMessage(err, "Failed to rename resource"));
+      toast.error(getActionErrorMessage(err, getApiErrorMessage(err, "Failed to rename resource")));
     },
   });
 
@@ -66,7 +67,7 @@ export function useDocumentActions({
       refreshExplorer();
     },
     onError: (err: unknown) => {
-      toast.error(getApiErrorMessage(err, "Failed to move resource"));
+      toast.error(getActionErrorMessage(err, getApiErrorMessage(err, "Failed to move resource")));
     },
   });
 
@@ -79,7 +80,7 @@ export function useDocumentActions({
       refreshExplorer();
     },
     onError: (err: unknown) => {
-      toast.error(getApiErrorMessage(err, "Failed to update star status"));
+      toast.error(getActionErrorMessage(err, getApiErrorMessage(err, "Failed to update star status")));
     },
   });
 
@@ -91,7 +92,7 @@ export function useDocumentActions({
       refreshExplorer();
     },
     onError: (err: unknown) => {
-      toast.error(getApiErrorMessage(err, "Failed to move to trash"));
+      toast.error(getActionErrorMessage(err, getApiErrorMessage(err, "Failed to move to trash")));
     },
   });
 
@@ -103,7 +104,7 @@ export function useDocumentActions({
       refreshExplorer();
     },
     onError: (err: unknown) => {
-      toast.error(getApiErrorMessage(err, "Failed to restore resource"));
+      toast.error(getActionErrorMessage(err, getApiErrorMessage(err, "Failed to restore resource")));
     },
   });
 
@@ -115,7 +116,7 @@ export function useDocumentActions({
       refreshExplorer();
     },
     onError: (err: unknown) => {
-      toast.error(getApiErrorMessage(err, "Failed to delete resource"));
+      toast.error(getActionErrorMessage(err, getApiErrorMessage(err, "Failed to delete resource")));
     },
   });
 
@@ -134,7 +135,7 @@ export function useDocumentActions({
         document.body.removeChild(link);
         toast.info(`Downloading file: ${item.name}`);
       } catch (err: unknown) {
-        toast.error(err instanceof Error ? err.message : "Failed to download file");
+        toast.error(getActionErrorMessage(err, err instanceof Error ? err.message : "Failed to download file"));
       }
     }
   };

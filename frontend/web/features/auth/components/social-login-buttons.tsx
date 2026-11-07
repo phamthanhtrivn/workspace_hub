@@ -14,7 +14,9 @@ import {
   getAuthenticatedHomePath,
   getReturnToFromSearch,
 } from "../utils/auth-redirect";
-import { Spinner } from "@/components/ui/spinner";
+import { AuthFormStatus } from "./auth-form-status";
+import { useAuthInteraction } from "./auth-interaction-provider";
+import { AUTH_ACTION, AUTH_REDIRECT_COPY } from "../types/auth-activity.constants";
 import {
   AUTH_VALIDATION_MESSAGES,
   GOOGLE_SIGN_IN_MAX_WIDTH,
@@ -25,7 +27,7 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
   const router = useRouter();
   const socialLoginMutation = useSocialLoginMutation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const requestLock = useRef(false);
+  const { busy, isLocked, begin, complete, fail, redirect } = useAuthInteraction();
   const [width, setWidth] = useState(0);
 
   useEffect(() => {
@@ -43,12 +45,13 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
   }, []);
 
   const handleSuccess = (tokenResponse: CredentialResponse) => {
-    if (requestLock.current || socialLoginMutation.isPending) return;
+    if (isLocked()) return;
     if (!tokenResponse.credential) {
+      fail(AUTH_ACTION.GOOGLE, AUTH_VALIDATION_MESSAGES.googleFailed);
       toast.error(AUTH_VALIDATION_MESSAGES.googleFailed);
       return;
     }
-    requestLock.current = true;
+    if (!begin(AUTH_ACTION.GOOGLE)) return;
     socialLoginMutation.mutate(
       {
         provider: AuthProvider.GOOGLE,
@@ -69,6 +72,7 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
             }),
           );
 
+          redirect(AUTH_ACTION.GOOGLE, AUTH_REDIRECT_COPY.workspace);
           toast.success(response.message || "Google Sign In successful");
           router.replace(
             getReturnToFromSearch(window.location.search) ??
@@ -76,12 +80,12 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
           );
         },
         onError: (error) => {
-          toast.error(
-            getAuthErrorMessage(error, AUTH_VALIDATION_MESSAGES.googleFailed),
-          );
+          const message = getAuthErrorMessage(error, AUTH_VALIDATION_MESSAGES.googleFailed);
+          fail(AUTH_ACTION.GOOGLE, message);
+          toast.error(message);
         },
         onSettled: () => {
-          requestLock.current = false;
+          complete(AUTH_ACTION.GOOGLE);
         },
       },
     );
@@ -91,15 +95,20 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
     <div className="space-y-2">
       <div
         ref={containerRef}
-        aria-busy={socialLoginMutation.isPending}
+        aria-busy={busy}
+        aria-disabled={busy || undefined}
         className="mx-auto flex min-h-12 w-full items-center justify-center"
         style={{ maxWidth: GOOGLE_SIGN_IN_MAX_WIDTH }}
       >
-        <div inert={socialLoginMutation.isPending || undefined}>
+        <div inert={busy || undefined} className={busy ? "opacity-50" : undefined}>
           {width > 0 && (
             <GoogleLogin
               onSuccess={handleSuccess}
-              onError={() => toast.error(AUTH_VALIDATION_MESSAGES.googleFailed)}
+              onError={() => {
+                if (isLocked()) return;
+                fail(AUTH_ACTION.GOOGLE, AUTH_VALIDATION_MESSAGES.googleFailed);
+                toast.error(AUTH_VALIDATION_MESSAGES.googleFailed);
+              }}
               type="standard"
               theme="outline"
               text="continue_with"
@@ -111,14 +120,7 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
           )}
         </div>
       </div>
-      {socialLoginMutation.isPending && (
-        <p
-          role="status"
-          className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
-        >
-          <Spinner className="size-4" /> Signing in with Google...
-        </p>
-      )}
+      <AuthFormStatus action={AUTH_ACTION.GOOGLE} />
     </div>
   );
 });

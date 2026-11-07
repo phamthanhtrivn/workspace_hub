@@ -4,6 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 import { Spinner } from "./spinner";
+import { PermissionHint } from "./permission-hint";
 
 const buttonVariants = cva(
   "touch-target inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-control text-sm font-semibold outline-none transition-colors duration-150 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
@@ -49,35 +50,43 @@ function Button({
   asChild = false,
   loading = false,
   disabled,
+  disabledReason,
   children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
     loading?: boolean;
+    disabledReason?: string;
   }) {
   const Comp = asChild ? Slot : "button";
   const filled =
     (!variant || ["default", "destructive", "success", "warning"].includes(variant)) ||
     /(?:^|\s)bg-(?:primary|destructive|success|warning|info)(?:\s|$)/.test(className ?? "");
 
-  return (
+  const button = (
     <Comp
       data-slot="button"
       className={cn(
         variant === "unstyled"
-          ? "touch-target cursor-pointer disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          ? "touch-target cursor-pointer disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           : buttonVariants({ variant, size }),
         className,
         loading && "[&>svg:not([data-slot=spinner])]:hidden",
       )}
       {...props}
-      disabled={disabled || loading}
+      disabled={disabled || loading || Boolean(disabledReason)}
+      aria-disabled={disabled || loading || Boolean(disabledReason) || props["aria-disabled"] || undefined}
+      tabIndex={asChild && disabledReason ? -1 : props.tabIndex}
       aria-busy={loading || props["aria-busy"] || undefined}
     >
       {asChild ? children : <>{loading && <Spinner tone={filled ? "inherit" : "primary"} />}{children}</>}
     </Comp>
   );
+  return disabledReason ? <PermissionHint reason={disabledReason}
+    className={cn(/(?:^|\s)(?:w-full|flex-1)(?:\s|$)/.test(className ?? "") && "w-full")}>
+    {button}
+  </PermissionHint> : button;
 }
 
 export { Button, buttonVariants };

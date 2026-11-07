@@ -1,4 +1,5 @@
 "use client";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { getApiErrorMessage } from "@/lib/api-error";
 import type { ChannelResponse } from "@/features/chat/types/chat.types";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
@@ -99,7 +100,7 @@ function BrowseChannelsModalForm({
     },
     onError: (err: unknown) => {
       toast.error(
-        getApiErrorMessage(err, "Failed to join channel"),
+        getActionErrorMessage(err, getApiErrorMessage(err, "Failed to join channel")),
       );
     },
   });
@@ -116,7 +117,7 @@ function BrowseChannelsModalForm({
     },
     onError: (err: unknown) => {
       toast.error(
-        getApiErrorMessage(err, "Failed to delete channel"),
+        getActionErrorMessage(err, getApiErrorMessage(err, "Failed to delete channel")),
       );
     },
   });

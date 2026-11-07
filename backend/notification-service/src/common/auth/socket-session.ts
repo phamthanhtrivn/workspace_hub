@@ -1,3 +1,10 @@
+import {
+  disconnectSessionSocket,
+  logSessionError,
+  socketHandshakeError,
+  SessionAuthError,
+  SESSION_AUTH_CODE,
+} from "./session-errors";
 import { SOCKET_SESSION } from "./socket-session.constants";
 import type { Server, Socket } from "socket.io";
 import { verifyAccessClaims } from "./access-token";
@@ -17,15 +24,24 @@ export function installSocketSessions(server: Server): void {
         )?.[1];
       const identity = verifyAccessClaims(token);
       await assertActiveSession(identity);
-      (client.data as { sessionIdentity?: SessionIdentity }).sessionIdentity = identity;
+      (client.data as { sessionIdentity?: SessionIdentity }).sessionIdentity =
+        identity;
       (client.data as { userId?: string }).userId = identity.sub;
       next();
-    })().catch(() => next(new Error("A valid active session is required")));
+    })().catch((error: unknown) => {
+      logSessionError(error, "handshake");
+      next(socketHandshakeError(error));
+    });
   });
   server.on("connection", (client: Socket) => {
-    const identity = (client.data as { sessionIdentity: SessionIdentity }).sessionIdentity;
+    const identity = (client.data as { sessionIdentity: SessionIdentity })
+      .sessionIdentity;
     if (!identity) {
-      client.disconnect(true);
+      disconnectSessionSocket(
+        client,
+        new SessionAuthError(SESSION_AUTH_CODE.TOKEN_INVALID),
+        "connection",
+      );
       return;
     }
     void client.join([
@@ -33,7 +49,12 @@ export function installSocketSessions(server: Server): void {
       SOCKET_SESSION.userRoom(identity.sub),
     ]);
     const expiration = setTimeout(
-      () => client.disconnect(true),
+      () =>
+        disconnectSessionSocket(
+          client,
+          new SessionAuthError(SESSION_AUTH_CODE.TOKEN_EXPIRED),
+          "expiration",
+        ),
       Math.min(identity.exp * 1000 - Date.now(), 2147483647),
     );
     let checking = false;
@@ -42,8 +63,8 @@ export function installSocketSessions(server: Server): void {
       checking = true;
       try {
         await assertActiveSession(identity);
-      } catch {
-        client.disconnect(true);
+      } catch (error) {
+        disconnectSessionSocket(client, error, "poll");
       } finally {
         checking = false;
       }
@@ -56,9 +77,9 @@ export function installSocketSessions(server: Server): void {
     client.use((_packet, next) => {
       void assertActiveSession(identity)
         .then(() => next())
-        .catch(() => {
-          client.disconnect(true);
-          next(new Error("Session expired"));
+        .catch((error: unknown) => {
+          disconnectSessionSocket(client, error, "packet");
+          next(socketHandshakeError(error));
         });
     });
     client.once("disconnect", () => {
@@ -79,15 +100,20 @@ export async function emitWithActiveSessions(
   const sockets = await server.in(rooms).fetchSockets();
   await Promise.all(
     sockets.map(async (socket) => {
-      const identity = (socket.data as { sessionIdentity?: SessionIdentity }).sessionIdentity;
+      const identity = (socket.data as { sessionIdentity?: SessionIdentity })
+        .sessionIdentity;
       if (!identity) {
-        socket.disconnect(true);
+        disconnectSessionSocket(
+          socket,
+          new SessionAuthError(SESSION_AUTH_CODE.TOKEN_INVALID),
+          "delivery",
+        );
         return;
       }
       try {
         await assertActiveSession(identity);
-      } catch {
-        socket.disconnect(true);
+      } catch (error) {
+        disconnectSessionSocket(socket, error, "delivery");
         return;
       }
       try {

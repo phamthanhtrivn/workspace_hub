@@ -41,7 +41,11 @@ export function CustomDateTimePicker({ id, value, onChange, ariaLabel, min, max,
     <PopoverContent align="start" className="w-72 max-w-[calc(100vw-1rem)] space-y-3 p-3" aria-label={ariaLabel}>
       <CustomDatePicker value={draft.split("T")[0]} ariaLabel={`${ariaLabel}: date`} min={min?.slice(0, 10)} max={max?.slice(0, 10)} allowClear={false}
         onChange={(date) => setDraft(`${date}T${draft.split("T")[1] ?? ""}`)} />
-      <CustomTimePicker value={draft.split("T")[1] ?? ""} ariaLabel={`${ariaLabel}: time`} onChange={(time) => setDraft(`${draft.split("T")[0]}T${time}`)} />
+      <CustomTimePicker value={draft.split("T")[1] ?? ""} ariaLabel={`${ariaLabel}: time`}
+        disabled={!draft.split("T")[0]}
+        min={min?.slice(0, 10) === draft.slice(0, 10) ? min?.slice(11, 16) : undefined}
+        max={max?.slice(0, 10) === draft.slice(0, 10) ? max?.slice(11, 16) : undefined}
+        onChange={(time) => setDraft(`${draft.split("T")[0]}T${time}`)} />
       {draft && !valid && <p role="status" className="text-xs text-muted-foreground">Choose a date and time within the allowed range.</p>}
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-3">
         {allowClear && <Button type="button" variant="ghost" size="sm" disabled={!value} onClick={() => { onChange(""); setOpen(false); }}>Clear</Button>}

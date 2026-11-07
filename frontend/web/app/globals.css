@@ -289,6 +289,11 @@
 
 /* Field focus follows the border owner, including mouse and keyboard focus. */
 @layer utilities {
+  /* Low specificity preserves positioned fields and feature-owned layouts. */
+  :where(.field-focus, .field-focus-container, .field-focus-group) {
+    position: relative;
+  }
+
   .field-focus,
   .field-focus-content {
     outline: none;
@@ -299,8 +304,18 @@
   .field-focus-group:focus-within > .field-focus,
   .field-focus-open[data-state="open"] {
     border-color: var(--ring);
-    @apply ring-2 ring-ring;
+    /* Keep the full indicator inside clipping/scroll containers. */
+    @apply ring-2 ring-ring ring-inset;
+    z-index: 1;
     outline: none;
+  }
+
+  /* Elevate a composed field as a unit so its icons stay above its input. */
+  .field-focus-group:focus-within {
+    z-index: 1;
+  }
+  .field-focus-group:focus-within > .field-focus {
+    z-index: auto;
   }
 
   /* Error is independent of focus; the ring still identifies the active field. */
@@ -324,7 +339,7 @@
     .field-focus-group:focus-within > .field-focus,
     .field-focus-open[data-state="open"] {
       outline: 2px solid Highlight;
-      outline-offset: 2px;
+      outline-offset: -2px;
     }
   }
 }

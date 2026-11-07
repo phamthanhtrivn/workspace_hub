@@ -112,7 +112,7 @@ export interface TaskComment {
   taskId: string;
   authorId: string;
   authorName: string;
-  authorAvatar?: string;
+  authorAvatar?: string | null;
   content: string;
   edited: boolean;
   createdAt: string;

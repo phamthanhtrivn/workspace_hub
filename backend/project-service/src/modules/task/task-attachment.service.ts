@@ -1,6 +1,7 @@
 import {
   BadGatewayException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -40,6 +41,35 @@ export class TaskAttachmentService {
     private readonly taskDocuments: TaskDocumentClient,
     private readonly lookup: TaskLookupService,
   ) {}
+
+  private async requireCanManageAttachments(
+    userId: string,
+    task: { projectId: string; createdBy: string },
+  ): Promise<void> {
+    try {
+      await this.access.requireCanEditTask(
+        userId,
+        task.projectId,
+        task.createdBy,
+      );
+    } catch (error) {
+      if (
+        error instanceof ForbiddenException &&
+        error.message === "You cannot edit this task"
+      ) {
+        const ownTask = task.createdBy === userId;
+        const permission = ownTask
+          ? "Edit own tasks"
+          : "Edit other members' tasks";
+        throw new ForbiddenException({
+          code: "TASK_ATTACHMENT_EDIT_PERMISSION_REQUIRED",
+          requiredPermission: ownTask ? "canEditOwnTask" : "canEditOthersTask",
+          message: `You can't add or remove attachments on this task. Ask a project admin to enable "${permission}" for your account.`,
+        });
+      }
+      throw error;
+    }
+  }
   async listDocuments(userId: string, taskId: string) {
     const task = await this.lookup.findTask(taskId);
     await this.access.requireReadAccess(userId, task.projectId);
@@ -52,12 +82,7 @@ export class TaskAttachmentService {
     dto: AttachTaskDocumentsDto,
   ) {
     const task = await this.lookup.findTask(taskId);
-    await this.access.requireCanContributeTask(
-      userId,
-      task.projectId,
-      task.createdBy,
-      task.assignees.map((assignee) => assignee.userId),
-    );
+    await this.requireCanManageAttachments(userId, task);
     assertTaskEditable(task.status);
 
     const documentItemIds = [...new Set(dto.documentItemIds)];
@@ -161,12 +186,7 @@ export class TaskAttachmentService {
       throw new NotFoundException("Task document attachment not found");
     }
 
-    await this.access.requireCanContributeTask(
-      userId,
-      task.projectId,
-      task.createdBy,
-      task.assignees.map((assignee) => assignee.userId),
-    );
+    await this.requireCanManageAttachments(userId, task);
     assertTaskEditable(task.status);
 
     await this.prisma.$transaction(async (tx) => {

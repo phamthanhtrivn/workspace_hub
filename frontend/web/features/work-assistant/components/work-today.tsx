@@ -4,7 +4,7 @@ import {
   CollapsibleTrigger,
   CollapsibleContent,
 } from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 import type { TaskReference, WorkOverview, WorkTask } from "../types";
 export function taskHref(source: TaskReference) {
   if (source.kind === "project" && source.projectId)
@@ -15,49 +15,46 @@ export function taskHref(source: TaskReference) {
   );
 }
 export function taskReason(task: WorkTask) {
-  if (task.overdue) return "Đã quá hạn";
-  if (task.dueToday) return "Đến hạn hôm nay";
+  if (task.overdue) return "Overdue";
+  if (task.dueToday) return "Due today";
   if (task.blockedBy.length)
-    return "Đang bị chặn bởi " + task.blockedBy.length + " task";
-  if (task.priority === "URGENT") return "Mức ưu tiên khẩn cấp";
-  if (task.priority === "HIGH") return "Mức ưu tiên cao";
-  if (task.unblocks) return "Có " + task.unblocks + " công việc phụ thuộc";
-  return task.dueAt ? "Cần chuẩn bị trước deadline" : "Chưa có deadline";
+    return "Blocked by " + task.blockedBy.length + " tasks";
+  if (task.priority === "URGENT") return "Urgent priority";
+  if (task.priority === "HIGH") return "High priority";
+  if (task.unblocks) return "Has " + task.unblocks + " dependent tasks";
+  return task.dueAt ? "Prepare before the deadline" : "No due date";
 }
 const stateText = {
-  ready: "Đã cập nhật",
-  empty: "Chưa có dữ liệu",
-  partial: "Chi tiết chưa đầy đủ",
-  unavailable: "Chưa truy cập được",
+  ready: "Updated",
+  empty: "No data",
+  partial: "Limited details",
+  unavailable: "Unavailable",
 };
 export default function WorkToday({
   data,
-  onAsk,
-  disabled = false,
 }: {
   data: WorkOverview;
-  onAsk: (question: string) => void;
-  disabled?: boolean;
 }) {
   return (
-    <Collapsible className="border-b bg-muted/25" defaultOpen>
-      <CollapsibleTrigger className="w-full cursor-pointer px-4 py-3 text-left text-sm font-semibold">
-        Hôm nay · {data.date}
+    <Collapsible className="border-b bg-muted/25">
+      <CollapsibleTrigger className="group flex w-full cursor-pointer items-center justify-between gap-2 px-4 py-3 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+        <span>Today <span className="ml-2 text-xs font-normal text-muted-foreground">{data.date}</span></span>
+        <ChevronDown className="size-4 text-muted-foreground group-data-[state=open]:rotate-180" aria-hidden="true" />
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="space-y-3 px-4 pb-4">
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
             <span>
-              Project: {data.metrics.project?.open ?? "—"} việc còn mở
+              Project: {data.metrics.project?.open ?? "—"} open tasks
             </span>
             {!data.scope.projectId && (
-              <span>Cá nhân: {data.metrics.personal?.open ?? "—"} việc</span>
+              <span>Calendar: {data.metrics.personal?.open ?? "—"} tasks</span>
             )}
             <span>
-              Tập trung của bạn (7 ngày):{" "}
+              Focus (7 days):{" "}
               {data.metrics.focusSeconds === null
                 ? "—"
-                : Math.round(data.metrics.focusSeconds / 60) + " phút"}
+                : Math.round(data.metrics.focusSeconds / 60) + " min"}
             </span>
           </div>
           <div className="space-y-2">
@@ -65,14 +62,14 @@ export default function WorkToday({
               <Link
                 key={task.kind + task.id}
                 href={taskHref(task)}
-                className="block rounded-lg border bg-background p-2.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="block rounded-lg p-2.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <p className="truncate text-sm font-medium">{task.title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {taskReason(task)}
                   {task.dueAt
                     ? " · " +
-                      new Intl.DateTimeFormat("vi-VN", {
+                      new Intl.DateTimeFormat("en-US", {
                         timeZone: data.timeZone,
                         day: "2-digit",
                         month: "2-digit",
@@ -97,46 +94,22 @@ export default function WorkToday({
             <p className="text-xs text-muted-foreground">
               {data.sources.project.state === "unavailable" ||
               data.sources.calendar.state === "unavailable"
-                ? "Chưa đủ dữ liệu để tổng hợp công việc."
-                : "Không có task chưa hoàn thành trong dữ liệu hiện có."}
+                ? "Some task data is unavailable."
+                : "No open tasks."}
             </p>
           )}
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Project: {stateText[data.sources.project.state]} · Calendar:{" "}
             {stateText[data.sources.calendar.state]}
           </p>
           {data.detailPartial && (
             <p className="text-xs text-muted-foreground">
-              Chỉ hiển thị một phần chi tiết task. Các tổng số được tính trên
-              toàn bộ dữ liệu được phép xem.
+              Some task details are unavailable. Totals include all tasks you can access.
             </p>
           )}
-          <p className="text-[11px] text-muted-foreground">
-            Gợi ý thời gian dựa trên lịch Calendar của bạn.
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              "Hôm nay nên làm gì trước?",
-              "Task nào có nguy cơ trễ hạn?",
-              "Phân tích hiệu suất 7 ngày qua",
-              "Gợi ý thời gian làm việc theo Calendar",
-            ].map((question) => (
-              <Button
-                key={question}
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-auto min-h-8 whitespace-normal px-3 py-2 text-left leading-relaxed"
-                disabled={disabled}
-                onClick={() => onAsk(question)}
-              >
-                {question}
-              </Button>
-            ))}
-          </div>
-          <p className="text-[10px] text-muted-foreground">
-            Cập nhật{" "}
-            {new Intl.DateTimeFormat("vi-VN", {
+          <p className="text-xs text-muted-foreground">
+            Updated{" "}
+            {new Intl.DateTimeFormat("en-US", {
               timeZone: data.timeZone,
               hour: "2-digit",
               minute: "2-digit",

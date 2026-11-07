@@ -1,5 +1,6 @@
 "use client";
 
+import { PERMISSION_REASON,  getActionErrorMessage } from "@/lib/permission-feedback";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Download, Play, Radio, Share2, Trash2 } from "lucide-react";
@@ -51,7 +52,7 @@ export function MeetingRecordingsView() {
       const result = await recordingApi.url(id, true);
       window.location.assign(result.url);
     },
-    onError: (error) => toast.error(recordingErrorMessage(error)),
+    onError: (error) => toast.error(getActionErrorMessage(error, recordingErrorMessage(error))),
   });
   const edit = useMutation({
     mutationFn: () => recordingApi.rename(rename!.id, title),
@@ -59,7 +60,7 @@ export function MeetingRecordingsView() {
       setRename(null);
       refresh();
     },
-    onError: (error) => toast.error(recordingErrorMessage(error)),
+    onError: (error) => toast.error(getActionErrorMessage(error, recordingErrorMessage(error))),
   });
 
   const deleteRecording = async (recording: MeetingRecording) => {
@@ -175,8 +176,8 @@ export function MeetingRecordingsView() {
                   <Play className="size-4" />
                   Watch
                 </MeetingButton>
-                {recording.capabilities.canDownload && (
-                  <MeetingButton loading={download.isPending && download.variables === recording.id}
+                {(
+                  <MeetingButton disabledReason={!(recording.capabilities.canDownload) ? PERMISSION_REASON.recordingDownload : undefined} loading={download.isPending && download.variables === recording.id}
                     tone="outline"
                     disabled={
                       recording.status !== "COMPLETED" || download.isPending
@@ -187,16 +188,16 @@ export function MeetingRecordingsView() {
                     Download
                   </MeetingButton>
                 )}
-                {recording.capabilities.canManage && (
+                {(
                   <>
-                    <MeetingButton
+                    <MeetingButton disabledReason={!(recording.capabilities.canManage) ? PERMISSION_REASON.recordingManage : undefined}
                       tone="outline"
                       onClick={() => setShare(recording)}
                     >
                       <Share2 className="size-4" />
                       Share
                     </MeetingButton>
-                    <MeetingButton
+                    <MeetingButton disabledReason={!(recording.capabilities.canManage) ? PERMISSION_REASON.recordingManage : undefined}
                       tone="ghost"
                       onClick={() => {
                         setRename(recording);
@@ -205,7 +206,7 @@ export function MeetingRecordingsView() {
                     >
                       Rename
                     </MeetingButton>
-                    <MeetingButton loading={remove.isPending && remove.variables === recording.id}
+                    <MeetingButton disabledReason={!(recording.capabilities.canManage) ? PERMISSION_REASON.recordingManage : undefined} loading={remove.isPending && remove.variables === recording.id}
                       tone="danger"
                       disabled={
                         remove.isPending ||

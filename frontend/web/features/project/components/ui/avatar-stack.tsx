@@ -1,62 +1,39 @@
 "use client";
 
-import { Avatar as SharedAvatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { cn } from "@/lib/utils";
+import { useProjectAvatar } from "../../hooks/use-project-avatar";
 
 interface AvatarItem {
   userId: string;
   displayName: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
 }
 
-const PALETTE = [
-  "bg-primary text-primary-foreground",
-  "bg-destructive text-destructive-foreground",
-  "bg-warning text-warning-foreground",
-  "bg-success text-success-foreground",
-  "bg-primary text-primary-foreground",
-  "bg-primary text-primary-foreground",
-  "bg-primary text-primary-foreground",
-  "bg-success text-success-foreground",
-];
-
-function colorForUser(userId: string): string {
-  let hash = 0;
-  for (let i = 0; i < userId.length; i++) {
-    hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return PALETTE[Math.abs(hash) % PALETTE.length];
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-}
+const AVATAR_SIZES = { xs: "h-6 w-6 text-xs", sm: "h-8 w-8 text-xs", md: "h-10 w-10 text-xs" } as const;
+const AVATAR_ICON_SIZES = { xs: "size-3.5", sm: "size-4", md: "size-5" } as const;
+type AvatarSize = keyof typeof AVATAR_SIZES;
 
 export function Avatar({
   user,
   size = "sm",
+  className,
 }: {
   user: AvatarItem;
-  size?: "xs" | "sm" | "md";
+  size?: AvatarSize;
+  className?: string;
 }) {
-  const sizeClasses = {
-    xs: "h-6 w-6 text-xs",
-    sm: "h-8 w-8 text-xs",
-    md: "h-10 w-10 text-xs",
-  };
+  const source = useProjectAvatar(user.userId, user.avatarUrl);
+  const label = user.displayName.trim() || "User";
 
   return (
-    <SharedAvatar
-      title={user.displayName}
-      className={`${sizeClasses[size]} ${colorForUser(user.userId)} inline-grid shrink-0 place-items-center rounded-full font-semibold ring-2 ring-border`}
-    >
-      {user.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.displayName} render={<Image src={user.avatarUrl} alt={user.displayName} width={40} height={40} unoptimized />} />}
-      <AvatarFallback className={colorForUser(user.userId)}>{getInitials(user.displayName)}</AvatarFallback>
-    </SharedAvatar>
+    <UserAvatar
+      src={source}
+      alt={label}
+      title={label}
+      iconClassName={AVATAR_ICON_SIZES[size]}
+      className={cn(AVATAR_SIZES[size], "inline-grid shrink-0 place-items-center rounded-full bg-muted text-muted-foreground ring-2 ring-border", className)}
+    />
   );
 }
 
@@ -72,12 +49,6 @@ export function AvatarStack({
   const visible = users.slice(0, max);
   const remaining = users.length - max;
 
-  const sizeClasses = {
-    xs: "h-6 w-6 text-xs",
-    sm: "h-8 w-8 text-xs",
-    md: "h-10 w-10 text-xs",
-  };
-
   return (
     <div className="flex items-center -space-x-2">
       {visible.map((user) => (
@@ -85,7 +56,7 @@ export function AvatarStack({
       ))}
       {remaining > 0 && (
         <span
-          className={`${sizeClasses[size]} inline-grid shrink-0 place-items-center rounded-full bg-accent font-semibold text-muted-foreground ring-2 ring-border`}
+          className={`${AVATAR_SIZES[size]} inline-grid shrink-0 place-items-center rounded-full bg-accent font-semibold text-muted-foreground ring-2 ring-border`}
         >
           +{remaining}
         </span>
@@ -93,4 +64,3 @@ export function AvatarStack({
     </div>
   );
 }
-import Image from "next/image";

@@ -3,6 +3,9 @@ package vn.workspacehub.user.common;
 public final class AuthPolicy {
     public static final String EMAIL_VERIFICATION_PURPOSE = "VERIFY_EMAIL";
     public static final String REFRESH_COOKIE = "refreshToken";
+    public static final String REFRESH_PATH = "/api/auth/refresh";
+    public static final String LOGOUT_PATH = "/api/auth/logout";
+    public static final String UNTRUSTED_ORIGIN = "Request origin is not allowed";
     public static final String INVALID_CREDENTIALS = "Email or password is incorrect";
     public static final String GOOGLE_FAILED = "Google authentication failed";
     public static final String INVALID_RESET = "Reset token is invalid or has expired";

@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
+import { UserAvatar } from "@/components/common/user-avatar";
+
 import type { MeetingParticipantProfile } from "../../../types/meeting.types";
-import { AvatarFallback } from "../../common/avatar-fallback";
 
 interface MeetingMessageReadReceiptsProps {
   readBy: string[];
@@ -35,22 +35,13 @@ export function MeetingMessageReadReceipts({
               className="relative h-4 w-4 cursor-pointer overflow-hidden rounded-full border-2 border-border bg-primary transition-transform hover:z-10"
               title={`Read by ${readerName}`}
             >
-              {readerProfile?.avatarUrl ? (
-                <Image
-                  src={readerProfile.avatarUrl}
-                  alt={readerName}
-                  width={16}
-                  height={16}
-                  unoptimized
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <AvatarFallback
-                  label={readerName}
-                  className="h-full w-full bg-primary ring-0 shadow-none"
-                  iconClassName="h-2.5 w-2.5 text-primary-foreground"
-                />
-              )}
+              <UserAvatar
+                src={readerProfile?.avatarUrl}
+                alt={readerName}
+                width={16}
+                height={16}
+                className="h-full w-full object-cover"
+              />
             </div>
           );
         })}

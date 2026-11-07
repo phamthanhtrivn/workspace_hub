@@ -15,12 +15,12 @@ export default function AiTypingIndicator({ active }: { active: boolean }) {
       <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary" aria-hidden="true">
         <Bot className="size-4" />
       </span>
-      <span>AI đang soạn tin</span>
+      <span>AI is typing</span>
       <span className="flex items-center gap-1" aria-hidden="true">
         {[0, 150, 300].map((delay) => (
           <span
             key={delay}
-            className="size-1 rounded-full bg-primary motion-safe:animate-bounce"
+            className="size-1 rounded-full bg-current motion-safe:animate-pulse"
             style={{ animationDelay: `${delay}ms`, animationDuration: "1s" }}
           />
         ))}

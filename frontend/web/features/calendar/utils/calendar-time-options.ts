@@ -105,5 +105,5 @@ export function createEndTimeOptions(
       value: toDateTimeLocal(end),
       label: `${formatTime(end, locale)} (${formatDuration(minutes, locale)})`,
     };
-  });
+  }).filter(option => hasMinimumEventDuration(startAt, option.value));
 }

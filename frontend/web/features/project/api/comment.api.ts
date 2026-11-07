@@ -50,7 +50,9 @@ function normalizeComment(
     taskId: comment.taskId,
     authorId: comment.authorId,
     authorName: profile?.fullName?.trim() || comment.authorId,
-    authorAvatar: profile?.avatarUrl || undefined,
+    // null means the current User profile has no avatar; undefined means
+    // profile enrichment was unavailable and local member data may be used.
+    authorAvatar: profile ? profile.avatarUrl?.trim() || null : undefined,
     content: comment.content,
     edited: comment.edited,
     createdAt: comment.createdAt || now,

@@ -1,14 +1,12 @@
 import type { CalendarPomodoroTimerState } from "@/features/calendar/types/calendar.types";
 import type { PomodoroConfig } from "../types/pomodoro";
 import { isAmbientTrackId, isLegacyCustomTrackId, normalizeAmbientPreferences, type PomodoroAmbientPreferences } from "../types/ambient";
-import type { PomodoroViewMode } from "../types/pomodoro-preferences";
 
 const STORAGE_SCHEMA_VERSION = 1;
 const CONFIG_KEY = "workspace-hub:pomodoro:config";
 const TIMER_STATE_KEY = "workspace-hub:pomodoro:timer-state";
 const COMPLETION_NOTICE_KEY = "workspace-hub:pomodoro:completion-notice";
 const PENDING_CONFIG_KEY = "workspace-hub:pomodoro:pending-config";
-const VIEW_MODE_KEY = "workspace-hub:pomodoro:view-mode";
 const AMBIENT_PREFERENCES_KEY = "workspace-hub:pomodoro:ambient-preferences";
 const PENDING_AMBIENT_PREFERENCES_KEY = "workspace-hub:pomodoro:pending-ambient-preferences";
 
@@ -157,15 +155,6 @@ export function wasPomodoroCompletionNotified(userId: string, key: string): bool
 
 export function markPomodoroCompletionNotified(userId: string, key: string): void {
   if (userId) writeEnvelope(`${COMPLETION_NOTICE_KEY}:${userId}`, key);
-}
-
-export function loadLocalPomodoroViewMode(userId: string): PomodoroViewMode | null {
-  return userId ? readEnvelope(`${VIEW_MODE_KEY}:${userId}`,
-    (value): value is PomodoroViewMode => value === "full" || value === "focus") : null;
-}
-
-export function saveLocalPomodoroViewMode(userId: string, viewMode: PomodoroViewMode): void {
-  if (userId) writeEnvelope(`${VIEW_MODE_KEY}:${userId}`, viewMode);
 }
 
 function isAmbientPreferences(value: unknown): value is PomodoroAmbientPreferences {

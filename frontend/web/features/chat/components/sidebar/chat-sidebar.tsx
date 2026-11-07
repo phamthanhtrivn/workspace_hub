@@ -1,4 +1,5 @@
 "use client";
+import { PERMISSION_REASON,  getActionErrorMessage } from "@/lib/permission-feedback";
 import { isPrivateChannel, isPrivateChannelOwner } from "@/features/chat/utils/channel-membership-permissions";
 
 
@@ -232,7 +233,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       }
     },
     onError: (error) =>
-      toast.error(getErrorMessage(error, "Failed to leave channel")),
+      toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to leave channel"))),
   });
 
   const deleteChannelMutation = useMutation({
@@ -248,7 +249,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
     },
     onError: (error) =>
-      toast.error(getErrorMessage(error, "Failed to delete channel")),
+      toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to delete channel"))),
   });
 
   const handleLeaveChannel = async (channel: ChannelResponse) => {
@@ -892,8 +893,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                       <Globe size={14} className="text-muted-foreground" />
                       Browse channels
                     </DropdownMenuItem>
-                    {canCreateChannelInActiveSpace && (
-                      <DropdownMenuItem closeOnClick={false}
+                    {(
+                      <DropdownMenuItem disabledReason={!(canCreateChannelInActiveSpace) ? PERMISSION_REASON.spaceAdmin : undefined} closeOnClick={false}
                         onClick={() => {
                           setIsCreateChannelModalOpen(true);
                           setIsChannelsDropdownOpen(false);

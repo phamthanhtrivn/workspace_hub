@@ -1,3 +1,4 @@
+import { kafkaConsumerState } from '../infrastructure/kafka/consumer-lifecycle';
 import { Controller, Get, ServiceUnavailableException, Logger } from '@nestjs/common';
 import { Kafka } from 'kafkajs';
 import { PrismaService } from './prisma/prisma.service';
@@ -31,6 +32,7 @@ export class HealthController {
   @Get('ready')
   async ready() {
     const checks = await Promise.all([this.checkDatabase(), this.checkKafka()]);
+    checks.push({ name: 'kafka-consumer', status: kafkaConsumerState.ready() ? 'ok' : 'error' });
     const isReady = checks.every((check) => check.status === 'ok');
 
     if (!isReady) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage, logActionError, PERMISSION_REASON } from "@/lib/permission-feedback";
 import type { SendSocketMessageMedia } from "../../types/chat-socket.types";
 import { isPrivateChannel } from "@/features/chat/utils/channel-membership-permissions";
 import { IconButton } from "@/components/ui/icon-button";
@@ -14,7 +15,7 @@ import React, {
   useImperativeHandle,
   forwardRef,
 } from "react";
-import MessageComposerPreview from "./message-composer-preview";
+import MessageComposerPreview, { MessageComposerPreviewButton } from "./message-composer-preview";
 import PastingMessageFiles from "./pasting-message-files";
 import { useCopiedMessagePaste } from "../../hooks/input/useCopiedMessagePaste";
 import { CHAT_ATTACHMENT_MAX_SIZE_BYTES, MESSAGE_CLIPBOARD_MESSAGES } from "../../types/message-clipboard.types";
@@ -206,7 +207,7 @@ const ChannelChatInput = React.memo(
 
           onSendMessage?.(taskMessagePayload);
         } catch (error: unknown) {
-          toast.error(error instanceof Error ? error.message : "Failed to create task");
+          toast.error(getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to create task"));
         } finally {
           setIsSubmittingTask(false);
         }
@@ -537,7 +538,7 @@ const ChannelChatInput = React.memo(
           }));
         } catch (error) {
           if (signal?.aborted) return;
-          console.error("Error initiating upload:", error);
+          logActionError("Error initiating upload:", error);
           setUploadingMedia((prev) =>
             prev.map((m) =>
               newUploads.some((nu) => nu.id === m.id)
@@ -914,8 +915,9 @@ const ChannelChatInput = React.memo(
                       </DropdownMenuItem>
                     )}
 
-                    {allowCreatePoll && (
+                    {(
                       <DropdownMenuItem closeOnClick={false}
+                        disabledReason={!allowCreatePoll ? PERMISSION_REASON.channelPoll : undefined}
                         onClick={() => {
                           setShowOptions(false);
                           onCreatePoll?.();
@@ -928,8 +930,9 @@ const ChannelChatInput = React.memo(
                       </DropdownMenuItem>
                     )}
 
-                    {allowCreateNote && (
+                    {(
                       <DropdownMenuItem closeOnClick={false}
+                        disabledReason={!allowCreateNote ? PERMISSION_REASON.channelNote : undefined}
                         onClick={() => {
                           setShowOptions(false);
                           onCreateNote?.();
@@ -1037,7 +1040,7 @@ const ChannelChatInput = React.memo(
                 )}
 
                 {/* Textarea Input */}
-                <MessageComposerPreview message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} open={showPreview} onOpenChange={setShowPreview}>
+                <MessageComposerPreview id={`${controlledPopupId}-message-preview`} message={message} interimMessage={interimMessage} memberProfiles={memberProfiles} open={showPreview}>
                 <Textarea unstyled focusMode="container" role="combobox" aria-label="Message channel" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
                   id="chat-input-textarea"
                   ref={textareaRef}
@@ -1111,6 +1114,7 @@ const ChannelChatInput = React.memo(
 
               {/* Action Buttons */}
               <div className="flex items-center gap-1.5 flex-shrink-0 relative pb-1 @max-[480px]/composer:ml-auto">
+              <MessageComposerPreviewButton message={message} interimMessage={interimMessage} open={showPreview} onOpenChange={setShowPreview} previewId={`${controlledPopupId}-message-preview`} textareaRef={textareaRef} />
                 {isRecording ? (
                   <div className="flex items-center gap-2.5 px-1 animate-in fade-in">
                     <div className="w-2 h-2 rounded-full bg-destructive-content animate-pulse"></div>

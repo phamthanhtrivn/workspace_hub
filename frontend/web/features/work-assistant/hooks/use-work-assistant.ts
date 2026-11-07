@@ -1,4 +1,5 @@
 "use client";
+import { aiErrorMessage, assistantStatus } from "@/lib/ai-feedback";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useInfiniteQuery,
@@ -6,24 +7,11 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import axios from "axios";
 import * as workApi from "../api/work-assistant.api";
 import { getUserSettings } from "@/features/user-setting/api/user-setting.api";
 import type { Audience, WorkMessage } from "../types";
 export function workError(error: unknown) {
-  if (axios.isAxiosError(error)) {
-    if (error.response?.status === 403)
-      return "Bạn không còn quyền truy cập dự án này.";
-    if (error.response?.status === 429)
-      return "Bạn hỏi quá nhanh. Hãy thử lại sau một phút.";
-    if (error.response?.status === 409)
-      return "Một câu hỏi đang được xử lý hoặc đã hoàn tất. Hãy tải lại hội thoại.";
-    if (error.response?.status === 503)
-      return "Trợ lý chưa sẵn sàng. Vui lòng thử lại sau.";
-  }
-  return error instanceof Error
-    ? error.message
-    : "Chưa thể kết nối với trợ lý.";
+  return aiErrorMessage(error, "Unable to connect to AI Assistant. Try again.");
 }
 export function useWorkAssistant(
   userId: string,
@@ -88,6 +76,7 @@ export function useWorkAssistant(
   const [reply, setReply] = useState<WorkMessage | null>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const active = useRef<{ id: string; controller: AbortController } | null>(
     null,
   );
@@ -121,7 +110,8 @@ export function useWorkAssistant(
       });
       setReply(null);
       setError("");
-      setStatus("Đang kết nối…");
+      setNotice("");
+      setStatus("Connecting...");
       try {
         await workApi.sendMessage(
           session.id,
@@ -130,7 +120,7 @@ export function useWorkAssistant(
           audience,
           request.controller.signal,
           (value) => {
-            if (alive.current) setStatus(value);
+            if (alive.current) setStatus(assistantStatus(value));
           },
           (message) => {
             if (alive.current) setReply(message);
@@ -166,8 +156,8 @@ export function useWorkAssistant(
     }
     request.controller.abort();
     if (alive.current) {
-      setStatus("Đang dừng…");
-      setError("Đã dừng câu trả lời.");
+      setStatus("Stopping...");
+      setNotice("Response stopped.");
     }
   };
   const messages =
@@ -183,6 +173,7 @@ export function useWorkAssistant(
     reply,
     status,
     error,
+    notice,
     send,
     stop,
     conversations,

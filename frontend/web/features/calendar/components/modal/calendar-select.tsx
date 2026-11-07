@@ -7,11 +7,14 @@ import { cn } from "@/lib/utils";
 export interface CalendarSelectOption {
   value: string;
   label: string;
+  disabled?: boolean;
 }
 
 interface CalendarSelectProps {
   value: string;
   disabled?: boolean;
+  invalid?: boolean;
+  descriptionId?: string;
   options: CalendarSelectOption[];
   ariaLabel: string;
   onChange: (value: string) => void;
@@ -24,6 +27,8 @@ interface CalendarSelectProps {
 export function CalendarSelect({
   value,
   disabled,
+  invalid,
+  descriptionId,
   options,
   ariaLabel,
   onChange,
@@ -35,6 +40,8 @@ export function CalendarSelect({
   return <CustomSelect
     value={value}
     disabled={disabled}
+    invalid={invalid}
+    descriptionId={descriptionId}
     options={options}
     ariaLabel={ariaLabel}
     onChange={onChange}

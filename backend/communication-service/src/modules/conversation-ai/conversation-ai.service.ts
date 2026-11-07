@@ -51,8 +51,8 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
   }
   onModuleInit() {
     if (!this.enabled()) return;
-    if ((process.env.AI_COMMUNICATION_SERVICE_KEY?.length ?? 0) < 32)
-      throw new Error('Configure AI_COMMUNICATION_SERVICE_KEY');
+    if ((process.env.COMMUNICATION_TO_AI_KEY?.length ?? 0) < 32)
+      throw new Error('Configure COMMUNICATION_TO_AI_KEY');
     this.timer = setInterval(() => void this.dispatch(), 10000);
     void this.dispatch();
   }
@@ -152,7 +152,7 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
                   signal: AbortSignal.timeout(5000),
                   headers: {
                     'x-internal-service-key':
-                      process.env.AI_COMMUNICATION_SERVICE_KEY!,
+                      process.env.COMMUNICATION_TO_AI_KEY!,
                   },
                 },
               );

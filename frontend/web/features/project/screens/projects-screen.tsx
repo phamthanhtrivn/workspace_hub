@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -123,9 +124,9 @@ export default function ProjectsScreen() {
       setShowCreate(false);
     } catch (error) {
       toast.error(
-        error instanceof Error
+        getActionErrorMessage(error, error instanceof Error
           ? error.message
-          : "Failed to create project",
+          : "Failed to create project"),
       );
       throw error;
     }
@@ -140,9 +141,9 @@ export default function ProjectsScreen() {
       toast.success("Project settings updated");
     } catch (error) {
       toast.error(
-        error instanceof Error
+        getActionErrorMessage(error, error instanceof Error
           ? error.message
-          : "Failed to update project settings",
+          : "Failed to update project settings"),
       );
     }
   };
@@ -154,7 +155,7 @@ export default function ProjectsScreen() {
       toast.success("Project archived");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to archive project",
+        getActionErrorMessage(error, error instanceof Error ? error.message : "Failed to archive project"),
       );
     }
   };

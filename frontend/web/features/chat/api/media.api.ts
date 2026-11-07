@@ -1,3 +1,4 @@
+import { logActionError } from "@/lib/permission-feedback";
 import { api } from "@/lib/axios";
 import { DEFAULT_UPLOAD_MIME_TYPE } from "@/lib/upload-policy";
 import { ApiResponse, ChatContextType } from "../types/chat.types";
@@ -71,7 +72,7 @@ export const uploadToS3 = async (
     }
     return true;
   } catch (error) {
-    if (!signal?.aborted) console.error("S3 upload error:", error);
+    if (!signal?.aborted) logActionError("S3 upload error:", error);
     return false;
   }
 };

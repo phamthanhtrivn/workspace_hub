@@ -1,5 +1,6 @@
 "use client";
 
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import type { SpeechRecognitionHandle, SpeechRecognitionWindow } from "../../types/speech-recognition.types";
@@ -79,7 +80,7 @@ export function useSpeechToText({ onTranscript }: UseSpeechToTextProps) {
     try {
       recognitionRef.current.stop();
     } catch (error) {
-      console.error("Error stopping speech recognition:", error);
+      logActionError("Error stopping speech recognition:", error);
     }
     resetDictationState();
   }, [resetDictationState]);
@@ -96,9 +97,9 @@ export function useSpeechToText({ onTranscript }: UseSpeechToTextProps) {
       setIsDictating(true);
       return true;
     } catch (error) {
-      console.error("Error starting speech recognition:", error);
+      logActionError("Error starting speech recognition:", error);
       resetDictationState();
-      toast.error("Speech recognition is already running");
+      toast.error(getActionErrorMessage(error, "Speech recognition is already running"));
       return false;
     }
   }, [resetDictationState]);

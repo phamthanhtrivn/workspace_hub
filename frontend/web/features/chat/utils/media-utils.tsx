@@ -1,3 +1,4 @@
+import { StorageAudio } from "@/components/common/storage-media";
 import { formatDateTime } from "@/lib/date";
 import type { ChatMediaResponse } from "../types/chat.types";
 
@@ -17,7 +18,7 @@ export const renderAudioPlayer = (media: ChatMediaResponse, isMe: boolean) => {
       key={media.id}
       className={`p-2 rounded-panel ${isMe ? "bg-primary-soft" : "bg-muted"}`}
     >
-      <audio controls src={media.fileUrl} className="h-10 max-w-[240px]" />
+      <StorageAudio controls src={media.fileUrl} className="h-10 max-w-[240px]" />
     </div>
   );
 };

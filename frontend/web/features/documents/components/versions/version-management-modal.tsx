@@ -1,21 +1,21 @@
 "use client";
 
-import { getApiErrorMessage } from "@/lib/api-error";
+import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
-import React, { useState, useCallback, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useMemo, useCallback, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
 import { DocumentItem } from "../../types/documents.types";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { History } from "lucide-react";
 import {
   DocumentItemType,
-  UploadState,
   DocumentRole,
 } from "../../types/documents.enums";
 import { ORIGINAL_VERSION_ID } from "../../types/documents.constants";
 import { toast } from "sonner";
+import { useDocumentUpload } from "../../hooks/useDocumentUpload";
 import { VersionUploader } from "./version-uploader";
 import { VersionHistoryTable } from "./version-history-table";
 import {
@@ -45,11 +45,16 @@ export function VersionManagementModal({
   onVersionUploaded,
 }: VersionManagementModalProps) {
   const isModalOpen = open ?? isOpen ?? false;
-  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadingFileName, setUploadingFileName] = useState("");
+  const versionTarget = useMemo(() => item ? { documentId: item.id, isPublic } : undefined, [item, isPublic]);
+  const canUploadVersion = item?.userRole === DocumentRole.OWNER || item?.userRole === DocumentRole.EDITOR;
+  const { uploads, isUploading, uploadFile, retryFailed } = useDocumentUpload({
+    currentFolderId: null,
+    enabled: isModalOpen && canUploadVersion,
+    enableDropZone: false,
+    versionTarget,
+    onSuccess: onVersionUploaded,
+  });
 
   const versionsQuery = useQuery({
     queryKey: ["document-versions", item?.id],
@@ -83,73 +88,20 @@ export function VersionManagementModal({
         document.body.removeChild(link);
         toast.success("Version download started.");
       } catch (err) {
-        console.error("Failed to download version", err);
-        toast.error("Could not generate download link for this version.");
+        logActionError("Failed to download version", err);
+        toast.error(getActionErrorMessage(err, "Could not generate download link for this version."));
       }
     },
     [item, isPublic]
   );
 
-  const uploadVersionMutation = useMutation({
-    mutationFn: async ({ file }: { file: File }) => {
-      setUploadingFileName(file.name);
-      setUploadState(UploadState.INITIATING);
-      setUploadProgress(0);
-
-      const progressCallback = (percent: number, state: UploadState) => {
-        setUploadState(state);
-        setUploadProgress(percent);
-      };
-
-      if (isPublic) {
-        return documentsApi.uploadNewPublicVersion(
-          item!.id,
-          file,
-          progressCallback
-        );
-      } else {
-        return documentsApi.uploadNewVersion(item!.id, file, progressCallback);
-      }
-    },
-    onSuccess: () => {
-      setUploadState(UploadState.SUCCESS);
-      toast.success("New version uploaded successfully!");
-
-      void queryClient.invalidateQueries({
-        queryKey: ["document-versions", item!.id],
-      });
-      if (!isPublic) {
-        void queryClient.invalidateQueries({ queryKey: ["documents"] });
-        void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
-      }
-
-      onVersionUploaded?.();
-
-      setTimeout(() => {
-        setUploadState(UploadState.IDLE);
-        setUploadingFileName("");
-        setUploadProgress(0);
-      }, 2000);
-    },
-    onError: (err: unknown) => {
-      console.error("Failed to upload version", err);
-      setUploadState(UploadState.ERROR);
-      const errMsg =
-        getApiErrorMessage(err, "Failed to upload new version.");
-      toast.error(errMsg);
-      setTimeout(() => {
-        setUploadState(UploadState.IDLE);
-      }, 3000);
-    },
-  });
-
   const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || !item) return;
-      uploadVersionMutation.mutate({ file });
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (file && item) void uploadFile(file);
     },
-    [item, uploadVersionMutation]
+    [item, uploadFile]
   );
 
   const triggerFileSelect = useCallback(() => {
@@ -176,11 +128,11 @@ export function VersionManagementModal({
         </DialogHeader>
 
         <div className={`${dialogLayout.body} mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1`}>
-          {item.userRole !== DocumentRole.VIEWER ? (
+          {canUploadVersion ? (
             <VersionUploader
-              uploadState={uploadState}
-              uploadProgress={uploadProgress}
-              uploadingFileName={uploadingFileName}
+              uploads={uploads}
+              isUploading={isUploading}
+              onRetry={(id) => void retryFailed(id)}
               fileInputRef={fileInputRef}
               onFileChange={handleFileChange}
               onTriggerFileSelect={triggerFileSelect}

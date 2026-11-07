@@ -8,6 +8,8 @@ import {
   Post,
   Put,
   Query,
+  Param,
+  Header,
 } from '@nestjs/common';
 import { CreatePomodoroSessionDto } from './dto/create-pomodoro-session.dto';
 import { ClearPomodoroTimerStateDto } from './dto/clear-pomodoro-timer-state.dto';
@@ -25,11 +27,20 @@ import {
 import {
   POMODORO_AUDIO_MESSAGES,
   POMODORO_AUDIO_ROUTE,
+  POMODORO_AUDIO_ACCESS_ROUTE,
 } from './constants/pomodoro-audio.constants';
+import { PomodoroAudioAccessService } from './pomodoro-audio-access.service';
 
 @Controller('api/calendar/pomodoro')
 export class PomodoroController {
-  constructor(private readonly service: PomodoroService) {}
+  constructor(private readonly service: PomodoroService, private readonly audioAccess: PomodoroAudioAccessService) {}
+
+  @Get(POMODORO_AUDIO_ACCESS_ROUTE)
+  @Header('Cache-Control', 'no-store')
+  getAudioAccess(@Headers('x-user-id') userId: string, @Param('id') id: string) {
+    this.requireUser(userId);
+    return this.audioAccess.getAccessUrl(id);
+  }
 
   @Get('config')
   async getConfig(@Headers('x-user-id') userId: string) {

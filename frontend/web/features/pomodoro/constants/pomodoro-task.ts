@@ -6,6 +6,7 @@ export const POMODORO_TASK_SETTINGS = {
   maxGoalTitleLength: 200,
   maxDescriptionLength: 2000,
   taskRefetchInterval: 60_000,
+  focusPageSize: 20,
 } as const;
 
 export const POMODORO_FOCUS_SOURCES = [
@@ -15,6 +16,15 @@ export const POMODORO_FOCUS_SOURCES = [
 ] as const;
 
 export const POMODORO_TASK_COPY = {
+  addTask: "Add task",
+  filters: "Filters",
+  filterControls: (source: string) => `${source} task filters`,
+  resetFilters: (source: string) => `Reset ${source} task filters`,
+  defaultDateOrder: "Through today. Oldest first.",
+  filteredDateOrder: "Overlapping dates. Oldest first.",
+  missingDatesTitle: "Incomplete schedule",
+  missingDatesHint: "Missing Start or End. Date filters don't apply.",
+  loadMore: "Load more",
   currentTask: "Current task",
   toDo: "To do",
   inProgress: "In progress",
@@ -31,6 +41,8 @@ export const POMODORO_TASK_COPY = {
 } as const;
 
 export const POMODORO_TASK_MESSAGES = {
+  selectionLocked: "Stop and save to change tasks.",
+  selectionHint: "Choose a task, or use Free focus.",
   unavailable: "This task is no longer available for focus. Choose another task.",
   busy: "Saving the focus session. Please try again shortly.",
   notReady: "Pomodoro is loading. Please try again shortly.",

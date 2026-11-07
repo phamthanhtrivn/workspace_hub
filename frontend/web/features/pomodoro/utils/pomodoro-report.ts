@@ -1,13 +1,14 @@
 import { Temporal } from "temporal-polyfill";
+import { getDateRangeErrors } from "@/lib/date-range";
 import type { PomodoroSessionRecord } from "../types/pomodoro";
 import { POMODORO_REPORT_COPY as copy, POMODORO_REPORT_MAX_DAYS, POMODORO_REPORT_SOURCES } from "../constants/pomodoro-report";
+import { POMODORO_DISPLAY_LOCALE } from "../constants/pomodoro-display";
 
 export interface PomodoroReportRange { startDate: string; endDate: string }
 export type PomodoroReportSource = (typeof POMODORO_REPORT_SOURCES)[number]["value"];
 export interface PomodoroReportFilters { source: PomodoroReportSource; project: string; task: string }
 export type PomodoroReportPreset = "today" | "week" | "month";
 export type PomodoroReportRangeErrors = Partial<Record<keyof PomodoroReportRange, string>>;
-const DAY_MS = 86_400_000;
 
 export function localDateKey(date: Date, timeZone?: string): string {
   if (timeZone) return Temporal.Instant.from(date.toISOString()).toZonedDateTimeISO(timeZone).toPlainDate().toString();
@@ -26,20 +27,24 @@ export function presetReportRange(preset: PomodoroReportPreset, now = new Date()
 }
 
 export function reportRangeErrors(range: PomodoroReportRange, now = new Date(), timeZone?: string): PomodoroReportRangeErrors {
-  const errors: PomodoroReportRangeErrors = {};
+  // Reuse task/project ordering and required-field rules while allowing historical dates.
+  const sharedErrors = getDateRangeErrors({ start: range.startDate, end: range.endDate, mode: "edit", dateOnly: true, requireStart: true, requireEnd: true });
+  const errors: PomodoroReportRangeErrors = {
+    ...(sharedErrors.start ? { startDate: sharedErrors.start } : {}),
+    ...(sharedErrors.end ? { endDate: sharedErrors.end } : {}),
+  };
   const today = localDateKey(now, timeZone);
   for (const field of ["startDate", "endDate"] as const) {
     const value = range[field];
+    if (!value) continue;
     const date = new Date(`${value}T00:00:00`);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(date.getTime()) || localDateKey(date) !== value) {
       errors[field] = copy.invalidDate;
     } else if (value > today) errors[field] = copy.futureDate;
   }
   if (Object.keys(errors).length) return errors;
-  if (range.endDate < range.startDate) return { endDate: copy.reversedDates };
-  const end = new Date(`${range.endDate}T00:00:00`);
-  end.setDate(end.getDate() + 1);
-  if (end.getTime() - new Date(`${range.startDate}T00:00:00`).getTime() > POMODORO_REPORT_MAX_DAYS * DAY_MS) {
+  const calendarDays = Temporal.PlainDate.from(range.startDate).until(Temporal.PlainDate.from(range.endDate)).days + 1;
+  if (calendarDays > POMODORO_REPORT_MAX_DAYS) {
     errors.endDate = copy.rangeTooLong;
   }
   return errors;
@@ -67,7 +72,7 @@ export function sameReportRange(left: PomodoroReportRange, right: PomodoroReport
 }
 
 export function formatReportRange(range: PomodoroReportRange) {
-  const format = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString();
+  const format = (date: string) => new Date(`${date}T00:00:00`).toLocaleDateString(POMODORO_DISPLAY_LOCALE);
   return `${format(range.startDate)} – ${format(range.endDate)}`;
 }
 

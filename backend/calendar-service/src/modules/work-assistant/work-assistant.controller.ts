@@ -21,7 +21,7 @@ export class CalendarContextDto {
   @IsDateString() todayEnd!: string;
 }
 export function requireAssistantKey(key: string | undefined) {
-  const expected = process.env.WORK_ASSISTANT_SERVICE_KEY || '';
+  const expected = process.env.AI_TO_CALENDAR_KEY || '';
   if (expected.length < 32)
     throw new ServiceUnavailableException('Work assistant is not configured');
   if (

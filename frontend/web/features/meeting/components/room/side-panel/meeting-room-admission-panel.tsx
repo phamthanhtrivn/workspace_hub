@@ -1,5 +1,6 @@
 "use client";
 
+import { UserAvatar } from "@/components/common/user-avatar";
 import { useCallback, useState } from "react";
 import {
   Check,
@@ -9,7 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AvatarFallback } from "@/features/meeting/components/common/avatar-fallback";
+
 import {
   useMeetingJoinRequestActions,
   useMeetingJoinRequests,
@@ -129,22 +130,7 @@ export function MeetingRoomAdmissionPanel({
                 className="rounded-lg bg-accent p-3 ring-1 ring-border/8"
               >
                 <div className="flex items-center gap-3">
-                  {request.profile?.avatarUrl ? (
-                    <span
-                      aria-label={displayName}
-                      role="img"
-                      className="h-10 w-10 shrink-0 rounded-full bg-cover bg-center"
-                      style={{
-                        backgroundImage: `url("${request.profile.avatarUrl}")`,
-                      }}
-                    />
-                  ) : (
-                    <AvatarFallback
-                      label={displayName}
-                      className="h-10 w-10 bg-accent"
-                      iconClassName="h-5 w-5 text-muted-foreground"
-                    />
-                  )}
+                  <UserAvatar src={request.profile?.avatarUrl} alt={displayName} className="h-10 w-10 shrink-0 rounded-full" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-muted-foreground">
                       {displayName}

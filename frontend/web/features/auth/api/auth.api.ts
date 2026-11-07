@@ -2,6 +2,7 @@ import { store } from "@/store/store";
 import { EMAIL_VERIFICATION } from '../types/email-verification.constants';
 import { api } from "@/lib/axios";
 import { withSessionLock } from "./session-lock";
+import { AUTH_API_ROUTES, SESSION_REQUEST_TIMEOUT_MS } from "../types/auth.constants";
 import {
   ApiResponse,
   ForgotPasswordRequest,
@@ -30,7 +31,7 @@ export const loginApi = async (
   payload: LoginRequest,
 ): Promise<ApiResponse<LoginResponse>> => {
   return withSessionLock(async () => {
-    const response = await api.post("/api/auth/login", payload);
+    const response = await api.post(AUTH_API_ROUTES.LOGIN, payload);
     return response.data;
   });
 };
@@ -49,7 +50,7 @@ let pendingRefresh: Promise<ApiResponse<RefreshResponse>> | null = null;
 export const refreshApi = (): Promise<ApiResponse<RefreshResponse>> => {
   if (!pendingRefresh) {
     pendingRefresh = withSessionLock(async () => {
-      const response = await api.post("/api/auth/refresh");
+      const response = await api.post(AUTH_API_ROUTES.REFRESH, undefined, { timeout: SESSION_REQUEST_TIMEOUT_MS });
       return response.data as ApiResponse<RefreshResponse>;
     }).finally(() => { pendingRefresh = null; });
   }

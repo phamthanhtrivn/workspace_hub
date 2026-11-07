@@ -9,6 +9,6 @@ export interface IconButtonProps extends ComponentProps<typeof Button> {
 
 export function IconButton({ label, showTooltip = true, size = "icon", variant = "ghost", children, ...props }: IconButtonProps) {
   const button = <Button type="button" aria-label={label} size={size} variant={variant} {...props}>{children}</Button>;
-  if (!showTooltip) return button;
+  if (!showTooltip || props.disabledReason) return button;
   return <Tooltip><TooltipTrigger asChild>{button}</TooltipTrigger><TooltipContent>{label}</TooltipContent></Tooltip>;
 }

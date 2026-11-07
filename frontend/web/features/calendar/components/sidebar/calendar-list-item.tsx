@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { MoreVertical } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -66,8 +67,8 @@ export function CalendarListItem({
         calendarId: calendar.id,
         payload: { color },
       });
-    } catch {
-      toast.error("Failed to update calendar");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to update calendar"));
     }
   };
 
@@ -76,8 +77,8 @@ export function CalendarListItem({
       await deleteCalendar.mutateAsync(calendar.id);
       toast.success("Calendar deleted");
       setDeleteModalOpen(false);
-    } catch {
-      toast.error("Failed to delete calendar");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to delete calendar"));
     }
   };
 
@@ -110,8 +111,8 @@ export function CalendarListItem({
       });
       toast.success("Calendar updated");
       return true;
-    } catch {
-      toast.error("Failed to update calendar");
+    } catch (permissionError) {
+      toast.error(getActionErrorMessage(permissionError, "Failed to update calendar"));
       return false;
     }
   };

@@ -14,7 +14,7 @@ export async function assertActiveSession(
   identity: SessionIdentity,
 ): Promise<void> {
   const baseUrl = process.env.USER_SERVICE_URL;
-  const key = process.env.INTERNAL_SERVICE_KEY;
+  const key = process.env.CALENDAR_TO_USER_KEY;
   if (!baseUrl || !key?.trim())
     throw new ServiceUnavailableException(
       'Session authorization is not configured',

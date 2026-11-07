@@ -121,20 +121,6 @@ export const updateChannelSettings = async (
   return normalizeApiResponse<ConversationSetting>(response.data);
 };
 
-export const getChannelAvatarPresignedUrl = async (
-  channelId: string,
-  fileName: string,
-  contentType: string,
-): Promise<ApiResponse<{ presignedUrl: string; fileUrl?: string }>> => {
-  const response = await api.get(
-    `/api/channels/${channelId}/avatar/presigned-url`,
-    { params: { fileName, contentType } },
-  );
-  return normalizeApiResponse<{ presignedUrl: string; fileUrl?: string }>(
-    response.data,
-  );
-};
-
 export const muteChannel = async (
   channelId: string,
   muted: boolean,

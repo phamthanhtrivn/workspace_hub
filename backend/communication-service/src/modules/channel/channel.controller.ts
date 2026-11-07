@@ -54,7 +54,7 @@ export class ChannelController {
     @Headers('x-internal-service-key') serviceKey: string,
     @Body() request: CheckChannelTaskPermissionDto,
   ) {
-    if (!isServiceKeyValid(serviceKey, this.config.internalServiceKey)) {
+    if (!isServiceKeyValid(serviceKey, this.config.projectCallerKey)) {
       throw new UnauthorizedException('Invalid internal service key');
     }
     await this.channelService.assertCanCreateTaskInChannel(
@@ -213,26 +213,6 @@ export class ChannelController {
   //     message: 'Member removed successfully',
   //   };
   // }
-
-  @Get(':id/avatar/presigned-url')
-  getAvatarPresignedUrl(
-    @Param('id') channelId: string,
-    @Headers('x-user-id') userId: string,
-    @Query('fileName') fileName: string,
-    @Query('contentType') contentType: string,
-  ) {
-    if (!userId || !channelId || !fileName || !contentType) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
-      );
-    }
-    return this.channelService.getAvatarUploadPresignedUrl(
-      channelId,
-      userId,
-      fileName,
-      contentType,
-    );
-  }
 
   @Patch(':id/info')
   async updateChannelInfo(

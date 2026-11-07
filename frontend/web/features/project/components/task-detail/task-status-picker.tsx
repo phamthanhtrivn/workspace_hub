@@ -7,6 +7,7 @@ import { TaskStatus } from "@/features/project/types/project";
 import { TASK_DRAWER_STATUS_OPTIONS } from "@/features/project/constants/task.constants";
 
 import { Button } from "@/components/ui/button";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
@@ -39,6 +40,7 @@ export default function TaskStatusPicker({
         size="sm"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
+        disabledReason={disabled ? PERMISSION_REASON.projectContribute : undefined}
         className={[
           "flex h-7 items-center gap-1.5 rounded-control px-2.5 py-1 text-xs font-semibold transition border border-transparent hover:opacity-90",
           currentOption.color,

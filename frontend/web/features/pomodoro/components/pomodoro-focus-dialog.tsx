@@ -66,15 +66,14 @@ function FocusDialogContent({ dialogId, initialView, focusDurationMinutes, onClo
       </DialogTitle>
       <DialogDescription id={`${id}-description`} className="text-xs">
         {confirming ? "Save your current session before starting another focus." : view === "create"
-          ? "Create a personal task in My tasks and start focusing." : "Choose a task or start free focus."}
+          ? "Create a personal Calendar task and select it before starting the timer." : "Select one task for your next session, or leave it unlinked for free focus."}
       </DialogDescription>
     </DialogHeader>
     <Button type="button" size="icon-sm" variant="ghost" disabled={locked} aria-label="Close focus picker"
       onClick={onClose} className="absolute right-4 top-4"><X className="size-4" /></Button>
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <div hidden={confirming || view !== "choose"} className="p-5">
-        <PomodoroTaskPicker open={!confirming && view === "choose"} onCreateCalendarTask={openCreate}
-          initialSource={initialView === "create" ? "calendar" : undefined} />
+        <PomodoroTaskPicker open={!confirming && view === "choose"} onCreateCalendarTask={openCreate} />
       </div>
       {formOpened && <div hidden={confirming || view !== "create"} className="space-y-4 p-5">
         <Button type="button" size="sm" variant="ghost" disabled={locked} onClick={() => setView("choose")}>

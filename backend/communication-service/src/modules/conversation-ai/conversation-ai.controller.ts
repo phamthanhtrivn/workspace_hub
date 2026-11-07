@@ -23,7 +23,7 @@ export class ConversationAiController {
     @Headers('x-internal-service-key') key: string,
     @Body() body: unknown,
   ) {
-    const expected = process.env.AI_COMMUNICATION_SERVICE_KEY || '';
+    const expected = process.env.AI_TO_COMMUNICATION_KEY || '';
     if (!this.ai.enabled() || expected.length < 32)
       throw new ServiceUnavailableException();
     if (

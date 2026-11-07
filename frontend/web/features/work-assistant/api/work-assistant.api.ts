@@ -1,3 +1,4 @@
+import { aiServiceMessage } from "@/lib/ai-feedback";
 import { z } from "zod";
 import { api } from "@/lib/axios";
 import type {
@@ -106,7 +107,7 @@ export async function consumeEvents(
       buffer = (
         buffer + decoder.decode(part.value, { stream: !part.done })
       ).replace(/\r\n/g, "\n");
-      if (buffer.length > 1024 * 1024) throw new Error("Phản hồi quá lớn.");
+      if (buffer.length > 1024 * 1024) throw new Error("The response exceeds the size limit.");
       let split: number;
       while ((split = buffer.indexOf("\n\n")) >= 0) {
         const block = buffer.slice(0, split);
@@ -129,7 +130,7 @@ export async function consumeEvents(
     }
     if (!done)
       throw new Error(
-        "Kết nối bị gián đoạn. Hãy tải lại hội thoại trước khi thử lại.",
+        "The connection was interrupted. Reopen this conversation before trying again.",
       );
   } finally {
     await reader.cancel().catch(() => undefined);
@@ -157,6 +158,7 @@ export async function sendMessage(
     if (event === "done")
       onDone(message.parse(z.object({ message }).parse(data).message));
     if (event === "error")
-      throw new Error(z.object({ message: z.string() }).parse(data).message);
+      throw new Error(aiServiceMessage(z.object({ message: z.string() }).parse(data).message,
+        "Unable to complete your request. Check your access and try again."));
   });
 }

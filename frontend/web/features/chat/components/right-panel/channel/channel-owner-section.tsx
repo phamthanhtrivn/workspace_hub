@@ -1,8 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Bot, User } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Bot } from "lucide-react";
+import { UserAvatar } from "@/components/common/user-avatar";
 import { Button } from "@/components/ui/button";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { useAppDispatch } from "@/store/store";
@@ -88,12 +88,7 @@ export default function ChannelOwnerSection({
           aria-label={`View profile of ${displayName}`}
           className="flex w-full min-w-0 items-center gap-3 rounded-control p-2 text-left transition-colors hover:bg-muted"
         >
-          <Avatar className="size-10 border border-border" aria-hidden="true">
-            <AvatarImage src={profile?.avatarUrl || undefined} alt="" />
-            <AvatarFallback className="bg-muted text-muted-foreground">
-              <User size={20} />
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar src={profile?.avatarUrl} alt={displayName} className="size-10 border border-border" />
           <span className="min-w-0 flex-1">
             <span
               className="block truncate text-sm font-medium text-foreground"

@@ -1,5 +1,6 @@
 "use client";
 
+import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { getApiErrorMessage } from "@/lib/api-error";
 import { useSensors, useSensor, PointerSensor, KeyboardSensor, DragEndEvent } from "@dnd-kit/core";
 import { DND_ROOT_ID } from "../types/documents.constants";
@@ -35,7 +36,7 @@ export function useDocumentDragAndDrop({ onMoveItem }: UseDocumentDragAndDropOpt
         await onMoveItem(activeId, overId);
       }
     } catch (err: unknown) {
-      toast.error(getApiErrorMessage(err, "Failed to move item via drag and drop"));
+      toast.error(getActionErrorMessage(err, getApiErrorMessage(err, "Failed to move item via drag and drop")));
     }
   };
 

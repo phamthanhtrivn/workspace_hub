@@ -2,91 +2,47 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { UploadCloud, CheckCircle2, AlertCircle } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
-import { UploadState } from "../../types/documents.enums";
-import { Spinner } from "@/components/ui/spinner";
+import { UploadCloud } from "lucide-react";
+import type { DocumentUploadEntry } from "../../types/upload.types";
+import { UploadFileRow } from "../common/upload-file-row";
 
 interface VersionUploaderProps {
-  uploadState: UploadState;
-  uploadProgress: number;
-  uploadingFileName: string;
+  uploads: DocumentUploadEntry[];
+  isUploading: boolean;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onTriggerFileSelect: () => void;
+  onRetry: (id: string) => void;
 }
 
 export function VersionUploader({
-  uploadState,
-  uploadProgress,
-  uploadingFileName,
-  fileInputRef,
-  onFileChange,
-  onTriggerFileSelect,
+  uploads, isUploading, fileInputRef, onFileChange, onTriggerFileSelect, onRetry,
 }: VersionUploaderProps) {
-  const uploadStatusMessages: Partial<Record<UploadState, string>> = {
-    [UploadState.INITIATING]: "Initiating upload...",
-    [UploadState.UPLOADING]: "Uploading to storage...",
-    [UploadState.CONFIRMING]: "Confirming new version...",
-    [UploadState.SUCCESS]: "Version uploaded successfully!",
-    [UploadState.ERROR]: "An upload error occurred",
-  };
-  const statusMessage = uploadStatusMessages[uploadState];
-
   return (
-    <div className="mb-6">
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={onFileChange}
-        className="hidden"
-      />
-      {uploadState === UploadState.IDLE ? (
-        <Button variant="unstyled" type="button"
-          onClick={onTriggerFileSelect}
-          className="w-full text-left flex flex-col items-center justify-center border-2 border-dashed border-border rounded-panel p-6 hover:bg-background hover:border-info-outline cursor-pointer transition-all duration-200 group"
-        >
-          <div className="p-3 bg-background text-muted-foreground rounded-panel group-hover:bg-info-soft group-hover:text-info-content transition-all duration-200 mb-3">
-            <UploadCloud size={24} />
-          </div>
-          <span className="text-sm font-semibold text-foreground">
-            Upload new version
-          </span>
-          <span className="text-xs text-muted-foreground font-semibold mt-1">
-            Old versions will be kept safely in history
-          </span>
-        </Button>
-      ) : (
-        <div className="border border-border rounded-panel p-5 bg-background">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 min-w-0">
-              {uploadState === UploadState.SUCCESS ? (
-                <CheckCircle2
-                  size={16}
-                  className="text-success-content shrink-0"
-                />
-              ) : uploadState === UploadState.ERROR ? <AlertCircle size={16} className="shrink-0 text-destructive-content" /> : (
-                <Spinner className="shrink-0" />
-              )}
-              <span className="text-xs font-semibold text-foreground truncate max-w-xs">
-                {uploadingFileName}
-              </span>
-            </div>
-            <span className="text-xs font-semibold text-muted-foreground">
-              {uploadProgress}%
-            </span>
-          </div>
-          <Progress value={uploadState === UploadState.ERROR ? null : uploadProgress} aria-label="Version upload progress" className="w-full bg-muted h-1.5 rounded-full overflow-hidden">
-            <div
-              className="bg-link h-full rounded-full transition-all duration-200"
-              style={{ width: `${uploadProgress}%` }}
-            />
-          </Progress>
-          <p role={uploadState === UploadState.ERROR ? "alert" : "status"} className="text-xs text-muted-foreground font-semibold mt-2">
-            {statusMessage}
-          </p>
+    <div className="mb-6 space-y-3">
+      <input type="file" ref={fileInputRef} onChange={onFileChange} disabled={isUploading} className="hidden" />
+      <Button variant="unstyled" type="button" disabled={isUploading}
+        onClick={onTriggerFileSelect}
+        className="group flex w-full flex-col items-center justify-center rounded-panel border-2 border-dashed border-border p-6 text-left transition-colors duration-200 hover:border-info-outline hover:bg-background motion-reduce:transition-none"
+      >
+        <div className="mb-3 rounded-panel bg-background p-3 text-muted-foreground transition-colors duration-200 group-hover:bg-info-soft group-hover:text-info-content motion-reduce:transition-none">
+          <UploadCloud size={24} aria-hidden="true" />
         </div>
-      )}
+        <span className="text-sm font-semibold text-foreground">
+          {isUploading ? "Uploading version…" : uploads.length ? "Upload another version" : "Upload new version"}
+        </span>
+        <span className="mt-1 text-xs font-semibold text-muted-foreground">
+          Old versions will be kept safely in history
+        </span>
+      </Button>
+      {uploads.length > 0 && <div className="overflow-hidden rounded-panel border border-border bg-background">
+        <p role="status" className="border-b border-border px-4 py-2 text-xs font-medium text-muted-foreground">
+          {isUploading ? "Uploading new version" : "Version upload finished"}
+        </p>
+        <ol aria-label="Version uploads">
+          {uploads.map(upload => <UploadFileRow key={upload.id} upload={upload} onRetry={onRetry} retryDisabled={isUploading} />)}
+        </ol>
+      </div>}
     </div>
   );
 }

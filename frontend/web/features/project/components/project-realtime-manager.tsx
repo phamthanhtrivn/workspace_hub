@@ -36,13 +36,18 @@ export default function ProjectRealtimeManager() {
   useEffect(() => {
     if (!token) return;
 
+    let isCancelled = false;
+    let syncRevision = 0;
     const socket = projectSocketService.connect(token);
     const syncProjects = async () => {
+      const revision = ++syncRevision;
       try {
         const projects = await queryClient.fetchQuery({
           queryKey: projectKeys.list(PROJECT_SYNC_QUERY),
           queryFn: () => getProjects(PROJECT_SYNC_QUERY),
+          staleTime: 0,
         });
+        if (isCancelled || revision !== syncRevision) return;
         projectSocketService.syncProjects(
           projects.data.map((project) => project.id),
         );
@@ -73,12 +78,18 @@ export default function ProjectRealtimeManager() {
       }
     };
 
-    socket.on("connect", syncProjects);
+    const reconcileProjects = () => {
+      void queryClient.invalidateQueries({ queryKey: projectKeys.all });
+      void queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      void syncProjects();
+    };
+    socket.on("connect", reconcileProjects);
     socket.on("project:changed", handleChange);
-    if (socket.connected) void syncProjects();
+    if (socket.connected) reconcileProjects();
 
     return () => {
-      socket.off("connect", syncProjects);
+      isCancelled = true;
+      socket.off("connect", reconcileProjects);
       socket.off("project:changed", handleChange);
     };
   }, [queryClient, token]);

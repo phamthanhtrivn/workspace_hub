@@ -1,4 +1,8 @@
 "use client";
+import { logActionError } from "@/lib/permission-feedback";
+import { StorageVideo, StorageImg } from "@/components/common/storage-media";
+import { fetchStorageAsset } from "@/features/storage/api/storage.api";
+
 
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import React, { useState, useEffect, useRef } from "react";
@@ -135,11 +139,11 @@ export default function MediaLightbox({
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      const response = await fetch(currentMedia.fileUrl);
+      const response = await fetchStorageAsset(currentMedia.fileUrl);
       const blob = await response.blob();
       saveAs(blob, currentMedia.name);
     } catch (error) {
-      console.error("Download error:", error);
+      logActionError("Download error:", error);
     }
   };
 
@@ -199,7 +203,7 @@ export default function MediaLightbox({
         onMouseLeave={currentMedia.type !== "VIDEO" ? handleMouseUp : undefined}
       >
         {currentMedia.type === "VIDEO" ? (
-          <video
+          <StorageVideo
             src={currentMedia.fileUrl}
             controls
             autoPlay
@@ -208,7 +212,7 @@ export default function MediaLightbox({
             style={{ maxHeight: "80vh", maxWidth: "80vw" }}
           />
         ) : (
-          <img data-ui-interaction-exception="Media drag surface; click only prevents backdrop dismissal."
+          <StorageImg data-ui-interaction-exception="Media drag surface; click only prevents backdrop dismissal."
             ref={imgRef}
             src={currentMedia.fileUrl}
             alt={currentMedia.name}

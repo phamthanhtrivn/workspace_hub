@@ -1,12 +1,12 @@
 import { MESSAGE_MEDIA_TYPE } from '../types/file.enums';
 import { UPLOAD_POLICY } from '../../infrastructure/s3/attachment-upload.policy';
+import { MEDIA_API_PATH, MEDIA_ACCESS_ROUTE } from '../types/media.constants';
 
 export const MAX_FILE_SIZE = UPLOAD_POLICY.MAX_SIZE_BYTES;
 
 export const getMediaUrl = (s3Key: string): string => {
   if (!s3Key) return '';
-  const cloudFrontUrl = process.env.AWS_CLOUDFRONT_URL;
-  return cloudFrontUrl ? `${cloudFrontUrl}/${s3Key}` : s3Key;
+  return `/${MEDIA_API_PATH}/${MEDIA_ACCESS_ROUTE}?key=${encodeURIComponent(s3Key)}`;
 };
 
 export function mapMediaWithUrl<T extends { s3Key: string }>(

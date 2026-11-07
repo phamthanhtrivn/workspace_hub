@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -11,7 +12,6 @@ import {
   ListTodo,
   Route,
   Settings,
-  UserPlus,
   Users,
   X,
   type LucideIcon,
@@ -164,12 +164,10 @@ export default function ProjectDetailSidebar({
   isCollapsed,
   isMobileOpen,
   canOpenSettings,
-  canInviteMembers = false,
   onViewChange,
   onToggle,
   onMobileClose,
   onOpenSettings,
-  onInviteMembers,
 }: ProjectDetailSidebarProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const visibleMembers = members.slice(0, 5);
@@ -288,7 +286,7 @@ export default function ProjectDetailSidebar({
               <SidebarTooltip
                 label="Members"
                 enabled={isCollapsed}
-                className="min-w-0 flex-1"
+                className="min-w-0 w-full flex-1"
               >
                 <Button
                   type="button"
@@ -296,7 +294,7 @@ export default function ProjectDetailSidebar({
                   onClick={() => onViewChange("members")}
                   aria-current={membersActive ? "page" : undefined}
                   className={cn(
-                    "group h-12 min-w-0 flex-1 justify-start gap-3 rounded-control px-2.5 text-sm font-semibold transition-colors",
+                    "group h-12 w-full min-w-0 flex-1 justify-start gap-3 rounded-control px-2.5 text-sm font-semibold transition-colors",
                     membersActive
                       ? "bg-primary-soft text-primary-soft-foreground hover:bg-primary-soft hover:text-primary-soft-foreground"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -325,10 +323,10 @@ export default function ProjectDetailSidebar({
                       isCollapsed && "lg:w-0 lg:flex-none lg:opacity-0",
                     )}
                   >
-                    <span>Members</span>
+                    <span className="leading-5">Members</span>
                     <span
                       className={cn(
-                        "rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums",
+                        "inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-semibold leading-none tabular-nums",
                         membersActive
                           ? "bg-transparent text-primary-soft-foreground"
                           : "bg-muted text-muted-foreground",
@@ -339,28 +337,6 @@ export default function ProjectDetailSidebar({
                   </span>
                 </Button>
               </SidebarTooltip>
-
-              {canInviteMembers && onInviteMembers ? (
-                <SidebarTooltip
-                  label="Invite member"
-                  enabled={isCollapsed}
-                  className="w-auto shrink-0 [&>span]:w-auto"
-                >
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={onInviteMembers}
-                    aria-label="Invite member"
-                    className={cn(
-                      "h-9 text-info-content hover:bg-info-soft hover:text-info-content",
-                      isCollapsed ? "lg:w-full" : "w-9",
-                    )}
-                  >
-                    <UserPlus className="h-4 w-4" />
-                  </Button>
-                </SidebarTooltip>
-              ) : null}
             </div>
 
             <div
@@ -413,9 +389,10 @@ export default function ProjectDetailSidebar({
 
         <footer className="mt-auto shrink-0 border-t border-border p-2">
           <div className="space-y-1">
-            {canOpenSettings ? (
+            {(
               <SidebarTooltip label="Project settings" enabled={isCollapsed}>
                 <Button
+                  disabledReason={!canOpenSettings ? PERMISSION_REASON.projectSettings : undefined}
                   type="button"
                   variant="ghost"
                   onClick={onOpenSettings}
@@ -442,7 +419,7 @@ export default function ProjectDetailSidebar({
                   </span>
                 </Button>
               </SidebarTooltip>
-            ) : null}
+            )}
 
             <SidebarTooltip label="Exit project" enabled={isCollapsed}>
               <Button
