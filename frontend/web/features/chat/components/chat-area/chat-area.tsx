@@ -376,19 +376,23 @@ export default function ChatArea({
       (auth.accessToken ? socketService.connect(auth.accessToken) : null);
 
     if (socket && activeConversation?.id) {
-      if (isDirectConversation) {
-        socket.emit(ChatEvent.JOIN_DIRECT_CONVERSATION, {
-          conversationId: activeConversation.id,
-          chatId: activeConversation.id,
-          chatType: ChatContextType.DIRECT_MESSAGE,
-        });
-      } else {
-        socket.emit(ChatEvent.JOIN_CONVERSATION, {
-          channelId: activeConversation.id,
-          chatId: activeConversation.id,
-          chatType: ChatContextType.CHANNEL,
-        });
-      }
+      const joinActiveRoom = () => {
+        if (isDirectConversation) {
+          socket.emit(ChatEvent.JOIN_DIRECT_CONVERSATION, {
+            conversationId: activeConversation.id,
+            chatId: activeConversation.id,
+            chatType: ChatContextType.DIRECT_MESSAGE,
+          });
+        } else {
+          socket.emit(ChatEvent.JOIN_CONVERSATION, {
+            channelId: activeConversation.id,
+            chatId: activeConversation.id,
+            chatType: ChatContextType.CHANNEL,
+          });
+        }
+      };
+      socket.on("connect", joinActiveRoom);
+      if (socket.connected) joinActiveRoom();
 
       const getEventChannelId = (payload: Record<string, unknown>) =>
         (payload?.channelId ?? payload?.conversationId) as string | undefined;
@@ -761,6 +765,7 @@ export default function ChatArea({
       socket.on(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
 
       return () => {
+        socket.off("connect", joinActiveRoom);
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
         socket.off(ChatEvent.REACTION_UPDATED, handleReactionUpdated);
         socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);

@@ -9,7 +9,11 @@ export enum AuthProvider {
 
 export const AUTH_API_ROUTES = {
   LOGIN: "/api/auth/login",
+  REFRESH: "/api/auth/refresh",
+  LOGOUT: "/api/auth/logout",
 } as const;
+
+export const SESSION_REQUEST_TIMEOUT_MS = 5_000;
 
 export enum AuthRouteTarget {
   ADMIN_HOME = "/",

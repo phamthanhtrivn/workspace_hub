@@ -1,4 +1,4 @@
-import { UnauthorizedException } from "@nestjs/common";
+import { SESSION_AUTH_CODE, SessionAuthError } from "./session-errors";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { isUUID } from "class-validator";
 
@@ -25,12 +25,9 @@ export function verifyAccessClaims(
 ): AccessClaims & { sub: string; role: string; sid: string; exp: number } {
   try {
     const secret = process.env.JWT_SECRET_KEY;
-    if (
-      !secret ||
-      Buffer.byteLength(secret) < 32 ||
-      typeof token !== "string" ||
-      token.length > MAX_TOKEN_LENGTH
-    )
+    if (!secret || Buffer.byteLength(secret) < 32)
+      throw new SessionAuthError(SESSION_AUTH_CODE.AUTH_CONFIGURATION_ERROR);
+    if (typeof token !== "string" || token.length > MAX_TOKEN_LENGTH)
       throw new Error(AUTHENTICATION_ERROR);
     const parts = token.split(".");
     if (
@@ -59,7 +56,6 @@ export function verifyAccessClaims(
     if (
       typeof claims.exp !== "number" ||
       !Number.isSafeInteger(claims.exp) ||
-      claims.exp <= now ||
       (claims.nbf !== undefined &&
         (typeof claims.nbf !== "number" ||
           !Number.isSafeInteger(claims.nbf) ||
@@ -67,14 +63,25 @@ export function verifyAccessClaims(
       claims.iss !== (process.env.JWT_ISSUER || "workspace-hub") ||
       typeof claims.role !== "string" ||
       !ACCESS_ROLES.has(claims.role) ||
-      (claims.token_use !== "access" || claims.email_verified !== true || typeof claims.sid !== "string" || !isUUID(claims.sid)) ||
+      claims.token_use !== "access" ||
+      claims.email_verified !== true ||
+      typeof claims.sid !== "string" ||
+      !isUUID(claims.sid) ||
       typeof claims.sub !== "string" ||
       !isUUID(claims.sub)
     )
       throw new Error(AUTHENTICATION_ERROR);
-    return claims as AccessClaims & { sub: string; role: string; sid: string; exp: number };
-  } catch {
-    throw new UnauthorizedException(AUTHENTICATION_ERROR);
+    if (claims.exp <= now)
+      throw new SessionAuthError(SESSION_AUTH_CODE.TOKEN_EXPIRED);
+    return claims as AccessClaims & {
+      sub: string;
+      role: string;
+      sid: string;
+      exp: number;
+    };
+  } catch (error) {
+    if (error instanceof SessionAuthError) throw error;
+    throw new SessionAuthError(SESSION_AUTH_CODE.TOKEN_INVALID);
   }
 }
 

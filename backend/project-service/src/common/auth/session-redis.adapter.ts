@@ -1,3 +1,9 @@
+import {
+  SESSION_ERROR_EVENT,
+  SESSION_AUTH_CODE,
+  sessionErrorPayload,
+  SessionAuthError,
+} from "./session-errors";
 import { SOCKET_SESSION } from "./socket-session.constants";
 import { INestApplicationContext } from "@nestjs/common";
 import { IoAdapter } from "@nestjs/platform-socket.io";
@@ -33,8 +39,17 @@ export class SessionRedisIoAdapter extends IoAdapter {
         const room = event.sessionId
           ? SOCKET_SESSION.sessionRoom(event.sessionId)
           : SOCKET_SESSION.userRoom(event.userId);
-        for (const server of this.servers)
+        for (const server of this.servers) {
+          server.local
+            .in(room)
+            .emit(
+              SESSION_ERROR_EVENT,
+              sessionErrorPayload(
+                new SessionAuthError(SESSION_AUTH_CODE.SESSION_REVOKED),
+              ),
+            );
           server.local.in(room).disconnectSockets(true);
+        }
       } catch {
         /* Invalid internal event cannot grant access. */
       }

@@ -10,7 +10,7 @@ test('delivery refuses revoked sessions and stale resource rooms independently',
   const received: string[] = [], disconnected: string[] = [];
   const sockets = ['allowed', 'removed', 'revoked'].map(userId => ({
     data: { sessionIdentity: { sub: userId, sid: userId, exp: Math.floor(Date.now() / 1000) + 60 } },
-    emit: () => received.push(userId), disconnect: () => disconnected.push(userId),
+    emit: (event: string) => { if (event === 'project:changed') received.push(userId); }, disconnect: () => disconnected.push(userId),
   }));
   const server = { in: () => ({ fetchSockets: () => Promise.resolve(sockets) }) } as unknown as Server;
   globalThis.fetch = (_url, options) => {

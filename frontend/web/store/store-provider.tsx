@@ -3,12 +3,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Provider } from "react-redux";
 import { store, useAppDispatch } from "./store";
-import { setCredentials, clearCredentials } from "./auth/auth-slice";
+import { setCredentials } from "./auth/auth-slice";
 import "@/lib/interceptors";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { refreshApi } from "@/features/auth/api/auth.api";
-import axios from "axios";
+import { endSession, isAuthenticationFailure } from "@/features/auth/api/session-recovery";
 import { clearCopiedMessage } from "@/features/chat/utils/message-clipboard";
 import { socketService } from "@/features/chat/api/chat-socket.service";
 import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
@@ -79,6 +79,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
     };
 
     const initializeAuth = async () => {
+      const initialSession = store.getState().auth;
       const currentToken = store.getState().auth.accessToken;
       const currentSearch = getCurrentSearch();
       const safeReturnTo = getReturnToFromSearch(currentSearch);
@@ -103,6 +104,8 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
         const response = await refreshApi();
         const data = response.data;
 
+        if (store.getState().auth !== initialSession) return;
+
         if (!data || !data.accessToken) {
           throw new Error("Chưa đăng nhập");
         }
@@ -121,22 +124,17 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
         if (shouldRedirectAuthenticatedUser(pathname)) {
           replaceIfNeeded(safeReturnTo ?? "/dashboard");
         }
-      } catch {
-        dispatch(clearCredentials());
-
-        if (!isPublicPath(pathname)) {
-          try {
-            await axios.post(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`,
-              {},
-              { withCredentials: true },
-            );
-          } catch {
-            // Ignore logout error
+      } catch (error) {
+        if (store.getState().auth !== initialSession) return;
+        if (!isAuthenticationFailure(error)) {
+          // A temporary refresh outage must not revoke an existing local session
+          // or erase the refresh cookie needed to restore it later.
+          if (!currentToken && !isPublicPath(pathname)) {
+            replaceIfNeeded(getLoginRedirectPath(pathname, currentSearch));
           }
-
-          replaceIfNeeded(getLoginRedirectPath(pathname, currentSearch));
+          return;
         }
+        await endSession(initialSession);
       } finally {
         hasInitialized.current = true;
         setIsInitializing(false);
