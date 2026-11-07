@@ -10,6 +10,7 @@ import { canCopyMessage, copyMessageToClipboard } from "../../utils/message-clip
 import { MESSAGE_CLIPBOARD_MESSAGES } from "../../types/message-clipboard.types";
 import {
   QUICK_EMOJIS,
+  ChatContextType,
   UserProfileSnapshotResponse,
 } from "../../types/chat.types";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -32,6 +33,7 @@ import { MemberProfilesMap, RenderableChatMessage } from "./chat-message.types";
 import ReactionDetailModal from "../modals/message/reaction-detail-modal";
 import { Button } from "@/components/ui/button";
 import { AnchoredPopover } from "@/components/ui/anchored-popup";
+import { isAudioFile } from "../../utils/media-utils";
 
 
 interface ChatMessageProps {
@@ -111,14 +113,14 @@ const ChatMessage = React.memo(function ChatMessage({
   const visualMedias = useMemo(
     () =>
       msg.medias?.filter(
-        (media) => media.type === "IMAGE" || media.type === "VIDEO",
+        (media) => !isAudioFile(media) && (media.type === "IMAGE" || media.type === "VIDEO"),
       ) || [],
     [msg.medias],
   );
   const fileMedias = useMemo(
     () =>
       msg.medias?.filter(
-        (media) => media.type !== "IMAGE" && media.type !== "VIDEO",
+        (media) => isAudioFile(media) || (media.type !== "IMAGE" && media.type !== "VIDEO"),
       ) || [],
     [msg.medias],
   );
@@ -289,7 +291,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 medias={visualMedias}
                 onPreview={setPreviewIndex}
               />
-              <MessageFileMedias medias={fileMedias} isMe={isMe} />
+              <MessageFileMedias medias={fileMedias} isMe={isMe} chatType={msg.channelId ? ChatContextType.CHANNEL : msg.conversationId ? ChatContextType.DIRECT_MESSAGE : undefined} />
 
               {msg.type === CHAT_MESSAGE_TYPES.DOCUMENT && (
                 <DocumentMessage msg={msg} isMe={isMe} />

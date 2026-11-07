@@ -48,7 +48,7 @@ def load_model():
     )
 
 
-def recognize(model, audio: bytes) -> str:
+def recognize(model, audio: bytes, language: str = "vi") -> str:
     import numpy as np
 
     # Input is already validated PCM16, so no media decoder or second conversion is needed.
@@ -56,7 +56,7 @@ def recognize(model, audio: bytes) -> str:
         samples = np.frombuffer(source.readframes(source.getnframes()), dtype="<i2").astype(np.float32) / 32768.0
     segments, _ = model.transcribe(
         samples,
-        language="vi",
+        language=None if language == "auto" else language,
         task="transcribe",
         beam_size=5,
         vad_filter=True,
@@ -103,6 +103,9 @@ def create_app(model_loader=load_model, service_key: str | None = None):
 
     @app.post("/transcribe", dependencies=[Depends(authorize)])
     async def transcribe(request: Request):
+        language = request.headers.get("x-speech-language", "vi")
+        if language not in {"vi", "en", "auto"}:
+            raise HTTPException(422, "Unsupported speech language")
         if request.headers.get("content-type", "").split(";")[0] != "audio/wav":
             raise HTTPException(415, "Expected audio/wav")
         length = request.headers.get("content-length")
@@ -126,7 +129,7 @@ def create_app(model_loader=load_model, service_key: str | None = None):
             raise HTTPException(429, "Local speech worker is busy")
         async with app.state.inference_lock:
             try:
-                text = await run_in_threadpool(recognize, app.state.model, bytes(audio))
+                text = await run_in_threadpool(recognize, app.state.model, bytes(audio), language)
             except Exception:
                 raise HTTPException(503, "Local transcription failed") from None
         return {"text": text}

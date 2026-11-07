@@ -1,25 +1,33 @@
-import { StorageAudio } from "@/components/common/storage-media";
+import { VoiceMessagePlayer } from "../components/message/voice-message-player";
+import type { VoiceChatType } from "../types/voice.types";
 import { formatDateTime } from "@/lib/date";
 import type { ChatMediaResponse } from "../types/chat.types";
 
-export const isAudioFile = (media: ChatMediaResponse | null | undefined): boolean => {
+export const isAudioFile = (
+  media: ChatMediaResponse | null | undefined,
+): boolean => {
   if (!media) return false;
-  return (
-    media.mimeType?.startsWith("audio/") ||
-    media.name?.endsWith(".webm") ||
-    media.name?.endsWith(".mp3") ||
-    media.name?.endsWith(".m4a")
-  );
+  if (media.mimeType?.startsWith("audio/")) return true;
+  const name = media.name?.toLowerCase() ?? "";
+  if (name.startsWith("voice_message_") && /\.(webm|m4a|ogg|wav)$/.test(name))
+    return true;
+  if (media.mimeType && media.mimeType !== "application/octet-stream")
+    return false;
+  return /\.(mp3|m4a|wav|ogg|flac|aac)$/.test(name);
 };
 
-export const renderAudioPlayer = (media: ChatMediaResponse, isMe: boolean) => {
+export const renderAudioPlayer = (
+  media: ChatMediaResponse,
+  isMe: boolean,
+  chatType?: VoiceChatType,
+) => {
   return (
-    <div
+    <VoiceMessagePlayer
       key={media.id}
-      className={`min-w-0 max-w-full p-2 rounded-panel ${isMe ? "bg-primary-soft" : "bg-muted"}`}
-    >
-      <StorageAudio controls src={media.fileUrl} className="h-10 w-full min-w-0 max-w-full sm:max-w-[240px]" />
-    </div>
+      media={media}
+      isMe={isMe}
+      chatType={chatType}
+    />
   );
 };
 

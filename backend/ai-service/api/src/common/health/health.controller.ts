@@ -9,6 +9,7 @@ import {
   meetingSummaryQueue,
 } from "../../infrastructure/queue/notebook.queue";
 import { checkHttpDependencies } from "./http-dependencies";
+import { VOICE_TRANSCRIPT } from "../../modules/voice-transcript/voice.constants";
 @Controller()
 export class HealthController {
   @Get("health") health() {
@@ -26,6 +27,18 @@ export class HealthController {
         summaryQueue.getJobCounts("waiting"),
       ]);
       const redis = await queue.client;
+      if (config.VOICE_TRANSCRIPTION_ENABLED === "true") {
+        await db.query(
+          "SELECT media_id FROM notebook_ai.voice_transcripts LIMIT 0",
+        );
+        await meetingSummaryQueue.getJobCounts("waiting");
+        if (
+          (await redis.get(VOICE_TRANSCRIPT.heartbeatKey)) !==
+          VOICE_TRANSCRIPT.heartbeatValue
+        ) {
+          throw new Error(VOICE_TRANSCRIPT.unavailable);
+        }
+      }
       if (config.MEETING_SUMMARY_ENABLED === "true") {
         await meetingSummaryQueue.getJobCounts("waiting");
         if (

@@ -6,6 +6,8 @@ import {
 } from "../infrastructure/queue/notebook.queue";
 
 import { logError } from "../common/errors/error-log";
+import { config } from "../config/env.config";
+import { VOICE_TRANSCRIPT } from "../modules/voice-transcript/voice.constants";
 
 const RECOVERY_BATCH_SIZE = 100;
 type Candidate = { id: string; kind: string; run_id?: string };
@@ -100,6 +102,30 @@ export async function reconcileQueuedJobs(
 ) {
   const started = performance.now();
   const stages: RecoveryCounts[] = [];
+  if (config.VOICE_TRANSCRIPTION_ENABLED === "true") {
+    stages.push(
+      await recoverBatches(
+        "voice-transcripts",
+        `SELECT run_id AS id,'voice' AS kind,run_id FROM notebook_ai.voice_transcripts
+       WHERE status IN ('QUEUED','RUNNING') AND updated_at<now()-interval '2 minutes'`,
+        async (item) => {
+          const job = await meetingSummaryQueue.getJob(
+            `${VOICE_TRANSCRIPT.jobPrefix}${item.run_id}`,
+          );
+          const status = job ? await job.getState() : "missing";
+          if (!["missing", "failed", "completed", "unknown"].includes(status))
+            return false;
+          const updated = await rows(
+            `UPDATE notebook_ai.voice_transcripts SET status='FAILED',error=$2,updated_at=now()
+          WHERE run_id=$1 AND status IN ('QUEUED','RUNNING') AND updated_at<now()-interval '2 minutes' RETURNING run_id`,
+            [item.run_id, VOICE_TRANSCRIPT.interrupted],
+          );
+          return updated.length > 0;
+        },
+        signal,
+      ),
+    );
+  }
   if (includeMeetings) {
     stages.push(
       await recoverBatches(

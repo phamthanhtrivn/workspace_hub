@@ -1,13 +1,16 @@
 import { config } from "../../config/env.config";
 
 export async function checkHttpDependencies() {
+  const speechEnabled =
+    config.MEETING_SUMMARY_ENABLED === "true" ||
+    config.VOICE_TRANSCRIPTION_ENABLED === "true";
   const results = await Promise.allSettled([
     fetch(`${config.RAG_WORKER_URL}/ready`, {
       headers: { "x-internal-service-key": config.RAG_SERVICE_KEY },
       signal: AbortSignal.timeout(3000),
       redirect: "error",
     }),
-    ...(config.MEETING_SUMMARY_ENABLED === "true"
+    ...(speechEnabled
       ? [
           fetch(config.MEETING_STT_URL.replace(/\/$/, "") + "/ready", {
             headers: {
@@ -39,11 +42,10 @@ export async function checkHttpDependencies() {
   );
   try {
     if (
-      responses.length !==
-        (config.MEETING_SUMMARY_ENABLED === "true" ? 3 : 2) ||
+      responses.length !== (speechEnabled ? 3 : 2) ||
       !responses[0].ok ||
       responses.at(-1)?.status !== 400 ||
-      (config.MEETING_SUMMARY_ENABLED === "true" && !responses[1].ok)
+      (speechEnabled && !responses[1].ok)
     )
       throw new Error("AI dependency unavailable or misconfigured");
   } finally {

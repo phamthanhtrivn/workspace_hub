@@ -9,6 +9,7 @@ import { formatFileSize } from "@/lib/file";
 import { isAudioFile, renderAudioPlayer } from "../../utils/media-utils";
 import { MessageMedia } from "./chat-message.types";
 import { Button } from "@/components/ui/button";
+import type { VoiceChatType } from "../../types/voice.types";
 
 
 interface MessageVisualMediasProps {
@@ -19,6 +20,7 @@ interface MessageVisualMediasProps {
 interface MessageFileMediasProps {
   medias: MessageMedia[];
   isMe: boolean;
+  chatType?: VoiceChatType;
 }
 
 async function handleDownload(
@@ -106,14 +108,14 @@ export function MessageVisualMedias({
   );
 }
 
-export function MessageFileMedias({ medias, isMe }: MessageFileMediasProps) {
+export function MessageFileMedias({ medias, isMe, chatType }: MessageFileMediasProps) {
   if (medias.length === 0) return null;
 
   return (
     <div className="flex min-w-0 max-w-full flex-col gap-2">
       {medias.map((media) => {
         if (isAudioFile(media)) {
-          return renderAudioPlayer(media, isMe);
+          return renderAudioPlayer(media, isMe, chatType);
         }
 
         return (

@@ -1,5 +1,7 @@
 import { processConversation } from "./conversation.processor";
 import { processMeetingSummary } from "./meeting-summary.processor";
+import { processVoiceTranscript } from "./voice-transcript.processor";
+import { VOICE_TRANSCRIPT } from "../modules/voice-transcript/voice.constants";
 import { Worker, UnrecoverableError, type Job } from "bullmq";
 import { config, connection } from "../config/env.config";
 import { aiDatabase } from "../infrastructure/database/ai-database.client";
@@ -100,11 +102,20 @@ export function startWorkers() {
         )
       : undefined;
   const meetingWorker =
-    config.MEETING_SUMMARY_ENABLED === "true"
+    config.MEETING_SUMMARY_ENABLED === "true" ||
+    config.VOICE_TRANSCRIPTION_ENABLED === "true"
       ? new Worker(
           "meeting-summary-jobs",
           (job) => {
-            if (job.name !== "meeting-summary")
+            if (
+              job.name === VOICE_TRANSCRIPT.job &&
+              config.VOICE_TRANSCRIPTION_ENABLED === "true"
+            )
+              return processVoiceTranscript(job.data.runId);
+            if (
+              job.name !== "meeting-summary" ||
+              config.MEETING_SUMMARY_ENABLED !== "true"
+            )
               throw new UnrecoverableError("Unknown meeting job");
             return processMeetingSummary(job.data.recordingId, job.data.runId);
           },
@@ -158,7 +169,7 @@ export function startWorkers() {
     if (stopping) return Promise.resolve();
     if (!recovery) {
       recovery = reconcileQueuedJobs(
-        Boolean(meetingWorker),
+        config.MEETING_SUMMARY_ENABLED === "true",
         recoveryAbort.signal,
       ).finally(() => {
         recovery = undefined;
@@ -175,12 +186,19 @@ export function startWorkers() {
       return;
     heartbeatTask = queue.client
       .then(async (client) => {
-        if (meetingWorker)
+        if (meetingWorker && config.MEETING_SUMMARY_ENABLED === "true")
           await client.set(
             "wh-notebook:meeting-summary-worker-heartbeat",
             "ready:meeting-v1",
             { EX: 45 },
           );
+        if (meetingWorker && config.VOICE_TRANSCRIPTION_ENABLED === "true") {
+          await client.set(
+            VOICE_TRANSCRIPT.heartbeatKey,
+            VOICE_TRANSCRIPT.heartbeatValue,
+            { EX: 45 },
+          );
+        }
         if (conversationWorker)
           await client.set(
             "wh-notebook:conversation-worker-heartbeat",

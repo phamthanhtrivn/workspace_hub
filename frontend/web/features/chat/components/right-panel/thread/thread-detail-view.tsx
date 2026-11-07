@@ -60,6 +60,7 @@ import { upsertMessageById } from "../../../utils/message-state-utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
+import { isAudioFile, renderAudioPlayer } from "../../../utils/media-utils";
 import { CHAT_COMPOSER_MESSAGES } from "../../../constants/composer.constants";
 
 
@@ -421,10 +422,10 @@ export default function ThreadDetailView({
     if (!messageItem.medias || messageItem.medias.length === 0) return null;
 
     const visualMedias = messageItem.medias.filter(
-      (m) => m.type === "IMAGE" || m.type === "VIDEO",
+      (m) => !isAudioFile(m) && (m.type === "IMAGE" || m.type === "VIDEO"),
     );
     const fileMedias = messageItem.medias.filter(
-      (m) => m.type !== "IMAGE" && m.type !== "VIDEO",
+      (m) => isAudioFile(m) || (m.type !== "IMAGE" && m.type !== "VIDEO"),
     );
 
     return (
@@ -486,6 +487,7 @@ export default function ThreadDetailView({
         {fileMedias.length > 0 && (
           <div className="flex flex-col gap-1.5 max-w-full">
             {fileMedias.map((media) => {
+              if (isAudioFile(media)) return renderAudioPlayer(media, own, isDirect ? ChatContextType.DIRECT_MESSAGE : ChatContextType.CHANNEL);
               const formatSize = (bytes: number) => {
                 if (bytes === 0) return "0 B";
                 const k = 1024;
