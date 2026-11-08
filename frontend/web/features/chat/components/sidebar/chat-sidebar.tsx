@@ -8,7 +8,6 @@ import { useId as useControlledPopupId } from "react";
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
-  Search,
   MessageSquareText,
   Plus,
   ChevronDown,
@@ -94,7 +93,7 @@ import FollowedThreadsModal, {
   fetchFollowedThreads,
 } from "./followed-threads-modal";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -840,11 +839,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       {/* Search Filter */}
       <div className="p-3 border-b border-border">
         <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            size={14}
-          />
-          <Input aria-label="Search channels, conversations" unstyled
+          <SearchInput iconClassName="size-3.5" aria-label="Search channels, conversations" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

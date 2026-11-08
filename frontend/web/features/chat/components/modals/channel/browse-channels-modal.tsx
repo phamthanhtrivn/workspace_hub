@@ -11,7 +11,7 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useState, useEffect } from "react";
 
-import { X, Search, Hash, Lock, Globe, Trash2 } from "lucide-react";
+import { X, Hash, Lock, Globe, Trash2 } from "lucide-react";
 import ChannelJoinedBadge from "../../ui/channel-joined-badge";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ import { useSpaceChannelsQuery } from "@/features/chat/hooks/useChatQueries";
 import { disbandChannel, joinChannel } from "@/features/chat/api/channel.api";
 import { removeChannelFromCaches } from "@/features/chat/utils/chat-cache";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { DialogSurface } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -161,11 +161,7 @@ function BrowseChannelsModalForm({
         {/* Search */}
         <div className="p-4 border-b border-border bg-background">
           <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              size={16}
-            />
-            <Input aria-label="Search channels by name" unstyled
+            <SearchInput aria-label="Search channels by name" unstyled
               type="text"
               placeholder="Search channels by name..."
               value={searchQuery}

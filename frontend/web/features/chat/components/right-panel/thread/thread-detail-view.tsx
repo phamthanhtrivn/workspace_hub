@@ -48,9 +48,7 @@ import {
   ThreadMessagesResponse,
 } from "../../../types/chat.types";
 import { SendSocketMessageMedia } from "../../../types/chat-socket.types";
-import ThreadChatInput, {
-  ThreadChatInputRef,
-} from "../../input/thread-chat-input";
+import ThreadChatInput from "../../input/thread-chat-input";
 import { renderMessageContent } from "../../../utils/message-formatter";
 import TaskCardMessage from "../../message/task-card-message";
 import { isTaskCardMessage } from "../../../utils/task-card-message";
@@ -126,7 +124,6 @@ export default function ThreadDetailView({
   const isPrivate = activeChat && "spaceId" in activeChat && isPrivateChannel(activeChat);
   const spaceCreatorId = isPrivate ? activeChat.ownerId ?? null : spaceDetail?.createdBy || null;
   const scrollRef = useRef<HTMLDivElement>(null);
-  const chatInputRef = useRef<ThreadChatInputRef>(null);
   const [followOverride, setFollowOverride] = useState<{
     threadId: string;
     isFollowing: boolean;
@@ -341,20 +338,6 @@ export default function ThreadDetailView({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [replies.length]);
-
-  // Focus input when the thread details view opens or the active thread message changes
-  useEffect(() => {
-    if (!canReplyInThread) return;
-    if (chatInputRef.current) {
-      chatInputRef.current.focus();
-    }
-    const timer = setTimeout(() => {
-      if (chatInputRef.current) {
-        chatInputRef.current.focus();
-      }
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [canReplyInThread, rootMessage.id]);
 
   const handleSendReply = async (
     content: string,
@@ -689,7 +672,7 @@ export default function ThreadDetailView({
 
       {/* Input bar */}
       {canReplyInThread ? (
-        <ThreadChatInput key={`${rootChatId}:${rootMessage.id}`} ref={chatInputRef} threadId={rootMessage.id} onSendMessage={handleSendReply} />
+        <ThreadChatInput key={`${rootChatId}:${rootMessage.id}`} threadId={rootMessage.id} onSendMessage={handleSendReply} />
       ) : (
         <div className="w-full border-t border-border bg-card p-3">
           <div className="flex items-center justify-center rounded-panel border border-border bg-background p-3 text-sm text-muted-foreground">

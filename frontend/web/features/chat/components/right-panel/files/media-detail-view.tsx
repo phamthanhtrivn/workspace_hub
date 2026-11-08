@@ -19,7 +19,6 @@ import {
   FileText,
   FileVideo,
   Presentation,
-  Search,
 } from "lucide-react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
@@ -31,7 +30,7 @@ import { getDirectConversationMedia } from "@/features/chat/api/direct-message.a
 import { getChannelMedia } from "@/features/chat/api/channel.api";
 import MediaLightbox from "../../message/media-lightbox";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { LoadingState } from "@/components/ui/loading-state";
 
@@ -271,11 +270,7 @@ export default function MediaDetailView({
 
       <div className="border-b border-border px-4 py-3 flex flex-col gap-3 shrink-0">
         <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            size={16}
-          />
-          <Input aria-label="Search files by name" unstyled
+          <SearchInput aria-label="Search files by name" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

@@ -5,6 +5,7 @@ import { MAX_ATTACHMENT_SIZE_BYTES, ATTACHMENT_SIZE_LIMIT_MESSAGE, getUploadMime
 import { CHAT_COMPOSER_MESSAGES } from "../../constants/composer.constants";
 import type { ComposerSendHandler } from "../../types/composer.types";
 import { useComposerSend } from "../../hooks/input/useComposerSend";
+import { useThreadComposerFocus } from "../../hooks/input/useThreadComposerFocus";
 import { IconButton } from "@/components/ui/icon-button";
 import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 import { useId as useControlledPopupId } from "react";
@@ -120,6 +121,7 @@ const ThreadChatInput = React.memo(
 
     const mentionListId = React.useId();
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    useThreadComposerFocus(textareaRef, threadId);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const plusButtonRef = useRef<HTMLButtonElement>(null);
     const threadOptionsRef = useRef<HTMLDivElement>(null);
@@ -361,18 +363,12 @@ const ThreadChatInput = React.memo(
 
     useImperativeHandle(ref, () => ({
       focus: () => {
-        textareaRef.current?.focus();
+        textareaRef.current?.focus({ preventScroll: true });
       },
       setMessage: (content: string) => {
         setMessage(content);
       },
     }));
-
-    useEffect(() => {
-      if (activeConversationId && textareaRef.current) {
-        textareaRef.current.focus();
-      }
-    }, [activeConversationId]);
 
     const uploadFilesList = async (files: File[]) => {
       const validFiles = files.filter((f) => f.size <= MAX_ATTACHMENT_SIZE_BYTES);
@@ -901,6 +897,7 @@ const ThreadChatInput = React.memo(
               <MentionTextarea mentionProfiles={memberProfiles} mentionNames={mentionNames} unstyled focusMode="container" role="combobox" aria-label="Reply in thread" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded={mentionQuery !== null && filteredMembers.length > 0} aria-controls={mentionQuery !== null && filteredMembers.length > 0 ? mentionListId : undefined} aria-activedescendant={mentionQuery !== null && filteredMembers.length > 0 ? `${mentionListId}-option-${selectedIndex}` : undefined}
                 id="thread-chat-input-textarea"
                 ref={textareaRef}
+                data-modal-initial-focus
                 onPaste={handlePaste}
                 value={
                   message +

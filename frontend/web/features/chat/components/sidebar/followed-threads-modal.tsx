@@ -5,7 +5,7 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useCallback, useMemo, useState } from "react";
 
-import { MessageSquare, MessageSquareText, Search, X } from "lucide-react";
+import { MessageSquare, MessageSquareText, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { formatDateTime } from "@/lib/date";
@@ -26,7 +26,7 @@ import ThreadSnippetPreview, {
   formatThreadSnippet,
 } from "../right-panel/thread/thread-snippet-preview";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { DialogSurface } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -159,11 +159,7 @@ export default function FollowedThreadsModal({
 
         <div className="px-5 py-4 border-b border-border bg-background">
           <div className="relative">
-            <Search
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
-            <Input aria-label="Search followed threads" unstyled
+            <SearchInput aria-label="Search followed threads" unstyled
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search followed threads..."

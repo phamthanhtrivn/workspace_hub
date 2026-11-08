@@ -10,7 +10,7 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useState, useEffect } from "react";
 
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 
@@ -20,7 +20,7 @@ import {
   searchUserByEmail,
 } from "@/features/chat/api/chat.api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { DialogSurface } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -150,11 +150,7 @@ function InviteSpaceMembersModalForm({
 
           {/* Search Box */}
           <div className="relative">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              size={16}
-            />
-            <Input aria-label="Enter user email to search" unstyled
+            <SearchInput aria-label="Enter user email to search" unstyled
               type="text"
               placeholder="Enter user email to search..."
               value={email}
