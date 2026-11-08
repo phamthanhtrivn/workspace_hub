@@ -125,6 +125,8 @@ export interface ChatMetadataResponse {
   ownerName: string | null;
   createdAt: string;
   hasPermission: boolean;
+  userRole: DocumentRole;
+  projectId: string | null;
 }
 
 export { ViewLayout, DocumentSortBy };

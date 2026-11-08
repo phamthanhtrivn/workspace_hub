@@ -27,6 +27,7 @@ import { DocumentLifecycleService } from './document-lifecycle.service';
 import { DocumentSharingService } from './document-sharing.service';
 import { ProjectDocumentAttachmentService } from './project-document-attachment.service';
 import { DocumentDownloadService } from './document-download.service';
+import { DocumentChatMetadata } from './types/document-chat-metadata.types';
 
 @Injectable()
 export class DocumentService {
@@ -218,7 +219,13 @@ export class DocumentService {
     versionId?: string,
     authorization?: string,
   ): Promise<string> {
-    return this.downloads.getPreviewUrl(userId, userEmail, id, versionId, authorization);
+    return this.downloads.getPreviewUrl(
+      userId,
+      userEmail,
+      id,
+      versionId,
+      authorization,
+    );
   }
 
   async getDownloadUrl(
@@ -228,7 +235,13 @@ export class DocumentService {
     versionId?: string,
     authorization?: string,
   ): Promise<string> {
-    return this.downloads.getDownloadUrl(userId, userEmail, id, versionId, authorization);
+    return this.downloads.getDownloadUrl(
+      userId,
+      userEmail,
+      id,
+      versionId,
+      authorization,
+    );
   }
 
   async getVersions(
@@ -377,18 +390,7 @@ export class DocumentService {
     id: string,
     userId?: string,
     userEmail?: string,
-  ): Promise<{
-    id: string;
-    name: string;
-    type: ItemType;
-    sizeBytes: number;
-    containedSizeBytes?: number;
-    mimeType: string | null;
-    ownerEmail: string;
-    ownerName: string | null;
-    createdAt: Date;
-    hasPermission: boolean;
-  }> {
+  ): Promise<DocumentChatMetadata> {
     return this.queries.getChatMetadata(id, userId, userEmail);
   }
 

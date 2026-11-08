@@ -18,6 +18,9 @@ import {
 import { isServiceKeyValid } from '../../common/auth/service-key';
 import type { Response } from 'express';
 import { DocumentService } from './document.service';
+import { DocumentChatSharingService } from './document-chat-sharing.service';
+import { PrepareChatShareDto } from './dto/prepare-chat-share.dto';
+import { DOCUMENT_CHAT_SHARING } from './types/document-chat-sharing.constants';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
 import { MoveItemDto } from './dto/move-item.dto';
@@ -35,7 +38,10 @@ import { DocumentSortBy } from '../../common/enums/document.enum';
 
 @Controller('api/documents')
 export class DocumentController {
-  constructor(private readonly documentService: DocumentService) {}
+  constructor(
+    private readonly documentService: DocumentService,
+    private readonly chatSharing: DocumentChatSharingService,
+  ) {}
 
   private validateUserHeaders(userId: string, userEmail: string) {
     if (!userId || !userEmail) {
@@ -618,6 +624,24 @@ export class DocumentController {
       message: 'Chat metadata retrieved successfully',
       data: result,
     };
+  }
+
+  @Post(':id/sharing/chat-access')
+  async prepareChatShare(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: PrepareChatShareDto,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    await this.chatSharing.prepareShare(
+      userId,
+      userEmail,
+      id,
+      dto.recipientUserIds,
+    );
+
+    return { message: DOCUMENT_CHAT_SHARING.SUCCESS };
   }
 
   @Post(':id/sharing/check-permissions')

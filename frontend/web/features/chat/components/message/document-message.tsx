@@ -1,24 +1,14 @@
 "use client";
 
-import {
-  logActionError,
-  getActionErrorMessage,
-} from "@/lib/permission-feedback";
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React from "react";
 import { Lock, Download, Eye, FolderOpen } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { documentsApi } from "@/features/documents/api/documents.api";
+import { useDocumentMessageActions } from "../../hooks/useDocumentMessageActions";
+import { DocumentAccessNotice } from "./document-access-notice";
 import FilePreviewModal from "@/features/documents/components/preview/file-preview-modal";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
 import { formatBytes } from "@/features/documents/utils/documents.utils";
 import { getFileIcon } from "../../utils/document-utils";
 import { ChatMessageResponse } from "../../types/chat.types";
-import {
-  METADATA_QUERY_KEY,
-  METADATA_STALE_TIME,
-} from "../../types/document.constants";
 import { Button } from "@/components/ui/button";
 
 interface DocumentMessageProps {
@@ -27,27 +17,18 @@ interface DocumentMessageProps {
 }
 
 export function DocumentMessage({ msg }: DocumentMessageProps) {
-  const router = useRouter();
-  const documentId = msg.content || "";
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(
-    null,
-  );
-
   const {
-    data: metadata,
+    metadata,
     isLoading,
-    isError,
-  } = useQuery({
-    queryKey: [METADATA_QUERY_KEY, documentId],
-    queryFn: async () => {
-      if (!documentId) return null;
-
-      return documentsApi.getChatMetadata(documentId);
-    },
-    enabled: !!documentId,
-    staleTime: METADATA_STALE_TIME,
-  });
+    error,
+    isProcessing,
+    previewDocumentId,
+    closePreview,
+    retry,
+    handlePreview,
+    handleDownload,
+    handleOpenFolder,
+  } = useDocumentMessageActions(msg.content || "");
 
   if (isLoading) {
     return (
@@ -63,55 +44,16 @@ export function DocumentMessage({ msg }: DocumentMessageProps) {
     );
   }
 
-  if (isError || !metadata) {
+  if (error || !metadata || !metadata.hasPermission) {
     return (
-      <div className="flex flex-col items-center my-3 w-full">
-        <div className="bg-destructive-soft border border-border rounded-panel p-4 max-w-sm min-w-0 w-full [overflow-wrap:anywhere] flex items-center gap-3 text-destructive-content">
-          <Lock size={20} className="shrink-0 text-destructive-content" />
-          <div className="text-xs font-semibold">
-            Document unavailable or removed
-          </div>
-        </div>
-      </div>
+      <DocumentAccessNotice
+        error={error}
+        denied={!error && !!metadata && !metadata.hasPermission}
+        busy={isProcessing}
+        onRetry={retry}
+      />
     );
   }
-
-  const handlePreview = () => {
-    if (
-      isProcessing ||
-      !metadata.hasPermission ||
-      metadata.type === DocumentItemType.FOLDER
-    )
-      return;
-    setPreviewDocumentId(metadata.id);
-  };
-
-  const handleDownload = async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    try {
-      if (metadata.type === DocumentItemType.FOLDER) {
-        await documentsApi.downloadFolderAsZip(metadata.id, metadata.name);
-      } else {
-        const downloadUrl = await documentsApi.getDownloadUrl(metadata.id);
-        const link = document.createElement("a");
-        link.href = downloadUrl;
-        link.download = metadata.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    } catch (err) {
-      logActionError(err);
-      toast.error(getActionErrorMessage(err, "Download failed."));
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleOpenFolder = () => {
-    router.push(`/documents?view=SHARED&folderId=${metadata.id}`);
-  };
 
   const themeClasses =
     metadata.type === DocumentItemType.FOLDER
@@ -157,6 +99,7 @@ export function DocumentMessage({ msg }: DocumentMessageProps) {
               <>
                 <Button
                   variant="unstyled"
+                  disabled={isProcessing}
                   onClick={handleOpenFolder}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground bg-card border border-border hover:bg-background rounded-control transition-all"
                 >
@@ -165,6 +108,7 @@ export function DocumentMessage({ msg }: DocumentMessageProps) {
                 </Button>
                 <Button
                   variant="warning-soft"
+                  disabled={isProcessing}
                   onClick={handleDownload}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-control transition-all"
                 >
@@ -176,6 +120,7 @@ export function DocumentMessage({ msg }: DocumentMessageProps) {
               <>
                 <Button
                   variant="unstyled"
+                  disabled={isProcessing}
                   onClick={handlePreview}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground bg-card border border-border hover:bg-background rounded-control transition-all"
                 >
@@ -184,6 +129,7 @@ export function DocumentMessage({ msg }: DocumentMessageProps) {
                 </Button>
                 <Button
                   variant="info-soft"
+                  disabled={isProcessing}
                   onClick={handleDownload}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-control transition-all"
                 >
@@ -209,7 +155,7 @@ export function DocumentMessage({ msg }: DocumentMessageProps) {
         <FilePreviewModal
           open
           item={metadata}
-          onClose={() => setPreviewDocumentId(null)}
+          onClose={closePreview}
           onDownload={handleDownload}
         />
       ) : null}

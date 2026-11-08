@@ -39,6 +39,7 @@ import { useDocumentModals } from "../hooks/useDocumentModals";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
 import { Info, UploadCloud, FolderPlus, Edit3 } from "lucide-react";
 import { resolveDocumentProjectContext } from "../utils/project-documents";
+import { documentFolderAccessKey } from "../utils/document-navigation";
 
 interface DocumentExplorerProps {
   currentFolderId: string | null;
@@ -67,7 +68,7 @@ export function DocumentExplorer({
 }: DocumentExplorerProps) {
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const folderAccess = useQuery({
-    queryKey: ["documents", "folder-access", currentUserId, currentFolderId],
+    queryKey: documentFolderAccessKey(currentUserId, currentFolderId),
     queryFn: () => documentsApi.getAccessibleItem(currentFolderId!),
     enabled: Boolean(currentUserId && currentFolderId && canEditDocuments),
     retry: false,

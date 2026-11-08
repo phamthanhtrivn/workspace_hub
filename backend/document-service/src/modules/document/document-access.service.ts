@@ -113,6 +113,10 @@ export class DocumentAccessService {
     return (await this.resolveRole(itemId, userId, userEmail)).role;
   }
 
+  getAccessContext(itemId: string, userId?: string, userEmail?: string) {
+    return this.resolveRole(itemId, userId, userEmail);
+  }
+
   async checkPermission(
     itemId: string,
     userId?: string,

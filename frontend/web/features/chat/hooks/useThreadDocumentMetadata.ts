@@ -2,11 +2,12 @@
 
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
+import { useAppSelector } from "@/store/store";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import type { ChatMessageResponse } from "../types/chat.types";
 import {
   CHAT_MESSAGE_TYPES,
-  METADATA_QUERY_KEY,
+  chatDocumentMetadataKey,
   METADATA_STALE_TIME,
 } from "../types/document.constants";
 import type { ThreadDocumentMetadata } from "../utils/thread-snippet";
@@ -15,6 +16,7 @@ export function useThreadDocumentMetadata(
   messages: ChatMessageResponse[],
   enabled: boolean,
 ) {
+  const currentUserId = useAppSelector((state) => state.auth.userId);
   const documentIds = useMemo(
     () => [
       ...new Set(
@@ -31,9 +33,9 @@ export function useThreadDocumentMetadata(
   );
   const queries = useQueries({
     queries: documentIds.map((id) => ({
-      queryKey: [METADATA_QUERY_KEY, id],
+      queryKey: chatDocumentMetadataKey(currentUserId, id),
       queryFn: () => documentsApi.getChatMetadata(id),
-      enabled,
+      enabled: enabled && !!currentUserId,
       staleTime: METADATA_STALE_TIME,
       retry: false,
     })),

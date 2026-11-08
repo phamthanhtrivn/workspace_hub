@@ -5,6 +5,54 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { DocumentAccessService } from './document-access.service';
 import { HttpException } from '@nestjs/common';
 
+void test('project ownership overrides a child folder creator when resolving navigation role', async (context) => {
+  const beforeUrl = process.env.PROJECT_SERVICE_URL;
+  const beforeKey = process.env.DOCUMENT_TO_PROJECT_KEY;
+  process.env.PROJECT_SERVICE_URL = 'http://project.test';
+  process.env.DOCUMENT_TO_PROJECT_KEY = 'test-key';
+  context.after(() => {
+    if (beforeUrl === undefined) delete process.env.PROJECT_SERVICE_URL;
+    else process.env.PROJECT_SERVICE_URL = beforeUrl;
+    if (beforeKey === undefined) delete process.env.DOCUMENT_TO_PROJECT_KEY;
+    else process.env.DOCUMENT_TO_PROJECT_KEY = beforeKey;
+  });
+  context.mock.method(
+    globalThis,
+    'fetch',
+    (_url: unknown, init?: RequestInit) => {
+      const { userId } = JSON.parse(init?.body as string) as { userId: string };
+
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            owner: userId === 'project-owner',
+            canEditDocuments: false,
+          }),
+        ),
+      );
+    },
+  );
+  const access = new DocumentAccessService({
+    documentItem: {
+      findUnique: () =>
+        Promise.resolve({
+          id: 'child',
+          ownerUserId: 'uploader',
+          projectId: 'project',
+          shares: [],
+        }),
+    },
+  } as unknown as PrismaService);
+  assert.equal(
+    (await access.getAccessContext('child', 'project-owner')).role,
+    DocumentRole.OWNER,
+  );
+  assert.equal(
+    (await access.getAccessContext('child', 'uploader')).role,
+    DocumentRole.VIEWER,
+  );
+});
+
 void test('shared access distinguishes restricted, expired, missing and unavailable documents', async () => {
   const file = {
     id: 'file',

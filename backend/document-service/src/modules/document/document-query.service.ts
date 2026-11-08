@@ -1,4 +1,10 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { DOCUMENT_ACCESS_ERRORS } from '../../common/constants/document-access.constants';
+import { DocumentChatMetadata } from './types/document-chat-metadata.types';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   ItemType,
@@ -288,24 +294,14 @@ export class DocumentQueryService {
     id: string,
     userId?: string,
     userEmail?: string,
-  ): Promise<{
-    id: string;
-    name: string;
-    type: ItemType;
-    sizeBytes: number;
-    containedSizeBytes?: number;
-    mimeType: string | null;
-    ownerEmail: string;
-    ownerName: string | null;
-    createdAt: Date;
-    hasPermission: boolean;
-  }> {
-    const item = await this.access.checkPermission(
+  ): Promise<DocumentChatMetadata> {
+    const { item, role } = await this.access.getAccessContext(
       id,
       userId,
       userEmail,
-      DocumentRole.VIEWER,
     );
+    if (item.isArchived)
+      throw new ForbiddenException(DOCUMENT_ACCESS_ERRORS.UNAVAILABLE);
 
     // Get folder/file size
     let sizeBytes = Number(item.sizeBytes);
@@ -330,6 +326,8 @@ export class DocumentQueryService {
       ownerName,
       createdAt: item.createdAt,
       hasPermission: true,
+      userRole: role,
+      projectId: item.projectId,
     };
   }
 

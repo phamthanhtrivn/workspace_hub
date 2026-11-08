@@ -228,6 +228,7 @@ export const documentsApi = {
 
   getPreviewUrl: async (id: string, versionId?: string): Promise<string> => {
     const response = await api.get(`/api/documents/${id}/preview`, {
+      ...SHARED_DOCUMENT_ACCESS_REQUEST,
       params: { versionId },
     });
 
@@ -236,6 +237,7 @@ export const documentsApi = {
 
   getDownloadUrl: async (id: string, versionId?: string): Promise<string> => {
     const response = await api.get(`/api/documents/${id}/download-url`, {
+      ...SHARED_DOCUMENT_ACCESS_REQUEST,
       params: { versionId },
     });
 
@@ -576,7 +578,10 @@ export const documentsApi = {
   },
 
   getChatMetadata: async (id: string): Promise<ChatMetadataResponse> => {
-    const response = await api.get(`/api/documents/${id}/chat-metadata`);
+    const response = await api.get(
+      `/api/documents/${id}/chat-metadata`,
+      SHARED_DOCUMENT_ACCESS_REQUEST,
+    );
 
     return response.data.data;
   },
@@ -590,6 +595,15 @@ export const documentsApi = {
     );
 
     return response.data.data;
+  },
+
+  prepareChatShare: async (
+    id: string,
+    recipientUserIds: string[],
+  ): Promise<void> => {
+    await api.post(`/api/documents/${id}/sharing/chat-access`, {
+      recipientUserIds,
+    });
   },
 
   addSharesBatch: async (
@@ -617,7 +631,10 @@ export const documentsApi = {
   },
 
   getAccessibleItem: async (id: string): Promise<AccessibleDocumentItem> => {
-    const response = await api.get(`/api/documents/${id}/access`);
+    const response = await api.get(
+      `/api/documents/${id}/access`,
+      SHARED_DOCUMENT_ACCESS_REQUEST,
+    );
 
     return response.data.data;
   },

@@ -8,7 +8,6 @@ import { Send, Users, MessageSquare } from "lucide-react";
 import { DocumentItem } from "../../types/documents.types";
 import { ShareTabType } from "../../types/documents.enums";
 import { useShareToChat } from "../../hooks/useShareToChat";
-import { DocumentsConfirmDialog } from "../ui/documents-confirm-dialog";
 import {
   Dialog,
   DialogContent,
@@ -52,9 +51,6 @@ export function ShareToChatModal({
     channels,
     directConversations,
     handleShare,
-    executeShare,
-    isPermissionConfirmOpen,
-    pendingUnauthorizedEmails,
     currentUserId,
     isProjectDocuments,
     isLoadingProjectSpace,
@@ -252,19 +248,6 @@ export function ShareToChatModal({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Permission Grant Confirm Dialog */}
-      <DocumentsConfirmDialog
-        open={!isProjectDocuments && isPermissionConfirmOpen}
-        title="Permissions required"
-        description={`Some members (${pendingUnauthorizedEmails.length}) do not have view access to this file. Grant view permission to them?`}
-        confirmLabel="Grant access and share"
-        cancelLabel="Share only"
-        variant="warning"
-        isLoading={isSubmitting}
-        onConfirm={() => executeShare(true)}
-        onCancel={() => executeShare(false)}
-      />
     </>
   );
 }

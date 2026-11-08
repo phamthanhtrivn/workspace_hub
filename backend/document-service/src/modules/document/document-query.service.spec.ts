@@ -8,6 +8,7 @@ import type { DocumentAccessService } from './document-access.service';
 import type { DocumentTreeService } from './document-tree.service';
 import type { DocumentPresentationService } from './document-presentation.service';
 import type { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import type { DocumentItem } from '@prisma/client';
 
 function setup(shared = false) {
   const personal = {
@@ -73,6 +74,52 @@ function setup(shared = false) {
     tree,
     {} as DocumentPresentationService,
   );
+}
+
+for (const role of [
+  DocumentRole.OWNER,
+  DocumentRole.EDITOR,
+  DocumentRole.VIEWER,
+]) {
+  void test(`Chat metadata returns the effective project ${role} role independently of the uploader`, async () => {
+    const item = {
+      id: 'child',
+      name: 'Project child',
+      ownerUserId: 'uploader',
+      ownerEmail: 'uploader@example.com',
+      projectId: 'project',
+      type: ItemType.FOLDER,
+      sizeBytes: 0n,
+      createdAt: new Date(),
+      isArchived: false,
+    } as DocumentItem;
+    const access = {
+      getAccessContext: () => Promise.resolve({ item, role }),
+    } as unknown as DocumentAccessService;
+    const tree = {
+      getFolderContainedSize: () => Promise.resolve(128),
+    } as unknown as DocumentTreeService;
+    const presentation = {
+      enrichDocumentItem: () =>
+        Promise.resolve({ ...item, ownerProfile: { fullName: 'Uploader' } }),
+    } as unknown as DocumentPresentationService;
+    const query = new DocumentQueryService(
+      {} as PrismaService,
+      {} as UserProfileSnapshotService,
+      access,
+      tree,
+      presentation,
+    );
+    const result = await query.getChatMetadata(
+      'child',
+      role === DocumentRole.OWNER ? 'project-owner' : 'uploader',
+      'viewer@example.com',
+    );
+    assert.equal(result.userRole, role);
+    assert.equal(result.projectId, 'project');
+    assert.equal(result.sizeBytes, 128);
+    assert.equal(result.hasPermission, true);
+  });
 }
 
 void test('My files includes the owner project root and paginates after access checks', async () => {

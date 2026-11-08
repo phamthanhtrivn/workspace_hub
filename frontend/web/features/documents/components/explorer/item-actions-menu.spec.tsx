@@ -103,3 +103,18 @@ test("personal folder actions retain personal sharing and trash", () => {
   assert.equal(labels.includes("Move to trash"), true);
   assert.equal(labels.includes("Star"), true);
 });
+
+test("personal files shared with Viewer/Editor do not expose Share to chat", () => {
+  for (const userRole of [DocumentRole.VIEWER, DocumentRole.EDITOR]) {
+    const labels = actions({ ...root, projectId: null, userRole });
+    assert.equal(labels.includes("Share to chat"), false);
+  }
+  assert.equal(
+    actions({
+      ...root,
+      projectId: null,
+      userRole: DocumentRole.OWNER,
+    }).includes("Share to chat"),
+    true,
+  );
+});

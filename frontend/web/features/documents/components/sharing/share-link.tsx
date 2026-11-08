@@ -168,7 +168,7 @@ export function ShareModalLink({
         </div>
       </div>
 
-      {copyFailed && (
+      {isOwner && copyFailed && (
         <div role="status" className="space-y-2">
           <p className="text-xs text-destructive-content">
             Copy the link manually:
@@ -185,25 +185,27 @@ export function ShareModalLink({
           />
         </div>
       )}
-      {/* Copy Link Button */}
-      <Button
-        variant="unstyled"
-        disabled={copying}
-        onClick={handleCopyLink}
-        className="relative focus-visible:z-10 flex items-center justify-center gap-2 w-full rounded-control bg-background hover:bg-muted border border-border hover:border-border text-foreground px-4 py-3 text-xs font-semibold transition-all cursor-pointer"
-      >
-        {isCopied ? (
-          <>
-            <Check size={14} className="text-success-content" />
-            <span className="text-success-content">Link copied!</span>
-          </>
-        ) : (
-          <>
-            <Copy size={14} />
-            <span>Copy share link</span>
-          </>
-        )}
-      </Button>
+      {/* Only owners can redistribute share links from this dialog. */}
+      {isOwner ? (
+        <Button
+          variant="unstyled"
+          disabled={copying}
+          onClick={handleCopyLink}
+          className="relative focus-visible:z-10 flex items-center justify-center gap-2 w-full rounded-control bg-background hover:bg-muted border border-border hover:border-border text-foreground px-4 py-3 text-xs font-semibold transition-all cursor-pointer"
+        >
+          {isCopied ? (
+            <>
+              <Check size={14} className="text-success-content" />
+              <span className="text-success-content">Link copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy size={14} />
+              <span>Copy share link</span>
+            </>
+          )}
+        </Button>
+      ) : null}
     </div>
   );
 }

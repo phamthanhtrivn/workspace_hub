@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DocumentController } from './document.controller';
 import type { DocumentService } from './document.service';
+import type { DocumentChatSharingService } from './document-chat-sharing.service';
 import { DocumentRole } from '../../common/enums/document.enum';
 
 for (const role of [
@@ -34,6 +35,7 @@ for (const role of [
     };
     const controller = new DocumentController(
       service as unknown as DocumentService,
+      {} as DocumentChatSharingService,
     );
     const response = await controller.getAccessibleItem(
       'viewer',

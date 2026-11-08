@@ -4,14 +4,21 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
+import { store } from "@/store/store";
 import { Button } from "@/components/ui/button";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import FilePreviewModal from "@/features/documents/components/preview/file-preview-modal";
-import { DocumentItemType } from "@/features/documents/types/documents.enums";
+import {
+  DocumentItemType,
+  DocumentRole,
+} from "@/features/documents/types/documents.enums";
 import type { ChatMetadataResponse } from "@/features/documents/types/documents.types";
 import type { ChatMessageResponse } from "../../types/chat.types";
-import { METADATA_QUERY_KEY } from "../../types/document.constants";
+import { chatDocumentMetadataKey } from "../../types/document.constants";
 import { DocumentMessage } from "./document-message";
+import { DocumentAccessNotice } from "./document-access-notice";
 
 const metadata: ChatMetadataResponse = {
   id: "shared-document",
@@ -23,6 +30,8 @@ const metadata: ChatMetadataResponse = {
   ownerName: "Owner",
   createdAt: "2026-11-08T00:00:00Z",
   hasPermission: true,
+  userRole: DocumentRole.VIEWER,
+  projectId: null,
 };
 
 function descendants(node: React.ReactNode): React.ReactElement[] {
@@ -36,20 +45,33 @@ function descendants(node: React.ReactNode): React.ReactElement[] {
 function setup(context: TestContext, documentMetadata = metadata) {
   const client = new QueryClient();
   context.after(() => client.clear());
-  client.setQueryData([METADATA_QUERY_KEY, metadata.id], documentMetadata);
-  let previewId: string | null = null;
+  const testStore = configureStore({
+    reducer: () => ({
+      ...store.getState(),
+      auth: { ...store.getState().auth, userId: "viewer" },
+    }),
+  });
+  const key = chatDocumentMetadataKey("viewer", metadata.id);
+  client.setQueryData(key, documentMetadata);
+  const metadataRequest = context.mock.method(
+    documentsApi,
+    "getChatMetadata",
+    async () => documentMetadata,
+  );
+  const states: unknown[] = [];
+  let stateIndex = 0;
   const useState = React.useState;
   context.mock.method(React, "useState", ((initial: unknown) => {
-    if (initial === null) {
-      return [
-        previewId,
-        (nextId: string | null) => {
-          previewId = nextId;
-        },
-      ];
-    }
+    if (typeof initial === "function") return useState(initial);
+    const index = stateIndex++;
+    if (!(index in states)) states[index] = initial;
 
-    return useState(initial);
+    return [
+      states[index],
+      (next: unknown) => {
+        states[index] = typeof next === "function" ? next(states[index]) : next;
+      },
+    ];
   }) as typeof React.useState);
   const open = context.mock.fn();
   const originalWindow = globalThis.window;
@@ -82,19 +104,22 @@ function setup(context: TestContext, documentMetadata = metadata) {
     return null;
   }
   function render(nextMetadata = documentMetadata) {
-    client.setQueryData([METADATA_QUERY_KEY, metadata.id], nextMetadata);
+    stateIndex = 0;
+    client.setQueryData(key, nextMetadata);
     renderToStaticMarkup(
-      <AppRouterContext.Provider value={router}>
-        <QueryClientProvider client={client}>
-          <Harness />
-        </QueryClientProvider>
-      </AppRouterContext.Provider>,
+      <Provider store={testStore}>
+        <AppRouterContext.Provider value={router}>
+          <QueryClientProvider client={client}>
+            <Harness />
+          </QueryClientProvider>
+        </AppRouterContext.Provider>
+      </Provider>,
     );
 
     return descendants(tree);
   }
 
-  return { render, open, previewRequest, push };
+  return { render, open, previewRequest, push, metadataRequest };
 }
 
 function button(elements: React.ReactElement[], label: string) {
@@ -222,3 +247,57 @@ test("shared folders keep the Open Folder action instead of a preview modal", as
     false,
   );
 });
+
+for (const role of [
+  DocumentRole.OWNER,
+  DocumentRole.EDITOR,
+  DocumentRole.VIEWER,
+]) {
+  test(`folder navigation revalidates the current ${role} role instead of trusting the cached card`, async (context) => {
+    const harness = setup(context, {
+      ...metadata,
+      type: DocumentItemType.FOLDER,
+      projectId: "project",
+    });
+    harness.metadataRequest.mock.mockImplementation(async () => ({
+      ...metadata,
+      type: DocumentItemType.FOLDER,
+      projectId: "project",
+      userRole: role,
+    }));
+    const open = button(harness.render(), "Open Folder");
+    assert.ok(open);
+    await open.props.onClick();
+    assert.equal(harness.metadataRequest.mock.callCount(), 1);
+    assert.equal(
+      harness.push.mock.calls[0].arguments[0],
+      `/documents?view=${role === DocumentRole.OWNER ? "MY_FILES" : "SHARED"}&folderId=${metadata.id}`,
+    );
+  });
+}
+
+for (const [code, status] of [
+  ["DOCUMENT_ACCESS_RESTRICTED", 403],
+  ["DOCUMENT_NOT_FOUND", 404],
+] as const) {
+  test(`${code} after loading a Chat card blocks navigation and reports on the card`, async (context) => {
+    const harness = setup(context, {
+      ...metadata,
+      type: DocumentItemType.FOLDER,
+    });
+    const error = { isAxiosError: true, response: { status, data: { code } } };
+    harness.metadataRequest.mock.mockImplementation(async () => {
+      throw error;
+    });
+    const open = button(harness.render(), "Open Folder");
+    assert.ok(open);
+    await open.props.onClick();
+    assert.equal(harness.push.mock.callCount(), 0);
+    const notice = harness
+      .render()
+      .find((element) => element.type === DocumentAccessNotice);
+    assert.ok(notice);
+    assert.equal((notice.props as { error: unknown }).error, error);
+    assert.equal(button(harness.render(), "Download Zip"), undefined);
+  });
+}
