@@ -51,7 +51,10 @@ export interface UserStorageQuota {
   updatedAt: string;
 }
 
-export type AccessibleDocumentItem = Pick<DocumentItem, "id" | "name" | "type" | "sizeBytes" | "mimeType"> & {
+export type AccessibleDocumentItem = Pick<
+  DocumentItem,
+  "id" | "name" | "type" | "sizeBytes" | "mimeType" | "projectId"
+> & {
   userRole: DocumentRole;
 };
 

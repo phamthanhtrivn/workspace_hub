@@ -13,7 +13,9 @@ import ItemActionsMenu from "../explorer/item-actions-menu";
 import { DocumentIcon } from "../common/document-icon";
 import { DocumentsCard } from "../ui/documents-card";
 import { DocumentsStatusBadge } from "../ui/documents-status-badge";
+import { DocumentProjectBadge } from "../ui/document-project-badge";
 import { formatBytes } from "../../utils/documents.utils";
+import { isProjectRootFolder } from "../../utils/project-documents";
 
 export interface GridViewCardProps {
   item: DocumentItem;
@@ -75,6 +77,7 @@ export function GridViewCard({
     isDragging,
   } = useDraggable({
     id: item.id,
+    disabled: isProjectRootFolder(item),
   });
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -125,7 +128,7 @@ export function GridViewCard({
             onPreview?.(item);
           }
         }}
-        className="group flex flex-col justify-between h-40 select-none cursor-pointer border-border hover:border-border hover:bg-warning-soft/10"
+        className="group flex h-full min-h-40 flex-col justify-between select-none cursor-pointer border-border hover:border-border hover:bg-warning-soft/10"
       >
         {/* Header Icon & Menu */}
         <div className="flex items-start justify-between">
@@ -192,9 +195,12 @@ export function GridViewCard({
         </div>
 
         {/* Footer Indicators */}
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-1.5 pt-2">
           <DocumentsStatusBadge type="itemType" itemType={item.type} />
-          {!isProjectDocuments && item.isStarred ? (
+          {item.projectId ? (
+            <DocumentProjectBadge projectId={item.projectId} />
+          ) : null}
+          {!isProjectDocuments && !item.projectId && item.isStarred ? (
             <Star className="h-3.5 w-3.5 fill-warning-content text-warning-content" />
           ) : null}
         </div>

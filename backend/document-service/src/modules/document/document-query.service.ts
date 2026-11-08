@@ -104,7 +104,6 @@ export class DocumentQueryService {
     } else {
       where.ownerUserId = userId;
       where.parentFolderId = null;
-      where.projectId = null;
     }
 
     // 3. Sorting (folders first, then sortBy)
@@ -122,7 +121,11 @@ export class DocumentQueryService {
     const limit = options.limit || 12;
     const skip = (page - 1) * limit;
 
-    const filterPermissions = Boolean(options.isStarredOnly || options.isSharedOnly);
+    const filterPermissions = Boolean(
+      options.isStarredOnly ||
+      options.isSharedOnly ||
+      (!options.folderId && !options.projectId && !options.isArchived),
+    );
     const [candidates, rawTotalCount] = await Promise.all([
       this.prisma.documentItem.findMany({
         where,
@@ -139,9 +142,15 @@ export class DocumentQueryService {
       this.prisma.documentItem.count({ where }),
     ]);
 
-    const readable = await this.access.filterReadable(candidates, userId, userEmail);
+    const readable = await this.access.filterReadable(
+      candidates,
+      userId,
+      userEmail,
+    );
     const totalCount = filterPermissions ? readable.length : rawTotalCount;
-    const items = filterPermissions ? readable.slice(skip, skip + limit) : readable;
+    const items = filterPermissions
+      ? readable.slice(skip, skip + limit)
+      : readable;
     const mappedItems = await Promise.all(
       items.map(async (item) => {
         const userRole = await this.access.getPermissionRole(
@@ -171,6 +180,7 @@ export class DocumentQueryService {
       await this.userProfileSnapshotService.attachProfilesToDocumentItems(
         mappedItems,
       );
+
     return { items: enrichedItems, totalCount };
   }
 
@@ -198,6 +208,7 @@ export class DocumentQueryService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
     return this.access.filterReadable(candidates, userId, userEmail);
   }
 
@@ -255,6 +266,7 @@ export class DocumentQueryService {
                 email = share.shareWithEmail;
               }
             }
+
             return {
               id: v.id,
               documentItemId: v.documentItemId,

@@ -61,7 +61,7 @@ export function ShareToChatModal({
     projectSpaceUnavailable,
   } = useShareToChat({
     item,
-    projectId,
+    projectId: projectId ?? item?.projectId ?? undefined,
     onSuccess: onClose,
   });
 

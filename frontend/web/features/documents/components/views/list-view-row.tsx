@@ -17,8 +17,10 @@ import {
 } from "../../utils/documents.utils";
 import { DocumentIcon } from "../common/document-icon";
 import { DocumentsStatusBadge } from "../ui/documents-status-badge";
+import { DocumentProjectBadge } from "../ui/document-project-badge";
 import { cn } from "@/lib/utils";
 import { TableRow, TableCell } from "@/components/ui/table";
+import { isProjectRootFolder } from "../../utils/project-documents";
 
 export interface ListViewRowProps {
   item: DocumentItem;
@@ -80,6 +82,7 @@ export function ListViewRow({
     isDragging,
   } = useDraggable({
     id: item.id,
+    disabled: isProjectRootFolder(item),
   });
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -149,20 +152,25 @@ export function ListViewRow({
             className="p-2 rounded-panel"
           />
         </Button>
-        <Button
-          variant="unstyled"
-          type="button"
-          className="relative min-w-0 max-w-xs truncate rounded-xs text-left font-semibold text-foreground focus-visible:z-10"
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (isFolder) onFolderClick(item);
-            else onPreview?.(item);
-          }}
-        >
-          {item.name}
-        </Button>
-        {!isProjectDocuments && item.isStarred ? (
+        <div className="flex min-w-0 flex-col items-start gap-1">
+          <Button
+            variant="unstyled"
+            type="button"
+            className="relative min-w-0 max-w-xs truncate rounded-xs text-left font-semibold text-foreground focus-visible:z-10"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isFolder) onFolderClick(item);
+              else onPreview?.(item);
+            }}
+          >
+            {item.name}
+          </Button>
+          {item.projectId ? (
+            <DocumentProjectBadge projectId={item.projectId} />
+          ) : null}
+        </div>
+        {!isProjectDocuments && !item.projectId && item.isStarred ? (
           <Star className="h-3.5 w-3.5 fill-warning-content text-warning-content shrink-0 ml-1" />
         ) : null}
       </TableCell>

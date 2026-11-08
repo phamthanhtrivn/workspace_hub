@@ -15,17 +15,20 @@ for (const role of [
     const service = {
       checkPermission: (id: string, userId: string, email: string) => {
         identityChecks.push([id, userId, email]);
+
         return Promise.resolve({
           id,
           name: 'Folder',
           type: 'FOLDER',
           sizeBytes: 0n,
           mimeType: null,
+          projectId: 'project',
           s3Key: 'private-key',
         });
       },
       getPermissionRole: (id: string, userId: string, email: string) => {
         identityChecks.push([id, userId, email]);
+
         return Promise.resolve(role);
       },
     };
@@ -39,6 +42,7 @@ for (const role of [
     );
     assert.equal(response.data.userRole, role);
     assert.equal(response.data.id, 'folder');
+    assert.equal(response.data.projectId, 'project');
     assert.deepEqual(identityChecks, [
       ['folder', 'viewer', 'test@example.invalid'],
       ['folder', 'viewer', 'test@example.invalid'],

@@ -28,7 +28,7 @@ import {
 
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-
+import { isProjectRootFolder } from "../../utils/project-documents";
 
 interface ItemActionsMenuProps {
   item: DocumentItem;
@@ -67,8 +67,10 @@ export function ItemActionsMenu({
   onShare,
   onDownloadFolder,
   onShareToChat,
-  isProjectDocuments = false,
+  isProjectDocuments: isProjectContext = false,
 }: ItemActionsMenuProps) {
+  const isProjectDocuments = isProjectContext || Boolean(item.projectId);
+  const isProjectRoot = isProjectRootFolder(item);
   const menuId = React.useId();
   const isOpen = activeMenuId === item.id;
   const userRole = item.userRole ?? DocumentRole.NONE;
@@ -80,12 +82,12 @@ export function ItemActionsMenu({
 
   const menuRef = useRef<HTMLDivElement>(null);
 
-
-
   return (
     <div className="relative" ref={menuRef}>
       <DocumentsIconButton
-        aria-haspopup="menu" aria-expanded={isOpen} aria-controls={menuId}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-controls={menuId}
         icon={MoreVertical}
         label="Actions"
         showTooltip={false}
@@ -97,11 +99,19 @@ export function ItemActionsMenu({
       />
 
       {isOpen ? (
-        <AnchoredMenu id={menuId} onClose={() => setActiveMenuId(null)} side="bottom" align="end" aria-label="Document actions" className="z-50 w-48 rounded-panel border border-border bg-card p-2 text-xs font-semibold text-foreground animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel">
+        <AnchoredMenu
+          id={menuId}
+          onClose={() => setActiveMenuId(null)}
+          side="bottom"
+          align="end"
+          aria-label="Document actions"
+          className="z-50 w-48 rounded-panel border border-border bg-card p-2 text-xs font-semibold text-foreground animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel"
+        >
           {activeView !== DocumentViewType.TRASH ? (
             <>
               {!isFolder && onPreview ? (
-                <DropdownMenuItem closeOnClick={false}
+                <DropdownMenuItem
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -116,7 +126,8 @@ export function ItemActionsMenu({
               ) : null}
 
               {!isFolder && onDownload ? (
-                <DropdownMenuItem closeOnClick={false}
+                <DropdownMenuItem
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -131,7 +142,8 @@ export function ItemActionsMenu({
               ) : null}
 
               {isFolder && onDownloadFolder ? (
-                <DropdownMenuItem closeOnClick={false}
+                <DropdownMenuItem
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -146,7 +158,13 @@ export function ItemActionsMenu({
               ) : null}
 
               {!isFolder && onManageVersions ? (
-                <DropdownMenuItem disabledReason={!((isOwner || isEditor)) ? PERMISSION_REASON.documentEdit : undefined} closeOnClick={false}
+                <DropdownMenuItem
+                  disabledReason={
+                    !(isOwner || isEditor)
+                      ? PERMISSION_REASON.documentEdit
+                      : undefined
+                  }
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -161,7 +179,15 @@ export function ItemActionsMenu({
               ) : null}
 
               {!isProjectDocuments && onShare ? (
-                <DropdownMenuItem disabledReason={!(canEdit) ? isProjectDocuments ? PERMISSION_REASON.projectDocuments : PERMISSION_REASON.documentEdit : undefined} closeOnClick={false}
+                <DropdownMenuItem
+                  disabledReason={
+                    !canEdit
+                      ? isProjectDocuments
+                        ? PERMISSION_REASON.projectDocuments
+                        : PERMISSION_REASON.documentEdit
+                      : undefined
+                  }
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -175,8 +201,11 @@ export function ItemActionsMenu({
                 </DropdownMenuItem>
               ) : null}
 
-              {((isProjectDocuments && userRole !== DocumentRole.NONE) || isOwner) && onShareToChat ? (
-                <DropdownMenuItem closeOnClick={false}
+              {((isProjectDocuments && userRole !== DocumentRole.NONE) ||
+                isOwner) &&
+              onShareToChat ? (
+                <DropdownMenuItem
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -190,7 +219,8 @@ export function ItemActionsMenu({
                 </DropdownMenuItem>
               ) : null}
 
-              <DropdownMenuItem closeOnClick={false}
+              <DropdownMenuItem
+                closeOnClick={false}
 
                 onClick={(e) => {
                   e.stopPropagation();
@@ -203,8 +233,16 @@ export function ItemActionsMenu({
                 <span>Details</span>
               </DropdownMenuItem>
 
-              {(
-                <DropdownMenuItem disabledReason={!(canEdit) ? isProjectDocuments ? PERMISSION_REASON.projectDocuments : PERMISSION_REASON.documentEdit : undefined} closeOnClick={false}
+              {
+                <DropdownMenuItem
+                  disabledReason={
+                    !canEdit
+                      ? isProjectDocuments
+                        ? PERMISSION_REASON.projectDocuments
+                        : PERMISSION_REASON.documentEdit
+                      : undefined
+                  }
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -216,10 +254,18 @@ export function ItemActionsMenu({
                   <FaEdit className="h-3.5 w-3.5 text-warning-content" />
                   <span>Rename</span>
                 </DropdownMenuItem>
-              )}
+              }
 
-              {(
-                <DropdownMenuItem disabledReason={!(canMove) ? isProjectDocuments ? PERMISSION_REASON.projectDocuments : PERMISSION_REASON.documentOwner : undefined} closeOnClick={false}
+              {!isProjectRoot && (
+                <DropdownMenuItem
+                  disabledReason={
+                    !canMove
+                      ? isProjectDocuments
+                        ? PERMISSION_REASON.projectDocuments
+                        : PERMISSION_REASON.documentOwner
+                      : undefined
+                  }
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -234,7 +280,8 @@ export function ItemActionsMenu({
               )}
 
               {!isProjectDocuments && onToggleStar ? (
-                <DropdownMenuItem closeOnClick={false}
+                <DropdownMenuItem
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -253,7 +300,11 @@ export function ItemActionsMenu({
               ) : null}
 
               {!isProjectDocuments ? (
-                <DropdownMenuItem disabledReason={!(isOwner) ? PERMISSION_REASON.documentOwner : undefined} closeOnClick={false}
+                <DropdownMenuItem
+                  disabledReason={
+                    !isOwner ? PERMISSION_REASON.documentOwner : undefined
+                  }
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -267,8 +318,16 @@ export function ItemActionsMenu({
                 </DropdownMenuItem>
               ) : null}
 
-              {isProjectDocuments && onDeletePermanently ? (
-                <DropdownMenuItem disabledReason={!(canEdit) ? isProjectDocuments ? PERMISSION_REASON.projectDocuments : PERMISSION_REASON.documentEdit : undefined} closeOnClick={false}
+              {isProjectDocuments && !isProjectRoot && onDeletePermanently ? (
+                <DropdownMenuItem
+                  disabledReason={
+                    !canEdit
+                      ? isProjectDocuments
+                        ? PERMISSION_REASON.projectDocuments
+                        : PERMISSION_REASON.documentEdit
+                      : undefined
+                  }
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -284,8 +343,12 @@ export function ItemActionsMenu({
             </>
           ) : (
             <>
-              {(
-                <DropdownMenuItem disabledReason={!(isOwner) ? PERMISSION_REASON.documentOwner : undefined} closeOnClick={false}
+              {
+                <DropdownMenuItem
+                  disabledReason={
+                    !isOwner ? PERMISSION_REASON.documentOwner : undefined
+                  }
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -297,10 +360,14 @@ export function ItemActionsMenu({
                   <FaUndo className="h-3.5 w-3.5 text-success-content" />
                   <span>Restore</span>
                 </DropdownMenuItem>
-              )}
+              }
 
               {onDeletePermanently ? (
-                <DropdownMenuItem disabledReason={!(isOwner) ? PERMISSION_REASON.documentOwner : undefined} closeOnClick={false}
+                <DropdownMenuItem
+                  disabledReason={
+                    !isOwner ? PERMISSION_REASON.documentOwner : undefined
+                  }
+                  closeOnClick={false}
 
                   onClick={(e) => {
                     e.stopPropagation();
