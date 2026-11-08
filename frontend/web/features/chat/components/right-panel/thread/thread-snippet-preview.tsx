@@ -1,83 +1,70 @@
 "use client";
 
-import { useMemo } from "react";
-import { CheckSquare } from "lucide-react";
+import { CheckSquare, Paperclip } from "lucide-react";
+import type { ChatMessageResponse } from "../../../types/chat.types";
+import {
+  formatThreadSnippet,
+  type ThreadDocumentMetadata,
+} from "../../../utils/thread-snippet";
 
-export interface ThreadSnippet {
-  isTask: boolean;
-  title: string;
-  tag?: string;
-}
-
-export function formatThreadSnippet(content: string | undefined | null): ThreadSnippet {
-  if (!content || !content.trim()) {
-    return { isTask: false, title: "Attachment" };
-  }
-
-  const trimmed = content.trim();
-
-  // 1. Try parsing JSON format
-  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-    try {
-      const json = JSON.parse(trimmed);
-      if (json.title || json.taskId) {
-        return {
-          isTask: true,
-          title: json.title || "Task Discussion",
-          tag: json.tag || (json.taskId ? `[Task #${json.taskId.slice(0, 8)}]` : ""),
-        };
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  // 2. Try matching legacy text format with [Task #...]
-  if (content.includes("[Task #")) {
-    const match = content.match(/\[Task #([a-f0-9-]+)\]/i);
-    const tag = match ? `[Task #${match[1].slice(0, 8)}]` : "";
-    const title = content
-      .replace(/📋 Discussion Thread:\s*/i, "")
-      .replace(/\[Task #[^\]]+\]/i, "")
-      .trim();
-    return {
-      isTask: true,
-      title: title || "Task Discussion Thread",
-      tag,
-    };
-  }
-
-  return { isTask: false, title: content };
-}
+export { formatThreadSnippet } from "../../../utils/thread-snippet";
+export type { ThreadSnippet } from "../../../utils/thread-snippet";
 
 export default function ThreadSnippetPreview({
   content,
+  message,
+  documentMetadata,
   className = "",
 }: {
   content: string | undefined | null;
+  message?: ChatMessageResponse;
+  documentMetadata?: ThreadDocumentMetadata | null;
   className?: string;
 }) {
-  const snippet = useMemo(() => formatThreadSnippet(content), [content]);
+  const snippet = formatThreadSnippet(content, message, documentMetadata);
 
   if (snippet.isTask) {
     return (
-      <div
-        className={`flex items-center gap-1.5 text-xs font-semibold text-foreground bg-info-soft/90 border border-border rounded-lg px-2.5 py-1.5 my-0.5 ${className}`}
+      <span
+        className={`flex min-w-0 items-center gap-1.5 text-xs font-semibold text-foreground bg-info-soft/90 border border-border rounded-lg px-2.5 py-1.5 my-0.5 ${className}`}
       >
-        <CheckSquare size={13} className="text-info-content shrink-0" />
-        <span className="truncate">{snippet.title}</span>
+        <CheckSquare
+          size={13}
+          className="text-info-content shrink-0"
+          aria-hidden="true"
+        />
+        <span className="min-w-0 truncate" title={snippet.title}>
+          {snippet.title}
+        </span>
         {snippet.tag && (
           <span className="ml-auto text-xs font-mono bg-info-soft/90 text-info-content px-1.5 py-0.2 rounded font-semibold shrink-0">
             {snippet.tag}
           </span>
         )}
-      </div>
+      </span>
     );
   }
 
   return (
-    <span className={`block text-xs text-muted-foreground line-clamp-2 break-words ${className}`}>
-      {snippet.title}
+    <span
+      className={`block min-w-0 max-w-full whitespace-normal text-xs text-muted-foreground [overflow-wrap:anywhere] ${className}`}
+    >
+      {snippet.title !== snippet.attachmentLabel && (
+        <span className="block line-clamp-2" title={snippet.title}>
+          {snippet.title}
+        </span>
+      )}
+      {snippet.attachmentLabel && (
+        <span
+          className="flex min-w-0 items-start gap-1.5"
+          title={snippet.attachmentLabel}
+        >
+          <Paperclip size={12} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 line-clamp-2">
+            {snippet.attachmentLabel}
+          </span>
+        </span>
+      )}
     </span>
   );
 }
