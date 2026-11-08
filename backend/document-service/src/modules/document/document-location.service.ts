@@ -30,6 +30,7 @@ export class DocumentLocationService {
     if (projectId) {
       return { parentFolderId: null, projectId };
     }
+
     return { ownerUserId, parentFolderId: null, projectId: null };
   }
 
@@ -76,6 +77,7 @@ export class DocumentLocationService {
     name: string,
     parentFolderId: string | null,
     projectId: string | null,
+    excludeIds: string[] = [],
   ) {
     if (!name) throw new BadRequestException('Name cannot be empty');
     const scope = JSON.stringify(
@@ -87,6 +89,7 @@ export class DocumentLocationService {
         ...this.buildSiblingScopeWhere(ownerUserId, parentFolderId, projectId),
         isArchived: false,
         name: { equals: name, mode: 'insensitive' },
+        ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
       },
       select: { name: true, type: true },
     });
@@ -191,6 +194,7 @@ export class DocumentLocationService {
           'The file selected for overwrite no longer matches this upload',
         );
       }
+
       return null;
     }
 
@@ -214,6 +218,7 @@ export class DocumentLocationService {
       userEmail,
       DocumentRole.EDITOR,
     );
+
     return conflict;
   }
 
@@ -222,6 +227,7 @@ export class DocumentLocationService {
     if (dotIndex <= 0 || dotIndex === name.length - 1) {
       return { base: name, ext: '' };
     }
+
     return { base: name.slice(0, dotIndex), ext: name.slice(dotIndex) };
   }
 
@@ -246,6 +252,7 @@ export class DocumentLocationService {
       candidate = `${base} (${suffix})${ext}`;
       suffix += 1;
     }
+
     return candidate;
   }
 

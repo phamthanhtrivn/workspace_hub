@@ -1,9 +1,11 @@
 "use client";
+import { NativeCheckbox } from "@/components/ui/checkbox";
 
 import { Button } from "@/components/ui/button";
 import React from "react";
+import type { DocumentMultiSelection } from "../../types/document-bulk.types";
 import { Star } from "lucide-react";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { useDraggable, useDroppable, useDndContext } from "@dnd-kit/core";
 import { DocumentItem } from "../../types/documents.types";
 import {
   DocumentItemType,
@@ -15,10 +17,15 @@ import { DocumentsCard } from "../ui/documents-card";
 import { DocumentsStatusBadge } from "../ui/documents-status-badge";
 import { DocumentProjectBadge } from "../ui/document-project-badge";
 import { formatBytes } from "../../utils/documents.utils";
-import { isProjectRootFolder } from "../../utils/project-documents";
+import {
+  getBulkItemBlockReason,
+  getMoveDestinationBlockReason,
+} from "../../utils/document-bulk";
+import { DocumentBulkAction } from "../../types/document-bulk.types";
 
 export interface GridViewCardProps {
   item: DocumentItem;
+  selection?: DocumentMultiSelection;
   selectedItemId: string | null;
   onSelect: (id: string | null) => void;
   onFolderClick: (item: DocumentItem) => void;
@@ -43,6 +50,7 @@ export interface GridViewCardProps {
 
 export function GridViewCard({
   item,
+  selection,
   selectedItemId,
   onSelect,
   onFolderClick,
@@ -65,8 +73,21 @@ export function GridViewCard({
   isProjectDocuments = false,
 }: GridViewCardProps) {
   const isFolder = item.type === DocumentItemType.FOLDER;
-  const isSelected = item.id === selectedItemId;
+  const isSelected = selection
+    ? selection.selectedIds.has(item.id)
+    : item.id === selectedItemId;
   const isMenuOpen = activeMenuId === item.id;
+  const { active } = useDndContext();
+  const draggingDocument = active?.data.current?.document as
+    DocumentItem | undefined;
+  const dropBlocked = draggingDocument
+    ? getMoveDestinationBlockReason(
+        item,
+        draggingDocument.projectId ?? undefined,
+        [draggingDocument.id],
+      )
+    : undefined;
+  const moveBlocked = getBulkItemBlockReason(item, DocumentBulkAction.MOVE);
 
   const {
     attributes,
@@ -77,12 +98,17 @@ export function GridViewCard({
     isDragging,
   } = useDraggable({
     id: item.id,
-    disabled: isProjectRootFolder(item),
+    data: { document: item },
+    disabled: !!selection || !!moveBlocked,
   });
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: item.id,
-    disabled: !isFolder,
+    disabled:
+      !!selection ||
+      !isFolder ||
+      !!dropBlocked ||
+      !!getMoveDestinationBlockReason(item, item.projectId ?? undefined),
   });
 
   const setCombinedRef = (node: HTMLDivElement | null) => {
@@ -118,17 +144,19 @@ export function GridViewCard({
         isDraggingOver={isOver}
         onClick={(e) => {
           e.stopPropagation();
-          onSelect(item.id);
+          if (selection) selection.onToggle(item);
+          else onSelect(item.id);
         }}
         onDoubleClick={(e) => {
           e.stopPropagation();
+          if (selection) return;
           if (isFolder) {
             onFolderClick(item);
           } else {
             onPreview?.(item);
           }
         }}
-        className="group flex h-full min-h-40 flex-col justify-between select-none cursor-pointer border-border hover:border-border hover:bg-warning-soft/10"
+        className={`group flex h-full min-h-40 flex-col justify-between select-none cursor-pointer border-border hover:border-border hover:bg-warning-soft/10 ${isFolder && dropBlocked ? "opacity-40" : ""}`}
       >
         {/* Header Icon & Menu */}
         <div className="flex items-start justify-between">
@@ -136,10 +164,17 @@ export function GridViewCard({
             type="button"
             variant="unstyled"
             ref={setActivatorNodeRef}
+            disabled={selection ? selection.disabled : !!moveBlocked}
             className="relative rounded-panel focus-visible:z-10"
             {...attributes}
             {...listeners}
-            aria-label={`Drag ${item.name}`}
+            aria-label={selection ? `Select ${item.name}` : `Drag ${item.name}`}
+            onClick={(e) => {
+              if (selection) {
+                e.stopPropagation();
+                selection.onToggle(item);
+              }
+            }}
           >
             <DocumentIcon
               item={item}
@@ -149,27 +184,38 @@ export function GridViewCard({
             />
           </Button>
 
-          <ItemActionsMenu
-            item={item}
-            activeView={activeView}
-            activeMenuId={activeMenuId}
-            setActiveMenuId={setActiveMenuId}
-            onRename={() => onRename(item)}
-            onMove={() => onMove(item.id)}
-            onToggleStar={onToggleStar ? () => onToggleStar(item) : undefined}
-            onArchive={(archive) =>
-              archive ? onMoveToTrash(item) : onRestore(item)
-            }
-            onViewDetails={() => onViewDetails(item)}
-            onDeletePermanently={() => onDeletePermanently(item)}
-            onPreview={() => onPreview?.(item)}
-            onDownload={() => onDownload?.(item)}
-            onDownloadFolder={() => onDownloadFolder?.(item)}
-            onManageVersions={() => onManageVersions?.(item)}
-            onShare={() => onShare?.(item)}
-            onShareToChat={() => onShareToChat?.(item)}
-            isProjectDocuments={isProjectDocuments}
-          />
+          {selection ? (
+            <NativeCheckbox
+              aria-label={`Select ${item.name}`}
+              checked={isSelected}
+              disabled={selection.disabled}
+              onClick={(e) => e.stopPropagation()}
+              onChange={() => selection.onToggle(item)}
+              className="h-4 w-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40"
+            />
+          ) : (
+            <ItemActionsMenu
+              item={item}
+              activeView={activeView}
+              activeMenuId={activeMenuId}
+              setActiveMenuId={setActiveMenuId}
+              onRename={() => onRename(item)}
+              onMove={() => onMove(item.id)}
+              onToggleStar={onToggleStar ? () => onToggleStar(item) : undefined}
+              onArchive={(archive) =>
+                archive ? onMoveToTrash(item) : onRestore(item)
+              }
+              onViewDetails={() => onViewDetails(item)}
+              onDeletePermanently={() => onDeletePermanently(item)}
+              onPreview={() => onPreview?.(item)}
+              onDownload={() => onDownload?.(item)}
+              onDownloadFolder={() => onDownloadFolder?.(item)}
+              onManageVersions={() => onManageVersions?.(item)}
+              onShare={() => onShare?.(item)}
+              onShareToChat={() => onShareToChat?.(item)}
+              isProjectDocuments={isProjectDocuments}
+            />
+          )}
         </div>
 
         {/* Info Body */}
@@ -182,7 +228,8 @@ export function GridViewCard({
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
-                if (isFolder) onFolderClick(item);
+                if (selection) selection.onToggle(item);
+                else if (isFolder) onFolderClick(item);
                 else onPreview?.(item);
               }}
             >

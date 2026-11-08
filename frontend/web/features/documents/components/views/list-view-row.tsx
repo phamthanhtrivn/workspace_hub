@@ -1,9 +1,11 @@
 "use client";
+import { NativeCheckbox } from "@/components/ui/checkbox";
 
 import { Button } from "@/components/ui/button";
 import React from "react";
+import type { DocumentMultiSelection } from "../../types/document-bulk.types";
 import { Star } from "lucide-react";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { useDraggable, useDroppable, useDndContext } from "@dnd-kit/core";
 import { DocumentItem } from "../../types/documents.types";
 import {
   DocumentItemType,
@@ -20,10 +22,15 @@ import { DocumentsStatusBadge } from "../ui/documents-status-badge";
 import { DocumentProjectBadge } from "../ui/document-project-badge";
 import { cn } from "@/lib/utils";
 import { TableRow, TableCell } from "@/components/ui/table";
-import { isProjectRootFolder } from "../../utils/project-documents";
+import {
+  getBulkItemBlockReason,
+  getMoveDestinationBlockReason,
+} from "../../utils/document-bulk";
+import { DocumentBulkAction } from "../../types/document-bulk.types";
 
 export interface ListViewRowProps {
   item: DocumentItem;
+  selection?: DocumentMultiSelection;
   selectedItemId: string | null;
   onSelect: (id: string | null) => void;
   onFolderClick: (item: DocumentItem) => void;
@@ -48,6 +55,7 @@ export interface ListViewRowProps {
 
 export function ListViewRow({
   item,
+  selection,
   selectedItemId,
   onSelect,
   onFolderClick,
@@ -70,8 +78,21 @@ export function ListViewRow({
   isProjectDocuments = false,
 }: ListViewRowProps) {
   const isFolder = item.type === DocumentItemType.FOLDER;
-  const isSelected = item.id === selectedItemId;
+  const isSelected = selection
+    ? selection.selectedIds.has(item.id)
+    : item.id === selectedItemId;
   const isMenuOpen = activeMenuId === item.id;
+  const { active } = useDndContext();
+  const draggingDocument = active?.data.current?.document as
+    DocumentItem | undefined;
+  const dropBlocked = draggingDocument
+    ? getMoveDestinationBlockReason(
+        item,
+        draggingDocument.projectId ?? undefined,
+        [draggingDocument.id],
+      )
+    : undefined;
+  const moveBlocked = getBulkItemBlockReason(item, DocumentBulkAction.MOVE);
 
   const {
     attributes,
@@ -82,12 +103,17 @@ export function ListViewRow({
     isDragging,
   } = useDraggable({
     id: item.id,
-    disabled: isProjectRootFolder(item),
+    data: { document: item },
+    disabled: !!selection || !!moveBlocked,
   });
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: item.id,
-    disabled: !isFolder,
+    disabled:
+      !!selection ||
+      !isFolder ||
+      !!dropBlocked ||
+      !!getMoveDestinationBlockReason(item, item.projectId ?? undefined),
   });
 
   const setCombinedRef = (node: HTMLTableRowElement | null) => {
@@ -119,10 +145,12 @@ export function ListViewRow({
       style={style}
       onClick={(e) => {
         e.stopPropagation();
-        onSelect(item.id);
+        if (selection) selection.onToggle(item);
+        else onSelect(item.id);
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
+        if (selection) return;
         if (isFolder) {
           onFolderClick(item);
         } else {
@@ -132,6 +160,7 @@ export function ListViewRow({
       className={cn(
         "relative focus-within:z-20 hover:bg-background cursor-pointer select-none transition-colors border-b border-border",
         isSelected && "z-10 bg-info-soft/40",
+        isFolder && dropBlocked && "opacity-40",
         isOver &&
           "z-20 bg-info-soft/50 border-y-2 border-dashed border-info-outline",
       )}
@@ -141,10 +170,17 @@ export function ListViewRow({
           type="button"
           variant="unstyled"
           ref={setActivatorNodeRef}
+          disabled={selection ? selection.disabled : !!moveBlocked}
           className="relative rounded-panel focus-visible:z-10"
           {...attributes}
           {...listeners}
-          aria-label={`Drag ${item.name}`}
+          aria-label={selection ? `Select ${item.name}` : `Drag ${item.name}`}
+          onClick={(e) => {
+            if (selection) {
+              e.stopPropagation();
+              selection.onToggle(item);
+            }
+          }}
         >
           <DocumentIcon
             item={item}
@@ -160,7 +196,8 @@ export function ListViewRow({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
-              if (isFolder) onFolderClick(item);
+              if (selection) selection.onToggle(item);
+              else if (isFolder) onFolderClick(item);
               else onPreview?.(item);
             }}
           >
@@ -191,27 +228,38 @@ export function ListViewRow({
       </TableCell>
       <TableCell unstyled className="p-4 text-right">
         <div className="flex items-center justify-end gap-2">
-          <ItemActionsMenu
-            item={item}
-            activeView={activeView}
-            activeMenuId={activeMenuId}
-            setActiveMenuId={setActiveMenuId}
-            onRename={() => onRename(item)}
-            onMove={() => onMove(item.id)}
-            onToggleStar={onToggleStar ? () => onToggleStar(item) : undefined}
-            onArchive={(archive) =>
-              archive ? onMoveToTrash(item) : onRestore(item)
-            }
-            onViewDetails={() => onViewDetails(item)}
-            onDeletePermanently={() => onDeletePermanently(item)}
-            onPreview={() => onPreview?.(item)}
-            onDownload={() => onDownload?.(item)}
-            onDownloadFolder={() => onDownloadFolder?.(item)}
-            onManageVersions={() => onManageVersions?.(item)}
-            onShare={() => onShare?.(item)}
-            onShareToChat={() => onShareToChat?.(item)}
-            isProjectDocuments={isProjectDocuments}
-          />
+          {selection ? (
+            <NativeCheckbox
+              aria-label={`Select ${item.name}`}
+              checked={isSelected}
+              disabled={selection.disabled}
+              onClick={(e) => e.stopPropagation()}
+              onChange={() => selection.onToggle(item)}
+              className="h-4 w-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40"
+            />
+          ) : (
+            <ItemActionsMenu
+              item={item}
+              activeView={activeView}
+              activeMenuId={activeMenuId}
+              setActiveMenuId={setActiveMenuId}
+              onRename={() => onRename(item)}
+              onMove={() => onMove(item.id)}
+              onToggleStar={onToggleStar ? () => onToggleStar(item) : undefined}
+              onArchive={(archive) =>
+                archive ? onMoveToTrash(item) : onRestore(item)
+              }
+              onViewDetails={() => onViewDetails(item)}
+              onDeletePermanently={() => onDeletePermanently(item)}
+              onPreview={() => onPreview?.(item)}
+              onDownload={() => onDownload?.(item)}
+              onDownloadFolder={() => onDownloadFolder?.(item)}
+              onManageVersions={() => onManageVersions?.(item)}
+              onShare={() => onShare?.(item)}
+              onShareToChat={() => onShareToChat?.(item)}
+              isProjectDocuments={isProjectDocuments}
+            />
+          )}
         </div>
       </TableCell>
     </TableRow>

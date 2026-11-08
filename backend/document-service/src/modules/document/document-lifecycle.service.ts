@@ -4,7 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
 import { MoveItemDto } from './dto/move-item.dto';
-import { ItemType, DocumentItem } from '@prisma/client';
+import { ItemType, DocumentItem, Prisma } from '@prisma/client';
 import { DocumentRole } from '../../common/enums/document.enum';
 import { DocumentLocationService } from './document-location.service';
 import { DocumentEventPublisher } from './document-event-publisher.service';
@@ -47,6 +47,7 @@ export class DocumentLifecycleService {
         parentFolder?.id ?? null,
         projectId,
       );
+
       return tx.documentItem.create({
         data: {
           name: normalizedName,
@@ -61,6 +62,7 @@ export class DocumentLifecycleService {
     });
 
     await this.events.publishProjectDocumentEvent(folder, userId, 'CREATED');
+
     return this.presentation.enrichDocumentItem(folder);
   }
 
@@ -90,15 +92,16 @@ export class DocumentLifecycleService {
       data: { name: normalizedName },
     });
     await this.events.publishProjectDocumentEvent(updated, userId, 'UPDATED');
+
     return this.presentation.enrichDocumentItem(updated);
   }
 
-  async moveItem(
+  async prepareMove(
     userId: string,
     userEmail: string,
     id: string,
     dto: MoveItemDto,
-  ): Promise<DocumentItem> {
+  ) {
     const target = await this.prisma.documentItem.findUnique({
       where: { id },
       select: { projectId: true },
@@ -186,6 +189,21 @@ export class DocumentLifecycleService {
       id,
     );
 
+    return { item, destParentFolderId, destProjectId };
+  }
+
+  async moveItem(
+    userId: string,
+    userEmail: string,
+    id: string,
+    dto: MoveItemDto,
+  ): Promise<DocumentItem> {
+    const { item, destParentFolderId, destProjectId } = await this.prepareMove(
+      userId,
+      userEmail,
+      id,
+      dto,
+    );
     const updated = await this.prisma.documentItem.update({
       where: { id },
       data: {
@@ -197,6 +215,7 @@ export class DocumentLifecycleService {
     if (item.projectId && item.projectId !== updated.projectId) {
       await this.events.publishProjectDocumentEvent(item, userId, 'DELETED');
     }
+
     return this.presentation.enrichDocumentItem(updated);
   }
 
@@ -240,6 +259,7 @@ export class DocumentLifecycleService {
       userId,
       archive ? 'DELETED' : 'UPDATED',
     );
+
     return this.presentation.enrichDocumentItem(updated);
   }
 
@@ -281,6 +301,7 @@ export class DocumentLifecycleService {
     }
 
     await this.events.publishProjectDocumentEvent(item, userId, 'UPDATED');
+
     return {
       ...item,
       sizeBytes: Number(item.sizeBytes),
@@ -309,41 +330,53 @@ export class DocumentLifecycleService {
       );
     }
 
-    await this.prisma.$transaction(async (tx) => {
-      const allItemIds = await this.tree.lockDocumentTree(tx, id);
-      const files = await tx.documentItem.findMany({
-        where: { id: { in: allItemIds }, type: ItemType.FILE },
-        include: { versions: true },
-      });
-      const reclaimed = new Map<string, bigint>();
-      const keys: string[] = [];
-      for (const file of files) {
-        const versions: Array<{ s3Key: string | null; sizeBytes: bigint }> =
-          file.versions.length
-            ? file.versions
-            : [{ s3Key: file.s3Key, sizeBytes: file.sizeBytes }];
-        reclaimed.set(
-          file.ownerUserId,
-          (reclaimed.get(file.ownerUserId) ?? 0n) +
-            versions.reduce((sum, version) => sum + version.sizeBytes, 0n),
-        );
-        for (const version of versions)
-          if (version.s3Key) keys.push(version.s3Key);
-        if (file.s3Key) keys.push(file.s3Key);
-      }
-      const removed = await tx.documentItem.deleteMany({
-        where: { id: { in: allItemIds } },
-      });
-      if (!removed.count) return;
-      for (const [ownerId, bytes] of [...reclaimed].sort(([a], [b]) =>
-        a.localeCompare(b),
-      )) {
-        await tx.$executeRaw`UPDATE user_storage_quotas SET used_bytes = GREATEST(0, used_bytes - ${bytes}), updated_at = NOW() WHERE user_id = ${ownerId}::uuid`;
-      }
-      await this.storageCleanup.enqueue(tx, keys);
-    });
+    await this.prisma.$transaction((tx) =>
+      this.deleteTreesInTransaction(tx, [id]),
+    );
 
     await this.events.publishProjectDocumentEvent(item, userId, 'DELETED');
+  }
+
+  async deleteTreesInTransaction(
+    tx: Prisma.TransactionClient,
+    rootIds: string[],
+  ): Promise<void> {
+    const lockedIds = new Set<string>();
+    for (const rootId of [...rootIds].sort()) {
+      const descendants = await this.tree.lockDocumentTree(tx, rootId);
+      descendants.forEach(id => lockedIds.add(id));
+    }
+    const allItemIds = [...lockedIds];
+    const files = await tx.documentItem.findMany({
+      where: { id: { in: allItemIds }, type: ItemType.FILE },
+      include: { versions: true },
+    });
+    const reclaimed = new Map<string, bigint>();
+    const keys: string[] = [];
+    for (const file of files) {
+      const versions: Array<{ s3Key: string | null; sizeBytes: bigint }> = file
+        .versions.length
+        ? file.versions
+        : [{ s3Key: file.s3Key, sizeBytes: file.sizeBytes }];
+      reclaimed.set(
+        file.ownerUserId,
+        (reclaimed.get(file.ownerUserId) ?? 0n) +
+          versions.reduce((sum, version) => sum + version.sizeBytes, 0n),
+      );
+      for (const version of versions)
+        if (version.s3Key) keys.push(version.s3Key);
+      if (file.s3Key) keys.push(file.s3Key);
+    }
+    const removed = await tx.documentItem.deleteMany({
+      where: { id: { in: allItemIds } },
+    });
+    if (!removed.count) return;
+    for (const [ownerId, bytes] of [...reclaimed].sort(([a], [b]) =>
+      a.localeCompare(b),
+    )) {
+      await tx.$executeRaw`UPDATE user_storage_quotas SET used_bytes = GREATEST(0, used_bytes - ${bytes}), updated_at = NOW() WHERE user_id = ${ownerId}::uuid`;
+    }
+    await this.storageCleanup.enqueue(tx, keys);
   }
 
   async renamePublicItem(

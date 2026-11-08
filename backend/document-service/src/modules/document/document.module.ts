@@ -11,6 +11,8 @@ import { DocumentUploadService } from './document-upload.service';
 import { DocumentLifecycleService } from './document-lifecycle.service';
 import { DocumentSharingService } from './document-sharing.service';
 import { DocumentChatSharingService } from './document-chat-sharing.service';
+import { DocumentBulkService } from './document-bulk.service';
+import { DocumentBulkController } from './document-bulk.controller';
 import { ProjectDocumentAttachmentService } from './project-document-attachment.service';
 import { DocumentDownloadService } from './document-download.service';
 import { Module } from '@nestjs/common';
@@ -35,6 +37,7 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
   ],
   controllers: [
     DocumentContentController,
+    DocumentBulkController,
     DocumentController,
     InternalDocumentAccessController,
   ],
@@ -51,6 +54,7 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     DocumentLifecycleService,
     DocumentSharingService,
     DocumentChatSharingService,
+    DocumentBulkService,
     ProjectDocumentAttachmentService,
     DocumentDownloadService,
     DocumentContentService,

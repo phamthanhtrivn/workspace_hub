@@ -17,8 +17,16 @@ import { UploadState } from "../types/documents.enums";
 import axios from "axios";
 import { DEFAULT_MIME_TYPE } from "../types/documents.constants";
 import { SHARED_DOCUMENT_ACCESS_REQUEST } from "../utils/shared-document-access";
+import type { DocumentBulkRequest } from "../types/document-bulk.types";
 
 export const documentsApi = {
+  bulkAction: async (
+    request: DocumentBulkRequest,
+  ): Promise<{ count: number }> => {
+    const response = await api.post("/api/documents/bulk", request);
+
+    return response.data.data;
+  },
   getDocuments: async (params?: {
     folderId?: string;
     starred?: boolean;

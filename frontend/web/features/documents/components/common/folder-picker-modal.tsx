@@ -7,7 +7,11 @@ import React, { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
 import { Folder, ChevronRight } from "lucide-react";
-import { DocumentItemType, NavigationLabel } from "../../types/documents.enums";
+import {
+  DocumentItemType,
+  DocumentRole,
+  NavigationLabel,
+} from "../../types/documents.enums";
 import { DocumentItem } from "../../types/documents.types";
 import {
   Dialog,
@@ -20,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
 import { Spinner } from "@/components/ui/spinner";
+import { getMoveDestinationBlockReason } from "../../utils/document-bulk";
 
 interface FolderPickerModalProps {
   open?: boolean;
@@ -27,6 +32,8 @@ interface FolderPickerModalProps {
   onClose: () => void;
   onSelectFolder: (folderId: string | null) => void;
   movingItemId: string;
+  movingItemIds?: string[];
+  busy?: boolean;
   initialFolderId?: string | null;
   projectId?: string;
   projectRootFolderId?: string | null;
@@ -51,6 +58,8 @@ function FolderPickerContent({
   onClose,
   onSelectFolder,
   movingItemId,
+  movingItemIds,
+  busy = false,
   initialFolderId = null,
   projectId,
   projectRootFolderId = null,
@@ -59,18 +68,34 @@ function FolderPickerContent({
 }: FolderPickerModalProps) {
   const userId = useAppSelector((state) => state.auth.userId);
   const isModalOpen = open ?? isOpen ?? false;
-  const pickerRootFolderId = projectId ? projectRootFolderId : null;
-  const pickerRootName = rootLabel || NavigationLabel.ROOT;
-  const getInitialPickerFolderId = useCallback(
-    () => initialFolderId ?? pickerRootFolderId,
-    [initialFolderId, pickerRootFolderId],
+  const projectPath = useQuery({
+    queryKey: ["folder-picker-root", userId, movingItemId, projectId],
+    queryFn: () => documentsApi.getBreadcrumbs(movingItemId),
+    enabled: !!userId && !!projectId && !projectRootFolderId,
+    retry: false,
+  });
+  const pickerRootFolderId = projectId
+    ? (projectRootFolderId ?? projectPath.data?.[0]?.id ?? null)
+    : null;
+  const pickerRootName =
+    rootLabel ||
+    (projectId ? projectPath.data?.[0]?.name : undefined) ||
+    NavigationLabel.ROOT;
+  const [chosenFolderId, setCurrentFolderId] = useState<string | null>(
+    initialFolderId,
   );
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(
-    getInitialPickerFolderId,
-  );
-  const [path, setPath] = useState<{ id: string | null; name: string }[]>([
+  const currentFolderId = chosenFolderId ?? pickerRootFolderId;
+  type PickerPath = { id: string | null; name: string }[];
+  const [navigationPath, setNavigationPath] = useState<PickerPath | null>(null);
+  const path = navigationPath ?? [
     { id: pickerRootFolderId, name: pickerRootName },
-  ]);
+  ];
+  const setPath: React.Dispatch<React.SetStateAction<PickerPath>> = useCallback((update) =>
+    setNavigationPath((previous) =>
+      typeof update === "function"
+        ? update(previous ?? [{ id: pickerRootFolderId, name: pickerRootName }])
+        : update,
+    ), [pickerRootFolderId, pickerRootName]);
 
   const {
     data: response,
@@ -99,9 +124,28 @@ function FolderPickerContent({
 
   const items = response?.data || [];
   const folders = items.filter(
-    (item: DocumentItem) =>
-      item.type === DocumentItemType.FOLDER && item.id !== movingItemId,
+    (item: DocumentItem) => item.type === DocumentItemType.FOLDER,
   );
+  const excludedIds = movingItemIds ?? [movingItemId];
+  const currentAccess = useQuery({
+    queryKey: ["folder-picker-access", userId, currentFolderId],
+    queryFn: () => documentsApi.getAccessibleItem(currentFolderId!),
+    enabled: !!userId && !!currentFolderId,
+    staleTime: 0,
+    retry: false,
+  });
+  const canSelectCurrent =
+    !isError &&
+    !isLoading &&
+    !busy &&
+    (!projectId || !!pickerRootFolderId) &&
+    (!currentFolderId ||
+      (!currentAccess.isFetching &&
+        !!currentAccess.data &&
+        !excludedIds.includes(currentFolderId) &&
+        currentAccess.data.projectId === (projectId ?? null) &&
+        (currentAccess.data.userRole === DocumentRole.OWNER ||
+          currentAccess.data.userRole === DocumentRole.EDITOR)));
 
   const handleNavigate = useCallback(
     (folderId: string | null, name: string) => {
@@ -119,7 +163,7 @@ function FolderPickerContent({
         });
       }
     },
-    [pickerRootFolderId, pickerRootName],
+    [pickerRootFolderId, pickerRootName, setPath],
   );
 
   const handlePathClick = useCallback((index: number) => {
@@ -129,14 +173,14 @@ function FolderPickerContent({
 
       return prev.slice(0, index + 1);
     });
-  }, []);
+  }, [setPath]);
 
   if (!isModalOpen) return null;
 
   return (
     <Dialog
       open={isModalOpen}
-      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+      onOpenChange={(nextOpen) => !nextOpen && !busy && onClose()}
     >
       <DialogContent
         className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}
@@ -165,6 +209,7 @@ function FolderPickerContent({
               <Button
                 variant="unstyled"
                 type="button"
+                disabled={busy}
                 onClick={() => handlePathClick(idx)}
                 className={cn(
                   "relative rounded-xs focus-visible:z-10 transition hover:text-info-content cursor-pointer",
@@ -180,6 +225,22 @@ function FolderPickerContent({
         </div>
 
         {/* Sub-folders list */}
+        {projectPath.isError ? (
+          <QueryFeedback
+            label="project folder"
+            error
+            retrying={projectPath.isFetching}
+            onRetry={() => projectPath.refetch()}
+          />
+        ) : null}
+        {currentAccess.isError ? (
+          <QueryFeedback
+            label="folder permissions"
+            error
+            retrying={currentAccess.isFetching}
+            onRetry={() => currentAccess.refetch()}
+          />
+        ) : null}
         <div
           className={`${dialogLayout.body} mt-3 flex max-h-56 min-h-36 flex-col gap-1 overflow-y-auto rounded-panel border border-border bg-card p-2`}
         >
@@ -213,11 +274,46 @@ function FolderPickerContent({
                 variant="unstyled"
                 key={folder.id}
                 type="button"
-                onClick={() => handleNavigate(folder.id, folder.name)}
-                className="relative focus-visible:z-10 flex items-center gap-3 rounded-control p-2.5 text-left text-xs font-semibold text-foreground transition hover:bg-background cursor-pointer"
+                disabled={
+                  busy ||
+                  !!getMoveDestinationBlockReason(
+                    folder,
+                    projectId,
+                    excludedIds,
+                  )
+                }
+                title={getMoveDestinationBlockReason(
+                  folder,
+                  projectId,
+                  excludedIds,
+                )}
+                onClick={() => {
+                  if (
+                    !getMoveDestinationBlockReason(
+                      folder,
+                      projectId,
+                      excludedIds,
+                    )
+                  )
+                    handleNavigate(folder.id, folder.name);
+                }}
+                className="relative focus-visible:z-10 flex items-center gap-3 rounded-control p-2.5 text-left text-xs font-semibold text-foreground transition hover:bg-background cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 <Folder className="h-4 w-4 text-warning-content shrink-0" />
                 <span className="truncate">{folder.name}</span>
+                {getMoveDestinationBlockReason(
+                  folder,
+                  projectId,
+                  excludedIds,
+                ) ? (
+                  <span className="ml-auto max-w-48 text-xs font-normal text-muted-foreground">
+                    {getMoveDestinationBlockReason(
+                      folder,
+                      projectId,
+                      excludedIds,
+                    )}
+                  </span>
+                ) : null}
               </Button>
             ))
           )}
@@ -227,6 +323,7 @@ function FolderPickerContent({
           <Button
             type="button"
             variant="ghost"
+            disabled={busy}
             onClick={onClose}
             className="h-9 rounded-control border border-border bg-card px-4 text-xs font-semibold text-muted-foreground hover:bg-background"
           >
@@ -234,9 +331,11 @@ function FolderPickerContent({
           </Button>
           <Button
             type="button"
+            disabled={!canSelectCurrent}
+            loading={busy}
             onClick={() => {
+              if (!canSelectCurrent) return;
               onSelectFolder(currentFolderId);
-              onClose();
             }}
             className="h-9 rounded-control bg-primary hover:bg-primary-hover px-5 text-xs font-semibold text-primary-foreground"
           >

@@ -36,7 +36,9 @@ import { useDocumentActions } from "../hooks/useDocumentActions";
 import { useDocumentUpload } from "../hooks/useDocumentUpload";
 import { useDocumentDragAndDrop } from "../hooks/useDocumentDragAndDrop";
 import { useDocumentModals } from "../hooks/useDocumentModals";
-import { ITEMS_PER_PAGE } from "../types/documents.constants";
+import { getDocumentListPage } from "../api/document-list.api";
+import { useDocumentBulkSelection } from "../hooks/useDocumentBulkSelection";
+import { DocumentBulkControls } from "./explorer/document-bulk-controls";
 import { Info, UploadCloud, FolderPlus, Edit3 } from "lucide-react";
 import { resolveDocumentProjectContext } from "../utils/project-documents";
 import { documentFolderAccessKey } from "../utils/document-navigation";
@@ -156,6 +158,7 @@ export function DocumentExplorer({
     renameResource,
     isRenaming,
     moveResource,
+    isMoving,
     toggleStar,
     moveToTrash,
     isTrashing,
@@ -191,6 +194,21 @@ export function DocumentExplorer({
         : Promise.resolve(),
   });
 
+  const bulkSelection = useDocumentBulkSelection({
+    activeView,
+    projectId,
+    currentFolderId,
+    sortBy,
+    searchQuery,
+  });
+  const multiSelection = bulkSelection.active
+    ? {
+        selectedIds: bulkSelection.selectedIds,
+        onToggle: bulkSelection.toggle,
+        disabled: bulkSelection.busy,
+      }
+    : undefined;
+
   // Query Main Document List
   const {
     data: documentResponse,
@@ -212,41 +230,11 @@ export function DocumentExplorer({
       searchQuery,
     ],
     initialPageParam: 1,
-    queryFn: ({ pageParam = 1 }) => {
-      const page = Number(pageParam);
-      if (currentFolderId) {
-        return documentsApi.getDocuments({
-          folderId: currentFolderId,
-          sortBy,
-          search: searchQuery || undefined,
-          page,
-          limit: ITEMS_PER_PAGE,
-        });
-      }
-
-      if (activeView === DocumentViewType.SHARED) {
-        return documentsApi.getSharedDocuments({
-          page,
-          limit: ITEMS_PER_PAGE,
-          sortBy,
-          search: searchQuery || undefined,
-        });
-      }
-
-      return documentsApi.getDocuments({
-        folderId: currentFolderId || undefined,
-        projectId: projectId && !currentFolderId ? projectId : undefined,
-        starred:
-          !isProjectDocuments && activeView === DocumentViewType.STARRED
-            ? true
-            : undefined,
-        archived: activeView === DocumentViewType.TRASH ? true : undefined,
-        sortBy,
-        search: searchQuery || undefined,
-        page,
-        limit: ITEMS_PER_PAGE,
-      });
-    },
+    queryFn: ({ pageParam = 1 }) =>
+      getDocumentListPage(
+        { activeView, projectId, currentFolderId, sortBy, searchQuery },
+        Number(pageParam),
+      ),
     getNextPageParam: (lastPage) => {
       const meta = lastPage.meta;
 
@@ -394,6 +382,20 @@ export function DocumentExplorer({
                   : PERMISSION_REASON.documentEdit
             }
           />
+          <DocumentBulkControls
+            selection={bulkSelection}
+            activeView={activeView}
+            projectId={projectId}
+            currentFolderId={currentFolderId}
+            projectRootFolderId={projectRootFolderId}
+            projectRootLabel={projectRootLabel}
+            onStart={() => {
+              setActiveMenuId(null);
+              setSelectedItemId(null);
+              setActiveDetailsItemId(null);
+              bulkSelection.start();
+            }}
+          />
           {activeView === DocumentViewType.TRASH ? (
             <div className="flex items-start gap-2 rounded-panel border border-border bg-warning-soft px-3.5 py-3 text-xs font-semibold text-warning-content">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning-content" />
@@ -477,6 +479,7 @@ export function DocumentExplorer({
                   <GridView
                     items={items}
                     activeView={activeView}
+                    selection={multiSelection}
                     selectedItemId={selectedItemId}
                     onSelectItem={setSelectedItemId}
                     onOpenItem={(item) =>
@@ -514,6 +517,7 @@ export function DocumentExplorer({
                     items={items}
                     activeView={activeView}
                     footer={loadMoreFooter}
+                    selection={multiSelection}
                     selectedItemId={selectedItemId}
                     onSelectItem={setSelectedItemId}
                     onOpenItem={(item) =>
@@ -658,13 +662,22 @@ export function DocumentExplorer({
           <FolderPickerModal
             open={isMoveModalOpen}
             movingItemId={movingItemId}
+            busy={isMoving}
             onClose={closeMoveModal}
-            projectId={projectId}
+            projectId={
+              items.find((item) => item.id === movingItemId)?.projectId ??
+              projectId
+            }
             projectRootFolderId={projectRootFolderId}
             rootLabel={projectRootLabel}
-            onSelectFolder={(targetFolderId) =>
-              moveResource({ id: movingItemId, targetFolderId })
-            }
+            onSelectFolder={async (targetFolderId) => {
+              try {
+                await moveResource({ id: movingItemId, targetFolderId });
+                closeMoveModal();
+              } catch {
+                /* The mutation shows the error; keep the picker open for retry. */
+              }
+            }}
           />
         ) : null}
 

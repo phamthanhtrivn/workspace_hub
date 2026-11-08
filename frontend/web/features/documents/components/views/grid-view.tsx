@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import type { DocumentMultiSelection } from "../../types/document-bulk.types";
 import { DocumentItem } from "../../types/documents.types";
 import { DocumentViewType } from "../../types/documents.enums";
 import { GridViewCard } from "./grid-view-card";
@@ -8,6 +9,7 @@ import { GridViewCard } from "./grid-view-card";
 interface GridViewProps {
   items: DocumentItem[];
   activeView: DocumentViewType;
+  selection?: DocumentMultiSelection;
   selectedItemId: string | null;
   onSelectItem: (id: string | null) => void;
   onOpenItem: (item: DocumentItem) => void;
@@ -32,6 +34,7 @@ interface GridViewProps {
 function GridView({
   items,
   activeView,
+  selection,
   selectedItemId,
   onSelectItem,
   onOpenItem,
@@ -58,6 +61,7 @@ function GridView({
         <GridViewCard
           key={item.id}
           item={item}
+          selection={selection}
           selectedItemId={selectedItemId}
           onSelect={onSelectItem}
           onFolderClick={onOpenItem}
