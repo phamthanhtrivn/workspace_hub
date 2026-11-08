@@ -1,12 +1,16 @@
 "use client";
 
-import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
+import {
+  logActionError,
+  getActionErrorMessage,
+} from "@/lib/permission-feedback";
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Lock, Download, Eye, FolderOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { documentsApi } from "@/features/documents/api/documents.api";
+import FilePreviewModal from "@/features/documents/components/preview/file-preview-modal";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
 import { formatBytes } from "@/features/documents/utils/documents.utils";
 import { getFileIcon } from "../../utils/document-utils";
@@ -22,13 +26,13 @@ interface DocumentMessageProps {
   isMe: boolean;
 }
 
-const DocumentMessage = React.memo(function DocumentMessage({
-  msg,
-  isMe,
-}: DocumentMessageProps) {
+export function DocumentMessage({ msg }: DocumentMessageProps) {
   const router = useRouter();
   const documentId = msg.content || "";
   const [isProcessing, setIsProcessing] = useState(false);
+  const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(
+    null,
+  );
 
   const {
     data: metadata,
@@ -38,6 +42,7 @@ const DocumentMessage = React.memo(function DocumentMessage({
     queryKey: [METADATA_QUERY_KEY, documentId],
     queryFn: async () => {
       if (!documentId) return null;
+
       return documentsApi.getChatMetadata(documentId);
     },
     enabled: !!documentId,
@@ -71,22 +76,14 @@ const DocumentMessage = React.memo(function DocumentMessage({
     );
   }
 
-  const handlePreview = async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    try {
-      const previewUrl = await documentsApi.getPreviewUrl(metadata.id);
-      if (previewUrl) {
-        window.open(previewUrl, "_blank");
-      } else {
-        toast.error("Failed to load document preview.");
-      }
-    } catch (err) {
-      logActionError(err);
-      toast.error(getActionErrorMessage(err, "Failed to generate download link."));
-    } finally {
-      setIsProcessing(false);
-    }
+  const handlePreview = () => {
+    if (
+      isProcessing ||
+      !metadata.hasPermission ||
+      metadata.type === DocumentItemType.FOLDER
+    )
+      return;
+    setPreviewDocumentId(metadata.id);
   };
 
   const handleDownload = async () => {
@@ -158,14 +155,16 @@ const DocumentMessage = React.memo(function DocumentMessage({
           <>
             {metadata.type === DocumentItemType.FOLDER ? (
               <>
-                <Button variant="unstyled"
+                <Button
+                  variant="unstyled"
                   onClick={handleOpenFolder}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground bg-card border border-border hover:bg-background rounded-control transition-all"
                 >
                   <FolderOpen size={14} className="text-muted-foreground" />
                   <span>Open Folder</span>
                 </Button>
-                <Button variant="warning-soft"
+                <Button
+                  variant="warning-soft"
                   onClick={handleDownload}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-control transition-all"
                 >
@@ -175,14 +174,16 @@ const DocumentMessage = React.memo(function DocumentMessage({
               </>
             ) : (
               <>
-                <Button variant="unstyled"
+                <Button
+                  variant="unstyled"
                   onClick={handlePreview}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-foreground bg-card border border-border hover:bg-background rounded-control transition-all"
                 >
                   <Eye size={14} className="text-muted-foreground" />
                   <span>Preview</span>
                 </Button>
-                <Button variant="info-soft"
+                <Button
+                  variant="info-soft"
                   onClick={handleDownload}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-semibold rounded-control transition-all"
                 >
@@ -202,8 +203,18 @@ const DocumentMessage = React.memo(function DocumentMessage({
           </div>
         )}
       </div>
+      {previewDocumentId === metadata.id &&
+      metadata.hasPermission &&
+      metadata.type !== DocumentItemType.FOLDER ? (
+        <FilePreviewModal
+          open
+          item={metadata}
+          onClose={() => setPreviewDocumentId(null)}
+          onDownload={handleDownload}
+        />
+      ) : null}
     </div>
   );
-});
+}
 
-export default DocumentMessage;
+export default React.memo(DocumentMessage);

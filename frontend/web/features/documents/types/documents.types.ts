@@ -38,6 +38,11 @@ export interface DocumentItem {
   ownerProfile?: UserProfileSnapshotResponse | null;
 }
 
+export type DocumentPreviewItem = Pick<
+  DocumentItem,
+  "id" | "name" | "type" | "sizeBytes" | "mimeType"
+>;
+
 export interface UserStorageQuota {
   userId: string;
   maxBytes: number;

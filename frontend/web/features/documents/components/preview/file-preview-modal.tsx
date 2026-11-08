@@ -6,7 +6,7 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 import React, { useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
-import { DocumentItem } from "../../types/documents.types";
+import type { DocumentPreviewItem } from "../../types/documents.types";
 import { PreviewFileType } from "../../types/documents.enums";
 import { getPreviewFileType, formatBytes } from "../../utils/documents.utils";
 import { MAX_TEXT_PREVIEW_SIZE } from "../../types/documents.constants";
@@ -22,24 +22,24 @@ import {
 } from "@/components/ui/dialog";
 import { DocumentsIconButton } from "../ui/documents-icon-button";
 
-interface FilePreviewModalProps {
+interface FilePreviewModalProps<T extends DocumentPreviewItem> {
   open?: boolean;
   isOpen?: boolean;
   onClose: () => void;
-  item: DocumentItem | null;
+  item: T | null;
   versionId?: string;
-  onDownload?: (item: DocumentItem) => void;
-  onOpenDetails?: (item: DocumentItem) => void;
+  onDownload?: (item: T) => void;
+  onOpenDetails?: (item: T) => void;
 }
 
-export function FilePreviewModal({
+export function FilePreviewModal<T extends DocumentPreviewItem>({
   open,
   isOpen,
   onClose,
   item,
   versionId,
   onDownload,
-}: FilePreviewModalProps) {
+}: FilePreviewModalProps<T>) {
   const isModalOpen = open ?? isOpen ?? false;
 
   const {
@@ -149,4 +149,4 @@ export function FilePreviewModal({
   );
 }
 
-export default React.memo(FilePreviewModal);
+export default React.memo(FilePreviewModal) as typeof FilePreviewModal;
