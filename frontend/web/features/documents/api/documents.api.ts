@@ -17,19 +17,31 @@ import { UploadState } from "../types/documents.enums";
 import axios from "axios";
 import { DEFAULT_MIME_TYPE } from "../types/documents.constants";
 import { SHARED_DOCUMENT_ACCESS_REQUEST } from "../utils/shared-document-access";
+import type { DocumentBulkRequest } from "../types/document-bulk.types";
 
 export const documentsApi = {
-  getDocuments: async (params?: {
-    folderId?: string;
-    starred?: boolean;
-    archived?: boolean;
-    projectId?: string;
-    page?: number;
-    limit?: number;
-    sortBy?: DocumentSortBy;
-    search?: string;
-  }): Promise<PaginatedResponse<DocumentItem[]>> => {
+  bulkAction: async (
+    request: DocumentBulkRequest,
+  ): Promise<{ count: number }> => {
+    const response = await api.post("/api/documents/bulk", request);
+
+    return response.data.data;
+  },
+  getDocuments: async (
+    params?: {
+      folderId?: string;
+      starred?: boolean;
+      archived?: boolean;
+      projectId?: string;
+      page?: number;
+      limit?: number;
+      sortBy?: DocumentSortBy;
+      search?: string;
+    },
+    signal?: AbortSignal,
+  ): Promise<PaginatedResponse<DocumentItem[]>> => {
     const response = await api.get("/api/documents", {
+      signal,
       params: {
         folderId: params?.folderId,
         starred: params?.starred ? "true" : undefined,
@@ -48,13 +60,17 @@ export const documentsApi = {
     };
   },
 
-  getSharedDocuments: async (params?: {
-    page?: number;
-    limit?: number;
-    sortBy?: DocumentSortBy;
-    search?: string;
-  }): Promise<PaginatedResponse<DocumentItem[]>> => {
+  getSharedDocuments: async (
+    params?: {
+      page?: number;
+      limit?: number;
+      sortBy?: DocumentSortBy;
+      search?: string;
+    },
+    signal?: AbortSignal,
+  ): Promise<PaginatedResponse<DocumentItem[]>> => {
     const response = await api.get("/api/documents/shared", {
+      signal,
       params: {
         page: params?.page,
         limit: params?.limit,
@@ -625,7 +641,10 @@ export const documentsApi = {
   getBreadcrumbs: async (
     id: string,
   ): Promise<{ id: string; name: string }[]> => {
-    const response = await api.get(`/api/documents/${id}/breadcrumbs`);
+    const response = await api.get(
+      `/api/documents/${id}/breadcrumbs`,
+      SHARED_DOCUMENT_ACCESS_REQUEST,
+    );
 
     return response.data.data;
   },

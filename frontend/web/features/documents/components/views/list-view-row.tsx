@@ -1,9 +1,11 @@
 "use client";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { Button } from "@/components/ui/button";
 import React from "react";
+import type { DocumentMultiSelection } from "../../types/document-bulk.types";
 import { Star } from "lucide-react";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { useDocumentItemDragAndDrop } from "../../hooks/useDocumentItemDragAndDrop";
 import { DocumentItem } from "../../types/documents.types";
 import {
   DocumentItemType,
@@ -20,10 +22,10 @@ import { DocumentsStatusBadge } from "../ui/documents-status-badge";
 import { DocumentProjectBadge } from "../ui/document-project-badge";
 import { cn } from "@/lib/utils";
 import { TableRow, TableCell } from "@/components/ui/table";
-import { isProjectRootFolder } from "../../utils/project-documents";
 
 export interface ListViewRowProps {
   item: DocumentItem;
+  selection?: DocumentMultiSelection;
   selectedItemId: string | null;
   onSelect: (id: string | null) => void;
   onFolderClick: (item: DocumentItem) => void;
@@ -48,6 +50,7 @@ export interface ListViewRowProps {
 
 export function ListViewRow({
   item,
+  selection,
   selectedItemId,
   onSelect,
   onFolderClick,
@@ -70,25 +73,26 @@ export function ListViewRow({
   isProjectDocuments = false,
 }: ListViewRowProps) {
   const isFolder = item.type === DocumentItemType.FOLDER;
-  const isSelected = item.id === selectedItemId;
+  const isSelected = selection
+    ? selection.selectedIds.has(item.id)
+    : item.id === selectedItemId;
+  const selectionBlocked = selection?.getDisabledReason?.(item);
+  const selectionDisabled =
+    !!selection && (selection.disabled || (!isSelected && !!selectionBlocked));
   const isMenuOpen = activeMenuId === item.id;
-
   const {
     attributes,
     listeners,
-    setNodeRef: setDraggableRef,
+    setDraggableRef,
     setActivatorNodeRef,
     transform,
     isDragging,
-  } = useDraggable({
-    id: item.id,
-    disabled: isProjectRootFolder(item),
-  });
-
-  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
-    id: item.id,
-    disabled: !isFolder,
-  });
+    setDroppableRef,
+    isOver,
+    dropBlocked,
+    moveBlocked,
+    dragCount,
+  } = useDocumentItemDragAndDrop(item, selection);
 
   const setCombinedRef = (node: HTMLTableRowElement | null) => {
     setDraggableRef(node);
@@ -114,15 +118,28 @@ export function ListViewRow({
 
   return (
     <TableRow
+      onPointerDown={(event) => {
+        if (
+          event.target instanceof Element &&
+          event.target.closest(
+            'button,input,a,[role="checkbox"],[role="menuitem"]',
+          )
+        )
+          return;
+        listeners?.onPointerDown?.(event);
+      }}
       unstyled
+      title={dropBlocked ?? selectionBlocked}
       ref={setCombinedRef}
       style={style}
       onClick={(e) => {
         e.stopPropagation();
-        onSelect(item.id);
+        if (selection) selection.onToggle(item);
+        else onSelect(item.id);
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
+        if (selection) return;
         if (isFolder) {
           onFolderClick(item);
         } else {
@@ -132,19 +149,33 @@ export function ListViewRow({
       className={cn(
         "relative focus-within:z-20 hover:bg-background cursor-pointer select-none transition-colors border-b border-border",
         isSelected && "z-10 bg-info-soft/40",
+        ((!!selectionBlocked && !isSelected) || (isFolder && dropBlocked)) &&
+          "opacity-40",
         isOver &&
           "z-20 bg-info-soft/50 border-y-2 border-dashed border-info-outline",
       )}
     >
       <TableCell unstyled className="p-4 flex items-center gap-3 min-w-0">
+        {isDragging && dragCount > 1 ? (
+          <span className="pointer-events-none absolute right-3 top-3 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
+            {dragCount} items
+          </span>
+        ) : null}
         <Button
           type="button"
           variant="unstyled"
           ref={setActivatorNodeRef}
+          disabled={selection ? selectionDisabled : !!moveBlocked}
           className="relative rounded-panel focus-visible:z-10"
           {...attributes}
           {...listeners}
-          aria-label={`Drag ${item.name}`}
+          aria-label={selection ? `Select ${item.name}` : `Drag ${item.name}`}
+          onClick={(e) => {
+            if (selection) {
+              e.stopPropagation();
+              selection.onToggle(item);
+            }
+          }}
         >
           <DocumentIcon
             item={item}
@@ -157,10 +188,15 @@ export function ListViewRow({
             variant="unstyled"
             type="button"
             className="relative min-w-0 max-w-xs truncate rounded-xs text-left font-semibold text-foreground focus-visible:z-10"
-            onPointerDown={(e) => e.stopPropagation()}
+            disabled={selectionDisabled}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              listeners?.onPointerDown?.(event);
+            }}
             onClick={(e) => {
               e.stopPropagation();
-              if (isFolder) onFolderClick(item);
+              if (selection) selection.onToggle(item);
+              else if (isFolder) onFolderClick(item);
               else onPreview?.(item);
             }}
           >
@@ -191,27 +227,38 @@ export function ListViewRow({
       </TableCell>
       <TableCell unstyled className="p-4 text-right">
         <div className="flex items-center justify-end gap-2">
-          <ItemActionsMenu
-            item={item}
-            activeView={activeView}
-            activeMenuId={activeMenuId}
-            setActiveMenuId={setActiveMenuId}
-            onRename={() => onRename(item)}
-            onMove={() => onMove(item.id)}
-            onToggleStar={onToggleStar ? () => onToggleStar(item) : undefined}
-            onArchive={(archive) =>
-              archive ? onMoveToTrash(item) : onRestore(item)
-            }
-            onViewDetails={() => onViewDetails(item)}
-            onDeletePermanently={() => onDeletePermanently(item)}
-            onPreview={() => onPreview?.(item)}
-            onDownload={() => onDownload?.(item)}
-            onDownloadFolder={() => onDownloadFolder?.(item)}
-            onManageVersions={() => onManageVersions?.(item)}
-            onShare={() => onShare?.(item)}
-            onShareToChat={() => onShareToChat?.(item)}
-            isProjectDocuments={isProjectDocuments}
-          />
+          {selection ? (
+            <Checkbox
+              aria-label={`Select ${item.name}`}
+              checked={isSelected}
+              disabled={selectionDisabled}
+              onClick={(e) => e.stopPropagation()}
+              onCheckedChange={() => selection.onToggle(item)}
+              className="h-4 w-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40"
+            />
+          ) : (
+            <ItemActionsMenu
+              item={item}
+              activeView={activeView}
+              activeMenuId={activeMenuId}
+              setActiveMenuId={setActiveMenuId}
+              onRename={() => onRename(item)}
+              onMove={() => onMove(item.id)}
+              onToggleStar={onToggleStar ? () => onToggleStar(item) : undefined}
+              onArchive={(archive) =>
+                archive ? onMoveToTrash(item) : onRestore(item)
+              }
+              onViewDetails={() => onViewDetails(item)}
+              onDeletePermanently={() => onDeletePermanently(item)}
+              onPreview={() => onPreview?.(item)}
+              onDownload={() => onDownload?.(item)}
+              onDownloadFolder={() => onDownloadFolder?.(item)}
+              onManageVersions={() => onManageVersions?.(item)}
+              onShare={() => onShare?.(item)}
+              onShareToChat={() => onShareToChat?.(item)}
+              isProjectDocuments={isProjectDocuments}
+            />
+          )}
         </div>
       </TableCell>
     </TableRow>
