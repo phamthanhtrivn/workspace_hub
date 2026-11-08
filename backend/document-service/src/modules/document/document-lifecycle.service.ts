@@ -344,7 +344,7 @@ export class DocumentLifecycleService {
     const lockedIds = new Set<string>();
     for (const rootId of [...rootIds].sort()) {
       const descendants = await this.tree.lockDocumentTree(tx, rootId);
-      descendants.forEach(id => lockedIds.add(id));
+      descendants.forEach((id) => lockedIds.add(id));
     }
     const allItemIds = [...lockedIds];
     const files = await tx.documentItem.findMany({

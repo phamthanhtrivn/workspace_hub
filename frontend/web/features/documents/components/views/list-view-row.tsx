@@ -1,5 +1,5 @@
 "use client";
-import { NativeCheckbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { Button } from "@/components/ui/button";
 import React from "react";
@@ -171,7 +171,6 @@ export function ListViewRow({
           type="button"
           variant="unstyled"
           ref={setActivatorNodeRef}
-<<<<<<< HEAD
           disabled={selection ? selection.disabled : !!moveBlocked}
           className="relative rounded-panel focus-visible:z-10"
           {...attributes}
@@ -198,12 +197,8 @@ export function ListViewRow({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
-<<<<<<< HEAD
               if (selection) selection.onToggle(item);
               else if (isFolder) onFolderClick(item);
-=======
-              if (isFolder) onFolderClick(item);
->>>>>>> dev
               else onPreview?.(item);
             }}
           >
@@ -235,12 +230,12 @@ export function ListViewRow({
       <TableCell unstyled className="p-4 text-right">
         <div className="flex items-center justify-end gap-2">
           {selection ? (
-            <NativeCheckbox
+            <Checkbox
               aria-label={`Select ${item.name}`}
               checked={isSelected}
               disabled={selection.disabled}
               onClick={(e) => e.stopPropagation()}
-              onChange={() => selection.onToggle(item)}
+              onCheckedChange={() => selection.onToggle(item)}
               className="h-4 w-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40"
             />
           ) : (

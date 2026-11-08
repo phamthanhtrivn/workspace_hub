@@ -42,13 +42,18 @@ export const DOCUMENT_BULK_MESSAGES = {
   DELETE: "Move personal files or folders to Trash first.",
   MIXED_PROJECTS:
     "Move requires items from the same project, or only personal items.",
-  NESTED_MOVE: "The parent folder is also selected. Deselect this item to preserve the folder structure.",
+  NESTED_MOVE:
+    "The parent folder is also selected. Deselect this item to preserve the folder structure.",
   PROJECT_DESTINATION:
     "Personal documents cannot be moved into project documents.",
   OTHER_PROJECT: "Choose a folder in the same project.",
   SELECTED_DESTINATION:
     "A selected folder and its contents cannot be used as the destination.",
   COMPLETE: "Selected items updated successfully.",
-  FAILED: "Could not update the selected items. No items were changed.",
+  FAILED:
+    "Could not complete the action. Refresh the list before trying again.",
+  INVALID_PAGINATION: "Could not read the complete document list.",
+  SELECTION_CHANGED:
+    "The document list changed during selection. Please select all again.",
   LOAD_FAILED: "Could not select all results. Please try again.",
 } as const;

@@ -1,7 +1,11 @@
 "use client";
-import { NativeCheckbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import type { DocumentBulkSelection } from "../../hooks/useDocumentBulkSelection";
 import {
@@ -39,14 +43,22 @@ export function DocumentBulkControls({
         </Button>
       </div>
     );
-  const onlyProjectItems = !!projectId || (selection.items.length > 0 && selection.items.every(item => !!item.projectId));
+  const onlyProjectItems =
+    !!projectId ||
+    (selection.items.length > 0 &&
+      selection.items.every((item) => !!item.projectId));
   const actions =
     activeView === DocumentViewType.TRASH
       ? [Action.RESTORE, Action.DELETE]
       : onlyProjectItems
         ? [Action.MOVE, Action.DELETE]
         : [Action.MOVE, Action.STAR, Action.UNSTAR, Action.TRASH];
-  if (!onlyProjectItems && activeView !== DocumentViewType.TRASH && selection.items.some(item => !!item.projectId)) actions.push(Action.DELETE);
+  if (
+    !onlyProjectItems &&
+    activeView !== DocumentViewType.TRASH &&
+    selection.items.some((item) => !!item.projectId)
+  )
+    actions.push(Action.DELETE);
   const blockers = actions.map((action) => ({
     action,
     blocked: getBulkBlockers(selection.items, action),
@@ -57,11 +69,17 @@ export function DocumentBulkControls({
     <div className="min-w-0 space-y-3 rounded-panel border border-border bg-muted p-3">
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
-          <NativeCheckbox
+          <Checkbox
             className="h-4 w-4 accent-primary"
-            checked={selection.allSelected}
+            checked={
+              selection.allSelected
+                ? true
+                : selection.items.length
+                  ? "indeterminate"
+                  : false
+            }
             disabled={selection.busy}
-            onChange={() =>
+            onCheckedChange={() =>
               selection.allSelected
                 ? selection.clear()
                 : void selection.selectAll()
@@ -88,7 +106,7 @@ export function DocumentBulkControls({
           variant="ghost"
           size="sm"
           className="ml-auto"
-          disabled={selection.busy}
+          disabled={selection.busy && !selection.loadToken}
           onClick={selection.cancel}
         >
           Cancel selection
@@ -123,15 +141,32 @@ export function DocumentBulkControls({
           <CollapsibleTrigger className="cursor-pointer">
             Some actions are unavailable. Review items to deselect.
           </CollapsibleTrigger>
-          <CollapsibleContent><ul className="mt-2 max-h-36 space-y-1 overflow-auto">
-            {blockers.flatMap(({ action, blocked }) =>
-              blocked.map((item) => (
-                <li key={`${action}:${item.id}`} className="break-words">
-                  <strong>{LABEL[action]}</strong>: {item.name} — {item.reason}
-                </li>
-              )),
-            )}
-          </ul></CollapsibleContent>
+          <CollapsibleContent>
+            <ul className="mt-2 max-h-36 space-y-1 overflow-auto">
+              {blockers.flatMap(({ action, blocked }) =>
+                blocked.map((item) => (
+                  <li key={`${action}:${item.id}`} className="break-words">
+                    <strong>{LABEL[action]}</strong>: {item.name} —{" "}
+                    {item.reason}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={selection.busy}
+                      onClick={() => {
+                        const selected = selection.items.find(
+                          (candidate) => candidate.id === item.id,
+                        );
+                        if (selected) selection.toggle(selected);
+                      }}
+                    >
+                      Deselect
+                    </Button>
+                  </li>
+                )),
+              )}
+            </ul>
+          </CollapsibleContent>
         </Collapsible>
       ) : null}
       {requested === Action.MOVE ? (

@@ -11,7 +11,8 @@ export const DOCUMENT_BULK = {
   TRANSACTION_TIMEOUT_MS: 30000,
   INVALID_SELECTION:
     'Some selected items cannot perform this action. No items were changed.',
-  NESTED_MOVE: 'The parent folder is also selected. Deselect the nested item to preserve the folder structure.',
+  NESTED_MOVE:
+    'The parent folder is also selected. Deselect the nested item to preserve the folder structure.',
   PROJECT_ROOT: 'Project root folders cannot be moved or deleted.',
   PROJECT_PERSONAL_ACTION: 'Project documents do not support stars or Trash.',
   OWNER_REQUIRED: 'Only the owner can perform this action.',

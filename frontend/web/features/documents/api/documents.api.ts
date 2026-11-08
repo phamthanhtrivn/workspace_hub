@@ -27,17 +27,21 @@ export const documentsApi = {
 
     return response.data.data;
   },
-  getDocuments: async (params?: {
-    folderId?: string;
-    starred?: boolean;
-    archived?: boolean;
-    projectId?: string;
-    page?: number;
-    limit?: number;
-    sortBy?: DocumentSortBy;
-    search?: string;
-  }): Promise<PaginatedResponse<DocumentItem[]>> => {
+  getDocuments: async (
+    params?: {
+      folderId?: string;
+      starred?: boolean;
+      archived?: boolean;
+      projectId?: string;
+      page?: number;
+      limit?: number;
+      sortBy?: DocumentSortBy;
+      search?: string;
+    },
+    signal?: AbortSignal,
+  ): Promise<PaginatedResponse<DocumentItem[]>> => {
     const response = await api.get("/api/documents", {
+      signal,
       params: {
         folderId: params?.folderId,
         starred: params?.starred ? "true" : undefined,
@@ -56,13 +60,17 @@ export const documentsApi = {
     };
   },
 
-  getSharedDocuments: async (params?: {
-    page?: number;
-    limit?: number;
-    sortBy?: DocumentSortBy;
-    search?: string;
-  }): Promise<PaginatedResponse<DocumentItem[]>> => {
+  getSharedDocuments: async (
+    params?: {
+      page?: number;
+      limit?: number;
+      sortBy?: DocumentSortBy;
+      search?: string;
+    },
+    signal?: AbortSignal,
+  ): Promise<PaginatedResponse<DocumentItem[]>> => {
     const response = await api.get("/api/documents/shared", {
+      signal,
       params: {
         page: params?.page,
         limit: params?.limit,

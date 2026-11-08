@@ -1,7 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import {
+  isCancelledError,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 import { getActionErrorMessage } from "@/lib/permission-feedback";
@@ -22,6 +26,7 @@ import { METADATA_QUERY_KEY } from "@/features/chat/types/document.constants";
 
 export function useDocumentBulkSelection(scope: DocumentListScope) {
   const client = useQueryClient();
+  const mutationInFlight = useRef(false);
   const userId = useAppSelector((state) => state.auth.userId);
   const scopeKey = JSON.stringify([
     userId,
@@ -41,6 +46,14 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
   const [selection, setSelection] = useState(empty);
   if (selection.scopeKey !== scopeKey) setSelection(empty);
   const state = selection.scopeKey === scopeKey ? selection : empty;
+  useEffect(
+    () => () => {
+      void client.cancelQueries({
+        queryKey: ["documents", "selection", scopeKey],
+      });
+    },
+    [client, scopeKey],
+  );
   const mutation = useMutation({
     mutationFn: (request: DocumentBulkRequest) =>
       documentsApi.bulkAction(request),
@@ -72,12 +85,16 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
       );
     },
     onSettled: async () => {
-      await Promise.all([
-        client.invalidateQueries({ queryKey: ["documents"] }),
-        client.invalidateQueries({ queryKey: ["document-quota"] }),
-        client.invalidateQueries({ queryKey: [METADATA_QUERY_KEY] }),
-        client.invalidateQueries({ queryKey: ["folder-picker"] }),
-      ]);
+      try {
+        await Promise.all([
+          client.invalidateQueries({ queryKey: ["documents"] }),
+          client.invalidateQueries({ queryKey: ["document-quota"] }),
+          client.invalidateQueries({ queryKey: [METADATA_QUERY_KEY] }),
+          client.invalidateQueries({ queryKey: ["folder-picker"] }),
+        ]);
+      } finally {
+        mutationInFlight.current = false;
+      }
     },
   });
   const busy = mutation.isPending || !!state.loadToken;
@@ -89,8 +106,11 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
     try {
       const items = await client.fetchQuery({
         queryKey: ["documents", "selection", scopeKey, scope.sortBy],
-        queryFn: () =>
-          collectDocumentSelection((page) => getDocumentListPage(scope, page)),
+        queryFn: ({ signal }) =>
+          collectDocumentSelection(
+            (page) => getDocumentListPage(scope, page, signal),
+            signal,
+          ),
         staleTime: 0,
         retry: false,
       });
@@ -105,7 +125,8 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
           ? { ...previous, loadToken: null }
           : previous,
       );
-      toast.error(getActionErrorMessage(error, M.LOAD_FAILED));
+      if (!isCancelledError(error))
+        toast.error(getActionErrorMessage(error, M.LOAD_FAILED));
     }
   };
 
@@ -116,7 +137,12 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
     selectAll,
     start: () => setSelection({ ...empty, active: true }),
     cancel: () => {
-      if (!mutation.isPending) setSelection(empty);
+      if (!mutation.isPending) {
+        void client.cancelQueries({
+          queryKey: ["documents", "selection", scopeKey],
+        });
+        setSelection(empty);
+      }
     },
     clear: () => {
       if (!busy)
@@ -152,11 +178,13 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
       const action = state.requestedAction;
       if (
         !action ||
+        mutationInFlight.current ||
         busy ||
         !state.items.length ||
         getBulkBlockers(state.items, action).length
       )
         return;
+      mutationInFlight.current = true;
       mutation.mutate({
         ids: state.items.map((item) => item.id),
         action,

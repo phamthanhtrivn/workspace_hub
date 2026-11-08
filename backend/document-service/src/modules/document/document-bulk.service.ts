@@ -42,16 +42,24 @@ export class DocumentBulkService {
       );
     const items = contexts.map((context) => context.item);
     if (dto.action === Action.MOVE) {
-      const selectedIds = new Set(items.map(item => item.id));
-      const parents = new Map(items.map(item => [item.id, item.parentFolderId]));
+      const selectedIds = new Set(items.map((item) => item.id));
+      const parents = new Map(
+        items.map((item) => [item.id, item.parentFolderId]),
+      );
       for (const item of items) {
         let parentId = item.parentFolderId;
         const visited = new Set<string>();
         while (parentId && !visited.has(parentId)) {
-          if (selectedIds.has(parentId)) throw new BadRequestException(`${item.name}: ${DOCUMENT_BULK.NESTED_MOVE}`);
+          if (selectedIds.has(parentId))
+            throw new BadRequestException(
+              `${item.name}: ${DOCUMENT_BULK.NESTED_MOVE}`,
+            );
           visited.add(parentId);
           if (!parents.has(parentId)) {
-            const parent = await this.prisma.documentItem.findUnique({ where: { id: parentId }, select: { parentFolderId: true } });
+            const parent = await this.prisma.documentItem.findUnique({
+              where: { id: parentId },
+              select: { parentFolderId: true },
+            });
             parents.set(parentId, parent?.parentFolderId ?? null);
           }
           parentId = parents.get(parentId) ?? null;
@@ -134,9 +142,15 @@ export class DocumentBulkService {
       { timeout: DOCUMENT_BULK.TRANSACTION_TIMEOUT_MS },
     );
     for (const item of items) {
-      const move = moves.find(prepared => prepared.item.id === item.id);
+      const move = moves.find((prepared) => prepared.item.id === item.id);
       await this.events.publishProjectDocumentEvent(
-        move ? { ...item, parentFolderId: move.destParentFolderId, projectId: move.destProjectId } : item,
+        move
+          ? {
+              ...item,
+              parentFolderId: move.destParentFolderId,
+              projectId: move.destProjectId,
+            }
+          : item,
         userId,
         dto.action === Action.DELETE || dto.action === Action.TRASH
           ? 'DELETED'

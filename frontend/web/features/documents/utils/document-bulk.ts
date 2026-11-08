@@ -37,8 +37,11 @@ export function getBulkItemBlockReason(
 
 export function getBulkBlockers(items: DocumentItem[], action: Action) {
   const reasons = items.flatMap((item) => {
-    const reason = action === Action.MOVE && items.some(parent => parent.id === item.parentFolderId)
-      ? M.NESTED_MOVE : getBulkItemBlockReason(item, action);
+    const reason =
+      action === Action.MOVE &&
+      items.some((parent) => parent.id === item.parentFolderId)
+        ? M.NESTED_MOVE
+        : getBulkItemBlockReason(item, action);
 
     return reason ? [{ id: item.id, name: item.name, reason }] : [];
   });

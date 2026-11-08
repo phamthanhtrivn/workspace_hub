@@ -90,12 +90,17 @@ function FolderPickerContent({
   const path = navigationPath ?? [
     { id: pickerRootFolderId, name: pickerRootName },
   ];
-  const setPath: React.Dispatch<React.SetStateAction<PickerPath>> = useCallback((update) =>
-    setNavigationPath((previous) =>
-      typeof update === "function"
-        ? update(previous ?? [{ id: pickerRootFolderId, name: pickerRootName }])
-        : update,
-    ), [pickerRootFolderId, pickerRootName]);
+  const setPath: React.Dispatch<React.SetStateAction<PickerPath>> = useCallback(
+    (update) =>
+      setNavigationPath((previous) =>
+        typeof update === "function"
+          ? update(
+              previous ?? [{ id: pickerRootFolderId, name: pickerRootName }],
+            )
+          : update,
+      ),
+    [pickerRootFolderId, pickerRootName],
+  );
 
   const {
     data: response,
@@ -166,14 +171,17 @@ function FolderPickerContent({
     [pickerRootFolderId, pickerRootName, setPath],
   );
 
-  const handlePathClick = useCallback((index: number) => {
-    setPath((prev) => {
-      const target = prev[index];
-      setCurrentFolderId(target.id);
+  const handlePathClick = useCallback(
+    (index: number) => {
+      setPath((prev) => {
+        const target = prev[index];
+        setCurrentFolderId(target.id);
 
-      return prev.slice(0, index + 1);
-    });
-  }, [setPath]);
+        return prev.slice(0, index + 1);
+      });
+    },
+    [setPath],
+  );
 
   if (!isModalOpen) return null;
 
@@ -274,7 +282,6 @@ function FolderPickerContent({
                 variant="unstyled"
                 key={folder.id}
                 type="button"
-<<<<<<< HEAD
                 disabled={
                   busy ||
                   !!getMoveDestinationBlockReason(

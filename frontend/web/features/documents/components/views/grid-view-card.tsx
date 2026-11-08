@@ -1,5 +1,5 @@
 "use client";
-import { NativeCheckbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { Button } from "@/components/ui/button";
 import React from "react";
@@ -158,7 +158,9 @@ export function GridViewCard({
           }
         }}
         className={`group flex h-full min-h-40 flex-col justify-between select-none cursor-pointer border-border hover:border-border hover:bg-warning-soft/10 ${
-          isFolder && (dropBlocked || isProjectRootFolder(item)) ? "opacity-40" : ""
+          isFolder && (dropBlocked || isProjectRootFolder(item))
+            ? "opacity-40"
+            : ""
         }`}
       >
         {/* Header Icon & Menu */}
@@ -188,12 +190,12 @@ export function GridViewCard({
           </Button>
 
           {selection ? (
-            <NativeCheckbox
+            <Checkbox
               aria-label={`Select ${item.name}`}
               checked={isSelected}
               disabled={selection.disabled}
               onClick={(e) => e.stopPropagation()}
-              onChange={() => selection.onToggle(item)}
+              onCheckedChange={() => selection.onToggle(item)}
               className="h-4 w-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40"
             />
           ) : (

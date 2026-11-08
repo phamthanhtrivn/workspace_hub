@@ -230,10 +230,11 @@ export function DocumentExplorer({
       searchQuery,
     ],
     initialPageParam: 1,
-    queryFn: ({ pageParam = 1 }) =>
+    queryFn: ({ pageParam = 1, signal }) =>
       getDocumentListPage(
         { activeView, projectId, currentFolderId, sortBy, searchQuery },
         Number(pageParam),
+        signal,
       ),
     getNextPageParam: (lastPage) => {
       const meta = lastPage.meta;
