@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import React from "react";
+import { UPLOAD_SUCCESS_DISMISS_DELAY_MS } from "../../types/documents.constants";
 import { UploadState } from "../../types/documents.enums";
 import type { DocumentUploadEntry } from "../../types/upload.types";
 import { UploadProgress } from "./upload-progress";
@@ -15,7 +16,7 @@ function upload(state: UploadState): DocumentUploadEntry {
   };
 }
 
-test("successful uploads dismiss after three seconds and cancel on queue changes or unmount", (context) => {
+test("successful uploads dismiss after the configured delay and cancel on queue changes or unmount", (context) => {
   const effects: React.EffectCallback[] = [];
   context.mock.method(React, "useState", (() => [
     false,
@@ -34,7 +35,7 @@ test("successful uploads dismiss after three seconds and cancel on queue changes
   };
 
   render([upload(UploadState.SUCCESS)]);
-  context.mock.timers.tick(2999);
+  context.mock.timers.tick(UPLOAD_SUCCESS_DISMISS_DELAY_MS - 1);
   assert.equal(dismiss.mock.callCount(), 0);
   context.mock.timers.tick(1);
   assert.equal(dismiss.mock.callCount(), 1);
@@ -43,7 +44,7 @@ test("successful uploads dismiss after three seconds and cancel on queue changes
   context.mock.timers.tick(1000);
   if (typeof cleanup === "function") cleanup();
   render([upload(UploadState.SUCCESS), upload(UploadState.UPLOADING)]);
-  context.mock.timers.tick(3000);
+  context.mock.timers.tick(UPLOAD_SUCCESS_DISMISS_DELAY_MS);
   assert.equal(
     dismiss.mock.callCount(),
     1,
@@ -52,7 +53,7 @@ test("successful uploads dismiss after three seconds and cancel on queue changes
 
   cleanup = render([upload(UploadState.SUCCESS)]);
   if (typeof cleanup === "function") cleanup();
-  context.mock.timers.tick(3000);
+  context.mock.timers.tick(UPLOAD_SUCCESS_DISMISS_DELAY_MS);
   assert.equal(dismiss.mock.callCount(), 1, "unmount cancels dismissal");
 });
 
@@ -76,7 +77,7 @@ test("pending, skipped, failed, and empty queues stay visible without automatic 
       onDismiss: dismiss,
     });
     effects.pop()!();
-    context.mock.timers.tick(3000);
+    context.mock.timers.tick(UPLOAD_SUCCESS_DISMISS_DELAY_MS);
     assert.equal(
       dismiss.mock.callCount(),
       0,
@@ -85,6 +86,6 @@ test("pending, skipped, failed, and empty queues stay visible without automatic 
   }
   UploadProgress({ uploads: [], onDismiss: dismiss });
   effects.pop()!();
-  context.mock.timers.tick(3000);
+  context.mock.timers.tick(UPLOAD_SUCCESS_DISMISS_DELAY_MS);
   assert.equal(dismiss.mock.callCount(), 0);
 });

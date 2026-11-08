@@ -5,7 +5,10 @@ import React from "react";
 import { Star } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DocumentItem } from "../../types/documents.types";
-import { DocumentItemType, DocumentViewType } from "../../types/documents.enums";
+import {
+  DocumentItemType,
+  DocumentViewType,
+} from "../../types/documents.enums";
 import ItemActionsMenu from "../explorer/item-actions-menu";
 import { DocumentIcon } from "../common/document-icon";
 import { DocumentsCard } from "../ui/documents-card";
@@ -91,12 +94,22 @@ export function GridViewCard({
           opacity: isDragging ? 0.3 : undefined,
         }
       : {}),
-    zIndex: isDragging ? 50 : isMenuOpen ? 30 : undefined,
-    position: (isDragging || isMenuOpen) ? ("relative" as const) : undefined,
+    zIndex: isDragging
+      ? 50
+      : isMenuOpen
+        ? 30
+        : isSelected || isOver
+          ? 10
+          : undefined,
+    position: "relative" as const,
   };
 
   return (
-    <div ref={setCombinedRef} style={style}>
+    <div
+      ref={setCombinedRef}
+      style={style}
+      className="relative focus-within:z-20"
+    >
       <DocumentsCard
         selected={isSelected}
         isDraggingOver={isOver}
@@ -116,14 +129,21 @@ export function GridViewCard({
       >
         {/* Header Icon & Menu */}
         <div className="flex items-start justify-between">
-          <Button type="button" variant="unstyled" ref={setActivatorNodeRef}
-            {...attributes} {...listeners} aria-label={`Drag ${item.name}`}>
-          <DocumentIcon
-            item={item}
-            iconSize={22}
-            isSelected={isSelected}
-            className="p-3 rounded-panel transition-all duration-200"
-          />
+          <Button
+            type="button"
+            variant="unstyled"
+            ref={setActivatorNodeRef}
+            className="relative rounded-panel focus-visible:z-10"
+            {...attributes}
+            {...listeners}
+            aria-label={`Drag ${item.name}`}
+          >
+            <DocumentIcon
+              item={item}
+              iconSize={22}
+              isSelected={isSelected}
+              className="p-3 rounded-panel transition-all duration-200"
+            />
           </Button>
 
           <ItemActionsMenu
@@ -134,7 +154,9 @@ export function GridViewCard({
             onRename={() => onRename(item)}
             onMove={() => onMove(item.id)}
             onToggleStar={onToggleStar ? () => onToggleStar(item) : undefined}
-            onArchive={(archive) => (archive ? onMoveToTrash(item) : onRestore(item))}
+            onArchive={(archive) =>
+              archive ? onMoveToTrash(item) : onRestore(item)
+            }
             onViewDetails={() => onViewDetails(item)}
             onDeletePermanently={() => onDeletePermanently(item)}
             onPreview={() => onPreview?.(item)}
@@ -149,7 +171,21 @@ export function GridViewCard({
 
         {/* Info Body */}
         <div className="min-w-0 mt-3 flex-1">
-          <h4><Button variant="unstyled" type="button" className="block w-full truncate text-left text-sm font-semibold text-foreground" onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); if (isFolder) onFolderClick(item); else onPreview?.(item); }}>{item.name}</Button></h4>
+          <h4>
+            <Button
+              variant="unstyled"
+              type="button"
+              className="relative block w-full truncate rounded-xs text-left text-sm font-semibold text-foreground focus-visible:z-10"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isFolder) onFolderClick(item);
+                else onPreview?.(item);
+              }}
+            >
+              {item.name}
+            </Button>
+          </h4>
           <p className="mt-1 text-xs text-muted-foreground font-semibold">
             {isFolder ? "Folder" : formatBytes(item.sizeBytes)}
           </p>

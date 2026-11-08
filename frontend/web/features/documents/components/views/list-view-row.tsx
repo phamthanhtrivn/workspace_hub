@@ -5,7 +5,10 @@ import React from "react";
 import { Star } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DocumentItem } from "../../types/documents.types";
-import { DocumentItemType, DocumentViewType } from "../../types/documents.enums";
+import {
+  DocumentItemType,
+  DocumentViewType,
+} from "../../types/documents.enums";
 import ItemActionsMenu from "../explorer/item-actions-menu";
 import {
   formatBytes,
@@ -96,12 +99,19 @@ export function ListViewRow({
           opacity: isDragging ? 0.3 : undefined,
         }
       : {}),
-    zIndex: isDragging ? 50 : isMenuOpen ? 30 : undefined,
-    position: (isDragging || isMenuOpen) ? ("relative" as const) : undefined,
+    zIndex: isDragging
+      ? 50
+      : isMenuOpen
+        ? 30
+        : isSelected || isOver
+          ? 10
+          : undefined,
+    position: "relative" as const,
   };
 
   return (
-    <TableRow unstyled
+    <TableRow
+      unstyled
       ref={setCombinedRef}
       style={style}
       onClick={(e) => {
@@ -117,17 +127,41 @@ export function ListViewRow({
         }
       }}
       className={cn(
-        "hover:bg-background cursor-pointer select-none transition-colors border-b border-border",
-        isSelected && "bg-info-soft/40",
-        isOver && "bg-info-soft/50 border-y-2 border-dashed border-info-outline"
+        "relative focus-within:z-20 hover:bg-background cursor-pointer select-none transition-colors border-b border-border",
+        isSelected && "z-10 bg-info-soft/40",
+        isOver &&
+          "z-20 bg-info-soft/50 border-y-2 border-dashed border-info-outline",
       )}
     >
       <TableCell unstyled className="p-4 flex items-center gap-3 min-w-0">
-        <Button type="button" variant="unstyled" ref={setActivatorNodeRef}
-          {...attributes} {...listeners} aria-label={`Drag ${item.name}`}>
-          <DocumentIcon item={item} iconSize={18} className="p-2 rounded-panel" />
+        <Button
+          type="button"
+          variant="unstyled"
+          ref={setActivatorNodeRef}
+          className="relative rounded-panel focus-visible:z-10"
+          {...attributes}
+          {...listeners}
+          aria-label={`Drag ${item.name}`}
+        >
+          <DocumentIcon
+            item={item}
+            iconSize={18}
+            className="p-2 rounded-panel"
+          />
         </Button>
-        <Button variant="unstyled" type="button" className="min-w-0 truncate text-left font-semibold text-foreground max-w-xs" onPointerDown={e => e.stopPropagation()} onClick={e => { e.stopPropagation(); if (isFolder) onFolderClick(item); else onPreview?.(item); }}>{item.name}</Button>
+        <Button
+          variant="unstyled"
+          type="button"
+          className="relative min-w-0 max-w-xs truncate rounded-xs text-left font-semibold text-foreground focus-visible:z-10"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isFolder) onFolderClick(item);
+            else onPreview?.(item);
+          }}
+        >
+          {item.name}
+        </Button>
         {!isProjectDocuments && item.isStarred ? (
           <Star className="h-3.5 w-3.5 fill-warning-content text-warning-content shrink-0 ml-1" />
         ) : null}
@@ -135,10 +169,16 @@ export function ListViewRow({
       <TableCell unstyled className="p-4 hidden sm:table-cell">
         <DocumentsStatusBadge type="itemType" itemType={item.type} />
       </TableCell>
-      <TableCell unstyled className="p-4 text-muted-foreground font-semibold hidden md:table-cell">
+      <TableCell
+        unstyled
+        className="p-4 text-muted-foreground font-semibold hidden md:table-cell"
+      >
         {formatDateShort(item.updatedAt)}
       </TableCell>
-      <TableCell unstyled className="p-4 text-muted-foreground font-semibold hidden lg:table-cell">
+      <TableCell
+        unstyled
+        className="p-4 text-muted-foreground font-semibold hidden lg:table-cell"
+      >
         {isFolder ? "—" : formatBytes(getDocumentDisplaySize(item))}
       </TableCell>
       <TableCell unstyled className="p-4 text-right">
@@ -151,7 +191,9 @@ export function ListViewRow({
             onRename={() => onRename(item)}
             onMove={() => onMove(item.id)}
             onToggleStar={onToggleStar ? () => onToggleStar(item) : undefined}
-            onArchive={(archive) => (archive ? onMoveToTrash(item) : onRestore(item))}
+            onArchive={(archive) =>
+              archive ? onMoveToTrash(item) : onRestore(item)
+            }
             onViewDetails={() => onViewDetails(item)}
             onDeletePermanently={() => onDeletePermanently(item)}
             onPreview={() => onPreview?.(item)}

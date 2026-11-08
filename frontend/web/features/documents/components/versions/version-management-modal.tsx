@@ -1,6 +1,9 @@
 "use client";
 
-import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
+import {
+  logActionError,
+  getActionErrorMessage,
+} from "@/lib/permission-feedback";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React, { useMemo, useCallback, useRef } from "react";
@@ -9,10 +12,7 @@ import { documentsApi } from "../../api/documents.api";
 import { DocumentItem } from "../../types/documents.types";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { History } from "lucide-react";
-import {
-  DocumentItemType,
-  DocumentRole,
-} from "../../types/documents.enums";
+import { DocumentItemType, DocumentRole } from "../../types/documents.enums";
 import { ORIGINAL_VERSION_ID } from "../../types/documents.constants";
 import { toast } from "sonner";
 import { useDocumentUpload } from "../../hooks/useDocumentUpload";
@@ -46,8 +46,13 @@ export function VersionManagementModal({
 }: VersionManagementModalProps) {
   const isModalOpen = open ?? isOpen ?? false;
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const versionTarget = useMemo(() => item ? { documentId: item.id, isPublic } : undefined, [item, isPublic]);
-  const canUploadVersion = item?.userRole === DocumentRole.OWNER || item?.userRole === DocumentRole.EDITOR;
+  const versionTarget = useMemo(
+    () => (item ? { documentId: item.id, isPublic } : undefined),
+    [item, isPublic],
+  );
+  const canUploadVersion =
+    item?.userRole === DocumentRole.OWNER ||
+    item?.userRole === DocumentRole.EDITOR;
   const { uploads, isUploading, uploadFile, retryFailed } = useDocumentUpload({
     currentFolderId: null,
     enabled: isModalOpen && canUploadVersion,
@@ -60,11 +65,17 @@ export function VersionManagementModal({
     queryKey: ["document-versions", item?.id],
     queryFn: () => {
       if (!item) return Promise.resolve([]);
+
       return isPublic
         ? documentsApi.getPublicVersions(item.id)
         : documentsApi.getVersions(item.id);
     },
-    enabled: isModalOpen && !!item && item.type !== DocumentItemType.FOLDER && (item.userRole === DocumentRole.OWNER || item.userRole === DocumentRole.EDITOR),
+    enabled:
+      isModalOpen &&
+      !!item &&
+      item.type !== DocumentItemType.FOLDER &&
+      (item.userRole === DocumentRole.OWNER ||
+        item.userRole === DocumentRole.EDITOR),
   });
 
   const { data: versions = [], isLoading } = versionsQuery;
@@ -75,11 +86,11 @@ export function VersionManagementModal({
         const downloadUrl = isPublic
           ? await documentsApi.getPublicDownloadUrl(
               item.id,
-              versionId === ORIGINAL_VERSION_ID ? undefined : versionId
+              versionId === ORIGINAL_VERSION_ID ? undefined : versionId,
             )
           : await documentsApi.getDownloadUrl(
               item.id,
-              versionId === ORIGINAL_VERSION_ID ? undefined : versionId
+              versionId === ORIGINAL_VERSION_ID ? undefined : versionId,
             );
         const link = document.createElement("a");
         link.href = downloadUrl;
@@ -89,10 +100,15 @@ export function VersionManagementModal({
         toast.success("Version download started.");
       } catch (err) {
         logActionError("Failed to download version", err);
-        toast.error(getActionErrorMessage(err, "Could not generate download link for this version."));
+        toast.error(
+          getActionErrorMessage(
+            err,
+            "Could not generate download link for this version.",
+          ),
+        );
       }
     },
-    [item, isPublic]
+    [item, isPublic],
   );
 
   const handleFileChange = useCallback(
@@ -101,7 +117,7 @@ export function VersionManagementModal({
       event.target.value = "";
       if (file && item) void uploadFile(file);
     },
-    [item, uploadFile]
+    [item, uploadFile],
   );
 
   const triggerFileSelect = useCallback(() => {
@@ -111,8 +127,13 @@ export function VersionManagementModal({
   if (!isModalOpen || !item) return null;
 
   return (
-    <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className={`${dialogLayout.surface} max-w-2xl border-border bg-card p-6 text-foreground rounded-dialog`}>
+    <Dialog
+      open={isModalOpen}
+      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+    >
+      <DialogContent
+        className={`${dialogLayout.surface} max-w-2xl border-border bg-card p-6 text-foreground rounded-dialog`}
+      >
         <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info-content ring-1 ring-ring">
             <History className="h-5 w-5" />
@@ -127,7 +148,9 @@ export function VersionManagementModal({
           </div>
         </DialogHeader>
 
-        <div className={`${dialogLayout.body} mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1`}>
+        <div
+          className={`${dialogLayout.body} mt-4 space-y-4 max-h-[60vh] overflow-y-auto p-1`}
+        >
           {canUploadVersion ? (
             <VersionUploader
               uploads={uploads}
@@ -139,14 +162,23 @@ export function VersionManagementModal({
             />
           ) : null}
 
-          {versionsQuery.isError && <QueryFeedback label="version history" error retrying={versionsQuery.isFetching} onRetry={() => versionsQuery.refetch()} />}
-        {(!versionsQuery.isError || versions.length > 0) && <VersionHistoryTable
-            versions={versions}
-            isLoading={isLoading}
-            item={item}
-            onPreviewVersion={onPreviewVersion}
-            onDownload={handleDownload}
-          />}
+          {versionsQuery.isError && (
+            <QueryFeedback
+              label="version history"
+              error
+              retrying={versionsQuery.isFetching}
+              onRetry={() => versionsQuery.refetch()}
+            />
+          )}
+          {(!versionsQuery.isError || versions.length > 0) && (
+            <VersionHistoryTable
+              versions={versions}
+              isLoading={isLoading}
+              item={item}
+              onPreviewVersion={onPreviewVersion}
+              onDownload={handleDownload}
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>

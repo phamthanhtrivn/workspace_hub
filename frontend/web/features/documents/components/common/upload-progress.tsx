@@ -75,6 +75,7 @@ export function UploadProgress({
           aria-expanded={!collapsed}
           aria-label={collapsed ? "Expand upload list" : "Collapse upload list"}
           onClick={() => setCollapsed((current) => !current)}
+          className="relative focus-visible:z-10"
         >
           {collapsed ? (
             <ChevronUp aria-hidden="true" />
@@ -89,6 +90,7 @@ export function UploadProgress({
             size="icon-sm"
             aria-label="Dismiss upload list"
             onClick={onDismiss}
+            className="relative focus-visible:z-10"
           >
             <X aria-hidden="true" />
           </Button>

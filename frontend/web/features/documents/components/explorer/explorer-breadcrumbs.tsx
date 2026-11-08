@@ -5,7 +5,6 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { BreadcrumbLink } from "./breadcrumb-link";
 import { Button } from "@/components/ui/button";
 
-
 interface ExplorerBreadcrumbsProps {
   path: { id: string | null; name: string }[];
   onBreadcrumbClick: (index: number) => void;
@@ -20,10 +19,12 @@ export function ExplorerBreadcrumbs({
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1 break-all text-sm font-semibold text-foreground">
       {path.length > 1 && onBackToParent ? (
-        <Button variant="unstyled" aria-label="Open parent folder"
+        <Button
+          variant="unstyled"
+          aria-label="Open parent folder"
           type="button"
           onClick={onBackToParent}
-          className="p-1.5 hover:bg-muted rounded-control text-muted-foreground hover:text-foreground transition mr-2 cursor-pointer border border-border"
+          className="relative focus-visible:z-10 p-1.5 hover:bg-muted rounded-control text-muted-foreground hover:text-foreground transition mr-2 cursor-pointer border border-border"
         >
           <ArrowLeft size={15} />
         </Button>

@@ -40,15 +40,15 @@ export function DocumentsPagination({
     <div
       className={cn(
         "flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between",
-        className
+        className,
       )}
     >
       <span className="text-xs font-semibold text-muted-foreground">
         {summaryText
           ? summaryText
           : total > 0
-          ? `Showing ${startItem}-${endItem} of ${total} items`
-          : `Page ${safePage} of ${totalPages}`}
+            ? `Showing ${startItem}-${endItem} of ${total} items`
+            : `Page ${safePage} of ${totalPages}`}
       </span>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -67,16 +67,17 @@ export function DocumentsPagination({
 
         {pageNumbers.map((pageNumber, index) =>
           typeof pageNumber === "number" ? (
-            <Button variant="unstyled"
+            <Button
+              variant="unstyled"
               key={`${pageNumber}-${index}`}
               type="button"
               disabled={isLoading}
               onClick={() => onPageChange(pageNumber)}
               className={cn(
-                "h-9 min-w-9 cursor-pointer rounded-control px-3 text-xs font-semibold transition",
+                "relative focus-visible:z-10 h-9 min-w-9 cursor-pointer rounded-control px-3 text-xs font-semibold transition",
                 pageNumber === safePage
                   ? "bg-primary text-primary-foreground"
-                  : "border border-border bg-card text-muted-foreground hover:bg-background"
+                  : "border border-border bg-card text-muted-foreground hover:bg-background",
               )}
               aria-current={pageNumber === safePage ? "page" : undefined}
             >
@@ -90,7 +91,7 @@ export function DocumentsPagination({
             >
               ...
             </span>
-          )
+          ),
         )}
 
         <Button

@@ -7,7 +7,6 @@ import { DND_ROOT_ID } from "../../types/documents.constants";
 import { NavigationLabel } from "../../types/documents.enums";
 import { Button } from "@/components/ui/button";
 
-
 export interface BreadcrumbLinkProps {
   name: string;
   folderId: string | null;
@@ -15,28 +14,39 @@ export interface BreadcrumbLinkProps {
   onClick: () => void;
 }
 
-export function BreadcrumbLink({ name, folderId, isActive, onClick }: BreadcrumbLinkProps) {
+export function BreadcrumbLink({
+  name,
+  folderId,
+  isActive,
+  onClick,
+}: BreadcrumbLinkProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: folderId === null ? DND_ROOT_ID : folderId,
   });
-  const navigationLabels: Partial<Record<NavigationLabel | "Folder", string>> = {
-    [NavigationLabel.ROOT]: "My files",
-    [NavigationLabel.CURRENT_FOLDER]: "Current folder",
-    [NavigationLabel.STARRED]: "Starred",
-    [NavigationLabel.SHARED]: "Shared",
-    [NavigationLabel.TRASH]: "Trash",
-    Folder: "Folder",
-  };
-  const displayName = navigationLabels[name as NavigationLabel | "Folder"] || name;
+  const navigationLabels: Partial<Record<NavigationLabel | "Folder", string>> =
+    {
+      [NavigationLabel.ROOT]: "My files",
+      [NavigationLabel.CURRENT_FOLDER]: "Current folder",
+      [NavigationLabel.STARRED]: "Starred",
+      [NavigationLabel.SHARED]: "Shared",
+      [NavigationLabel.TRASH]: "Trash",
+      Folder: "Folder",
+    };
+  const displayName =
+    navigationLabels[name as NavigationLabel | "Folder"] || name;
 
   return (
-    <Button variant="unstyled"
+    <Button
+      variant="unstyled"
       ref={setNodeRef}
       onClick={onClick}
       className={cn(
-        "font-semibold text-xs px-2 py-1 rounded-md transition-all cursor-pointer",
-        isActive ? "text-foreground" : "text-muted-foreground hover:text-info-content hover:bg-muted",
-        isOver && "bg-info-soft text-info-content ring-2 ring-dashed ring-ring scale-105"
+        "relative focus-visible:z-10 font-semibold text-xs px-2 py-1 rounded-md transition-all cursor-pointer",
+        isActive
+          ? "text-foreground"
+          : "text-muted-foreground hover:text-info-content hover:bg-muted",
+        isOver &&
+          "z-10 bg-info-soft text-info-content ring-2 ring-dashed ring-ring scale-105",
       )}
     >
       {displayName}

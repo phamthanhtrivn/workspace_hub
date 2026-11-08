@@ -54,7 +54,6 @@ export function ShareToChatModal({
     handleShare,
     executeShare,
     isPermissionConfirmOpen,
-    setIsPermissionConfirmOpen,
     pendingUnauthorizedEmails,
     currentUserId,
     isProjectDocuments,
@@ -98,13 +97,17 @@ export function ShareToChatModal({
         otherMember?.profile?.fullName ||
         otherMember?.nickname ||
         "Direct Message";
+
       return { value: conv.id, label: name };
     }),
   ];
 
   return (
     <>
-      <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && onClose()}>
+      <Dialog
+        open={isModalOpen}
+        onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && onClose()}
+      >
         <DialogContent
           className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}
           showCloseButton={!isSubmitting}
@@ -125,10 +128,11 @@ export function ShareToChatModal({
 
           {!isProjectDocuments ? (
             <div className="mt-3 flex items-center border-b border-border gap-6">
-              <Button variant="unstyled"
+              <Button
+                variant="unstyled"
                 type="button"
                 onClick={() => setActiveTab(ShareTabType.CHANNEL)}
-                className={`flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
+                className={`relative focus-visible:z-10 focus-visible:ring-inset flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
                   activeTab === ShareTabType.CHANNEL
                     ? "border-info-outline text-info-content"
                     : "border-transparent text-muted-foreground hover:text-muted-foreground"
@@ -137,10 +141,11 @@ export function ShareToChatModal({
                 <Users className="h-4 w-4" />
                 <span>Channels</span>
               </Button>
-              <Button variant="unstyled"
+              <Button
+                variant="unstyled"
                 type="button"
                 onClick={() => setActiveTab(ShareTabType.DM)}
-                className={`flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
+                className={`relative focus-visible:z-10 focus-visible:ring-inset flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
                   activeTab === ShareTabType.DM
                     ? "border-info-outline text-info-content"
                     : "border-transparent text-muted-foreground hover:text-muted-foreground"
@@ -152,7 +157,7 @@ export function ShareToChatModal({
             </div>
           ) : null}
 
-          <div className={`${dialogLayout.body} mt-4 space-y-4`}>
+          <div className={`${dialogLayout.body} mt-4 space-y-4 p-1`}>
             {selectedTab === ShareTabType.CHANNEL ? (
               <>
                 {!isProjectDocuments ? (
@@ -203,10 +208,15 @@ export function ShareToChatModal({
             )}
 
             <div className="space-y-1.5">
-              <label htmlFor={`${inputFieldId}-field-206`} className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <label
+                htmlFor={`${inputFieldId}-field-206`}
+                className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+              >
                 Message (optional)
               </label>
-              <Textarea id={`${inputFieldId}-field-206`} aria-label="Message (optional)"
+              <Textarea
+                id={`${inputFieldId}-field-206`}
+                aria-label="Message (optional)"
                 value={introMessage}
                 onChange={(e) => setIntroMessage(e.target.value)}
                 placeholder="Add a message..."
@@ -225,7 +235,8 @@ export function ShareToChatModal({
             >
               Cancel
             </Button>
-            <Button loading={isSubmitting || isLoadingProjectSpace}
+            <Button
+              loading={isSubmitting || isLoadingProjectSpace}
               type="button"
               disabled={
                 isSubmitting ||
