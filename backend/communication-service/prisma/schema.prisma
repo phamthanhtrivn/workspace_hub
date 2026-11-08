@@ -921,6 +921,22 @@ model ConversationAiOutbox {
  @@map("conversation_ai_outbox")
 }
 
+model VoiceTranscriptRequest {
+  mediaId String @map("media_id") @db.Uuid
+  actorId String @map("actor_id") @db.Uuid
+  chatType String @map("chat_type")
+  status String @default("PENDING")
+  leaseToken String? @map("lease_token") @db.Uuid
+  leaseUntil DateTime? @map("lease_until") @db.Timestamptz
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.Timestamptz
+  attempts Int @default(0)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@id([mediaId,chatType])
+  @@index([status,nextAttemptAt],map:"voice_transcript_requests_pending")
+  @@map("voice_transcript_requests")
+}
+
 model UserEventCursor {
   topic String
   userId String @map("user_id") @db.Uuid

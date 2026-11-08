@@ -111,7 +111,10 @@ export function startWorkers() {
               job.name === VOICE_TRANSCRIPT.job &&
               config.VOICE_TRANSCRIPTION_ENABLED === "true"
             )
-              return processVoiceTranscript(job.data.runId);
+              return processVoiceTranscript(
+                job.data.runId,
+                Math.max(0, (job.opts.attempts ?? 1) - job.attemptsMade - 1),
+              );
             if (
               job.name !== "meeting-summary" ||
               config.MEETING_SUMMARY_ENABLED !== "true"

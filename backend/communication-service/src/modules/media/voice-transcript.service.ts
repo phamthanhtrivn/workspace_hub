@@ -11,6 +11,8 @@ import { S3Service } from '../../infrastructure/s3/s3.service';
 import { ChannelAccessService } from '../channel/access/channel-access.service';
 import { DirectMessagePermissionService } from '../direct-message/direct-message-permission.service';
 import { isServiceKeyValid } from '../../common/auth/service-key';
+import { isVoiceTranscriptionEnabled } from './voice-transcript.config';
+import { isTranscriptAudio } from './voice-transcript-audio';
 import {
   VOICE_TRANSCRIPT,
   VoiceChatType,
@@ -27,16 +29,9 @@ export class VoiceTranscriptService {
 
   authorizeSource(key?: string) {
     const expected = process.env.AI_TO_COMMUNICATION_KEY || '';
-    if (!this.enabled() || expected.length < 32)
+    if (!isVoiceTranscriptionEnabled() || expected.length < 32)
       throw new ServiceUnavailableException(VOICE_TRANSCRIPT.unavailable);
     if (!isServiceKeyValid(key, expected)) throw new UnauthorizedException();
-  }
-
-  private enabled() {
-    return (
-      (process.env.VOICE_TRANSCRIPTION_ENABLED ??
-        process.env.MEETING_SUMMARY_ENABLED) === 'true'
-    );
   }
 
   async attachment(id: string, actorId: string, chatType: VoiceChatType) {
@@ -60,7 +55,7 @@ export class VoiceTranscriptService {
       await this.channels.assertPrivateAccess(media.message.channelId, actorId);
     else await this.direct.assertCanRead(media.message.conversationId, actorId);
     if (
-      !media.mimeType.startsWith('audio/') ||
+      !isTranscriptAudio(media) ||
       media.sizeBytes < 1 ||
       media.sizeBytes > VOICE_TRANSCRIPT.maxBytes
     ) {
@@ -103,7 +98,7 @@ export class VoiceTranscriptService {
     const original = await this.attachment(id, actorId, chatType);
     const key = process.env.COMMUNICATION_TO_AI_KEY || '';
     const baseUrl = process.env.AI_SERVICE_URL;
-    if (!this.enabled() || key.length < 32 || !baseUrl)
+    if (!isVoiceTranscriptionEnabled() || key.length < 32 || !baseUrl)
       throw new ServiceUnavailableException(VOICE_TRANSCRIPT.unavailable);
     let response: Response;
     try {

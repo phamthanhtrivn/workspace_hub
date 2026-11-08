@@ -8,6 +8,11 @@ import { config } from "../../config/env.config";
 import type { MeetingSource } from "./source";
 
 export const AUDIO_CHUNK_SECONDS = 45;
+export class MediaDownloadError extends Error {
+  constructor(readonly status: number) {
+    super("Recording download failed");
+  }
+}
 export function assertMediaUrl(value: string) {
   const url = new URL(value);
   const allowed = config.MEETING_MEDIA_HOSTS.split(",")
@@ -46,7 +51,7 @@ export async function prepareAudioChunks(
   });
   if (!response.ok || !response.body) {
     await response.body?.cancel();
-    throw new Error("Recording download failed");
+    throw new MediaDownloadError(response.status);
   }
   const length = response.headers.get("content-length");
   if (length && Number(length) !== source.sizeBytes) {

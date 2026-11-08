@@ -36,7 +36,7 @@ stub('./src/modules/voice-transcript/voice-source.ts', { voiceSource: async (...
 } });
 stub('./src/modules/meeting-summary/media.ts', { prepareAudioChunks: (...args) => prepare(...args) });
 stub('./src/modules/meeting-summary/speech.client.ts', { recognizeMeetingChunk: (...args) => speech(...args) });
-const { VoiceTranscriptService: PrivateTranscripts } = ai('./src/modules/voice-transcript/voice-transcript.service.ts');
+const { VoiceTranscriptService: SharedTranscripts } = ai('./src/modules/voice-transcript/voice-transcript.service.ts');
 const { processVoiceTranscript } = ai('./src/jobs/voice-transcript.processor.ts');
 const { pcmWaveSeconds } = ai('./src/modules/voice-transcript/wave-duration.ts');
 const { VOICE_TRANSCRIPT } = ai('./src/modules/voice-transcript/voice.constants.ts');
@@ -124,17 +124,18 @@ test('public proxy uses trusted actor, bounds its response and rechecks access a
   }
 });
 
-test('cached transcript queries isolate actor, media, chat type and revision; completed work is not queued twice', async () => {
-  const service = new PrivateTranscripts(); sourceLookups = []; sourceDenied = false; queued.length = 0;
+test('completed transcripts are shared with authorized readers and never queued twice', async () => {
+  const service = new SharedTranscripts(); sourceLookups = []; sourceDenied = false; queued.length = 0;
   database = async (sql, args) => {
-    assert.match(sql, /media_id=\$1 AND actor_id=\$2 AND chat_type=\$3 AND revision=\$4/);
-    assert.deepEqual(args, ['media', args[1], 'CHANNEL', 'revision']);
-    return args[1] === 'owner' ? [{ status: 'COMPLETED', text: 'Private words', error: null }] : [];
+    assert.match(sql, /media_id=\$1 AND chat_type=\$2 AND revision=\$3/);
+    assert.deepEqual(args, ['media', 'CHANNEL', 'revision']);
+    return [{ status: 'COMPLETED', text: 'Shared words', error: null }];
   };
-  assert.equal((await service.start('media', 'owner', 'CHANNEL')).text, 'Private words');
-  assert.equal((await service.status('media', 'other', 'CHANNEL')).status, 'NOT_CREATED');
+  assert.equal((await service.start('media', 'owner', 'CHANNEL')).text, 'Shared words');
+  assert.equal((await service.status('media', 'other', 'CHANNEL')).text, 'Shared words');
+  assert.equal((await service.start('media', 'other', 'CHANNEL')).text, 'Shared words');
   assert.equal(queued.length, 0);
-  assert.deepEqual(sourceLookups.map(args => args[1]), ['owner', 'other']);
+  assert.deepEqual(sourceLookups.map(args => args[1]), ['owner', 'other', 'other']);
   sourceDenied = true;
   await assert.rejects(service.status('media', 'owner', 'CHANNEL'), /Access revoked/);
   sourceDenied = false;
@@ -158,7 +159,7 @@ test('WAV duration validation rejects invalid or truncated decoder output', () =
   assert.throws(() => pcmWaveSeconds(wrong), /mono 16 kHz/);
 });
 
-async function runProcessor({ revoked = false, seconds = 1, chunks = [] } = {}) {
+async function runProcessor({ revoked = false, seconds = 1, chunks = [], failure, attemptsRemaining = 0 } = {}) {
   const updates = []; sourceDenied = false; sourceLookups = [];
   const state = { actor_id: 'owner', media_id: 'media', chat_type: 'CHANNEL', revision: 'revision', chunks };
   database = async (sql, args) => { updates.push([sql, args]); return sql.includes('RETURNING *') ? [state] : [{ run_id: 'run' }]; };
@@ -170,12 +171,15 @@ async function runProcessor({ revoked = false, seconds = 1, chunks = [] } = {}) 
   speech = async (_file, _signal, language) => {
     assert.equal(language, 'auto'); recognitions++;
     if (revoked) sourceDenied = true;
+    if (failure) throw failure;
     return 'Xin chào. Hello.';
   };
-  try { await processVoiceTranscript('run'); }
+  let rejection;
+  try { await processVoiceTranscript('run', attemptsRemaining); }
+  catch (error) { rejection = error; }
   finally { sourceDenied = false; }
   await assert.rejects(access(directory), 'temporary audio must be removed');
-  return { updates, recognitions };
+  return { updates, recognitions, rejection };
 }
 
 test('worker transcribes in original language, checkpoints and clears audio without broadcasting', async () => {
@@ -194,4 +198,22 @@ test('worker does not publish a result after revocation and rejects audio over f
     assert.ok(!updates.some(([sql]) => sql.includes("status='COMPLETED'")));
     assert.ok(updates.some(([sql, args]) => sql.includes("status='FAILED'") && args[1] === (options.seconds ? VOICE_TRANSCRIPT.tooLong : VOICE_TRANSCRIPT.failed)));
   }
+});
+
+test('worker retries temporary failures with a pending status and stops after its retry budget', async () => {
+  for (const failure of [Object.assign(new Error('speech busy'), { status: 503 }),
+    Object.assign(new Error('rate limited'), { status: 429 }), new TypeError('fetch failed')]) {
+    const retried = await runProcessor({ failure, attemptsRemaining: 2 });
+    assert.equal(retried.rejection?.message, VOICE_TRANSCRIPT.failed);
+    assert.ok(retried.updates.some(([sql]) => sql.includes("status='QUEUED',error=NULL")));
+    assert.ok(!retried.updates.some(([sql]) => sql.includes("status='FAILED'")));
+    const exhausted = await runProcessor({ failure });
+    assert.equal(exhausted.rejection, undefined);
+    assert.ok(exhausted.updates.some(([sql]) => sql.includes("status='FAILED'")));
+  }
+  const permanent = await runProcessor({ failure: Object.assign(new Error('forbidden'), { status: 403 }), attemptsRemaining: 2 });
+  assert.equal(permanent.rejection, undefined);
+  assert.ok(permanent.updates.some(([sql]) => sql.includes("status='FAILED'")));
+  const tooLong = await runProcessor({ seconds: 301, attemptsRemaining: 2 });
+  assert.ok(tooLong.updates.some(([sql, args]) => sql.includes("status='FAILED'") && args[1] === VOICE_TRANSCRIPT.tooLong));
 });

@@ -10,6 +10,11 @@ const schema = z.object({
   url: z.url(),
   sizeBytes: z.number().int().positive().max(VOICE_TRANSCRIPT.maxBytes),
 });
+export class VoiceSourceError extends Error {
+  constructor(readonly status: number) {
+    super("Voice message access unavailable");
+  }
+}
 export async function voiceSource(
   mediaId: string,
   actorId: string,
@@ -31,7 +36,7 @@ export async function voiceSource(
   );
   if (!response.ok) {
     await response.body?.cancel();
-    throw new Error("Voice message access unavailable");
+    throw new VoiceSourceError(response.status);
   }
   const payload = JSON.parse(await readResponseText(response, 65536)) as {
     data?: unknown;

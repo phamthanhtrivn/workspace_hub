@@ -287,7 +287,7 @@ export function VoiceMessagePlayer({
             </p>
           )}
           <span className="mt-2 block text-xs text-muted-foreground">
-            {VOICE_LABELS.private}
+            {VOICE_LABELS.shared}
           </span>
         </section>
       )}

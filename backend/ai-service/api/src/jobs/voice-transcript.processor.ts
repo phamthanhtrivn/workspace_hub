@@ -11,8 +11,9 @@ import {
 } from "../modules/voice-transcript/voice.constants";
 import { pcmWaveSeconds } from "../modules/voice-transcript/wave-duration";
 import { pollUntilAborted } from "../common/abort-polling";
+import { isRetryableVoiceFailure } from "../modules/voice-transcript/voice-transcript-retry";
 
-export async function processVoiceTranscript(runId: string) {
+export async function processVoiceTranscript(runId: string, attemptsRemaining = 0) {
   const [state] = await rows<VoiceTranscriptState>(
     `UPDATE notebook_ai.voice_transcripts SET status='RUNNING',updated_at=now() WHERE run_id=$1 AND status='QUEUED' RETURNING *`,
     [runId],
@@ -80,6 +81,15 @@ export async function processVoiceTranscript(runId: string) {
       [runId, text],
     );
   } catch (error) {
+    if (attemptsRemaining > 0 && isRetryableVoiceFailure(error)) {
+      const retried = await rows(
+        `UPDATE notebook_ai.voice_transcripts SET status='QUEUED',error=NULL,updated_at=now()
+         WHERE run_id=$1 AND status='RUNNING' RETURNING run_id`,
+        [runId],
+      );
+      if (retried.length) throw new Error(VOICE_TRANSCRIPT.failed);
+      return;
+    }
     const message =
       error instanceof Error && error.message === VOICE_TRANSCRIPT.tooLong
         ? VOICE_TRANSCRIPT.tooLong

@@ -9,12 +9,22 @@ Recording selects a browser-supported MIME type and keeps the filename extension
 consistent with that type (WebM, M4A or Ogg). Recording stops at five minutes;
 recordings and transcription requests are limited to 10 MiB.
 
-## Private transcription
+## Background transcription
 
-The **Convert to text** button starts transcription on demand. Closing/reopening
-the transcript or reloading the page does not regenerate a completed result.
-Each account has its own saved result; transcripts are not added to messages,
-socket events, notifications, AI conversation history, or other members' views.
+Sending an audio attachment in a direct message, channel or thread automatically
+registers a transcription request in the same database transaction as the message.
+Dispatch runs in the background after commit, so sending does not wait for speech
+recognition. Pending dispatches survive a Communication restart. This includes
+uploaded audio files, with an extension fallback for generic binary uploads;
+the existing 10 MiB and five-minute transcription limits still apply.
+
+The **Convert to text** button keeps its existing behavior and appearance. It
+returns the saved result when available, or joins/starts processing when needed.
+There is one saved transcript per attachment and chat type, shared with anyone
+who currently has permission to read the message. Closing the player, logging
+out, logging in the next day or switching devices does not regenerate a completed
+result. Changing the source invalidates its saved revision. Transcripts are not
+added to message payloads, socket events, notifications or AI conversation history.
 
 Communication checks access to the exact channel/direct message before proxying
 requests and after waiting for the AI service. Recalled/deleted messages cannot
@@ -28,7 +38,10 @@ share the existing speech queue with concurrency one. Speech stays in the local
 faster-whisper worker; no LLM or additional transcription provider is involved.
 Voice requests use automatic language detection and preserve the spoken language.
 Meeting requests keep their existing Vietnamese default. Temporary audio is
-removed after processing; chunk text is checkpointed for explicit retries.
+removed after processing; chunk text is checkpointed for retries. Temporary HTTP,
+network and timeout failures are retried with exponential backoff, up to three
+attempts total. Invalid audio and denied access are not automatically retried.
+After retries are exhausted, the existing player retry action remains available.
 
 ## Setup and rollout
 
@@ -39,12 +52,18 @@ removed after processing; chunk text is checkpointed for explicit retries.
    allowlist configured on the participating services.
 2. Build AI API (`npm run build` in `backend/ai-service/api`), then run its existing
    migration command (`npm run migrate`). Migration `006_voice_transcripts.sql`
-   creates the private transcript table in the AI database. Communication's Prisma
-   schema and existing message payloads remain unchanged.
-3. Restart speech-worker, AI API, AI jobs and Communication before deploying the
+   creates the transcript table; `007_shared_voice_transcripts.sql` consolidates
+   existing per-account rows, preferring a completed result, and adds the shared
+   attachment/chat primary key. Pause AI API/jobs while upgrading the shared key.
+3. In `backend/communication-service`, run `npx prisma migrate deploy` and
+   `npx prisma generate`, then build. Migration
+   `20261108000100_voice_transcript_requests` adds the durable background dispatch
+   table. Stop Communication before generation on Windows if its Prisma engine
+   DLL is in use. Existing message payloads remain unchanged.
+4. Restart speech-worker, AI API, AI jobs and Communication before deploying the
    frontend. Docker uses the existing `meeting-summary` profile to start speech;
    the migration container runs before API/jobs.
-4. `VOICE_TRANSCRIPTION_ENABLED=true` enables voice transcription on both AI API/jobs
+5. `VOICE_TRANSCRIPTION_ENABLED=true` enables voice transcription on both AI API/jobs
    and Communication. If omitted, it inherits `MEETING_SUMMARY_ENABLED`. Set it to
    `false` to disable voice transcription independently. AI also requires its
    existing `AI_ENABLED=true` setting. Voice-only mode still needs the speech
@@ -60,7 +79,7 @@ has opened a pending transcript.
 From the repository root:
 
 ```powershell
-node --test backend/security-tests/voice-transcript.test.mjs backend/security-tests/voice-recorder.test.mjs
+node --test backend/security-tests/voice-transcript.test.mjs backend/security-tests/voice-background.test.mjs backend/security-tests/voice-recorder.test.mjs
 ```
 
 With the existing local Docker AI/speech containers running, also run:
@@ -85,5 +104,5 @@ python -m unittest test_app.py
 The Python contract tests use a fake recognizer and require `httpx` for FastAPI's
 TestClient in the test environment. They do not download a model or establish
 recognition quality on real audio. Also verify real recording/playback in Chrome
-and Safari, account isolation after reload, revoked membership, responsive layout,
+and Safari, shared results after logging in again, revoked membership, responsive layout,
 and light/dark themes against a running stack before release.

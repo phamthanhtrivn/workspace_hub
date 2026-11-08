@@ -1,5 +1,7 @@
 import { assertClientMessageType } from '../../common/auth/client-message-type';
 import { ConversationAiService } from '../conversation-ai/conversation-ai.service';
+import { VoiceTranscriptDispatchService } from '../media/voice-transcript-dispatch.service';
+import { VoiceChatType } from '../media/types/voice-transcript.constants';
 import {
   BadRequestException,
   Injectable,
@@ -36,6 +38,7 @@ export class DirectMessageMutationService {
     private readonly events: DirectMessageEventPublisher,
     private readonly access: DirectMessageAccessService,
     private readonly queries: DirectMessageQueryService,
+    private readonly voiceTranscripts: VoiceTranscriptDispatchService,
   ) {}
   async createDirectMessage(
     conversationId: string,
@@ -179,9 +182,16 @@ export class DirectMessageMutationService {
         tx,
         attachmentMediaId,
       );
+      await this.voiceTranscripts.register(
+        message.medias,
+        senderId,
+        VoiceChatType.DIRECT_MESSAGE,
+        tx,
+      );
       return this.presentation.mapDirectMessage(message);
     });
     this.conversationAi.notify(createdMessage);
+    this.voiceTranscripts.notify();
 
     const message =
       await this.userProfileSnapshotService.attachSenderProfileToMessage(

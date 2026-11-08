@@ -1,5 +1,7 @@
 import { assertClientMessageType } from '../../common/auth/client-message-type';
 import { ConversationAiService } from '../conversation-ai/conversation-ai.service';
+import { VoiceTranscriptDispatchService } from '../media/voice-transcript-dispatch.service';
+import { VoiceChatType } from '../media/types/voice-transcript.constants';
 import {
   Injectable,
   BadRequestException,
@@ -22,6 +24,7 @@ export class MessageMutationService {
     private readonly s3Service: S3Service,
     private readonly conversationAi: ConversationAiService,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
+    private readonly voiceTranscripts: VoiceTranscriptDispatchService,
   ) {}
   async createMessage(
     channelId: string,
@@ -254,9 +257,16 @@ export class MessageMutationService {
         tx,
         attachmentMediaId,
       );
+      await this.voiceTranscripts.register(
+        message.medias,
+        senderId,
+        VoiceChatType.CHANNEL,
+        tx,
+      );
       return message;
     });
     this.conversationAi.notify(createdMessage);
+    this.voiceTranscripts.notify();
 
     return this.userProfileSnapshotService.attachSenderProfileToMessage(
       createdMessage,

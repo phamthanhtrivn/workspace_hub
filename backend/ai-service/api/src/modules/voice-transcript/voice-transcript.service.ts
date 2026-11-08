@@ -29,23 +29,24 @@ export class VoiceTranscriptService {
       throw new UnauthorizedException();
   }
 
-  async status(
+  async status(mediaId: string, actorId: string, chatType: VoiceChatType) {
+    const source = await voiceSource(
+      mediaId,
+      actorId,
+      chatType,
+      AbortSignal.timeout(VOICE_TRANSCRIPT.sourceTimeoutMs),
+    );
+    return this.readState(mediaId, chatType, source.revision);
+  }
+
+  private async readState(
     mediaId: string,
-    actorId: string,
     chatType: VoiceChatType,
-    revision?: string,
+    revision: string,
   ) {
-    const source = revision
-      ? { revision }
-      : await voiceSource(
-          mediaId,
-          actorId,
-          chatType,
-          AbortSignal.timeout(15000),
-        );
     const [state] = await rows<VoiceTranscriptState>(
-      `SELECT status,text,error FROM notebook_ai.voice_transcripts WHERE media_id=$1 AND actor_id=$2 AND chat_type=$3 AND revision=$4`,
-      [mediaId, actorId, chatType, source.revision],
+      `SELECT status,text,error FROM notebook_ai.voice_transcripts WHERE media_id=$1 AND chat_type=$2 AND revision=$3`,
+      [mediaId, chatType, revision],
     );
     return state
       ? {
@@ -61,14 +62,9 @@ export class VoiceTranscriptService {
       mediaId,
       actorId,
       chatType,
-      AbortSignal.timeout(15000),
+      AbortSignal.timeout(VOICE_TRANSCRIPT.sourceTimeoutMs),
     );
-    const existing = await this.status(
-      mediaId,
-      actorId,
-      chatType,
-      source.revision,
-    );
+    const existing = await this.readState(mediaId, chatType, source.revision);
     if (["COMPLETED", "QUEUED", "RUNNING"].includes(existing.status))
       return existing;
     const redis = await meetingSummaryQueue.client;
@@ -81,11 +77,10 @@ export class VoiceTranscriptService {
     const runId = randomUUID();
     const [created] = await rows(
       `INSERT INTO notebook_ai.voice_transcripts (media_id,actor_id,chat_type,revision,run_id,status)
-       VALUES($1,$2,$3,$4,$5,'QUEUED') ON CONFLICT(actor_id,media_id,chat_type) DO UPDATE
-       SET revision=$4,run_id=$5,status='QUEUED',text=NULL,error=NULL,updated_at=now(),
+       VALUES($1,$2,$3,$4,$5,'QUEUED') ON CONFLICT(media_id,chat_type) DO UPDATE
+       SET actor_id=$2,revision=$4,run_id=$5,status='QUEUED',text=NULL,error=NULL,updated_at=now(),
        chunks=CASE WHEN voice_transcripts.revision=$4 THEN voice_transcripts.chunks ELSE '[]'::jsonb END
-       WHERE voice_transcripts.status='FAILED' OR
-         (voice_transcripts.status='COMPLETED' AND voice_transcripts.revision<>$4) RETURNING run_id`,
+       WHERE voice_transcripts.status='FAILED' OR voice_transcripts.revision<>$4 RETURNING run_id`,
       [mediaId, actorId, chatType, source.revision, runId],
     );
     if (created) {
@@ -93,7 +88,14 @@ export class VoiceTranscriptService {
         await meetingSummaryQueue.add(
           VOICE_TRANSCRIPT.job,
           { runId },
-          { jobId: `${VOICE_TRANSCRIPT.jobPrefix}${runId}`, attempts: 1 },
+          {
+            jobId: `${VOICE_TRANSCRIPT.jobPrefix}${runId}`,
+            attempts: VOICE_TRANSCRIPT.attempts,
+            backoff: {
+              type: "exponential",
+              delay: VOICE_TRANSCRIPT.retryDelayMs,
+            },
+          },
         );
       } catch {
         await rows(
@@ -103,6 +105,6 @@ export class VoiceTranscriptService {
         throw new ServiceUnavailableException(VOICE_TRANSCRIPT.unavailable);
       }
     }
-    return this.status(mediaId, actorId, chatType, source.revision);
+    return this.readState(mediaId, chatType, source.revision);
   }
 }
