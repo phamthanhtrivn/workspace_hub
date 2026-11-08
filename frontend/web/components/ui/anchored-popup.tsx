@@ -50,7 +50,7 @@ function usePopupTrigger(id: string, kind: "menu" | "dialog", marker: React.RefO
 
 /** For controlled feature menus whose trigger/state already belongs to a row or
  * toolbar. Positioning, roving focus, dismissal and portal ownership stay here. */
-export function AnchoredMenu({ onClose, side = "bottom", align = "start", sideOffset = 8, alignOffset = 0, anchorRect, anchorElementRef, className, ref, ...props }: AnchoredPopupProps) {
+export function AnchoredMenu({ onClose, side = "bottom", align = "start", sideOffset = 8, alignOffset = 0, anchorRect, anchorElementRef, className, ref, restoreFocus, ...props }: AnchoredPopupProps & { restoreFocus?: () => boolean }) {
   const generatedId = React.useId();
   const popupId = props.id ?? generatedId;
   const { marker, anchor, opener } = usePopupAnchor(anchorRect, anchorElementRef);
@@ -62,6 +62,7 @@ export function AnchoredMenu({ onClose, side = "bottom", align = "start", sideOf
     onClose();
   }}><Menu.Portal><Menu.Positioner anchor={anchor} side={side} align={align} sideOffset={sideOffset} alignOffset={alignOffset} className={cn(POPUP_LAYER_CLASS, "max-w-[calc(100vw-1rem)]")}>
     <Menu.Popup id={popupId} ref={ref} finalFocus={() => {
+      if (restoreFocus?.() === false) return false;
       const active = document.activeElement;
       if (active instanceof Element && active.closest('[aria-modal="true"]')) return false;
       return opener.current?.isConnected ? opener.current : false;

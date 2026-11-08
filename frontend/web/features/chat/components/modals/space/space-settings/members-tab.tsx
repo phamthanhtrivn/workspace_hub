@@ -2,14 +2,14 @@ import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import { IconButton } from "@/components/ui/icon-button";
-import { Search, Crown, Trash2, Shield, ShieldOff } from "lucide-react";
+import { Crown, Trash2, Shield, ShieldOff } from "lucide-react";
 import { FaKey } from "react-icons/fa";
 import {
   SpaceMemberListItem,
   SpaceRole,
 } from "@/features/chat/types/chat.types";
 import { getSpaceMemberName } from "@/features/chat/types/space-settings/space-settings.types";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { LoadingState } from "@/components/ui/loading-state";
 
 interface MembersTabProps {
@@ -46,11 +46,7 @@ export function MembersTab({
   return (
     <div className="space-y-4">
       <div className="relative">
-        <Search
-          size={15}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-        />
-        <Input aria-label="Search members" unstyled
+        <SearchInput iconClassName="size-3.75" aria-label="Search members" unstyled
           type="text"
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}

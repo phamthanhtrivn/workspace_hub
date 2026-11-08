@@ -1,3 +1,5 @@
+import { Bot } from "lucide-react";
+import { getMentionNames, splitMentionText } from "./mention-presentation";
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -110,106 +112,18 @@ export const parseInlineStyles = (
 export const formatMessageContent = (
   content: string | undefined | null,
   memberProfiles?: Record<string, UserProfileSnapshotResponse>,
+  mentionNames: readonly string[] = [],
 ): (string | React.ReactNode)[] => {
   if (!content) return [content || ""];
 
-  let parts: (string | React.ReactNode)[] = [content];
-
-  // 1. Process Special Mentions (@All, @all, @channel, @here)
-  const specialMentions = ["@All", "@all", "@channel", "@here"];
-  specialMentions.forEach((specialStr) => {
-    if (!content.includes(specialStr)) return;
-    const newParts: (string | React.ReactNode)[] = [];
-    parts.forEach((part, partIdx) => {
-      if (typeof part === "string") {
-        const split = part.split(specialStr);
-        split.forEach((s, idx) => {
-          newParts.push(s);
-          if (idx < split.length - 1) {
-            newParts.push(
-              <span
-                key={`special-${specialStr}-${partIdx}-${idx}`}
-                className="font-semibold text-info-content bg-info-soft/80 px-1.5 py-0.5 rounded-md transition-colors"
-              >
-                {specialStr}
-              </span>,
-            );
-          }
-        });
-      } else {
-        newParts.push(part);
-      }
-    });
-    parts = newParts;
-  });
-
-  // 2. Process Member Profile Mentions from memberProfiles map
-  const allProfiles = Object.values(memberProfiles || {})
-    .map((profile) => ({
-      userId: profile.userId || profile.id,
-      name: profile.fullName || "Someone",
-    }))
-    .filter((p) => p.name && p.name !== "Someone")
-    .sort((a, b) => b.name.length - a.name.length);
-
-  allProfiles.forEach(({ userId, name }) => {
-    const searchStr = `@${name}`;
-    const newParts: (string | React.ReactNode)[] = [];
-    parts.forEach((part, partIdx) => {
-      if (typeof part === "string") {
-        const split = part.split(searchStr);
-        split.forEach((s, idx) => {
-          newParts.push(s);
-          if (idx < split.length - 1) {
-            newParts.push(
-              <span
-                key={`user-${userId}-${partIdx}-${idx}`}
-                className="font-semibold text-info-content bg-info-soft/80 px-1.5 py-0.5 rounded-md hover:bg-info-soft transition-colors cursor-pointer"
-              >
-                {searchStr}
-              </span>,
-            );
-          }
-        });
-      } else {
-        newParts.push(part);
-      }
-    });
-    parts = newParts;
-  });
-
-  // 3. Fallback General Mention Regex for single-word @mentions (no spaces allowed to prevent swallowing following text)
-  const mentionRegex = /@([\p{L}\p{N}_\-]+)/gu;
-  const fallbackParts: (string | React.ReactNode)[] = [];
-  parts.forEach((part, partIdx) => {
-    if (typeof part === "string") {
-      let lastIdx = 0;
-      let match;
-      mentionRegex.lastIndex = 0;
-      while ((match = mentionRegex.exec(part)) !== null) {
-        const matchIdx = match.index;
-        const fullMention = match[0];
-        if (matchIdx > lastIdx) {
-          fallbackParts.push(part.substring(lastIdx, matchIdx));
-        }
-        fallbackParts.push(
-          <span
-            key={`mention-regex-${partIdx}-${matchIdx}`}
-            className="font-semibold text-info-content bg-info-soft/80 px-1.5 py-0.5 rounded-md hover:bg-info-soft transition-colors cursor-pointer"
-          >
-            {fullMention}
-          </span>,
-        );
-        lastIdx = mentionRegex.lastIndex;
-      }
-      if (lastIdx < part.length) {
-        fallbackParts.push(part.substring(lastIdx));
-      }
-    } else {
-      fallbackParts.push(part);
-    }
-  });
-  parts = fallbackParts;
+  let parts: (string | React.ReactNode)[] = splitMentionText(content, [...getMentionNames(memberProfiles), ...mentionNames]).map((part, index) =>
+    part.mention ? (
+      <span key={index} className="inline rounded-md bg-info-soft/80 px-1 py-0.5 font-semibold text-info-content [box-decoration-break:clone]">
+        {part.ai && <Bot aria-hidden="true" className="mr-1 inline size-3.5 align-text-bottom" />}
+        {part.text}
+      </span>
+    ) : part.text,
+  );
 
   // Process Markdown Links [text](url)
   const mdLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
@@ -284,8 +198,9 @@ export const formatMessageContent = (
 export const formatMessageContentAndStyles = (
   content: string | undefined | null,
   memberProfiles?: Record<string, UserProfileSnapshotResponse>,
+  mentionNames: readonly string[] = [],
 ): React.ReactNode[] => {
-  const parts = formatMessageContent(content, memberProfiles);
+  const parts = formatMessageContent(content, memberProfiles, mentionNames);
   const finalParts: React.ReactNode[] = [];
 
   parts.forEach((part) => {
@@ -302,6 +217,7 @@ export const formatMessageContentAndStyles = (
 export const parseBlocks = (
   content: string | undefined | null,
   memberProfiles?: Record<string, UserProfileSnapshotResponse>,
+  mentionNames: readonly string[] = [],
 ): React.ReactNode => {
   if (!content) return null;
 
@@ -463,7 +379,7 @@ export const parseBlocks = (
                   "text-sm font-bold text-foreground mt-1.5 mb-0.5 leading-snug";
                 return (
                   <HeadingTag key={`h-${nodeIdx}`} className={className}>
-                    {formatMessageContentAndStyles(node.text!, memberProfiles)}
+                    {formatMessageContentAndStyles(node.text!, memberProfiles, mentionNames)}
                   </HeadingTag>
                 );
               }
@@ -474,7 +390,7 @@ export const parseBlocks = (
                     key={`quote-${nodeIdx}`}
                     className="border-l-4 border-input px-3 py-1  my-1 text-muted-foreground bg-muted rounded-r-md italic text-xs leading-relaxed"
                   >
-                    {formatMessageContentAndStyles(node.text!, memberProfiles)}
+                    {formatMessageContentAndStyles(node.text!, memberProfiles, mentionNames)}
                   </blockquote>
                 );
               }
@@ -487,7 +403,7 @@ export const parseBlocks = (
                   >
                     {node.items!.map((item, itemIdx) => (
                       <li key={`bullet-item-${itemIdx}`}>
-                        {formatMessageContentAndStyles(item, memberProfiles)}
+                        {formatMessageContentAndStyles(item, memberProfiles, mentionNames)}
                       </li>
                     ))}
                   </ul>
@@ -502,7 +418,7 @@ export const parseBlocks = (
                   >
                     {node.items!.map((item, itemIdx) => (
                       <li key={`number-item-${itemIdx}`}>
-                        {formatMessageContentAndStyles(item, memberProfiles)}
+                        {formatMessageContentAndStyles(item, memberProfiles, mentionNames)}
                       </li>
                     ))}
                   </ol>
@@ -521,7 +437,7 @@ export const parseBlocks = (
                   key={`line-${nodeIdx}`}
                   className="min-h-[16px] break-words"
                 >
-                  {formatMessageContentAndStyles(node.text!, memberProfiles)}
+                  {formatMessageContentAndStyles(node.text!, memberProfiles, mentionNames)}
                 </div>
               );
             })}
@@ -535,11 +451,12 @@ export const parseBlocks = (
 export const renderMessageContent = (
   content: string | undefined | null,
   memberProfiles?: Record<string, UserProfileSnapshotResponse>,
+  mentionNames: readonly string[] = [],
 ) => {
   if (!content) return <p className="whitespace-pre-wrap">{content}</p>;
   return (
     <div className="whitespace-pre-wrap leading-relaxed select-text">
-      {parseBlocks(content, memberProfiles)}
+      {parseBlocks(content, memberProfiles, mentionNames)}
     </div>
   );
 };

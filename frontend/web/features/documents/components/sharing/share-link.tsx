@@ -1,6 +1,9 @@
 "use client";
 
-import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
+import {
+  logActionError,
+  getActionErrorMessage,
+} from "@/lib/permission-feedback";
 import React, { useState, useCallback } from "react";
 import { Lock, Globe, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -11,7 +14,6 @@ import { documentsApi } from "../../api/documents.api";
 import { Input } from "@/components/ui/input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Button } from "@/components/ui/button";
-
 
 interface ShareModalLinkProps {
   documentItemId: string;
@@ -28,8 +30,10 @@ const LINK_ACCESS_LABELS: Record<LinkAccess, string> = {
 
 const LINK_ACCESS_DESCRIPTIONS: Record<LinkAccess, string> = {
   [LinkAccess.NONE]: "Only people with granted access can open with this link",
-  [LinkAccess.VIEWER]: "Anyone on the internet with this link can view this item",
-  [LinkAccess.EDITOR]: "Anyone on the internet with this link can view this item",
+  [LinkAccess.VIEWER]:
+    "Anyone on the internet with this link can view this item",
+  [LinkAccess.EDITOR]:
+    "Anyone on the internet with this link can view this item",
 };
 
 export function ShareModalLink({
@@ -38,13 +42,21 @@ export function ShareModalLink({
   onLinkAccessChanged,
   isOwner = false,
 }: ShareModalLinkProps) {
-  const [linkAccess, setLinkAccess] = useState<LinkAccess>(initialLinkAccess === LinkAccess.EDITOR ? LinkAccess.VIEWER : initialLinkAccess);
+  const [linkAccess, setLinkAccess] = useState<LinkAccess>(
+    initialLinkAccess === LinkAccess.EDITOR
+      ? LinkAccess.VIEWER
+      : initialLinkAccess,
+  );
   const [isCopied, setIsCopied] = useState(false);
 
   const [previousAccess, setPreviousAccess] = useState(initialLinkAccess);
   if (previousAccess !== initialLinkAccess) {
     setPreviousAccess(initialLinkAccess);
-    setLinkAccess(initialLinkAccess === LinkAccess.EDITOR ? LinkAccess.VIEWER : initialLinkAccess);
+    setLinkAccess(
+      initialLinkAccess === LinkAccess.EDITOR
+        ? LinkAccess.VIEWER
+        : initialLinkAccess,
+    );
   }
 
   const queryClient = useQueryClient();
@@ -66,7 +78,9 @@ export function ShareModalLink({
     },
     onError: (err) => {
       logActionError("Failed to update link access", err);
-      toast.error(getActionErrorMessage(err, "Failed to update access configurations."));
+      toast.error(
+        getActionErrorMessage(err, "Failed to update access configurations."),
+      );
     },
   });
 
@@ -80,15 +94,26 @@ export function ShareModalLink({
   const [copyFailed, setCopyFailed] = React.useState(false);
   const [copying, setCopying] = React.useState(false);
   const handleCopyLink = useCallback(async () => {
-    setCopying(true); setCopyFailed(false);
+    setCopying(true);
+    setCopyFailed(false);
     try {
-    const shareUrl = `${window.location.origin}/documents/shared/${documentItemId}`;
-    await navigator.clipboard.writeText(shareUrl);
-    setIsCopied(true);
-    toast.success("Link copied to clipboard!");
-    setTimeout(() => setIsCopied(false), 2000);
-    } catch (permissionError) { setIsCopied(false); setCopyFailed(true); toast.error(getActionErrorMessage(permissionError, "Could not copy the link. Select and copy it below.")); }
-    finally { setCopying(false); }
+      const shareUrl = `${window.location.origin}/documents/shared/${documentItemId}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setIsCopied(true);
+      toast.success("Link copied to clipboard!");
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (permissionError) {
+      setIsCopied(false);
+      setCopyFailed(true);
+      toast.error(
+        getActionErrorMessage(
+          permissionError,
+          "Could not copy the link. Select and copy it below.",
+        ),
+      );
+    } finally {
+      setCopying(false);
+    }
   }, [documentItemId]);
 
   return (
@@ -115,18 +140,21 @@ export function ShareModalLink({
           <div className="flex items-center justify-between gap-2">
             {isOwner ? (
               <CustomSelect
+                sizeToOptions
                 ariaLabel="Link access"
                 value={linkAccess}
-                onChange={nextValue =>
+                onChange={(nextValue) =>
                   void handleLinkAccessChange(nextValue as LinkAccess)
                 }
                 triggerClassName="bg-transparent border border-input rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-semibold text-foreground outline-hidden transition-all cursor-pointer"
               >
-                {Object.entries(LINK_ACCESS_LABELS).filter(([value]) => value !== LinkAccess.EDITOR).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
+                {Object.entries(LINK_ACCESS_LABELS)
+                  .filter(([value]) => value !== LinkAccess.EDITOR)
+                  .map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
               </CustomSelect>
             ) : (
               <span className="text-sm font-semibold text-foreground py-0.5 px-1.5 block -ml-1.5">
@@ -140,25 +168,44 @@ export function ShareModalLink({
         </div>
       </div>
 
-      {copyFailed && <div role="status" className="space-y-2"><p className="text-xs text-destructive-content">Copy the link manually:</p><Input aria-label="Share link" readOnly value={typeof window === "undefined" ? "" : `${window.location.origin}/documents/shared/${documentItemId}`} onFocus={event => event.currentTarget.select()} /></div>}
-      {/* Copy Link Button */}
-      <Button variant="unstyled"
-        disabled={copying}
-        onClick={handleCopyLink}
-        className="flex items-center justify-center gap-2 w-full rounded-control bg-background hover:bg-muted border border-border hover:border-border text-foreground px-4 py-3 text-xs font-semibold transition-all cursor-pointer"
-      >
-        {isCopied ? (
-          <>
-            <Check size={14} className="text-success-content" />
-            <span className="text-success-content">Link copied!</span>
-          </>
-        ) : (
-          <>
-            <Copy size={14} />
-            <span>Copy share link</span>
-          </>
-        )}
-      </Button>
+      {isOwner && copyFailed && (
+        <div role="status" className="space-y-2">
+          <p className="text-xs text-destructive-content">
+            Copy the link manually:
+          </p>
+          <Input
+            aria-label="Share link"
+            readOnly
+            value={
+              typeof window === "undefined"
+                ? ""
+                : `${window.location.origin}/documents/shared/${documentItemId}`
+            }
+            onFocus={(event) => event.currentTarget.select()}
+          />
+        </div>
+      )}
+      {/* Only owners can redistribute share links from this dialog. */}
+      {isOwner ? (
+        <Button
+          variant="unstyled"
+          disabled={copying}
+          onClick={handleCopyLink}
+          className="relative focus-visible:z-10 flex items-center justify-center gap-2 w-full rounded-control bg-background hover:bg-muted border border-border hover:border-border text-foreground px-4 py-3 text-xs font-semibold transition-all cursor-pointer"
+        >
+          {isCopied ? (
+            <>
+              <Check size={14} className="text-success-content" />
+              <span className="text-success-content">Link copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy size={14} />
+              <span>Copy share link</span>
+            </>
+          )}
+        </Button>
+      ) : null}
     </div>
   );
 }

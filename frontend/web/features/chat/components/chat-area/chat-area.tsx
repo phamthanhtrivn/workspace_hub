@@ -195,23 +195,21 @@ export default function ChatArea({
   });
 
   // ─── Member profiles ───────────────────────────────────────────────────────
-  const messageSenderIds = useMemo(() => {
+  const messageMentionIds = useMemo(() => {
     const ids = new Set<string>();
     allMessages.forEach((message: ChatMessageResponse) => {
-      if (message.senderId) ids.add(message.senderId);
-      message.reactions?.forEach((reaction) => {
-        if (reaction.userId) ids.add(String(reaction.userId));
-      });
+      message.mentions?.forEach(id => ids.add(id));
+
     });
     return Array.from(ids);
   }, [allMessages]);
 
-  const activeMemberProfiles = useChatMemberProfiles(messageSenderIds);
+  const activeMemberProfiles = useChatMemberProfiles(messageMentionIds, { resolveMissing: true });
   const memberProfiles = useMemo(() => {
     const profiles = { ...activeMemberProfiles };
     allMessages.forEach((message: ChatMessageResponse) => {
       if (message.senderId && message.senderProfile) {
-        profiles[message.senderId] = message.senderProfile;
+        profiles[message.senderId] = { ...message.senderProfile, mentionNames: profiles[message.senderId]?.mentionNames };
       }
     });
     return profiles;
@@ -291,14 +289,13 @@ export default function ChatArea({
       medias?: SendSocketMessageMedia[],
       mentions?: string[],
     ) => {
-      await handleSendMessageAction(
+      return handleSendMessageAction(
         content,
         medias,
         mentions,
         editingMessage,
         () => {
-          setEditingMessage(null);
-          chatInputRef.current?.setMessage("");
+          setEditingMessage((current) => current?.id === editingMessage?.id ? null : current);
         },
       );
     },
@@ -913,6 +910,7 @@ export default function ChatArea({
         </div>
       ) : isDirectConversation ? (
         <DirectMessageInput
+          key={activeConversation?.id}
           ref={chatInputRef}
           onSendMessage={handleSendMessageWithMedia}
           onTypingChange={handleTypingChange}
@@ -921,6 +919,7 @@ export default function ChatArea({
         />
       ) : (
         <ChannelChatInput
+          key={activeConversation?.id}
           ref={chatInputRef}
           onSendMessage={handleSendMessageWithMedia}
           onCreatePoll={() => setIsPollModalOpen(true)}

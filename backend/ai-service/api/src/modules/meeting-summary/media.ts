@@ -8,6 +8,11 @@ import { config } from "../../config/env.config";
 import type { MeetingSource } from "./source";
 
 export const AUDIO_CHUNK_SECONDS = 45;
+export class MediaDownloadError extends Error {
+  constructor(readonly status: number) {
+    super("Recording download failed");
+  }
+}
 export function assertMediaUrl(value: string) {
   const url = new URL(value);
   const allowed = config.MEETING_MEDIA_HOSTS.split(",")
@@ -22,16 +27,20 @@ export function assertMediaUrl(value: string) {
   )
     throw new Error("Recording media host is not allowed");
 }
-export async function prepareMeetingAudio(
-  source: MeetingSource,
+export async function prepareAudioChunks(
+  source: Pick<MeetingSource, "url" | "sizeBytes">,
   directory: string,
   signal: AbortSignal,
+  limits = {
+    maxBytes: config.MEETING_SUMMARY_MAX_BYTES,
+    maxSeconds: config.MEETING_SUMMARY_MAX_SECONDS,
+  },
 ) {
   assertMediaUrl(source.url);
   const disk = await statfs(directory, { bigint: true });
   const required =
     BigInt(source.sizeBytes) +
-    BigInt(config.MEETING_SUMMARY_MAX_SECONDS * 32000) +
+    BigInt(limits.maxSeconds * 32000) +
     64n * 1024n * 1024n;
   if (disk.bavail * disk.bsize < required)
     throw new Error("Insufficient temporary storage");
@@ -42,7 +51,7 @@ export async function prepareMeetingAudio(
   });
   if (!response.ok || !response.body) {
     await response.body?.cancel();
-    throw new Error("Recording download failed");
+    throw new MediaDownloadError(response.status);
   }
   const length = response.headers.get("content-length");
   if (length && Number(length) !== source.sizeBytes) {
@@ -54,7 +63,7 @@ export async function prepareMeetingAudio(
     transform(chunk: Buffer, _encoding, callback) {
       bytes += chunk.length;
       callback(
-        bytes > source.sizeBytes || bytes > config.MEETING_SUMMARY_MAX_BYTES
+        bytes > source.sizeBytes || bytes > limits.maxBytes
           ? new Error("Recording size exceeded")
           : null,
         chunk,
@@ -91,7 +100,7 @@ export async function prepareMeetingAudio(
       "-threads",
       "1",
       "-t",
-      String(config.MEETING_SUMMARY_MAX_SECONDS + 1),
+      String(limits.maxSeconds + 1),
       "-f",
       "segment",
       "-segment_time",
@@ -107,12 +116,13 @@ export async function prepareMeetingAudio(
     .sort();
   if (
     !files.length ||
-    files.length >
-      Math.ceil(config.MEETING_SUMMARY_MAX_SECONDS / AUDIO_CHUNK_SECONDS)
+    files.length > Math.ceil(limits.maxSeconds / AUDIO_CHUNK_SECONDS)
   )
     throw new Error("Recording audio duration is invalid");
   return files.map((name) => join(directory, name));
 }
+export const prepareMeetingAudio = prepareAudioChunks;
+
 function runFfmpeg(args: string[], signal: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
     const child = spawn(config.MEETING_FFMPEG_PATH, args, {
@@ -121,13 +131,14 @@ function runFfmpeg(args: string[], signal: AbortSignal) {
       signal: AbortSignal.any([signal, AbortSignal.timeout(300000)]),
       killSignal: "SIGKILL",
     });
-    child.once("error", () =>
-      reject(new Error("FFmpeg unavailable or interrupted")),
-    );
+    let failure: Error | undefined;
+    child.once("error", () => {
+      failure = new Error("FFmpeg unavailable or interrupted");
+    });
     child.once("close", (code) =>
-      code === 0
+      code === 0 && !failure
         ? resolve()
-        : reject(new Error("FFmpeg could not extract audio")),
+        : reject(failure ?? new Error("FFmpeg could not extract audio")),
     );
   });
 }

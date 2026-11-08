@@ -1,4 +1,5 @@
 import { WorkAssistantModule } from "./modules/work-assistant/work-assistant.module";
+import { VoiceTranscriptModule } from "./modules/voice-transcript/voice-transcript.module";
 import { ConversationModule } from "./modules/conversation-ai/conversation.module";
 import { MeetingSummaryModule } from "./modules/meeting-summary/meeting-summary.module";
 import { Module } from "@nestjs/common";
@@ -12,6 +13,7 @@ import { StudioModule } from "./modules/studio/studio.module";
     WorkAssistantModule,
     ConversationModule,
     MeetingSummaryModule,
+    VoiceTranscriptModule,
     NotebooksModule,
     SourcesModule,
     ChatModule,

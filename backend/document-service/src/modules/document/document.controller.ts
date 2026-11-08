@@ -18,6 +18,9 @@ import {
 import { isServiceKeyValid } from '../../common/auth/service-key';
 import type { Response } from 'express';
 import { DocumentService } from './document.service';
+import { DocumentChatSharingService } from './document-chat-sharing.service';
+import { PrepareChatShareDto } from './dto/prepare-chat-share.dto';
+import { DOCUMENT_CHAT_SHARING } from './types/document-chat-sharing.constants';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
 import { MoveItemDto } from './dto/move-item.dto';
@@ -35,7 +38,10 @@ import { DocumentSortBy } from '../../common/enums/document.enum';
 
 @Controller('api/documents')
 export class DocumentController {
-  constructor(private readonly documentService: DocumentService) {}
+  constructor(
+    private readonly documentService: DocumentService,
+    private readonly chatSharing: DocumentChatSharingService,
+  ) {}
 
   private validateUserHeaders(userId: string, userEmail: string) {
     if (!userId || !userEmail) {
@@ -62,6 +68,7 @@ export class DocumentController {
       projectId,
       dto,
     );
+
     return {
       message: 'Project root folder ensured successfully',
       data: {
@@ -85,6 +92,7 @@ export class DocumentController {
       dto.projectId,
       dto.documentItemIds,
     );
+
     return {
       message: 'Task attachment documents resolved successfully',
       data: documents,
@@ -105,6 +113,7 @@ export class DocumentController {
       dto.documentItemIds,
       dto.operationId,
     );
+
     return {
       message: 'Task attachment documents imported successfully',
       data: documents,
@@ -123,6 +132,7 @@ export class DocumentController {
       userEmail,
       dto,
     );
+
     return {
       message: 'Folder created successfully',
       data: folder,
@@ -141,6 +151,7 @@ export class DocumentController {
       userEmail,
       dto,
     );
+
     return {
       message: 'Upload initialized successfully',
       data: result,
@@ -159,6 +170,7 @@ export class DocumentController {
       userEmail,
       dto,
     );
+
     return {
       message: 'Document uploaded successfully',
       data: item,
@@ -266,6 +278,7 @@ export class DocumentController {
         projectId,
       },
     );
+
     return {
       message: 'Document name conflict checked successfully',
       data: result,
@@ -286,6 +299,7 @@ export class DocumentController {
       id,
       dto,
     );
+
     return {
       message: 'Renamed successfully',
       data: item,
@@ -306,6 +320,7 @@ export class DocumentController {
       id,
       dto,
     );
+
     return {
       message: 'Item moved successfully',
       data: item,
@@ -325,6 +340,7 @@ export class DocumentController {
       id,
       true,
     );
+
     return {
       message: 'Item moved to trash',
       data: item,
@@ -344,6 +360,7 @@ export class DocumentController {
       id,
       false,
     );
+
     return {
       message: 'Item restored successfully',
       data: item,
@@ -363,6 +380,7 @@ export class DocumentController {
       id,
       true,
     );
+
     return {
       message: 'Item starred successfully',
       data: item,
@@ -382,6 +400,7 @@ export class DocumentController {
       id,
       false,
     );
+
     return {
       message: 'Item unstarred successfully',
       data: item,
@@ -396,6 +415,7 @@ export class DocumentController {
   ) {
     this.validateUserHeaders(userId, userEmail);
     await this.documentService.deleteItemPermanently(userId, userEmail, id);
+
     return {
       message: 'Item permanently deleted successfully',
     };
@@ -418,6 +438,7 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Document access verified',
       data: {
@@ -427,6 +448,7 @@ export class DocumentController {
         sizeBytes: Number(item.sizeBytes ?? 0),
         mimeType: item.mimeType,
         userRole,
+        projectId: item.projectId ?? null,
       },
     };
   }
@@ -447,6 +469,7 @@ export class DocumentController {
       versionId,
       authorization,
     );
+
     return {
       message: 'Preview link initialized successfully',
       data: { url },
@@ -469,6 +492,7 @@ export class DocumentController {
       versionId,
       authorization,
     );
+
     return {
       message: 'Download link initialized successfully',
       data: { url },
@@ -498,6 +522,7 @@ export class DocumentController {
       userEmail,
       id,
     );
+
     return {
       message: 'Versions retrieved successfully',
       data: versions,
@@ -518,6 +543,7 @@ export class DocumentController {
       id,
       dto,
     );
+
     return {
       message: 'New version created successfully',
       data: version,
@@ -532,6 +558,7 @@ export class DocumentController {
   ) {
     this.validateUserHeaders(userId, userEmail);
     const result = await this.documentService.getSharing(userId, userEmail, id);
+
     return {
       message: 'Share information retrieved successfully',
       data: result,
@@ -552,6 +579,7 @@ export class DocumentController {
       id,
       dto.linkAccess,
     );
+
     return {
       message: 'Link access updated successfully',
       data: result,
@@ -573,6 +601,7 @@ export class DocumentController {
       dto.email,
       dto.permission,
     );
+
     return {
       message: 'Share added successfully',
       data: result,
@@ -590,10 +619,29 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Chat metadata retrieved successfully',
       data: result,
     };
+  }
+
+  @Post(':id/sharing/chat-access')
+  async prepareChatShare(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: PrepareChatShareDto,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    await this.chatSharing.prepareShare(
+      userId,
+      userEmail,
+      id,
+      dto.recipientUserIds,
+    );
+
+    return { message: DOCUMENT_CHAT_SHARING.SUCCESS };
   }
 
   @Post(':id/sharing/check-permissions')
@@ -609,6 +657,7 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Permissions checked successfully',
       data: result,
@@ -630,6 +679,7 @@ export class DocumentController {
       dto.emails,
       dto.permission,
     );
+
     return {
       message: 'Batch shares added successfully',
       data: result,
@@ -648,6 +698,7 @@ export class DocumentController {
       userEmail,
       id,
     );
+
     return {
       message: 'Breadcrumbs retrieved successfully',
       data: breadcrumbs,
@@ -663,6 +714,7 @@ export class DocumentController {
   ) {
     this.validateUserHeaders(userId, userEmail);
     await this.documentService.removeShare(userId, userEmail, id, shareId);
+
     return {
       message: 'Access revoked successfully',
     };
@@ -680,6 +732,7 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Public document information retrieved successfully',
       data: result,
@@ -710,6 +763,7 @@ export class DocumentController {
       versionId,
       authorization,
     );
+
     return {
       message: 'Public download link initialized successfully',
       data: { url },
@@ -740,6 +794,7 @@ export class DocumentController {
       versionId,
       authorization,
     );
+
     return {
       message: 'Public preview link initialized successfully',
       data: { url },
@@ -758,6 +813,7 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Public versions retrieved successfully',
       data: versions,
@@ -778,6 +834,7 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'New public version created successfully',
       data: version,
@@ -798,6 +855,7 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Public document renamed successfully',
       data: result,
@@ -818,6 +876,7 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Public upload initialized successfully',
       data: result,
@@ -850,6 +909,7 @@ export class DocumentController {
       userId,
       userEmail,
     );
+
     return {
       message: 'Children retrieved successfully',
       data: children,

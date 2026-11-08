@@ -6,7 +6,7 @@ import { QueryFeedback } from "@/components/common/query-feedback";
 
 import { IconButton } from "@/components/ui/icon-button";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Filter, Pin, Search } from "lucide-react";
+import { ArrowLeft, Filter, Pin } from "lucide-react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import {
@@ -22,7 +22,7 @@ import { useActiveChat } from "../../../hooks/useChatQueries";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { LoadingState } from "@/components/ui/loading-state";
 
@@ -198,11 +198,7 @@ export default function PinnedMessagesDetailView({
 
       <div className="px-4 py-3 border-b border-border flex flex-col gap-3 shrink-0">
         <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            size={16}
-          />
-          <Input aria-label="Search pinned messages" unstyled
+          <SearchInput aria-label="Search pinned messages" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

@@ -8,6 +8,7 @@ import {
   MeetingParticipantStatus,
   MeetingRole,
   MeetingStatus,
+  Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MEETING_ERROR_MESSAGES } from '../types/meeting.enums';
@@ -42,10 +43,10 @@ export class MeetingPolicyService {
 
     const participant = meeting.participants[0];
     const isModerator =
-      meeting.hostId === userId ||
-      ((participant?.role === MeetingRole.HOST ||
-        participant?.role === MeetingRole.COHOST) &&
-        participant.status === MeetingParticipantStatus.JOINED);
+      participant?.status === MeetingParticipantStatus.JOINED &&
+      (meeting.hostId === userId ||
+        participant.role === MeetingRole.HOST ||
+        participant.role === MeetingRole.COHOST);
 
     if (!isModerator) {
       throw new ForbiddenException(
@@ -73,15 +74,15 @@ export class MeetingPolicyService {
     return { meeting, participant };
   }
 
-  async assertJoinedMeetingParticipant({
-    joinToken,
-    userId,
-  }: MeetingModeratorParams) {
+  async assertJoinedMeetingParticipant(
+    { joinToken, userId }: MeetingModeratorParams,
+    client: Prisma.TransactionClient = this.prisma,
+  ) {
     if (!userId) {
       throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
     }
 
-    const meeting = await this.prisma.meeting.findUnique({
+    const meeting = await client.meeting.findUnique({
       where: { joinToken },
       include: {
         participants: {

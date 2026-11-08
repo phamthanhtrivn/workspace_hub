@@ -23,6 +23,7 @@ import {
 import { DocumentIcon } from "../common/document-icon";
 import { DocumentsIconButton } from "../ui/documents-icon-button";
 import { DocumentsStatusBadge } from "../ui/documents-status-badge";
+import { DocumentProjectBadge } from "../ui/document-project-badge";
 
 interface DetailsPanelProps {
   item: DocumentItem | null;
@@ -49,7 +50,14 @@ export function DetailsPanel({
   const isFolder = item.type === DocumentItemType.FOLDER;
 
   return (
-    <SheetPanel open aria-label={`Document details: ${item.name}`} onClose={onClose} modalBelow={800} modalContainerSelector="[data-document-canvas]" className="absolute inset-0 z-40 flex h-full min-h-0 min-w-0 w-full shrink-0 flex-col overflow-hidden @min-[800px]/document-canvas:static @min-[800px]/document-canvas:w-80 border-l border-border bg-card text-foreground animate-in slide-in-from-right-4 duration-200">
+    <SheetPanel
+      open
+      aria-label={`Document details: ${item.name}`}
+      onClose={onClose}
+      modalBelow={800}
+      modalContainerSelector="[data-document-canvas]"
+      className="absolute inset-0 z-40 flex h-full min-h-0 min-w-0 w-full shrink-0 flex-col overflow-hidden @min-[800px]/document-canvas:static @min-[800px]/document-canvas:w-80 border-l border-border bg-card text-foreground animate-in slide-in-from-right-4 duration-200"
+    >
       {/* Panel Header */}
       <div className="shrink-0 border-b border-border bg-card px-6 py-4">
         <div className="flex items-center justify-between">
@@ -67,13 +75,20 @@ export function DetailsPanel({
       <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
         {/* Thumbnail / Large Icon */}
         <div className="flex flex-col items-center justify-center rounded-dialog border border-border bg-background p-6 text-center">
-          <DocumentIcon item={item} iconSize={40} className="p-4 rounded-panel bg-card border border-border" />
+          <DocumentIcon
+            item={item}
+            iconSize={40}
+            className="p-4 rounded-panel bg-card border border-border"
+          />
           <h4 className="mt-4 text-xs font-semibold text-foreground max-w-[200px] truncate">
             {item.name}
           </h4>
           <p className="mt-1 text-xs font-semibold text-muted-foreground">
             {getFileTypeDescription(item.mimeType, item.name)}
           </p>
+          {item.projectId ? (
+            <DocumentProjectBadge projectId={item.projectId} className="mt-3" />
+          ) : null}
         </div>
 
         {/* Action Buttons */}
@@ -85,7 +100,7 @@ export function DetailsPanel({
               onClick={onDownload}
             />
           ) : null}
-          {onShare ? (
+          {onShare && !item.projectId ? (
             <DocumentsIconButton
               icon={Share2}
               label="Share"
@@ -119,7 +134,9 @@ export function DetailsPanel({
               <User className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-muted-foreground">Owner</p>
+              <p className="text-xs font-semibold text-muted-foreground">
+                Owner
+              </p>
               <p className="font-semibold text-foreground truncate">
                 {item.ownerEmail || "Me"}
               </p>
@@ -131,7 +148,9 @@ export function DetailsPanel({
               <Calendar className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-muted-foreground">Last Modified</p>
+              <p className="text-xs font-semibold text-muted-foreground">
+                Last Modified
+              </p>
               <p className="font-semibold text-foreground">
                 {formatDateLong(item.updatedAt)}
               </p>
@@ -143,7 +162,9 @@ export function DetailsPanel({
               <Layers className="h-4 w-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-muted-foreground">Size</p>
+              <p className="text-xs font-semibold text-muted-foreground">
+                Size
+              </p>
               <p className="font-semibold text-foreground">
                 {isFolder ? "—" : formatBytes(getDocumentDisplaySize(item))}
               </p>
@@ -154,7 +175,9 @@ export function DetailsPanel({
 
       {/* Footer Role Status */}
       <div className="flex shrink-0 items-center justify-between border-t border-border px-6 py-4">
-        <span className="text-xs text-muted-foreground font-semibold">Access Permission</span>
+        <span className="text-xs text-muted-foreground font-semibold">
+          Access Permission
+        </span>
         <DocumentsStatusBadge type="role" role={item.userRole} />
       </div>
     </SheetPanel>

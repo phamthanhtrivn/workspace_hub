@@ -30,6 +30,8 @@ export interface UserProfileResponse {
 }
 
 export interface UserProfileSnapshotResponse {
+  /** Client-side aliases used when rendering mentions selected by nickname. */
+  mentionNames?: string[];
   id?: string | null;
   userId?: string | null;
   email: string | null;
@@ -48,7 +50,8 @@ export type SpaceMemberRole = SpaceRole.ADMIN | SpaceRole.MEMBER;
 
 import { ChatContextType } from "./chat.enums";
 
-export type ChatUiType = ChatContextType.DIRECT_MESSAGE | ChatContextType.CHANNEL;
+export type ChatUiType =
+  ChatContextType.DIRECT_MESSAGE | ChatContextType.CHANNEL;
 
 // ─── Conversation / Channel Settings ──────────────────────────────────────
 
@@ -125,7 +128,9 @@ export interface PrivateChannelMembersResponse {
   ownerId: string | null;
   canManage: boolean;
   memberCount: number;
-  members: Array<SpaceMemberListItem & { nickname: string | null; joined: boolean }>;
+  members: Array<
+    SpaceMemberListItem & { nickname: string | null; joined: boolean }
+  >;
   pagination: SpaceMemberCandidatesResponse["pagination"];
 }
 
@@ -302,6 +307,7 @@ export interface ChatMessageResponse {
   /** Giá trị runtime có thể là bất kỳ string nào từ backend — dùng MessageType enum khi compare. */
   type: string;
   content?: string | null;
+  recalled?: boolean;
   createdAt: string;
   updatedAt?: string;
   threadParentId?: string | null;

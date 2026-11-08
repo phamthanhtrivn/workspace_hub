@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { DocumentItem } from "../../types/documents.types";
+import type { DocumentPreviewItem } from "../../types/documents.types";
 import { PreviewFileType } from "../../types/documents.enums";
 import { formatBytes } from "../../utils/documents.utils";
 import { OFFICE_VIEWER_BASE_URL } from "../../types/documents.constants";
@@ -20,7 +20,7 @@ import { Spinner } from "@/components/ui/spinner";
 
 
 interface PreviewContentProps {
-  item: DocumentItem;
+  item: DocumentPreviewItem;
   previewType: PreviewFileType;
   previewUrl?: string;
   textContent: string | null;

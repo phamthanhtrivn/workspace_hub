@@ -1,8 +1,7 @@
 "use client";
 
-import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { showMeetingActionError } from "../utils/meeting-action-errors";
 import { useCallback } from "react";
-import { toast } from "sonner";
 import {
   editMeetingMessage,
   markMeetingMessageAsRead,
@@ -52,12 +51,10 @@ export function useMeetingMessageActions({
         appendMessage(response.data);
         return response.data;
       } catch (error) {
-        toast.error(
-          getActionErrorMessage(error, getErrorMessage(
+        showMeetingActionError(error, getErrorMessage(
             error,
             "Could not send meeting message",
-          )),
-        );
+          ));
       }
     },
     [appendMessage, joinToken],
@@ -72,12 +69,10 @@ export function useMeetingMessageActions({
         appendMessage(response.data);
         return response.data;
       } catch (error) {
-        toast.error(
-          getActionErrorMessage(error, getErrorMessage(
+        showMeetingActionError(error, getErrorMessage(
             error,
             "Could not edit meeting message",
-          )),
-        );
+          ));
       }
     },
     [appendMessage, joinToken],
@@ -90,12 +85,10 @@ export function useMeetingMessageActions({
         appendMessage(response.data);
         return response.data;
       } catch (error) {
-        toast.error(
-          getActionErrorMessage(error, getErrorMessage(
+        showMeetingActionError(error, getErrorMessage(
             error,
             "Could not recall meeting message",
-          )),
-        );
+          ));
       }
     },
     [appendMessage, joinToken],
@@ -111,12 +104,10 @@ export function useMeetingMessageActions({
 
         await reactMeetingMessage(joinToken, messageId, { emoji });
       } catch (error) {
-        toast.error(
-          getActionErrorMessage(error, getErrorMessage(
+        showMeetingActionError(error, getErrorMessage(
             error,
             "Could not update reaction",
-          )),
-        );
+          ));
       }
     },
     [joinToken],

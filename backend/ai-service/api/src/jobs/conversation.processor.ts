@@ -4,6 +4,7 @@ import { config } from "../config/env.config";
 import { conversationAnswer } from "../modules/conversation-ai/conversation-agent";
 import { setTimeout as pause } from "node:timers/promises";
 import { pollUntilAborted } from "../common/abort-polling";
+import { CONVERSATION_AI_MESSAGES } from "../modules/conversation-ai/conversation-ai.messages";
 
 type SavedAnswer = { token: string; content: string; failed: boolean };
 type ConversationCheckpoint = {
@@ -53,8 +54,7 @@ export async function processConversation(
   if (!answer && checkpoint?.claimToken) {
     answer = {
       token: checkpoint.claimToken,
-      content:
-        "Yêu cầu AI bị gián đoạn trước khi gửi xong câu trả lời. Bạn hãy gửi lại một tin @ai mới để thử lại nhé.",
+      content: CONVERSATION_AI_MESSAGES.interrupted,
       failed: true,
     };
     await checkpoint.save(answer);
@@ -90,6 +90,7 @@ export async function processConversation(
             (check) => {
               authorizeSource = check;
             },
+            claim.question,
           )
         : await conversationAnswer(
             claim.question,
@@ -115,8 +116,10 @@ export async function processConversation(
         token: claim.token,
         content:
           claim.attachmentSummary && error instanceof BadRequestException
-            ? `Không thể tóm tắt tài liệu: ${error.message.slice(0, 500)}`
-            : "Mình chưa trả lời được yêu cầu này. Vui lòng thử lại bằng một tin @ai mới sau ít phút.",
+            ? error.message === CONVERSATION_AI_MESSAGES.noReadableText
+              ? CONVERSATION_AI_MESSAGES.noReadableText
+              : CONVERSATION_AI_MESSAGES.attachmentFailed
+            : CONVERSATION_AI_MESSAGES.failed,
         failed: true,
       };
     } finally {

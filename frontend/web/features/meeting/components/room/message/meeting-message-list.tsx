@@ -21,7 +21,6 @@ interface MeetingMessageListProps {
   loadOlderRef: (node?: Element | null) => void;
   currentUserId?: string | null;
   profilesByUserId: Record<string, MeetingParticipantProfile>;
-  readReceipts: Record<string, string>;
   onReact: (messageId: string, emoji: string, action: "add" | "remove") => void;
   onEdit: (message: MeetingMessageResponse) => void;
   onRecall: (messageId: string) => void;
@@ -36,7 +35,6 @@ export function MeetingMessageList({
   loadOlderRef,
   currentUserId,
   profilesByUserId,
-  readReceipts,
   onReact,
   onEdit,
   onRecall,
@@ -77,7 +75,6 @@ export function MeetingMessageList({
 
       {messages.map((message, index) => {
         const previousMessage = messages[index - 1];
-        const nextMessage = messages[index + 1];
         const previousTime = previousMessage
           ? new Date(previousMessage.createdAt).getTime()
           : 0;
@@ -90,20 +87,10 @@ export function MeetingMessageList({
           !previousMessage ||
           previousMessage.senderId !== message.senderId ||
           currentTime - previousTime > GROUP_MESSAGES_THRESHOLD_MS;
-        const nextTime = nextMessage
-          ? new Date(nextMessage.createdAt).getTime()
-          : 0;
-        const showSenderName =
-          !nextMessage ||
-          nextMessage.senderId !== message.senderId ||
-          nextTime - currentTime > GROUP_MESSAGES_THRESHOLD_MS;
+        const showSenderName = showAvatar;
         const hasSenderChanged =
           Boolean(previousMessage) &&
           previousMessage?.senderId !== message.senderId;
-        const readBy = Object.keys(readReceipts || {}).filter(
-          (userId) =>
-            readReceipts[userId] === message.id && userId !== currentUserId,
-        );
 
         return (
           <div
@@ -124,8 +111,6 @@ export function MeetingMessageList({
               }
               showAvatar={showAvatar}
               showSenderName={showSenderName}
-              readBy={readBy}
-              profilesByUserId={profilesByUserId}
               onReact={onReact}
               onEdit={onEdit}
               onRecall={onRecall}

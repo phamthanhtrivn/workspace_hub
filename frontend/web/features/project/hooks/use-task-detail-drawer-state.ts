@@ -15,6 +15,7 @@ import {
 import { useTaskActivities } from "@/features/project/hooks/use-tasks";
 import type { TaskDrawerUpdatePayload } from "@/features/project/types/task-detail-drawer.types";
 import { createTaskActivityPresenter } from "@/features/project/task-activity-presenter";
+import { getOpenTaskSubtasks, getTaskStatusTransitionReason } from "../task-status-transition";
 import {
   taskDateKey,
   toApiDateTime,
@@ -70,15 +71,10 @@ export function useTaskDetailDrawerState({
     ? isTerminalTaskStatus(task.status) || !canEditTask
     : true;
   const canChangeStatus = task
-    ? !isTerminalTaskStatus(task.status) && (canEditTask || canContributeTask)
+    ? !task.archived && !isTerminalTaskStatus(task.status) && (canEditTask || canContributeTask)
     : false;
   const openSubtasks = task
-    ? tasks.filter(
-        (candidate) =>
-          candidate.parentTaskId === task.id &&
-          !candidate.archived &&
-          candidate.status !== TaskStatus.DONE,
-      )
+    ? getOpenTaskSubtasks(task.id, tasks)
     : [];
 
 
@@ -121,8 +117,9 @@ export function useTaskDetailDrawerState({
 
   const handleStatusChange = async (newStatus: TaskStatus) => {
     if (!task || !canChangeStatus || newStatus === task.status) return;
-    if (newStatus === TaskStatus.DONE && openSubtasks.length > 0) {
-      toast.error("Complete all subtasks before marking this task as done.");
+    const restriction = getTaskStatusTransitionReason(task, newStatus, tasks);
+    if (restriction) {
+      toast.error(restriction);
       return;
     }
     try {

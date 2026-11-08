@@ -16,6 +16,7 @@ import {
 import { UploadState } from "../types/documents.enums";
 import axios from "axios";
 import { DEFAULT_MIME_TYPE } from "../types/documents.constants";
+import { SHARED_DOCUMENT_ACCESS_REQUEST } from "../utils/shared-document-access";
 
 export const documentsApi = {
   getDocuments: async (params?: {
@@ -40,6 +41,7 @@ export const documentsApi = {
         search: params?.search || undefined,
       },
     });
+
     return {
       data: response.data.data,
       meta: response.data.meta || response.data.pagination,
@@ -60,6 +62,7 @@ export const documentsApi = {
         search: params?.search || undefined,
       },
     });
+
     return {
       data: response.data.data,
       meta: response.data.meta || response.data.pagination,
@@ -68,6 +71,7 @@ export const documentsApi = {
 
   getQuota: async (): Promise<UserStorageQuota> => {
     const response = await api.get("/api/documents/quota");
+
     return response.data.data;
   },
 
@@ -77,6 +81,7 @@ export const documentsApi = {
     projectId?: string;
   }): Promise<DocumentItem> => {
     const response = await api.post("/api/documents/folders", data);
+
     return response.data.data;
   },
 
@@ -92,6 +97,7 @@ export const documentsApi = {
         projectId: params.projectId,
       },
     });
+
     return response.data.data;
   },
 
@@ -104,6 +110,7 @@ export const documentsApi = {
     overwriteItemId?: string;
   }): Promise<{ presignedUrl: string; s3Key: string }> => {
     const response = await api.post("/api/documents/upload/initiate", data);
+
     return response.data.data;
   },
 
@@ -117,6 +124,7 @@ export const documentsApi = {
     overwriteItemId?: string;
   }): Promise<DocumentItem> => {
     const response = await api.post("/api/documents/upload/confirm", data);
+
     return response.data.data;
   },
 
@@ -171,6 +179,7 @@ export const documentsApi = {
 
   renameItem: async (id: string, name: string): Promise<DocumentItem> => {
     const response = await api.put(`/api/documents/${id}/rename`, { name });
+
     return response.data.data;
   },
 
@@ -183,50 +192,61 @@ export const documentsApi = {
       parentFolderId,
       projectId,
     });
+
     return response.data.data;
   },
 
   archiveItem: async (id: string): Promise<DocumentItem> => {
     const response = await api.delete(`/api/documents/${id}`);
+
     return response.data.data;
   },
 
   restoreItem: async (id: string): Promise<DocumentItem> => {
     const response = await api.put(`/api/documents/${id}/restore`);
+
     return response.data.data;
   },
 
   starItem: async (id: string): Promise<DocumentItem> => {
     const response = await api.put(`/api/documents/${id}/star`);
+
     return response.data.data;
   },
 
   unStarItem: async (id: string): Promise<DocumentItem> => {
     const response = await api.put(`/api/documents/${id}/un-star`);
+
     return response.data.data;
   },
 
   deleteItemPermanently: async (id: string): Promise<unknown> => {
     const response = await api.delete(`/api/documents/${id}/permanent`);
+
     return response.data;
   },
 
   getPreviewUrl: async (id: string, versionId?: string): Promise<string> => {
     const response = await api.get(`/api/documents/${id}/preview`, {
+      ...SHARED_DOCUMENT_ACCESS_REQUEST,
       params: { versionId },
     });
+
     return new URL(response.data.data.url, api.defaults.baseURL).toString();
   },
 
   getDownloadUrl: async (id: string, versionId?: string): Promise<string> => {
     const response = await api.get(`/api/documents/${id}/download-url`, {
+      ...SHARED_DOCUMENT_ACCESS_REQUEST,
       params: { versionId },
     });
+
     return new URL(response.data.data.url, api.defaults.baseURL).toString();
   },
 
   getVersions: async (id: string): Promise<DocumentVersion[]> => {
     const response = await api.get(`/api/documents/${id}/versions`);
+
     return response.data.data;
   },
 
@@ -235,6 +255,7 @@ export const documentsApi = {
     data: { s3Key: string; sizeBytes: number; mimeType: string },
   ): Promise<DocumentVersion> => {
     const response = await api.post(`/api/documents/${id}/versions`, data);
+
     return response.data.data;
   },
 
@@ -280,6 +301,7 @@ export const documentsApi = {
 
   getSharing: async (id: string): Promise<SharingSettings> => {
     const response = await api.get(`/api/documents/${id}/sharing`);
+
     return response.data.data;
   },
 
@@ -290,6 +312,7 @@ export const documentsApi = {
     const response = await api.put(`/api/documents/${id}/sharing/link-access`, {
       linkAccess,
     });
+
     return response.data.data;
   },
 
@@ -302,6 +325,7 @@ export const documentsApi = {
       email,
       permission,
     });
+
     return response.data.data;
   },
 
@@ -312,7 +336,11 @@ export const documentsApi = {
   getPublicDocument: async (
     id: string,
   ): Promise<{ item: DocumentItem; userRole: string }> => {
-    const response = await api.get(`/api/documents/public/${id}`);
+    const response = await api.get(
+      `/api/documents/public/${id}`,
+      SHARED_DOCUMENT_ACCESS_REQUEST,
+    );
+
     return response.data.data;
   },
 
@@ -321,8 +349,10 @@ export const documentsApi = {
     versionId?: string,
   ): Promise<string> => {
     const response = await api.get(`/api/documents/public/${id}/download-url`, {
+      ...SHARED_DOCUMENT_ACCESS_REQUEST,
       params: { versionId },
     });
+
     return new URL(response.data.data.url, api.defaults.baseURL).toString();
   },
 
@@ -331,13 +361,19 @@ export const documentsApi = {
     versionId?: string,
   ): Promise<string> => {
     const response = await api.get(`/api/documents/public/${id}/preview-url`, {
+      ...SHARED_DOCUMENT_ACCESS_REQUEST,
       params: { versionId },
     });
+
     return new URL(response.data.data.url, api.defaults.baseURL).toString();
   },
 
   getPublicVersions: async (id: string): Promise<DocumentVersion[]> => {
-    const response = await api.get(`/api/documents/public/${id}/versions`);
+    const response = await api.get(
+      `/api/documents/public/${id}/versions`,
+      SHARED_DOCUMENT_ACCESS_REQUEST,
+    );
+
     return response.data.data;
   },
 
@@ -349,6 +385,7 @@ export const documentsApi = {
       `/api/documents/public/${id}/upload/initiate`,
       data,
     );
+
     return response.data.data;
   },
 
@@ -360,6 +397,7 @@ export const documentsApi = {
       `/api/documents/public/${id}/versions`,
       data,
     );
+
     return response.data.data;
   },
 
@@ -410,6 +448,7 @@ export const documentsApi = {
     const response = await api.put(`/api/documents/public/${id}/rename`, {
       name,
     });
+
     return response.data.data;
   },
 
@@ -531,21 +570,40 @@ export const documentsApi = {
     folderId?: string,
   ): Promise<DocumentItem[]> => {
     const response = await api.get(`/api/documents/public/${id}/children`, {
+      ...SHARED_DOCUMENT_ACCESS_REQUEST,
       params: { folderId },
     });
+
     return response.data.data;
   },
 
   getChatMetadata: async (id: string): Promise<ChatMetadataResponse> => {
-    const response = await api.get(`/api/documents/${id}/chat-metadata`);
+    const response = await api.get(
+      `/api/documents/${id}/chat-metadata`,
+      SHARED_DOCUMENT_ACCESS_REQUEST,
+    );
+
     return response.data.data;
   },
 
   checkPermissions: async (id: string, emails: string[]): Promise<string[]> => {
-    const response = await api.post(`/api/documents/${id}/sharing/check-permissions`, {
-      emails,
-    });
+    const response = await api.post(
+      `/api/documents/${id}/sharing/check-permissions`,
+      {
+        emails,
+      },
+    );
+
     return response.data.data;
+  },
+
+  prepareChatShare: async (
+    id: string,
+    recipientUserIds: string[],
+  ): Promise<void> => {
+    await api.post(`/api/documents/${id}/sharing/chat-access`, {
+      recipientUserIds,
+    });
   },
 
   addSharesBatch: async (
@@ -553,10 +611,14 @@ export const documentsApi = {
     emails: string[],
     permission: string,
   ): Promise<DocumentShare[]> => {
-    const response = await api.post(`/api/documents/${id}/sharing/shares/batch`, {
-      emails,
-      permission,
-    });
+    const response = await api.post(
+      `/api/documents/${id}/sharing/shares/batch`,
+      {
+        emails,
+        permission,
+      },
+    );
+
     return response.data.data;
   },
 
@@ -564,11 +626,16 @@ export const documentsApi = {
     id: string,
   ): Promise<{ id: string; name: string }[]> => {
     const response = await api.get(`/api/documents/${id}/breadcrumbs`);
+
     return response.data.data;
   },
 
   getAccessibleItem: async (id: string): Promise<AccessibleDocumentItem> => {
-    const response = await api.get(`/api/documents/${id}/access`);
+    const response = await api.get(
+      `/api/documents/${id}/access`,
+      SHARED_DOCUMENT_ACCESS_REQUEST,
+    );
+
     return response.data.data;
   },
 };

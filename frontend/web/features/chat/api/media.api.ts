@@ -1,6 +1,6 @@
 import { logActionError } from "@/lib/permission-feedback";
 import { api } from "@/lib/axios";
-import { DEFAULT_UPLOAD_MIME_TYPE } from "@/lib/upload-policy";
+import { getUploadMimeType } from "@/lib/upload-policy";
 import { ApiResponse, ChatContextType } from "../types/chat.types";
 
 export interface PresignRequest {
@@ -37,7 +37,7 @@ export const getPresignedUrls = async (
   const payload: PresignPayload = {
     chatId: params.chatId,
     chatType: params.chatType,
-    files: params.files,
+    files: params.files.map((file) => ({ ...file, mimeType: getUploadMimeType(file.fileName, file.mimeType) })),
     ...(params.chatType === ChatContextType.CHANNEL
       ? { channelId: params.chatId }
       : {}),
@@ -62,7 +62,7 @@ export const uploadToS3 = async (
       body: file,
       signal,
       headers: {
-        "Content-Type": file.type || DEFAULT_UPLOAD_MIME_TYPE,
+        "Content-Type": getUploadMimeType(file.name, file.type),
         "If-None-Match": "*",
       },
     });

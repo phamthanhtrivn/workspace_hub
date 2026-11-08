@@ -4,7 +4,7 @@ import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
 import { useId as useControlledPopupId } from "react";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import React, { useState, useRef, useMemo } from "react";
-import { ArrowLeft, Search, ChevronDown, Check, Users } from "lucide-react";
+import { ArrowLeft, ChevronDown, Check, Users } from "lucide-react";
 import {
   searchChannelMessages,
   searchDirectConversationMessages,
@@ -17,7 +17,7 @@ import { useActiveChat } from "../../../hooks/useChatQueries";
 import { ChatContextType } from "../../../types/chat.types";
 import { logApiError } from "@/lib/interceptors";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { AnchoredPopover } from "@/components/ui/anchored-popup";
 import { LoadingState } from "@/components/ui/loading-state";
 
@@ -121,11 +121,7 @@ export default function SearchMessagesSection({
       <div className="p-4 border-b border-border flex flex-col gap-3">
         <div className="relative">
           <form onSubmit={handleSearch}>
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              size={16}
-            />
-            <Input aria-label="Search by content or file name" unstyled
+            <SearchInput aria-label="Search by content or file name" unstyled
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -148,12 +144,12 @@ export default function SearchMessagesSection({
           {isSenderDropdownOpen && (
             <AnchoredPopover id={`${controlledPopupId}-isSenderDropdownOpen`} onClose={() => setIsSenderDropdownOpen(false)} side="bottom" align="end" aria-label="Search senders" className="bg-card border border-border rounded-lg max-h-64 flex flex-col overflow-hidden shadow-panel w-[var(--radix-popover-trigger-width)]">
               <div className="p-2 border-b border-border bg-background">
-                <Input aria-label="Search sender" unstyled
+                <SearchInput aria-label="Search sender" unstyled
                   type="text"
                   value={senderSearch}
                   onChange={(e) => setSenderSearch(e.target.value)}
                   placeholder="Search sender..."
-                  className="w-full p-1.5 text-sm bg-card border border-input rounded-control outline-none transition"
+                  className="w-full py-1.5 pl-9 pr-1.5 text-sm bg-card border border-input rounded-control outline-none transition"
                 />
               </div>
               <div className="overflow-y-auto flex-1 p-1">

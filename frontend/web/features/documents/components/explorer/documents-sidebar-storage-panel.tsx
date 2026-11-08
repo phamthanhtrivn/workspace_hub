@@ -2,6 +2,7 @@
 
 import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { HardDrive } from "lucide-react";
 
 import { documentsApi } from "../../api/documents.api";
 import { calculateQuotaStats } from "../../utils/documents.utils";
@@ -22,6 +23,7 @@ export function DocumentsSidebarStoragePanel() {
     if (!quota) {
       return { usedMB: "0", maxGB: "5", percentage: 0 };
     }
+
     return calculateQuotaStats(quota.usedBytes, quota.maxBytes);
   }, [quota]);
 
@@ -56,9 +58,15 @@ export function DocumentsSidebarStoragePanel() {
             </p>
             <p className="mt-2 text-lg font-semibold leading-none">
               {usedMB}{" "}
-              <span className="text-sm font-semibold text-card-foreground">MB</span>
+              <span className="text-sm font-semibold text-card-foreground">
+                MB
+              </span>
             </p>
           </div>
+          <HardDrive
+            aria-hidden="true"
+            className="size-5 shrink-0 text-muted-foreground"
+          />
         </div>
 
         {/* Progress Bar */}

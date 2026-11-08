@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { UpdateTaskPayload } from "../api/task.api";
 import type { TaskFormValues } from "../components/dialogs/task-form-dialog";
 import type { ProjectPermissions } from "../project-permissions";
-import { canMoveTaskToStatus } from "../task-status-transition";
+import { getTaskStatusTransitionReason } from "../task-status-transition";
 import type { TaskDrawerUpdatePayload } from "../types/task-detail-drawer.types";
 import {
   isTerminalTaskStatus,
@@ -92,7 +92,11 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
     const task = options.tasks.find((item) => item.id === taskId);
     if (!task || task.status === newStatus) return;
     if (isTerminalTaskStatus(task.status) || !options.permissions.canContributeTask(task)) return;
-    if (!canMoveTaskToStatus(task, newStatus)) return;
+    const restriction = getTaskStatusTransitionReason(task, newStatus, options.tasks);
+    if (restriction) {
+      toast.error(restriction);
+      return;
+    }
 
     options.setStatusOverrides((current) => ({ ...current, [taskId]: newStatus }));
     try {
@@ -125,6 +129,14 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
 
   const updateTaskDirect = async (taskId: string, payload: TaskDrawerUpdatePayload) => {
     if (options.rejectChange(taskId)) throw new Error("You do not have permission to edit this task");
+    const task = options.tasks.find((candidate) => candidate.id === taskId);
+    if (task && payload.status && payload.status !== task.status) {
+      const restriction = getTaskStatusTransitionReason(task, payload.status, options.tasks);
+      if (restriction) {
+        toast.error(restriction);
+        throw new Error(restriction);
+      }
+    }
     try {
       const backendPayload = Object.fromEntries(
         Object.entries(payload).filter(([key]) => BACKEND_TASK_FIELDS.has(key)),

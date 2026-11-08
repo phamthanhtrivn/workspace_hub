@@ -2,7 +2,7 @@
 import { UserAvatar } from "@/components/common/user-avatar";
 
 import { useId } from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { MoreHorizontal, SmilePlus } from "lucide-react";
 import { formatDateTime } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,6 @@ import type {
 
 import { MeetingMessageAttachments } from "./meeting-message-attachments";
 import { MeetingMessageOptionsMenu } from "./meeting-message-options-menu";
-import { MeetingMessageReadReceipts } from "./meeting-message-read-receipts";
 import { MeetingMessageReactions } from "./meeting-message-reactions";
 import { MESSAGE_ACTION_WINDOW_MS, QUICK_REACTIONS } from "@/features/meeting/types/meeting.constants";
 import { MeetingIconButton } from "../../ui/meeting-icon-button";
@@ -26,8 +25,6 @@ interface MeetingMessageItemProps {
   profile: MeetingParticipantProfile | null;
   showAvatar: boolean;
   showSenderName: boolean;
-  readBy: string[];
-  profilesByUserId: Record<string, MeetingParticipantProfile>;
   onReact: (messageId: string, emoji: string, action: "add" | "remove") => void;
   onEdit: (message: MeetingMessageResponse) => void;
   onRecall: (messageId: string) => void;
@@ -39,8 +36,6 @@ export function MeetingMessageItem({
   profile,
   showAvatar,
   showSenderName,
-  readBy,
-  profilesByUserId,
   onReact,
   onEdit,
   onRecall,
@@ -49,6 +44,7 @@ export function MeetingMessageItem({
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [optionsRect, setOptionsRect] = useState<DOMRect | null>(null);
+  const optionsButtonRef = useRef<HTMLButtonElement>(null);
   const [currentTime] = useState(() => Date.now());
   const isMe = message.senderId === currentUserId;
   const senderName =
@@ -77,9 +73,8 @@ export function MeetingMessageItem({
   };
 
   return (
-    <div className={cn("group flex w-full min-w-0 gap-2", isMe && "justify-end")}>
-      {!isMe && (
-        <div className="w-8 shrink-0">
+    <div className={cn("group flex w-full min-w-0 items-start gap-2", isMe && "flex-row-reverse")}>
+      <div className="w-8 shrink-0">
           {showAvatar && (
             <Button variant="unstyled"
               type="button"
@@ -94,21 +89,20 @@ export function MeetingMessageItem({
             </Button>
           )}
         </div>
-      )}
 
       <div
         className={cn(
-          "flex w-[82%] min-w-0 flex-col",
+          "flex min-w-0 max-w-[calc(100%-2.5rem)] flex-1 flex-col",
           isMe ? "items-end" : "items-start",
         )}
         onMouseLeave={() => setIsReactionPickerOpen(false)}
       >
-        {showSenderName && !isMe && (
-          <div className="mb-1 flex max-w-full items-baseline gap-2 px-1">
+        {showSenderName && (
+          <div className={cn("mb-1 flex min-w-0 max-w-full flex-wrap items-baseline gap-x-2 gap-y-0.5 px-1", isMe && "flex-row-reverse text-right")}>
             <span className="truncate text-xs font-semibold text-muted-foreground">
               {senderName}
             </span>
-            <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+            <span className="max-w-full text-xs font-semibold text-muted-foreground">
               {createdAtLabel}
             </span>
           </div>
@@ -125,7 +119,7 @@ export function MeetingMessageItem({
             {hasText && (
               <div
                 className={cn(
-                  "mt-1 max-w-full whitespace-pre-wrap break-words rounded-panel px-3 py-2 text-sm font-semibold leading-6",
+                  "mt-1 min-w-0 max-w-full text-left whitespace-pre-wrap break-words [overflow-wrap:anywhere] rounded-panel px-3 py-2 text-sm font-semibold leading-6",
                   isMe
                     ? "rounded-br-md bg-primary text-primary-foreground"
                     : "rounded-bl-md border border-border bg-accent text-muted-foreground",
@@ -151,24 +145,16 @@ export function MeetingMessageItem({
             isMe ? "justify-end" : "justify-start",
           )}
         >
-          {(!showSenderName || isMe) && <span>{createdAtLabel}</span>}
+          {!showSenderName && <span>{createdAtLabel}</span>}
           {message.edited && (
             <span>Edited</span>
           )}
         </div>
 
-        {isMe && (
-          <MeetingMessageReadReceipts
-            readBy={readBy}
-            currentUserId={currentUserId}
-            profilesByUserId={profilesByUserId}
-          />
-        )}
-
         {!message.recalled && (
           <div
             className={cn(
-              "mt-0 flex max-h-0 w-max max-w-full flex-wrap items-center gap-1 overflow-hidden opacity-0 transition-[max-height,margin,opacity] duration-150 focus-within:mt-1 focus-within:max-h-24 focus-within:opacity-100 group-hover:mt-1 group-hover:max-h-24 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100",
+              "mt-0 flex max-h-0 w-max max-w-full flex-wrap items-center gap-1 overflow-hidden opacity-0 transition-[max-height,margin,opacity] duration-150 focus-within:mt-1 focus-within:max-h-24 focus-within:opacity-100 group-hover:mt-1 group-hover:max-h-24 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 [@media(hover:none)]:max-h-24 [@media(hover:none)]:mt-1",
               isMe ? "justify-end" : "justify-start",
             )}
           >
@@ -202,12 +188,13 @@ export function MeetingMessageItem({
 
             {(canEdit || canRecall) && (
               <MeetingIconButton
+                ref={optionsButtonRef}
                 aria-haspopup="menu" aria-expanded={isOptionsOpen} aria-controls={optionsId}
                 label="More actions"
                 icon={MoreHorizontal}
                 onClick={(event) => {
                   setOptionsRect(event.currentTarget.getBoundingClientRect());
-                  setIsOptionsOpen(true);
+                  setIsOptionsOpen((open) => !open);
                 }}
                 className="size-8 rounded-lg border border-border bg-card text-muted-foreground"
               />
@@ -219,6 +206,7 @@ export function MeetingMessageItem({
       <MeetingMessageOptionsMenu id={optionsId}
         isOpen={isOptionsOpen}
         buttonRect={optionsRect}
+        anchorElementRef={optionsButtonRef}
         onClose={() => setIsOptionsOpen(false)}
         onEdit={() => onEdit(message)}
         onRecall={() => onRecall(message.id)}

@@ -1,5 +1,6 @@
+import { AI_BOT, isAiBot } from "../../constants/chat-identity";
 import { useId as useControlledPopupId } from "react";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { MoreHorizontal, Pin, MessageSquare, SmilePlus } from "lucide-react";
 import { useAttachmentSummary } from "../../hooks/message/useAttachmentSummary";
 import { summaryAttachments } from "../../utils/attachment-summary";
@@ -9,6 +10,7 @@ import { canCopyMessage, copyMessageToClipboard } from "../../utils/message-clip
 import { MESSAGE_CLIPBOARD_MESSAGES } from "../../types/message-clipboard.types";
 import {
   QUICK_EMOJIS,
+  ChatContextType,
   UserProfileSnapshotResponse,
 } from "../../types/chat.types";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -27,11 +29,11 @@ import { cn } from "@/lib/utils";
 import MessageAvatar from "./message-avatar";
 import { MessageFileMedias, MessageVisualMedias } from "./message-attachments";
 import MessageReactions from "./message-reactions";
-import MessageReadReceipts from "./message-read-receipts";
 import { MemberProfilesMap, RenderableChatMessage } from "./chat-message.types";
 import ReactionDetailModal from "../modals/message/reaction-detail-modal";
 import { Button } from "@/components/ui/button";
 import { AnchoredPopover } from "@/components/ui/anchored-popup";
+import { isAudioFile } from "../../utils/media-utils";
 
 
 interface ChatMessageProps {
@@ -42,7 +44,6 @@ interface ChatMessageProps {
   memberProfiles: MemberProfilesMap;
   memberRole?: "ADMIN" | "MEMBER";
   spaceCreatorId?: string | null;
-  readBy?: string[];
   showTime?: boolean;
   showSenderName?: boolean;
   onReact?: (
@@ -77,7 +78,6 @@ const ChatMessage = React.memo(function ChatMessage({
   memberProfiles,
   memberRole,
   spaceCreatorId,
-  readBy = [],
   showTime = true,
   showSenderName = false,
   onReact,
@@ -98,6 +98,7 @@ const ChatMessage = React.memo(function ChatMessage({
   const [isReactionDetailOpen, setIsReactionDetailOpen] = useState(false);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const [optionsMenuRect, setOptionsMenuRect] = useState<DOMRect | null>(null);
+  const optionsButtonRef = useRef<HTMLButtonElement>(null);
 
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector((state) => state.auth);
@@ -112,14 +113,14 @@ const ChatMessage = React.memo(function ChatMessage({
   const visualMedias = useMemo(
     () =>
       msg.medias?.filter(
-        (media) => media.type === "IMAGE" || media.type === "VIDEO",
+        (media) => !isAudioFile(media) && (media.type === "IMAGE" || media.type === "VIDEO"),
       ) || [],
     [msg.medias],
   );
   const fileMedias = useMemo(
     () =>
       msg.medias?.filter(
-        (media) => media.type !== "IMAGE" && media.type !== "VIDEO",
+        (media) => isAudioFile(media) || (media.type !== "IMAGE" && media.type !== "VIDEO"),
       ) || [],
     [msg.medias],
   );
@@ -129,12 +130,13 @@ const ChatMessage = React.memo(function ChatMessage({
   );
 
   const hasText =
-    msg.type !== CHAT_MESSAGE_TYPES.DOCUMENT && !!msg.content?.trim();
-  const senderName = msg.type === "AI" && msg.senderId === "00000000-0000-4000-8000-0000000000a1" ? "AI" : memberProfile?.fullName || "User";
+    !["DOCUMENT", "POLL", "NOTE", "MEETING"].includes(msg.type) && !!msg.content?.trim();
+  const bot = isAiBot(msg.senderId, msg.type);
+  const senderName = bot ? AI_BOT.name : memberProfile?.fullName || "User";
   const currentUserId = currentUser?.userId;
 
   const openSenderProfile = () => {
-    if (msg.senderId) {
+    if (msg.senderId && !bot) {
       dispatch(setSelectedProfileUserId(msg.senderId));
     }
   };
@@ -165,8 +167,9 @@ const ChatMessage = React.memo(function ChatMessage({
     );
   }
 
+  let specialContent: React.ReactNode = null;
   if (msg.type === "POLL" && msg.poll) {
-    return (
+    specialContent = (
       <PollMessage
         poll={msg.poll}
         onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
@@ -193,7 +196,7 @@ const ChatMessage = React.memo(function ChatMessage({
   }
 
   if (msg.type === "NOTE" && msg.note) {
-    return (
+    specialContent = (
       <NoteMessage
         note={msg.note}
         onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
@@ -203,11 +206,26 @@ const ChatMessage = React.memo(function ChatMessage({
   }
 
   if (msg.type === "MEETING") {
-    return (
+    specialContent = (
       <MeetingCardMessage
         message={msg}
         onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
       />
+    );
+  }
+
+  if (msg.type === "NOTE" || msg.type === "POLL") {
+    return (
+      <div
+        id={`msg-${msg.id}`}
+        className="flex w-full min-w-0 flex-col items-center [overflow-wrap:anywhere]"
+      >
+        {msg.recalled ? (
+          <div className="my-4 rounded-panel border border-border bg-muted p-3 text-sm italic text-muted-foreground">
+            Message recalled
+          </div>
+        ) : specialContent}
+      </div>
     );
   }
 
@@ -224,11 +242,12 @@ const ChatMessage = React.memo(function ChatMessage({
       )}
     >
       <div
-        className="@container/message flex w-full justify-start relative"
+        className={cn("@container/message relative flex w-full min-w-0 gap-2.5", isMe ? "flex-row-reverse" : "flex-row")}
         onMouseLeave={() => setShowReactionPicker(false)}
       >
         <MessageAvatar
           showAvatar={showAvatar}
+          isBot={bot}
           senderName={senderName}
           senderProfile={memberProfile}
           memberRole={memberRole}
@@ -236,9 +255,9 @@ const ChatMessage = React.memo(function ChatMessage({
           onClick={openSenderProfile}
         />
 
-        <div className="min-w-0 max-w-[calc(100%-3rem)] @min-[480px]/message:max-w-[calc(100%-10rem)] @min-[720px]/message:max-w-[70%] flex flex-col gap-1 relative group/bubble items-start">
+        <div className={cn("relative flex min-w-0 max-w-[calc(100%-3rem)] flex-col gap-1 @min-[480px]/message:max-w-[calc(100%-10rem)] @min-[720px]/message:max-w-[70%] group/bubble", isMe ? "items-end" : "items-start")}>
           {showSenderName && (
-            <div className="flex items-baseline gap-2 px-1 mt-0.5 mb-0.5 min-w-0">
+            <div className={cn("mb-0.5 mt-0.5 flex max-w-full min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 px-1", isMe && "flex-row-reverse text-right")}>
               <Button variant="unstyled"
                 type="button"
                 onClick={openSenderProfile}
@@ -255,11 +274,12 @@ const ChatMessage = React.memo(function ChatMessage({
           )}
 
           {msg.recalled ? (
-            <div className="p-3 text-sm flex flex-col relative italic text-muted-foreground bg-muted border border-border rounded-panel rounded-tl-none">
+            <div className={cn("p-3 text-sm flex flex-col relative italic text-muted-foreground bg-muted border border-border rounded-panel text-left", isMe ? "rounded-tr-none" : "rounded-tl-none")}>
               Message recalled
             </div>
           ) : (
             <>
+              {specialContent}
               {msg.pinned && (
                 <div className="flex items-center gap-1 text-xs text-info-content font-semibold px-1 mb-0.5">
                   <Pin size={12} className="fill-info-content text-info-content" />
@@ -271,13 +291,13 @@ const ChatMessage = React.memo(function ChatMessage({
                 medias={visualMedias}
                 onPreview={setPreviewIndex}
               />
-              <MessageFileMedias medias={fileMedias} isMe={isMe} />
+              <MessageFileMedias medias={fileMedias} isMe={isMe} chatType={msg.channelId ? ChatContextType.CHANNEL : msg.conversationId ? ChatContextType.DIRECT_MESSAGE : undefined} />
 
               {msg.type === CHAT_MESSAGE_TYPES.DOCUMENT && (
                 <DocumentMessage msg={msg} isMe={isMe} />
               )}
 
-              <div className="flex flex-col relative max-w-full">
+              <div className={cn("relative flex min-w-0 max-w-full flex-col", isMe ? "items-end" : "items-start")}>
                 {isTaskCard ? (
                   <TaskCardMessage
                     content={msg.content || ""}
@@ -287,7 +307,8 @@ const ChatMessage = React.memo(function ChatMessage({
                   hasText && (
                     <div
                       className={cn(
-                        "p-3 text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden leading-relaxed transition-all duration-200 font-medium rounded-panel rounded-tl-none",
+                        "p-3 text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden leading-relaxed transition-all duration-200 font-medium rounded-panel text-left",
+                        isMe ? "rounded-tr-none" : "rounded-tl-none",
                         msg.threadReplyCount && msg.threadReplyCount > 0
                           ? "bg-info-soft border border-border text-info-content"
                           : "bg-card border border-border text-foreground",
@@ -299,6 +320,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 )}
 
                 <MessageReactions
+                  align={isMe ? "end" : "start"}
                   reactions={msg.reactions}
                   currentUserId={currentUserId}
                   onReactionClick={handleReactionClick}
@@ -309,7 +331,7 @@ const ChatMessage = React.memo(function ChatMessage({
                   <Button variant="unstyled"
                     type="button"
                     onClick={() => onThreadReply?.(msg)}
-                    className="flex items-center gap-2 mt-2 text-xs font-semibold cursor-pointer hover:underline p-1.5 rounded-control w-fit border transition-colors text-info-content bg-info-soft border-border hover:bg-info-soft/70 mr-auto"
+                    className={cn("mt-2 flex max-w-full w-fit flex-wrap items-center gap-2 rounded-control border border-border bg-info-soft p-1.5 text-xs font-semibold text-info-content hover:bg-info-soft/70 hover:underline", isMe ? "ml-auto" : "mr-auto")}
                   >
                     <MessageSquare size={12} className="text-info-content" />
                     <span>{msg.threadReplyCount} replies</span>
@@ -343,7 +365,7 @@ const ChatMessage = React.memo(function ChatMessage({
           )}
 
           {!msg.recalled && (
-            <div className="mt-2 flex w-max flex-nowrap items-center gap-1.5 opacity-100 @min-[480px]/message:absolute @min-[480px]/message:top-1/2 @min-[480px]/message:-translate-y-1/2 @min-[480px]/message:left-full @min-[480px]/message:ml-3 @min-[480px]/message:mt-0 @min-[480px]/message:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-all duration-200 z-10">
+            <div className={cn("z-10 mt-2 flex w-max max-w-full flex-wrap items-center gap-1.5 opacity-100 transition-all duration-200 @min-[480px]/message:absolute @min-[480px]/message:top-1/2 @min-[480px]/message:-translate-y-1/2 @min-[480px]/message:mt-0 @min-[480px]/message:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100", isMe ? "@min-[480px]/message:right-full @min-[480px]/message:mr-3" : "@min-[480px]/message:left-full @min-[480px]/message:ml-3")}>
               <div className="relative">
                 <Button aria-expanded={showReactionPicker} aria-controls={`${controlledPopupId}-showReactionPicker`} aria-haspopup="dialog" variant="unstyled" aria-label="Add reaction"
                   type="button"
@@ -354,7 +376,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 </Button>
 
                 {showReactionPicker && (
-                  <AnchoredPopover id={`${controlledPopupId}-showReactionPicker`} onClose={() => setShowReactionPicker(false)} side="bottom" align="start" aria-label="Message reactions" className="ml-2 bg-card border border-border rounded-full p-1 flex gap-0.5 animate-in fade-in zoom-in-95 duration-100 shadow-panel">
+                  <AnchoredPopover id={`${controlledPopupId}-showReactionPicker`} onClose={() => setShowReactionPicker(false)} side="bottom" align={isMe ? "end" : "start"} aria-label="Message reactions" className="ml-2 bg-card border border-border rounded-full p-1 flex gap-0.5 animate-in fade-in zoom-in-95 duration-100 shadow-panel">
                     {QUICK_EMOJIS.map((emoji) => (
                       <Button variant="unstyled"
                         type="button"
@@ -370,12 +392,13 @@ const ChatMessage = React.memo(function ChatMessage({
               </div>
 
               <Button variant="unstyled" aria-label="Message options" aria-haspopup="menu" aria-expanded={isOptionsMenuOpen} aria-controls={`${controlledPopupId}-message-options`}
+                ref={optionsButtonRef}
                 type="button"
                 onClick={(event) => {
                   setOptionsMenuRect(
                     event.currentTarget.getBoundingClientRect(),
                   );
-                  setIsOptionsMenuOpen(true);
+                  setIsOptionsMenuOpen((open) => !open);
                 }}
                 className="p-2 bg-card border border-border rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft hover:border-border cursor-pointer transition-all duration-150"
               >
@@ -385,12 +408,6 @@ const ChatMessage = React.memo(function ChatMessage({
           )}
         </div>
       </div>
-
-      <MessageReadReceipts
-        readBy={readBy}
-        currentUserId={currentUserId}
-        memberProfiles={memberProfiles}
-      />
 
       <ReactionDetailModal
         isOpen={isReactionDetailOpen}
@@ -413,6 +430,7 @@ const ChatMessage = React.memo(function ChatMessage({
         isOpen={isOptionsMenuOpen}
         onClose={() => setIsOptionsMenuOpen(false)}
         buttonRect={optionsMenuRect}
+        anchorElementRef={optionsButtonRef}
         isMe={isMe}
         canEdit={msg.type === "TEXT" && isWithin24Hours && hasText}
         canRecall={isWithin24Hours}

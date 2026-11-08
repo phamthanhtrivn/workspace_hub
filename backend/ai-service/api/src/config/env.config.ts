@@ -13,6 +13,11 @@ export const config = z
       .max(600000)
       .default(180000),
     MEETING_SUMMARY_ENABLED: z.enum(["true", "false"]).default("false"),
+    VOICE_TRANSCRIPTION_ENABLED: z
+      .enum(["true", "false"])
+      .default(
+        process.env.MEETING_SUMMARY_ENABLED === "true" ? "true" : "false",
+      ),
     MEETING_SUMMARY_MAX_SECONDS: z.coerce
       .number()
       .int()
@@ -104,7 +109,8 @@ export const config = z
   })
   .superRefine((value, context) => {
     if (
-      value.MEETING_SUMMARY_ENABLED === "true" &&
+      (value.MEETING_SUMMARY_ENABLED === "true" ||
+        value.VOICE_TRANSCRIPTION_ENABLED === "true") &&
       value.MEETING_STT_CONCURRENCY !== 1
     )
       context.addIssue({
@@ -114,7 +120,8 @@ export const config = z
           "Local speech worker supports one audio chunk at a time; configure MEETING_STT_CONCURRENCY=1",
       });
     if (
-      value.MEETING_SUMMARY_ENABLED === "true" &&
+      (value.MEETING_SUMMARY_ENABLED === "true" ||
+        value.VOICE_TRANSCRIPTION_ENABLED === "true") &&
       (!value.MEETING_MEDIA_HOSTS ||
         value.MEETING_STT_SERVICE_KEY.length < 32 ||
         value.AI_TO_COMMUNICATION_KEY.length < 32 ||
@@ -137,7 +144,8 @@ export const config = z
       });
     if (
       value.CONVERSATION_AI_ENABLED === "true" &&
-      (value.AI_TO_COMMUNICATION_KEY.length < 32 || value.COMMUNICATION_TO_AI_KEY.length < 32)
+      (value.AI_TO_COMMUNICATION_KEY.length < 32 ||
+        value.COMMUNICATION_TO_AI_KEY.length < 32)
     )
       context.addIssue({
         code: z.ZodIssueCode.custom,

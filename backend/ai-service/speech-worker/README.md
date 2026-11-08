@@ -9,3 +9,8 @@ For host execution, the launcher uses `MEETING_STT_PYTHON` from the AI env or th
 Run `prepare.py` from this service directory to prepare model files before starting. `STT_MODEL_PATH` selects the local model; the launcher defaults to `models/small` under this service. Keep `MEETING_STT_SERVICE_KEY` in the AI env matched to the worker's `SPEECH_SERVICE_KEY`. Configure model/media access before enabling meeting summaries.
 
 The service accepts bounded mono 16 kHz PCM16 WAV, at most 46 seconds per request. It performs one CPU inference at a time; readiness and a valid response do not establish recognition quality on real meeting audio. Live captions are a separate integration from this recording-summary worker.
+
+Chat [voice messages](../../../docs/voice-messages.md) reuse this worker and the
+existing FFmpeg/queue integration. `x-speech-language: auto` detects the spoken
+language without translation; omitted headers keep the existing Vietnamese default
+for meeting summaries. `en` and `vi` are also accepted explicitly.

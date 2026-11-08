@@ -38,6 +38,8 @@ import { useDocumentDragAndDrop } from "../hooks/useDocumentDragAndDrop";
 import { useDocumentModals } from "../hooks/useDocumentModals";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
 import { Info, UploadCloud, FolderPlus, Edit3 } from "lucide-react";
+import { resolveDocumentProjectContext } from "../utils/project-documents";
+import { documentFolderAccessKey } from "../utils/document-navigation";
 
 interface DocumentExplorerProps {
   currentFolderId: string | null;
@@ -59,24 +61,33 @@ export function DocumentExplorer({
   activeView,
   path,
   setPath,
-  projectId,
+  projectId: projectContextId,
   canEditDocuments = true,
   accessErrorTitle = "Unable to load documents",
   accessErrorDescription = "You do not have access to these documents yet",
 }: DocumentExplorerProps) {
-  const isProjectDocuments = Boolean(projectId);
-  const currentUserId = useAppSelector(state => state.auth.userId);
+  const currentUserId = useAppSelector((state) => state.auth.userId);
   const folderAccess = useQuery({
-    queryKey: ["documents", "folder-access", currentUserId, currentFolderId],
+    queryKey: documentFolderAccessKey(currentUserId, currentFolderId),
     queryFn: () => documentsApi.getAccessibleItem(currentFolderId!),
     enabled: Boolean(currentUserId && currentFolderId && canEditDocuments),
     retry: false,
     staleTime: 60_000,
   });
-  const canWriteCurrentFolder = canEditDocuments && (!currentFolderId ||
-    folderAccess.data?.userRole === DocumentRole.OWNER || folderAccess.data?.userRole === DocumentRole.EDITOR);
-  const projectRootFolderId = isProjectDocuments ? path[0]?.id ?? null : null;
-  const projectRootLabel = isProjectDocuments ? path[0]?.name : undefined;
+  const projectContext = resolveDocumentProjectContext({
+    projectId: projectContextId,
+    folderProjectId: folderAccess.data?.projectId,
+    path,
+  });
+  const projectId = projectContext.projectId;
+  const isProjectDocuments = Boolean(projectId);
+  const canWriteCurrentFolder =
+    canEditDocuments &&
+    (!currentFolderId ||
+      folderAccess.data?.userRole === DocumentRole.OWNER ||
+      folderAccess.data?.userRole === DocumentRole.EDITOR);
+  const projectRootFolderId = projectContext.rootFolderId;
+  const projectRootLabel = projectContext.rootLabel;
   // 1. Explorer State Hook
   const {
     activeMenuId,
@@ -221,10 +232,14 @@ export function DocumentExplorer({
           search: searchQuery || undefined,
         });
       }
+
       return documentsApi.getDocuments({
         folderId: currentFolderId || undefined,
         projectId: projectId && !currentFolderId ? projectId : undefined,
-        starred: !isProjectDocuments && activeView === DocumentViewType.STARRED ? true : undefined,
+        starred:
+          !isProjectDocuments && activeView === DocumentViewType.STARRED
+            ? true
+            : undefined,
         archived: activeView === DocumentViewType.TRASH ? true : undefined,
         sortBy,
         search: searchQuery || undefined,
@@ -234,6 +249,7 @@ export function DocumentExplorer({
     },
     getNextPageParam: (lastPage) => {
       const meta = lastPage.meta;
+
       return meta.page < meta.totalPages ? meta.page + 1 : undefined;
     },
   });
@@ -260,6 +276,7 @@ export function DocumentExplorer({
     );
 
     observer.observe(sentinel);
+
     return () => observer.disconnect();
   }, [
     fetchNextPage,
@@ -329,7 +346,9 @@ export function DocumentExplorer({
         ref={loadMoreRef}
         className="flex min-h-8 items-center justify-center px-4 py-2 text-xs font-semibold text-muted-foreground"
       >
-        {isFetchingNextPage ? <LoadingState label="Loading more..." size={14} className="text-xs" /> : null}
+        {isFetchingNextPage ? (
+          <LoadingState label="Loading more..." size={14} className="text-xs" />
+        ) : null}
       </div>
     ) : null;
 
@@ -349,7 +368,9 @@ export function DocumentExplorer({
         ) : null}
 
         {/* Explorer Header Toolbar */}
-        <div className={`relative z-20 shrink-0 flex flex-col gap-3 bg-card min-w-0 p-3 @min-[640px]/explorer:p-4`}>
+        <div
+          className={`relative z-20 shrink-0 flex flex-col gap-3 bg-card min-w-0 p-3 @min-[640px]/explorer:p-4`}
+        >
           <ExplorerBreadcrumbs
             path={path}
             onBreadcrumbClick={handleBreadcrumbClick}
@@ -365,8 +386,13 @@ export function DocumentExplorer({
             onCreateFolder={openCreateFolder}
             onUploadFile={uploadFile}
             canEditDocuments={canWriteCurrentFolder}
-            editDisabledReason={folderAccess.isFetching && !folderAccess.data
-              ? "Checking folder permissions..." : isProjectDocuments ? PERMISSION_REASON.projectDocuments : PERMISSION_REASON.documentEdit}
+            editDisabledReason={
+              folderAccess.isFetching && !folderAccess.data
+                ? "Checking folder permissions..."
+                : isProjectDocuments
+                  ? PERMISSION_REASON.projectDocuments
+                  : PERMISSION_REASON.documentEdit
+            }
           />
           {activeView === DocumentViewType.TRASH ? (
             <div className="flex items-start gap-2 rounded-panel border border-border bg-warning-soft px-3.5 py-3 text-xs font-semibold text-warning-content">
@@ -380,23 +406,50 @@ export function DocumentExplorer({
         </div>
 
         {/* Main Content Area */}
-        <div data-document-canvas className={`flex flex-1 overflow-hidden @container/document-canvas relative min-h-40 min-w-0 shrink-0`}>
+        <div
+          data-document-canvas
+          className={`flex flex-1 overflow-hidden @container/document-canvas relative min-h-40 min-w-0 shrink-0`}
+        >
           <div className="flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden">
-            {isError && items.length > 0 && <QueryFeedback label="documents" error retrying={isFetching} onRetry={() => refetch()} />}
+            {isError && items.length > 0 && (
+              <QueryFeedback
+                label="documents"
+                error
+                retrying={isFetching}
+                onRetry={() => refetch()}
+              />
+            )}
             {/* Items View Area */}
-            <div className={`flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden @container/document-items min-w-0 px-3 mb-3 @min-[640px]/explorer:px-4 @min-[640px]/explorer:mb-4`}>
+            <div
+              className={`flex flex-1 flex-col min-h-0 min-w-0 overflow-hidden @container/document-items min-w-0 px-3 mb-3 @min-[640px]/explorer:px-4 @min-[640px]/explorer:mb-4`}
+            >
               {isLoading ? (
                 <DocumentsLoadingState
                   view={viewLayout === "GRID" ? "grid" : "list"}
                 />
               ) : isError && items.length === 0 ? (
-                <div className="space-y-3"><QueryFeedback label="documents" error retrying={isFetching} onRetry={() => refetch()} /><DocumentsEmptyState
-                  title={accessErrorTitle}
-                  description={
-                    (documentError as { response?: { data?: { message?: string } } })
-                      ?.response?.data?.message || ((documentError as { response?: { status?: number } })?.response?.status === 403 ? accessErrorDescription : "The document service is unavailable. Your files have not been removed.")
-                  }
-                /></div>
+                <div className="space-y-3">
+                  <QueryFeedback
+                    label="documents"
+                    error
+                    retrying={isFetching}
+                    onRetry={() => refetch()}
+                  />
+                  <DocumentsEmptyState
+                    title={accessErrorTitle}
+                    description={
+                      (
+                        documentError as {
+                          response?: { data?: { message?: string } };
+                        }
+                      )?.response?.data?.message ||
+                      ((documentError as { response?: { status?: number } })
+                        ?.response?.status === 403
+                        ? accessErrorDescription
+                        : "The document service is unavailable. Your files have not been removed.")
+                    }
+                  />
+                </div>
               ) : items.length === 0 ? (
                 <DocumentsEmptyState
                   title={
@@ -413,7 +466,7 @@ export function DocumentExplorer({
                       ? `No matching resources found for "${searchQuery}"`
                       : activeView === DocumentViewType.TRASH
                         ? "Deleted items will appear here before permanent removal"
-                      : "Upload files or create new folders to get started"
+                        : "Upload files or create new folders to get started"
                   }
                 />
               ) : viewLayout === "GRID" ? (

@@ -1,6 +1,7 @@
 "use client";
 
-import { getActionErrorMessage, logActionError } from "@/lib/permission-feedback";
+import { showMeetingActionError } from "../utils/meeting-action-errors";
+import { logActionError } from "@/lib/permission-feedback";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useRoomContext,
@@ -8,11 +9,13 @@ import {
 } from "@livekit/components-react";
 import {
   RoomEvent,
+  ConnectionState,
   Track,
   type LocalTrack,
   type LocalTrackPublication,
 } from "livekit-client";
-import { isAxiosError } from "axios";
+import { isAxiosError, isCancel } from "axios";
+import { getExpectedApiBusinessMessage } from "@/lib/api-error-policy";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 import {
@@ -283,6 +286,7 @@ export function useMeetingScreenShare({
           setActiveScreenShareUserId(null);
           setScreenShareStartedAt(null);
         }
+        if (isCancel(error) || room.state === ConnectionState.Disconnected) return;
         if (!captureCompleted && error instanceof Error) {
           if (error.name === "NotAllowedError" || error.name === "AbortError") {
             toast.info(
@@ -291,13 +295,11 @@ export function useMeetingScreenShare({
             return;
           }
           if (error.name === "InvalidStateError") {
-            toast.error(getActionErrorMessage(error, "Focus this meeting tab and click Share screen again."));
+            showMeetingActionError(error, "Focus this meeting tab and click Share screen again.");
             return;
           }
           if (error.name === "NotReadableError") {
-            toast.error(
-              getActionErrorMessage(error, "The browser could not capture that screen. Try another window or check your system's screen recording permissions."),
-            );
+            showMeetingActionError(error, "The browser could not capture that screen. Try another window or check your system's screen recording permissions.");
             return;
           }
           if (
@@ -305,24 +307,19 @@ export function useMeetingScreenShare({
             error.name === "NotSupportedError" ||
             error.name === "NotFoundError"
           ) {
-            toast.error(
-              getActionErrorMessage(error, "Screen sharing is unavailable in this browser. Use a supported desktop browser on HTTPS or localhost."),
-            );
+            showMeetingActionError(error, "Screen sharing is unavailable in this browser. Use a supported desktop browser on HTTPS or localhost.");
             return;
           }
         }
-        logActionError("Screen sharing failed", {
+        if (!getExpectedApiBusinessMessage(error)) logActionError("Screen sharing failed", {
           stage,
           name: error instanceof Error ? error.name : undefined,
           message: error instanceof Error ? error.message : undefined,
-          error,
         });
-        toast.error(
-          getActionErrorMessage(error, isAxiosError(error) &&
+        showMeetingActionError(error, isAxiosError(error) &&
             typeof error.response?.data?.message === "string"
             ? error.response.data.message
-            : "Could not start screen sharing. Please try again."),
-        );
+            : "Could not start screen sharing. Please try again.");
       } finally {
         setIsScreenSharePending(false);
       }
@@ -339,7 +336,7 @@ export function useMeetingScreenShare({
       setActiveScreenShareUserId(null);
       setScreenShareStartedAt(null);
     } catch (permissionError) {
-      toast.error(getActionErrorMessage(permissionError, "Could not stop screen sharing"));
+      showMeetingActionError(permissionError, "Could not stop screen sharing");
     } finally {
       setIsScreenSharePending(false);
     }

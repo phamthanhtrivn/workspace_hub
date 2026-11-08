@@ -1,6 +1,11 @@
 import { UserAvatar } from "@/components/common/user-avatar";
 import type { ChatMessageResponse } from "@/features/chat/types/chat.types";
-import { ChevronDown, ChevronRight, MessageCircle, MessageSquare } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  MessageCircle,
+  MessageSquare,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { formatDateTime } from "@/lib/date";
@@ -15,6 +20,7 @@ import { logApiError } from "@/lib/interceptors";
 import ThreadSnippetPreview from "./thread-snippet-preview";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
+import { useThreadDocumentMetadata } from "../../../hooks/useThreadDocumentMetadata";
 
 interface ThreadsSectionProps {
   conversationId: string;
@@ -52,6 +58,7 @@ export default function ThreadsSection({
             nextCursor: res.data.length > 5 ? res.data[5]?.id : undefined,
           };
         }
+
         return {
           threads: res.data.messages || [],
           nextCursor: res.data.nextCursor,
@@ -63,6 +70,7 @@ export default function ThreadsSection({
             ? "Failed to fetch direct message threads"
             : "Failed to fetch channel threads",
         );
+
         return { threads: [], nextCursor: undefined };
       }
     },
@@ -72,11 +80,16 @@ export default function ThreadsSection({
   });
 
   const previewThreads = data?.threads || [];
+  const documentMetadata = useThreadDocumentMetadata(
+    previewThreads,
+    isExpanded,
+  );
   const hasMore = !!data?.nextCursor;
 
   return (
     <div>
-      <Button variant="unstyled"
+      <Button
+        variant="unstyled"
         onClick={onToggle}
         className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-background transition"
       >
@@ -94,7 +107,10 @@ export default function ThreadsSection({
       {isExpanded && (
         <div className="px-4 pb-3">
           {isLoading ? (
-            <LoadingState label="Loading threads..." className="text-xs text-muted-foreground py-2" />
+            <LoadingState
+              label="Loading threads..."
+              className="text-xs text-muted-foreground py-2"
+            />
           ) : previewThreads.length === 0 ? (
             <div className="text-xs text-muted-foreground py-2">
               No threads yet
@@ -104,14 +120,14 @@ export default function ThreadsSection({
               {previewThreads.map((message) => {
                 const profile =
                   message.senderProfile || memberProfiles[message.senderId];
-                const name =
-                  profile?.fullName || "User";
+                const name = profile?.fullName || "User";
                 const lastReplyTime = message.threadLastReplyAt
                   ? formatDateTime(message.threadLastReplyAt)
                   : null;
 
                 return (
-                  <Button variant="unstyled"
+                  <Button
+                    variant="unstyled"
                     key={message.id}
                     onClick={() => onOpenThread(message)}
                     className="w-full cursor-pointer flex items-start gap-2 rounded-control p-2 text-left hover:bg-muted transition"
@@ -129,7 +145,13 @@ export default function ThreadsSection({
                       <span className="block truncate text-xs font-semibold text-foreground">
                         {name}
                       </span>
-                      <ThreadSnippetPreview content={message.content} />
+                      <ThreadSnippetPreview
+                        content={message.content}
+                        message={message}
+                        documentMetadata={documentMetadata.get(
+                          message.content?.trim() || "",
+                        )}
+                      />
                       <span className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-info-content">
                         <MessageSquare size={11} />
                         {`${message.threadReplyCount} ${message.threadReplyCount === 1 ? "reply" : "replies"}`}

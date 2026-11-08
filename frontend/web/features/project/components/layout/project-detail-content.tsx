@@ -33,6 +33,7 @@ interface ProjectDetailContentProps {
   projectId: string;
   viewMode: ProjectViewMode;
   tasks: Task[];
+  allTasks: Task[];
   members: ProjectMember[];
   dependencies: TaskDependency[];
   isLoading: boolean;
@@ -98,6 +99,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
       return (
         <BoardView
           tasks={props.tasks}
+          allTasks={props.allTasks}
           onTaskClick={props.onTaskSelect}
           onOpenChat={props.onChatOpen}
           onTaskMove={props.onTaskMove}

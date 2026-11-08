@@ -4,6 +4,7 @@ import { DirectMessageQueryService } from './direct-message-query.service';
 import { DirectMessageEventPublisher } from './direct-message-event-publisher.service';
 import { DirectMessageMutationService } from './direct-message-mutation.service';
 import { ConversationAiModule } from '../conversation-ai/conversation-ai.module';
+import { MediaModule } from '../media/media.module';
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { S3Module } from '../../infrastructure/s3/s3.module';
@@ -17,6 +18,7 @@ import { DirectMessagePermissionModule } from './direct-message-permission.modul
 @Module({
   imports: [
     ConversationAiModule,
+    MediaModule,
     PrismaModule,
     S3Module,
     KafkaProducerModule,

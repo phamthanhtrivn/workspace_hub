@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  NO_AVATAR_TYPES,
   GROUP_MESSAGES_THRESHOLD_MS,
   TIME_BLOCK_THRESHOLD_MS,
 } from "../../types/chat.constant";
@@ -64,7 +63,6 @@ export default function MessageList({
   isFetchingPreviousPage,
   loadMoreRef,
   authUserId,
-  activeChatType,
   memberProfiles,
   readReceipts,
   spaceCreatorId,
@@ -107,69 +105,12 @@ export default function MessageList({
 
     const isMe = msg.senderId === authUserId;
 
-    // ── Xác định time block mới (cách prevMsg >= 6h hoặc khác ngày) ──────
-    let isNewTimeBlockVisually = false;
-    if (prevMsg) {
-      const currentMsgTime = new Date(msg.createdAt).getTime();
-      const prevMsgTime = new Date(prevMsg.createdAt).getTime();
-      if (prevMsgTime - currentMsgTime > TIME_BLOCK_THRESHOLD_MS) {
-        isNewTimeBlockVisually = true;
-      } else {
-        const currDate = new Date(msg.createdAt);
-        const prevDate = new Date(prevMsg.createdAt);
-        if (
-          currDate.getDate() !== prevDate.getDate() ||
-          currDate.getMonth() !== prevDate.getMonth() ||
-          currDate.getFullYear() !== prevDate.getFullYear()
-        ) {
-          isNewTimeBlockVisually = true;
-        }
-      }
-    }
-
-    // ── Avatar: chỉ hiện ở đầu nhóm tin nhắn cùng người gửi ──────────────
-    let showAvatar = false;
-    if (!NO_AVATAR_TYPES.includes(msg.type)) {
-      if (
-        i === 0 ||
-        messages[i - 1].senderId !== msg.senderId ||
-        NO_AVATAR_TYPES.includes(messages[i - 1].type) ||
-        isNewTimeBlockVisually
-      ) {
-        showAvatar = true;
-      }
-    }
-
-    // ── Timestamp: ẩn nếu cùng người gửi và trong vòng 5 phút ───────────
-    let showTime = true;
-    if (prevMsg) {
-      const currentMsgTime = new Date(msg.createdAt).getTime();
-      const prevMsgTime = new Date(prevMsg.createdAt).getTime();
-      if (
-        prevMsg.senderId === msg.senderId &&
-        prevMsgTime - currentMsgTime <= GROUP_MESSAGES_THRESHOLD_MS
-      ) {
-        showTime = false;
-      }
-    }
-
-    // ── Tên người gửi: hiện dưới tin nhắn cuối cùng trong nhóm ──────────
-    let showSenderName = false;
-    if (!isMe || activeChatType === "CHANNEL") {
-      if (!nextMsg) {
-        showSenderName = true;
-      } else {
-        const currentMsgTime = new Date(msg.createdAt).getTime();
-        const nextMsgTime = new Date(nextMsg.createdAt).getTime();
-        if (
-          nextMsg.senderId !== msg.senderId ||
-          currentMsgTime - nextMsgTime > GROUP_MESSAGES_THRESHOLD_MS ||
-          NO_AVATAR_TYPES.includes(nextMsg.type)
-        ) {
-          showSenderName = true;
-        }
-      }
-    }
+    // Messages are stored newest first; nextMsg is the preceding visual message.
+    const showSenderName = !nextMsg || nextMsg.senderId !== msg.senderId ||
+      new Date(msg.createdAt).getTime() - new Date(nextMsg.createdAt).getTime() > GROUP_MESSAGES_THRESHOLD_MS ||
+      ["SYSTEM", "NOTE", "POLL"].includes(nextMsg.type);
+    const showAvatar = showSenderName;
+    const showTime = showSenderName || !prevMsg || prevMsg.senderId !== msg.senderId;
 
     rendered.push(
       <ChatMessage
@@ -185,9 +126,6 @@ export default function MessageList({
           conversationMembers?.find((m) => m.userId === msg.senderId)?.role
         }
         spaceCreatorId={spaceCreatorId}
-        readBy={Object.keys(readReceipts || {}).filter(
-          (uid) => readReceipts[uid] === msg.id && uid !== authUserId,
-        )}
         showTime={showTime}
         showSenderName={showSenderName}
         onReact={onReact}

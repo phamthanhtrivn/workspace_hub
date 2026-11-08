@@ -4,6 +4,7 @@ import { CheckCircle2, ListTree, Plus } from "lucide-react";
 import { TaskStatus, type Task } from "@/features/project/types/project";
 import { TaskStatusBadge } from "../ui/status-badge";
 import { Button } from "@/components/ui/button";
+import { getOpenTaskSubtasks } from "../../task-status-transition";
 
 interface TaskSubtasksSectionProps {
   task: Task;
@@ -25,9 +26,7 @@ export default function TaskSubtasksSection({
   const childTasks = tasks.filter(
     (candidate) => candidate.parentTaskId === task.id,
   );
-  const openChildTasks = childTasks.filter(
-    (candidate) => !candidate.archived && candidate.status !== TaskStatus.DONE,
-  );
+  const openChildTasks = getOpenTaskSubtasks(task.id, childTasks);
   const canMarkParentDone =
     childTasks.length > 0 &&
     openChildTasks.length === 0 &&

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   type Task,
   TaskPriority,
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import ProjectConfirmDialog from "../ui/project-confirm-dialog";
 import { TASK_STATUS_OPTIONS } from "../../constants/task.constants";
-import { canMoveTaskToStatus } from "../../task-status-transition";
+import { canMoveTaskToStatus, getTaskStatusTransitionReason } from "../../task-status-transition";
 
 function getTasksByStatus(tasks: Task[], status: TaskStatus): Task[] {
   return tasks.filter((task) => task.status === status);
@@ -72,6 +73,7 @@ const COLUMNS: {
 
 export default function BoardView({
   tasks,
+  allTasks = tasks,
   onTaskClick,
   onTaskMove,
   onTaskPriorityChange,
@@ -81,6 +83,7 @@ export default function BoardView({
   canEditTask = () => false,
 }: {
   tasks: Task[];
+  allTasks?: Task[];
   onTaskClick?: (task: Task) => void;
   onTaskMove?: (taskId: string, newStatus: TaskStatus) => void | Promise<void>;
   onTaskPriorityChange?: (taskId: string, priority: TaskPriority) => void | Promise<void>;
@@ -94,6 +97,8 @@ export default function BoardView({
     targetStatus: TaskStatus;
   } | null>(null);
   const [isConfirmingMove, setIsConfirmingMove] = useState(false);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const draggedTask = tasks.find((task) => task.id === draggedTaskId);
 
   const handleDrop = (taskId: string, targetStatus: TaskStatus) => {
     if (!taskId || !onTaskMove) return;
@@ -103,7 +108,7 @@ export default function BoardView({
       !task ||
       task.status === targetStatus ||
       !canMoveTask(task) ||
-      !canMoveTaskToStatus(task, targetStatus)
+      !canMoveTaskToStatus(task, targetStatus, allTasks)
     ) {
       return;
     }
@@ -113,6 +118,17 @@ export default function BoardView({
 
   const handleConfirmMove = async () => {
     if (!pendingDrop || !onTaskMove) return;
+    const currentTask = allTasks.find((task) => task.id === pendingDrop.task.id);
+    if (!currentTask || !canMoveTask(currentTask)) {
+      setPendingDrop(null);
+      return;
+    }
+    const restriction = getTaskStatusTransitionReason(currentTask, pendingDrop.targetStatus, allTasks);
+    if (restriction) {
+      toast.error(restriction);
+      setPendingDrop(null);
+      return;
+    }
 
     setIsConfirmingMove(true);
     try {
@@ -130,21 +146,36 @@ export default function BoardView({
 
   return (
     <>
-      <div className="h-full min-h-0 min-w-0 overflow-x-auto overscroll-x-contain pb-2" role="region" aria-label="Kanban board" tabIndex={0}>
+      <div className="h-full min-h-0 min-w-0 overflow-x-auto overscroll-x-contain pb-2" role="region" aria-label="Kanban board" tabIndex={0}
+        onDragStart={(event) => setDraggedTaskId(event.dataTransfer.getData("text/plain") || null)}
+        onDragEnd={() => setDraggedTaskId(null)}
+      >
         <div className="grid h-full min-h-0 grid-cols-[repeat(5,minmax(200px,1fr))] gap-[12px]">
           {COLUMNS.map((col) => {
             const columnTasks = getTasksByStatus(tasks, col.status);
             const canCreateInColumn = col.status === TaskStatus.TODO;
+            const restriction = draggedTask && col.status !== draggedTask.status
+              ? getTaskStatusTransitionReason(draggedTask, col.status, allTasks) : undefined;
 
             return (
               <div
                 key={col.status}
-                className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-panel bg-muted p-2.5"
+                role="group"
+                aria-label={col.label}
+                aria-disabled={restriction ? true : undefined}
+                title={restriction}
+                className={`flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-panel bg-muted p-2.5 transition-opacity ${restriction ? "opacity-50" : ""}`}
                 onDragOver={(e) => {
-                  if (onTaskMove) e.preventDefault();
+                  if (onTaskMove && draggedTask && canMoveTask(draggedTask) && canMoveTaskToStatus(draggedTask, col.status, allTasks)) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                  } else {
+                    e.dataTransfer.dropEffect = "none";
+                  }
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
+                  setDraggedTaskId(null);
                   handleDrop(e.dataTransfer.getData("text/plain"), col.status);
                 }}
               >
@@ -178,6 +209,7 @@ export default function BoardView({
                 </div>
 
                 {/* Task cards list */}
+                {restriction && <p className="mb-2 text-xs text-muted-foreground" role="status">{restriction}</p>}
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain pr-1 [&>div]:shrink-0">
                   {columnTasks.map((task) => (
                     <TaskCard
@@ -186,7 +218,7 @@ export default function BoardView({
                       density="compact"
                       onClick={() => onTaskClick?.(task)}
                       onOpenChat={onOpenChat}
-                      canDrag={Boolean(onTaskMove) && canMoveTask(task)}
+                      canDrag={Boolean(onTaskMove) && !task.archived && canMoveTask(task)}
                       onPriorityChange={
                         onTaskPriorityChange &&
                         canEditTask(task) &&

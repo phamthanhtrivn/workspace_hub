@@ -1,12 +1,21 @@
 "use client";
 
-import { CalendarDays, Clock3, RefreshCw, UserRound } from "lucide-react";
+import {
+  CalendarDays,
+  ChartNoAxesCombined,
+  Clock3,
+  RefreshCw,
+  UserRound,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMeetingHistorySummary } from "../hooks/useMeetingHistory";
 import type { MeetingHistorySummaryResponse } from "../types/meeting.types";
-import { formatMeetingSummaryLastMeetingAt, formatMeetingSummaryMinutes } from "../utils/meeting-summary.utils";
+import {
+  formatMeetingSummaryLastMeetingAt,
+  formatMeetingSummaryMinutes,
+} from "../utils/meeting-summary.utils";
 import { LoadingState } from "@/components/ui/loading-state";
 
 function MeetingStatsSkeleton() {
@@ -33,11 +42,23 @@ function MeetingStatsSkeleton() {
   );
 }
 
-function MeetingStatsSummary({ summary }: { summary: MeetingHistorySummaryResponse }) {
+function MeetingStatsSummary({
+  summary,
+}: {
+  summary: MeetingHistorySummaryResponse;
+}) {
   const details = [
     { label: "Hosted", icon: UserRound, value: summary.hostedMeetings },
-    { label: "Total time", icon: Clock3, value: formatMeetingSummaryMinutes(summary.totalMinutes) },
-    { label: "Last meeting", icon: CalendarDays, value: formatMeetingSummaryLastMeetingAt(summary.lastMeetingAt, "Never") },
+    {
+      label: "Total time",
+      icon: Clock3,
+      value: formatMeetingSummaryMinutes(summary.totalMinutes),
+    },
+    {
+      label: "Last meeting",
+      icon: CalendarDays,
+      value: formatMeetingSummaryLastMeetingAt(summary.lastMeetingAt, "Never"),
+    },
   ];
 
   return (
@@ -49,16 +70,31 @@ function MeetingStatsSummary({ summary }: { summary: MeetingHistorySummaryRespon
         </dd>
       </dl>
       <div className="mt-3 flex min-w-0 flex-wrap gap-2">
-        <Badge variant="secondary" className="max-w-full whitespace-normal bg-success-soft font-medium text-success-content">
-          Live <span className="min-w-0 font-semibold tabular-nums [overflow-wrap:anywhere]">{summary.liveMeetings}</span>
+        <Badge
+          variant="secondary"
+          className="max-w-full whitespace-normal bg-success-soft font-medium text-success-content"
+        >
+          Live{" "}
+          <span className="min-w-0 font-semibold tabular-nums [overflow-wrap:anywhere]">
+            {summary.liveMeetings}
+          </span>
         </Badge>
-        <Badge variant="secondary" className="max-w-full whitespace-normal font-medium">
-          Ended <span className="min-w-0 font-semibold tabular-nums [overflow-wrap:anywhere]">{summary.endedMeetings}</span>
+        <Badge
+          variant="secondary"
+          className="max-w-full whitespace-normal font-medium"
+        >
+          Ended{" "}
+          <span className="min-w-0 font-semibold tabular-nums [overflow-wrap:anywhere]">
+            {summary.endedMeetings}
+          </span>
         </Badge>
       </div>
       <dl className="mt-4 space-y-3 border-t border-border pt-4 text-xs">
         {details.map(({ label, icon: Icon, value }) => (
-          <div key={label} className="flex min-w-0 items-center justify-between gap-3">
+          <div
+            key={label}
+            className="flex min-w-0 items-center justify-between gap-3"
+          >
             <dt className="flex shrink-0 items-center gap-2 text-muted-foreground">
               <Icon aria-hidden="true" className="size-3.5 shrink-0" />
               {label}
@@ -78,13 +114,27 @@ export function MeetingSidebarStatsPanel() {
   const summary = summaryQuery.data?.data;
 
   return (
-    <section className="mt-auto hidden min-w-0 shrink-0 rounded-panel border border-border bg-card p-4 @min-[1120px]/meetings:block" aria-label="Meeting statistics">
-      <h2 className="text-sm font-semibold text-foreground">Meeting stats</h2>
+    <section
+      className="mt-auto hidden min-w-0 shrink-0 rounded-panel border border-border bg-card p-4 @min-[1120px]/meetings:block"
+      aria-label="Meeting statistics"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-foreground">Meeting stats</h2>
+        <ChartNoAxesCombined
+          aria-hidden="true"
+          className="size-5 shrink-0 text-muted-foreground"
+        />
+      </div>
       {summaryQuery.isPending ? (
         <MeetingStatsSkeleton />
       ) : summaryQuery.isError || !summary ? (
         <div className="mt-4 space-y-3">
-          <p role="alert" className="text-xs leading-5 text-destructive-content">Could not load meeting stats.</p>
+          <p
+            role="alert"
+            className="text-xs leading-5 text-destructive-content"
+          >
+            Could not load meeting stats.
+          </p>
           <Button
             type="button"
             variant="outline"

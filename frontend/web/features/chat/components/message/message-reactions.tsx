@@ -8,6 +8,7 @@ interface MessageReactionsProps {
   currentUserId?: string | null;
   onReactionClick: (emoji: string) => void;
   onOpenDetails: () => void;
+  align?: "start" | "end";
 }
 
 export default function MessageReactions({
@@ -15,6 +16,7 @@ export default function MessageReactions({
   currentUserId,
   onReactionClick,
   onOpenDetails,
+  align = "start",
 }: MessageReactionsProps) {
   if (!reactions || reactions.length === 0) return null;
 
@@ -28,7 +30,7 @@ export default function MessageReactions({
   );
 
   return (
-    <div className="flex flex-wrap gap-1 mt-1.5">
+    <div className={cn("mt-1.5 flex max-w-full min-w-0 flex-wrap gap-1", align === "end" && "justify-end")}>
       {Object.entries(groupedReactions).map(([emoji, emojiReactions]) => {
         const userReacted = emojiReactions.some(
           (reaction) => reaction.userId === currentUserId,

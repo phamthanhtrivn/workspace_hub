@@ -6,6 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { DOCUMENT_ACCESS_ERRORS } from '../constants/document-access.constants';
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
@@ -22,6 +23,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse() as
         string | Record<string, unknown>;
+      if (typeof exceptionResponse === 'object') {
+        const accessError = Object.values(DOCUMENT_ACCESS_ERRORS).find(
+          (failure) =>
+            failure.status === status &&
+            failure.code === exceptionResponse.code,
+        );
+        if (accessError) code = accessError.code;
+      }
       if (
         status === HttpStatus.CONFLICT &&
         typeof exceptionResponse === 'object' &&

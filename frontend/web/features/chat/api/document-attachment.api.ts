@@ -1,6 +1,6 @@
 import { documentsApi } from "@/features/documents/api/documents.api";
 import type { DocumentItem } from "@/features/documents/types/documents.types";
-import { assertAttachmentSize, DEFAULT_UPLOAD_MIME_TYPE } from "@/lib/upload-policy";
+import { assertAttachmentSize, getUploadMimeType } from "@/lib/upload-policy";
 import { getPresignedUrls, uploadToS3, type GetPresignedUrlsParams } from "./media.api";
 
 export type AttachmentChatContext = Pick<GetPresignedUrlsParams, "chatId" | "chatType">;
@@ -23,7 +23,7 @@ export async function copyDocumentsToChat(
     if (blob.size !== document.sizeBytes) {
       throw new Error("The document changed. Select it again to attach the current version.");
     }
-    const mimeType = document.mimeType || DEFAULT_UPLOAD_MIME_TYPE;
+    const mimeType = getUploadMimeType(document.name, document.mimeType || blob.type);
     const file = new File([blob], document.name, { type: mimeType });
     const [upload] = await getPresignedUrls({
       ...context,

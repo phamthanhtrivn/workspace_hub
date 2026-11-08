@@ -1,5 +1,5 @@
 
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Copy,
   Edit2,
@@ -22,6 +22,7 @@ interface MessageOptionsDropdownProps {
   id?: string;
   onClose: () => void;
   buttonRect: DOMRect | null;
+  anchorElementRef: React.RefObject<HTMLButtonElement | null>;
   isMe: boolean;
   onThreadReply?: () => void;
   onCopy?: () => void;
@@ -41,6 +42,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   id,
   onClose,
   buttonRect,
+  anchorElementRef,
   isMe,
   onThreadReply,
   onCopy,
@@ -55,6 +57,10 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   isSummarizing = false,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const threadReplySelected = useRef(false);
+  useEffect(() => {
+    if (isOpen) threadReplySelected.current = false;
+  }, [isOpen]);
 
 
 
@@ -62,10 +68,11 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
 
 
 
-  return typeof document === "undefined" ? null : <AnchoredMenu id={id} aria-label="Message options" ref={menuRef} onClose={onClose} anchorRect={buttonRect} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="start" alignOffset={isMe ? buttonRect.width + VIEWPORT_GAP_PX : 0} className="z-50 w-[180px] max-w-[calc(100vw-1.5rem)] overflow-y-auto bg-card border border-border rounded-panel py-1 text-sm text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel">
+  return typeof document === "undefined" ? null : <AnchoredMenu id={id} aria-label="Message options" ref={menuRef} onClose={onClose} anchorRect={buttonRect} anchorElementRef={anchorElementRef} restoreFocus={() => !threadReplySelected.current} side={buttonRect.bottom > window.innerHeight / 2 ? "top" : "bottom"} align="start" alignOffset={isMe ? buttonRect.width + VIEWPORT_GAP_PX : 0} className="z-50 w-[180px] max-w-[calc(100vw-1.5rem)] overflow-y-auto bg-card border border-border rounded-panel py-1 text-sm text-foreground animate-in fade-in zoom-in-95 duration-100 shadow-panel">
       {onThreadReply && (
         <DropdownMenuItem closeOnClick={false}
           onClick={() => {
+            threadReplySelected.current = true;
             onThreadReply();
             onClose();
           }}

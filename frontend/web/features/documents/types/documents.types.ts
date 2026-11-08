@@ -38,6 +38,11 @@ export interface DocumentItem {
   ownerProfile?: UserProfileSnapshotResponse | null;
 }
 
+export type DocumentPreviewItem = Pick<
+  DocumentItem,
+  "id" | "name" | "type" | "sizeBytes" | "mimeType"
+>;
+
 export interface UserStorageQuota {
   userId: string;
   maxBytes: number;
@@ -46,7 +51,10 @@ export interface UserStorageQuota {
   updatedAt: string;
 }
 
-export type AccessibleDocumentItem = Pick<DocumentItem, "id" | "name" | "type" | "sizeBytes" | "mimeType"> & {
+export type AccessibleDocumentItem = Pick<
+  DocumentItem,
+  "id" | "name" | "type" | "sizeBytes" | "mimeType" | "projectId"
+> & {
   userRole: DocumentRole;
 };
 
@@ -117,6 +125,8 @@ export interface ChatMetadataResponse {
   ownerName: string | null;
   createdAt: string;
   hasPermission: boolean;
+  userRole: DocumentRole;
+  projectId: string | null;
 }
 
 export { ViewLayout, DocumentSortBy };

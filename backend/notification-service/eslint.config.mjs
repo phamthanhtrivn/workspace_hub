@@ -1,12 +1,31 @@
-import eslint from '@eslint/js';
-import prettier from 'eslint-config-prettier';
-import globals from 'globals';
-import tseslint from 'typescript-eslint';
+import eslint from "@eslint/js";
+import prettierRecommended from "eslint-plugin-prettier/recommended";
+import globals from "globals";
+import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'node_modules/**', 'eslint.config.mjs'] },
+  { ignores: ["dist/**", "node_modules/**", "eslint.config.mjs"] },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
-  prettier,
-  { files: ['src/**/*.ts'], languageOptions: { globals: globals.node } },
+  prettierRecommended,
+  { files: ["src/**/*.ts"], languageOptions: { globals: globals.node } },
+  {
+    files: ["src/**/*.ts"],
+    rules: {
+      "prettier/prettier": [
+        "error",
+        {
+          endOfLine: "auto",
+          printWidth: 80,
+          tabWidth: 2,
+          singleQuote: true,
+          trailingComma: "all",
+        },
+      ],
+      "padding-line-between-statements": [
+        "error",
+        { blankLine: "always", prev: "*", next: "return" },
+      ],
+    },
+  },
 );

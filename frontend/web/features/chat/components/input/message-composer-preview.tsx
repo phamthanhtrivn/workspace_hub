@@ -13,10 +13,13 @@ interface MessageComposerPreviewProps {
   message: string;
   interimMessage?: string;
   memberProfiles?: ChatProfilesMap;
+  mentionNames?: string[];
   compact?: boolean;
   open: boolean;
   children: ReactNode;
   className?: string;
+  label?: string;
+  contentClassName?: string;
 }
 
 export default function MessageComposerPreview({
@@ -24,15 +27,18 @@ export default function MessageComposerPreview({
   message,
   interimMessage,
   memberProfiles,
+  mentionNames,
   compact,
   open,
   children,
   className,
+  label = "Message preview",
+  contentClassName,
 }: MessageComposerPreviewProps) {
   const content = composeMessageText(message, interimMessage);
   const rendered = useMemo(
-    () => (open ? renderMessageContent(content, memberProfiles) : null),
-    [open, content, memberProfiles],
+    () => (open ? renderMessageContent(content, memberProfiles, mentionNames) : null),
+    [open, content, memberProfiles, mentionNames],
   );
   return (
     <div className={cn("w-full min-w-0", className)}>
@@ -43,13 +49,14 @@ export default function MessageComposerPreview({
         {children}
       </div>
       {open && (
-        <section id={id} aria-label="Message preview" className="min-w-0">
-          <h3 className="sr-only">Message preview</h3>
+        <section id={id} aria-label={label} className="min-w-0">
+          <h3 className="sr-only">{label}</h3>
           <div
             tabIndex={0}
             className={cn(
               "max-h-[min(15rem,30dvh)] min-h-9 min-w-0 overflow-y-auto overscroll-contain px-2 py-2 font-medium text-foreground [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [@media(max-height:30rem)]:max-h-12",
               compact ? "min-h-6 py-1 pl-1 text-xs" : "text-sm",
+              contentClassName,
             )}
           >
             {content ? (

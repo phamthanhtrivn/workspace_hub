@@ -9,7 +9,11 @@ export class SpeechRecognitionError extends Error {
 }
 const speechResponse = z.object({ text: z.string().max(12000) }).strict();
 
-export async function recognizeMeetingChunk(path: string, signal: AbortSignal) {
+export async function recognizeMeetingChunk(
+  path: string,
+  signal: AbortSignal,
+  language: "vi" | "en" | "auto" = "vi",
+) {
   signal.throwIfAborted();
   const audio = await readFile(path);
   if (!audio.length || audio.length > 2 * 1024 * 1024)
@@ -26,6 +30,7 @@ export async function recognizeMeetingChunk(path: string, signal: AbortSignal) {
       headers: {
         "x-internal-service-key": config.MEETING_STT_SERVICE_KEY,
         "content-type": "audio/wav",
+        "x-speech-language": language,
       },
       body: audio,
     },

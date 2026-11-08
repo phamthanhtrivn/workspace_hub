@@ -1,12 +1,12 @@
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { useState, useEffect } from "react";
-import { ArrowLeft, FileText, Search } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import ViewNoteModal from "../../modals/message/view-note-modal";
 import { useNotes } from "../../../hooks/useNotes";
 import { formatDateTime } from "@/lib/date";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Spinner } from "@/components/ui/spinner";
 
 
@@ -50,11 +50,7 @@ export default function NoteDetailView({
 
       <div className="border-b border-border px-4 py-3 flex-shrink-0">
         <div className="relative">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-            size={16}
-          />
-          <Input aria-label="Search notes" unstyled
+          <SearchInput aria-label="Search notes" unstyled
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

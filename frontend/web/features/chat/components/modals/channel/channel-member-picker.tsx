@@ -9,7 +9,7 @@ import {
   SPACE_MEMBER_SEARCH_DEBOUNCE_MS,
 } from "../../../types/chat.constant";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { SimplePagination } from "@/components/ui/custom/simple-pagination";
@@ -67,7 +67,7 @@ export default function ChannelMemberPicker({
 
   return (
     <div className="min-w-0 space-y-2">
-      <Input
+      <SearchInput
         aria-label="Search space members"
         value={search}
         onChange={(event) => {

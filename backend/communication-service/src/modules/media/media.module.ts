@@ -5,11 +5,28 @@ import { S3Module } from '../../infrastructure/s3/s3.module';
 import { MediaAccessService } from './media-access.service';
 import { DirectMessagePermissionModule } from '../direct-message/direct-message-permission.module';
 import { MeetingPolicyService } from '../meeting/services/meeting-policy.service';
+import { VoiceTranscriptService } from './voice-transcript.service';
+import { VoiceTranscriptDispatchService } from './voice-transcript-dispatch.service';
+import { PrismaModule } from '../../prisma/prisma.module';
+import {
+  VoiceTranscriptController,
+  VoiceTranscriptSourceController,
+} from './voice-transcript.controller';
 
 @Module({
-  imports: [S3Module, DirectMessagePermissionModule],
-  controllers: [MediaController],
-  providers: [MediaService, MediaAccessService, MeetingPolicyService],
-  exports: [MediaService],
+  imports: [PrismaModule, S3Module, DirectMessagePermissionModule],
+  controllers: [
+    MediaController,
+    VoiceTranscriptController,
+    VoiceTranscriptSourceController,
+  ],
+  providers: [
+    MediaService,
+    MediaAccessService,
+    MeetingPolicyService,
+    VoiceTranscriptService,
+    VoiceTranscriptDispatchService,
+  ],
+  exports: [MediaService, VoiceTranscriptDispatchService],
 })
 export class MediaModule {}

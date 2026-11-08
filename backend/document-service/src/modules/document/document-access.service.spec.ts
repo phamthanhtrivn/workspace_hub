@@ -3,40 +3,178 @@ import * as assert from 'node:assert/strict';
 import { DocumentRole } from '../../common/enums/document.enum';
 import { PrismaService } from '../../prisma/prisma.service';
 import { DocumentAccessService } from './document-access.service';
+import { HttpException } from '@nestjs/common';
+
+void test('project ownership overrides a child folder creator when resolving navigation role', async (context) => {
+  const beforeUrl = process.env.PROJECT_SERVICE_URL;
+  const beforeKey = process.env.DOCUMENT_TO_PROJECT_KEY;
+  process.env.PROJECT_SERVICE_URL = 'http://project.test';
+  process.env.DOCUMENT_TO_PROJECT_KEY = 'test-key';
+  context.after(() => {
+    if (beforeUrl === undefined) delete process.env.PROJECT_SERVICE_URL;
+    else process.env.PROJECT_SERVICE_URL = beforeUrl;
+    if (beforeKey === undefined) delete process.env.DOCUMENT_TO_PROJECT_KEY;
+    else process.env.DOCUMENT_TO_PROJECT_KEY = beforeKey;
+  });
+  context.mock.method(
+    globalThis,
+    'fetch',
+    (_url: unknown, init?: RequestInit) => {
+      const { userId } = JSON.parse(init?.body as string) as { userId: string };
+
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            owner: userId === 'project-owner',
+            canEditDocuments: false,
+          }),
+        ),
+      );
+    },
+  );
+  const access = new DocumentAccessService({
+    documentItem: {
+      findUnique: () =>
+        Promise.resolve({
+          id: 'child',
+          ownerUserId: 'uploader',
+          projectId: 'project',
+          shares: [],
+        }),
+    },
+  } as unknown as PrismaService);
+  assert.equal(
+    (await access.getAccessContext('child', 'project-owner')).role,
+    DocumentRole.OWNER,
+  );
+  assert.equal(
+    (await access.getAccessContext('child', 'uploader')).role,
+    DocumentRole.VIEWER,
+  );
+});
+
+void test('shared access distinguishes restricted, expired, missing and unavailable documents', async () => {
+  const file = {
+    id: 'file',
+    ownerUserId: 'owner',
+    projectId: null,
+    parentFolderId: null,
+    isArchived: false,
+    linkAccess: 'NONE',
+    shareExpiresAt: null as Date | null,
+    shares: [],
+  };
+  let current: typeof file | null = file;
+  const access = new DocumentAccessService({
+    documentItem: { findUnique: () => Promise.resolve(current) },
+  } as unknown as PrismaService);
+  const denied = async (code: string, status: number) => {
+    await assert.rejects(access.checkPermission('file'), (error: unknown) => {
+      assert.ok(error instanceof HttpException);
+      assert.equal(error.getStatus(), status);
+      assert.equal((error.getResponse() as { code?: string }).code, code);
+
+      return true;
+    });
+  };
+  await denied('DOCUMENT_ACCESS_RESTRICTED', 403);
+  file.linkAccess = 'VIEWER';
+  file.shareExpiresAt = new Date(0);
+  await denied('DOCUMENT_LINK_EXPIRED', 403);
+  await access.checkPermission('file', 'owner');
+  file.isArchived = true;
+  await denied('DOCUMENT_UNAVAILABLE', 403);
+  current = null;
+  await denied('DOCUMENT_NOT_FOUND', 404);
+});
 
 void test('a pending email grant binds once to the verified recipient id', async () => {
-  const grant = { id: 'grant', shareWithUserId: null as string | null, shareWithEmail: 'recipient@example.test', permission: 'EDITOR' };
-  const file = { id: 'file', ownerUserId: 'owner', projectId: null, parentFolderId: null, isArchived: false, linkAccess: 'NONE', shares: [grant] };
+  const grant = {
+    id: 'grant',
+    shareWithUserId: null as string | null,
+    shareWithEmail: 'recipient@example.test',
+    permission: 'EDITOR',
+  };
+  const file = {
+    id: 'file',
+    ownerUserId: 'owner',
+    projectId: null,
+    parentFolderId: null,
+    isArchived: false,
+    linkAccess: 'NONE',
+    shares: [grant],
+  };
   const prisma = {
     documentItem: { findUnique: () => Promise.resolve(file) },
     documentShare: {
-      updateMany: ({ data }: { data: { shareWithUserId: string } }) => { grant.shareWithUserId = data.shareWithUserId; return Promise.resolve({ count: 1 }); },
+      updateMany: ({ data }: { data: { shareWithUserId: string } }) => {
+        grant.shareWithUserId = data.shareWithUserId;
+
+        return Promise.resolve({ count: 1 });
+      },
     },
   } as unknown as PrismaService;
   const access = new DocumentAccessService(prisma);
-  await access.checkPermission('file', 'recipient', 'recipient@example.test', DocumentRole.EDITOR);
+  await access.checkPermission(
+    'file',
+    'recipient',
+    'recipient@example.test',
+    DocumentRole.EDITOR,
+  );
   assert.equal(grant.shareWithUserId, 'recipient');
-  await assert.rejects(access.checkPermission('file', 'other', 'recipient@example.test'));
+  await assert.rejects(
+    access.checkPermission('file', 'other', 'recipient@example.test'),
+  );
 });
 
 void test('project shares cannot outlive authoritative project membership or bypass an outage', async () => {
   const originalFetch = globalThis.fetch;
-  const previousUrl = process.env.PROJECT_SERVICE_URL, previousKey = process.env.DOCUMENT_TO_PROJECT_KEY;
-  process.env.PROJECT_SERVICE_URL = 'https://project-service.invalid'; process.env.DOCUMENT_TO_PROJECT_KEY = 'test-only-key';
-  const file = { id: 'file', ownerUserId: 'owner', projectId: 'project', shares: [{ shareWithUserId: 'removed', permission: 'EDITOR' }] };
-  const prisma = { documentItem: { findUnique: () => Promise.resolve(file) } } as unknown as PrismaService;
+  const previousUrl = process.env.PROJECT_SERVICE_URL,
+    previousKey = process.env.DOCUMENT_TO_PROJECT_KEY;
+  process.env.PROJECT_SERVICE_URL = 'https://project-service.invalid';
+  process.env.DOCUMENT_TO_PROJECT_KEY = 'test-only-key';
+  const file = {
+    id: 'file',
+    ownerUserId: 'owner',
+    projectId: 'project',
+    shares: [{ shareWithUserId: 'removed', permission: 'EDITOR' }],
+  };
+  const prisma = {
+    documentItem: { findUnique: () => Promise.resolve(file) },
+  } as unknown as PrismaService;
   const access = new DocumentAccessService(prisma);
   try {
-    globalThis.fetch = () => Promise.resolve(new globalThis.Response(JSON.stringify({ owner: false, canEditDocuments: true })));
-    await access.checkPermission('file', 'removed', 'removed@example.test', DocumentRole.EDITOR);
-    globalThis.fetch = () => Promise.resolve(new globalThis.Response('{}', { status: 403 }));
-    await assert.rejects(access.checkPermission('file', 'removed', 'removed@example.test'));
+    globalThis.fetch = () =>
+      Promise.resolve(
+        new globalThis.Response(
+          JSON.stringify({ owner: false, canEditDocuments: true }),
+        ),
+      );
+    await access.checkPermission(
+      'file',
+      'removed',
+      'removed@example.test',
+      DocumentRole.EDITOR,
+    );
+    globalThis.fetch = () =>
+      Promise.resolve(new globalThis.Response('{}', { status: 403 }));
+    await assert.rejects(
+      access.checkPermission('file', 'removed', 'removed@example.test'),
+    );
     globalThis.fetch = () => Promise.reject(new Error('offline'));
-    await assert.rejects(access.filterReadable([{ id: 'file' }], 'removed', 'removed@example.test'));
+    await assert.rejects(
+      access.filterReadable(
+        [{ id: 'file' }],
+        'removed',
+        'removed@example.test',
+      ),
+    );
   } finally {
     globalThis.fetch = originalFetch;
-    if (previousUrl === undefined) delete process.env.PROJECT_SERVICE_URL; else process.env.PROJECT_SERVICE_URL = previousUrl;
-    if (previousKey === undefined) delete process.env.DOCUMENT_TO_PROJECT_KEY; else process.env.DOCUMENT_TO_PROJECT_KEY = previousKey;
+    if (previousUrl === undefined) delete process.env.PROJECT_SERVICE_URL;
+    else process.env.PROJECT_SERVICE_URL = previousUrl;
+    if (previousKey === undefined) delete process.env.DOCUMENT_TO_PROJECT_KEY;
+    else process.env.DOCUMENT_TO_PROJECT_KEY = previousKey;
   }
 });
 

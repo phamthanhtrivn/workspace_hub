@@ -47,7 +47,7 @@ export function MeetingMessageAttachments({
   const fileMedias = medias.filter((media) => !isVisualMedia(media));
 
   return (
-    <div className="flex max-w-full flex-col gap-2">
+    <div className="flex min-w-0 max-w-full flex-col gap-2">
       {visualMedias.length > 0 && (
         <div
           className={cn(
@@ -112,13 +112,13 @@ export function MeetingMessageAttachments({
         <div
           key={media.id}
           className={cn(
-            "flex items-center justify-between gap-3 rounded-panel border px-3 py-2",
+            "flex min-w-0 max-w-full items-center justify-between gap-3 rounded-panel border px-3 py-2",
             isMe
               ? "border-info-outline/30 bg-info-soft/15 text-info-content"
               : "border-border bg-accent text-muted-foreground",
           )}
         >
-          <div className="flex min-w-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-accent">
               <FileText className="h-4 w-4" />
             </span>

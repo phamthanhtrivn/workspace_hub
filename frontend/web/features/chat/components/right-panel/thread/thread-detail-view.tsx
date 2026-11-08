@@ -1,3 +1,5 @@
+import { AI_BOT, isAiBot } from "../../../constants/chat-identity";
+import { cn } from "@/lib/utils";
 import { getActionErrorMessage } from "@/lib/permission-feedback";
 import { StorageVideo, StorageLink, StorageImg } from "@/components/common/storage-media";
 import type { ChatMediaResponse } from "@/features/chat/types/chat.types";
@@ -46,9 +48,7 @@ import {
   ThreadMessagesResponse,
 } from "../../../types/chat.types";
 import { SendSocketMessageMedia } from "../../../types/chat-socket.types";
-import ThreadChatInput, {
-  ThreadChatInputRef,
-} from "../../input/thread-chat-input";
+import ThreadChatInput from "../../input/thread-chat-input";
 import { renderMessageContent } from "../../../utils/message-formatter";
 import TaskCardMessage from "../../message/task-card-message";
 import { isTaskCardMessage } from "../../../utils/task-card-message";
@@ -58,6 +58,8 @@ import { upsertMessageById } from "../../../utils/message-state-utils";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "@/components/ui/loading-state";
+import { isAudioFile, renderAudioPlayer } from "../../../utils/media-utils";
+import { CHAT_COMPOSER_MESSAGES } from "../../../constants/composer.constants";
 
 
 interface ThreadDetailViewProps {
@@ -122,7 +124,6 @@ export default function ThreadDetailView({
   const isPrivate = activeChat && "spaceId" in activeChat && isPrivateChannel(activeChat);
   const spaceCreatorId = isPrivate ? activeChat.ownerId ?? null : spaceDetail?.createdBy || null;
   const scrollRef = useRef<HTMLDivElement>(null);
-  const chatInputRef = useRef<ThreadChatInputRef>(null);
   const [followOverride, setFollowOverride] = useState<{
     threadId: string;
     isFollowing: boolean;
@@ -294,24 +295,7 @@ export default function ThreadDetailView({
       });
     });
   }, [currentUserId, isDirect, isFollowing, queryClient, rootMessage.id]);
-  const threadSenderIds = useMemo(() => {
-    const ids = new Set<string>();
-    if (rootMessage.senderId) {
-      ids.add(rootMessage.senderId);
-    }
-    replies.forEach((reply) => {
-      if (reply.senderId) {
-        ids.add(reply.senderId);
-      }
-    });
-    if (activeChat && "members" in activeChat && Array.isArray(activeChat.members)) {
-      activeChat.members.forEach((m) => {
-        if (m.userId) ids.add(m.userId);
-      });
-    }
-    return Array.from(ids);
-  }, [replies, rootMessage.senderId, activeChat]);
-  const memberProfiles = useChatMemberProfiles(threadSenderIds);
+  const memberProfiles = useChatMemberProfiles([...(rootMessage.mentions ?? []), ...replies.flatMap(reply => reply.mentions ?? [])], { resolveMissing: true });
 
   // Listen to new replies via WebSockets
   useEffect(() => {
@@ -355,33 +339,20 @@ export default function ThreadDetailView({
     }
   }, [replies.length]);
 
-  // Focus input when the thread details view opens or the active thread message changes
-  useEffect(() => {
-    if (!canReplyInThread) return;
-    if (chatInputRef.current) {
-      chatInputRef.current.focus();
-    }
-    const timer = setTimeout(() => {
-      if (chatInputRef.current) {
-        chatInputRef.current.focus();
-      }
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [canReplyInThread, rootMessage.id]);
-
-  const handleSendReply = (
+  const handleSendReply = async (
     content: string,
     media?: SendSocketMessageMedia[],
     mentions?: string[],
-  ) => {
+  ): Promise<boolean> => {
     if (isDirect) {
-      if (!rootChatId) return;
+      if (!rootChatId) return false;
 
-      sendDirectThreadReply({
+      const sentReply = await sendDirectThreadReply({
         conversationId: rootChatId,
         content,
         medias: media,
         threadParentId: rootMessage.id,
+        mentions,
         onSent: () => {
           queryClient.invalidateQueries({
             queryKey: chatKeys.threadMessages(ChatScope.DIRECT, rootMessage.id),
@@ -390,40 +361,37 @@ export default function ThreadDetailView({
             queryKey: chatKeys.threads(ChatScope.DIRECT, rootChatId),
           });
         },
-      })
-        .then((sentReply) => {
-          if (sentReply) {
-            appendThreadReply(sentReply);
-            chatInputRef.current?.focus();
-          }
-        })
-        .catch((permissionFailure) =>
-          toast.error(getActionErrorMessage(permissionFailure, "Failed to send reply")),
-        );
-      return;
+      });
+      if (sentReply) {
+        appendThreadReply(sentReply);
+        return true;
+      }
+      return false;
     }
 
-    if (!rootChatId) return;
+    if (!rootChatId) return false;
     if (!canReplyInThread) {
       toast.error("Only space administrators can reply in this thread.");
-      return;
+      return false;
     }
 
-    sendChannelMessage(rootChatId, {
+    try {
+      const response = await sendChannelMessage(rootChatId, {
         content,
         medias: media,
         threadParentId: rootMessage.id,
         mentions,
-      })
-      .then((response) => {
-        if (response.data) {
-          appendThreadReply(response.data);
-          chatInputRef.current?.focus();
-        }
-      })
-      .catch((permissionFailure) =>
-        toast.error(getActionErrorMessage(permissionFailure, "Failed to send reply")),
-      );
+      });
+      if (response.data) {
+        appendThreadReply(response.data);
+        return true;
+      }
+      toast.error(CHAT_COMPOSER_MESSAGES.sendFailed);
+      return false;
+    } catch (error) {
+      toast.error(getActionErrorMessage(error, "Failed to send reply"));
+      return false;
+    }
   };
 
   const getProfile = (userId: string) => {
@@ -431,23 +399,23 @@ export default function ThreadDetailView({
   };
   const rootProfile =
     activeRootMessage.senderProfile || getProfile(activeRootMessage.senderId);
-  const rootAvatarUrl = rootProfile?.avatarUrl || undefined;
 
   const renderThreadMessageMedias = (messageItem: ChatMessageResponse) => {
+    const own = messageItem.senderId === currentUserId;
     if (!messageItem.medias || messageItem.medias.length === 0) return null;
 
     const visualMedias = messageItem.medias.filter(
-      (m) => m.type === "IMAGE" || m.type === "VIDEO",
+      (m) => !isAudioFile(m) && (m.type === "IMAGE" || m.type === "VIDEO"),
     );
     const fileMedias = messageItem.medias.filter(
-      (m) => m.type !== "IMAGE" && m.type !== "VIDEO",
+      (m) => isAudioFile(m) || (m.type !== "IMAGE" && m.type !== "VIDEO"),
     );
 
     return (
-      <div className="mt-2 space-y-2 max-w-full">
+      <div className={cn("mt-2 flex min-w-0 max-w-full flex-col gap-2 text-left", own ? "items-end" : "items-start")}>
         {/* Render images/videos */}
         {visualMedias.length > 0 && (
-          <div className="grid gap-1 grid-cols-1 max-w-[240px]">
+          <div className="grid min-w-0 w-full max-w-[240px] grid-cols-1 gap-1">
             {visualMedias.map((media, index: number) => {
               if (media.type === "IMAGE") {
                 return (
@@ -502,6 +470,7 @@ export default function ThreadDetailView({
         {fileMedias.length > 0 && (
           <div className="flex flex-col gap-1.5 max-w-full">
             {fileMedias.map((media) => {
+              if (isAudioFile(media)) return renderAudioPlayer(media, own, isDirect ? ChatContextType.DIRECT_MESSAGE : ChatContextType.CHANNEL);
               const formatSize = (bytes: number) => {
                 if (bytes === 0) return "0 B";
                 const k = 1024;
@@ -517,7 +486,7 @@ export default function ThreadDetailView({
               return (
                 <div
                   key={media.id}
-                  className="flex items-center justify-between gap-3 py-1.5 px-2.5 rounded-lg border border-border bg-card hover:bg-background transition max-w-[240px]"
+                  className="flex items-center justify-between gap-3 py-1.5 px-2.5 rounded-lg border border-border bg-card hover:bg-background transition min-w-0 w-full max-w-[240px]"
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="p-1.5 rounded-md bg-info-soft text-info-content flex-shrink-0">
@@ -590,10 +559,11 @@ export default function ThreadDetailView({
       >
         {/* Root parent message */}
         <div className="border-b border-border pb-4">
-          <div className="flex items-start gap-3">
+          <div className={cn("flex min-w-0 items-start gap-2.5", activeRootMessage.senderId === currentUserId && "flex-row-reverse")}>
             <MessageAvatar
               showAvatar={true}
-              senderName={rootProfile?.fullName || "User"}
+              isBot={isAiBot(activeRootMessage.senderId, activeRootMessage.type)}
+              senderName={isAiBot(activeRootMessage.senderId, activeRootMessage.type) ? AI_BOT.name : rootProfile?.fullName || "User"}
               senderProfile={rootProfile}
               memberRole={
                 activeChat?.members?.find(
@@ -607,10 +577,10 @@ export default function ThreadDetailView({
                 }
               }}
             />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline justify-between mb-1">
+            <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col", activeRootMessage.senderId === currentUserId ? "items-end" : "items-start")}>
+              <div className={cn("mb-1 flex max-w-full flex-wrap items-baseline gap-x-2 gap-y-0.5", activeRootMessage.senderId === currentUserId && "flex-row-reverse text-right")}>
                 <span className="font-semibold text-xs text-foreground truncate">
-                  {rootProfile?.fullName || "User"}
+                  {isAiBot(activeRootMessage.senderId, activeRootMessage.type) ? AI_BOT.name : rootProfile?.fullName || "User"}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {formatDateTime(activeRootMessage.createdAt)}
@@ -624,7 +594,7 @@ export default function ThreadDetailView({
                   className="max-w-full"
                 />
               ) : (
-                <div className="text-xs text-foreground break-words bg-muted p-3 rounded-panel border border-border">
+                <div className="text-xs text-foreground text-left min-w-0 max-w-full [overflow-wrap:anywhere] [&_pre]:max-w-full [&_pre]:overflow-x-auto bg-muted p-3 rounded-panel border border-border">
                   {activeRootMessage.content ? (
                     renderMessageContent(
                       activeRootMessage.content,
@@ -640,7 +610,7 @@ export default function ThreadDetailView({
               )}
             </div>
           </div>
-          <div className="mt-2 pl-11 text-xs font-semibold text-muted-foreground">
+          <div className={cn("mt-2 text-xs font-semibold text-muted-foreground", activeRootMessage.senderId === currentUserId ? "pr-11 text-right" : "pl-11")}>
             {`${replies.length} ${replies.length === 1 ? "reply" : "replies"}`}
           </div>
         </div>
@@ -653,11 +623,14 @@ export default function ThreadDetailView({
           <div className="space-y-4">
             {replies.map((reply) => {
               const profile = reply.senderProfile || getProfile(reply.senderId);
+              const own = reply.senderId === currentUserId;
+              const bot = isAiBot(reply.senderId, reply.type);
               return (
-                <div key={reply.id} className="flex items-start gap-3">
+                <div key={reply.id} className={cn("flex min-w-0 items-start gap-2.5", own && "flex-row-reverse")}>
                   <MessageAvatar
                     showAvatar={true}
-                    senderName={profile?.fullName || "User"}
+                    isBot={bot}
+                    senderName={bot ? AI_BOT.name : profile?.fullName || "User"}
                     senderProfile={profile}
                     memberRole={
                       activeChat?.members?.find(
@@ -671,16 +644,16 @@ export default function ThreadDetailView({
                       }
                     }}
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between mb-0.5">
+                  <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col", own ? "items-end" : "items-start")}>
+                    <div className={cn("mb-0.5 flex max-w-full flex-wrap items-baseline gap-x-2 gap-y-0.5", own && "flex-row-reverse text-right")}>
                       <span className="font-semibold text-xs text-foreground truncate">
-                        {profile?.fullName || "User"}
+                        {bot ? AI_BOT.name : profile?.fullName || "User"}
                       </span>
                       <span className="text-xs text-muted-foreground">
                         {formatDateTime(reply.createdAt)}
                       </span>
                     </div>
-                    <div className="text-xs text-foreground break-words bg-muted p-2 rounded-lg">
+                    <div className="text-xs text-foreground text-left min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_pre]:max-w-full [&_pre]:overflow-x-auto bg-muted p-2 rounded-lg">
                       {renderMessageContent(
                         reply.content,
                         memberProfiles ?? undefined,
@@ -699,7 +672,7 @@ export default function ThreadDetailView({
 
       {/* Input bar */}
       {canReplyInThread ? (
-        <ThreadChatInput ref={chatInputRef} onSendMessage={handleSendReply} />
+        <ThreadChatInput key={`${rootChatId}:${rootMessage.id}`} threadId={rootMessage.id} onSendMessage={handleSendReply} />
       ) : (
         <div className="w-full border-t border-border bg-card p-3">
           <div className="flex items-center justify-center rounded-panel border border-border bg-background p-3 text-sm text-muted-foreground">

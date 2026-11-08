@@ -363,15 +363,12 @@ export default function MyFilesSelectModal({
           >
             Cancel
           </Button>
-          <Button variant="unstyled"
+          <Button
             type="button"
             onClick={handleAttachSelected}
             disabled={selectedFiles.size === 0 || isPreparing}
-            className={`cursor-pointer px-5 py-2 text-xs font-semibold text-foreground disabled:opacity-50 disabled:cursor-not-allowed rounded-control transition disabled:shadow-none ${
-              isDarkTone
-                ? "bg-primary hover:bg-primary"
-                : "bg-primary hover:bg-primary"
-            }`}
+            loading={isPreparing}
+            className="px-5 py-2 text-xs font-semibold disabled:cursor-not-allowed"
           >
             {isPreparing ? "Preparing attachments…" : `Attach Selected (${selectedFiles.size})`}
           </Button>

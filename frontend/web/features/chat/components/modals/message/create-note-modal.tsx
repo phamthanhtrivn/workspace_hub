@@ -73,10 +73,11 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-1">
+            <label htmlFor={`${inputFieldId}-note-content`} className="block text-sm font-medium text-foreground mb-1">
               Note Content
             </label>
             <RichTextTextarea
+              id={`${inputFieldId}-note-content`}
               value={content}
               setValue={setContent}
               placeholder="Enter note content..."

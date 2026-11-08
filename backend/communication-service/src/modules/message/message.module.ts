@@ -4,6 +4,7 @@ import { MessageMutationService } from './message-mutation.service';
 import { MessagePresentationService } from './message-presentation.service';
 import { MessagePublishingService } from './message-publishing.service';
 import { ConversationAiModule } from '../conversation-ai/conversation-ai.module';
+import { MediaModule } from '../media/media.module';
 import { Module } from '@nestjs/common';
 import { MessageController } from './message.controller';
 
@@ -17,6 +18,7 @@ import { SocketPublishingModule } from '../socket/socket-publishing.module';
 @Module({
   imports: [
     ConversationAiModule,
+    MediaModule,
     PrismaModule,
     S3Module,
     UserProfileSnapshotModule,

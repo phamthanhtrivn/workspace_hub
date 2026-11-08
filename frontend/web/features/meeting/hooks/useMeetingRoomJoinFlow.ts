@@ -24,6 +24,7 @@ import { usePreJoinMeetingDevices } from "./usePreJoinMeetingDevices";
 import { useStartScheduledMeeting } from "./useScheduledMeetings";
 import { getCurrentMeetingExitPath } from "../utils/meeting-room-navigation.utils";
 import { needsMeetingPassword } from "../utils/meeting-room.utils";
+import { meetingExitToastId } from "../types/meeting-error.constants";
 
 export function useMeetingRoomJoinFlow(joinToken: string) {
   const router = useRouter();
@@ -42,6 +43,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       status === MEETING_STATUS.CANCELLED
         ? "Meeting has been cancelled"
         : "Meeting has ended",
+      { id: meetingExitToastId(joinToken) },
     );
     queryClient.removeQueries({
       queryKey: meetingKeys.access(joinToken),
@@ -61,7 +63,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     error: accessError,
   } = useQuery({
     queryKey: meetingKeys.access(joinToken),
-    queryFn: () => getMeetingAccess(joinToken),
+    queryFn: ({ signal }) => getMeetingAccess(joinToken, signal),
     enabled: Boolean(joinToken) && !cachedRoom,
     retry: false,
   });

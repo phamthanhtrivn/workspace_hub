@@ -1,6 +1,6 @@
 "use client";
 
-import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { showMeetingActionError } from "../utils/meeting-action-errors";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -62,7 +62,7 @@ export function useMeetingParticipantActions(joinToken: string) {
       toast.success("Participant removed from the meeting");
     },
     onError: (permissionFailure) => {
-      toast.error(getActionErrorMessage(permissionFailure, "Could not remove participant"));
+      showMeetingActionError(permissionFailure, "Could not remove participant");
     },
   });
 
@@ -79,7 +79,7 @@ export function useMeetingParticipantActions(joinToken: string) {
       toast.success("Participant role updated");
     },
     onError: (permissionFailure) => {
-      toast.error(getActionErrorMessage(permissionFailure, "Could not update participant role"));
+      showMeetingActionError(permissionFailure, "Could not update participant role");
     },
   });
 
@@ -96,7 +96,7 @@ export function useMeetingParticipantActions(joinToken: string) {
       toast.success("Screen sharing stopped");
     },
     onError: (permissionFailure) => {
-      toast.error(getActionErrorMessage(permissionFailure, "Could not stop screen sharing"));
+      showMeetingActionError(permissionFailure, "Could not stop screen sharing");
     },
   });
 
@@ -107,7 +107,7 @@ export function useMeetingParticipantActions(joinToken: string) {
       invalidateParticipants();
     },
     onError: (permissionFailure) => {
-      toast.error(getActionErrorMessage(permissionFailure, "Could not lower participant hand"));
+      showMeetingActionError(permissionFailure, "Could not lower participant hand");
     },
   });
 
@@ -130,7 +130,7 @@ export function useEndMeeting(joinToken: string) {
   return useMutation({
     mutationFn: () => endMeeting(joinToken),
     onError: (permissionFailure) => {
-      toast.error(getActionErrorMessage(permissionFailure, "Could not end meeting"));
+      showMeetingActionError(permissionFailure, "Could not end meeting");
     },
   });
 }

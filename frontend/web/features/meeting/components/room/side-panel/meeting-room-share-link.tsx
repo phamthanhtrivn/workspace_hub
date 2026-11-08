@@ -1,6 +1,6 @@
 "use client";
 
-import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { showMeetingActionError } from "../../../utils/meeting-action-errors";
 import { useMemo, useState } from "react";
 import { Check, Copy, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -54,7 +54,7 @@ export function MeetingRoomShareLink({ joinToken }: MeetingRoomShareLinkProps) {
       toast.success("Meeting link copied");
       window.setTimeout(() => setCopied(false), 1800);
     } catch (permissionError) {
-      toast.error(getActionErrorMessage(permissionError, "Could not copy meeting link"));
+      showMeetingActionError(permissionError, "Could not copy meeting link");
     }
   };
 

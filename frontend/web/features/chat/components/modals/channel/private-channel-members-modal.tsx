@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { Search, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { ChannelResponse } from "../../../types/chat.types";
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { SimplePagination } from "@/components/ui/custom/simple-pagination";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 import ChatConfirmDialog from "../../ui/chat-confirm-dialog";
@@ -81,12 +81,7 @@ function PrivateChannelMembersContent({
           </DialogHeader>
           <div className="shrink-0 border-b border-border px-6 py-5">
             <label className="relative block">
-              <Search
-                size={20}
-                aria-hidden="true"
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
-              <Input
+              <SearchInput iconClassName="size-5 left-3.5"
                 aria-label="Search members by name or email"
                 value={search}
                 onChange={(event) => {

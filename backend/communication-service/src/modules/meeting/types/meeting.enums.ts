@@ -95,6 +95,7 @@ export enum MEETING_ERROR_MESSAGES {
   LIVEKIT_WEBHOOK_BODY_REQUIRED = 'LiveKit webhook body is required',
   LIVEKIT_WEBHOOK_INVALID = 'Invalid LiveKit webhook',
   INSTANT_CREATE_FAILED = 'Failed to create instant meeting',
+  AMBIGUOUS_MEETING_CONTEXT = 'Choose either a channel or a direct conversation for the meeting',
   INVALID_MESSAGE_DATA = 'Invalid meeting message data',
   MESSAGE_NOT_FOUND = 'Meeting message not found',
   MESSAGE_EDIT_FORBIDDEN = 'You can only edit your own meeting messages',

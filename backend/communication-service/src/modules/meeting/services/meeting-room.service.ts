@@ -53,6 +53,12 @@ import { MeetingRecordingWorker } from './meeting-recording.worker';
 type MeetingWithParticipants = Prisma.MeetingGetPayload<{
   include: { participants: true };
 }>;
+type MeetingChatMessage = Prisma.MessageGetPayload<{
+  include: { meeting: true; reactions: true; medias: true };
+}>;
+type MeetingDirectChatMessage = Prisma.DirectMessageGetPayload<{
+  include: { meeting: true; reactions: true; medias: true };
+}>;
 
 function isTerminalMeetingAccessStatus(status: MeetingStatus): boolean {
   return status === MeetingStatus.ENDED || status === MeetingStatus.CANCELLED;
@@ -92,6 +98,12 @@ export class MeetingRoomService {
     const instantMeetingDto = dto ?? {};
     const channelId = instantMeetingDto.channelId;
     const conversationId = instantMeetingDto.conversationId;
+
+    if (channelId && conversationId) {
+      throw new BadRequestException(
+        MEETING_ERROR_MESSAGES.AMBIGUOUS_MEETING_CONTEXT,
+      );
+    }
 
     if (channelId) {
       const isMember = await this.prisma.channelMember.findUnique({
@@ -150,98 +162,106 @@ export class MeetingRoomService {
       screenShareEnabled,
     });
 
-    let createdMessage: unknown = null;
-    let createdDirectMessage: unknown = null;
-
-    const meeting = await this.prisma.$transaction(async (tx) => {
-      const createdMeeting = await tx.meeting.create({
-        data: {
-          roomName,
-          joinToken,
-          title,
-          type: MeetingType.INSTANT,
-          status: MeetingStatus.LIVE,
-          createdBy: userId,
-          hostId: userId,
-          channelId: channelId ?? null,
-          conversationId: conversationId ?? null,
-          autoAdmit,
-          chatEnabled,
-          screenShareEnabled,
-          passwordHash,
-          autoRecord: instantMeetingDto.autoRecord ?? false,
-          recordingLayout: instantMeetingDto.recordingLayout ?? 'speaker',
-          startedAt: now,
-        },
-      });
-
-      await tx.meetingParticipant.create({
-        data: {
-          meetingId: createdMeeting.id,
-          userId,
-          role: MeetingRole.HOST,
-          status: MeetingParticipantStatus.JOINED,
-          joinedAt: now,
-          lastSeenAt: now,
-        },
-      });
-
-      if (channelId) {
-        createdMessage = await tx.message.create({
+    const { meeting, createdMessage, createdDirectMessage } = await this.prisma
+      .$transaction(async (tx) => {
+        let createdMessage: MeetingChatMessage | null = null;
+        let createdDirectMessage: MeetingDirectChatMessage | null = null;
+        const createdMeeting = await tx.meeting.create({
           data: {
-            channelId,
-            senderId: userId,
-            content: `Tổ chức cuộc họp: ${title}`,
-            type: MessageType.MEETING,
-            meetingId: createdMeeting.id,
-          },
-          include: {
-            meeting: true,
-            reactions: true,
-            medias: true,
+            roomName,
+            joinToken,
+            title,
+            type: MeetingType.INSTANT,
+            status: MeetingStatus.LIVE,
+            createdBy: userId,
+            hostId: userId,
+            channelId: channelId ?? null,
+            conversationId: conversationId ?? null,
+            autoAdmit,
+            chatEnabled,
+            screenShareEnabled,
+            passwordHash,
+            autoRecord: instantMeetingDto.autoRecord ?? false,
+            recordingLayout: instantMeetingDto.recordingLayout ?? 'speaker',
+            startedAt: now,
           },
         });
-      } else if (conversationId) {
-        createdDirectMessage = await tx.directMessage.create({
+
+        await tx.meetingParticipant.create({
           data: {
-            conversationId,
-            senderId: userId,
-            content: `Tổ chức cuộc họp: ${title}`,
-            type: MessageType.MEETING,
             meetingId: createdMeeting.id,
-          },
-          include: {
-            meeting: true,
-            reactions: true,
-            medias: true,
+            userId,
+            role: MeetingRole.HOST,
+            status: MeetingParticipantStatus.JOINED,
+            joinedAt: now,
+            lastSeenAt: now,
           },
         });
-      }
 
-      await tx.meetingEvent.createMany({
-        data: [
-          {
-            meetingId: createdMeeting.id,
-            actorId: userId,
-            type: MeetingEventType.CREATED,
-            metadata: {
-              roomName,
-              joinToken,
+        if (channelId) {
+          createdMessage = await tx.message.create({
+            data: {
+              channelId,
+              senderId: userId,
+              content: `Tổ chức cuộc họp: ${title}`,
+              type: MessageType.MEETING,
+              meetingId: createdMeeting.id,
             },
-          },
-          {
-            meetingId: createdMeeting.id,
-            actorId: userId,
-            type: MeetingEventType.STARTED,
-            metadata: {
-              startedAt: now.toISOString(),
+            include: {
+              meeting: true,
+              reactions: true,
+              medias: true,
             },
-          },
-        ],
+          });
+        } else if (conversationId) {
+          createdDirectMessage = await tx.directMessage.create({
+            data: {
+              conversationId,
+              senderId: userId,
+              content: `Tổ chức cuộc họp: ${title}`,
+              type: MessageType.MEETING,
+              meetingId: createdMeeting.id,
+            },
+            include: {
+              meeting: true,
+              reactions: true,
+              medias: true,
+            },
+          });
+        }
+
+        await tx.meetingEvent.createMany({
+          data: [
+            {
+              meetingId: createdMeeting.id,
+              actorId: userId,
+              type: MeetingEventType.CREATED,
+              metadata: {
+                roomName,
+                joinToken,
+              },
+            },
+            {
+              meetingId: createdMeeting.id,
+              actorId: userId,
+              type: MeetingEventType.STARTED,
+              metadata: {
+                startedAt: now.toISOString(),
+              },
+            },
+          ],
+        });
+
+        return {
+          meeting: createdMeeting,
+          createdMessage,
+          createdDirectMessage,
+        };
+      })
+      .catch(async (error: unknown) => {
+        await this.meetingRealtimeService.deleteLiveKitRoom(roomName);
+        throw error;
       });
-
-      return createdMeeting;
-    });
 
     const senderProfile = {
       id: userId,
@@ -254,11 +274,11 @@ export class MeetingRoomService {
       await this.chatSocketPublisher.publishChannelMessageCreated(channelId, {
         ...createdMessage,
         senderProfile,
-      } as any);
+      });
     } else if (conversationId && createdDirectMessage) {
       await this.chatSocketPublisher.publishDirectMessageCreated(
         conversationId,
-        { ...createdDirectMessage, senderProfile } as any,
+        { ...createdDirectMessage, senderProfile },
       );
     }
 
@@ -590,6 +610,7 @@ export class MeetingRoomService {
         deviceSettings: dto?.deviceSettings,
         canShareScreen: true,
       });
+
       return this.meetingPresenterService.toMeetingRoomResponse(
         meeting,
         role,
@@ -1107,6 +1128,7 @@ export class MeetingRoomService {
     if (status === MeetingStatus.ENDED) {
       return MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED;
     }
+
     return MEETING_ERROR_MESSAGES.MEETING_NOT_LIVE;
   }
 }

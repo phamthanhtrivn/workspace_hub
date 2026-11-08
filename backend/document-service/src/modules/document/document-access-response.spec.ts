@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DocumentController } from './document.controller';
 import type { DocumentService } from './document.service';
+import type { DocumentChatSharingService } from './document-chat-sharing.service';
 import { DocumentRole } from '../../common/enums/document.enum';
 
 for (const role of [
@@ -15,22 +16,26 @@ for (const role of [
     const service = {
       checkPermission: (id: string, userId: string, email: string) => {
         identityChecks.push([id, userId, email]);
+
         return Promise.resolve({
           id,
           name: 'Folder',
           type: 'FOLDER',
           sizeBytes: 0n,
           mimeType: null,
+          projectId: 'project',
           s3Key: 'private-key',
         });
       },
       getPermissionRole: (id: string, userId: string, email: string) => {
         identityChecks.push([id, userId, email]);
+
         return Promise.resolve(role);
       },
     };
     const controller = new DocumentController(
       service as unknown as DocumentService,
+      {} as DocumentChatSharingService,
     );
     const response = await controller.getAccessibleItem(
       'viewer',
@@ -39,6 +44,7 @@ for (const role of [
     );
     assert.equal(response.data.userRole, role);
     assert.equal(response.data.id, 'folder');
+    assert.equal(response.data.projectId, 'project');
     assert.deepEqual(identityChecks, [
       ['folder', 'viewer', 'test@example.invalid'],
       ['folder', 'viewer', 'test@example.invalid'],

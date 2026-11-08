@@ -10,6 +10,7 @@ import { DocumentPublicQueryService } from './document-public-query.service';
 import { DocumentUploadService } from './document-upload.service';
 import { DocumentLifecycleService } from './document-lifecycle.service';
 import { DocumentSharingService } from './document-sharing.service';
+import { DocumentChatSharingService } from './document-chat-sharing.service';
 import { ProjectDocumentAttachmentService } from './project-document-attachment.service';
 import { DocumentDownloadService } from './document-download.service';
 import { Module } from '@nestjs/common';
@@ -32,7 +33,11 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     S3Module,
     UserProfileSnapshotModule,
   ],
-  controllers: [DocumentContentController, DocumentController, InternalDocumentAccessController],
+  controllers: [
+    DocumentContentController,
+    DocumentController,
+    InternalDocumentAccessController,
+  ],
   providers: [
     DocumentService,
     DocumentAccessService,
@@ -45,6 +50,7 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     DocumentUploadService,
     DocumentLifecycleService,
     DocumentSharingService,
+    DocumentChatSharingService,
     ProjectDocumentAttachmentService,
     DocumentDownloadService,
     DocumentContentService,

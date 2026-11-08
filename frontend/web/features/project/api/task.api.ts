@@ -11,6 +11,7 @@ import {
   TaskDocumentAttachmentSource,
 } from "@/features/project/types/project";
 import { fetchAllPages, type PaginationMeta } from "./pagination";
+import { taskActionRequest } from "./task-error-policy";
 import type { ProjectTaskQuery } from "../project-task-view";
 
 interface ApiResponse<T> {
@@ -177,6 +178,7 @@ export async function createTask(
   const response = await api.post<ApiResponse<TaskApiModel>>(
     `/api/projects/${projectId}/tasks`,
     cleanPayload,
+    taskActionRequest(),
   );
   return normalizeTask(unwrap(response));
 }
@@ -188,6 +190,7 @@ export async function updateTask(
   const response = await api.patch<ApiResponse<TaskApiModel>>(
     `/api/tasks/${taskId}`,
     payload,
+    taskActionRequest(),
   );
   return normalizeTask(unwrap(response));
 }
@@ -201,6 +204,7 @@ export async function createChecklist(
   const response = await api.post<ApiResponse<ChecklistApiModel>>(
     `/api/tasks/${taskId}/checklists`,
     { title },
+    taskActionRequest(),
   );
   return unwrap(response);
 }
@@ -212,12 +216,13 @@ export async function updateChecklist(
   const response = await api.patch<ApiResponse<ChecklistApiModel>>(
     `/api/checklists/${checklistId}`,
     { completed },
+    taskActionRequest(),
   );
   return unwrap(response);
 }
 
 export async function deleteChecklist(checklistId: string): Promise<void> {
-  await api.delete(`/api/checklists/${checklistId}`);
+  await api.delete(`/api/checklists/${checklistId}`, taskActionRequest());
 }
 
 export async function getTaskActivities(
@@ -248,6 +253,7 @@ export async function attachTaskDocuments(
   const response = await api.post<ApiResponse<TaskDocumentAttachment[]>>(
     `/api/tasks/${taskId}/documents`,
     payload,
+    taskActionRequest(),
   );
   return unwrap(response) || [];
 }
@@ -258,11 +264,12 @@ export async function detachTaskDocument(
 ): Promise<TaskDocumentAttachment> {
   const response = await api.delete<ApiResponse<TaskDocumentAttachment>>(
     `/api/tasks/${taskId}/documents/${attachmentId}`,
+    taskActionRequest(),
   );
   return unwrap(response);
 }
 
 export async function reopenTask(taskId: string): Promise<Task> {
-  const response = await api.post<ApiResponse<TaskApiModel>>(`/api/tasks/${taskId}/reopen`);
+  const response = await api.post<ApiResponse<TaskApiModel>>(`/api/tasks/${taskId}/reopen`, undefined, taskActionRequest());
   return normalizeTask(unwrap(response));
 }

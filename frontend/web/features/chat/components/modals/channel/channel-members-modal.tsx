@@ -5,13 +5,13 @@ import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import { useMemo, useState } from "react";
 
-import { Search, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import ChannelMembersList from "./channel-members-list";
 import { useChannelMembersSearch } from "@/features/chat/hooks/useChannelMembersSearch";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { DialogSurface } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { LoadingState } from "@/components/ui/loading-state";
@@ -78,11 +78,7 @@ function ChannelMembersModalForm({
 
         <div className="flex-shrink-0 border-b border-border bg-background px-6 py-5">
           <label className="group relative block">
-            <Search
-              size={20}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-info-content"
-            />
-            <Input unstyled
+            <SearchInput iconClassName="size-5 left-3.5 group-focus-within:text-info-content transition-colors" aria-label="Search members by name" unstyled
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search members by name..."

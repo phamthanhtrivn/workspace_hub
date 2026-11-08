@@ -37,6 +37,22 @@ void db
       ),
     ),
   )
+  .then(() =>
+    db.query(
+      readFileSync(
+        join(__dirname, "../migrations/006_voice_transcripts.sql"),
+        "utf8",
+      ),
+    ),
+  )
+  .then(() =>
+    db.query(
+      readFileSync(
+        join(__dirname, "../migrations/007_shared_voice_transcripts.sql"),
+        "utf8",
+      ),
+    ),
+  )
   .then(() => console.log("Notebook schema ready (legacy tables untouched)"))
   .catch(() => {
     console.error("Migration failed; check database and credentials");

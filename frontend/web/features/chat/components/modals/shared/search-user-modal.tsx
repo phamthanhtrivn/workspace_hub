@@ -22,7 +22,7 @@ import {
   searchUserByEmail,
 } from "@/features/chat/api/chat.api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { DialogSurface } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -175,16 +175,12 @@ const SearchUserModal = React.memo(function SearchUserModal({
           <>
             <div className="px-6 py-5 flex-shrink-0 border-b border-border bg-background">
               <div className="relative group">
-                <Input aria-label="Enter user email" unstyled
+                <SearchInput iconClassName="size-5 left-3.5 group-focus-within:text-info-content transition-colors" aria-label="Enter user email" unstyled
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter user email..."
                   className="w-full pl-11 pr-4 py-3 bg-card border border-input rounded-control transition-all text-sm font-medium text-foreground placeholder:text-muted-foreground"
-                />
-                <Search
-                  className="absolute left-3.5 top-3 text-muted-foreground group-focus-within:text-info-content transition-colors"
-                  size={20}
                 />
               </div>
             </div>

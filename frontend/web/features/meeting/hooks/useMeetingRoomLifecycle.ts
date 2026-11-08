@@ -1,7 +1,7 @@
 "use client";
 
-import { getActionErrorMessage } from "@/lib/permission-feedback";
-import { useCallback, useState } from "react";
+import { showMeetingActionError } from "../utils/meeting-action-errors";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useRoomContext } from "@livekit/components-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -30,6 +30,9 @@ import {
   type MeetingParticipantRole,
 } from "../types/meeting.types";
 import { getCurrentMeetingExitPath } from "../utils/meeting-room-navigation.utils";
+import { openMeetingRoomRequests, closeMeetingRoomRequests } from "../api/meeting-room-requests";
+import { clearMeetingRoomQueries as clearRoomQueries } from "../utils/meeting-room-queries";
+import { MEETING_EXIT_LABELS, meetingExitToastId } from "../types/meeting-error.constants";
 
 interface UseMeetingRoomLifecycleParams {
   meetingId: string;
@@ -50,6 +53,11 @@ export function useMeetingRoomLifecycle({
   const queryClient = useQueryClient();
   const authUser = useAppSelector((state) => state.auth);
   const room = useRoomContext();
+  const exitingRef = useRef(false);
+  useLayoutEffect(() => {
+    exitingRef.current = false;
+    return openMeetingRoomRequests(joinToken, meetingId);
+  }, [joinToken, meetingId]);
   const [autoAdmit, setAutoAdmit] = useState(initialAutoAdmit);
   const [chatEnabled, setChatEnabled] = useState(initialChatEnabled);
   const [currentParticipantRole, setCurrentParticipantRole] =
@@ -85,25 +93,10 @@ export function useMeetingRoomLifecycle({
   }, [invalidateMeetingIdentityState, invalidateMeetingParticipants]);
 
   const clearMeetingRoomQueries = useCallback(() => {
-    void queryClient.cancelQueries({
-      queryKey: meetingKeys.participantsRoot(joinToken),
-    });
-    void queryClient.cancelQueries({
-      queryKey: meetingKeys.access(joinToken),
-    });
-    void queryClient.cancelQueries({
-      queryKey: meetingKeys.room(joinToken),
-    });
-    queryClient.removeQueries({
-      queryKey: meetingKeys.participantsRoot(joinToken),
-    });
-    queryClient.removeQueries({
-      queryKey: meetingKeys.access(joinToken),
-    });
-    queryClient.removeQueries({
-      queryKey: meetingKeys.room(joinToken),
-    });
-  }, [joinToken, queryClient]);
+    exitingRef.current = true;
+    closeMeetingRoomRequests(joinToken);
+    clearRoomQueries(queryClient, joinToken, authUser.userId);
+  }, [joinToken, queryClient, authUser.userId]);
 
   const leaveRoom = useCallback(() => {
     room.disconnect();
@@ -132,11 +125,11 @@ export function useMeetingRoomLifecycle({
 
   const handleMeetingEnded = useCallback(
     (payload: MeetingEndedPayload) => {
-      if (payload.meetingId !== meetingId) return;
+      if (payload.meetingId !== meetingId || exitingRef.current) return;
 
       if (payload.endedBy !== authUser.userId) {
-        toast.info("The host ended the meeting");
-      }
+        toast.info(MEETING_EXIT_LABELS.hostEnded, { id: meetingExitToastId(joinToken) });
+      } else toast.success(MEETING_EXIT_LABELS.ended, { id: meetingExitToastId(joinToken) });
 
       clearMeetingRoomQueries();
       leaveRoom();
@@ -146,6 +139,7 @@ export function useMeetingRoomLifecycle({
       clearMeetingRoomQueries,
       leaveRoom,
       meetingId,
+      joinToken,
     ],
   );
 
@@ -160,7 +154,7 @@ export function useMeetingRoomLifecycle({
 
   const handleParticipantLeft = useCallback(
     (payload: MeetingParticipantLeftPayload) => {
-      if (payload.meetingId !== meetingId) return;
+      if (payload.meetingId !== meetingId || exitingRef.current) return;
 
       if (payload.userId === authUser.userId) {
         clearMeetingRoomQueries();
@@ -205,10 +199,10 @@ export function useMeetingRoomLifecycle({
 
   const handleParticipantRemoved = useCallback(
     (payload: MeetingParticipantRemovedPayload) => {
-      if (payload.meetingId !== meetingId) return;
+      if (payload.meetingId !== meetingId || exitingRef.current) return;
 
       if (payload.userId === authUser.userId) {
-        toast.info("You were removed from the meeting");
+        toast.info(MEETING_EXIT_LABELS.removed, { id: meetingExitToastId(joinToken) });
         clearMeetingRoomQueries();
         leaveRoom();
         return;
@@ -224,6 +218,7 @@ export function useMeetingRoomLifecycle({
       leaveRoom,
       meetingId,
       removeParticipantFromCachedPages,
+      joinToken,
     ],
   );
 
@@ -266,11 +261,13 @@ export function useMeetingRoomLifecycle({
   const handleLeave = useCallback(() => {
     leaveMeetingMutation.mutate(undefined, {
       onSuccess: () => {
+        if (exitingRef.current) return;
         clearMeetingRoomQueries();
         leaveRoom();
       },
       onError: (permissionFailure) => {
-        toast.error(getActionErrorMessage(permissionFailure, "Could not save leave action"));
+        if (exitingRef.current) return;
+        showMeetingActionError(permissionFailure, "Could not save leave action");
       },
     });
   }, [clearMeetingRoomQueries, leaveMeetingMutation, leaveRoom]);
@@ -283,16 +280,17 @@ export function useMeetingRoomLifecycle({
       variant: "danger",
     });
 
-    if (!confirmed) return;
+    if (!confirmed || exitingRef.current) return;
 
     endMeetingMutation.mutate(undefined, {
       onSuccess: () => {
-        toast.success("Meeting ended");
+        if (exitingRef.current) return;
+        toast.success(MEETING_EXIT_LABELS.ended, { id: meetingExitToastId(joinToken) });
         clearMeetingRoomQueries();
         leaveRoom();
       },
     });
-  }, [clearMeetingRoomQueries, confirm, endMeetingMutation, leaveRoom]);
+  }, [clearMeetingRoomQueries, confirm, endMeetingMutation, leaveRoom, joinToken]);
 
   return {
     autoAdmit,
