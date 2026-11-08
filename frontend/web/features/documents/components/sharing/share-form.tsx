@@ -1,6 +1,9 @@
 "use client";
 
-import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
+import {
+  logActionError,
+  getActionErrorMessage,
+} from "@/lib/permission-feedback";
 import { getApiErrorMessage } from "@/lib/api-error";
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Plus, Mail } from "lucide-react";
@@ -15,7 +18,6 @@ import { Combobox, ComboboxInput } from "@/components/ui/combobox";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-
 
 interface ShareModalFormProps {
   documentItemId: string;
@@ -44,6 +46,7 @@ export function ShareModalForm({
   useEffect(() => {
     if (ignoreSearchRef.current) {
       ignoreSearchRef.current = false;
+
       return;
     }
 
@@ -127,8 +130,7 @@ export function ShareModalForm({
     },
     onError: (err: unknown) => {
       logActionError("Failed to add share", err);
-      const errMsg =
-        getApiErrorMessage(err, "Failed to share access");
+      const errMsg = getApiErrorMessage(err, "Failed to share access");
       toast.error(getActionErrorMessage(err, errMsg));
     },
   });
@@ -149,7 +151,10 @@ export function ShareModalForm({
 
   return (
     <form onSubmit={handleAddShare} className="space-y-2">
-      <label htmlFor={`share-email-${documentItemId}`} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+      <label
+        htmlFor={`share-email-${documentItemId}`}
+        className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block"
+      >
         Share with others
       </label>
       <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -159,42 +164,47 @@ export function ShareModalForm({
             filter={null}
             value={null}
             inputValue={emailInput}
-            onInputValueChange={value => { setEmailInput(value); setSearchResults([]); setShowSuggestions(false); }}
+            onInputValueChange={(value) => {
+              setEmailInput(value);
+              setSearchResults([]);
+              setShowSuggestions(false);
+            }}
             itemToStringLabel={(user) => user?.email ?? ""}
             open={showSuggestions && searchResults.length > 0}
             onOpenChange={setShowSuggestions}
           >
-          {isSearching ? (
-            <Spinner className="absolute left-3.5 top-1/2 -translate-y-1/2" />
-          ) : (
-            <Mail
-              size={16}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 left-3.5 z-10 flex items-center text-muted-foreground"
+            >
+              {isSearching ? <Spinner /> : <Mail size={16} />}
+            </span>
+            <ComboboxInput
+              unstyled
+              id={`share-email-${documentItemId}`}
+              type="text"
+              placeholder="Enter email address..."
+              required
+              onFocus={() => {
+                if (searchResults.length > 0) {
+                  setShowSuggestions(true);
+                }
+              }}
+              className="w-full bg-background border border-input hover:border-input rounded-control py-2.5 pl-10 pr-4 text-xs font-semibold text-foreground outline-hidden transition-all placeholder:text-muted-foreground"
             />
-          )}
-          <ComboboxInput unstyled id={`share-email-${documentItemId}`}
-            type="text"
-            placeholder="Enter email address..."
-            required
-            onFocus={() => {
-              if (searchResults.length > 0) {
-                setShowSuggestions(true);
-              }
-            }}
-            className="w-full bg-background border border-input hover:border-input rounded-control py-2.5 pl-10 pr-4 text-xs font-semibold text-foreground outline-hidden transition-all placeholder:text-muted-foreground"
-          />
 
-          <ShareSuggestionsDropdown
-            show={showSuggestions}
-            results={searchResults}
-            onSelect={handleSelectSuggestion}
-          />
+            <ShareSuggestionsDropdown
+              show={showSuggestions}
+              results={searchResults}
+              onSelect={handleSelectSuggestion}
+            />
           </Combobox>
         </div>
         <CustomSelect
+          sizeToOptions
           ariaLabel="Share permission"
           value={permissionInput}
-          onChange={nextValue =>
+          onChange={(nextValue) =>
             setPermissionInput(nextValue as SharePermission)
           }
           triggerClassName="bg-card border border-input hover:border-input rounded-panel py-2.5 px-3 text-xs font-semibold text-foreground outline-hidden transition-all cursor-pointer"
@@ -202,7 +212,9 @@ export function ShareModalForm({
           <option value={SharePermission.VIEWER}>Can view</option>
           <option value={SharePermission.EDITOR}>Can edit</option>
         </CustomSelect>
-        <Button aria-busy={addShareMutation.isPending || undefined} variant="default"
+        <Button
+          aria-busy={addShareMutation.isPending || undefined}
+          variant="default"
           type="submit"
           disabled={addShareMutation.isPending}
           className="flex items-center justify-center p-2.5 rounded-control transition-all disabled:opacity-50 cursor-pointer"

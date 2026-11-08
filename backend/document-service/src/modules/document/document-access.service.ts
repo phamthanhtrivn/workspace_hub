@@ -6,74 +6,147 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  DocumentItem,
-  LinkAccess,
-  DocumentShare,
-} from '@prisma/client';
+import { DocumentItem, LinkAccess, DocumentShare } from '@prisma/client';
 import { DocumentRole } from '../../common/enums/document.enum';
+import { DOCUMENT_ACCESS_ERRORS } from '../../common/constants/document-access.constants';
 
 @Injectable()
 export class DocumentAccessService {
   constructor(private readonly prisma: PrismaService) {}
-  private async resolveRole(itemId: string, userId?: string, userEmail?: string, visited = new Set<string>()): Promise<{ item: DocumentItem & { shares: DocumentShare[] }; role: DocumentRole }> {
-    if (visited.has(itemId)) throw new ForbiddenException('Invalid document hierarchy');
+  private async resolveRole(
+    itemId: string,
+    userId?: string,
+    userEmail?: string,
+    visited = new Set<string>(),
+  ): Promise<{
+    item: DocumentItem & { shares: DocumentShare[] };
+    role: DocumentRole;
+  }> {
+    if (visited.has(itemId))
+      throw new ForbiddenException('Invalid document hierarchy');
     visited.add(itemId);
-    const item = await this.prisma.documentItem.findUnique({ where: { id: itemId }, include: { shares: true } });
-    if (!item) throw new NotFoundException('Document or folder not found');
+    const item = await this.prisma.documentItem.findUnique({
+      where: { id: itemId },
+      include: { shares: true },
+    });
+    if (!item) throw new NotFoundException(DOCUMENT_ACCESS_ERRORS.NOT_FOUND);
     if (item.projectId) {
       const access = await authorizeProject(userId, item.projectId);
-      return { item, role: access.owner ? DocumentRole.OWNER : access.canEditDocuments ? DocumentRole.EDITOR : DocumentRole.VIEWER };
+
+      return {
+        item,
+        role: access.owner
+          ? DocumentRole.OWNER
+          : access.canEditDocuments
+            ? DocumentRole.EDITOR
+            : DocumentRole.VIEWER,
+      };
     }
-    if (userId && item.ownerUserId === userId) return { item, role: DocumentRole.OWNER };
-    if (item.isArchived) throw new ForbiddenException('Document unavailable');
-    const share = userId && item.shares.find(s => s.shareWithUserId ? s.shareWithUserId === userId : Boolean(userEmail && s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()));
+    if (userId && item.ownerUserId === userId)
+      return { item, role: DocumentRole.OWNER };
+    if (item.isArchived)
+      throw new ForbiddenException(DOCUMENT_ACCESS_ERRORS.UNAVAILABLE);
+    const share =
+      userId &&
+      item.shares.find((s) =>
+        s.shareWithUserId
+          ? s.shareWithUserId === userId
+          : Boolean(
+              userEmail &&
+              s.shareWithEmail.toLowerCase() === userEmail.toLowerCase(),
+            ),
+      );
     if (share && userId) {
       if (!share.shareWithUserId) {
         // HTTP identity is already verified. Claim a pending email grant once, then use the stable user id.
         const claimed = await this.prisma.documentShare.updateMany({
-          where: { id: share.id, shareWithUserId: null, shareWithEmail: share.shareWithEmail },
+          where: {
+            id: share.id,
+            shareWithUserId: null,
+            shareWithEmail: share.shareWithEmail,
+          },
           data: { shareWithUserId: userId },
         });
         if (!claimed.count) {
-          const current = await this.prisma.documentShare.findUnique({ where: { id: share.id } });
-          if (current?.shareWithUserId !== userId) throw new ForbiddenException('Share is no longer available');
+          const current = await this.prisma.documentShare.findUnique({
+            where: { id: share.id },
+          });
+          if (current?.shareWithUserId !== userId)
+            throw new ForbiddenException('Share is no longer available');
         }
       }
+
       return { item, role: share.permission as DocumentRole };
     }
     if (item.parentFolderId) {
       try {
-        const inherited = await this.resolveRole(item.parentFolderId, userId, userEmail, visited);
-        if (inherited.role !== DocumentRole.VIEWER) return { item, role: inherited.role };
+        const inherited = await this.resolveRole(
+          item.parentFolderId,
+          userId,
+          userEmail,
+          visited,
+        );
+        if (inherited.role !== DocumentRole.VIEWER)
+          return { item, role: inherited.role };
+
         // A valid viewer grant is enough for viewing this child.
         return { item, role: DocumentRole.VIEWER };
-      } catch (error) { if (!(error instanceof ForbiddenException)) throw error; }
+      } catch (error) {
+        if (!(error instanceof ForbiddenException)) throw error;
+      }
     }
-    if (item.linkAccess !== LinkAccess.NONE && (!item.shareExpiresAt || item.shareExpiresAt > new Date()))
+    if (item.linkAccess !== LinkAccess.NONE) {
+      if (item.shareExpiresAt && item.shareExpiresAt <= new Date()) {
+        throw new ForbiddenException(DOCUMENT_ACCESS_ERRORS.EXPIRED);
+      }
+
       return { item, role: DocumentRole.VIEWER };
-    throw new ForbiddenException('You are not allowed to access this item');
+    }
+    throw new ForbiddenException(DOCUMENT_ACCESS_ERRORS.RESTRICTED);
   }
 
-  async getPermissionRole(itemId: string, userId?: string, userEmail?: string): Promise<DocumentRole> {
+  async getPermissionRole(
+    itemId: string,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<DocumentRole> {
     return (await this.resolveRole(itemId, userId, userEmail)).role;
   }
 
-  async checkPermission(itemId: string, userId?: string, userEmail?: string, requiredRole: DocumentRole = DocumentRole.VIEWER): Promise<DocumentItem & { shares: DocumentShare[] }> {
+  async checkPermission(
+    itemId: string,
+    userId?: string,
+    userEmail?: string,
+    requiredRole: DocumentRole = DocumentRole.VIEWER,
+  ): Promise<DocumentItem & { shares: DocumentShare[] }> {
     const { item, role } = await this.resolveRole(itemId, userId, userEmail);
     if (requiredRole === DocumentRole.OWNER && role !== DocumentRole.OWNER)
       throw new ForbiddenException('Only the owner can perform this action');
     if (requiredRole === DocumentRole.EDITOR && role === DocumentRole.VIEWER)
       throw new ForbiddenException('Named editor permission is required');
+
     return item;
   }
 
-  async filterReadable<T extends { id: string }>(items: T[], userId: string, userEmail: string): Promise<T[]> {
+  async filterReadable<T extends { id: string }>(
+    items: T[],
+    userId: string,
+    userEmail: string,
+  ): Promise<T[]> {
     const visible: T[] = [];
     for (const item of items) {
-      try { await this.checkPermission(item.id, userId, userEmail); visible.push(item); }
-      catch (error) { if (!(error instanceof ForbiddenException || error instanceof NotFoundException)) throw error; }
+      try {
+        await this.checkPermission(item.id, userId, userEmail);
+        visible.push(item);
+      } catch (error) {
+        if (!(
+          error instanceof ForbiddenException ||
+          error instanceof NotFoundException
+        ))
+          throw error;
+      }
     }
+
     return visible;
   }
 
@@ -104,6 +177,7 @@ export class DocumentAccessService {
     if (item.ownerUserId !== userId) {
       throw new ForbiddenException('Only the owner can perform this action');
     }
+
     return item;
   }
 

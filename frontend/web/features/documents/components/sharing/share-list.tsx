@@ -1,6 +1,9 @@
 "use client";
 
-import { logActionError, getActionErrorMessage } from "@/lib/permission-feedback";
+import {
+  logActionError,
+  getActionErrorMessage,
+} from "@/lib/permission-feedback";
 import { UserAvatar } from "@/components/common/user-avatar";
 import { IconButton } from "@/components/ui/icon-button";
 
@@ -44,6 +47,7 @@ export function ShareModalList({
         emails.add(share.shareWithEmail.toLowerCase());
       }
     });
+
     return Array.from(emails);
   }, [ownerEmail, shares]);
 
@@ -64,6 +68,7 @@ export function ShareModalList({
         }
       });
     }
+
     return map;
   }, [profilesResponse]);
 
@@ -102,7 +107,9 @@ export function ShareModalList({
     },
     onError: (err) => {
       logActionError("Failed to update permission", err);
-      toast.error(getActionErrorMessage(err, "Failed to update access permission"));
+      toast.error(
+        getActionErrorMessage(err, "Failed to update access permission"),
+      );
     },
   });
 
@@ -124,6 +131,7 @@ export function ShareModalList({
   const permissionLabel = (permission: SharePermission | "OWNER") => {
     if (permission === "OWNER") return "Owner";
     if (permission === SharePermission.EDITOR) return "Can edit";
+
     return "Can view";
   };
 
@@ -162,13 +170,17 @@ export function ShareModalList({
         {isLoading ? (
           <div role="status" className="flex items-center justify-center py-6">
             <Spinner size={24} />
-          <span className="sr-only">Loading…</span></div>
+            <span className="sr-only">Loading…</span>
+          </div>
         ) : (
           shares.map((share) => {
-            const profile = profilesMap.get(share.shareWithEmail.toLowerCase()) || {
+            const profile = profilesMap.get(
+              share.shareWithEmail.toLowerCase(),
+            ) || {
               fullName: share.shareWithProfile?.fullName || undefined,
               avatarUrl: share.shareWithProfile?.avatarUrl || undefined,
             };
+
             return (
               <div
                 key={share.id}
@@ -197,9 +209,10 @@ export function ShareModalList({
                   {isOwner ? (
                     <>
                       <CustomSelect
+                        sizeToOptions
                         ariaLabel="Share permission"
                         value={share.permission}
-                        onChange={nextValue =>
+                        onChange={(nextValue) =>
                           void handleUpdateSharePermission(
                             share.shareWithEmail,
                             nextValue as SharePermission,
@@ -213,7 +226,11 @@ export function ShareModalList({
                           </option>
                         ))}
                       </CustomSelect>
-                      <IconButton label="Remove sharing access" showTooltip={false} size="icon-sm" aria-label="Remove sharing access"
+                      <IconButton
+                        label="Remove sharing access"
+                        showTooltip={false}
+                        size="icon-sm"
+                        aria-label="Remove sharing access"
                         onClick={() =>
                           handleRemoveShare(share.id, share.shareWithEmail)
                         }

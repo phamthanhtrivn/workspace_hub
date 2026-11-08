@@ -1,4 +1,5 @@
 "use client";
+import { logActionError } from "@/lib/permission-feedback";
 
 import { useQuery } from "@tanstack/react-query";
 import { QueryFeedback } from "@/components/common/query-feedback";
@@ -30,7 +31,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
-
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface BreadcrumbEntry {
@@ -49,7 +49,6 @@ interface SharedFolderBrowserProps {
 function SharedFolderBrowserInner({
   rootItem,
   rootId,
-  userRole,
 }: SharedFolderBrowserProps) {
   const [currentFolderId, setCurrentFolderId] = useState<string>(rootId);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbEntry[]>([
@@ -58,9 +57,15 @@ function SharedFolderBrowserInner({
 
   const { enqueueDownload } = useDownloadQueue();
 
-  const { data: children = [], isPending: isLoading, isError: loadError, refetch } = useQuery({
+  const {
+    data: children = [],
+    isPending: isLoading,
+    isError: loadError,
+    refetch,
+  } = useQuery({
     queryKey: ["documents", "public-children", rootId, currentFolderId],
-    queryFn: () => documentsApi.getPublicFolderChildren(rootId, currentFolderId),
+    queryFn: () =>
+      documentsApi.getPublicFolderChildren(rootId, currentFolderId),
   });
 
   const handleNavigateInto = (folder: DocumentItem) => {
@@ -83,13 +88,10 @@ function SharedFolderBrowserInner({
       a.click();
       document.body.removeChild(a);
     } catch (err) {
-      console.error("Failed to download file", err);
+      logActionError("Failed to download file", err);
       toast.error("Could not download this file");
     }
   };
-
-  const isViewer =
-    userRole === DocumentRole.VIEWER || userRole === DocumentRole.NONE;
 
   return (
     <div className="bg-card rounded-dialog border border-border overflow-hidden">
@@ -100,9 +102,13 @@ function SharedFolderBrowserInner({
           {breadcrumbs.map((crumb, index) => (
             <React.Fragment key={crumb.id}>
               {index > 0 && (
-                <ChevronRight size={12} className="text-muted-foreground shrink-0" />
+                <ChevronRight
+                  size={12}
+                  className="text-muted-foreground shrink-0"
+                />
               )}
-              <Button variant="unstyled"
+              <Button
+                variant="unstyled"
                 onClick={() => handleBreadcrumbClick(index)}
                 className={
                   index === breadcrumbs.length - 1
@@ -124,7 +130,8 @@ function SharedFolderBrowserInner({
         </div>
 
         {/* Download Entire Folder */}
-        <Button variant="unstyled"
+        <Button
+          variant="unstyled"
           onClick={() => enqueueDownload(rootId, rootItem.name, true)}
           className="flex items-center gap-1.5 ml-4 shrink-0 rounded-control bg-primary hover:bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold cursor-pointer transition-all"
         >
@@ -135,7 +142,8 @@ function SharedFolderBrowserInner({
 
       {/* Back button for sub-folders */}
       {breadcrumbs.length > 1 && (
-        <Button variant="unstyled"
+        <Button
+          variant="unstyled"
           onClick={() => handleBreadcrumbClick(breadcrumbs.length - 2)}
           className="flex items-center gap-2 w-full px-5 py-3 text-xs font-semibold text-muted-foreground hover:bg-background transition-colors border-b border-border cursor-pointer"
         >
@@ -145,11 +153,21 @@ function SharedFolderBrowserInner({
       )}
 
       {/* File/Folder List */}
-      {loadError && <QueryFeedback label="shared folder contents" error retrying={isLoading} onRetry={() => { void refetch(); }} />}
+      {loadError && (
+        <QueryFeedback
+          label="shared folder contents"
+          error
+          retrying={isLoading}
+          onRetry={() => {
+            void refetch();
+          }}
+        />
+      )}
       {loadError && children.length === 0 ? null : isLoading ? (
         <div role="status" className="flex items-center justify-center py-16">
           <Spinner size={24} />
-        <span className="sr-only">Loading…</span></div>
+          <span className="sr-only">Loading…</span>
+        </div>
       ) : children.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <Folder size={40} className="text-muted-foreground mb-3" />
@@ -159,13 +177,15 @@ function SharedFolderBrowserInner({
         <div className="divide-y divide-border">
           {children.map((item) => {
             const isFolder = item.type === DocumentItemType.FOLDER;
+
             return (
               <div
                 key={item.id}
                 className="flex items-center justify-between px-5 py-3.5 hover:bg-background transition-colors group"
               >
                 {/* Icon + Name */}
-                <Button variant="unstyled"
+                <Button
+                  variant="unstyled"
                   onClick={() => isFolder && handleNavigateInto(item)}
                   className={`flex items-center gap-3 min-w-0 flex-1 text-left ${isFolder ? "cursor-pointer" : "cursor-default"}`}
                 >
@@ -189,7 +209,8 @@ function SharedFolderBrowserInner({
                 {/* Action buttons */}
                 <div className="flex items-center gap-1 ml-3 shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity">
                   {isFolder ? (
-                    <Button variant="unstyled"
+                    <Button
+                      variant="unstyled"
                       onClick={() => enqueueDownload(item.id, item.name, true)}
                       title="Download folder (ZIP)"
                       className="p-1.5 rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft transition-colors cursor-pointer"
@@ -197,7 +218,8 @@ function SharedFolderBrowserInner({
                       <FolderArchive size={14} />
                     </Button>
                   ) : (
-                    <Button variant="unstyled"
+                    <Button
+                      variant="unstyled"
                       onClick={() => void handleDownloadFile(item)}
                       title="Download file"
                       className="p-1.5 rounded-control text-muted-foreground hover:text-info-content hover:bg-info-soft transition-colors cursor-pointer"
@@ -206,7 +228,9 @@ function SharedFolderBrowserInner({
                     </Button>
                   )}
                   {isFolder && (
-                    <Button variant="unstyled" aria-label="Open folder"
+                    <Button
+                      variant="unstyled"
+                      aria-label="Open folder"
                       onClick={() => handleNavigateInto(item)}
                       className="p-1.5 rounded-control text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
                     >

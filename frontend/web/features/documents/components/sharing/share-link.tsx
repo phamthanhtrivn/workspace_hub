@@ -140,6 +140,7 @@ export function ShareModalLink({
           <div className="flex items-center justify-between gap-2">
             {isOwner ? (
               <CustomSelect
+                sizeToOptions
                 ariaLabel="Link access"
                 value={linkAccess}
                 onChange={(nextValue) =>

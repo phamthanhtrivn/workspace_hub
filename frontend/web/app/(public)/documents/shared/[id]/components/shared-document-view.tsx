@@ -23,6 +23,9 @@ import { SharedPreview } from "./shared-preview";
 import { SharedFolderBrowser } from "./shared-folder-browser";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
 import { Spinner } from "@/components/ui/spinner";
+import { logActionError } from "@/lib/permission-feedback";
+import { getSharedDocumentAccessCode } from "@/features/documents/utils/shared-document-access";
+import type { SharedDocumentAccessCode } from "@/features/documents/types/shared-document-access.constants";
 
 export default function SharedDocumentView({ id }: { id: string }) {
   const isLoggedIn = useAppSelector((state) => !!state.auth.accessToken);
@@ -30,7 +33,9 @@ export default function SharedDocumentView({ id }: { id: string }) {
   const [renameOpen, setRenameOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
-  const [accessDenied, setAccessDenied] = useState(false);
+  const [accessCode, setAccessCode] = useState<SharedDocumentAccessCode | null>(
+    null,
+  );
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [item, setItem] = useState<DocumentItem | null>(null);
   const [userRole, setUserRole] = useState<DocumentRole>(DocumentRole.NONE);
@@ -44,12 +49,33 @@ export default function SharedDocumentView({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
 
+  const showAccessDenial = React.useCallback((failure: unknown) => {
+    const reason = getSharedDocumentAccessCode(failure);
+    if (!reason) return false;
+    setAccessCode(reason);
+    setItem(null);
+    setUserRole(DocumentRole.NONE);
+    setPreviewUrl(undefined);
+    setTextContent(null);
+    setPreviewError(null);
+    setIsVersionModalOpen(false);
+    setRenameOpen(false);
+
+    return true;
+  }, []);
+
   useEffect(() => {
     let active = true;
 
     async function loadData() {
       setIsLoading(true);
-      setError(null); setAccessDenied(false); setPreviewError(null);
+      setError(null);
+      setAccessCode(null);
+      setPreviewError(null);
+      setItem(null);
+      setUserRole(DocumentRole.NONE);
+      setPreviewUrl(undefined);
+      setTextContent(null);
       let metadataAvailable = false;
       try {
         // 1. Fetch public metadata
@@ -92,8 +118,8 @@ export default function SharedDocumentView({ id }: { id: string }) {
               setTextContent(text);
             }
           } catch (textErr) {
-            console.error(textErr);
             if (active) {
+              logActionError("Failed to load text preview", textErr);
               setPreviewError("Could not load the text preview.");
             }
           } finally {
@@ -101,22 +127,19 @@ export default function SharedDocumentView({ id }: { id: string }) {
           }
         }
       } catch (err: unknown) {
-        console.error("Failed to load shared document", err);
-        if (active) {
-          const axiosError = err as {
-            response?: { status?: number; data?: { message?: string } };
-            message?: string;
-          };
-          if (metadataAvailable) { setPreviewError("Could not load the document preview."); return; }
-          setAccessDenied([401, 403, 404, 410].includes(axiosError.response?.status ?? 0));
-          setError(
-            axiosError.response?.data?.message ||
-              axiosError.message ||
-              "Could not load shared document details",
-          );
+        if (!active || showAccessDenial(err)) return;
+        logActionError("Failed to load shared document", err);
+        if (metadataAvailable) {
+          setPreviewError("Could not load the document preview.");
+
+          return;
         }
+        setError("Could not load shared document details");
       } finally {
-        if (active) { setIsLoading(false); setIsUrlLoading(false); }
+        if (active) {
+          setIsLoading(false);
+          setIsUrlLoading(false);
+        }
       }
     }
 
@@ -125,7 +148,7 @@ export default function SharedDocumentView({ id }: { id: string }) {
     return () => {
       active = false;
     };
-  }, [id, retryKey]);
+  }, [id, isLoggedIn, retryKey, showAccessDenial]);
 
   const handleDownload = async () => {
     if (!item) return;
@@ -137,7 +160,8 @@ export default function SharedDocumentView({ id }: { id: string }) {
       link.click();
       document.body.removeChild(link);
     } catch (err) {
-      console.error("Failed to download file", err);
+      if (showAccessDenial(err)) return;
+      logActionError("Failed to download file", err);
       toast.error("Could not create a download link");
     }
   };
@@ -145,9 +169,16 @@ export default function SharedDocumentView({ id }: { id: string }) {
   const saveRename = async (name: string) => {
     if (!item || renaming) return;
     setRenaming(true);
-    try { const updated = await documentsApi.renamePublicItem(item.id, name); setItem(updated); setRenameOpen(false); toast.success("Document renamed"); }
-    catch { toast.error("Could not rename this document. Please try again."); }
-    finally { setRenaming(false); }
+    try {
+      const updated = await documentsApi.renamePublicItem(item.id, name);
+      setItem(updated);
+      setRenameOpen(false);
+      toast.success("Document renamed");
+    } catch {
+      toast.error("Could not rename this document. Please try again.");
+    } finally {
+      setRenaming(false);
+    }
   };
 
   const handleVersionUploaded = async () => {
@@ -161,14 +192,20 @@ export default function SharedDocumentView({ id }: { id: string }) {
       const url = await documentsApi.getPublicPreviewUrl(id);
       setPreviewUrl(url);
     } catch (err) {
-      console.error("Failed to refresh document after upload", err);
-      toast.error("The version was uploaded, but the preview could not refresh. Try again.");
+      if (showAccessDenial(err)) return;
+      logActionError("Failed to refresh document after upload", err);
+      toast.error(
+        "The version was uploaded, but the preview could not refresh. Try again.",
+      );
     }
   };
 
   if (isLoading) {
     return (
-      <div role="status" className="flex min-h-screen flex-col items-center justify-center bg-background gap-3 text-muted-foreground">
+      <div
+        role="status"
+        className="flex min-h-screen flex-col items-center justify-center bg-background gap-3 text-muted-foreground"
+      >
         <Spinner size={32} />
         <span className="text-sm font-semibold">
           Loading document details...
@@ -177,9 +214,20 @@ export default function SharedDocumentView({ id }: { id: string }) {
     );
   }
 
+  if (accessCode)
+    return <SharedDenied reason={accessCode} isLoggedIn={isLoggedIn} />;
+
   if (error || !item) {
-    if (accessDenied) return <SharedDenied />;
-    return <div className="min-h-screen bg-background p-6"><SharedHeader isLoggedIn={isLoggedIn} /><QueryFeedback label="shared document" error onRetry={() => setRetryKey(value => value + 1)} /></div>;
+    return (
+      <div className="min-h-screen bg-background p-6">
+        <SharedHeader isLoggedIn={isLoggedIn} />
+        <QueryFeedback
+          label="shared document"
+          error
+          onRetry={() => setRetryKey((value) => value + 1)}
+        />
+      </div>
+    );
   }
 
   // ── Folder: render folder browser ─────────────────────────────────────────
@@ -218,11 +266,25 @@ export default function SharedDocumentView({ id }: { id: string }) {
           item={item}
           userRole={userRole}
           onDownload={handleDownload}
-          onViewVersions={userRole === DocumentRole.OWNER || userRole === DocumentRole.EDITOR ? () => setIsVersionModalOpen(true) : undefined}
-          onRename={userRole === DocumentRole.OWNER || userRole === DocumentRole.EDITOR ? () => setRenameOpen(true) : undefined}
+          onViewVersions={
+            userRole === DocumentRole.OWNER || userRole === DocumentRole.EDITOR
+              ? () => setIsVersionModalOpen(true)
+              : undefined
+          }
+          onRename={
+            userRole === DocumentRole.OWNER || userRole === DocumentRole.EDITOR
+              ? () => setRenameOpen(true)
+              : undefined
+          }
         />
 
-        {previewError && <QueryFeedback label="document preview" error onRetry={() => setRetryKey(value => value + 1)} />}
+        {previewError && (
+          <QueryFeedback
+            label="document preview"
+            error
+            onRetry={() => setRetryKey((value) => value + 1)}
+          />
+        )}
         {/* Preview Panel */}
         <SharedPreview
           item={item}
@@ -235,7 +297,16 @@ export default function SharedDocumentView({ id }: { id: string }) {
         />
       </main>
 
-      <DocumentsInputModal open={renameOpen} title="Rename shared document" defaultValue={item.name} confirmLabel="Save" cancelLabel="Cancel" isLoading={renaming} onCancel={() => setRenameOpen(false)} onConfirm={name => void saveRename(name)} />
+      <DocumentsInputModal
+        open={renameOpen}
+        title="Rename shared document"
+        defaultValue={item.name}
+        confirmLabel="Save"
+        cancelLabel="Cancel"
+        isLoading={renaming}
+        onCancel={() => setRenameOpen(false)}
+        onConfirm={(name) => void saveRename(name)}
+      />
       <VersionManagementModal
         isOpen={isVersionModalOpen}
         onClose={() => setIsVersionModalOpen(false)}
@@ -250,8 +321,10 @@ export default function SharedDocumentView({ id }: { id: string }) {
             setPreviewUrl(url);
             setIsUrlLoading(false);
           } catch (err) {
-            console.error("Failed to preview version", err);
-            toast.error("Could not preview this version");
+            if (!showAccessDenial(err)) {
+              logActionError("Failed to preview version", err);
+              toast.error("Could not preview this version");
+            }
             setIsUrlLoading(false);
           }
         }}
