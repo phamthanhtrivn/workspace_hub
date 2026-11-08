@@ -274,6 +274,7 @@ function FolderPickerContent({
                 variant="unstyled"
                 key={folder.id}
                 type="button"
+<<<<<<< HEAD
                 disabled={
                   busy ||
                   !!getMoveDestinationBlockReason(

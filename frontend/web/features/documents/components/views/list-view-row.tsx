@@ -27,6 +27,7 @@ import {
   getMoveDestinationBlockReason,
 } from "../../utils/document-bulk";
 import { DocumentBulkAction } from "../../types/document-bulk.types";
+import { isProjectRootFolder } from "../../utils/project-documents";
 
 export interface ListViewRowProps {
   item: DocumentItem;
@@ -104,7 +105,7 @@ export function ListViewRow({
   } = useDraggable({
     id: item.id,
     data: { document: item },
-    disabled: !!selection || !!moveBlocked,
+    disabled: !!selection || !!moveBlocked || isProjectRootFolder(item),
   });
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -170,6 +171,7 @@ export function ListViewRow({
           type="button"
           variant="unstyled"
           ref={setActivatorNodeRef}
+<<<<<<< HEAD
           disabled={selection ? selection.disabled : !!moveBlocked}
           className="relative rounded-panel focus-visible:z-10"
           {...attributes}
@@ -196,8 +198,12 @@ export function ListViewRow({
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
+<<<<<<< HEAD
               if (selection) selection.onToggle(item);
               else if (isFolder) onFolderClick(item);
+=======
+              if (isFolder) onFolderClick(item);
+>>>>>>> dev
               else onPreview?.(item);
             }}
           >

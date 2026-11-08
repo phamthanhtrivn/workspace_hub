@@ -22,6 +22,7 @@ import {
   getMoveDestinationBlockReason,
 } from "../../utils/document-bulk";
 import { DocumentBulkAction } from "../../types/document-bulk.types";
+import { isProjectRootFolder } from "../../utils/project-documents";
 
 export interface GridViewCardProps {
   item: DocumentItem;
@@ -99,7 +100,7 @@ export function GridViewCard({
   } = useDraggable({
     id: item.id,
     data: { document: item },
-    disabled: !!selection || !!moveBlocked,
+    disabled: !!selection || !!moveBlocked || isProjectRootFolder(item),
   });
 
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
@@ -156,7 +157,9 @@ export function GridViewCard({
             onPreview?.(item);
           }
         }}
-        className={`group flex h-full min-h-40 flex-col justify-between select-none cursor-pointer border-border hover:border-border hover:bg-warning-soft/10 ${isFolder && dropBlocked ? "opacity-40" : ""}`}
+        className={`group flex h-full min-h-40 flex-col justify-between select-none cursor-pointer border-border hover:border-border hover:bg-warning-soft/10 ${
+          isFolder && (dropBlocked || isProjectRootFolder(item)) ? "opacity-40" : ""
+        }`}
       >
         {/* Header Icon & Menu */}
         <div className="flex items-start justify-between">
