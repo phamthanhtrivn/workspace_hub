@@ -14,7 +14,6 @@ import {
   type DocumentDropData,
 } from "../types/document-bulk.types";
 import {
-  getBulkBlockers,
   getBulkItemBlockReason,
   getDocumentDropBlockReason,
   getMoveDestinationBlockReason,
@@ -38,10 +37,7 @@ export function useDocumentItemDragAndDrop(
   const draggable = useDraggable({
     id: item.id,
     data: { document: item, items: sources } satisfies DocumentDragData,
-    disabled:
-      !selectionAllowsDrag ||
-      !!moveBlocked ||
-      !!getBulkBlockers(sources, Action.MOVE).length,
+    disabled: !selectionAllowsDrag,
   });
   const isFolder = item.type === DocumentItemType.FOLDER;
   const basicReason = dragging
@@ -96,15 +92,17 @@ export function useDocumentItemDragAndDrop(
       },
       ancestorIds,
       canDrop,
+      blockedReason: dropBlocked,
     } satisfies DocumentDropData,
-    disabled: !canDrop,
+    disabled:
+      !dragging || !modeAllowsDrop || !isFolder || active?.id === item.id,
   });
 
   return {
     ...draggable,
     setDraggableRef: draggable.setNodeRef,
     setDroppableRef: droppable.setNodeRef,
-    isOver: droppable.isOver,
+    isOver: droppable.isOver && canDrop,
     dropBlocked: dragging && isFolder ? dropBlocked : undefined,
     moveBlocked,
     dragCount: sources.length,

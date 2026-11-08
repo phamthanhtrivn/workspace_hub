@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DocumentActionMenuItem as DropdownMenuItem } from "./document-action-menu-item";
 import type { DocumentItem } from "../../types/documents.types";
 import {
   DocumentBulkAction as Action,
@@ -97,7 +97,7 @@ export function DocumentActionsMenu({
             return (
               <DropdownMenuItem
                 key={action}
-                disabledReason={reason}
+                blockedReason={reason}
                 onClick={() => {
                   if (reason) return;
                   setOpen(false);

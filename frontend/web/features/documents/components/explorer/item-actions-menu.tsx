@@ -27,7 +27,7 @@ import {
 } from "react-icons/fa";
 
 import { AnchoredMenu } from "@/components/ui/anchored-popup";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DocumentActionMenuItem as DropdownMenuItem } from "./document-action-menu-item";
 import { isProjectRootFolder } from "../../utils/project-documents";
 
 interface ItemActionsMenuProps {
@@ -159,7 +159,7 @@ export function ItemActionsMenu({
 
               {!isFolder && onManageVersions ? (
                 <DropdownMenuItem
-                  disabledReason={
+                  blockedReason={
                     !(isOwner || isEditor)
                       ? PERMISSION_REASON.documentEdit
                       : undefined
@@ -180,7 +180,7 @@ export function ItemActionsMenu({
 
               {!isProjectDocuments && onShare ? (
                 <DropdownMenuItem
-                  disabledReason={
+                  blockedReason={
                     !canEdit
                       ? isProjectDocuments
                         ? PERMISSION_REASON.projectDocuments
@@ -235,7 +235,7 @@ export function ItemActionsMenu({
 
               {
                 <DropdownMenuItem
-                  disabledReason={
+                  blockedReason={
                     !canEdit
                       ? isProjectDocuments
                         ? PERMISSION_REASON.projectDocuments
@@ -258,7 +258,7 @@ export function ItemActionsMenu({
 
               {!isProjectRoot && (
                 <DropdownMenuItem
-                  disabledReason={
+                  blockedReason={
                     !canMove
                       ? isProjectDocuments
                         ? PERMISSION_REASON.projectDocuments
@@ -301,7 +301,7 @@ export function ItemActionsMenu({
 
               {!isProjectDocuments ? (
                 <DropdownMenuItem
-                  disabledReason={
+                  blockedReason={
                     !isOwner ? PERMISSION_REASON.documentOwner : undefined
                   }
                   closeOnClick={false}
@@ -320,7 +320,7 @@ export function ItemActionsMenu({
 
               {isProjectDocuments && !isProjectRoot && onDeletePermanently ? (
                 <DropdownMenuItem
-                  disabledReason={
+                  blockedReason={
                     !canEdit
                       ? isProjectDocuments
                         ? PERMISSION_REASON.projectDocuments
@@ -345,7 +345,7 @@ export function ItemActionsMenu({
             <>
               {
                 <DropdownMenuItem
-                  disabledReason={
+                  blockedReason={
                     !isOwner ? PERMISSION_REASON.documentOwner : undefined
                   }
                   closeOnClick={false}
@@ -364,7 +364,7 @@ export function ItemActionsMenu({
 
               {onDeletePermanently ? (
                 <DropdownMenuItem
-                  disabledReason={
+                  blockedReason={
                     !isOwner ? PERMISSION_REASON.documentOwner : undefined
                   }
                   closeOnClick={false}

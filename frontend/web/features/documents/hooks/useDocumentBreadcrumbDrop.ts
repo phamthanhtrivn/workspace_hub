@@ -75,9 +75,14 @@ export function useDocumentBreadcrumbDrop(
       },
       ancestorIds,
       canDrop,
+      blockedReason,
     } satisfies DocumentDropData,
-    disabled: !canDrop,
+    disabled: !userId || !dragging,
   });
 
-  return { ...droppable, blockedReason: dragging ? blockedReason : undefined };
+  return {
+    ...droppable,
+    isOver: droppable.isOver && canDrop,
+    blockedReason: dragging ? blockedReason : undefined,
+  };
 }

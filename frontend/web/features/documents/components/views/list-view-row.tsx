@@ -20,6 +20,7 @@ import {
 import { DocumentIcon } from "../common/document-icon";
 import { DocumentsStatusBadge } from "../ui/documents-status-badge";
 import { DocumentProjectBadge } from "../ui/document-project-badge";
+import { isProjectRootFolder } from "../../utils/project-documents";
 import { cn } from "@/lib/utils";
 import { TableRow, TableCell } from "@/components/ui/table";
 
@@ -77,8 +78,7 @@ export function ListViewRow({
     ? selection.selectedIds.has(item.id)
     : item.id === selectedItemId;
   const selectionBlocked = selection?.getDisabledReason?.(item);
-  const selectionDisabled =
-    !!selection && (selection.disabled || (!isSelected && !!selectionBlocked));
+  const selectionDisabled = !!selection && selection.disabled;
   const isMenuOpen = activeMenuId === item.id;
   const {
     attributes,
@@ -90,7 +90,6 @@ export function ListViewRow({
     setDroppableRef,
     isOver,
     dropBlocked,
-    moveBlocked,
     dragCount,
   } = useDocumentItemDragAndDrop(item, selection);
 
@@ -149,8 +148,6 @@ export function ListViewRow({
       className={cn(
         "relative focus-within:z-20 hover:bg-background cursor-pointer select-none transition-colors border-b border-border",
         isSelected && "z-10 bg-info-soft/40",
-        ((!!selectionBlocked && !isSelected) || (isFolder && dropBlocked)) &&
-          "opacity-40",
         isOver &&
           "z-20 bg-info-soft/50 border-y-2 border-dashed border-info-outline",
       )}
@@ -165,7 +162,7 @@ export function ListViewRow({
           type="button"
           variant="unstyled"
           ref={setActivatorNodeRef}
-          disabled={selection ? selectionDisabled : !!moveBlocked}
+          disabled={selectionDisabled}
           className="relative rounded-panel focus-visible:z-10"
           {...attributes}
           {...listeners}
@@ -228,14 +225,16 @@ export function ListViewRow({
       <TableCell unstyled className="p-4 text-right">
         <div className="flex items-center justify-end gap-2">
           {selection ? (
-            <Checkbox
-              aria-label={`Select ${item.name}`}
-              checked={isSelected}
-              disabled={selectionDisabled}
-              onClick={(e) => e.stopPropagation()}
-              onCheckedChange={() => selection.onToggle(item)}
-              className="h-4 w-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40"
-            />
+            !isProjectRootFolder(item) ? (
+              <Checkbox
+                aria-label={`Select ${item.name}`}
+                checked={isSelected}
+                disabled={selectionDisabled}
+                onClick={(e) => e.stopPropagation()}
+                onCheckedChange={() => selection.onToggle(item)}
+                className="h-4 w-4 cursor-pointer accent-primary disabled:cursor-not-allowed"
+              />
+            ) : null
           ) : (
             <ItemActionsMenu
               item={item}

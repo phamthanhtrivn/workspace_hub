@@ -73,8 +73,7 @@ export function GridViewCard({
     ? selection.selectedIds.has(item.id)
     : item.id === selectedItemId;
   const selectionBlocked = selection?.getDisabledReason?.(item);
-  const selectionDisabled =
-    !!selection && (selection.disabled || (!isSelected && !!selectionBlocked));
+  const selectionDisabled = !!selection && selection.disabled;
   const isMenuOpen = activeMenuId === item.id;
   const {
     attributes,
@@ -86,7 +85,6 @@ export function GridViewCard({
     setDroppableRef,
     isOver,
     dropBlocked,
-    moveBlocked,
     dragCount,
   } = useDocumentItemDragAndDrop(item, selection);
 
@@ -146,12 +144,7 @@ export function GridViewCard({
             onPreview?.(item);
           }
         }}
-        className={`group flex h-full min-h-40 flex-col justify-between select-none cursor-pointer border-border hover:border-border hover:bg-warning-soft/10 ${
-          (!!selectionBlocked && !isSelected) ||
-          (isFolder && (dropBlocked || isProjectRootFolder(item)))
-            ? "opacity-40"
-            : ""
-        }`}
+        className="group flex h-full min-h-40 flex-col justify-between select-none cursor-pointer border-border hover:border-border hover:bg-warning-soft/10"
       >
         {isDragging && dragCount > 1 ? (
           <span className="pointer-events-none absolute right-3 top-3 rounded-control bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
@@ -164,7 +157,7 @@ export function GridViewCard({
             type="button"
             variant="unstyled"
             ref={setActivatorNodeRef}
-            disabled={selection ? selectionDisabled : !!moveBlocked}
+            disabled={selectionDisabled}
             className="relative rounded-panel focus-visible:z-10"
             {...attributes}
             {...listeners}
@@ -185,14 +178,16 @@ export function GridViewCard({
           </Button>
 
           {selection ? (
-            <Checkbox
-              aria-label={`Select ${item.name}`}
-              checked={isSelected}
-              disabled={selectionDisabled}
-              onClick={(e) => e.stopPropagation()}
-              onCheckedChange={() => selection.onToggle(item)}
-              className="h-4 w-4 cursor-pointer accent-primary disabled:cursor-not-allowed disabled:opacity-40"
-            />
+            !isProjectRootFolder(item) ? (
+              <Checkbox
+                aria-label={`Select ${item.name}`}
+                checked={isSelected}
+                disabled={selectionDisabled}
+                onClick={(e) => e.stopPropagation()}
+                onCheckedChange={() => selection.onToggle(item)}
+                className="h-4 w-4 cursor-pointer accent-primary disabled:cursor-not-allowed"
+              />
+            ) : null
           ) : (
             <ItemActionsMenu
               item={item}

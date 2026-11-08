@@ -46,6 +46,7 @@ export interface DocumentDropData {
   document: DocumentDropDestination;
   ancestorIds: string[];
   canDrop: boolean;
+  blockedReason?: string;
 }
 
 export const DOCUMENT_BULK_LABELS: Record<DocumentBulkAction, string> = {

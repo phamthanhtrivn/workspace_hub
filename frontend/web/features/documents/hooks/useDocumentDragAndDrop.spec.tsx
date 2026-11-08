@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import React from "react";
@@ -8,6 +9,7 @@ import type { DocumentItem } from "../types/documents.types";
 import { useDocumentDragAndDrop } from "./useDocumentDragAndDrop";
 
 test("dropping one selected item stages the whole group; blocked targets stage nothing", (context) => {
+  const feedback = context.mock.method(toast, "info", () => "toast");
   const source = {
     id: "source",
     type: DocumentItemType.FILE,
@@ -45,8 +47,10 @@ test("dropping one selected item stages the whole group; blocked targets stage n
   handler(event(destination, true));
   assert.equal(stage.mock.callCount(), 1);
   assert.deepEqual(stage.mock.calls[0].arguments[0], group);
+  assert.equal(feedback.mock.callCount(), 0);
   handler(event(destination, false));
   handler(event({ ...destination, projectId: "project" }, true));
   handler(event({ ...destination, userRole: DocumentRole.VIEWER }, true));
   assert.equal(stage.mock.callCount(), 1);
+  assert.equal(feedback.mock.callCount(), 3);
 });

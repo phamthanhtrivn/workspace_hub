@@ -156,14 +156,15 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
     action: DocumentBulkAction,
     parentFolderId?: string | null,
   ) => {
-    if (
-      action !== state.action ||
-      mutationInFlight.current ||
-      busy ||
-      !state.items.length ||
-      getBulkBlockers(state.items, action).length
-    )
+    if (action !== state.action || mutationInFlight.current || busy) return;
+    const reason = !state.items.length
+      ? M.NO_SELECTION
+      : getBulkBlockers(state.items, action)[0]?.reason;
+    if (reason) {
+      toast.info(reason);
+
       return;
+    }
     mutationInFlight.current = true;
     mutation.mutate({
       ids: state.items.map((item) => item.id),
@@ -179,12 +180,14 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
     busy,
     selectAll,
     start: (action: DocumentBulkAction, initialItem?: DocumentItem) => {
-      if (
-        busy ||
-        mutationInFlight.current ||
-        (initialItem && getBulkBlockers([initialItem], action).length)
-      )
+      if (busy || mutationInFlight.current) return;
+      const reason =
+        initialItem && getBulkBlockers([initialItem], action)[0]?.reason;
+      if (reason) {
+        toast.info(reason);
+
         return;
+      }
       setSelection({
         ...empty,
         active: true,
@@ -204,10 +207,15 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
       if (
         busy ||
         mutationInFlight.current ||
-        (state.active && state.action !== DocumentBulkAction.MOVE) ||
-        getDocumentDropBlockReason(sources, destination)
+        (state.active && state.action !== DocumentBulkAction.MOVE)
       )
         return;
+      const reason = getDocumentDropBlockReason(sources, destination);
+      if (reason) {
+        toast.info(reason);
+
+        return;
+      }
       setSelection({
         ...empty,
         active: true,
@@ -236,12 +244,15 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
     },
     toggle: (item: DocumentItem) => {
       if (busy) return;
-      if (
-        !state.action ||
-        (!selectedIds.has(item.id) &&
-          getBulkBlockers([item], state.action).length)
-      )
+      if (!state.action) return;
+      const reason = !selectedIds.has(item.id)
+        ? getBulkBlockers([item], state.action)[0]?.reason
+        : undefined;
+      if (reason) {
+        toast.info(reason);
+
         return;
+      }
       setSelection((previous) => ({
         ...previous,
         allSelected: false,
@@ -252,23 +263,25 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
     },
     requestAction: () => {
       const action = state.action;
-      if (
-        action &&
-        !busy &&
-        state.items.length &&
-        !getBulkBlockers(state.items, action).length
-      ) {
-        if (
-          action === DocumentBulkAction.MOVE ||
-          action === DocumentBulkAction.TRASH ||
-          action === DocumentBulkAction.DELETE
-        )
-          setSelection((previous) => ({
-            ...previous,
-            requestedAction: action,
-          }));
-        else performAction(action);
+      if (!action || busy) return;
+      const reason = !state.items.length
+        ? M.NO_SELECTION
+        : getBulkBlockers(state.items, action)[0]?.reason;
+      if (reason) {
+        toast.info(reason);
+
+        return;
       }
+      if (
+        action === DocumentBulkAction.MOVE ||
+        action === DocumentBulkAction.TRASH ||
+        action === DocumentBulkAction.DELETE
+      )
+        setSelection((previous) => ({
+          ...previous,
+          requestedAction: action,
+        }));
+      else performAction(action);
     },
     closeAction: () => {
       if (!mutation.isPending)

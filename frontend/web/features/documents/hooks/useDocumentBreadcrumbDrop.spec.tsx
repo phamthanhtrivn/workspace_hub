@@ -72,7 +72,8 @@ for (const [name, projectId, allowRootDrop, allowed] of [
         </QueryClientProvider>
       </Provider>,
     );
-    assert.equal(options.disabled, !allowed);
+    assert.equal(options.disabled, false);
+    assert.equal(!!(options.data as DocumentDropData).blockedReason, !allowed);
     const data = options.data as DocumentDropData;
     assert.equal(data.document.id, null);
     assert.equal(data.document.name, "My files");

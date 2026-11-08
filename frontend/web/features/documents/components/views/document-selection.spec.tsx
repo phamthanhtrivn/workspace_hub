@@ -131,7 +131,7 @@ for (const Component of [GridViewCard, ListViewRow]) {
   });
 }
 
-test("unavailable bulk actions render genuinely disabled buttons and name blocked files", () => {
+test("unavailable bulk actions remain clickable for feedback and name blocked files", () => {
   const noop = () => {};
   const items = [
     file,
@@ -176,7 +176,7 @@ test("unavailable bulk actions render genuinely disabled buttons and name blocke
   assert.equal(
     buttons.find((button) => button.props.children === "Continue")?.props
       .disabled,
-    true,
+    false,
   );
   assert.equal(
     buttons.find((button) => button.props.children === "Star"),
@@ -185,3 +185,79 @@ test("unavailable bulk actions render genuinely disabled buttons and name blocke
   const move = buttons.find((button) => button.props.children === "Continue");
   assert.match(move?.props.title ?? "", /Read only.pdf/);
 });
+
+for (const Component of [GridViewCard, ListViewRow]) {
+  test(
+    Component.name +
+      ": project roots stay visible without selection checkboxes",
+    () => {
+      const client = new QueryClient();
+      const root = {
+        ...file,
+        id: "project-root",
+        name: "GatherTown",
+        type: DocumentItemType.FOLDER,
+        projectId: "project",
+      };
+      const noop = () => {};
+      let tree: React.ReactNode;
+      function Harness() {
+        tree = Component({
+          item: root,
+          selectedItemId: null,
+          selection: {
+            action: DocumentBulkAction.MOVE,
+            selectedIds: new Set(),
+            onToggle: noop,
+            disabled: false,
+            getDisabledReason: () => "Project root",
+          },
+          activeView: DocumentViewType.MY_FILES,
+          activeMenuId: null,
+          onSelect: noop,
+          onFolderClick: noop,
+          setActiveMenuId: noop,
+          onRename: noop,
+          onMove: noop,
+          onMoveToTrash: noop,
+          onRestore: noop,
+          onViewDetails: noop,
+          onDeletePermanently: noop,
+        });
+
+        return null;
+      }
+      try {
+        renderToStaticMarkup(
+          <Provider store={store}>
+            <QueryClientProvider client={client}>
+              <Harness />
+            </QueryClientProvider>
+          </Provider>,
+        );
+        const elements = descendants(tree);
+        assert.equal(
+          elements.some((element) => element.type === Checkbox),
+          false,
+        );
+        assert.equal(
+          elements.some((element) =>
+            /opacity-40/.test(
+              (element.props as { className?: string }).className ?? "",
+            ),
+          ),
+          false,
+        );
+        const icon = elements.find(
+          (element) =>
+            element.type === Button &&
+            (element.props as { "aria-label"?: string })["aria-label"] ===
+              "Select GatherTown",
+        );
+        assert.equal((icon?.props as { disabled?: boolean }).disabled, false);
+      } finally {
+        client.clear();
+      }
+    },
+  );
+}
