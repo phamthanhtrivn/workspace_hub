@@ -17,7 +17,6 @@ export const VOICE_LABELS = {
   show: "Show transcript",
   working: "Transcribing…",
   retry: "Retry transcription",
-  shared: "Visible to people who can view this message",
   playbackFailed: "This voice message could not be played.",
   retryPlayback: "Retry playback",
   failed: "Could not transcribe this voice message. Please try again.",

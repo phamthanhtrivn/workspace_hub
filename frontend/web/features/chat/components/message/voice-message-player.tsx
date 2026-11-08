@@ -286,9 +286,6 @@ export function VoiceMessagePlayer({
               {transcript.data?.text || VOICE_LABELS.empty}
             </p>
           )}
-          <span className="mt-2 block text-xs text-muted-foreground">
-            {VOICE_LABELS.shared}
-          </span>
         </section>
       )}
     </div>
