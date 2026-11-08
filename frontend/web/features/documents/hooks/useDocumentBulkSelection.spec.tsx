@@ -1,3 +1,4 @@
+import { toast } from "sonner";
 import assert from "node:assert/strict";
 import { test, type TestContext } from "node:test";
 import React from "react";
@@ -113,9 +114,12 @@ test("choosing an action and ticking files never writes before explicit confirma
 });
 
 test("readonly items cannot be manually checked for Move", (context) => {
+  const feedback = context.mock.method(toast, "info", () => "toast");
   const h = setup(context);
   h.render().start(Action.MOVE);
   h.render().toggle({ ...file, userRole: DocumentRole.VIEWER });
+  assert.equal(feedback.mock.callCount(), 1);
+  assert.equal(h.request.mock.callCount(), 0);
   assert.equal(h.render().items.length, 0);
   assert.ok(
     h.render().getDisabledReason({ ...file, userRole: DocumentRole.VIEWER }),
@@ -264,4 +268,37 @@ test("Star selection does not accept a drag Move", (context) => {
   h.render().requestDrop([file], folder);
   assert.equal(h.render().dropDestination, null);
   assert.equal(h.render().action, Action.STAR);
+});
+
+test("denied actions report feedback without selecting or writing", async (context) => {
+  const feedback = context.mock.method(toast, "info", () => "toast");
+  const h = setup(context);
+  const viewer = { ...file, userRole: DocumentRole.VIEWER };
+  h.render().start(Action.MOVE, viewer);
+  assert.equal(h.render().active, false);
+  h.render().start(Action.MOVE);
+  h.render().toggle({ ...folder, projectId: "project", parentFolderId: null });
+  assert.equal(h.render().items.length, 0);
+  h.render().requestAction();
+  h.render().requestDrop([file], { ...folder, userRole: DocumentRole.VIEWER });
+  assert.equal(h.render().requestedAction, null);
+  assert.equal(h.render().dropDestination, null);
+  assert.equal(h.request.mock.callCount(), 0);
+  assert.equal(feedback.mock.callCount(), 4);
+});
+
+test("Continue reports mixed selection permissions without opening Move or mutating", async (context) => {
+  const feedback = context.mock.method(toast, "info", () => "toast");
+  context.mock.method(documentsApi, "getDocuments", async () => ({
+    data: [file, { ...file, id: "viewer", userRole: DocumentRole.VIEWER }],
+    meta: { totalItems: 2, totalPages: 1, page: 1, limit: 50 },
+  }));
+  const h = setup(context);
+  h.render().start(Action.MOVE);
+  await h.render().selectAll();
+  assert.equal(h.render().items.length, 2);
+  h.render().requestAction();
+  assert.equal(feedback.mock.callCount(), 1);
+  assert.equal(h.render().requestedAction, null);
+  assert.equal(h.request.mock.callCount(), 0);
 });

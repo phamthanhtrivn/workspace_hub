@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DocumentActionMenuItem as DropdownMenuItem } from "./document-action-menu-item";
 import { DocumentActionsMenu } from "./document-actions-menu";
 import { DocumentBulkAction as Action } from "../../types/document-bulk.types";
 import {

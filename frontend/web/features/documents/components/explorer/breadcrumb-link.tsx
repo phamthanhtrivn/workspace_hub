@@ -51,7 +51,6 @@ export function BreadcrumbLink({
           : "text-muted-foreground hover:text-info-content hover:bg-muted",
         isOver &&
           "z-10 bg-info-soft text-info-content ring-2 ring-dashed ring-ring scale-105",
-        blockedReason && "opacity-40",
       )}
     >
       {displayName}

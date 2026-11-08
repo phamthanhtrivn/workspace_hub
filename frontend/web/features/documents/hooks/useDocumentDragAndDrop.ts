@@ -14,6 +14,8 @@ import type {
   DocumentDropDestination,
 } from "../types/document-bulk.types";
 import { getDocumentDropBlockReason } from "../utils/document-bulk";
+import { toast } from "sonner";
+import { DOCUMENT_BULK_MESSAGES as M } from "../types/document-bulk.types";
 
 export interface UseDocumentDragAndDropOptions {
   onDropItems: (
@@ -40,20 +42,19 @@ export function useDocumentDragAndDrop({
 
     const source = active.data.current as DocumentDragData | undefined;
     const destination = over.data.current as DocumentDropData | undefined;
-    if (
-      !source?.items?.length ||
-      !destination?.canDrop ||
-      active.id === over.id
-    )
-      return;
-    if (
+    if (!source?.items?.length || !destination?.document) return;
+    const reason =
+      destination.blockedReason ??
       getDocumentDropBlockReason(
         source.items,
         destination.document,
         destination.ancestorIds,
-      )
-    )
+      );
+    if (reason || !destination.canDrop) {
+      toast.info(reason ?? M.DROP_UNAVAILABLE);
+
       return;
+    }
     onDropItems(source.items, destination.document);
   };
 

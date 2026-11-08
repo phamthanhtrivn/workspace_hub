@@ -92,9 +92,7 @@ export function DocumentBulkControls({
             variant={action === Action.DELETE ? "destructive" : "default"}
             size="sm"
             loading={selection.busy && !selection.loadToken}
-            disabled={
-              selection.busy || !selection.items.length || !!blocked.length
-            }
+            disabled={selection.busy}
             title={
               blocked.length
                 ? blocked.map((item) => item.name).join(", ") +
