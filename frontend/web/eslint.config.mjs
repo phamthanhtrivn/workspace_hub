@@ -1,11 +1,31 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import prettierRecommended from "eslint-plugin-prettier/recommended";
 import { sharedUiRule } from "./eslint-rules/shared-ui.mjs";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  prettierRecommended,
+  {
+    rules: {
+      "prettier/prettier": [
+        "error",
+        {
+          endOfLine: "auto",
+          printWidth: 80,
+          tabWidth: 2,
+          singleQuote: false,
+          trailingComma: "all",
+        },
+      ],
+      "padding-line-between-statements": [
+        "error",
+        { blankLine: "always", prev: "*", next: "return" },
+      ],
+    },
+  },
   {
     files: ["scripts/**/*.cjs"],
     languageOptions: { sourceType: "commonjs" },
@@ -13,7 +33,11 @@ const eslintConfig = defineConfig([
     rules: { "@typescript-eslint/no-require-imports": "off" },
   },
   {
-    files: ["app/**/*.{js,jsx,ts,tsx}", "components/**/*.{js,jsx,ts,tsx}", "features/**/*.{js,jsx,ts,tsx}"],
+    files: [
+      "app/**/*.{js,jsx,ts,tsx}",
+      "components/**/*.{js,jsx,ts,tsx}",
+      "features/**/*.{js,jsx,ts,tsx}",
+    ],
     plugins: { workspace: { rules: { "shared-ui": sharedUiRule } } },
     rules: { "workspace/shared-ui": "error" },
   },

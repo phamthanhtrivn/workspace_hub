@@ -181,6 +181,7 @@ export class MeetingScheduleService {
               },
             },
           });
+
           return tx.meeting.findUniqueOrThrow({
             where: { id: meeting.id },
             include: { participants: true },
@@ -440,6 +441,7 @@ export class MeetingScheduleService {
           metadata: { cancelledAt: cancelledAt.toISOString() },
         },
       });
+
       return tx.meeting.findUniqueOrThrow({
         where: { id: meeting.id },
         include: { participants: true },
@@ -503,25 +505,52 @@ export class MeetingScheduleService {
     }
 
     const respondedAt = new Date();
-    const updatedParticipant = await this.prisma.meetingParticipant.upsert({
-      where: {
-        meetingId_userId: {
-          meetingId: meeting.id,
-          userId,
+    const updatedParticipant = await this.prisma.$transaction(async (tx) => {
+      await tx.meeting.updateMany({
+        where: {
+          id: meeting.id,
+          status: { in: [MeetingStatus.SCHEDULED, MeetingStatus.LIVE] },
         },
-      },
-      create: {
-        meetingId: meeting.id,
-        userId,
-        role: MeetingRole.PARTICIPANT,
-        status: participantStatus,
-        invitedAt: respondedAt,
-        lastSeenAt: respondedAt,
-      },
-      update: {
-        status: participantStatus,
-        lastSeenAt: respondedAt,
-      },
+        data: { updatedAt: respondedAt },
+      });
+      const current = await tx.meeting.findUniqueOrThrow({
+        where: { id: meeting.id },
+      });
+      if (current.status === MeetingStatus.CANCELLED)
+        throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_CANCELLED);
+      if (current.status === MeetingStatus.ENDED)
+        throw new BadRequestException(
+          MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED,
+        );
+      const invitation = await tx.meetingParticipant.findUnique({
+        where: { meetingId_userId: { meetingId: meeting.id, userId } },
+      });
+      if (!invitation?.invitedAt) {
+        throw new NotFoundException(
+          MEETING_ERROR_MESSAGES.MEETING_INVITATION_NOT_FOUND,
+        );
+      }
+      const invitationStatuses: MeetingParticipantStatus[] = [
+        MeetingParticipantStatus.INVITED,
+        MeetingParticipantStatus.APPROVED,
+        MeetingParticipantStatus.REJECTED,
+      ];
+      const response = await tx.meetingParticipant.updateMany({
+        where: {
+          id: invitation.id,
+          status: { in: invitationStatuses },
+          requiresReadmission: false,
+        },
+        data: { status: participantStatus, lastSeenAt: respondedAt },
+      });
+      if (!response.count)
+        throw new BadRequestException(
+          MEETING_ERROR_MESSAGES.MEETING_INVITATION_ALREADY_HANDLED,
+        );
+
+      return tx.meetingParticipant.findUniqueOrThrow({
+        where: { id: invitation.id },
+      });
     });
 
     this.meetingSchedulePublisher.publishInvitationStatusUpdate({
