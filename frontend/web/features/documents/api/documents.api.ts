@@ -641,7 +641,10 @@ export const documentsApi = {
   getBreadcrumbs: async (
     id: string,
   ): Promise<{ id: string; name: string }[]> => {
-    const response = await api.get(`/api/documents/${id}/breadcrumbs`);
+    const response = await api.get(
+      `/api/documents/${id}/breadcrumbs`,
+      SHARED_DOCUMENT_ACCESS_REQUEST,
+    );
 
     return response.data.data;
   },

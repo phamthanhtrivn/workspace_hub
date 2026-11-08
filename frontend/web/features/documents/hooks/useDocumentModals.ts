@@ -9,28 +9,22 @@ export function useDocumentModals() {
   const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [renamingItem, setRenamingItem] = useState<DocumentItem | null>(null);
 
-  // Confirm Alert Dialogs (Move to Trash, Delete Permanently)
-  const [isTrashConfirmOpen, setIsTrashConfirmOpen] = useState(false);
-  const [trashingItem, setTrashingItem] = useState<DocumentItem | null>(null);
-
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [deletingItem, setDeletingItem] = useState<DocumentItem | null>(null);
-
   // Feature Modals
-  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
-  const [movingItemId, setMovingItemId] = useState<string | null>(null);
-
   const [previewItem, setPreviewItem] = useState<DocumentItem | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
-  const [versioningItem, setVersioningItem] = useState<DocumentItem | null>(null);
+  const [versioningItem, setVersioningItem] = useState<DocumentItem | null>(
+    null,
+  );
   const [previewVersionId, setPreviewVersionId] = useState<string>("");
 
   const [sharingItem, setSharingItem] = useState<DocumentItem | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  const [shareToChatItem, setShareToChatItem] = useState<DocumentItem | null>(null);
+  const [shareToChatItem, setShareToChatItem] = useState<DocumentItem | null>(
+    null,
+  );
   const [isShareToChatOpen, setIsShareToChatOpen] = useState(false);
 
   // Open Handlers
@@ -44,33 +38,6 @@ export function useDocumentModals() {
   const closeRename = useCallback(() => {
     setRenamingItem(null);
     setIsRenameOpen(false);
-  }, []);
-
-  const openTrashConfirm = useCallback((item: DocumentItem) => {
-    setTrashingItem(item);
-    setIsTrashConfirmOpen(true);
-  }, []);
-  const closeTrashConfirm = useCallback(() => {
-    setTrashingItem(null);
-    setIsTrashConfirmOpen(false);
-  }, []);
-
-  const openDeleteConfirm = useCallback((item: DocumentItem) => {
-    setDeletingItem(item);
-    setIsDeleteConfirmOpen(true);
-  }, []);
-  const closeDeleteConfirm = useCallback(() => {
-    setDeletingItem(null);
-    setIsDeleteConfirmOpen(false);
-  }, []);
-
-  const openMoveModal = useCallback((itemId: string) => {
-    setMovingItemId(itemId);
-    setIsMoveModalOpen(true);
-  }, []);
-  const closeMoveModal = useCallback(() => {
-    setMovingItemId(null);
-    setIsMoveModalOpen(false);
   }, []);
 
   const openPreview = useCallback((item: DocumentItem, versionId?: string) => {
@@ -120,21 +87,6 @@ export function useDocumentModals() {
     renamingItem,
     openRename,
     closeRename,
-
-    isTrashConfirmOpen,
-    trashingItem,
-    openTrashConfirm,
-    closeTrashConfirm,
-
-    isDeleteConfirmOpen,
-    deletingItem,
-    openDeleteConfirm,
-    closeDeleteConfirm,
-
-    isMoveModalOpen,
-    movingItemId,
-    openMoveModal,
-    closeMoveModal,
 
     previewItem,
     previewVersionId,

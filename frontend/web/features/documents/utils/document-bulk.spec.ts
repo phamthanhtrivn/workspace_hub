@@ -6,6 +6,7 @@ import type { DocumentItem } from "../types/documents.types";
 import {
   getBulkBlockers,
   getMoveDestinationBlockReason,
+  getDocumentDropBlockReason,
 } from "./document-bulk";
 
 const file = {
@@ -17,6 +18,90 @@ const file = {
   isArchived: false,
   type: DocumentItemType.FILE,
 } as DocumentItem;
+
+test("drag/drop checks every selected file and accepts writable folders in the same scope", () => {
+  const folder = { ...file, id: "destination", type: DocumentItemType.FOLDER };
+  assert.equal(
+    getDocumentDropBlockReason([file, { ...file, id: "second" }], folder),
+    undefined,
+  );
+  assert.ok(
+    getDocumentDropBlockReason(
+      [file, { ...file, id: "readonly", userRole: DocumentRole.VIEWER }],
+      folder,
+    ),
+  );
+  assert.ok(
+    getDocumentDropBlockReason([file], {
+      ...folder,
+      userRole: DocumentRole.VIEWER,
+    }),
+  );
+  assert.ok(
+    getDocumentDropBlockReason([file], { ...folder, projectId: "project" }),
+  );
+  const projectFile = {
+    ...file,
+    projectId: "project",
+    parentFolderId: "root",
+    userRole: DocumentRole.EDITOR,
+  };
+  assert.equal(
+    getDocumentDropBlockReason([projectFile], {
+      ...folder,
+      projectId: "project",
+    }),
+    undefined,
+  );
+});
+
+test("folders cannot be dropped onto themselves, descendants or their current parent", () => {
+  const folder = { ...file, id: "parent", type: DocumentItemType.FOLDER };
+  assert.ok(getDocumentDropBlockReason([folder], folder));
+  assert.ok(
+    getDocumentDropBlockReason([folder], {
+      ...folder,
+      id: "child",
+      parentFolderId: folder.id,
+    }),
+  );
+  assert.ok(
+    getDocumentDropBlockReason([folder], { ...folder, id: "nested" }, [
+      "root",
+      folder.id,
+      "middle",
+      "nested",
+    ]),
+  );
+  assert.ok(
+    getDocumentDropBlockReason(
+      [{ ...file, parentFolderId: folder.id }],
+      folder,
+    ),
+  );
+});
+
+test("My files breadcrumb represents the personal root and rejects moves out of a project", () => {
+  const root = {
+    ...file,
+    id: null,
+    name: "My files",
+    type: DocumentItemType.FOLDER,
+  };
+  assert.equal(
+    getDocumentDropBlockReason([{ ...file, parentFolderId: "nested" }], root),
+    undefined,
+  );
+  assert.ok(
+    getDocumentDropBlockReason([{ ...file, parentFolderId: null }], root),
+  );
+  assert.ok(
+    getDocumentDropBlockReason(
+      [{ ...file, projectId: "project", parentFolderId: "project-root" }],
+      root,
+    ),
+  );
+});
 
 test("mixed permissions disable the whole action and identify the exact item to deselect", () => {
   const viewer = {

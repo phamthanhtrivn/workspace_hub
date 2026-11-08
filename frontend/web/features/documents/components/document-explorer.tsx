@@ -22,7 +22,6 @@ import DetailsPanel from "./explorer/details-panel";
 import ExplorerToolbar from "./explorer/explorer-toolbar";
 import ExplorerBreadcrumbs from "./explorer/explorer-breadcrumbs";
 import UploadProgress from "./common/upload-progress";
-import FolderPickerModal from "./common/folder-picker-modal";
 import GridView from "./views/grid-view";
 import ListView from "./views/list-view";
 import FilePreviewModal from "./preview/file-preview-modal";
@@ -39,6 +38,8 @@ import { useDocumentModals } from "../hooks/useDocumentModals";
 import { getDocumentListPage } from "../api/document-list.api";
 import { useDocumentBulkSelection } from "../hooks/useDocumentBulkSelection";
 import { DocumentBulkControls } from "./explorer/document-bulk-controls";
+import { DocumentActionsMenu } from "./explorer/document-actions-menu";
+import { DocumentBulkAction } from "../types/document-bulk.types";
 import { Info, UploadCloud, FolderPlus, Edit3 } from "lucide-react";
 import { resolveDocumentProjectContext } from "../utils/project-documents";
 import { documentFolderAccessKey } from "../utils/document-navigation";
@@ -120,18 +121,6 @@ export function DocumentExplorer({
     renamingItem,
     openRename,
     closeRename,
-    isTrashConfirmOpen,
-    trashingItem,
-    openTrashConfirm,
-    closeTrashConfirm,
-    isDeleteConfirmOpen,
-    deletingItem,
-    openDeleteConfirm,
-    closeDeleteConfirm,
-    isMoveModalOpen,
-    movingItemId,
-    openMoveModal,
-    closeMoveModal,
     previewItem,
     previewVersionId,
     isPreviewOpen,
@@ -157,14 +146,6 @@ export function DocumentExplorer({
     isCreatingFolder,
     renameResource,
     isRenaming,
-    moveResource,
-    isMoving,
-    toggleStar,
-    moveToTrash,
-    isTrashing,
-    restoreFromTrash,
-    deletePermanently,
-    isDeletingPermanently,
     downloadItem,
   } = useDocumentActions({ currentFolderId, projectId });
 
@@ -186,14 +167,6 @@ export function DocumentExplorer({
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
-  // 5. Drag and Drop Hook
-  const { sensors, handleDragEnd } = useDocumentDragAndDrop({
-    onMoveItem: (itemId, targetFolderId) =>
-      canWriteCurrentFolder
-        ? moveResource({ id: itemId, targetFolderId })
-        : Promise.resolve(),
-  });
-
   const bulkSelection = useDocumentBulkSelection({
     activeView,
     projectId,
@@ -203,11 +176,18 @@ export function DocumentExplorer({
   });
   const multiSelection = bulkSelection.active
     ? {
+        action: bulkSelection.action,
+        items: bulkSelection.items,
         selectedIds: bulkSelection.selectedIds,
         onToggle: bulkSelection.toggle,
         disabled: bulkSelection.busy,
+        getDisabledReason: bulkSelection.getDisabledReason,
       }
     : undefined;
+
+  const { sensors, handleDragEnd } = useDocumentDragAndDrop({
+    onDropItems: bulkSelection.requestDrop,
+  });
 
   // Query Main Document List
   const {
@@ -275,6 +255,16 @@ export function DocumentExplorer({
     viewLayout,
   ]);
 
+  const startBulkAction = (
+    action: DocumentBulkAction,
+    initialItem?: DocumentItem,
+  ) => {
+    setActiveMenuId(null);
+    setSelectedItemId(null);
+    setActiveDetailsItemId(null);
+    bulkSelection.start(action, initialItem);
+  };
+
   const activeDetailsItem = useMemo(
     () => items.find((i: DocumentItem) => i.id === activeDetailsItemId) || null,
     [items, activeDetailsItemId],
@@ -314,21 +304,6 @@ export function DocumentExplorer({
     }
   };
 
-  // Alert Dialog Confirmations
-  const handleConfirmMoveToTrash = async () => {
-    if (trashingItem) {
-      await moveToTrash(trashingItem.id);
-      closeTrashConfirm();
-    }
-  };
-
-  const handleConfirmDeletePermanently = async () => {
-    if (deletingItem) {
-      await deletePermanently(deletingItem.id);
-      closeDeleteConfirm();
-    }
-  };
-
   const loadMoreFooter =
     items.length > 0 ? (
       <div
@@ -361,43 +336,49 @@ export function DocumentExplorer({
           className={`relative z-20 shrink-0 flex flex-col gap-3 bg-card min-w-0 p-3 @min-[640px]/explorer:p-4`}
         >
           <ExplorerBreadcrumbs
+            allowRootDrop={activeView === DocumentViewType.MY_FILES}
             path={path}
             onBreadcrumbClick={handleBreadcrumbClick}
           />
-          <ExplorerToolbar
-            activeView={activeView}
-            viewLayout={viewLayout}
-            onViewLayoutChange={setViewLayout}
-            sortBy={sortBy}
-            onSortByChange={setSortBy}
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-            onCreateFolder={openCreateFolder}
-            onUploadFile={uploadFile}
-            canEditDocuments={canWriteCurrentFolder}
-            editDisabledReason={
-              folderAccess.isFetching && !folderAccess.data
-                ? "Checking folder permissions..."
-                : isProjectDocuments
-                  ? PERMISSION_REASON.projectDocuments
-                  : PERMISSION_REASON.documentEdit
-            }
-          />
-          <DocumentBulkControls
-            selection={bulkSelection}
-            activeView={activeView}
-            projectId={projectId}
-            currentFolderId={currentFolderId}
-            projectRootFolderId={projectRootFolderId}
-            projectRootLabel={projectRootLabel}
-            onStart={() => {
-              setActiveMenuId(null);
-              setSelectedItemId(null);
-              setActiveDetailsItemId(null);
-              bulkSelection.start();
-            }}
-          />
-          {activeView === DocumentViewType.TRASH ? (
+          {bulkSelection.active ? (
+            <DocumentBulkControls
+              selection={bulkSelection}
+              currentFolderId={currentFolderId}
+              projectRootFolderId={projectRootFolderId}
+              projectRootLabel={projectRootLabel}
+            />
+          ) : (
+            <ExplorerToolbar
+              actions={
+                <DocumentActionsMenu
+                  items={items}
+                  activeView={activeView}
+                  projectId={projectId}
+                  hasMore={!!hasNextPage}
+                  disabled={isLoading || bulkSelection.busy}
+                  onChoose={startBulkAction}
+                />
+              }
+              activeView={activeView}
+              viewLayout={viewLayout}
+              onViewLayoutChange={setViewLayout}
+              sortBy={sortBy}
+              onSortByChange={setSortBy}
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
+              onCreateFolder={openCreateFolder}
+              onUploadFile={uploadFile}
+              canEditDocuments={canWriteCurrentFolder}
+              editDisabledReason={
+                folderAccess.isFetching && !folderAccess.data
+                  ? "Checking folder permissions..."
+                  : isProjectDocuments
+                    ? PERMISSION_REASON.projectDocuments
+                    : PERMISSION_REASON.documentEdit
+              }
+            />
+          )}
+          {activeView === DocumentViewType.TRASH && !bulkSelection.active ? (
             <div className="flex items-start gap-2 rounded-panel border border-border bg-warning-soft px-3.5 py-3 text-xs font-semibold text-warning-content">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-warning-content" />
               <p>
@@ -492,15 +473,32 @@ export function DocumentExplorer({
                     setActiveMenuId={setActiveMenuId}
                     onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
                     onRename={openRename}
-                    onMove={openMoveModal}
+                    onMove={(id) =>
+                      startBulkAction(
+                        DocumentBulkAction.MOVE,
+                        items.find((item) => item.id === id),
+                      )
+                    }
                     onToggleStar={
                       isProjectDocuments
                         ? undefined
-                        : (item) => toggleStar(item.id, item.isStarred)
+                        : (item) =>
+                            startBulkAction(
+                              item.isStarred
+                                ? DocumentBulkAction.UNSTAR
+                                : DocumentBulkAction.STAR,
+                              item,
+                            )
                     }
-                    onMoveToTrash={openTrashConfirm}
-                    onRestore={(item) => restoreFromTrash(item.id)}
-                    onDeletePermanently={openDeleteConfirm}
+                    onMoveToTrash={(item) =>
+                      startBulkAction(DocumentBulkAction.TRASH, item)
+                    }
+                    onRestore={(item) =>
+                      startBulkAction(DocumentBulkAction.RESTORE, item)
+                    }
+                    onDeletePermanently={(item) =>
+                      startBulkAction(DocumentBulkAction.DELETE, item)
+                    }
                     onPreview={openPreview}
                     onDownload={downloadItem}
                     onDownloadFolder={downloadItem}
@@ -530,15 +528,32 @@ export function DocumentExplorer({
                     setActiveMenuId={setActiveMenuId}
                     onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
                     onRename={openRename}
-                    onMove={openMoveModal}
+                    onMove={(id) =>
+                      startBulkAction(
+                        DocumentBulkAction.MOVE,
+                        items.find((item) => item.id === id),
+                      )
+                    }
                     onToggleStar={
                       isProjectDocuments
                         ? undefined
-                        : (item) => toggleStar(item.id, item.isStarred)
+                        : (item) =>
+                            startBulkAction(
+                              item.isStarred
+                                ? DocumentBulkAction.UNSTAR
+                                : DocumentBulkAction.STAR,
+                              item,
+                            )
                     }
-                    onMoveToTrash={openTrashConfirm}
-                    onRestore={(item) => restoreFromTrash(item.id)}
-                    onDeletePermanently={openDeleteConfirm}
+                    onMoveToTrash={(item) =>
+                      startBulkAction(DocumentBulkAction.TRASH, item)
+                    }
+                    onRestore={(item) =>
+                      startBulkAction(DocumentBulkAction.RESTORE, item)
+                    }
+                    onDeletePermanently={(item) =>
+                      startBulkAction(DocumentBulkAction.DELETE, item)
+                    }
                     onPreview={openPreview}
                     onDownload={downloadItem}
                     onDownloadFolder={downloadItem}
@@ -628,59 +643,6 @@ export function DocumentExplorer({
           onConfirm={confirmOverwrite}
           onCancel={cancelOverwrite}
         />
-
-        <DocumentsConfirmDialog
-          open={isTrashConfirmOpen}
-          title="Move to trash?"
-          description="Are you sure you want to move this item to trash? You can restore it later."
-          confirmLabel="Move to trash"
-          cancelLabel="Cancel"
-          variant="warning"
-          isLoading={isTrashing}
-          onConfirm={handleConfirmMoveToTrash}
-          onCancel={closeTrashConfirm}
-        />
-
-        {/* Shadcn Alert Dialog: Delete Permanently */}
-        <DocumentsConfirmDialog
-          open={isDeleteConfirmOpen}
-          title="Delete permanently?"
-          description={
-            isProjectDocuments
-              ? "This project document will be permanently deleted for every project member. This action cannot be undone."
-              : "This action cannot be undone. This item will be permanently deleted."
-          }
-          confirmLabel="Delete"
-          cancelLabel="Cancel"
-          variant="danger"
-          isLoading={isDeletingPermanently}
-          onConfirm={handleConfirmDeletePermanently}
-          onCancel={closeDeleteConfirm}
-        />
-
-        {/* Folder Picker Move Modal */}
-        {isMoveModalOpen && movingItemId ? (
-          <FolderPickerModal
-            open={isMoveModalOpen}
-            movingItemId={movingItemId}
-            busy={isMoving}
-            onClose={closeMoveModal}
-            projectId={
-              items.find((item) => item.id === movingItemId)?.projectId ??
-              projectId
-            }
-            projectRootFolderId={projectRootFolderId}
-            rootLabel={projectRootLabel}
-            onSelectFolder={async (targetFolderId) => {
-              try {
-                await moveResource({ id: movingItemId, targetFolderId });
-                closeMoveModal();
-              } catch {
-                /* The mutation shows the error; keep the picker open for retry. */
-              }
-            }}
-          />
-        ) : null}
 
         {/* File Preview Modal */}
         {isPreviewOpen && previewItem ? (

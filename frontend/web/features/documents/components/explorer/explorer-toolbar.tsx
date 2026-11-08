@@ -16,6 +16,7 @@ import { AnchoredMenu } from "@/components/ui/anchored-popup";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface ExplorerToolbarProps {
+  actions?: React.ReactNode;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
   viewLayout: ViewLayout;
@@ -30,6 +31,7 @@ interface ExplorerToolbarProps {
 }
 
 export function ExplorerToolbar({
+  actions,
   searchQuery,
   onSearchQueryChange,
   viewLayout,
@@ -145,6 +147,7 @@ export function ExplorerToolbar({
         </div>
 
         {/* Create/Upload Dropdown */}
+        {actions}
         {activeView === DocumentViewType.MY_FILES ? (
           <div className="relative">
             <Button

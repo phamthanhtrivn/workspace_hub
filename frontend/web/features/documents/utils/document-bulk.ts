@@ -1,10 +1,11 @@
-import { DocumentRole } from "../types/documents.enums";
+import { DocumentRole, DocumentItemType } from "../types/documents.enums";
 import type { DocumentItem } from "../types/documents.types";
 import {
   DocumentBulkAction as Action,
   DOCUMENT_BULK_MESSAGES as M,
 } from "../types/document-bulk.types";
 import { isProjectRootFolder } from "./project-documents";
+import type { DocumentDropDestination } from "../types/document-bulk.types";
 
 export function getBulkItemBlockReason(
   item: DocumentItem,
@@ -60,11 +61,12 @@ export function getBulkBlockers(items: DocumentItem[], action: Action) {
 }
 
 export function getMoveDestinationBlockReason(
-  folder: DocumentItem,
+  folder: DocumentDropDestination,
   projectId?: string,
   excludedIds: readonly string[] = [],
 ): string | undefined {
-  if (excludedIds.includes(folder.id)) return M.SELECTED_DESTINATION;
+  if (folder.id && excludedIds.includes(folder.id))
+    return M.SELECTED_DESTINATION;
   if (projectId ? folder.projectId !== projectId : !!folder.projectId)
     return projectId ? M.OTHER_PROJECT : M.PROJECT_DESTINATION;
   if (folder.isArchived) return M.ARCHIVED;
@@ -73,4 +75,49 @@ export function getMoveDestinationBlockReason(
     folder.userRole === DocumentRole.EDITOR
     ? undefined
     : M.EDITOR;
+}
+
+export function getDocumentDropBlockReason(
+  items: readonly DocumentItem[],
+  folder: DocumentDropDestination,
+  ancestorIds: readonly string[] = [],
+): string | undefined {
+  if (!items.length) return M.NO_SELECTION;
+  if (folder.type !== DocumentItemType.FOLDER) return M.DROP_FOLDER_REQUIRED;
+  const blockers = getBulkBlockers([...items], Action.MOVE);
+  if (blockers.length) return blockers[0].reason;
+  for (const item of items) {
+    const reason = getMoveDestinationBlockReason(
+      folder,
+      item.projectId ?? undefined,
+      items.map((selected) => selected.id),
+    );
+    if (reason) return reason;
+    if (ancestorIds.includes(item.id) || folder.parentFolderId === item.id)
+      return M.SELECTED_DESTINATION;
+  }
+  if (items.every((item) => item.parentFolderId === folder.id))
+    return M.DROP_CURRENT_FOLDER;
+
+  return;
+}
+
+export function buildDocumentDropPath(
+  destination: DocumentDropDestination,
+  ancestors: readonly { id: string; name: string }[] = [],
+): { id: string | null; name: string }[] {
+  const folders = ancestors.length
+    ? [...ancestors]
+    : destination.id
+      ? [{ id: destination.id, name: destination.name }]
+      : [];
+  if (destination.projectId) return folders;
+
+  return [
+    {
+      id: null,
+      name: destination.userRole === DocumentRole.OWNER ? "My files" : "Shared",
+    },
+    ...folders,
+  ];
 }

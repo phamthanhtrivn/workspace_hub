@@ -1,6 +1,5 @@
 "use client";
 import { Checkbox } from "@/components/ui/checkbox";
-
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -13,133 +12,109 @@ import {
   DOCUMENT_BULK_LABELS as LABEL,
   DOCUMENT_BULK_MESSAGES as M,
 } from "../../types/document-bulk.types";
-import { DocumentViewType } from "../../types/documents.enums";
 import { getBulkBlockers } from "../../utils/document-bulk";
 import { DocumentsConfirmDialog } from "../ui/documents-confirm-dialog";
 import FolderPickerModal from "../common/folder-picker-modal";
+import { MoveDestinationBreadcrumb } from "./move-destination-breadcrumb";
 
 export function DocumentBulkControls({
   selection,
-  activeView,
-  projectId,
   currentFolderId,
   projectRootFolderId,
   projectRootLabel,
-  onStart,
 }: {
   selection: DocumentBulkSelection;
-  activeView: DocumentViewType;
-  projectId?: string;
   currentFolderId: string | null;
   projectRootFolderId: string | null;
   projectRootLabel?: string;
-  onStart: () => void;
 }) {
-  if (!selection.active)
-    return (
-      <div>
-        <Button type="button" variant="outline" size="sm" onClick={onStart}>
-          Select items
-        </Button>
-      </div>
-    );
-  const onlyProjectItems =
-    !!projectId ||
-    (selection.items.length > 0 &&
-      selection.items.every((item) => !!item.projectId));
-  const actions =
-    activeView === DocumentViewType.TRASH
-      ? [Action.RESTORE, Action.DELETE]
-      : onlyProjectItems
-        ? [Action.MOVE, Action.DELETE]
-        : [Action.MOVE, Action.STAR, Action.UNSTAR, Action.TRASH];
-  if (
-    !onlyProjectItems &&
-    activeView !== DocumentViewType.TRASH &&
-    selection.items.some((item) => !!item.projectId)
-  )
-    actions.push(Action.DELETE);
-  const blockers = actions.map((action) => ({
-    action,
-    blocked: getBulkBlockers(selection.items, action),
-  }));
+  if (!selection.active || !selection.action) return null;
+  const action = selection.action;
+  const blocked = getBulkBlockers(selection.items, action);
+  const blockers = [{ action, blocked }];
   const requested = selection.requestedAction;
 
   return (
-    <div className="min-w-0 space-y-3 rounded-panel border border-border bg-muted p-3">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold">
-          <Checkbox
-            className="h-4 w-4 accent-primary"
-            checked={
-              selection.allSelected
-                ? true
-                : selection.items.length
-                  ? "indeterminate"
-                  : false
-            }
-            disabled={selection.busy}
-            onCheckedChange={() =>
-              selection.allSelected
-                ? selection.clear()
-                : void selection.selectAll()
-            }
-          />
-          {selection.loadToken
-            ? "Selecting all results…"
-            : "Select all results"}
-        </label>
-        <span role="status" className="text-sm text-muted-foreground">
+    <div className="min-w-0 space-y-2 border-b border-input pb-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
+        <strong className="text-sm text-foreground">{LABEL[action]}</strong>
+        <span
+          role="status"
+          className="inline-flex shrink-0 items-center rounded-control bg-info-soft px-2.5 py-1 text-xs font-semibold tabular-nums text-info-content"
+        >
           {selection.items.length} selected
         </span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={selection.busy}
-          onClick={selection.clear}
-        >
-          Clear
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="ml-auto"
-          disabled={selection.busy && !selection.loadToken}
-          onClick={selection.cancel}
-        >
-          Cancel selection
-        </Button>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {blockers.map(({ action, blocked }) => (
+        <div className="flex min-h-8 shrink-0 items-center gap-1.5 rounded-control bg-muted/50 px-2">
+          <label className="flex cursor-pointer select-none items-center gap-2 text-xs font-medium text-foreground">
+            <Checkbox
+              autoFocus
+              aria-label="Select all results"
+              checked={
+                selection.allSelected
+                  ? true
+                  : selection.items.length
+                    ? "indeterminate"
+                    : false
+              }
+              disabled={selection.busy}
+              onCheckedChange={() =>
+                selection.allSelected
+                  ? selection.clear()
+                  : void selection.selectAll()
+              }
+            />
+            {selection.loadToken ? "Selecting..." : "Select all"}
+          </label>
+          <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-border" />
           <Button
-            key={action}
             type="button"
-            variant={action === Action.DELETE ? "destructive" : "outline"}
+            variant="ghost"
             size="sm"
+            disabled={selection.busy || !selection.items.length}
+            onClick={selection.clear}
+            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+          >
+            Clear
+          </Button>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={selection.busy && !selection.loadToken}
+            onClick={selection.cancel}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant={action === Action.DELETE ? "destructive" : "default"}
+            size="sm"
+            loading={selection.busy && !selection.loadToken}
             disabled={
               selection.busy || !selection.items.length || !!blocked.length
             }
             title={
               blocked.length
-                ? `${blocked.map((item) => item.name).join(", ")}: ${blocked[0].reason}`
+                ? blocked.map((item) => item.name).join(", ") +
+                  ": " +
+                  blocked[0].reason
                 : !selection.items.length
                   ? M.NO_SELECTION
                   : undefined
             }
             className="disabled:cursor-not-allowed disabled:opacity-40"
-            onClick={() => selection.requestAction(action)}
+            onClick={selection.requestAction}
           >
-            {LABEL[action]}
+            {action === Action.MOVE ? "Continue" : LABEL[action]}
           </Button>
-        ))}
+        </div>
       </div>
       {blockers.some((entry) => entry.blocked.length) ? (
         <Collapsible className="text-xs text-muted-foreground">
           <CollapsibleTrigger className="cursor-pointer">
-            Some actions are unavailable. Review items to deselect.
+            Some items cannot be used for this action. Review selection.
           </CollapsibleTrigger>
           <CollapsibleContent>
             <ul className="mt-2 max-h-36 space-y-1 overflow-auto">
@@ -169,7 +144,7 @@ export function DocumentBulkControls({
           </CollapsibleContent>
         </Collapsible>
       ) : null}
-      {requested === Action.MOVE ? (
+      {requested === Action.MOVE && !selection.dropDestination ? (
         <FolderPickerModal
           open
           movingItemId={selection.items[0]?.id ?? ""}
@@ -183,6 +158,34 @@ export function DocumentBulkControls({
           onSelectFolder={selection.execute}
           confirmLabel={`Move ${selection.items.length} items here`}
         />
+      ) : null}
+      {requested === Action.MOVE && selection.dropDestination ? (
+        <DocumentsConfirmDialog
+          open
+          title={
+            "Move " +
+            selection.items.length +
+            (selection.items.length === 1 ? " item?" : " items?")
+          }
+          description={
+            "Selected: " +
+            selection.items
+              .slice(0, 5)
+              .map((item) => item.name)
+              .join(", ") +
+            (selection.items.length > 5
+              ? " and " + (selection.items.length - 5) + " more."
+              : ".")
+          }
+          confirmLabel="Move"
+          cancelLabel="Cancel"
+          variant="warning"
+          isLoading={selection.busy}
+          onCancel={selection.closeAction}
+          onConfirm={() => selection.execute()}
+        >
+          <MoveDestinationBreadcrumb destination={selection.dropDestination} />
+        </DocumentsConfirmDialog>
       ) : null}
       {requested && requested !== Action.MOVE ? (
         <DocumentsConfirmDialog

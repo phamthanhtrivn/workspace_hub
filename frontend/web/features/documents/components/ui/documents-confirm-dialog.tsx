@@ -14,13 +14,13 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-
 export type DocumentsConfirmVariant = "danger" | "warning" | "info";
 
 export interface DocumentsConfirmDialogProps {
   open: boolean;
   title: string;
   description?: string;
+  children?: React.ReactNode;
   confirmLabel: string;
   cancelLabel: string;
   variant?: DocumentsConfirmVariant;
@@ -36,14 +36,17 @@ const iconByVariant = {
 };
 
 const iconBgByVariant = {
-  danger: "bg-destructive-soft text-destructive-content ring-1 ring-destructive-outline",
+  danger:
+    "bg-destructive-soft text-destructive-content ring-1 ring-destructive-outline",
   warning: "bg-warning-soft text-warning-content ring-1 ring-warning-outline",
   info: "bg-info-soft text-info-content ring-1 ring-ring",
 };
 
 const confirmButtonClassByVariant = {
-  danger: "bg-destructive text-destructive-foreground hover:bg-destructive focus-visible:ring-ring",
-  warning: "bg-warning text-warning-foreground hover:bg-warning focus-visible:ring-ring",
+  danger:
+    "bg-destructive text-destructive-foreground hover:bg-destructive focus-visible:ring-ring",
+  warning:
+    "bg-warning text-warning-foreground hover:bg-warning focus-visible:ring-ring",
   info: "bg-primary text-primary-foreground hover:bg-primary focus-visible:ring-ring",
 };
 
@@ -51,6 +54,7 @@ export function DocumentsConfirmDialog({
   open,
   title,
   description,
+  children,
   confirmLabel,
   cancelLabel,
   variant = "danger",
@@ -61,22 +65,31 @@ export function DocumentsConfirmDialog({
   const IconComponent = iconByVariant[variant];
 
   return (
-    <AlertDialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isLoading && onCancel()}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && !isLoading && onCancel()}
+    >
       <AlertDialogContent
         role="alertdialog"
         className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}
         showCloseButton={false}
       >
         <div className="flex items-start gap-4">
-          <div className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-panel", iconBgByVariant[variant])}>
+          <div
+            className={cn(
+              "grid h-10 w-10 shrink-0 place-items-center rounded-panel",
+              iconBgByVariant[variant],
+            )}
+          >
             <IconComponent className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
             <AlertDialogTitle className="text-base font-semibold leading-6 text-foreground">
               {title}
             </AlertDialogTitle>
+            {children}
             {description ? (
-              <AlertDialogDescription className="mt-1.5 text-sm font-semibold leading-relaxed text-muted-foreground">
+              <AlertDialogDescription className="mt-1.5 break-words text-sm font-semibold leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
                 {description}
               </AlertDialogDescription>
             ) : null}
@@ -84,7 +97,8 @@ export function DocumentsConfirmDialog({
         </div>
 
         <AlertDialogFooter className="mt-6 flex items-center justify-end gap-3 border-t-0 p-0">
-          <Button variant="unstyled"
+          <Button
+            variant="unstyled"
             type="button"
             disabled={isLoading}
             onClick={onCancel}
@@ -92,13 +106,15 @@ export function DocumentsConfirmDialog({
           >
             {cancelLabel}
           </Button>
-          <Button loading={isLoading} variant="unstyled"
+          <Button
+            loading={isLoading}
+            variant="unstyled"
             type="button"
             disabled={isLoading}
             onClick={onConfirm}
             className={cn(
               "h-10 cursor-pointer rounded-control px-5 text-xs font-semibold transition disabled:opacity-50",
-              confirmButtonClassByVariant[variant]
+              confirmButtonClassByVariant[variant],
             )}
           >
             {confirmLabel}

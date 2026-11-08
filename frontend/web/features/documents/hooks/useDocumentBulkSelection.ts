@@ -20,9 +20,14 @@ import {
   DocumentBulkAction,
   type DocumentBulkRequest,
   DOCUMENT_BULK_MESSAGES as M,
+  type DocumentDropDestination,
 } from "../types/document-bulk.types";
-import { getBulkBlockers } from "../utils/document-bulk";
+import {
+  getBulkBlockers,
+  getDocumentDropBlockReason,
+} from "../utils/document-bulk";
 import { METADATA_QUERY_KEY } from "@/features/chat/types/document.constants";
+import { isProjectRootFolder } from "../utils/project-documents";
 
 export function useDocumentBulkSelection(scope: DocumentListScope) {
   const client = useQueryClient();
@@ -38,10 +43,13 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
   const empty = {
     scopeKey,
     active: false,
+    action: null as DocumentBulkAction | null,
     items: [] as DocumentItem[],
     allSelected: false,
     loadToken: null as object | null,
     requestedAction: null as DocumentBulkAction | null,
+    dropDestination: null as DocumentDropDestination | null,
+    dropFromSelection: false,
   };
   const [selection, setSelection] = useState(empty);
   if (selection.scopeKey !== scopeKey) setSelection(empty);
@@ -67,6 +75,7 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
               items: [],
               allSelected: false,
               requestedAction: null,
+              dropDestination: null,
             }
           : previous,
       );
@@ -80,11 +89,12 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
               items: [],
               allSelected: false,
               requestedAction: null,
+              dropDestination: null,
             }
           : previous,
       );
     },
-    onSettled: async () => {
+    onSettled: async (_response, error, _request, context) => {
       try {
         await Promise.all([
           client.invalidateQueries({ queryKey: ["documents"] }),
@@ -94,6 +104,12 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
         ]);
       } finally {
         mutationInFlight.current = false;
+        if (!error)
+          setSelection((previous) =>
+            previous.scopeKey === context?.scopeKey
+              ? { ...previous, active: false, action: null }
+              : previous,
+          );
       }
     },
   });
@@ -104,7 +120,7 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
     const token = {};
     setSelection((previous) => ({ ...previous, loadToken: token }));
     try {
-      const items = await client.fetchQuery({
+      const results = await client.fetchQuery({
         queryKey: ["documents", "selection", scopeKey, scope.sortBy],
         queryFn: ({ signal }) =>
           collectDocumentSelection(
@@ -114,9 +130,15 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
         staleTime: 0,
         retry: false,
       });
+      const items = results.filter((item) => !isProjectRootFolder(item));
       setSelection((previous) =>
         previous.scopeKey === scopeKey && previous.loadToken === token
-          ? { ...previous, items, allSelected: true, loadToken: null }
+          ? {
+              ...previous,
+              items,
+              allSelected: items.length > 0,
+              loadToken: null,
+            }
           : previous,
       );
     } catch (error) {
@@ -130,12 +152,72 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
     }
   };
 
+  const performAction = (
+    action: DocumentBulkAction,
+    parentFolderId?: string | null,
+  ) => {
+    if (
+      action !== state.action ||
+      mutationInFlight.current ||
+      busy ||
+      !state.items.length ||
+      getBulkBlockers(state.items, action).length
+    )
+      return;
+    mutationInFlight.current = true;
+    mutation.mutate({
+      ids: state.items.map((item) => item.id),
+      action,
+      parentFolderId,
+      projectId: state.items[0]?.projectId ?? undefined,
+    });
+  };
+
   return {
     ...state,
     selectedIds,
     busy,
     selectAll,
-    start: () => setSelection({ ...empty, active: true }),
+    start: (action: DocumentBulkAction, initialItem?: DocumentItem) => {
+      if (
+        busy ||
+        mutationInFlight.current ||
+        (initialItem && getBulkBlockers([initialItem], action).length)
+      )
+        return;
+      setSelection({
+        ...empty,
+        active: true,
+        action,
+        items: initialItem ? [initialItem] : [],
+      });
+    },
+    getDisabledReason: (item: DocumentItem) =>
+      state.action
+        ? getBulkBlockers([item], state.action)[0]?.reason
+        : undefined,
+    requestDrop: (
+      items: DocumentItem[],
+      destination: DocumentDropDestination,
+    ) => {
+      const sources = state.active ? state.items : items;
+      if (
+        busy ||
+        mutationInFlight.current ||
+        (state.active && state.action !== DocumentBulkAction.MOVE) ||
+        getDocumentDropBlockReason(sources, destination)
+      )
+        return;
+      setSelection({
+        ...empty,
+        active: true,
+        action: DocumentBulkAction.MOVE,
+        items: sources,
+        requestedAction: DocumentBulkAction.MOVE,
+        dropDestination: destination,
+        dropFromSelection: state.active,
+      });
+    },
     cancel: () => {
       if (!mutation.isPending) {
         void client.cancelQueries({
@@ -154,6 +236,12 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
     },
     toggle: (item: DocumentItem) => {
       if (busy) return;
+      if (
+        !state.action ||
+        (!selectedIds.has(item.id) &&
+          getBulkBlockers([item], state.action).length)
+      )
+        return;
       setSelection((previous) => ({
         ...previous,
         allSelected: false,
@@ -162,35 +250,41 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
           : [...previous.items, item],
       }));
     },
-    requestAction: (action: DocumentBulkAction) => {
+    requestAction: () => {
+      const action = state.action;
       if (
+        action &&
         !busy &&
         state.items.length &&
         !getBulkBlockers(state.items, action).length
-      )
-        setSelection((previous) => ({ ...previous, requestedAction: action }));
+      ) {
+        if (
+          action === DocumentBulkAction.MOVE ||
+          action === DocumentBulkAction.TRASH ||
+          action === DocumentBulkAction.DELETE
+        )
+          setSelection((previous) => ({
+            ...previous,
+            requestedAction: action,
+          }));
+        else performAction(action);
+      }
     },
     closeAction: () => {
       if (!mutation.isPending)
-        setSelection((previous) => ({ ...previous, requestedAction: null }));
+        setSelection((previous) =>
+          previous.dropDestination && !previous.dropFromSelection
+            ? empty
+            : { ...previous, requestedAction: null, dropDestination: null },
+        );
     },
     execute: (parentFolderId?: string | null) => {
       const action = state.requestedAction;
-      if (
-        !action ||
-        mutationInFlight.current ||
-        busy ||
-        !state.items.length ||
-        getBulkBlockers(state.items, action).length
-      )
-        return;
-      mutationInFlight.current = true;
-      mutation.mutate({
-        ids: state.items.map((item) => item.id),
-        action,
-        parentFolderId,
-        projectId: state.items[0]?.projectId ?? undefined,
-      });
+      if (action)
+        performAction(
+          action,
+          state.dropDestination ? state.dropDestination.id : parentFolderId,
+        );
     },
   };
 }

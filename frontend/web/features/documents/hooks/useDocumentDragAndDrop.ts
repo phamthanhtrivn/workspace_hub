@@ -1,43 +1,60 @@
 "use client";
 
-import { getActionErrorMessage } from "@/lib/permission-feedback";
-import { getApiErrorMessage } from "@/lib/api-error";
-import { useSensors, useSensor, PointerSensor, KeyboardSensor, DragEndEvent } from "@dnd-kit/core";
-import { DND_ROOT_ID } from "../types/documents.constants";
-import { toast } from "sonner";
+import {
+  useSensors,
+  useSensor,
+  PointerSensor,
+  KeyboardSensor,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import type { DocumentItem } from "../types/documents.types";
+import type {
+  DocumentDragData,
+  DocumentDropData,
+  DocumentDropDestination,
+} from "../types/document-bulk.types";
+import { getDocumentDropBlockReason } from "../utils/document-bulk";
 
 export interface UseDocumentDragAndDropOptions {
-  onMoveItem: (itemId: string, targetFolderId: string | null) => Promise<unknown>;
+  onDropItems: (
+    items: DocumentItem[],
+    destination: DocumentDropDestination,
+  ) => void;
 }
 
-export function useDocumentDragAndDrop({ onMoveItem }: UseDocumentDragAndDropOptions) {
+export function useDocumentDragAndDrop({
+  onDropItems,
+}: UseDocumentDragAndDropOptions) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
       },
     }),
-    useSensor(KeyboardSensor)
+    useSensor(KeyboardSensor),
   );
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
 
-    const activeId = String(active.id);
-    const overId = String(over.id);
-
-    if (activeId === overId) return;
-
-    try {
-      if (overId === DND_ROOT_ID) {
-        await onMoveItem(activeId, null);
-      } else {
-        await onMoveItem(activeId, overId);
-      }
-    } catch (err: unknown) {
-      toast.error(getActionErrorMessage(err, getApiErrorMessage(err, "Failed to move item via drag and drop")));
-    }
+    const source = active.data.current as DocumentDragData | undefined;
+    const destination = over.data.current as DocumentDropData | undefined;
+    if (
+      !source?.items?.length ||
+      !destination?.canDrop ||
+      active.id === over.id
+    )
+      return;
+    if (
+      getDocumentDropBlockReason(
+        source.items,
+        destination.document,
+        destination.ancestorIds,
+      )
+    )
+      return;
+    onDropItems(source.items, destination.document);
   };
 
   return {

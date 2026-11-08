@@ -17,9 +17,35 @@ export interface DocumentBulkRequest {
 }
 
 export interface DocumentMultiSelection {
+  action?: DocumentBulkAction | null;
+  items?: readonly DocumentItem[];
   selectedIds: ReadonlySet<string>;
   onToggle: (item: DocumentItem) => void;
   disabled: boolean;
+  getDisabledReason?: (item: DocumentItem) => string | undefined;
+}
+
+export interface DocumentDragData {
+  document: DocumentItem;
+  items: DocumentItem[];
+}
+export type DocumentDropDestination = Omit<
+  Pick<
+    DocumentItem,
+    | "id"
+    | "name"
+    | "type"
+    | "projectId"
+    | "parentFolderId"
+    | "userRole"
+    | "isArchived"
+  >,
+  "id"
+> & { id: string | null; path?: { id: string | null; name: string }[] };
+export interface DocumentDropData {
+  document: DocumentDropDestination;
+  ancestorIds: string[];
+  canDrop: boolean;
 }
 
 export const DOCUMENT_BULK_LABELS: Record<DocumentBulkAction, string> = {
@@ -56,4 +82,10 @@ export const DOCUMENT_BULK_MESSAGES = {
   SELECTION_CHANGED:
     "The document list changed during selection. Please select all again.",
   LOAD_FAILED: "Could not select all results. Please try again.",
+  DROP_CHECKING: "Checking destination permissions…",
+  DROP_UNAVAILABLE: "Could not verify this destination.",
+  DROP_CURRENT_FOLDER: "These items are already in this folder.",
+  DROP_FOLDER_REQUIRED: "Choose a folder as the destination.",
+  DROP_VIEW_NOT_FOLDER:
+    "This view is not a folder. Drop into a folder or My files.",
 } as const;

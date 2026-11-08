@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { Provider } from "react-redux";
+import { store } from "@/store/store";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { GridViewCard } from "./grid-view-card";
@@ -14,6 +17,11 @@ import {
 import type { DocumentItem } from "../../types/documents.types";
 import { DocumentBulkControls } from "../explorer/document-bulk-controls";
 import type { DocumentBulkSelection } from "../../hooks/useDocumentBulkSelection";
+import {
+  DocumentBulkAction,
+  type DocumentMultiSelection,
+} from "../../types/document-bulk.types";
+import * as itemDragAndDrop from "../../hooks/useDocumentItemDragAndDrop";
 
 function descendants(
   node: React.ReactNode,
@@ -36,7 +44,27 @@ const file = {
 } as DocumentItem;
 
 for (const Component of [GridViewCard, ListViewRow]) {
-  test(`${Component.name}: selection checkboxes and file names toggle selection without opening files`, (context) => {
+  test(`${Component.name}: Move selection supports dragging from file names and checkbox clicks`, (context) => {
+    const pointerDown = context.mock.fn();
+    const originalDragHook = itemDragAndDrop.useDocumentItemDragAndDrop;
+    context.mock.method(
+      itemDragAndDrop,
+      "useDocumentItemDragAndDrop",
+      (item: DocumentItem, selection?: DocumentMultiSelection) => {
+        const drag = originalDragHook(item, selection);
+        assert.ok(
+          drag.listeners,
+          "selected Move items must keep drag listeners enabled",
+        );
+
+        return {
+          ...drag,
+          listeners: { ...drag.listeners, onPointerDown: pointerDown },
+        };
+      },
+    );
+    const client = new QueryClient();
+    context.after(() => client.clear());
     const toggle = context.mock.fn();
     const open = context.mock.fn();
     const noop = () => {};
@@ -46,7 +74,9 @@ for (const Component of [GridViewCard, ListViewRow]) {
         item: file,
         selectedItemId: null,
         selection: {
-          selectedIds: new Set(["file"]),
+          action: DocumentBulkAction.MOVE,
+          items: [file, { ...file, id: "second" }],
+          selectedIds: new Set(["file", "second"]),
           onToggle: toggle,
           disabled: false,
         },
@@ -66,7 +96,13 @@ for (const Component of [GridViewCard, ListViewRow]) {
 
       return null;
     }
-    renderToStaticMarkup(<Harness />);
+    renderToStaticMarkup(
+      <Provider store={store}>
+        <QueryClientProvider client={client}>
+          <Harness />
+        </QueryClientProvider>
+      </Provider>,
+    );
     const elements = descendants(tree);
     const checkbox = elements.find((element) => element.type === Checkbox) as
       React.ReactElement<React.ComponentProps<typeof Checkbox>> | undefined;
@@ -78,6 +114,15 @@ for (const Component of [GridViewCard, ListViewRow]) {
         element.type === Button && element.props.children === file.name,
     ) as React.ReactElement<React.ComponentProps<typeof Button>> | undefined;
     assert.ok(name);
+    name.props.onPointerDown?.({
+      stopPropagation() {},
+    } as React.PointerEvent<HTMLButtonElement>);
+    assert.equal(pointerDown.mock.callCount(), 1);
+    assert.equal(
+      toggle.mock.callCount(),
+      1,
+      "starting a drag must not toggle selection",
+    );
     name.props.onClick?.({
       stopPropagation() {},
     } as React.MouseEvent<HTMLButtonElement>);
@@ -100,10 +145,13 @@ test("unavailable bulk actions render genuinely disabled buttons and name blocke
   const selection: DocumentBulkSelection = {
     scopeKey: "scope",
     active: true,
+    action: DocumentBulkAction.MOVE,
     items,
     allSelected: false,
     loadToken: null,
     requestedAction: null,
+    dropDestination: null,
+    dropFromSelection: false,
     selectedIds: new Set(items.map((item) => item.id)),
     busy: false,
     selectAll: () => Promise.resolve(),
@@ -114,25 +162,26 @@ test("unavailable bulk actions render genuinely disabled buttons and name blocke
     requestAction: noop,
     closeAction: noop,
     execute: noop,
+    getDisabledReason: () => undefined,
+    requestDrop: noop,
   };
   const tree = DocumentBulkControls({
     selection,
-    activeView: DocumentViewType.MY_FILES,
     currentFolderId: null,
     projectRootFolderId: null,
-    onStart: noop,
   });
   const buttons = descendants(tree).filter(
     (element) => element.type === Button,
   ) as React.ReactElement<React.ComponentProps<typeof Button>>[];
   assert.equal(
-    buttons.find((button) => button.props.children === "Move")?.props.disabled,
+    buttons.find((button) => button.props.children === "Continue")?.props
+      .disabled,
     true,
   );
   assert.equal(
-    buttons.find((button) => button.props.children === "Star")?.props.disabled,
-    false,
+    buttons.find((button) => button.props.children === "Star"),
+    undefined,
   );
-  const move = buttons.find((button) => button.props.children === "Move");
+  const move = buttons.find((button) => button.props.children === "Continue");
   assert.match(move?.props.title ?? "", /Read only.pdf/);
 });
