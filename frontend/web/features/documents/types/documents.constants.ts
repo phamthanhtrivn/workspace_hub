@@ -4,6 +4,8 @@ import { DocumentTypeDescription } from "./documents.enums";
 
 export const ITEMS_PER_PAGE = 12;
 
+export const UPLOAD_SUCCESS_DISMISS_DELAY_MS = 5000;
+
 // ─── MIME type constants ───────────────────────────────────────────────────────
 
 export const DEFAULT_MIME_TYPE = "application/octet-stream";
