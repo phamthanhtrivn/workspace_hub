@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import {
+  formatMessageScopeLabel,
+  resolveWorkContext,
+  WORK_CONTEXT_LABELS,
+  WORK_MESSAGE_SCOPE_LABELS,
+} from "../constants/work-assistant";
 import type { TaskReference, WorkMessage } from "../types";
 import WorkAssistantMessage from "./work-assistant-message";
 
@@ -138,5 +144,50 @@ test("longer task names, Unicode titles and regular-expression characters keep t
   assert.match(
     html,
     /href="\/projects\/project\?taskId=unicode">Kiểm tra C\+\+ \(v2\)<\/a>/,
+  );
+});
+
+test("resolveWorkContext maps dashboard, projects list, project detail, and calendar routes accurately", () => {
+  assert.deepEqual(resolveWorkContext("/dashboard"), {
+    audience: "mine",
+    label: WORK_CONTEXT_LABELS.ALL_MY_TASKS,
+  });
+  assert.deepEqual(resolveWorkContext("/projects"), {
+    audience: "projects",
+    label: WORK_CONTEXT_LABELS.ALL_PROJECTS,
+  });
+  assert.deepEqual(
+    resolveWorkContext("/projects/11111111-2222-3333-4444-555555555555"),
+    {
+      projectId: "11111111-2222-3333-4444-555555555555",
+      audience: "mine",
+      label: WORK_CONTEXT_LABELS.CURRENT_PROJECT,
+    },
+  );
+  assert.deepEqual(resolveWorkContext("/calendar"), {
+    audience: "calendar",
+    label: WORK_CONTEXT_LABELS.CALENDAR,
+  });
+});
+
+test("formatMessageScopeLabel returns concise labels for all assistant scopes", () => {
+  assert.equal(
+    formatMessageScopeLabel({ audience: "mine" }),
+    WORK_MESSAGE_SCOPE_LABELS.ALL_MY_TASKS,
+  );
+  assert.equal(
+    formatMessageScopeLabel({ audience: "projects" }),
+    WORK_MESSAGE_SCOPE_LABELS.ALL_PROJECTS,
+  );
+  assert.equal(
+    formatMessageScopeLabel({
+      projectId: "11111111-2222-3333-4444-555555555555",
+      audience: "mine",
+    }),
+    WORK_MESSAGE_SCOPE_LABELS.CURRENT_PROJECT,
+  );
+  assert.equal(
+    formatMessageScopeLabel({ audience: "calendar" }),
+    WORK_MESSAGE_SCOPE_LABELS.CALENDAR,
   );
 });

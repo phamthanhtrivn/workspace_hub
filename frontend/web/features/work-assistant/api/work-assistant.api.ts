@@ -28,7 +28,7 @@ const message = z.object({
     .object({
       scope: z.object({
         projectId: z.string().uuid().optional(),
-        audience: z.enum(["mine", "project"]),
+        audience: z.enum(["mine", "projects", "calendar", "project"]),
       }),
       fetchedAt: z.string(),
       timeZone: z.string(),
@@ -80,6 +80,7 @@ export async function getConversations(
     params: { projectId, before },
     signal,
   });
+
   return response.data.data;
 }
 export async function createConversation(
@@ -107,7 +108,8 @@ export async function consumeEvents(
       buffer = (
         buffer + decoder.decode(part.value, { stream: !part.done })
       ).replace(/\r\n/g, "\n");
-      if (buffer.length > 1024 * 1024) throw new Error("The response exceeds the size limit.");
+      if (buffer.length > 1024 * 1024)
+        throw new Error("The response exceeds the size limit.");
       let split: number;
       while ((split = buffer.indexOf("\n\n")) >= 0) {
         const block = buffer.slice(0, split);
@@ -158,7 +160,11 @@ export async function sendMessage(
     if (event === "done")
       onDone(message.parse(z.object({ message }).parse(data).message));
     if (event === "error")
-      throw new Error(aiServiceMessage(z.object({ message: z.string() }).parse(data).message,
-        "Unable to complete your request. Check your access and try again."));
+      throw new Error(
+        aiServiceMessage(
+          z.object({ message: z.string() }).parse(data).message,
+          "Unable to complete your request. Check your access and try again.",
+        ),
+      );
   });
 }

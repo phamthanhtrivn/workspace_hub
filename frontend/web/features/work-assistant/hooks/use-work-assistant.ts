@@ -32,10 +32,6 @@ export function useWorkAssistant(
     staleTime: 60000,
   });
   const timeZone = account.data?.data.timezone;
-  const overviewKey = useMemo(
-    () => [...root, "overview", projectId ?? "personal", audience, timeZone],
-    [root, projectId, audience, timeZone],
-  );
   const history = useInfiniteQuery({
     queryKey: historyKey,
     initialPageParam: undefined as string | undefined,
@@ -62,16 +58,6 @@ export function useWorkAssistant(
     onSuccess: () =>
       client.invalidateQueries({ queryKey: [...root, "sessions"] }),
   });
-  const overview = useQuery({
-    queryKey: overviewKey,
-    queryFn: ({ signal }) =>
-      workApi.getOverview(projectId, audience, signal, timeZone),
-    enabled: account.isFetched,
-    refetchOnMount: "always",
-    refetchInterval: 60000,
-    retry: false,
-    staleTime: 0,
-  });
   const [pending, setPending] = useState<WorkMessage | null>(null);
   const [reply, setReply] = useState<WorkMessage | null>(null);
   const [status, setStatus] = useState("");
@@ -83,6 +69,7 @@ export function useWorkAssistant(
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
+
     return () => {
       alive.current = false;
       const request = active.current;
@@ -129,7 +116,6 @@ export function useWorkAssistant(
         );
         if (alive.current) {
           await client.invalidateQueries({ queryKey: historyKey });
-          await client.invalidateQueries({ queryKey: overviewKey });
           await client.invalidateQueries({ queryKey: [...root, "sessions"] });
           setPending(null);
           setReply(null);
@@ -144,7 +130,7 @@ export function useWorkAssistant(
         if (alive.current) setStatus("");
       }
     },
-    [history.data, audience, client, historyKey, overviewKey, timeZone, root],
+    [history.data, audience, client, historyKey, timeZone, root],
   );
   const stop = async () => {
     const request = active.current;
@@ -165,9 +151,9 @@ export function useWorkAssistant(
       .slice()
       .reverse()
       .flatMap((page) => page.messages) ?? [];
+
   return {
     history,
-    overview,
     messages,
     pending,
     reply,

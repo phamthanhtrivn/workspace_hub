@@ -3,7 +3,11 @@ import type { Actor } from "../../common/types";
 import { config } from "../../config/env.config";
 import { WorkContextService } from "./work-context";
 import { WorkStore, type WorkSession } from "./work-store";
-import type { StoredMessage, WorkScope } from "./work-assistant.types";
+import type {
+  Audience,
+  StoredMessage,
+  WorkScope,
+} from "./work-assistant.types";
 
 @Injectable()
 export class WorkAssistantAccessService {
@@ -22,19 +26,21 @@ export class WorkAssistantAccessService {
       );
   }
 
-  scope(
-    session: WorkSession,
-    audience: "mine" | "project" = "mine",
-  ): WorkScope {
+  scope(session: WorkSession, audience: Audience = "mine"): WorkScope {
     return {
       ...(session.project_id ? { projectId: session.project_id } : {}),
-      audience: session.project_id ? audience : "mine",
+      audience: session.project_id
+        ? "mine"
+        : audience === "projects" || audience === "calendar"
+          ? audience
+          : "mine",
     };
   }
 
   async visible(actor: Actor, messages: StoredMessage[], signal?: AbortSignal) {
     const references = [...new Set(messages.flatMap((m) => m.project_ids))];
     const allowed = await this.context.authorize(actor, references, signal);
+
     return messages.map((m) =>
       m.project_ids.some((id) => !allowed.has(id))
         ? {
@@ -51,6 +57,7 @@ export class WorkAssistantAccessService {
   async owned(actor: Actor, id: string) {
     const session = await this.store.owned(actor, id);
     await this.context.requireScope(actor, this.scope(session));
+
     return session;
   }
 }

@@ -1,20 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { DialogPortal } from "@/components/ui/dialog";
-import { CustomSelect } from "@/components/ui/custom/custom-select";
-import {
-  History,
-  Bot,
-  ArrowLeft,
-  SquarePen,
-  X,
-} from "lucide-react";
+import { History, Bot, ArrowLeft, SquarePen, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SheetPanel } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/components/ui/use-media-query";
 import { useWorkAssistant, workError } from "../hooks/use-work-assistant";
 import type { Audience } from "../types";
-import WorkToday from "./work-today";
 import WorkConversationList from "./work-conversation-list";
 import Message from "./work-assistant-message";
 import WorkAssistantComposer from "./work-assistant-composer";
@@ -25,9 +17,8 @@ function Conversation({
   userId,
   projectId,
   audience,
+  contextLabel,
   onClose,
-  onScopeChange,
-  currentProjectId,
   sessionId,
   onConversationChange,
 }: {
@@ -36,9 +27,8 @@ function Conversation({
   userId: string;
   projectId?: string;
   audience: Audience;
-  currentProjectId?: string;
+  contextLabel: string;
   onClose: () => void;
-  onScopeChange: (scope: "personal" | "mine" | "project") => void;
 }) {
   const assistant = useWorkAssistant(userId, projectId, audience, sessionId);
   const [question, setQuestion] = useState("");
@@ -69,6 +59,7 @@ function Conversation({
       ? workError(assistant.createConversation.error)
       : "") ||
     (assistant.history.isError ? workError(assistant.history.error) : "");
+
   return (
     <SheetPanel
       open
@@ -86,8 +77,10 @@ function Conversation({
       }}
       className="fixed bottom-20 right-4 z-50 flex max-h-[calc(100dvh-6rem)] w-[min(440px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border bg-background text-foreground shadow-xl max-sm:inset-x-0 max-sm:bottom-0 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:w-full max-sm:rounded-none"
     >
-      <header className="flex shrink-0 items-center gap-2 border-b px-4 py-3">
-        <Bot className="size-5 shrink-0 text-link" aria-hidden="true" />
+      <header className="flex shrink-0 items-center gap-2.5 border-b px-4 py-3">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-info-soft text-info-content ring-1 ring-border/60">
+          <Bot className="size-4" aria-hidden="true" />
+        </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold">AI Assistant</h2>
           <p className="text-xs text-muted-foreground">
@@ -98,12 +91,16 @@ function Conversation({
           type="button"
           variant="ghost"
           size="icon-sm"
-          aria-label={showConversations ? "Back to conversation" : "Conversations"}
+          aria-label={
+            showConversations ? "Back to conversation" : "Conversations"
+          }
           title={showConversations ? "Back to conversation" : "Conversations"}
           aria-expanded={showConversations}
           aria-controls="work-conversation-list"
           disabled={
-            !!assistant.status || assistant.createConversation.isPending || !assistant.history.isSuccess
+            !!assistant.status ||
+            assistant.createConversation.isPending ||
+            !assistant.history.isSuccess
           }
           onClick={() => setShowConversations(!showConversations)}
         >
@@ -136,33 +133,18 @@ function Conversation({
           <X />
         </Button>
       </header>
-      <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2">
-        <label htmlFor="work-scope" className="text-xs text-muted-foreground">
-          Context
-        </label>
-        <CustomSelect
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b bg-muted/30 px-4 py-2 text-xs">
+        <span className="font-medium text-muted-foreground">Context</span>
+        <span
           id="work-scope"
-          ariaLabel="Assistant context"
-          disabled={!!assistant.status}
-          value={projectId ? audience : "personal"}
-          onChange={(value) =>
-            onScopeChange(value as "personal" | "mine" | "project")
-          }
-          options={[
-            { value: "personal", label: "My tasks · all projects" },
-            ...(currentProjectId
-              ? [
-                  { value: "mine", label: "Current project · My tasks" },
-                  {
-                    value: "project",
-                    label: "Current project · All tasks",
-                  },
-                ]
-              : []),
-          ]}
-          className="min-w-0 flex-1"
-          triggerClassName="w-full text-xs"
-        />
+          className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-background px-2.5 py-0.5 font-medium text-foreground shadow-2xs"
+        >
+          <span
+            className="size-1.5 rounded-full bg-primary"
+            aria-hidden="true"
+          />
+          {contextLabel}
+        </span>
       </div>
       <div
         ref={content}
@@ -170,7 +152,11 @@ function Conversation({
       >
         {showConversations ? (
           <>
-            {assistant.createConversation.isError && <p role="alert" className="px-4 pt-4 text-xs text-destructive">{workError(assistant.createConversation.error)}</p>}
+            {assistant.createConversation.isError && (
+              <p role="alert" className="px-4 pt-4 text-xs text-destructive">
+                {workError(assistant.createConversation.error)}
+              </p>
+            )}
             <WorkConversationList
               sessions={
                 assistant.conversations.data?.pages.flatMap(
@@ -195,45 +181,37 @@ function Conversation({
             />
           </>
         ) : (
-          <>
-            {assistant.overview.isPending && (
-              <p role="status" className="p-4 text-xs text-muted-foreground">
-                Loading your tasks...
+          <div
+            className="space-y-4 p-4"
+            role="log"
+            aria-label="Conversation history"
+            aria-live="polite"
+            aria-relevant="additions"
+          >
+            {assistant.history.hasNextPage && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                loading={assistant.history.isFetchingNextPage}
+                onClick={() => void assistant.history.fetchNextPage()}
+              >
+                Earlier messages
+              </Button>
+            )}
+            {assistant.history.isPending && (
+              <p className="text-xs text-muted-foreground">
+                Loading conversation...
               </p>
             )}
-            {assistant.overview.isError && !assistant.history.isError && (
-              <p role="alert" className="border-b p-4 text-xs text-destructive">
-                {workError(assistant.overview.error)}
-              </p>
-            )}
-            {assistant.overview.isSuccess && (
-              <WorkToday data={assistant.overview.data} />
-            )}
-            <div
-              className="space-y-3 p-4"
-              role="log"
-              aria-label="Conversation history"
-              aria-live="polite"
-              aria-relevant="additions"
-            >
-              {assistant.history.hasNextPage && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  loading={assistant.history.isFetchingNextPage}
-                  onClick={() => void assistant.history.fetchNextPage()}
-                >
-                  Earlier messages
-                </Button>
-              )}
-              {assistant.history.isPending && (
-                <p className="text-xs text-muted-foreground">Loading conversation...</p>
-              )}
-              {!assistant.messages.length && assistant.history.isSuccess && (
+            {!assistant.messages.length &&
+              !assistant.pending &&
+              assistant.history.isSuccess && (
                 <div className="space-y-4 py-4">
                   <div>
-                    <h3 className="font-medium">What would you like to work on?</h3>
+                    <h3 className="font-medium">
+                      What would you like to work on?
+                    </h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Ask a question or choose a starting point.
                     </p>
@@ -245,7 +223,7 @@ function Conversation({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-auto min-h-10 justify-start whitespace-normal text-left"
+                        className="h-auto min-h-10 justify-start whitespace-normal rounded-xl text-left"
                         disabled={!!assistant.status}
                         onClick={() => send(prompt)}
                       >
@@ -255,27 +233,31 @@ function Conversation({
                   </div>
                 </div>
               )}
-              {!assistant.history.isError &&
-                assistant.messages.map((message) => (
-                  <Message key={message.id} message={message} />
-                ))}
-              {assistant.pending && <Message message={assistant.pending} />}
-              {assistant.reply &&
-                !assistant.messages.some(
-                  (message) => message.id === assistant.reply?.id,
-                ) && <Message message={assistant.reply} />}
-              {assistant.status && (
-                <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Spinner size={14} />
-                  {assistant.status}
-                </p>
-              )}
-              {assistant.notice && (
-                <p role="status" className="text-xs text-muted-foreground">{assistant.notice}</p>
-              )}
-              <div ref={bottom} />
-            </div>
-          </>
+            {!assistant.history.isError &&
+              assistant.messages.map((message) => (
+                <Message key={message.id} message={message} />
+              ))}
+            {assistant.pending && <Message message={assistant.pending} />}
+            {assistant.reply &&
+              !assistant.messages.some(
+                (message) => message.id === assistant.reply?.id,
+              ) && <Message message={assistant.reply} />}
+            {assistant.status && (
+              <p
+                role="status"
+                className="flex items-center gap-2 text-xs text-muted-foreground"
+              >
+                <Spinner size={14} />
+                {assistant.status}
+              </p>
+            )}
+            {assistant.notice && (
+              <p role="status" className="text-xs text-muted-foreground">
+                {assistant.notice}
+              </p>
+            )}
+            <div ref={bottom} />
+          </div>
         )}
       </div>
       {!showConversations && (
@@ -295,42 +277,42 @@ function Conversation({
     </SheetPanel>
   );
 }
+
 export default function WorkAssistantPanel({
   userId,
-  currentProjectId,
+  projectId,
+  audience,
+  contextLabel,
   onClose,
 }: {
   userId: string;
-  currentProjectId?: string;
+  projectId?: string;
+  audience: Audience;
+  contextLabel: string;
   onClose: () => void;
 }) {
-  const [selection, setSelection] = useState<"personal" | "mine" | "project">(
-    currentProjectId ? "mine" : "personal",
-  );
-  const [sessionId, setSessionId] = useState<string>();
-  const scope = currentProjectId ? selection : "personal";
+  const scopeKey = projectId ?? "personal";
+  const [selectedSession, setSelectedSession] = useState<{
+    scopeKey: string;
+    sessionId?: string;
+  }>({ scopeKey });
+  const sessionId =
+    selectedSession.scopeKey === scopeKey
+      ? selectedSession.sessionId
+      : undefined;
+
   return (
     <DialogPortal>
       <Conversation
-        key={
-          userId +
-          ":" +
-          (scope === "personal" ? "personal" : currentProjectId) +
-          ":" +
-          scope +
-          ":" +
-          (sessionId ?? "latest")
-        }
+        key={userId + ":" + scopeKey + ":" + (sessionId ?? "latest")}
         userId={userId}
-        projectId={scope === "personal" ? undefined : currentProjectId}
-        audience={scope === "project" ? "project" : "mine"}
-        currentProjectId={currentProjectId}
+        projectId={projectId}
+        audience={audience}
+        contextLabel={contextLabel}
         sessionId={sessionId}
-        onConversationChange={setSessionId}
-        onScopeChange={(value) => {
-          setSessionId(undefined);
-          setSelection(value);
-        }}
+        onConversationChange={(id) =>
+          setSelectedSession({ scopeKey, sessionId: id })
+        }
         onClose={onClose}
       />
     </DialogPortal>

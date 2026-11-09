@@ -1,15 +1,19 @@
 import { z } from "zod";
 import { timeZoneSchema } from "./work-time";
 
+export const audienceSchema = z
+  .enum(["mine", "projects", "calendar"])
+  .default("mine");
+
 export const scopeSchema = z
   .object({
     projectId: z.string().uuid().optional(),
-    audience: z.enum(["mine", "project"]).default("mine"),
+    audience: audienceSchema,
   })
   .strict()
   .refine(
-    (s) => !!s.projectId || s.audience === "mine",
-    "Project scope required",
+    (s) => !s.projectId || s.audience === "mine",
+    "Project scope only supports mine audience",
   );
 export const querySchema = z
   .object({
@@ -34,7 +38,7 @@ export const messageSchema = z
   .object({
     question: z.string().trim().min(1).max(4000),
     requestId: z.string().uuid(),
-    audience: z.enum(["mine", "project"]).default("mine"),
+    audience: audienceSchema,
     timeZone: timeZoneSchema.optional(),
   })
   .strict();
