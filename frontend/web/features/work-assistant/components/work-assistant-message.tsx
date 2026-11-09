@@ -4,7 +4,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import type { WorkMessage } from "../types";
-import { taskHref } from "./work-today";
+import { taskHref } from "../utils/task-reference";
+import { remarkTaskLinks } from "../utils/remark-task-links";
 
 export default function WorkAssistantMessage({ message }: { message: WorkMessage }) {
   const allowed = new Set(message.sources.map(taskHref));
@@ -22,7 +23,18 @@ export default function WorkAssistantMessage({ message }: { message: WorkMessage
       </p>
       <div className="break-words text-sm leading-relaxed [&_p+p]:mt-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_table]:w-full [&_table]:text-xs [&_th]:text-left [&_td]:py-1 [&_td]:pr-2 [&_th]:pr-2">
         <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
+          remarkPlugins={[
+            remarkGfm,
+            [
+              remarkTaskLinks,
+              {
+                sources:
+                  message.role === "assistant" && !message.hidden
+                    ? message.sources
+                    : [],
+              },
+            ],
+          ]}
           skipHtml
           urlTransform={(url) => (allowed.has(url) ? url : "")}
           components={{
