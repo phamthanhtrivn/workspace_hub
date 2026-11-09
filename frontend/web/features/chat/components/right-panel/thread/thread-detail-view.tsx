@@ -14,7 +14,7 @@ import React, {
   useState,
   useMemo,
 } from "react";
-import { X, FileText, Download, Bell, Play } from "lucide-react";
+import { X, FileText, Download, Bell, Play, Sparkles } from "lucide-react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -245,6 +245,8 @@ export default function ThreadDetailView({
   const { data: threadData, isLoading } = threadQuery;
   const activeRootMessage = threadData?.data?.rootMessage || rootMessage;
   const replies = threadData?.data?.replies || [];
+  const rootIsBot = isAiBot(activeRootMessage.senderId, activeRootMessage.type);
+  const rootAlignToEnd = activeRootMessage.senderId === currentUserId;
 
   const appendThreadReply = useCallback(
     (reply: ChatMessageResponse) => {
@@ -559,11 +561,11 @@ export default function ThreadDetailView({
       >
         {/* Root parent message */}
         <div className="border-b border-border pb-4">
-          <div className={cn("flex min-w-0 items-start gap-2.5", activeRootMessage.senderId === currentUserId && "flex-row-reverse")}>
+          <div className={cn("flex min-w-0 items-start gap-2.5", rootAlignToEnd && "flex-row-reverse")}>
             <MessageAvatar
               showAvatar={true}
-              isBot={isAiBot(activeRootMessage.senderId, activeRootMessage.type)}
-              senderName={isAiBot(activeRootMessage.senderId, activeRootMessage.type) ? AI_BOT.name : rootProfile?.fullName || "User"}
+              isBot={rootIsBot}
+              senderName={rootIsBot ? AI_BOT.name : rootProfile?.fullName || "User"}
               senderProfile={rootProfile}
               memberRole={
                 activeChat?.members?.find(
@@ -577,11 +579,19 @@ export default function ThreadDetailView({
                 }
               }}
             />
-            <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col", activeRootMessage.senderId === currentUserId ? "items-end" : "items-start")}>
-              <div className={cn("mb-1 flex max-w-full flex-wrap items-baseline gap-x-2 gap-y-0.5", activeRootMessage.senderId === currentUserId && "flex-row-reverse text-right")}>
+            <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col", rootAlignToEnd ? "items-end" : "items-start")}>
+              <div className={cn("mb-1 flex max-w-full flex-wrap items-baseline gap-x-2 gap-y-0.5", rootAlignToEnd && "flex-row-reverse text-right")}>
                 <span className="font-semibold text-xs text-foreground truncate">
-                  {isAiBot(activeRootMessage.senderId, activeRootMessage.type) ? AI_BOT.name : rootProfile?.fullName || "User"}
+                  {rootIsBot ? AI_BOT.name : rootProfile?.fullName || "User"}
                 </span>
+                {rootIsBot && (
+                  <span
+                    className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-info-soft text-info-content"
+                    title="AI Bot"
+                  >
+                    <Sparkles className="size-3.5" aria-hidden="true" />
+                  </span>
+                )}
                 <span className="text-xs text-muted-foreground">
                   {formatDateTime(activeRootMessage.createdAt)}
                 </span>
@@ -594,7 +604,7 @@ export default function ThreadDetailView({
                   className="max-w-full"
                 />
               ) : (
-                <div className="text-xs text-foreground text-left min-w-0 max-w-full [overflow-wrap:anywhere] [&_pre]:max-w-full [&_pre]:overflow-x-auto bg-muted p-3 rounded-panel border border-border">
+                <div className={cn("text-xs text-foreground text-left min-w-0 max-w-full [overflow-wrap:anywhere] [&_pre]:max-w-full [&_pre]:overflow-x-auto p-3 rounded-panel border", rootIsBot ? "bg-info-soft/60 border-info-outline/50" : rootAlignToEnd ? "bg-primary-soft/70 border-info-outline/40" : "bg-card border-border")}>
                   {activeRootMessage.content ? (
                     renderMessageContent(
                       activeRootMessage.content,
@@ -610,7 +620,7 @@ export default function ThreadDetailView({
               )}
             </div>
           </div>
-          <div className={cn("mt-2 text-xs font-semibold text-muted-foreground", activeRootMessage.senderId === currentUserId ? "pr-11 text-right" : "pl-11")}>
+          <div className={cn("mt-2 text-xs font-semibold text-muted-foreground", rootAlignToEnd ? "pr-11 text-right" : "pl-11")}>
             {`${replies.length} ${replies.length === 1 ? "reply" : "replies"}`}
           </div>
         </div>
@@ -623,10 +633,10 @@ export default function ThreadDetailView({
           <div className="space-y-4">
             {replies.map((reply) => {
               const profile = reply.senderProfile || getProfile(reply.senderId);
-              const own = reply.senderId === currentUserId;
               const bot = isAiBot(reply.senderId, reply.type);
+              const alignToEnd = reply.senderId === currentUserId;
               return (
-                <div key={reply.id} className={cn("flex min-w-0 items-start gap-2.5", own && "flex-row-reverse")}>
+                <div key={reply.id} className={cn("flex min-w-0 items-start gap-2.5", alignToEnd && "flex-row-reverse")}>
                   <MessageAvatar
                     showAvatar={true}
                     isBot={bot}
@@ -644,16 +654,24 @@ export default function ThreadDetailView({
                       }
                     }}
                   />
-                  <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col", own ? "items-end" : "items-start")}>
-                    <div className={cn("mb-0.5 flex max-w-full flex-wrap items-baseline gap-x-2 gap-y-0.5", own && "flex-row-reverse text-right")}>
+                  <div className={cn("flex min-w-0 max-w-[calc(100%-3rem)] flex-1 flex-col", alignToEnd ? "items-end" : "items-start")}>
+                    <div className={cn("mb-0.5 flex max-w-full flex-wrap items-baseline gap-x-2 gap-y-0.5", alignToEnd && "flex-row-reverse text-right")}>
                       <span className="font-semibold text-xs text-foreground truncate">
                         {bot ? AI_BOT.name : profile?.fullName || "User"}
                       </span>
+                      {bot && (
+                        <span
+                          className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-info-soft text-info-content"
+                          title="AI Bot"
+                        >
+                          <Sparkles className="size-3.5" aria-hidden="true" />
+                        </span>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {formatDateTime(reply.createdAt)}
                       </span>
                     </div>
-                    <div className="text-xs text-foreground text-left min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_pre]:max-w-full [&_pre]:overflow-x-auto bg-muted p-2 rounded-lg">
+                    <div className={cn("text-xs text-foreground text-left min-w-0 max-w-full break-words [overflow-wrap:anywhere] [&_pre]:max-w-full [&_pre]:overflow-x-auto p-2 rounded-lg border", bot ? "bg-info-soft/60 border-info-outline/50" : alignToEnd ? "bg-primary-soft/70 border-info-outline/40" : "bg-card border-border")}>
                       {renderMessageContent(
                         reply.content,
                         memberProfiles ?? undefined,

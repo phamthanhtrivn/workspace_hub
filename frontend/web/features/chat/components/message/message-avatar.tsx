@@ -36,8 +36,9 @@ export default function MessageAvatar({
       onClick={showAvatar ? onClick : undefined}
       className={cn(
         "w-9 h-9 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-semibold mt-1 disabled:opacity-100",
-        showAvatar &&
+        showAvatar && !isBot &&
           "bg-muted cursor-pointer hover:ring-2 hover:ring-ring transition-all",
+        showAvatar && isBot && "bg-info-soft text-info-content ring-1 ring-border",
       )}
       aria-label={showAvatar ? isBot ? senderName : `Open ${senderName}'s profile` : undefined}
     >
