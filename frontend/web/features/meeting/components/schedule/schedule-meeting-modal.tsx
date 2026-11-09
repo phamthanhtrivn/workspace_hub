@@ -1,6 +1,6 @@
 "use client";
 
-import { UserAvatar } from "@/components/common/user-avatar";
+import { MeetingUserAvatar } from "../common/meeting-user-avatar";
 import { IconButton } from "@/components/ui/icon-button";
 import { CustomDatePicker } from "@/components/ui/custom/custom-date-picker";
 import { DATE_RANGE_MESSAGES, getDateRangeBounds, getDateRangeErrors, hasDateRangeErrors } from "@/lib/date-range";
@@ -704,7 +704,8 @@ function Avatar({
       className="grid shrink-0 place-items-center overflow-hidden rounded-full bg-muted"
       style={{ width: size, height: size }}
     >
-      <UserAvatar
+      <MeetingUserAvatar
+        userId={user.id}
         src={user?.avatarUrl}
         alt={user?.fullName || user?.email}
         width={size}

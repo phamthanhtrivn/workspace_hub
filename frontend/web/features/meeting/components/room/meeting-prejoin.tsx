@@ -22,6 +22,8 @@ import { MeetingParticipantChatToggle } from "../common/meeting-participant-chat
 import { MeetingButton } from "../ui/meeting-form-controls";
 import { MeetingIconButton } from "../ui/meeting-icon-button";
 import { Spinner } from "@/components/ui/spinner";
+import { UserAvatar } from "@/components/common/user-avatar";
+import { useAppSelector } from "@/store/store";
 
 interface MeetingPreJoinProps {
   mode?: MeetingPreJoinMode;
@@ -51,6 +53,7 @@ export function MeetingPreJoin({
   onStart,
 }: MeetingPreJoinProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const authUser = useAppSelector((state) => state.auth);
   const isCreateMode = mode === MeetingPreJoinMode.CREATE;
 
   useEffect(() => {
@@ -105,15 +108,21 @@ export function MeetingPreJoin({
                 />
               ) : (
                 <div className="flex h-full min-h-[min(240px,40dvh)] flex-col items-center justify-center gap-4 bg-media-background px-6 text-center">
-                  <span className="grid h-20 w-20 place-items-center rounded-full bg-media-surface text-media-foreground">
-                    {isPreviewLoading ? (
-                      <Spinner size={32} tone="inherit" />
-                    ) : settings.cameraEnabled ? (
-                      <Video className="h-8 w-8" />
-                    ) : (
-                      <VideoOff className="h-8 w-8" />
-                    )}
-                  </span>
+                  {!settings.cameraEnabled ? (
+                    <UserAvatar
+                      src={authUser.avatarUrl}
+                      alt={authUser.fullName || authUser.email}
+                      className="h-20 w-20 bg-media-surface text-media-foreground"
+                    />
+                  ) : (
+                    <span className="grid h-20 w-20 place-items-center rounded-full bg-media-surface text-media-foreground">
+                      {isPreviewLoading ? (
+                        <Spinner size={32} tone="inherit" />
+                      ) : (
+                        <Video className="h-8 w-8" />
+                      )}
+                    </span>
+                  )}
                   <div>
                     <p className="text-lg font-semibold">
                       {settings.cameraEnabled

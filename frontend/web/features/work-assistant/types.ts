@@ -1,4 +1,5 @@
-export type Audience = "mine" | "project";
+export type Audience = "mine" | "projects" | "calendar" | "project";
+export type WorkScope = { projectId?: string; audience: Audience };
 export type TaskReference = {
   id: string;
   kind: "project" | "calendar";
@@ -26,7 +27,7 @@ export type WorkMessage = {
   created_at: string;
   hidden?: boolean;
   context?: {
-    scope: { projectId?: string; audience: Audience };
+    scope: WorkScope;
     fetchedAt: string;
     timeZone: string;
     days: 7 | 30;

@@ -106,9 +106,16 @@ export function CalendarWorkspace() {
 
   const handleCloseDetail = useCallback(() => {
     calendar.closeDetail();
-    lastOpenedKeyRef.current = null;
     if (typeof window !== "undefined" && window.location.search) {
-      window.history.replaceState(null, "", window.location.pathname);
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.delete("event");
+      nextUrl.searchParams.delete("eventId");
+      nextUrl.searchParams.delete("t");
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`,
+      );
     }
   }, [calendar]);
 
@@ -119,14 +126,17 @@ export function CalendarWorkspace() {
   }, [eventParam, timeParam, queryClient]);
 
   useEffect(() => {
-    if (!eventParam) return;
+    if (!eventParam) {
+      lastOpenedKeyRef.current = null;
+      return;
+    }
 
     const currentKey = `${eventParam}_${timeParam || ""}`;
     const foundInEvents = calendar.events.find((e) => e.id === eventParam);
     const targetEvent = directEventQuery.data || foundInEvents;
 
     if (targetEvent) {
-      if (lastOpenedKeyRef.current !== currentKey || !calendar.detailEvent) {
+      if (lastOpenedKeyRef.current !== currentKey) {
         openDetail(targetEvent);
         if (targetEvent.startAt) {
           handleMiniCalendarDateSelect(new Date(targetEvent.startAt));

@@ -1,6 +1,6 @@
 "use client";
 
-import { UserAvatar } from "@/components/common/user-avatar";
+import { MeetingUserAvatar } from "./meeting-user-avatar";
 import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import {
   Crown,
@@ -149,7 +149,12 @@ export function MeetingParticipantListItem({
   return (
     <article className="rounded-lg bg-muted p-3 ring-1 ring-border/8">
       <div className="flex items-center gap-3">
-        <UserAvatar src={item.avatarUrl} alt={item.displayName} className="h-10 w-10 shrink-0 rounded-full" />
+        <MeetingUserAvatar
+          userId={item.participant.userId}
+          src={item.avatarUrl}
+          alt={item.displayName}
+          className="h-10 w-10 shrink-0 rounded-full"
+        />
 
         <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-center gap-2">

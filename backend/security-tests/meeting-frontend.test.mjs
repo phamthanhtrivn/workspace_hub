@@ -12,6 +12,7 @@ tooling('ts-node').register({
     moduleResolution: 'Node',
     target: 'ES2023',
     esModuleInterop: true,
+    jsx: 'react-jsx',
   },
 });
 tooling('tsconfig-paths').register({
@@ -19,6 +20,15 @@ tooling('tsconfig-paths').register({
   paths: { '@/*': ['./*'] },
 });
 const feature = (path) => webRequire(`./features/meeting/${path}.ts`);
+for (const spec of [
+  './components/common/user-avatar.spec.tsx',
+  './features/meeting/components/history/meeting-history-avatar-stack.spec.tsx',
+  './features/meeting/components/room/meeting-prejoin-avatar.spec.tsx',
+  './features/meeting/components/room/message/meeting-message-avatar.spec.tsx',
+  './features/meeting/utils/meeting-avatar.spec.ts',
+]) {
+  webRequire(spec);
+}
 const { scheduleMeetingSchema, createScheduleMeetingSchema } = feature(
   'schemas/schedule-meeting.schema',
 );

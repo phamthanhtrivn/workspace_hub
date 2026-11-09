@@ -21,12 +21,20 @@ export function formatElapsedTime(totalSeconds: number) {
 }
 
 export function parseParticipantMetadata(
-  participant: Participant,
+  participant: Pick<Participant, "metadata">,
 ): ParticipantMetadata {
   if (!participant.metadata) return {};
 
   try {
-    return JSON.parse(participant.metadata) as ParticipantMetadata;
+    const metadata: unknown = JSON.parse(participant.metadata);
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata))
+      return {};
+    const { role, avatarUrl } = metadata as Record<string, unknown>;
+
+    return {
+      role: typeof role === "string" ? role : undefined,
+      avatarUrl: typeof avatarUrl === "string" ? avatarUrl : null,
+    };
   } catch {
     return {};
   }

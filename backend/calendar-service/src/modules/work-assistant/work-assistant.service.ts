@@ -38,7 +38,6 @@ export class WorkAssistantService {
       busy,
       recurring,
       tasks,
-      completed,
       pending,
       focus,
       perTask,
@@ -111,10 +110,6 @@ export class WorkAssistantService {
           allDay: true,
         },
       }),
-      this.prisma.calendarEvent.findMany({
-        where: { ...personal, completedAt: { gte: from, lt: to } },
-        select: { endAt: true, completedAt: true },
-      }),
       this.prisma.calendarEvent.aggregate({
         where: { ...personal, completedAt: null },
         _count: { _all: true },
@@ -159,9 +154,6 @@ export class WorkAssistantService {
         },
       }),
     ]);
-    const onTime = completed.filter(
-      (t) => t.completedAt && t.completedAt <= t.endAt,
-    ).length;
     return {
       available: true,
       timeZone: calendar?.timeZone ?? 'Asia/Ho_Chi_Minh',
@@ -195,11 +187,11 @@ export class WorkAssistantService {
         open: pending._count._all,
         overdue,
         dueToday,
-        completedInPeriod: completed.length,
-        completedWithDeadline: completed.length,
-        onTime,
-        late: completed.length - onTime,
-        onTimeRate: completed.length ? onTime / completed.length : null,
+        completedInPeriod: 0,
+        completedWithDeadline: 0,
+        onTime: 0,
+        late: 0,
+        onTimeRate: null,
         deadlineBasis: 'current stored deadline',
       },
       focus: {

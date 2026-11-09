@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/store/store";
+import { resolveWorkContext } from "../constants/work-assistant";
 const Panel = dynamic(() => import("./work-assistant-panel"), {
   ssr: false,
   loading: () => (
@@ -24,14 +25,17 @@ export default function WorkAssistantLauncher() {
     (path) => pathname === path || pathname.startsWith(path + "/"),
   );
   if (!eligible || !userId) return null;
-  const projectId = /^\/projects\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname)?.[1];
+  const context = resolveWorkContext(pathname);
+
   return (
     <>
       {open && (
         <Panel
           key={userId}
           userId={userId}
-          currentProjectId={projectId}
+          projectId={context.projectId}
+          audience={context.audience}
+          contextLabel={context.label}
           onClose={() => setOpen(false)}
         />
       )}

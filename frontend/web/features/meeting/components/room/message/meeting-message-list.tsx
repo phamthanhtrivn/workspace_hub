@@ -105,8 +105,8 @@ export function MeetingMessageList({
               message={message}
               currentUserId={currentUserId}
               profile={
-                message.senderProfile ||
                 profilesByUserId[message.senderId] ||
+                message.senderProfile ||
                 null
               }
               showAvatar={showAvatar}

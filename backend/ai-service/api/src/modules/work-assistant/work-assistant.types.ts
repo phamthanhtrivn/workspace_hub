@@ -1,4 +1,4 @@
-export type Audience = "mine" | "project";
+export type Audience = "mine" | "projects" | "calendar" | "project";
 export type WorkScope = { projectId?: string; audience: Audience };
 export type WorkTask = {
   id: string;

@@ -1,6 +1,6 @@
 "use client";
 
-import { UserAvatar } from "@/components/common/user-avatar";
+import { MeetingUserAvatar } from "../common/meeting-user-avatar";
 import {
   VideoTrack,
   isTrackReference,
@@ -104,7 +104,12 @@ export function MeetingParticipantTile({
         />
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_top,var(--media-background),transparent_38%),var(--media-background)] text-center">
-          <UserAvatar src={avatarUrl} alt={displayName} className="h-24 w-24 rounded-full ring-2 ring-border/14" />
+          <MeetingUserAvatar
+            userId={trackRef.participant.identity}
+            src={avatarUrl}
+            alt={displayName}
+            className="h-24 w-24 rounded-full ring-2 ring-border/14"
+          />
         </div>
       )}
 

@@ -5,15 +5,8 @@ import {
   CollapsibleContent,
 } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
-import type { TaskReference, WorkOverview, WorkTask } from "../types";
-export function taskHref(source: TaskReference) {
-  if (source.kind === "project" && source.projectId)
-    return "/projects/" + source.projectId + "?taskId=" + source.id;
-  const timestamp = /[?&]t=(\d+)/.exec(source.url)?.[1];
-  return (
-    "/calendar?eventId=" + source.id + (timestamp ? "&t=" + timestamp : "")
-  );
-}
+import type { WorkOverview, WorkTask } from "../types";
+import { taskHref } from "../utils/task-reference";
 export function taskReason(task: WorkTask) {
   if (task.overdue) return "Overdue";
   if (task.dueToday) return "Due today";

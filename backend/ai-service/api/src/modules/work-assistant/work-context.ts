@@ -103,6 +103,7 @@ export function rankTasks(tasks: WorkTask[]) {
     MEDIUM: 2,
     LOW: 1,
   };
+
   return [...tasks].sort(
     (a, b) =>
       Number(b.overdue) - Number(a.overdue) ||
@@ -123,7 +124,10 @@ export class WorkContextService {
     body: object,
     signal?: AbortSignal,
   ) {
-    const serviceKey = service === "project" ? config.AI_TO_PROJECT_KEY : config.AI_TO_CALENDAR_KEY;
+    const serviceKey =
+      service === "project"
+        ? config.AI_TO_PROJECT_KEY
+        : config.AI_TO_CALENDAR_KEY;
     if (serviceKey.length < 32)
       throw new ServiceUnavailableException(
         "Trợ lý công việc chưa được cấu hình.",
@@ -158,6 +162,7 @@ export class WorkContextService {
       );
     }
     const text = await readResponseText(response, 350000);
+
     return (JSON.parse(text) as { data: unknown }).data;
   }
   async authorize(actor: Actor, projectIds: string[], signal?: AbortSignal) {
@@ -175,6 +180,7 @@ export class WorkContextService {
           signal,
         ),
       );
+
     return new Set(data.projectIds);
   }
   async requireScope(actor: Actor, scope: WorkScope, signal?: AbortSignal) {
@@ -197,6 +203,27 @@ export class WorkContextService {
     const now = new Date();
     let timeZone = fallbackTimeZone ?? "Asia/Ho_Chi_Minh";
     let range = workRange(now, timeZone, days);
+    const includeProject = scope.audience !== "calendar";
+    const includeCalendarContext =
+      !scope.projectId &&
+      (scope.audience === "mine" || scope.audience === "calendar");
+    const projectRead = async () =>
+      projectSchema.parse(
+        await this.call(
+          "project",
+          "context",
+          {
+            userId: actor.id,
+            ...(scope.projectId ? { projectId: scope.projectId } : {}),
+            audience: "mine",
+            from: range.from,
+            to: range.to,
+            now: now.toISOString(),
+            timeZone,
+          },
+          signal,
+        ),
+      );
     const calendarRead = async () =>
       calendarSchema.parse(
         await this.call(
@@ -204,7 +231,6 @@ export class WorkContextService {
           "context",
           {
             userId: actor.id,
-            ...(scope.projectId ? { projectId: scope.projectId } : {}),
             from: range.from,
             to: range.to,
             windowStart: range.windowStart,
@@ -215,20 +241,8 @@ export class WorkContextService {
         ),
       );
     const outcomes = await Promise.allSettled([
-      this.call(
-        "project",
-        "context",
-        {
-          userId: actor.id,
-          ...scope,
-          from: range.from,
-          to: range.to,
-          now: now.toISOString(),
-          timeZone,
-        },
-        signal,
-      ).then((d) => projectSchema.parse(d)),
-      calendarRead(),
+      includeProject ? projectRead() : Promise.resolve(null),
+      includeCalendarContext ? calendarRead() : Promise.resolve(null),
     ]);
     if (signal?.aborted) signal.throwIfAborted();
     if (
@@ -245,20 +259,8 @@ export class WorkContextService {
         timeZone = calendar.timeZone;
         range = workRange(now, timeZone, days);
         const updated = await Promise.allSettled([
-          this.call(
-            "project",
-            "context",
-            {
-              userId: actor.id,
-              ...scope,
-              from: range.from,
-              to: range.to,
-              now: now.toISOString(),
-              timeZone,
-            },
-            signal,
-          ).then((d) => projectSchema.parse(d)),
-          calendarRead(),
+          includeProject ? projectRead() : Promise.resolve(null),
+          includeCalendarContext ? calendarRead() : Promise.resolve(null),
         ]);
         if (
           updated[0].status === "rejected" &&
@@ -275,9 +277,10 @@ export class WorkContextService {
     }
     // Personal Calendar tasks are separate from project tasks, never copies of synced tasks.
     const tasks = rankTasks([
-      ...(project?.tasks ?? []),
-      ...(!scope.projectId ? (calendar?.tasks ?? []) : []),
+      ...(includeProject ? (project?.tasks ?? []) : []),
+      ...(includeCalendarContext ? (calendar?.tasks ?? []) : []),
     ]);
+
     return {
       scope,
       fetchedAt: now.toISOString(),
@@ -285,53 +288,66 @@ export class WorkContextService {
       timeZone,
       days,
       period: { from: range.from, to: range.to },
-      projectIds:
-        project?.projectIds ?? (scope.projectId ? [scope.projectId] : []),
+      projectIds: includeProject
+        ? (project?.projectIds ?? (scope.projectId ? [scope.projectId] : []))
+        : [],
       sources: {
         project: {
-          state: !project
-            ? "unavailable"
-            : project.partial
-              ? "partial"
-              : project.metrics.open || project.metrics.completedInPeriod
-                ? "ready"
-                : "empty",
+          state: !includeProject
+            ? "empty"
+            : !project
+              ? "unavailable"
+              : project.partial
+                ? "partial"
+                : project.metrics.open || project.metrics.completedInPeriod
+                  ? "ready"
+                  : "empty",
         },
         calendar: {
-          state: !calendar
+          state: !includeCalendarContext
+            ? "empty"
+            : !calendar
             ? "unavailable"
             : calendar.partial || calendar.busyPartial
               ? "partial"
-              : calendar.tasks.length ||
+              : (calendar.tasks.length ||
+                  calendar.metrics.completedInPeriod) ||
                   calendar.busy.length ||
-                  calendar.focus.sessions ||
-                  calendar.metrics.completedInPeriod
+                  calendar.focus.sessions
                 ? "ready"
                 : "empty",
         },
       },
       metrics: {
-        project: (project?.metrics as Metrics) ?? null,
-        personal: !scope.projectId ? (calendar?.metrics ?? null) : null,
-        focusSeconds: calendar?.focus.seconds ?? null,
-        focusSessions: calendar?.focus.sessions ?? null,
+        project: includeProject
+          ? ((project?.metrics as Metrics) ?? null)
+          : null,
+        personal: includeCalendarContext ? (calendar?.metrics ?? null) : null,
+        focusSeconds: includeCalendarContext
+          ? (calendar?.focus.seconds ?? null)
+          : null,
+        focusSessions: includeCalendarContext
+          ? (calendar?.focus.sessions ?? null)
+          : null,
       },
       tasks: tasks.slice(0, 60),
       detailPartial: !!(
-        project?.partial ||
-        calendar?.partial ||
+        (includeProject && project?.partial) ||
+        (includeCalendarContext && calendar?.partial) ||
         tasks.length > 60
       ),
-      busyPartial: !calendar || calendar.busyPartial,
-      focusPerTask: calendar?.focus.perTask ?? [],
+      busyPartial: includeCalendarContext && (!calendar || calendar.busyPartial),
+      focusPerTask: includeCalendarContext ? (calendar?.focus.perTask ?? []) : [],
       schedulingBasis: "calendar",
-      freeSlots: freeSlots(
-        now,
-        timeZone,
-        calendar?.busy ?? [],
-        !calendar || calendar.busyPartial,
-      ),
-      busy: calendar?.busy ?? [],
+      freeSlots: includeCalendarContext
+        ? freeSlots(
+            now,
+            timeZone,
+            calendar?.busy ?? [],
+            !calendar || calendar.busyPartial,
+          )
+        : [],
+      busy: includeCalendarContext ? (calendar?.busy ?? []) : [],
     };
   }
 }

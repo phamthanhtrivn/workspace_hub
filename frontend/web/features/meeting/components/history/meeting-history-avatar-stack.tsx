@@ -1,6 +1,6 @@
 "use client";
 
-import { UserAvatar } from "@/components/common/user-avatar";
+import { MeetingUserAvatar } from "../common/meeting-user-avatar";
 
 import type { MeetingParticipantResponse } from "../../types/meeting.types";
 
@@ -29,7 +29,20 @@ export function MeetingHistoryAvatarStack({
         const displayName = getParticipantName(participant);
         const avatarUrl = participant.profile?.avatarUrl;
 
-        return <UserAvatar key={participant.id} src={avatarUrl} alt={displayName} className="h-9 w-9 shrink-0 rounded-full ring-1 ring-ring" style={{marginLeft: index === 0 ? 0 : -10, zIndex: participants.length - index}} />;
+        return (
+          <MeetingUserAvatar
+            key={participant.id}
+            userId={participant.userId}
+            src={avatarUrl}
+            alt={displayName}
+            title={displayName}
+            className="h-9 w-9 shrink-0 rounded-full ring-1 ring-ring"
+            style={{
+              marginLeft: index === 0 ? 0 : -10,
+              zIndex: participants.length - index,
+            }}
+          />
+        );
       })}
       {overflowCount > 0 ? (
         <span

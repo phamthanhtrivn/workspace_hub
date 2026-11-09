@@ -22,8 +22,8 @@ export class WorkAssistantSseService {
   ) {
     this.access.enabled();
     const session = await this.access.owned(actor, sessionId);
-    if (!session.project_id && input.audience === "project")
-      throw new HttpException("Project scope required", 400);
+    if (session.project_id && input.audience !== "mine")
+      throw new HttpException("Project scope only supports mine audience", 400);
     await this.workflow.answer(actor, this.sse.create(res), session, input);
   }
 }
