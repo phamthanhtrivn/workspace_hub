@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import {
   isTrackReference,
   useIsSpeaking,
+  useParticipantInfo,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
 import { Mic, MicOff, Pin, PinOff, Volume2, VolumeX } from "lucide-react";
@@ -34,10 +35,11 @@ export function useMeetingParticipantTile({
   const authUser = useAppSelector((state) => state.auth);
   const participant = trackRef.participant;
   const isSpeaking = useIsSpeaking(participant);
-  const metadata = parseParticipantMetadata(participant);
+  const participantInfo = useParticipantInfo({ participant });
+  const metadata = parseParticipantMetadata(participantInfo);
   const isLocalUser = participant.isLocal;
   const displayName =
-    participant.name ||
+    participantInfo.name ||
     (isLocalUser ? authUser.fullName || authUser.email : null) ||
     participant.identity ||
     "User";

@@ -1,6 +1,6 @@
 "use client";
 
-import { UserAvatar } from "@/components/common/user-avatar";
+import { MeetingUserAvatar } from "../../common/meeting-user-avatar";
 import { useCallback, useState } from "react";
 import {
   Check,
@@ -130,7 +130,12 @@ export function MeetingRoomAdmissionPanel({
                 className="rounded-lg bg-accent p-3 ring-1 ring-border/8"
               >
                 <div className="flex items-center gap-3">
-                  <UserAvatar src={request.profile?.avatarUrl} alt={displayName} className="h-10 w-10 shrink-0 rounded-full" />
+                  <MeetingUserAvatar
+                    userId={request.userId}
+                    src={request.profile?.avatarUrl}
+                    alt={displayName}
+                    className="h-10 w-10 shrink-0 rounded-full"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-muted-foreground">
                       {displayName}

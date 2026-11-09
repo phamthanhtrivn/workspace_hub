@@ -1,5 +1,5 @@
 "use client";
-import { UserAvatar } from "@/components/common/user-avatar";
+import { MeetingUserAvatar } from "../../common/meeting-user-avatar";
 
 import { useId } from "react";
 import { useMemo, useRef, useState } from "react";
@@ -75,20 +75,22 @@ export function MeetingMessageItem({
   return (
     <div className={cn("group flex w-full min-w-0 items-start gap-2", isMe && "flex-row-reverse")}>
       <div className="w-8 shrink-0">
-          {showAvatar && (
-            <Button variant="unstyled"
-              type="button"
-              className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-muted-foreground ring-1 ring-border/10"
-              title={senderName}
-            >
-              <UserAvatar
-                src={profile?.avatarUrl}
-                alt={senderName}
-                className="h-full w-full object-cover"
-              />
-            </Button>
-          )}
-        </div>
+        {showAvatar && (
+          <Button
+            variant="unstyled"
+            type="button"
+            className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-accent text-xs font-semibold text-muted-foreground ring-1 ring-border/10"
+            title={senderName}
+          >
+            <MeetingUserAvatar
+              userId={message.senderId}
+              src={profile?.avatarUrl}
+              alt={senderName}
+              className="h-full w-full object-cover"
+            />
+          </Button>
+        )}
+      </div>
 
       <div
         className={cn(
