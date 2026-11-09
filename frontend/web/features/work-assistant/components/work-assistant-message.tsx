@@ -90,6 +90,7 @@ export default function WorkAssistantMessage({
               href && allowed.has(href) ? (
                 <Link
                   href={href}
+                  scroll={false}
                   className="font-medium text-link underline decoration-link/40 underline-offset-4 transition-colors hover:decoration-link"
                 >
                   {children}
@@ -119,6 +120,7 @@ export default function WorkAssistantMessage({
                   <Link
                     className="group/chip inline-flex max-w-full items-center gap-1.5 rounded-lg border border-border/80 bg-background px-2.5 py-1 text-xs font-medium text-foreground shadow-2xs transition-colors hover:border-primary/40 hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     href={taskHref(source)}
+                    scroll={false}
                   >
                     {source.kind === "calendar" ? (
                       <Calendar

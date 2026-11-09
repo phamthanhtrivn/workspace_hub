@@ -204,7 +204,7 @@ export class WorkContextService {
     let timeZone = fallbackTimeZone ?? "Asia/Ho_Chi_Minh";
     let range = workRange(now, timeZone, days);
     const includeProject = scope.audience !== "calendar";
-    const includeCalendarTasks =
+    const includeCalendarContext =
       !scope.projectId &&
       (scope.audience === "mine" || scope.audience === "calendar");
     const projectRead = async () =>
@@ -231,7 +231,6 @@ export class WorkContextService {
           "context",
           {
             userId: actor.id,
-            ...(scope.projectId ? { projectId: scope.projectId } : {}),
             from: range.from,
             to: range.to,
             windowStart: range.windowStart,
@@ -243,7 +242,7 @@ export class WorkContextService {
       );
     const outcomes = await Promise.allSettled([
       includeProject ? projectRead() : Promise.resolve(null),
-      calendarRead(),
+      includeCalendarContext ? calendarRead() : Promise.resolve(null),
     ]);
     if (signal?.aborted) signal.throwIfAborted();
     if (
@@ -261,7 +260,7 @@ export class WorkContextService {
         range = workRange(now, timeZone, days);
         const updated = await Promise.allSettled([
           includeProject ? projectRead() : Promise.resolve(null),
-          calendarRead(),
+          includeCalendarContext ? calendarRead() : Promise.resolve(null),
         ]);
         if (
           updated[0].status === "rejected" &&
@@ -279,7 +278,7 @@ export class WorkContextService {
     // Personal Calendar tasks are separate from project tasks, never copies of synced tasks.
     const tasks = rankTasks([
       ...(includeProject ? (project?.tasks ?? []) : []),
-      ...(includeCalendarTasks ? (calendar?.tasks ?? []) : []),
+      ...(includeCalendarContext ? (calendar?.tasks ?? []) : []),
     ]);
 
     return {
@@ -305,13 +304,14 @@ export class WorkContextService {
                   : "empty",
         },
         calendar: {
-          state: !calendar
+          state: !includeCalendarContext
+            ? "empty"
+            : !calendar
             ? "unavailable"
             : calendar.partial || calendar.busyPartial
               ? "partial"
-              : (includeCalendarTasks &&
-                    (calendar.tasks.length ||
-                      calendar.metrics.completedInPeriod)) ||
+              : (calendar.tasks.length ||
+                  calendar.metrics.completedInPeriod) ||
                   calendar.busy.length ||
                   calendar.focus.sessions
                 ? "ready"
@@ -322,26 +322,32 @@ export class WorkContextService {
         project: includeProject
           ? ((project?.metrics as Metrics) ?? null)
           : null,
-        personal: includeCalendarTasks ? (calendar?.metrics ?? null) : null,
-        focusSeconds: calendar?.focus.seconds ?? null,
-        focusSessions: calendar?.focus.sessions ?? null,
+        personal: includeCalendarContext ? (calendar?.metrics ?? null) : null,
+        focusSeconds: includeCalendarContext
+          ? (calendar?.focus.seconds ?? null)
+          : null,
+        focusSessions: includeCalendarContext
+          ? (calendar?.focus.sessions ?? null)
+          : null,
       },
       tasks: tasks.slice(0, 60),
       detailPartial: !!(
         (includeProject && project?.partial) ||
-        (includeCalendarTasks && calendar?.partial) ||
+        (includeCalendarContext && calendar?.partial) ||
         tasks.length > 60
       ),
-      busyPartial: !calendar || calendar.busyPartial,
-      focusPerTask: calendar?.focus.perTask ?? [],
+      busyPartial: includeCalendarContext && (!calendar || calendar.busyPartial),
+      focusPerTask: includeCalendarContext ? (calendar?.focus.perTask ?? []) : [],
       schedulingBasis: "calendar",
-      freeSlots: freeSlots(
-        now,
-        timeZone,
-        calendar?.busy ?? [],
-        !calendar || calendar.busyPartial,
-      ),
-      busy: calendar?.busy ?? [],
+      freeSlots: includeCalendarContext
+        ? freeSlots(
+            now,
+            timeZone,
+            calendar?.busy ?? [],
+            !calendar || calendar.busyPartial,
+          )
+        : [],
+      busy: includeCalendarContext ? (calendar?.busy ?? []) : [],
     };
   }
 }
