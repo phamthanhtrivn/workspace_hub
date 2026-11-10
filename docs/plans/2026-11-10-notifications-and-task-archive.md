@@ -31,12 +31,24 @@
 
 ## Follow-up: push diagnostics and share notification synchronization
 
-- Confirmed personal share notifications are persisted for the intended recipient and are returned by the Document query.
+- Resolve duplicate email snapshots by latest `syncedAt` when creating personal shares. Diagnose recipient identity against User Service, rather than assuming a cached snapshot still represents the current account.
 - Refresh the global unread count on focus, visibility changes, reconnection and a visible-tab fallback interval; fetching an unfiltered notification snapshot also repairs the badge.
 - Keep date-filtered unread counts separate from the global badge. Refreshing existing notifications stays silent.
 - Report the failing Web Push setup step, HTTP status, backend reason and provider hostname, without logging subscription tokens or encryption keys. Keep the existing push endpoint allowlist unchanged.
 
 ## Local database
+
+The personal sharing investigation found a deleted account's profile snapshot with
+the same email as a newer account. An unordered email lookup bound shares and
+notifications to that deleted ID. The sharing lookup now prefers the latest
+snapshot, and an explicit owner re-share to a different resolved account emits a
+new sharing notification even if permission is unchanged. Read access continues
+to use the bound user ID; it does not transfer existing grants by email.
+
+After checking the affected old ID was absent from User Service and the current
+recipient matched the confirmed email, repaired one confirmed personal-file grant
+and its 12 saved sharing notifications in the local database. Other documents and
+notification types were left outside this repair.
 
 Applied `20261110000100_project_document_notifications` to notification-service and `20261110000100_document_notification_outbox` to document-service. Deploy these migrations in any other environment before running the updated services.
 

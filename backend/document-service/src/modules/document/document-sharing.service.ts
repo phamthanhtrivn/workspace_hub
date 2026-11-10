@@ -169,14 +169,19 @@ export class DocumentSharingService {
     const where = { documentItemId_shareWithEmail: { documentItemId: item.id, shareWithEmail: normalizedEmail } };
     const previous = await tx.documentShare.findUnique({ where });
     const recipient = await tx.userProfileSnapshot.findFirst({
-      where: { email: { equals: normalizedEmail, mode: 'insensitive' } }, select: { userId: true },
+      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+      // A recreated account can leave an older snapshot with the same email.
+      orderBy: [{ syncedAt: 'desc' }, { userId: 'asc' }],
+      select: { userId: true },
     });
     const share = await tx.documentShare.upsert({
       where, update: { permission, ...(recipient ? { shareWithUserId: recipient.userId } : {}) },
       create: { documentItemId: item.id, shareWithEmail: normalizedEmail,
         shareWithUserId: recipient?.userId, permission },
     });
-    await this.notifications.enqueue(tx, item, actorId, recipient?.userId ?? share.shareWithUserId, permission, previous?.permission);
+    const previousPermission = previous?.shareWithUserId === share.shareWithUserId
+      ? previous?.permission : undefined;
+    await this.notifications.enqueue(tx, item, actorId, recipient?.userId ?? share.shareWithUserId, permission, previousPermission);
     return share;
   }
 }
