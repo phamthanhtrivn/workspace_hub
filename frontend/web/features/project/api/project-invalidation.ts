@@ -28,6 +28,9 @@ export function projectQueriesForEvent(event: ProjectChange): ProjectQueryInvali
   if (['PROJECT', 'MEMBER', 'INVITATION'].includes(event.resource)) {
     invalidations.push({ queryKey: projectKey, exact: true });
   }
+  if (event.resource === 'PROJECT' || event.resource === 'MEMBER') {
+    add([...projectKey, 'notification-identity']);
+  }
   const invitationAccepted = event.resource === 'INVITATION' &&
     typeof event.data === 'object' && event.data !== null &&
     'status' in event.data && event.data.status === 'ACCEPTED';

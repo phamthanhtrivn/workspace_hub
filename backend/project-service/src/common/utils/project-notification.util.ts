@@ -1,6 +1,17 @@
 import { KAFKA_EVENTS } from '../constants/kafka.constants';
 import type { ProjectNotification } from '../adapters/project-communication.port';
 
+export function projectNotificationIdentity(project: {
+  id: string; name: string; icon?: string | null; color?: string | null;
+}) {
+  return {
+    projectId: project.id,
+    projectName: project.name,
+    projectIcon: project.icon ?? null,
+    projectColor: project.color ?? null,
+  };
+}
+
 export function buildInvitationResponseNotification(
   invitation: {
     id: string;

@@ -19,7 +19,7 @@ import { defaultMemberPermissions } from "./member-permissions";
 import { UserProfileSnapshotService } from "../user-profile-snapshot/user-profile-snapshot.service";
 import { NotificationOutboxService } from '../notification-outbox/notification-outbox.service';
 import { KAFKA_EVENTS } from '../../common/constants/kafka.constants';
-import { PROJECT_PERMISSION_LABELS } from '../../common/utils/project-notification.util';
+import { PROJECT_PERMISSION_LABELS, projectNotificationIdentity } from '../../common/utils/project-notification.util';
 
 @Injectable()
 export class MemberService {
@@ -125,7 +125,7 @@ export class MemberService {
           title: 'Your project permissions changed',
           content: `Your permissions in project "${project.name}" were updated.`,
           link: `/projects/${projectId}`,
-          metadata: { projectId, projectName: project.name, changes },
+          metadata: { ...projectNotificationIdentity(project), changes },
         }, tx);
         await enqueueProjectAccessSync(tx, projectId);
         return result;
@@ -177,7 +177,7 @@ export class MemberService {
           type: KAFKA_EVENTS.NOTIFICATION.PROJECT_MEMBER_REMOVED,
           title: 'You were removed from a project',
           content: `You were removed from project "${project.name}". You no longer have access to this project.`,
-          metadata: { projectId, projectName: project.name, removedAt: new Date().toISOString() },
+          metadata: { ...projectNotificationIdentity(project), removedAt: new Date().toISOString() },
         }, tx);
         await enqueueProjectAccessSync(tx, projectId);
       } catch (error) {

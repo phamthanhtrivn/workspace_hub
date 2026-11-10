@@ -12,13 +12,12 @@ import {
 import { cn } from "@/lib/utils";
 import { getDocumentIconConfig } from "@/features/documents/components/common/document-icon";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
-import { ProjectIdentityIcon } from "@/features/project/components/ui/project-identity";
+import { NotificationProjectIcon } from "./notification-project-icon";
 import type {
   Notification,
   NotificationCategory,
 } from "../types/notification.types";
 import { getNotificationCategory } from "../utils/notification-category.utils";
-import { getProjectColor } from "../utils/project-invitation.utils";
 
 interface NotificationCategoryIconConfig {
   Icon: LucideIcon;
@@ -59,28 +58,12 @@ export function NotificationCategoryIcon({
   notification,
   className,
 }: {
-  notification: Pick<Notification, "type" | "link" | "metadata">;
+  notification: Pick<Notification, "type" | "link" | "metadata" | "recipientId">;
   className?: string;
 }) {
   const category = getNotificationCategory(notification);
   const metadata = notification.metadata ?? {};
-  if (
-    category === "PROJECT" &&
-    typeof metadata.projectIcon === "string" &&
-    metadata.projectIcon.trim()
-  ) {
-    return (
-      <ProjectIdentityIcon
-        icon={metadata.projectIcon.trim()}
-        color={getProjectColor(
-          typeof metadata.projectColor === "string"
-            ? metadata.projectColor
-            : undefined,
-        )}
-        className={cn("rounded-full", className)}
-      />
-    );
-  }
+  if (category === "PROJECT") return <NotificationProjectIcon notification={notification} className={className} />;
   if (category === "DOCUMENT") {
     const config = getDocumentIconConfig({
       type:

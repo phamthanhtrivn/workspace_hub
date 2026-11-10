@@ -34,7 +34,7 @@ function fixture() {
   let denied = false;
   const tx = {
     project: {
-      findUniqueOrThrow: async () => ({ id: 'project', name: 'Workspace' }),
+      findUniqueOrThrow: async () => ({ id: 'project', name: 'Workspace', icon: '🎯', color: '#22396f' }),
     },
     projectMember: {
       findUnique: async () => member,
@@ -57,7 +57,7 @@ function fixture() {
   const check = async () => {
     if (denied) throw new ForbiddenException();
 
-    return { name: 'Workspace' };
+    return { id: 'project', name: 'Workspace', icon: '🎯', color: '#22396f' };
   };
   const access = {
     requireOwnerWriteAccess: check,
@@ -101,6 +101,8 @@ test('permission updates notify the affected member with only actual before/afte
   assert.equal(f.sent.length, 1);
   assert.equal(f.sent[0].recipientId, 'recipient');
   assert.equal(f.sent[0].type, 'PROJECT_PERMISSIONS_UPDATED');
+  assert.equal(f.sent[0].metadata?.projectIcon, '🎯');
+  assert.equal(f.sent[0].metadata?.projectColor, '#22396f');
   assert.deepEqual(f.sent[0].metadata?.changes, [
     {
       field: 'canEditDocuments',
@@ -138,4 +140,6 @@ test('removing a member clears task assignments and atomically enqueues the proj
   assert.equal(f.sent[0].recipientId, 'recipient');
   assert.equal(f.sent[0].link, undefined);
   assert.equal(f.sent[0].metadata?.projectName, 'Workspace');
+  assert.equal(f.sent[0].metadata?.projectIcon, '🎯');
+  assert.equal(f.sent[0].metadata?.projectColor, '#22396f');
 });

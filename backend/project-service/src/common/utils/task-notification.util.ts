@@ -1,5 +1,6 @@
 import { KAFKA_EVENTS } from "../constants/kafka.constants";
 import type { ProjectNotification } from "../adapters/project-communication.port";
+import { projectNotificationIdentity } from "./project-notification.util";
 
 type TaskNotificationType =
   | typeof KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED
@@ -51,14 +52,13 @@ export function buildTaskNotification(input: {
   type: TaskNotificationType;
   recipientId: string;
   senderId: string;
-  project: { id: string; name: string };
+  project: { id: string; name: string; icon?: string | null; color?: string | null };
   task: { id: string; title: string; taskNumber: number };
 }): ProjectNotification {
   const { type, recipientId, senderId, project, task } = input;
   const metadata = {
     taskId: task.id,
-    projectId: project.id,
-    projectName: project.name,
+    ...projectNotificationIdentity(project),
     taskTitle: task.title,
     taskNumber: task.taskNumber,
   };

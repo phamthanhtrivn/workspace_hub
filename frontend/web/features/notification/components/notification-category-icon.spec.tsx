@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { ReactElement } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Provider } from "react-redux";
+import { store } from "@/store/store";
 import { FileText } from "lucide-react";
 import {
   FaFileExcel,
@@ -27,6 +31,13 @@ const base: Notification = {
   updatedAt: "2026-11-10T00:00:00Z",
 };
 
+function renderProjectIcon(element: ReactElement): string {
+  const client = new QueryClient();
+  try {
+    return renderToStaticMarkup(<Provider store={store}><QueryClientProvider client={client}>{element}</QueryClientProvider></Provider>);
+  } finally { client.clear(); }
+}
+
 function svg(markup: string): string {
   const match = markup.match(/<svg\b[\s\S]*?<\/svg>/);
   assert.ok(match, "Expected a file icon SVG");
@@ -35,7 +46,7 @@ function svg(markup: string): string {
 }
 
 test("project notifications use the configured project icon and color", () => {
-  const markup = renderToStaticMarkup(
+  const markup = renderProjectIcon(
     <NotificationCategoryIcon
       notification={{
         ...base,
@@ -88,7 +99,7 @@ test("unknown file types and missing or malformed file metadata retain the green
 });
 
 test("project notifications without a configured icon retain their category fallback", () => {
-  const markup = renderToStaticMarkup(
+  const markup = renderProjectIcon(
     <NotificationCategoryIcon
       notification={{
         ...base,
