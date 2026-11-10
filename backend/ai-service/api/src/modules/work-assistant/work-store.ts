@@ -9,6 +9,7 @@ import { TooManyRequestsException } from "../../common/errors/rate-limit.excepti
 import type { Actor } from "../../common/types";
 import type { StoredMessage, TaskReference } from "./work-assistant.types";
 import { conversationCursor, parseConversationCursor } from "./work-cursor";
+import { WORK_HISTORY_LIMIT } from "./work-history";
 export type WorkSession = {
   id: string;
   owner_id: string;
@@ -117,7 +118,7 @@ export class WorkStore {
   }
   async recent(session: WorkSession) {
     const messages = await this.database.rows<StoredMessage>(
-      "SELECT * FROM notebook_ai.work_assistant_messages WHERE session_id=$1 ORDER BY created_at DESC,id DESC LIMIT 20",
+      `SELECT * FROM notebook_ai.work_assistant_messages WHERE session_id=$1 ORDER BY created_at DESC,id DESC LIMIT ${WORK_HISTORY_LIMIT}`,
       [session.id],
     );
 

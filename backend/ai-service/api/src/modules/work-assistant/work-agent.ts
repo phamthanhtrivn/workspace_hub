@@ -13,6 +13,7 @@ import { TooManyRequestsException } from "../../common/errors/rate-limit.excepti
 import { aiModels } from "../../infrastructure/integrations/ai-model.provider";
 import { admitModel } from "../../infrastructure/integrations/llm.client";
 import type { StoredMessage, WorkContext } from "./work-assistant.types";
+import { workHistory } from "./work-history";
 
 const MAX_CONTEXT_BYTES = 20000;
 const BYTES_PER_TOKEN = 3;
@@ -188,12 +189,11 @@ export async function workAnswer(
       ".",
   ].join(" ");
   const messages: BaseMessage[] = [new SystemMessage(system)];
-  for (const message of history.slice(-20)) {
-    if (message.hidden) continue;
+  for (const message of workHistory(history)) {
     messages.push(
       message.role === "user"
-        ? new HumanMessage(message.content.slice(0, 1000))
-        : new AIMessage(message.content.slice(0, 1500)),
+        ? new HumanMessage(message.content)
+        : new AIMessage(message.content),
     );
   }
   messages.push(

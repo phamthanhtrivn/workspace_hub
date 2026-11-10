@@ -20,6 +20,7 @@ stub('./src/infrastructure/integrations/ai-model.provider.ts', { aiModels: {
 stub('./src/infrastructure/integrations/llm.client.ts', { admitModel: async () => { admissions++; } });
 stub('./src/infrastructure/database/ai-database.client.ts', { AiDatabaseClient: class {} });
 const { workAnswer } = ai('./src/modules/work-assistant/work-agent.ts');
+const { workHistory, WORK_HISTORY_BYTES } = ai('./src/modules/work-assistant/work-history.ts');
 const { WorkStore } = ai('./src/modules/work-assistant/work-store.ts');
 const { WorkAssistantGenerationService } = ai('./src/modules/work-assistant/work-assistant-generation.service.ts');
 const { WorkAssistantWorkflowService } = ai('./src/modules/work-assistant/work-assistant-workflow.service.ts');
@@ -41,6 +42,28 @@ function response(parts, close = true) {
   } }), { headers: { 'content-type': 'text/event-stream' } });
 }
 const finalResponse = text => response([frame({ role: 'assistant', content: text }), frame({}, 'stop')]);
+
+test('history keeps twenty visible recent turns within a serialized byte budget, preserving Unicode and newest detail', () => {
+  const records = Array.from({ length: 25 }, (_, i) => ({
+    role: i % 2 ? 'assistant' : 'user', content: `turn-${i}:` + '\\"\n\u0000🙂 tiếng Việt '.repeat(200),
+    project_ids: [],
+  }));
+  const messages = workHistory(records);
+  assert.equal(messages.length, 20);
+  assert.ok(Buffer.byteLength(JSON.stringify(messages)) <= WORK_HISTORY_BYTES);
+  assert.ok(messages[0].content.startsWith('turn-5:'));
+  assert.ok(messages[0].content.endsWith('…'));
+  assert.equal(messages.at(-1).content, records.at(-1).content.slice(0, 1000).replace(/[\uD800-\uDBFF]$/u, ''));
+  for (const message of messages) {
+    assert.ok(message.content.length <= (message.role === 'user' ? 1000 : 1500));
+    assert.equal(message.content.includes('\uFFFD'), false);
+    assert.equal(Buffer.from(message.content).toString('utf8'), message.content);
+  }
+  records.at(-1).hidden = true;
+  assert.equal(workHistory(records).some(message => message.content.startsWith('turn-24:')), false);
+  const short = [{ role: 'user', content: 'Keep this exactly.', project_ids: [] }];
+  assert.equal(workHistory(short)[0].content, short[0].content);
+});
 
 test('twenty chronological history messages reach the real SDK; text arrives before completion', async () => {
   let finish, received = false, settled = false, request;
@@ -77,6 +100,23 @@ test('the database fetches the same twenty recent messages in chronological orde
     return latest;
   } });
   assert.deepEqual((await store.recent({ id: 'session' })).map(m => m.id), Array.from({ length: 20 }, (_, i) => i + 1));
+});
+
+test('long twenty-message history leaves fresh work details available within the model budget', async () => {
+  let request;
+  provider = async (_url, options) => { request = JSON.parse(options.body); return finalResponse('Use fresh work data.'); };
+  const history = Array.from({ length: 20 }, (_, index) => ({ role: index % 2 ? 'assistant' : 'user',
+    content: 'Earlier ' + index + ': ' + 'Kế hoạch tiếng Việt, ghi chú và công việc. '.repeat(200), project_ids: [] }));
+  const task = { id: 'fresh-task', kind: 'project', title: 'Fresh task', description: 'Current authorized detail. '.repeat(20),
+    priority: 'HIGH', status: 'TODO', dueAt: null, allDay: false, overdue: false, dueToday: false, url: '/projects/project?taskId=fresh-task',
+    checklist: [], checklistCount: 0, childCount: 0, blockedBy: [], unblocks: 0 };
+  const result = await workAnswer('Plan today', history, { ...context, tasks: [task] }, async () => context, new AbortController().signal, () => {});
+  const turns = request.messages.filter(message => typeof message.content === 'string' && message.content.startsWith('Earlier '));
+  assert.equal(turns.length, 20);
+  assert.ok(Buffer.byteLength(JSON.stringify(turns)) <= WORK_HISTORY_BYTES);
+  assert.equal(result.referenceTasks[0].id, 'fresh-task');
+  assert.ok(request.messages.some(message => message.role === 'tool' && message.content.includes('Fresh task')));
+  assert.ok(Math.ceil(Buffer.byteLength(JSON.stringify(request.messages)) / 3) + 1800 < 20000);
 });
 
 test('split tool arguments survive streaming and provisional tool prose is reset', async () => {
