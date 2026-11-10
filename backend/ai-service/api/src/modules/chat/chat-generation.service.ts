@@ -11,6 +11,7 @@ import { StudioService } from "../studio/studio.service";
 import { isNotebookSummaryRequest } from "./summary-request";
 import {
   conversationHistory,
+  NOTEBOOK_HISTORY_LIMIT,
   isFollowUp,
   retrievalQuestion,
 } from "./chat-history";
@@ -53,6 +54,7 @@ export class ChatGenerationService {
         "SUMMARY",
         sourceIds,
       );
+
       return {
         content:
           artifact.status === "COMPLETED"
@@ -79,6 +81,7 @@ export class ChatGenerationService {
     stream.emit("status", { stage: "GENERATING" });
     const images = await visualEvidence(question, citations, sources);
     await authorize();
+
     return generateChatResponse(
       question,
       citations,
@@ -100,9 +103,10 @@ export class ChatGenerationService {
          FROM notebook_ai.messages m LEFT JOIN notebook_ai.artifacts a ON a.id=m.artifact_id
          WHERE m.notebook_id=$1 AND (m.artifact_id IS NULL OR a.status='COMPLETED')
          AND (m.role='USER' OR jsonb_array_length(m.citations)>0 OR a.status='COMPLETED')
-         ORDER BY m.created_at DESC,m.id DESC LIMIT 12`,
+         ORDER BY m.created_at DESC,m.id DESC LIMIT ${NOTEBOOK_HISTORY_LIMIT * 2}`,
       [notebookId],
     );
+
     return conversationHistory(previous.reverse(), sources);
   }
 }

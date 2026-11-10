@@ -1,6 +1,7 @@
 import type { Source, Snapshot } from "../../common/types";
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
+export const NOTEBOOK_HISTORY_LIMIT = 20;
 type StoredMessage = { role: string; content: string; sources: Snapshot[] };
 
 export function conversationHistory(
@@ -36,7 +37,8 @@ export function conversationHistory(
       user = null;
     }
   }
-  return turns.slice(-6);
+
+  return turns.slice(-NOTEBOOK_HISTORY_LIMIT);
 }
 
 export function isFollowUp(question: string): boolean {
@@ -56,5 +58,6 @@ export function retrievalQuestion(
 ): string {
   if (!history.length || !isFollowUp(question)) return question;
   const previous = history.filter((turn) => turn.role === "user").at(-1);
+
   return previous ? `${question}\n${previous.content}` : question;
 }
