@@ -3,6 +3,7 @@ import {
   type Notification,
 } from "../types/notification.types";
 import { isProjectResourceId } from "../../project/utils/project-task-link";
+import { SharePermission } from "../../documents/types/documents.enums";
 
 export interface NotificationDetail {
   label: string;
@@ -15,6 +16,21 @@ function display(value: unknown): string {
   if (value == null || value === "") return "None";
 
   return typeof value === "string" ? value : JSON.stringify(value);
+}
+
+function permissionLabel(value: unknown): string {
+  if (value === SharePermission.VIEWER) return "Viewer";
+  if (value === SharePermission.EDITOR) return "Editor";
+
+  return display(value);
+}
+
+export function getNotificationPermissionChange(notification: Notification): string | undefined {
+  const metadata = notification.metadata ?? {};
+  if (notification.type !== NotificationType.DOCUMENT_PERMISSION_UPDATED ||
+    metadata.previousPermission == null || metadata.permission == null) return undefined;
+
+  return `${permissionLabel(metadata.previousPermission)} → ${permissionLabel(metadata.permission)}`;
 }
 
 export function getContextNotificationDetails(
@@ -41,8 +57,11 @@ export function getContextNotificationDetails(
         add("Size", `${new Intl.NumberFormat().format(bytes)} bytes`);
     }
   }
-  add("Permission", metadata.permission);
-  add("Previous permission", metadata.previousPermission);
+  if (notification.type === NotificationType.DOCUMENT_SHARE_REMOVED) {
+    if (metadata.previousPermission != null) add("Previous permission", permissionLabel(metadata.previousPermission));
+  } else if (metadata.permission != null) {
+    add("Permission", getNotificationPermissionChange(notification) ?? permissionLabel(metadata.permission));
+  }
   add("Response", metadata.status);
   for (const [field, label] of [
     ["invitedAt", "Invited on"],
@@ -74,7 +93,8 @@ export function getContextNotificationLink(
   notification: Notification,
 ): string | undefined {
   const metadata = notification.metadata ?? {};
-  if (notification.type === NotificationType.PROJECT_MEMBER_REMOVED)
+  if (notification.type === NotificationType.PROJECT_MEMBER_REMOVED ||
+    notification.type === NotificationType.DOCUMENT_SHARE_REMOVED)
     return undefined;
   if (
     notification.type.startsWith("DOCUMENT_") &&

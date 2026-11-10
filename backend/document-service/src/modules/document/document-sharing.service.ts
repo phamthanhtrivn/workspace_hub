@@ -121,16 +121,15 @@ export class DocumentSharingService {
       'Direct sharing is',
     );
 
-    const share = await this.prisma.documentShare.findUnique({
-      where: { id: shareId },
-    });
-
-    if (!share || share.documentItemId !== id) {
-      throw new NotFoundException('Share configuration not found');
-    }
-
-    await this.prisma.documentShare.delete({
-      where: { id: shareId },
+    await this.prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM document_items WHERE id = ${id}::uuid FOR UPDATE`;
+      const share = await tx.documentShare.findUnique({ where: { id: shareId } });
+      if (!share || share.documentItemId !== id) {
+        throw new NotFoundException('Share configuration not found');
+      }
+      const recipientId = share.shareWithUserId ?? await this.resolveRecipientId(tx, share.shareWithEmail);
+      await tx.documentShare.delete({ where: { id: shareId } });
+      await this.notifications.enqueueRemoved(tx, item, userId, recipientId, share.permission);
     });
     await this.events.publishProjectDocumentEvent(item, userId, 'UPDATED');
   }
@@ -168,20 +167,26 @@ export class DocumentSharingService {
     const normalizedEmail = email.trim().toLowerCase();
     const where = { documentItemId_shareWithEmail: { documentItemId: item.id, shareWithEmail: normalizedEmail } };
     const previous = await tx.documentShare.findUnique({ where });
+    const recipientId = await this.resolveRecipientId(tx, normalizedEmail);
+    const share = await tx.documentShare.upsert({
+      where, update: { permission, ...(recipientId ? { shareWithUserId: recipientId } : {}) },
+      create: { documentItemId: item.id, shareWithEmail: normalizedEmail,
+        shareWithUserId: recipientId, permission },
+    });
+    const previousPermission = previous?.shareWithUserId === share.shareWithUserId
+      ? previous?.permission : undefined;
+    await this.notifications.enqueue(tx, item, actorId, recipientId ?? share.shareWithUserId, permission, previousPermission);
+    return share;
+  }
+
+  private async resolveRecipientId(tx: Prisma.TransactionClient, email: string): Promise<string | undefined> {
     const recipient = await tx.userProfileSnapshot.findFirst({
-      where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+      where: { email: { equals: email.trim().toLowerCase(), mode: 'insensitive' } },
       // A recreated account can leave an older snapshot with the same email.
       orderBy: [{ syncedAt: 'desc' }, { userId: 'asc' }],
       select: { userId: true },
     });
-    const share = await tx.documentShare.upsert({
-      where, update: { permission, ...(recipient ? { shareWithUserId: recipient.userId } : {}) },
-      create: { documentItemId: item.id, shareWithEmail: normalizedEmail,
-        shareWithUserId: recipient?.userId, permission },
-    });
-    const previousPermission = previous?.shareWithUserId === share.shareWithUserId
-      ? previous?.permission : undefined;
-    await this.notifications.enqueue(tx, item, actorId, recipient?.userId ?? share.shareWithUserId, permission, previousPermission);
-    return share;
+
+    return recipient?.userId;
   }
 }

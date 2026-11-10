@@ -13,6 +13,7 @@ import { NotificationType } from "../../types/notification.types";
 import {
   getContextNotificationDetails,
   getContextNotificationLink,
+  getNotificationPermissionChange,
 } from "../../utils/context-notification.utils";
 
 export function ContextNotificationListItem({
@@ -21,6 +22,7 @@ export function ContextNotificationListItem({
 }: NotificationListItemProps) {
   const contextName =
     notification.metadata?.projectName ?? notification.metadata?.documentName;
+  const permissionChange = getNotificationPermissionChange(notification);
 
   return (
     <NotificationListRow
@@ -30,7 +32,7 @@ export function ContextNotificationListItem({
       description={`${notification.senderName || "A workspace member"} · ${typeof contextName === "string" ? contextName : notification.content}`}
     >
       <span className="mt-1 block text-xs font-normal text-muted-foreground">
-        {notification.content}
+        {permissionChange ? `Permission: ${permissionChange}` : notification.content}
       </span>
     </NotificationListRow>
   );

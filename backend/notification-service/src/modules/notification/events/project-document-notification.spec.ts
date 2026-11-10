@@ -28,6 +28,7 @@ test('project responses, task removal, permissions, membership and personal shar
     NotificationType.PROJECT_MEMBER_REMOVED,
     NotificationType.DOCUMENT_SHARED,
     NotificationType.DOCUMENT_PERMISSION_UPDATED,
+    NotificationType.DOCUMENT_SHARE_REMOVED,
   ];
   for (const type of types)
     await controller.handleSpaceInvitationNotificationEvent({
@@ -47,6 +48,9 @@ test('project query filters include every new project type; personal document li
   assert.ok(types.includes(NotificationType.PROJECT_INVITATION_ACCEPTED));
   assert.ok(types.includes(NotificationType.PROJECT_TASK_UNASSIGNED));
   assert.deepEqual(getNotificationCategoryWhere('DOCUMENT'), {
-    link: { startsWith: '/documents' },
+    OR: [
+      { type: { in: [NotificationType.DOCUMENT_SHARED, NotificationType.DOCUMENT_PERMISSION_UPDATED, NotificationType.DOCUMENT_SHARE_REMOVED] } },
+      { link: { startsWith: '/documents' } },
+    ],
   });
 });

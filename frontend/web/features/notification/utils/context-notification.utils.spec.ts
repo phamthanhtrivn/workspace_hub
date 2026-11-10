@@ -7,6 +7,7 @@ import {
 import {
   getContextNotificationDetails,
   getContextNotificationLink,
+  getNotificationPermissionChange,
 } from "./context-notification.utils";
 import { getProjectTaskNotificationLink } from "./project-task-notification.utils";
 
@@ -95,4 +96,20 @@ test("unassigned tasks still open the exact task, while deleted tasks open their
     }),
     `/projects/${projectId}`,
   );
+});
+
+test("document permission changes render as a single readable before-to-after row for both directions", () => {
+  for (const [before, after, expected] of [["VIEWER", "EDITOR", "Viewer → Editor"], ["EDITOR", "VIEWER", "Editor → Viewer"]] as const) {
+    const changed = { ...notification, type: NotificationType.DOCUMENT_PERMISSION_UPDATED, metadata: { previousPermission: before, permission: after } };
+    assert.equal(getNotificationPermissionChange(changed), expected);
+    assert.deepEqual(getContextNotificationDetails(changed), [{ label: "Permission", value: expected }]);
+  }
+});
+
+test("share removal shows the old permission and removal time without opening a revoked document", () => {
+  const removed = { ...notification, type: NotificationType.DOCUMENT_SHARE_REMOVED, link: `/documents?view=shared&documentId=${documentId}`, metadata: { ...notification.metadata, permission: null, previousPermission: "VIEWER", removedAt: "2026-11-11T00:00:00Z" } };
+  assert.equal(getContextNotificationLink(removed), undefined);
+  const details = getContextNotificationDetails(removed);
+  assert.ok(details.some(detail => detail.label === "Previous permission" && detail.value === "Viewer"));
+  assert.ok(details.some(detail => detail.label === "Removed on"));
 });

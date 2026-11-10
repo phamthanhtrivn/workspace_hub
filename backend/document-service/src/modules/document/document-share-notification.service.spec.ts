@@ -88,6 +88,7 @@ void test('permission changes notify once; duplicate shares, project files, self
     SharePermission.VIEWER,
   );
   assert.equal(f.payloads[0].type, 'DOCUMENT_PERMISSION_UPDATED');
+  assert.match(String(f.payloads[0].content), /Viewer → Editor/);
   await f.service.enqueue(
     f.tx,
     f.item,
@@ -113,4 +114,13 @@ void test('permission changes notify once; duplicate shares, project files, self
     SharePermission.EDITOR,
   );
   assert.equal(f.payloads.length, 1);
+});
+
+void test('share removal does not notify project documents, self-removal or unresolved recipients', async () => {
+  const f = fixture();
+  await f.service.enqueueRemoved(f.tx, f.item, 'owner', null, SharePermission.VIEWER);
+  await f.service.enqueueRemoved(f.tx, f.item, 'owner', 'owner', SharePermission.VIEWER);
+  f.item.projectId = 'project';
+  await f.service.enqueueRemoved(f.tx, f.item, 'owner', 'recipient', SharePermission.VIEWER);
+  assert.equal(f.payloads.length, 0);
 });

@@ -4,7 +4,9 @@
 
 - Project invitation responses notify the actual inviter with responder, project, result and timestamps.
 - Keep the existing pending invitation list; always show Invitations for members who can invite.
-- Personal direct file/folder shares and permission changes notify the recipient. Exclude chat sharing, project documents, inherited children and unchanged grants.
+- Personal direct file/folder shares, permission changes and revoked shares notify the recipient. Exclude chat sharing, project documents, inherited children and unchanged grants.
+- Document tabs use canonical URLs: `/documents`, `?view=shared`, `?view=starred`, `?view=trash`; legacy uppercase values remain readable. Browser history and refresh preserve the destination. Keep the download queue mounted across tab/folder navigation.
+- Permission changes use one `Viewer → Editor`/`Editor → Viewer` line in both the list item and detail popup. Revocation notifications retain document details, actor, old permission and time, with no document navigation action.
 - Task changes notify the current assignee, creator and project owner, excluding the actor and duplicate recipients. Task comment events also notify participating comment authors who still belong to the project.
 - Reassignment notifies the removed assignee once. Later changes use current membership and assignment.
 - Member permission changes include before/after values. Removed project members receive a notification; linked space General receives a system message.
@@ -37,6 +39,11 @@
 - Report the failing Web Push setup step, HTTP status, backend reason and provider hostname, without logging subscription tokens or encryption keys. Keep the existing push endpoint allowlist unchanged.
 
 ## Local database
+
+Applied notification-service migration `20261111000100_document_share_removed`
+and regenerated its Prisma client. The Document category now includes document
+event types directly, so revocation notifications without links remain visible
+and counted. Revoking a direct share and persisting its outbox event are atomic.
 
 The personal sharing investigation found a deleted account's profile snapshot with
 the same email as a newer account. An unordered email lookup bound shares and

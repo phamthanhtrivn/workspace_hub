@@ -124,7 +124,7 @@ if (!isRegistryInitialized) {
   }
   for (const type of [NotificationType.PROJECT_INVITATION_ACCEPTED, NotificationType.PROJECT_INVITATION_DECLINED,
     NotificationType.PROJECT_PERMISSIONS_UPDATED, NotificationType.PROJECT_MEMBER_REMOVED,
-    NotificationType.DOCUMENT_SHARED, NotificationType.DOCUMENT_PERMISSION_UPDATED]) {
+    NotificationType.DOCUMENT_SHARED, NotificationType.DOCUMENT_PERMISSION_UPDATED, NotificationType.DOCUMENT_SHARE_REMOVED]) {
     registerNotificationRenderer(type, ContextNotificationModal, ContextNotificationListItem);
   }
   registerNotificationRenderer(NotificationType.CHANNEL_MEMBER_ADDED, ChannelMemberAddedModalRenderer, DefaultListItemRenderer);

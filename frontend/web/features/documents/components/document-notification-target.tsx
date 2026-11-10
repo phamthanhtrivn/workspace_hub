@@ -9,6 +9,7 @@ import { useAppSelector } from "@/store/store";
 import { QueryFeedback } from "@/components/common/query-feedback";
 import { Button } from "@/components/ui/button";
 import FilePreviewModal from "./preview/file-preview-modal";
+import { DOCUMENTS_PATH } from "../utils/document-navigation";
 
 export function DocumentNotificationTarget() {
   const params = useSearchParams();
@@ -24,7 +25,7 @@ export function DocumentNotificationTarget() {
   const close = () => {
     const next = new URLSearchParams(params.toString());
     next.delete(DOCUMENT_QUERY_PARAMS.DOCUMENT_ID);
-    router.replace(`/documents?${next.toString()}`, { scroll: false });
+    router.replace(`${DOCUMENTS_PATH}${next.size ? `?${next}` : ""}`, { scroll: false });
   };
   if (!documentId) return null;
   if (!query.data || query.error)

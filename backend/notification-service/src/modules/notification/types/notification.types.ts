@@ -83,7 +83,10 @@ export function getNotificationCategoryWhere(
   if (category === "ALL") return {};
   if (category === "DOCUMENT") {
     return {
-      link: { startsWith: "/documents" },
+      OR: [
+        { type: { in: [NotificationType.DOCUMENT_SHARED, NotificationType.DOCUMENT_PERMISSION_UPDATED, NotificationType.DOCUMENT_SHARE_REMOVED] } },
+        { link: { startsWith: "/documents" } },
+      ],
     };
   }
   return {
