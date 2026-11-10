@@ -3,15 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserAvatar } from "@/components/common/user-avatar";
-import { CheckCircle2, Clock3, FolderKanban, XCircle } from "lucide-react";
+import { CheckCircle2, Clock3, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useAppDispatch } from "@/store/store";
 import { setProjectInvitationStatus } from "@/store/notification/notification.slice";
 import { useRespondProjectInvitation } from "@/features/project/hooks/use-invitations";
 import { useProjectInviterIdentity } from "../../hooks/use-project-inviter-identity";
 import { getNotificationApiErrorMessage } from "../../utils/notification-display.utils";
-import { formatProjectInvitationExpiryDate, getProjectColor, getProjectInvitationMetadata } from "../../utils/project-invitation.utils";
+import { formatProjectInvitationExpiryDate, getProjectInvitationMetadata } from "../../utils/project-invitation.utils";
 import { NotificationListRow } from "../notification-list-row";
+import { NotificationCategoryIcon } from "../notification-category-icon";
 import type {
   Notification,
   ProjectInvitationNotificationStatus,
@@ -39,12 +40,11 @@ export function ProjectInvitationListItemRenderer({
   const projectName = metadata.projectName || "Untitled project";
   const inviter = useProjectInviterIdentity(notification, "A project member");
   const inviterName = inviter.name;
-  const projectColor = getProjectColor(metadata.projectColor);
 
   return (
     <NotificationListRow notification={notification} onClick={onClick}
       badge={<span className="rounded-full bg-info-soft px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-info-content">Project invite</span>}
-      title={<span className="flex min-w-0 items-start gap-1.5">{metadata.projectIcon?.trim() && <span className="inline-flex size-4 shrink-0 items-center justify-center text-xs" style={{ color: projectColor }}>{metadata.projectIcon.trim()}</span>}<span className="min-w-0">{projectName}</span></span>}
+      title={projectName}
       description={"Invited by " + inviterName}
     >
       <span className={"mt-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 " + statusClasses[status]}>
@@ -74,7 +74,6 @@ export function ProjectInvitationModalRenderer({
   const projectName = metadata.projectName || "Untitled project";
   const inviter = useProjectInviterIdentity(notification, "A project member");
   const inviterName = inviter.name;
-  const projectColor = getProjectColor(metadata.projectColor);
 
   const respond = async (nextAction: "accept" | "decline") => {
     if (!metadata.invitationId) {
@@ -118,17 +117,9 @@ export function ProjectInvitationModalRenderer({
   return (
     <div className="p-5">
       <div className="rounded-panel border border-border bg-background p-4">
-        <div className="flex items-start gap-4">
-          <span
-            className="grid h-14 w-14 shrink-0 place-items-center rounded-panel text-2xl font-semibold ring-1 ring-inset ring-current/10"
-            style={{ backgroundColor: `${projectColor}14`, color: "var(--foreground)" }}
-            aria-label={projectName}
-          >
-            {metadata.projectIcon?.trim() || (
-              <FolderKanban className="h-7 w-7" />
-            )}
-          </span>
-          <div className="min-w-0 pt-0.5">
+        <div className="flex items-start gap-3">
+          <NotificationCategoryIcon notification={notification} />
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-info-content">
               Project invitation
             </p>

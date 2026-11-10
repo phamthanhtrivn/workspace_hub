@@ -5,7 +5,6 @@ import { UserAvatar } from "@/components/common/user-avatar";
 import { Button } from "@/components/ui/button";
 import { NotificationListRow } from "../notification-list-row";
 import { NotificationCategoryIcon } from "../notification-category-icon";
-import { getProjectColor } from "../../utils/project-invitation.utils";
 import type {
   NotificationListItemProps,
   NotificationRendererProps,
@@ -45,28 +44,12 @@ export function ContextNotificationModal({
   const link = getContextNotificationLink(notification);
   const details = getContextNotificationDetails(notification);
   const isDocument = notification.type.startsWith("DOCUMENT_");
-  const projectIcon = notification.metadata?.projectIcon;
 
   return (
     <div className="space-y-4 p-5">
       <div className="rounded-panel border border-border bg-background p-4">
         <div className="flex items-start gap-3">
-          {typeof projectIcon === "string" && projectIcon.trim() ? (
-            <span
-              className="grid size-11 shrink-0 place-items-center rounded-panel border border-border bg-muted text-2xl"
-              style={{
-                color: getProjectColor(
-                  typeof notification.metadata?.projectColor === "string"
-                    ? notification.metadata.projectColor
-                    : undefined,
-                ),
-              }}
-            >
-              {projectIcon}
-            </span>
-          ) : (
-            <NotificationCategoryIcon notification={notification} />
-          )}
+          <NotificationCategoryIcon notification={notification} />
           <div className="min-w-0">
             <h3 className="text-section-title font-semibold text-foreground">
               {notification.title}

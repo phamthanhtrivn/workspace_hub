@@ -27,7 +27,9 @@ export function NotificationListRow({ notification, onClick, title, description,
         notification.isRead ? "bg-card" : "bg-info-soft/60",
       )}
     >
-      {leading ?? <NotificationCategoryIcon notification={notification} className="size-10" />}
+      <span className="grid size-10 shrink-0 self-start place-items-center">
+        {leading ?? <NotificationCategoryIcon notification={notification} />}
+      </span>
       <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
         {badge && <span className="mb-1 flex flex-wrap items-center gap-2">{badge}</span>}
         <span className="line-clamp-2 text-sm font-semibold leading-5 text-foreground">{title}</span>
