@@ -1,4 +1,4 @@
-import { tool } from "langchain";
+import { tool } from "@langchain/core/tools";
 import {
   AIMessage,
   AIMessageChunk,

@@ -145,7 +145,7 @@ class Engine:
         else:
             raise ValueError("Unsupported extension")
         bounded_text("\n".join(text for text, _ in pages))
-        if sum(len(self.tokenizer(text)) for text, _ in pages) > 40_000:
+        if suffix != ".pdf" and sum(len(self.tokenizer(text)) for text, _ in pages) > 40_000:
             raise InvalidSource("Document exceeds 40000 tokens", "SOURCE_TOKEN_LIMIT")
         return pages
 
