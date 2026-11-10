@@ -41,7 +41,7 @@ export function projectQueriesForEvent(event: ProjectChange): ProjectQueryInvali
 
   const resourceKeys: Partial<Record<ProjectChangedEvent['resource'], QueryKey[]>> = {
     PROJECT: [[...projectKey, 'access-sync'], [...projectKey, 'space-status']],
-    TASK: [[...projectKey, 'tasks'], [...projectKey, 'task-status-counts']],
+    TASK: [[...projectKey, 'tasks'], [...projectKey, 'task-status-counts'], [...projectKey, 'linked-task']],
     INVITATION: [[...projectKey, 'invitations', 'pending'], ['projects', 'invitations', 'mine']],
     PROJECT_SPACE: [[...projectKey, 'space-status']],
     CHECKLIST: [[...projectKey, 'tasks']],

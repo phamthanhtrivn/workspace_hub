@@ -10,6 +10,8 @@ import { DocumentPublicQueryService } from './document-public-query.service';
 import { DocumentUploadService } from './document-upload.service';
 import { DocumentLifecycleService } from './document-lifecycle.service';
 import { DocumentSharingService } from './document-sharing.service';
+import { DocumentShareNotificationService } from './document-share-notification.service';
+import { DocumentNotificationOutboxService } from './document-notification-outbox.service';
 import { DocumentChatSharingService } from './document-chat-sharing.service';
 import { DocumentBulkService } from './document-bulk.service';
 import { DocumentBulkController } from './document-bulk.controller';
@@ -53,6 +55,8 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     DocumentUploadService,
     DocumentLifecycleService,
     DocumentSharingService,
+    DocumentShareNotificationService,
+    DocumentNotificationOutboxService,
     DocumentChatSharingService,
     DocumentBulkService,
     ProjectDocumentAttachmentService,

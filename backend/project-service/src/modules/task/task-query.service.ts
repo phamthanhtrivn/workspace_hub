@@ -65,7 +65,6 @@ export class TaskQueryService {
       by: ["status"],
       where: {
         projectId,
-        archived: false,
         deletedAt: null,
       },
       _count: { _all: true },

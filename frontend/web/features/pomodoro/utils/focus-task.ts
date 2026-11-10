@@ -35,7 +35,7 @@ export function isProjectFocusOverdue(task: Pick<Task, "dueDate" | "allDay">, no
 
 export function isProjectFocusEligible(task: Task, userId: string, scope: FocusTaskScope = "all", now = new Date()): boolean {
   return Boolean(userId) && task.assignees.some((assignee) => assignee.userId === userId) &&
-    (task.status === "TODO" || task.status === "IN_PROGRESS") && !task.archived && !task.deletedAt && !task.completedAt &&
+    (task.status === "TODO" || task.status === "IN_PROGRESS") && !task.deletedAt && !task.completedAt &&
     matchesDates(task.startDate, task.dueDate, task.allDay, scope, now);
 }
 

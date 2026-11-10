@@ -22,6 +22,9 @@ export function ProjectTaskListItemRenderer({ notification, onClick }: Notificat
         <FolderKanban aria-hidden="true" className="size-3.5 shrink-0" />
         <span className="truncate">Project: {context.projectName}</span>
       </span>}
+      {Array.isArray(notification.metadata?.changes) && <span className="mt-1 block line-clamp-2 text-xs font-normal text-muted-foreground">
+        {notification.metadata.changes.map((change: { label?: string }) => change.label).filter(Boolean).join(' · ')}
+      </span>}
     </NotificationListRow>
   );
 }

@@ -95,7 +95,7 @@ export function LocationPickerInput({
           }
         />
         {loading && (
-          <Spinner className="absolute right-3 top-2.5" />
+          <Spinner className="pointer-events-none absolute right-3 top-2.5 z-10" />
         )}
       </div>
 

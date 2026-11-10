@@ -311,6 +311,7 @@ export const DND_ROOT_ID = "root";
 // ─── Query Parameters ─────────────────────────────────────────────────────────
 
 export const DOCUMENT_QUERY_PARAMS = {
+  DOCUMENT_ID: 'documentId',
   VIEW: "view",
   FOLDER_ID: "folderId",
 } as const;

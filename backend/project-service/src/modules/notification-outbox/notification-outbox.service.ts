@@ -176,8 +176,6 @@ export class NotificationOutboxService
           deliveryId: record.id,
         };
         if (
-          (notification.type === "PROJECT_INVITATION" ||
-            isTaskNotification(notification.type)) &&
           notification.senderId &&
           !notification.senderName
         ) {

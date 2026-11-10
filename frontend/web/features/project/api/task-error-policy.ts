@@ -8,7 +8,6 @@ export const TASK_EXPECTED_CONFLICT_MESSAGES = [
   TASK_STATUS_RESTRICTIONS.openSubtasks,
   "Task was changed by another request",
   "A task cannot be its own parent",
-  "An archived task cannot be a parent",
   "Only top-level tasks can be parents",
   "A task with children cannot become a subtask",
   "A task cannot depend on its parent or subtask.",
@@ -16,7 +15,6 @@ export const TASK_EXPECTED_CONFLICT_MESSAGES = [
   "Start date cannot be after due date",
   "Duplicate documents cannot be attached",
   "One or more documents are already attached",
-  "Archived tasks cannot be reopened.",
   "Reopen the parent task before reopening this subtask.",
 ] as const;
 

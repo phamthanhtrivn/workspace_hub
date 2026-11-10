@@ -269,7 +269,7 @@ export default function TaskCommentsSection({
               onClick={() => void handleCreate()}
               disabled={!newComment.trim() || createComment.isPending}
               aria-label="Send comment"
-              className="absolute right-1.5 top-1/2 h-7 w-7 -translate-y-1/2 cursor-pointer rounded-control text-info-content hover:bg-muted disabled:opacity-50"
+              className="absolute right-1.5 top-1/2 z-10 h-7 w-7 -translate-y-1/2 cursor-pointer rounded-control text-info-content hover:bg-muted disabled:opacity-50"
             >
               <Send className="h-3.5 w-3.5" strokeWidth={2.5} />
             </Button>

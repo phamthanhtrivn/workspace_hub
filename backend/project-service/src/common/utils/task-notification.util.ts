@@ -3,11 +3,15 @@ import type { ProjectNotification } from "../adapters/project-communication.port
 
 type TaskNotificationType =
   | typeof KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED
+  | typeof KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_UNASSIGNED
+  | typeof KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_DELETED
   | typeof KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_UPDATED;
 
 export function isTaskNotification(type: string): type is TaskNotificationType {
   return (
     type === KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED ||
+    type === KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_UNASSIGNED ||
+    type === KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_DELETED ||
     type === KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_UPDATED
   );
 }
@@ -26,6 +30,18 @@ export function taskNotificationContent(
   )
     return undefined;
   const task = `TASK-${taskNumber} "${taskTitle}"`;
+  if (metadata.activityKind === 'COMMENT') {
+    const changes = Array.isArray(metadata.changes) ? metadata.changes : [];
+    const field = (changes[0] as { field?: string } | undefined)?.field;
+    return `${senderName} ${field === 'comment_created' ? 'added' : field === 'comment_updated' ? 'edited' : 'deleted'} a comment in ${task} in project "${projectName}".`;
+  }
+  if (type === KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_UNASSIGNED)
+    return `${senderName} removed you from ${task} in project "${projectName}".`;
+  if (type === KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_DELETED)
+    return `${senderName} deleted ${task} in project "${projectName}".`;
+  const changes = Array.isArray(metadata.changes) ? metadata.changes as Array<{ field?: string; after?: unknown }> : [];
+  if (changes.some((change) => change.field === 'created') && type !== KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED)
+    return `${senderName} created ${task} in project "${projectName}".`;
   return type === KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED
     ? `${senderName} assigned ${task} to you in project "${projectName}".`
     : `${senderName} updated ${task} in project "${projectName}".`;
@@ -53,9 +69,10 @@ export function buildTaskNotification(input: {
     title:
       type === KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED
         ? "You were assigned a task"
-        : "Task updated",
+        : type === KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_UNASSIGNED ? 'Task assignment removed'
+        : type === KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_DELETED ? 'Task deleted' : "Task updated",
     content: taskNotificationContent(type, metadata)!,
-    link: `/projects/${project.id}?taskId=${task.id}`,
+    link: type === KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_DELETED ? `/projects/${project.id}` : `/projects/${project.id}?taskId=${task.id}`,
     metadata,
   };
 }

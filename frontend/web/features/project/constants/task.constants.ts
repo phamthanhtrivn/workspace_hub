@@ -35,7 +35,6 @@ export const TASK_STATUS_RESTRICTIONS = {
   current: "This is the current status.",
   backwards: "Task status cannot move backwards",
   readOnly: "Completed or cancelled tasks are read-only",
-  archived: "Archived tasks are read-only.",
   openSubtasks: "Complete all subtasks before marking this task as done.",
 } as const;
 

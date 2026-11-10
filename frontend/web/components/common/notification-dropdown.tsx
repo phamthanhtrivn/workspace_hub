@@ -41,7 +41,9 @@ import NotificationList from "@/features/notification/components/notification-li
 import NotificationDetailModal from "@/features/notification/components/notification-detail-modal";
 import { ChannelMemberAddedModalRenderer, ChannelOwnershipTransferredModalRenderer } from "@/features/notification/components/renderers/channel-member-added-renderer";
 import { registerNotificationRenderer } from "@/features/notification/components/notification-registry";
+import { ContextNotificationListItem, ContextNotificationModal } from '@/features/notification/components/renderers/context-notification-renderer';
 import { logApiError } from "@/lib/interceptors";
+import { getNotificationSnapshot } from '@/features/notification/utils/notification-snapshot';
 
 // Renderers
 import {
@@ -134,8 +136,13 @@ const categoryConfig: Record<
 // Initialize Registry
 let isRegistryInitialized = false;
 if (!isRegistryInitialized) {
-  for (const type of [NotificationType.PROJECT_TASK_ASSIGNED, NotificationType.PROJECT_TASK_UPDATED]) {
+  for (const type of [NotificationType.PROJECT_TASK_ASSIGNED, NotificationType.PROJECT_TASK_UPDATED, NotificationType.PROJECT_TASK_UNASSIGNED, NotificationType.PROJECT_TASK_DELETED]) {
     registerNotificationRenderer(type, ProjectTaskModalRenderer, ProjectTaskListItemRenderer);
+  }
+  for (const type of [NotificationType.PROJECT_INVITATION_ACCEPTED, NotificationType.PROJECT_INVITATION_DECLINED,
+    NotificationType.PROJECT_PERMISSIONS_UPDATED, NotificationType.PROJECT_MEMBER_REMOVED,
+    NotificationType.DOCUMENT_SHARED, NotificationType.DOCUMENT_PERMISSION_UPDATED]) {
+    registerNotificationRenderer(type, ContextNotificationModal, ContextNotificationListItem);
   }
   registerNotificationRenderer(NotificationType.CHANNEL_MEMBER_ADDED, ChannelMemberAddedModalRenderer, DefaultListItemRenderer);
   registerNotificationRenderer(NotificationType.CHANNEL_MEMBER_REMOVED, DefaultModalRenderer, DefaultListItemRenderer);
@@ -285,10 +292,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
         const nextUnreadCounts =
           res.pagination.unreadCountsByCategory ?? fallbackUnreadCounts;
         dispatch(
-          setNotifications({
-            list: res.data,
-            total: res.pagination.total,
-          }),
+          setNotifications(getNotificationSnapshot(res, dateRange)),
         );
         setUnreadCountsByCategory(nextUnreadCounts);
         setPagination({

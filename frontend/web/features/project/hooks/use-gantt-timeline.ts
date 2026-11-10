@@ -168,7 +168,7 @@ export function useGanttTimeline({
       : GANTT_ZOOM_CONFIG[zoomMode].monthWidth;
 
   const activeTasks = useMemo(
-    () => tasks.filter((task) => !task.archived),
+    () => tasks.filter((task) => !task.deletedAt),
     [tasks],
   );
 

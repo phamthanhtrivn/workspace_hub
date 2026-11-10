@@ -63,7 +63,7 @@ export function AttendeePicker({
       )}
       <div className="relative">
         {!compact && (
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-2.5 z-10 h-4 w-4 text-muted-foreground" />
         )}
         <Input
           value={query}

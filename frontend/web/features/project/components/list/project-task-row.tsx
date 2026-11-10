@@ -57,7 +57,7 @@ export default function ProjectTaskRow({
   const issueKey = getIssueKey(task);
   const issueIcon = getIssueIcon();
   const priorityIcon = getPriorityIcon(task.priority);
-  const isDraggable = reorderEnabled && !isTerminalTaskStatus(task.status);
+  const isDraggable = reorderEnabled && !task.deletedAt && !isTerminalTaskStatus(task.status);
   const showSubtaskAction = canCreateSubtask && level === 0;
   const showExpandAction = level === 0 && (hasChildren || showSubtaskAction);
   const subtaskActionVisibility =
@@ -187,7 +187,7 @@ export default function ProjectTaskRow({
       </div>
 
       <div className="flex items-center justify-end gap-1">
-        <ProjectTaskFocusButton task={task} compact />
+        {!task.deletedAt && <ProjectTaskFocusButton task={task} compact />}
         {showSubtaskAction && (
           <Button
             type="button"

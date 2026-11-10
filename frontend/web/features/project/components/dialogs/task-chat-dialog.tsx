@@ -80,7 +80,7 @@ export default function TaskChatDialog({
             key={task.id}
             task={task}
             members={members}
-            isReadOnly={!canComment || isTerminalTaskStatus(task.status)}
+            isReadOnly={Boolean(task.deletedAt) || !canComment || isTerminalTaskStatus(task.status)}
           />
         </div>
       </DialogContent>

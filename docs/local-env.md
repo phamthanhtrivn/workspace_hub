@@ -51,3 +51,18 @@ as its other variables; merely editing `.env` does not load it into Java.
 
 Local S3 credentials, private asset references and bucket requirements are
 documented in [local S3](local-s3.md).
+
+## Web Push provider hostnames
+
+`backend/notification-service/.env` must allow the exact hostname returned by the
+browser's push subscription. For the Windows endpoint observed locally:
+
+```dotenv
+WEB_PUSH_ALLOWED_HOSTS=fcm.googleapis.com,wns2-pn1p.notify.windows.com
+```
+
+Keep existing providers when adding another hostname. Do not use wildcards; a
+different Windows endpoint must be added explicitly after checking its provider.
+Restart notification-service after changing this value, then refresh the web app
+to retry subscription registration. A rejected push subscription affects browser
+push delivery; notification persistence and bell updates use separate paths.

@@ -20,6 +20,7 @@ import { defaultMemberPermissions } from "../member/member-permissions";
 import { UserProfileSnapshotService } from "../user-profile-snapshot/user-profile-snapshot.service";
 import { ProjectService } from "../project/project.service";
 import { KAFKA_EVENTS } from "../../common/constants/kafka.constants";
+import { buildInvitationResponseNotification } from '../../common/utils/project-notification.util';
 import {
   resolveProfilesForItem,
   resolveProfilesForItems,
@@ -286,6 +287,8 @@ export class InvitationService {
           project: {
             select: {
               name: true,
+              icon: true,
+              color: true,
               archived: true,
               status: true,
               setting: {
@@ -356,6 +359,9 @@ export class InvitationService {
         InvitationStatus.ACCEPTED,
         tx,
       );
+      await this.notifications.enqueueNotification(
+        buildInvitationResponseNotification(invitation, InvitationStatus.ACCEPTED), tx,
+      );
 
       await enqueueProjectAccessSync(tx, invitation.projectId);
       return tx.projectInvitation.findUniqueOrThrow({
@@ -395,6 +401,9 @@ export class InvitationService {
         userId,
         InvitationStatus.DECLINED,
         tx,
+      );
+      await this.notifications.enqueueNotification(
+        buildInvitationResponseNotification(invitation, InvitationStatus.DECLINED), tx,
       );
     });
     const updated = await this.findInvitation(invitationId);
@@ -445,6 +454,8 @@ export class InvitationService {
         project: {
           select: {
             name: true,
+            icon: true,
+            color: true,
             archived: true,
             status: true,
             setting: {

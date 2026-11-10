@@ -29,7 +29,7 @@ export default function ListView({
     null,
   );
 
-  const activeTasks = useMemo(() => tasks.filter((task) => !task.archived), [
+  const activeTasks = useMemo(() => tasks.filter((task) => !task.deletedAt), [
     tasks,
   ]);
   const activeTaskIds = useMemo(

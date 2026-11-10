@@ -12,6 +12,8 @@ import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { SPACE_ERROR_MESSAGES } from './types/space.enums';
 import { SpaceSettingsService } from './space-settings.service';
 import { SpaceEventPublisher } from './space-event-publisher.service';
+import { createProjectRemovalMessages } from './project-membership-system-messages';
+import { publishPrivateChannelSystemMessages } from '../channel/private-channel-system-messages';
 
 @Injectable()
 export class ProjectSpaceProvisioningService {
@@ -119,6 +121,8 @@ export class ProjectSpaceProvisioningService {
         joinedMembers: [],
         removedMembers: [],
         privateMembershipChanges: [],
+        projectRemovalMessages: [],
+        remainingMemberIds: members.map((member) => member.userId),
       };
     }
     if (dto.syncRevision)
@@ -225,6 +229,9 @@ export class ProjectSpaceProvisioningService {
         },
       });
     }
+    const projectRemovalMessages = await createProjectRemovalMessages(
+      tx, defaultChannel.id, dto.ownerId, removedMemberIds,
+    );
 
     return {
       projectId: dto.projectId,
@@ -234,6 +241,8 @@ export class ProjectSpaceProvisioningService {
       joinedMembers,
       removedMembers,
       privateMembershipChanges,
+      projectRemovalMessages,
+      remainingMemberIds: memberUserIds,
     };
   }
 
@@ -337,12 +346,15 @@ export class ProjectSpaceProvisioningService {
             joinedMembers: members,
             removedMembers: [],
             privateMembershipChanges: [],
+            projectRemovalMessages: [],
+            remainingMemberIds: members.map((member) => member.userId),
           };
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
       await this.events.publishProjectSpaceMembersJoined(result);
       await this.events.publishProjectSpaceMembersRemoved(result);
+      publishPrivateChannelSystemMessages(this.chatSocketPublisher, result.projectRemovalMessages, result.remainingMemberIds);
       publishPrivateMembershipChanges(
         this.chatSocketPublisher,
         result.privateMembershipChanges,
@@ -376,6 +388,7 @@ export class ProjectSpaceProvisioningService {
       );
       await this.events.publishProjectSpaceMembersJoined(result);
       await this.events.publishProjectSpaceMembersRemoved(result);
+      publishPrivateChannelSystemMessages(this.chatSocketPublisher, result.projectRemovalMessages, result.remainingMemberIds);
       publishPrivateMembershipChanges(
         this.chatSocketPublisher,
         result.privateMembershipChanges,

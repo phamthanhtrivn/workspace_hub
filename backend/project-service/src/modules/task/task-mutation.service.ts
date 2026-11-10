@@ -12,7 +12,6 @@ import { UpdateTaskDto } from "./dto/update-task.dto";
 import { ProjectAccessService } from "../project/project-access.service";
 import { toTaskResponse } from "../project/project.mapper";
 import { ActivityService } from "../activity/activity.service";
-import { NotificationOutboxService } from "../notification-outbox/notification-outbox.service";
 import {
   assertTaskEditable,
   assertTaskStatusTransition,
@@ -25,13 +24,11 @@ import { taskInclude } from "./task-query";
 import { lockProject } from "../project/project-transaction";
 import { normalizeTaskRank } from "./task-rank";
 import { UserProfileSnapshotService } from "../user-profile-snapshot/user-profile-snapshot.service";
-import { KAFKA_EVENTS } from "../../common/constants/kafka.constants";
 import { resolveProfilesForItem } from "../../common/utils/profile-mapper.util";
 import { TaskSyncOutboxService } from "../task-sync/task-sync-outbox.service";
 import { TaskLookupService } from "./task-lookup.service";
 import { TaskValidationService } from "./task-validation.service";
 import { TaskActivityService } from "./task-activity.service";
-import { buildTaskNotification } from "../../common/utils/task-notification.util";
 
 const taskWithCount = taskInclude;
 
@@ -52,7 +49,6 @@ export class TaskMutationService {
   constructor(
     private readonly access: ProjectAccessService,
     private readonly prisma: PrismaService,
-    private readonly notifications: NotificationOutboxService,
     private readonly taskSync: TaskSyncOutboxService,
     private readonly userProfiles: UserProfileSnapshotService,
     private readonly activities: ActivityService,
@@ -122,7 +118,6 @@ export class TaskMutationService {
     if (dto.dueDate !== undefined) data.dueDate = dueDate;
     if (dto.allDay !== undefined) data.allDay = dto.allDay;
     if (dto.rank !== undefined) data.rank = normalizeTaskRank(dto.rank);
-    if (dto.archived !== undefined) data.archived = dto.archived;
     if (parentTaskId !== undefined) {
       data.parent =
         parentTaskId === null
@@ -173,43 +168,9 @@ export class TaskMutationService {
           }
         }
         await this.activity.recordChanges(current, updated, dto, userId, tx);
-        if (dto.assigneeUserId !== undefined && dto.assigneeUserId !== null) {
-          const project = await tx.project.findUniqueOrThrow({
-            where: { id: current.projectId },
-            select: { id: true, name: true },
-          });
-          await this.notifications.enqueueNotification(
-            buildTaskNotification({
-              recipientId: dto.assigneeUserId,
-              senderId: userId,
-              type: KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED,
-              project,
-              task: updated,
-            }),
-            tx,
-          );
-        } else if (
-          dto.status !== undefined ||
-          dto.title !== undefined ||
-          dto.dueDate !== undefined
-        ) {
-          const project = await tx.project.findUniqueOrThrow({
-            where: { id: current.projectId },
-            select: { id: true, name: true },
-          });
-          for (const assignee of current.assignees) {
-            if (assignee.userId === userId) continue;
-            await this.notifications.enqueueNotification(
-              buildTaskNotification({
-                recipientId: assignee.userId,
-                senderId: userId,
-                type: KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_UPDATED,
-                project,
-                task: updated,
-              }),
-              tx,
-            );
-          }
+        if (current.parentTaskId !== updated.parentTaskId) {
+          if (current.parentTaskId) await this.activities.record(current.parentTaskId, userId, 'subtask_removed', current.title, null, tx);
+          if (updated.parentTaskId) await this.activities.record(updated.parentTaskId, userId, 'subtask_created', null, updated.title, tx);
         }
         await this.taskSync.enqueue(updated, tx);
         if (dto.assigneeUserId === undefined) return updated;
@@ -255,8 +216,6 @@ export class TaskMutationService {
         include: taskWithCount,
       });
       if (!current) throw new NotFoundException("Task not found");
-      if (current.archived)
-        throw new ConflictException(TASK_LIFECYCLE.archivedMessage);
       if (current.parentTaskId) {
         const parent = await tx.task.findUnique({
           where: { id: current.parentTaskId },
@@ -264,7 +223,6 @@ export class TaskMutationService {
         if (
           !parent ||
           parent.deletedAt ||
-          parent.archived ||
           isTerminalTaskStatus(parent.status)
         ) {
           throw new ConflictException({
@@ -327,18 +285,18 @@ export class TaskMutationService {
         const deleted = await tx.task.update({
           where: { id: taskId, version: task.version },
           data: {
-            archived: true,
             deletedAt: new Date(),
             version: { increment: 1 },
           },
         });
+        if (task.parentTaskId) await this.activities.record(task.parentTaskId, userId, 'subtask_removed', task.title, null, tx);
         await this.taskSync.enqueue(deleted, tx);
         await this.activities.record(
           taskId,
           userId,
-          "archived",
-          false,
-          true,
+          "deleted",
+          null,
+          deleted.deletedAt?.toISOString(),
           tx,
         );
       });

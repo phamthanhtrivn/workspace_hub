@@ -33,7 +33,7 @@ export function taskEnd(task: Task): Date | undefined {
 }
 
 export function getInitialGanttAnchor(tasks: Task[], today: Date): Date {
-  const dated = tasks.filter((task) => !task.archived)
+  const dated = tasks.filter((task) => !task.deletedAt)
     .map((task) => ({ start: taskStart(task), end: taskEnd(task) }))
     .filter((dates): dates is { start: Date; end: Date } =>
       Boolean(dates.start && dates.end && Number.isFinite(dates.start.getTime()) && Number.isFinite(dates.end.getTime())));

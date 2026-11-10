@@ -32,6 +32,7 @@ import {
 import { useProjectConfirmDialog } from "@/features/project/hooks/use-project-confirm-dialog";
 import { ProjectConfirmDialog } from "../ui/project-confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { QueryFeedback } from '@/components/common/query-feedback';
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 
@@ -77,7 +78,7 @@ export default function ProjectMembersView({
   const tasksByMember = useMemo(() => {
     const map = new Map<string, number>();
     for (const task of tasks) {
-      if (task.archived) continue;
+      if (task.deletedAt) continue;
       for (const assignee of task.assignees) {
         map.set(assignee.userId, (map.get(assignee.userId) ?? 0) + 1);
       }
@@ -281,7 +282,7 @@ export default function ProjectMembersView({
             >
               Members ({regularMemberCount})
             </Button>
-            {pendingInvitations.length > 0 && (
+            {canInvite && (
               <Button
                 type="button"
                 variant="ghost"
@@ -293,8 +294,8 @@ export default function ProjectMembersView({
                     : "text-warning-content hover:text-warning-content"
                 }`}
               >
-                <span>Pending ({pendingInvitations.length})</span>
-                <span className="flex h-2 w-2 rounded-full bg-warning-content" />
+                <span>Invitations ({pendingInvitations.length})</span>
+                {pendingInvitations.length > 0 && <span className="flex h-2 w-2 rounded-full bg-warning-content" />}
               </Button>
             )}
           </div>
@@ -303,7 +304,7 @@ export default function ProjectMembersView({
         {/* Search box */}
         {activeTab !== "PENDING" && (
           <div className="relative min-w-0 w-full @min-[800px]/project-detail:w-64">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input aria-label="Search members"
               type="text"
               value={searchQuery}
@@ -318,6 +319,8 @@ export default function ProjectMembersView({
       {/* ── 3. Main Content: Members Table or Pending Invites Tab ── */}
       {activeTab === "PENDING" ? (
         <div className="rounded-panel border border-border bg-card p-6">
+          <QueryFeedback label="pending invitations" pending={pendingInvitationsQuery.isPending} error={pendingInvitationsQuery.isError} retrying={pendingInvitationsQuery.isFetching} onRetry={() => pendingInvitationsQuery.refetch()} />
+          {pendingInvitationsQuery.isSuccess && pendingInvitations.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No pending invitations</p>}
           <PendingInvitationsList
             projectId={projectId}
             invitations={pendingInvitations}

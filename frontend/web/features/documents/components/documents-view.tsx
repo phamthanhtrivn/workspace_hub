@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import DocumentExplorer from "./document-explorer";
+import { DocumentNotificationTarget } from './document-notification-target';
 import { DocumentsSidebar } from "./explorer/documents-sidebar";
 import { DocumentViewType, NavigationLabel } from "../types/documents.enums";
 import { DownloadQueueProvider } from "./download/download-queue-provider";
@@ -163,6 +164,7 @@ function DocumentsWorkspace({
 
           {/* Document Explorer Main Canvas */}
           <section className="flex min-w-0 flex-1 flex-col min-h-0 overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
+            <DocumentNotificationTarget />
             <div className="flex min-w-0 w-full flex-1 flex-col min-h-0 rounded-lg border border-border bg-card overflow-hidden">
               <DocumentExplorer
                 currentFolderId={currentFolderId}

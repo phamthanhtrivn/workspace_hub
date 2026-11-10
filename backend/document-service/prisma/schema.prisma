@@ -171,3 +171,15 @@ model RejectedKafkaEvent {
   @@unique([topic, partition, offset])
   @@map("rejected_kafka_events")
 }
+
+model DocumentNotificationOutbox {
+  id String @id @db.Uuid
+  payload Json
+  attempts Int @default(0)
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.Timestamptz
+  lockedAt DateTime? @map("locked_at") @db.Timestamptz
+  leaseToken String? @map("lease_token") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  @@index([nextAttemptAt], map: "document_notification_outbox_ready_idx")
+  @@map("document_notification_outbox")
+}
