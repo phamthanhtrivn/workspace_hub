@@ -150,8 +150,10 @@ export function useWorkAssistant(
           },
         );
         if (alive.current) {
-          await client.invalidateQueries({ queryKey: historyKey });
-          await client.invalidateQueries({ queryKey: [...root, "sessions"] });
+          await Promise.all([
+            client.invalidateQueries({ queryKey: historyKey }),
+            client.invalidateQueries({ queryKey: [...root, "sessions"] }),
+          ]);
           setPending(null);
           setReply(null);
         }

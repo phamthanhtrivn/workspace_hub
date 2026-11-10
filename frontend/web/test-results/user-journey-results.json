@@ -1,0 +1,213 @@
+{
+  "config": {
+    "argv": [
+      "F:\\NodeJS\\node.exe",
+      "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config",
+      "e2e/playwright.user-journey.config.ts",
+      "--max-failures",
+      "1"
+    ],
+    "configFile": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e\\playwright.user-journey.config.ts",
+    "rootDir": "E:/KLTN/hoho/workspace_hub/frontend/web/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 1,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "E:/KLTN/hoho/workspace_hub/frontend/web/test-results/user-journey",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "E:/KLTN/hoho/workspace_hub/frontend/web/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "virtual-rooms.user-journey.spec.ts"
+        ],
+        "timeout": 240000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\test-results\\user-journey",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e",
+        "snapshotDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e",
+        "testIgnore": [],
+        "testMatch": "virtual-rooms.user-journey.spec.ts",
+        "timeout": 240000,
+        "use": {
+          "baseURL": "http://localhost:3000",
+          "actionTimeout": 20000,
+          "navigationTimeout": 30000,
+          "headless": true,
+          "trace": "off",
+          "screenshot": "only-on-failure",
+          "launchOptions": {
+            "args": [
+              "--use-gl=angle",
+              "--use-angle=swiftshader",
+              "--enable-unsafe-swiftshader"
+            ]
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../test-results/user-journey-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "virtual-rooms.user-journey.spec.ts",
+      "file": "virtual-rooms.user-journey.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "actual app: register, sign in, use shared focus, recover offline and moderate membership",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [
+                {
+                  "type": "real-broker-join-ms",
+                  "description": "93"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 95535,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Two users registered and signed in through the actual UI\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T14:43:34.940Z",
+                  "annotations": [
+                    {
+                      "type": "real-broker-join-ms",
+                      "description": "93"
+                    }
+                  ],
+                  "attachments": [
+                    {
+                      "name": "room-event-observations",
+                      "contentType": "application/json",
+                      "body": "W3sidHlwZSI6InZpcnR1YWwtcm9vbS5qb2luLXJlcXVlc3RlZC52MSIsInJvb21JZCI6ImY4N2I4Mjg0LTI3MWItNGUyNy05MTJjLTQyYjdmZTgxYTQ1MiIsImF0IjoxNzkzNzE3MDI2MTY2fSx7InR5cGUiOiJ2aXJ0dWFsLXJvb20ubWVtYmVyLXJlamVjdGVkLnYxIiwicm9vbUlkIjoiZjg3YjgyODQtMjcxYi00ZTI3LTkxMmMtNDJiN2ZlODFhNDUyIiwiYXQiOjE3OTM3MTcwMjY2NjN9LHsidHlwZSI6InZpcnR1YWwtcm9vbS5tZW1iZXItcmVqZWN0ZWQudjEiLCJyb29tSWQiOiJmODdiODI4NC0yNzFiLTRlMjctOTEyYy00MmI3ZmU4MWE0NTIiLCJhdCI6MTc5MzcxNzAyNjY3Mn0seyJ0eXBlIjoidmlydHVhbC1yb29tLmpvaW4tcmVxdWVzdGVkLnYxIiwicm9vbUlkIjoiZjg3YjgyODQtMjcxYi00ZTI3LTkxMmMtNDJiN2ZlODFhNDUyIiwiYXQiOjE3OTM3MTcwMjY5Mjh9LHsidHlwZSI6InZpcnR1YWwtcm9vbS5tZW1iZXItYXBwcm92ZWQudjEiLCJyb29tSWQiOiJmODdiODI4NC0yNzFiLTRlMjctOTEyYy00MmI3ZmU4MWE0NTIiLCJhdCI6MTc5MzcxNzAyNzQ1NX0seyJ0eXBlIjoidmlydHVhbC1yb29tLm1lbWJlci1hcHByb3ZlZC52MSIsInJvb21JZCI6ImY4N2I4Mjg0LTI3MWItNGUyNy05MTJjLTQyYjdmZTgxYTQ1MiIsImF0IjoxNzkzNzE3MDI3NDc2fSx7InR5cGUiOiJ2aXJ0dWFsLXJvb20udGltZXItc3RhcnRlZC52MSIsInJvb21JZCI6ImY4N2I4Mjg0LTI3MWItNGUyNy05MTJjLTQyYjdmZTgxYTQ1MiIsImF0IjoxNzkzNzE3MDQwMjcwfSx7InR5cGUiOiJ2aXJ0dWFsLXJvb20udGltZXItc3RhcnRlZC52MSIsInJvb21JZCI6ImY4N2I4Mjg0LTI3MWItNGUyNy05MTJjLTQyYjdmZTgxYTQ1MiIsImF0IjoxNzkzNzE3MDQwMjcwfSx7InR5cGUiOiJ2aXJ0dWFsLXJvb20udGltZXItcGF1c2VkLnYxIiwicm9vbUlkIjoiZjg3YjgyODQtMjcxYi00ZTI3LTkxMmMtNDJiN2ZlODFhNDUyIiwiYXQiOjE3OTM3MTcwNDMwNjN9LHsidHlwZSI6InZpcnR1YWwtcm9vbS50aW1lci1wYXVzZWQudjEiLCJyb29tSWQiOiJmODdiODI4NC0yNzFiLTRlMjctOTEyYy00MmI3ZmU4MWE0NTIiLCJhdCI6MTc5MzcxNzA0MzA3M30seyJ0eXBlIjoidmlydHVhbC1yb29tLnRpbWVyLXJlc3VtZWQudjEiLCJyb29tSWQiOiJmODdiODI4NC0yNzFiLTRlMjctOTEyYy00MmI3ZmU4MWE0NTIiLCJhdCI6MTc5MzcxNzA0NjM5M30seyJ0eXBlIjoidmlydHVhbC1yb29tLnRpbWVyLXJlc3VtZWQudjEiLCJyb29tSWQiOiJmODdiODI4NC0yNzFiLTRlMjctOTEyYy00MmI3ZmU4MWE0NTIiLCJhdCI6MTc5MzcxNzA0NjM5NH0seyJ0eXBlIjoidmlydHVhbC1yb29tLnVwZGF0ZWQudjEiLCJyb29tSWQiOiJmODdiODI4NC0yNzFiLTRlMjctOTEyYy00MmI3ZmU4MWE0NTIiLCJhdCI6MTc5MzcxNzA1Mzg4NH0seyJ0eXBlIjoidmlydHVhbC1yb29tLnVwZGF0ZWQudjEiLCJyb29tSWQiOiJmODdiODI4NC0yNzFiLTRlMjctOTEyYy00MmI3ZmU4MWE0NTIiLCJhdCI6MTc5MzcxNzA1Mzg4NH0seyJ0eXBlIjoidmlydHVhbC1yb29tLnRpbWVyLWNvbXBsZXRlZC52MSIsInJvb21JZCI6ImY4N2I4Mjg0LTI3MWItNGUyNy05MTJjLTQyYjdmZTgxYTQ1MiIsImF0IjoxNzkzNzE3MTA0Mjk0fSx7InR5cGUiOiJ2aXJ0dWFsLXJvb20udGltZXItY29tcGxldGVkLnYxIiwicm9vbUlkIjoiZjg3YjgyODQtMjcxYi00ZTI3LTkxMmMtNDJiN2ZlODFhNDUyIiwiYXQiOjE3OTM3MTcxMDQyOTV9LHsidHlwZSI6InZpcnR1YWwtcm9vbS5tZW1iZXItcmVtb3ZlZC52MSIsInJvb21JZCI6ImY4N2I4Mjg0LTI3MWItNGUyNy05MTJjLTQyYjdmZTgxYTQ1MiIsImF0IjoxNzkzNzE3MTA1MzI4fSx7InR5cGUiOiJ2aXJ0dWFsLXJvb20uam9pbi1yZXF1ZXN0ZWQudjEiLCJyb29tSWQiOiJmODdiODI4NC0yNzFiLTRlMjctOTEyYy00MmI3ZmU4MWE0NTIiLCJhdCI6MTc5MzcxNzEwNjM2N30seyJ0eXBlIjoidmlydHVhbC1yb29tLm1lbWJlci1hcHByb3ZlZC52MSIsInJvb21JZCI6ImY4N2I4Mjg0LTI3MWItNGUyNy05MTJjLTQyYjdmZTgxYTQ1MiIsImF0IjoxNzkzNzE3MTA2NTg4fSx7InR5cGUiOiJ2aXJ0dWFsLXJvb20ubWVtYmVyLWFwcHJvdmVkLnYxIiwicm9vbUlkIjoiZjg3YjgyODQtMjcxYi00ZTI3LTkxMmMtNDJiN2ZlODFhNDUyIiwiYXQiOjE3OTM3MTcxMDY2MTB9LHsidHlwZSI6InZpcnR1YWwtcm9vbS5vd25lci10cmFuc2ZlcnJlZC52MSIsInJvb21JZCI6ImY4N2I4Mjg0LTI3MWItNGUyNy05MTJjLTQyYjdmZTgxYTQ1MiIsImF0IjoxNzkzNzE3MTA4NTAwfSx7InR5cGUiOiJ2aXJ0dWFsLXJvb20ub3duZXItdHJhbnNmZXJyZWQudjEiLCJyb29tSWQiOiJmODdiODI4NC0yNzFiLTRlMjctOTEyYy00MmI3ZmU4MWE0NTIiLCJhdCI6MTc5MzcxNzEwODUwMH0seyJ0eXBlIjoidmlydHVhbC1yb29tLm1lbWJlci1iYW5uZWQudjEiLCJyb29tSWQiOiJmODdiODI4NC0yNzFiLTRlMjctOTEyYy00MmI3ZmU4MWE0NTIiLCJhdCI6MTc5MzcxNzEwOTUzOH1d"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9be4b2fdc46b69345755-bc3d32898a4cb9d4810a",
+          "file": "virtual-rooms.user-journey.spec.ts",
+          "line": 17,
+          "column": 5
+        },
+        {
+          "title": "actual app: anonymous redirect, capacity, cancellation, private visibility and leaving",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 13617,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T14:45:10.639Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9be4b2fdc46b69345755-1d0b2e9c2a88053dc2c5",
+          "file": "virtual-rooms.user-journey.spec.ts",
+          "line": 63,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-03T14:43:34.056Z",
+    "duration": 110331.678,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

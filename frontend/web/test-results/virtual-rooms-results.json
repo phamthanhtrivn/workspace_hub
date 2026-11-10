@@ -1,0 +1,309 @@
+{
+  "config": {
+    "argv": [
+      "F:\\NodeJS\\node.exe",
+      "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config",
+      "e2e/playwright.config.ts",
+      "--repeat-each",
+      "1"
+    ],
+    "configFile": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e\\playwright.config.ts",
+    "rootDir": "E:/KLTN/hoho/workspace_hub/frontend/web/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "E:/KLTN/hoho/workspace_hub/frontend/web/test-results/virtual-rooms",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "E:/KLTN/hoho/workspace_hub/frontend/web/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "virtual-rooms.browser.spec.ts"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\test-results\\virtual-rooms",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e",
+        "snapshotDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e",
+        "testIgnore": [],
+        "testMatch": "virtual-rooms.browser.spec.ts",
+        "timeout": 90000,
+        "use": {
+          "baseURL": "http://127.0.0.1:18000",
+          "headless": true,
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "launchOptions": {
+            "args": [
+              "--use-gl=angle",
+              "--use-angle=swiftshader",
+              "--enable-unsafe-swiftshader"
+            ]
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../test-results/virtual-rooms-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "virtual-rooms.browser.spec.ts",
+      "file": "virtual-rooms.browser.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "full-window game starts Pomodoro only when the owner is near a desk",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 20434,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-09T06:56:41.804Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e06a37c31731eea69a1c-bd83f265f61a9b10af45",
+          "file": "virtual-rooms.browser.spec.ts",
+          "line": 8,
+          "column": 5
+        },
+        {
+          "title": "two participants create, request, approve, move, share a timer, reconnect, rejoin and ban",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [
+                {
+                  "type": "join-notification-ms",
+                  "description": "909"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 56315,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-09T06:57:02.397Z",
+                  "annotations": [
+                    {
+                      "type": "join-notification-ms",
+                      "description": "909"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e06a37c31731eea69a1c-cfd277a2873fc20ef203",
+          "file": "virtual-rooms.browser.spec.ts",
+          "line": 43,
+          "column": 5
+        },
+        {
+          "title": "a real short Focus completes once and clients compensate for five minutes of clock drift",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 28910,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-09T06:57:58.731Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e06a37c31731eea69a1c-85c0d1d56ed750c641a7",
+          "file": "virtual-rooms.browser.spec.ts",
+          "line": 69,
+          "column": 5
+        },
+        {
+          "title": "ten participants move with bounded browser bandwidth and a stable scene",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 15203,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-09T06:58:27.657Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "ten-participant-performance",
+                      "contentType": "application/json",
+                      "body": "eyJhdmVyYWdlRnBzIjoyOS41LCJzYW1wbGVzIjpbMzYsMzIsMzIsMzAsMzAsMjgsMjgsMjcsMjcsMjVdLCJieXRlc1BlclNlY29uZCI6NTcwMiwidHJhbnNwb3J0Ijoia2Fma2EtcmVkaXMifQ=="
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e06a37c31731eea69a1c-6f197f6654903cbc196a",
+          "file": "virtual-rooms.browser.spec.ts",
+          "line": 79,
+          "column": 5
+        },
+        {
+          "title": "mobile layout escapes room text and retains controls when an asset cannot load",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1770,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-09T06:58:42.884Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e06a37c31731eea69a1c-1e051110f1d45cac1409",
+          "file": "virtual-rooms.browser.spec.ts",
+          "line": 95,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-09T06:56:40.913Z",
+    "duration": 124036.797,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,201 @@
+{
+  "config": {
+    "argv": [
+      "F:\\NodeJS\\node.exe",
+      "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config",
+      "e2e/playwright.config.ts",
+      "--repeat-each",
+      "1"
+    ],
+    "configFile": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e\\playwright.config.ts",
+    "rootDir": "E:/KLTN/hoho/workspace_hub/frontend/web/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "E:/KLTN/hoho/workspace_hub/frontend/web/test-results/virtual-rooms",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "E:/KLTN/hoho/workspace_hub/frontend/web/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "virtual-rooms.browser.spec.ts"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\test-results\\virtual-rooms",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e",
+        "snapshotDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e",
+        "testIgnore": [],
+        "testMatch": "virtual-rooms.browser.spec.ts",
+        "timeout": 90000,
+        "use": {
+          "baseURL": "http://127.0.0.1:18000",
+          "headless": true,
+          "trace": "retain-on-failure",
+          "screenshot": "only-on-failure",
+          "launchOptions": {
+            "args": [
+              "--use-gl=angle",
+              "--use-angle=swiftshader",
+              "--enable-unsafe-swiftshader"
+            ]
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/virtual-rooms-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "virtual-rooms.browser.spec.ts",
+      "file": "virtual-rooms.browser.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "two participants create, request, approve, move, share a timer, reconnect, rejoin and ban",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [
+                {
+                  "type": "join-notification-ms",
+                  "description": "1597"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 24473,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T13:27:03.223Z",
+                  "annotations": [
+                    {
+                      "type": "join-notification-ms",
+                      "description": "1597"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e06a37c31731eea69a1c-cfd277a2873fc20ef203",
+          "file": "virtual-rooms.browser.spec.ts",
+          "line": 8,
+          "column": 5
+        },
+        {
+          "title": "a real short Focus completes once and clients compensate for five minutes of clock drift",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7099,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-02T13:27:27.836Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e06a37c31731eea69a1c-85c0d1d56ed750c641a7",
+          "file": "virtual-rooms.browser.spec.ts",
+          "line": 28,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-02T13:27:02.728Z",
+    "duration": 32484.615,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

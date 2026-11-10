@@ -123,7 +123,7 @@ test('cancellation between deltas aborts generation without replaying the model'
 
 async function workflowCase({ finishReason = 'stop', revoke = false, cancel = false } = {}) {
   const events = [], saved = [], failures = [];
-  provider = async () => response([frame({ content: 'Answer' }), frame({}, finishReason)]);
+  provider = async () => response([frame({ role: 'assistant', content: 'Ans' }), frame({ content: 'wer' }), frame({}, finishReason)]);
   const store = {
     begin: async () => {}, recent: async () => [], canceled: async () => cancel,
     finish: async (...args) => { saved.push(args); return { id: 'saved', role: 'assistant', content: args[4], sources: [] }; },
@@ -134,8 +134,12 @@ async function workflowCase({ finishReason = 'stop', revoke = false, cancel = fa
     authorize: async () => new Set(revoke ? [] : context.projectIds) }, store, access);
   const workflow = new WorkAssistantWorkflowService(store, generation, access);
   const stream = { destroyed: false, start() {}, heartbeat() {}, onClose() { return () => {}; }, end() {}, emit: (event, data) => events.push({ event, data }) };
-  await workflow.answer({ id: 'actor' }, stream, { id: 'session' }, { question: 'Plan today', requestId: 'request', audience: 'mine' });
-  return { events, saved, failures };
+  const reports = [], originalInfo = console.info;
+  console.info = value => reports.push(JSON.parse(value));
+  try {
+    await workflow.answer({ id: 'actor' }, stream, { id: 'session' }, { question: 'Plan today', requestId: 'request', audience: 'mine' });
+  } finally { console.info = originalInfo; }
+  return { events, saved, failures, report: reports.find(item => item.event === 'ai_pipeline') };
 }
 
 test('SSE delivers deltas then the saved message; failures and cancellation never persist drafts', async () => {
@@ -143,13 +147,22 @@ test('SSE delivers deltas then the saved message; failures and cancellation neve
   assert.equal(success.saved.length, 1);
   assert.ok(success.events.findIndex(e => e.event === 'delta') < success.events.findIndex(e => e.event === 'done'));
   assert.equal(success.events.find(e => e.event === 'done').data.message.content, 'Answer');
+  assert.equal(success.report.status, 'ok');
+  assert.equal(success.report.delta_count, 2);
+  assert.ok(success.report.first_delta_ms >= 0);
+  assert.ok(success.report.first_delta_ms <= success.report.total_ms);
   for (const options of [{ finishReason: 'length' }, { revoke: true }, { cancel: true }]) {
     const result = await workflowCase(options);
     assert.equal(result.saved.length, 0);
     assert.equal(result.events.some(e => e.event === 'done'), false);
     assert.equal(result.failures.length, 1);
     assert.ok(result.events.some(e => e.event === 'error'));
-    if (options.revoke) assert.equal(result.events.some(e => e.event === 'delta'), false);
+    assert.equal(result.report.status, 'failed');
+    if (options.revoke) {
+      assert.equal(result.events.some(e => e.event === 'delta'), false);
+      assert.equal(result.report.first_delta_ms, undefined);
+      assert.equal(result.report.delta_count, undefined);
+    }
   }
   assert.ok(admissions > 0);
 });

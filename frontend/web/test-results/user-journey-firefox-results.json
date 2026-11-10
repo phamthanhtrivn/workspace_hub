@@ -1,0 +1,210 @@
+{
+  "config": {
+    "argv": [
+      "F:\\NodeJS\\node.exe",
+      "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config",
+      "e2e/playwright.user-journey.config.ts",
+      "--max-failures",
+      "1"
+    ],
+    "configFile": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e\\playwright.user-journey.config.ts",
+    "rootDir": "E:/KLTN/hoho/workspace_hub/frontend/web/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 1,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "E:/KLTN/hoho/workspace_hub/frontend/web/test-results/user-journey-firefox",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "E:/KLTN/hoho/workspace_hub/frontend/web/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "virtual-rooms.user-journey.spec.ts"
+        ],
+        "timeout": 240000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\test-results\\user-journey-firefox",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "name": "",
+        "testDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e",
+        "snapshotDir": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e",
+        "testIgnore": [],
+        "testMatch": "virtual-rooms.user-journey.spec.ts",
+        "timeout": 240000,
+        "use": {
+          "baseURL": "http://localhost:3000",
+          "browserName": "firefox",
+          "actionTimeout": 20000,
+          "navigationTimeout": 30000,
+          "headless": true,
+          "trace": "off",
+          "screenshot": "only-on-failure",
+          "launchOptions": {
+            "args": []
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../test-results/user-journey-firefox-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.64.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "virtual-rooms.user-journey.spec.ts",
+      "file": "virtual-rooms.user-journey.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "actual app: register, sign in, use shared focus, recover offline and moderate membership",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1018,
+                  "error": {
+                    "message": "Error: browserContext.newPage: Target crashed ",
+                    "stack": "Error: browserContext.newPage: Target crashed \n    at E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e\\virtual-rooms.user-journey.spec.ts:19:31",
+                    "location": {
+                      "file": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e\\virtual-rooms.user-journey.spec.ts",
+                      "column": 31,
+                      "line": 19
+                    },
+                    "snippet": "  17 | test('actual app: register, sign in, use shared focus, recover offline and moderate membership',async({browser},info)=>{\n  18 |  const ownerContext=await browser.newContext({viewport:{width:1440,height:1000}}),memberContext=await browser.newContext({viewport:{width:1280,height:900}});\n> 19 |  let owner=await ownerContext.newPage();const member=await memberContext.newPage(),pageErrors:string[]=[],frames:Array<{type:string;roomId:string;at:number}>=[];\n     |                               ^\n  20 |  const observe=(page:Page)=>{page.on('pageerror',error=>pageErrors.push(error.message));page.on('websocket',socket=>socket.on('framereceived',frame=>{if(typeof frame.payload!=='string')return;const index=frame.payload.indexOf('[');if(index<0)return;try{const [type,event]=JSON.parse(frame.payload.slice(index));if(type==='room:event')frames.push({type:event.eventType,roomId:event.roomId,at:Date.now()});}catch{/* Other application namespaces use their own frames. */}}));};observe(owner);observe(member);\n  21 |  try{\n  22 |   const a=await registerAndLogin(owner,'Owner'),b=await registerAndLogin(member,'Member');"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e\\virtual-rooms.user-journey.spec.ts",
+                        "column": 31,
+                        "line": 19
+                      },
+                      "message": "Error: browserContext.newPage: Target crashed \n\n  17 | test('actual app: register, sign in, use shared focus, recover offline and moderate membership',async({browser},info)=>{\n  18 |  const ownerContext=await browser.newContext({viewport:{width:1440,height:1000}}),memberContext=await browser.newContext({viewport:{width:1280,height:900}});\n> 19 |  let owner=await ownerContext.newPage();const member=await memberContext.newPage(),pageErrors:string[]=[],frames:Array<{type:string;roomId:string;at:number}>=[];\n     |                               ^\n  20 |  const observe=(page:Page)=>{page.on('pageerror',error=>pageErrors.push(error.message));page.on('websocket',socket=>socket.on('framereceived',frame=>{if(typeof frame.payload!=='string')return;const index=frame.payload.indexOf('[');if(index<0)return;try{const [type,event]=JSON.parse(frame.payload.slice(index));if(type==='room:event')frames.push({type:event.eventType,roomId:event.roomId,at:Date.now()});}catch{/* Other application namespaces use their own frames. */}}));};observe(owner);observe(member);\n  21 |  try{\n  22 |   const a=await registerAndLogin(owner,'Owner'),b=await registerAndLogin(member,'Member');\n    at E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e\\virtual-rooms.user-journey.spec.ts:19:31"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-11-03T16:16:12.533Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\test-results\\user-journey-firefox\\virtual-rooms.user-journey-24c44-ine-and-moderate-membership\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "E:\\KLTN\\hoho\\workspace_hub\\frontend\\web\\e2e\\virtual-rooms.user-journey.spec.ts",
+                    "column": 31,
+                    "line": 19
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "9be4b2fdc46b69345755-bc3d32898a4cb9d4810a",
+          "file": "virtual-rooms.user-journey.spec.ts",
+          "line": 17,
+          "column": 5
+        },
+        {
+          "title": "actual app: anonymous redirect, capacity, cancellation, private visibility and leaving",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "9be4b2fdc46b69345755-1d0b2e9c2a88053dc2c5",
+          "file": "virtual-rooms.user-journey.spec.ts",
+          "line": 67,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "message": "\u001b[31mTesting stopped early after 1 maximum allowed failures.\u001b[39m"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-11-03T16:16:11.834Z",
+    "duration": 3068.786,
+    "expected": 0,
+    "skipped": 1,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

@@ -47,13 +47,18 @@ export class WorkAssistantWorkflowService {
       stream.heartbeat();
     }, 15000);
     const timing = new Profile("work_assistant");
+    let deltaCount = 0;
     let completed = false;
     try {
       stream.emit("status", { message: "Đang lấy dữ liệu mới…" });
       const result = await this.generation.generateAnswer(
         { actor, session, input, signal: controller.signal, timing },
         (message) => stream.emit("status", { message }),
-        (text) => stream.emit("delta", { text }),
+        (text) => {
+          if (deltaCount === 0) timing.mark("first_delta_ms");
+          timing.set("delta_count", ++deltaCount);
+          stream.emit("delta", { text });
+        },
         () => stream.emit("answer-reset", {}),
       );
       completed = true;

@@ -20,10 +20,13 @@ function stub(file, exports) {
 const sessionId = '10000000-0000-4000-8000-000000000001';
 const answerId = '10000000-0000-4000-8000-000000000002';
 const savedAnswer = { id: answerId, role: 'assistant', content: 'Hello world', sources: [], created_at: '2026-11-10T00:00:00Z' };
-let controller, persisted = [], signal, canceled = 0;
+let controller, persisted = [], signal, canceled = 0, refreshGate;
 stub('./lib/axios.ts', { api: {
-  get: async path => ({ data: { data: path.endsWith('/sessions') ? { sessions: [], nextCursor: null }
-    : { id: sessionId, projectId: null, messages: persisted, nextCursor: null } } }),
+  get: async path => {
+    await refreshGate?.(path);
+    return { data: { data: path.endsWith('/sessions') ? { sessions: [], nextCursor: null }
+      : { id: sessionId, projectId: null, messages: persisted, nextCursor: null } } };
+  },
   post: async (path, _body, options) => {
     if (path.endsWith('/cancel')) { canceled++; return {}; }
     signal = options.signal;
@@ -43,7 +46,7 @@ const { useWorkAssistant } = web('./features/work-assistant/hooks/use-work-assis
 const encoder = new TextEncoder();
 function emit(event, data) { controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)); }
 async function mount() {
-  controller = undefined; persisted = []; canceled = 0;
+  controller = undefined; persisted = []; canceled = 0; refreshGate = undefined;
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   const hook = renderHook(() => useWorkAssistant('actor', undefined, 'mine'), {
     wrapper: ({ children }) => React.createElement(QueryClientProvider, { client }, children),
@@ -110,4 +113,25 @@ test('backend error clears a visible draft and never presents it as completed', 
     assert.equal(view.result.current.reply, null); assert.equal(view.result.current.error, 'Access changed');
     assert.equal(view.result.current.messages.length, 0);
   } finally { cleanup(); view.client.clear(); }
+});
+
+test('conversation list refresh starts while the history refresh is still pending', async () => {
+  const view = await mount();
+  let releaseHistory;
+  const historyGate = new Promise(resolve => { releaseHistory = resolve; });
+  const refreshing = [];
+  try {
+    await waitFor(() => assert.equal(view.result.current.conversations.isSuccess, true));
+    refreshGate = async path => {
+      refreshing.push(path);
+      if (path.endsWith('/session')) await historyGate;
+    };
+    act(() => { persisted = [savedAnswer]; emit('done', { message: savedAnswer }); controller.close(); });
+    await waitFor(() => assert.ok(refreshing.some(path => path.endsWith('/session'))));
+    await waitFor(() => assert.ok(refreshing.some(path => path.endsWith('/sessions'))));
+    assert.equal(view.result.current.reply?.id, answerId);
+  } finally {
+    await act(async () => { releaseHistory(); await view.pending; });
+    cleanup(); view.client.clear(); refreshGate = undefined;
+  }
 });
