@@ -38,6 +38,7 @@ export function useWorkAssistant(
   projectId: string | undefined,
   audience: Audience,
   sessionId?: string,
+  conversationsOpen = false,
 ) {
   const client = useQueryClient();
   const accountRoot = useMemo(
@@ -90,7 +91,7 @@ export function useWorkAssistant(
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       workApi.getConversations(context, pageParam, signal),
-    enabled: history.isSuccess,
+    enabled: history.isSuccess && conversationsOpen,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     refetchOnMount: "always",
     retry: false,

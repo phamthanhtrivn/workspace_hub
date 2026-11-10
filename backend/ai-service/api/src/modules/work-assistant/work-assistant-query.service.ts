@@ -29,7 +29,8 @@ export class WorkAssistantQueryService {
 
   async session(actor: Actor, data: z.infer<typeof sessionSchema>) {
     this.access.enabled();
-    await this.context.requireScope(actor, this.access.scope(data));
+    if (!data.sessionId)
+      await this.context.requireScope(actor, this.access.scope(data));
     const session = data.sessionId
       ? await this.access.owned(actor, data.sessionId, data)
       : await this.store.session(actor, data);

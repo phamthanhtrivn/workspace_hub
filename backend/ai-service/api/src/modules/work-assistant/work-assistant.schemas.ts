@@ -7,7 +7,7 @@ export const audienceSchema = z
 
 export const scopeSchema = z
   .object({
-    projectId: z.string().uuid().optional(),
+    projectId: z.string().uuid().toLowerCase().optional(),
     audience: audienceSchema,
   })
   .strict()
@@ -23,7 +23,7 @@ export const conversationContextSchema = z
       "calendar",
       "project_detail",
     ]),
-    projectId: z.string().uuid().optional(),
+    projectId: z.string().uuid().toLowerCase().optional(),
   })
   .strict()
   .refine(

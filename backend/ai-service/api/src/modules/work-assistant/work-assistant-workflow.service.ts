@@ -24,13 +24,21 @@ export class WorkAssistantWorkflowService {
   ) {
     const { requestId } = input;
     if (stream.destroyed) return;
-    await this.store.begin(actor, session, requestId);
-    if (stream.destroyed) {
+    const controller = new AbortController();
+    const detach = stream.onClose(() => controller.abort());
+    try {
+      await this.store.begin(actor, session, requestId, controller.signal);
+    } catch (error) {
+      detach();
+      if (controller.signal.aborted) return;
+      throw error;
+    }
+    if (stream.destroyed || controller.signal.aborted) {
+      detach();
       await this.store.fail(actor, requestId, true);
 
       return;
     }
-    const controller = new AbortController();
     let timedOut = false;
     const timeout = setTimeout(() => {
       timedOut = true;
@@ -39,8 +47,6 @@ export class WorkAssistantWorkflowService {
     const stopPolling = pollUntilAborted(controller, 1000, async () => {
       if (await this.store.canceled(actor, requestId)) controller.abort();
     });
-    const close = () => controller.abort();
-    const detach = stream.onClose(close);
     stream.start();
     stream.emit("request", { requestId });
     const heartbeat = setInterval(() => {

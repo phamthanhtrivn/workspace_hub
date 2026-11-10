@@ -33,9 +33,15 @@ function Conversation({
   contextLabel: string;
   onClose: () => void;
 }) {
-  const assistant = useWorkAssistant(userId, projectId, audience, sessionId);
-  const [question, setQuestion] = useState("");
   const [showConversations, setShowConversations] = useState(false);
+  const assistant = useWorkAssistant(
+    userId,
+    projectId,
+    audience,
+    sessionId,
+    showConversations,
+  );
+  const [question, setQuestion] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   useEffect(() => {

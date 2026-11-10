@@ -27,6 +27,20 @@ export class WorkStore {
   constructor(private readonly database: AiDatabaseClient) {}
   async session(actor: Actor, context: ConversationContext, create = false) {
     const { projectId, contextType } = context;
+    const lookup =
+      "SELECT * FROM notebook_ai.work_assistant_sessions WHERE owner_id=$1 AND context_type=$2 AND " +
+      (projectId ? "project_id=$3::uuid" : "project_id IS NULL") +
+      " ORDER BY updated_at DESC,id DESC LIMIT 1";
+    const parameters = projectId
+      ? [actor.id, contextType, projectId]
+      : [actor.id, contextType];
+    if (!create) {
+      const [existing] = await this.database.rows<WorkSession>(
+        lookup,
+        parameters,
+      );
+      if (existing) return existing;
+    }
 
     return this.database.transaction(async (client) => {
       await client.query(
@@ -35,12 +49,8 @@ export class WorkStore {
       );
       if (!create) {
         const { rows: existing } = await client.query<WorkSession>(
-          "SELECT * FROM notebook_ai.work_assistant_sessions WHERE owner_id=$1 AND context_type=$2 AND " +
-            (projectId ? "project_id=$3::uuid" : "project_id IS NULL") +
-            " ORDER BY updated_at DESC,id DESC LIMIT 1",
-          projectId
-            ? [actor.id, contextType, projectId]
-            : [actor.id, contextType],
+          lookup,
+          parameters,
         );
         if (existing[0]) return existing[0];
       }
@@ -137,12 +147,18 @@ export class WorkStore {
 
     return messages.reverse();
   }
-  async begin(actor: Actor, session: WorkSession, requestId: string) {
+  async begin(
+    actor: Actor,
+    session: WorkSession,
+    requestId: string,
+    signal?: AbortSignal,
+  ) {
     await this.database.transaction(async (client) => {
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
         [actor.id],
       );
+      signal?.throwIfAborted();
       const { rows: existing } = await client.query(
         "SELECT id FROM notebook_ai.work_assistant_requests WHERE id=$1",
         [requestId],
@@ -167,6 +183,7 @@ export class WorkStore {
         throw new TooManyRequestsException(
           "Bạn hỏi quá nhanh. Vui lòng thử lại sau một phút.",
         );
+      signal?.throwIfAborted();
       await client.query(
         "INSERT INTO notebook_ai.work_assistant_requests(id,session_id,owner_id) VALUES($1,$2,$3)",
         [requestId, session.id, actor.id],
@@ -185,11 +202,17 @@ export class WorkStore {
     return !row || row.cancel_requested || row.status !== "RUNNING";
   }
   async cancel(actor: Actor, id: string) {
-    const result = await this.database.rows(
-      "UPDATE notebook_ai.work_assistant_requests SET cancel_requested=true,status=CASE WHEN status='RUNNING' THEN 'CANCELED' ELSE status END,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING id",
-      [id, actor.id],
-    );
-    if (!result.length) throw new NotFoundException();
+    await this.database.transaction(async (client) => {
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
+        [actor.id],
+      );
+      const { rows: result } = await client.query(
+        "UPDATE notebook_ai.work_assistant_requests SET cancel_requested=true,status=CASE WHEN status='RUNNING' THEN 'CANCELED' ELSE status END,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING id",
+        [id, actor.id],
+      );
+      if (!result.length) throw new NotFoundException();
+    });
   }
   async finish(
     actor: Actor,

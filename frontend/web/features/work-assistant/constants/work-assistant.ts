@@ -60,7 +60,9 @@ export interface ResolvedWorkContext {
 }
 
 export function resolveWorkContext(pathname: string): ResolvedWorkContext {
-  const projectId = /^\/projects\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname)?.[1];
+  const projectId = /^\/projects\/([0-9a-f-]{36})(?:\/|$)/i
+    .exec(pathname)?.[1]
+    ?.toLowerCase();
 
   if (projectId) {
     return {
