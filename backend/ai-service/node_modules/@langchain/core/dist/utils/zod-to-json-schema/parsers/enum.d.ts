@@ -1,8 +1,0 @@
-import "zod/v3";
-//#region src/utils/zod-to-json-schema/parsers/enum.d.ts
-export type JsonSchema7EnumType = {
-  type: "string";
-  enum: string[];
-};
-//#endregion
-//# sourceMappingURL=enum.d.ts.map
