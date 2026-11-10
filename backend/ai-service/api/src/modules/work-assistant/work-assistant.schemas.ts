@@ -15,30 +15,47 @@ export const scopeSchema = z
     (s) => !s.projectId || s.audience === "mine",
     "Project scope only supports mine audience",
   );
-export const querySchema = z
+export const conversationContextSchema = z
   .object({
+    contextType: z.enum([
+      "dashboard",
+      "projects",
+      "calendar",
+      "project_detail",
+    ]),
     projectId: z.string().uuid().optional(),
-    before: z.string().uuid().optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (s) => (s.contextType === "project_detail") === !!s.projectId,
+    "Only Project Detail requires a projectId",
+  );
+export const querySchema = conversationContextSchema.safeExtend({
+  before: z.string().uuid().optional(),
+});
 
 export const overviewSchema = scopeSchema.safeExtend({
   timeZone: timeZoneSchema.optional(),
 });
-export const sessionSchema = querySchema.extend({
+export const sessionSchema = querySchema.safeExtend({
   sessionId: z.string().uuid().optional(),
 });
-export const sessionsSchema = querySchema.extend({
+export const sessionsSchema = querySchema.safeExtend({
   before: z.string().min(1).max(512).optional(),
 });
-export const createSessionSchema = z
-  .object({ projectId: z.string().uuid().optional() })
-  .strict();
-export const messageSchema = z
-  .object({
+export const createSessionSchema = conversationContextSchema;
+export const messageSchema = conversationContextSchema
+  .safeExtend({
     question: z.string().trim().min(1).max(4000),
     requestId: z.string().uuid(),
     audience: audienceSchema,
     timeZone: timeZoneSchema.optional(),
   })
-  .strict();
+  .refine(
+    (s) =>
+      s.audience ===
+      (s.contextType === "projects" || s.contextType === "calendar"
+        ? s.contextType
+        : "mine"),
+    "Audience does not match conversation context",
+  );

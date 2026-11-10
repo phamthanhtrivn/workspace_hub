@@ -7,20 +7,27 @@ import {
 import { randomUUID } from "node:crypto";
 import { TooManyRequestsException } from "../../common/errors/rate-limit.exception";
 import type { Actor } from "../../common/types";
-import type { StoredMessage, TaskReference } from "./work-assistant.types";
+import type {
+  ConversationContext,
+  StoredMessage,
+  TaskReference,
+} from "./work-assistant.types";
 import { conversationCursor, parseConversationCursor } from "./work-cursor";
 import { WORK_HISTORY_LIMIT } from "./work-history";
 export type WorkSession = {
   id: string;
   owner_id: string;
   project_id: string | null;
+  context_type: ConversationContext["contextType"];
   scope_key: string;
   updated_at: string;
 };
 @Injectable()
 export class WorkStore {
   constructor(private readonly database: AiDatabaseClient) {}
-  async session(actor: Actor, projectId?: string, create = false) {
+  async session(actor: Actor, context: ConversationContext, create = false) {
+    const { projectId, contextType } = context;
+
     return this.database.transaction(async (client) => {
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
@@ -28,10 +35,12 @@ export class WorkStore {
       );
       if (!create) {
         const { rows: existing } = await client.query<WorkSession>(
-          "SELECT * FROM notebook_ai.work_assistant_sessions WHERE owner_id=$1 AND " +
-            (projectId ? "project_id=$2::uuid" : "project_id IS NULL") +
+          "SELECT * FROM notebook_ai.work_assistant_sessions WHERE owner_id=$1 AND context_type=$2 AND " +
+            (projectId ? "project_id=$3::uuid" : "project_id IS NULL") +
             " ORDER BY updated_at DESC,id DESC LIMIT 1",
-          projectId ? [actor.id, projectId] : [actor.id],
+          projectId
+            ? [actor.id, contextType, projectId]
+            : [actor.id, contextType],
         );
         if (existing[0]) return existing[0];
       }
@@ -39,35 +48,39 @@ export class WorkStore {
       const {
         rows: [session],
       } = await client.query<WorkSession>(
-        "INSERT INTO notebook_ai.work_assistant_sessions(id,owner_id,project_id,scope_key) VALUES($1,$2,$3,$4) RETURNING *",
-        [sessionId, actor.id, projectId ?? null, sessionId],
+        "INSERT INTO notebook_ai.work_assistant_sessions(id,owner_id,project_id,scope_key,context_type) VALUES($1,$2,$3,$4,$5) RETURNING *",
+        [sessionId, actor.id, projectId ?? null, sessionId, contextType],
       );
 
       return session;
     });
   }
-  async list(actor: Actor, projectId?: string, before?: string) {
+  async list(actor: Actor, context: ConversationContext, before?: string) {
+    const { projectId, contextType } = context;
     const boundary = before ? parseConversationCursor(before) : undefined;
     if (boundary) {
       const [cursor] = await this.database.rows<{ updated_at: string }>(
-        `SELECT to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') updated_at FROM notebook_ai.work_assistant_sessions WHERE id=$1 AND owner_id=$2 AND project_id IS NOT DISTINCT FROM $3::uuid`,
-        [boundary.id, actor.id, projectId ?? null],
+        `SELECT to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') updated_at FROM notebook_ai.work_assistant_sessions WHERE id=$1 AND owner_id=$2 AND project_id IS NOT DISTINCT FROM $3::uuid AND context_type=$4`,
+        [boundary.id, actor.id, projectId ?? null, contextType],
       );
       if (!cursor) throw new NotFoundException("Conversation cursor not found");
       boundary.updatedAt ??= cursor.updated_at;
     }
-    const parameters = projectId ? [actor.id, projectId] : [actor.id];
+    const parameters = projectId
+      ? [actor.id, contextType, projectId]
+      : [actor.id, contextType];
     const cursorParameter = parameters.length + 1;
     if (boundary) parameters.push(boundary.updatedAt!, boundary.id);
     const sessions = await this.database.rows<{
       id: string;
       project_id: string | null;
+      context_type: ConversationContext["contextType"];
       updated_at: string;
       content: string | null;
       project_ids: string[];
     }>(
-      `SELECT s.id,s.project_id,to_char(s.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') updated_at,m.content,coalesce(m.project_ids,'[]'::jsonb) project_ids FROM (SELECT id,project_id,updated_at FROM notebook_ai.work_assistant_sessions WHERE owner_id=$1 AND ` +
-        (projectId ? "project_id=$2::uuid " : "project_id IS NULL ") +
+      `SELECT s.id,s.project_id,s.context_type,to_char(s.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') updated_at,m.content,coalesce(m.project_ids,'[]'::jsonb) project_ids FROM (SELECT id,project_id,context_type,updated_at FROM notebook_ai.work_assistant_sessions WHERE owner_id=$1 AND context_type=$2 AND ` +
+        (projectId ? "project_id=$3::uuid " : "project_id IS NULL ") +
         (boundary
           ? `AND (updated_at,id)<($${cursorParameter}::timestamptz,$${cursorParameter + 1}::uuid) `
           : "") +
@@ -173,7 +186,7 @@ export class WorkStore {
   }
   async cancel(actor: Actor, id: string) {
     const result = await this.database.rows(
-      "UPDATE notebook_ai.work_assistant_requests SET cancel_requested=true WHERE id=$1 AND owner_id=$2 RETURNING id",
+      "UPDATE notebook_ai.work_assistant_requests SET cancel_requested=true,status=CASE WHEN status='RUNNING' THEN 'CANCELED' ELSE status END,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING id",
       [id, actor.id],
     );
     if (!result.length) throw new NotFoundException();
@@ -190,8 +203,8 @@ export class WorkStore {
   ) {
     return this.database.transaction(async (client) => {
       const { rows: changed } = await client.query(
-        "UPDATE notebook_ai.work_assistant_requests SET status='COMPLETED',updated_at=now() WHERE id=$1 AND owner_id=$2 AND status='RUNNING' AND NOT cancel_requested RETURNING id",
-        [requestId, actor.id],
+        "UPDATE notebook_ai.work_assistant_requests SET status='COMPLETED',updated_at=now() WHERE id=$1 AND owner_id=$2 AND session_id=$3 AND status='RUNNING' AND NOT cancel_requested RETURNING id",
+        [requestId, actor.id, session.id],
       );
       if (!changed.length) throw new ConflictException("Yêu cầu đã bị hủy.");
       const references = JSON.stringify(sources),

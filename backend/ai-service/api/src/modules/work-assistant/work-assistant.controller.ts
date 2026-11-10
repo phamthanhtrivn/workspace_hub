@@ -44,8 +44,10 @@ export class WorkAssistantController {
 
   @Post("sessions")
   async createSession(@Req() req: AuthRequest, @Body() body: unknown) {
-    const { projectId } = parse(createSessionSchema, body);
-    return this.service.createSession(req.actor, projectId);
+    return this.service.createSession(
+      req.actor,
+      parse(createSessionSchema, body),
+    );
   }
 
   @Post("sessions/:id/messages")

@@ -1,4 +1,8 @@
 export type Audience = "mine" | "projects" | "calendar" | "project";
+export type ConversationContext = {
+  contextType: "dashboard" | "projects" | "calendar" | "project_detail";
+  projectId?: string;
+};
 export type WorkScope = { projectId?: string; audience: Audience };
 export type TaskReference = {
   id: string;
@@ -35,12 +39,14 @@ export type WorkMessage = {
 };
 export type WorkSession = {
   id: string;
+  contextType: ConversationContext["contextType"];
   projectId: string | null;
   messages: WorkMessage[];
   nextCursor: string | null;
 };
 export type WorkConversation = {
   id: string;
+  contextType: ConversationContext["contextType"];
   projectId: string | null;
   title: string;
   updatedAt: string;

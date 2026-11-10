@@ -10,6 +10,26 @@ import {
 import * as workApi from "../api/work-assistant.api";
 import { getUserSettings } from "@/features/user-setting/api/user-setting.api";
 import type { Audience, WorkMessage } from "../types";
+import {
+  conversationContext,
+  conversationContextKey,
+} from "../constants/work-assistant";
+
+// Await server cancellation before another context uses the user's active slot.
+const cancellations = new Map<string, Promise<void>>();
+function cancelStream(userId: string, id: string) {
+  const previous = cancellations.get(userId);
+  const pending = Promise.allSettled([
+    previous,
+    workApi.cancelRequest(id),
+  ]).then(() => undefined);
+  cancellations.set(userId, pending);
+  void pending.finally(() => {
+    if (cancellations.get(userId) === pending) cancellations.delete(userId);
+  });
+
+  return pending;
+}
 export function workError(error: unknown) {
   return aiErrorMessage(error, "Unable to connect to AI Assistant. Try again.");
 }
@@ -20,13 +40,25 @@ export function useWorkAssistant(
   sessionId?: string,
 ) {
   const client = useQueryClient();
-  const root = useMemo(() => ["work-assistant", userId] as const, [userId]);
+  const accountRoot = useMemo(
+    () => ["work-assistant", userId] as const,
+    [userId],
+  );
+  const context = useMemo(
+    () => conversationContext(projectId, audience),
+    [projectId, audience],
+  );
+  const root = useMemo(
+    () =>
+      [...accountRoot, conversationContextKey(projectId, audience)] as const,
+    [accountRoot, projectId, audience],
+  );
   const historyKey = useMemo(
-    () => [...root, "history", projectId ?? "personal", sessionId ?? "latest"],
-    [root, projectId, sessionId],
+    () => [...root, "history", sessionId ?? "latest"],
+    [root, sessionId],
   );
   const account = useQuery({
-    queryKey: [...root, "account-settings"],
+    queryKey: [...accountRoot, "account-settings"],
     queryFn: getUserSettings,
     retry: false,
     staleTime: 60000,
@@ -34,27 +66,38 @@ export function useWorkAssistant(
   const timeZone = account.data?.data.timezone;
   const history = useInfiniteQuery({
     queryKey: historyKey,
-    initialPageParam: undefined as string | undefined,
+    initialPageParam: undefined as
+      { before: string; sessionId: string } | undefined,
     queryFn: ({ pageParam, signal }) =>
-      workApi.getSession(projectId, pageParam, signal, sessionId),
-    getNextPageParam: (page) => page.nextCursor ?? undefined,
+      workApi.getSession(
+        context,
+        pageParam?.before,
+        signal,
+        pageParam?.sessionId ?? sessionId,
+      ),
+    getNextPageParam: (page) =>
+      page.nextCursor
+        ? { before: page.nextCursor, sessionId: page.id }
+        : undefined,
     refetchOnMount: "always",
     retry: false,
     staleTime: 0,
+    gcTime: 0,
   });
-  const conversationsKey = [...root, "sessions", projectId ?? "personal"];
+  const conversationsKey = [...root, "sessions"];
   const conversations = useInfiniteQuery({
     queryKey: conversationsKey,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
-      workApi.getConversations(projectId, pageParam, signal),
+      workApi.getConversations(context, pageParam, signal),
     enabled: history.isSuccess,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     refetchOnMount: "always",
     retry: false,
+    gcTime: 0,
   });
   const createConversation = useMutation({
-    mutationFn: () => workApi.createConversation(projectId),
+    mutationFn: () => workApi.createConversation(context),
     onSuccess: () =>
       client.invalidateQueries({ queryKey: [...root, "sessions"] }),
   });
@@ -76,10 +119,10 @@ export function useWorkAssistant(
       const request = active.current;
       if (request) {
         request.controller.abort();
-        void workApi.cancelRequest(request.id).catch(() => undefined);
+        void cancelStream(userId, request.id);
       }
     };
-  }, []);
+  }, [userId]);
   const send = useCallback(
     async (question: string) => {
       const session = history.data?.pages[0];
@@ -102,14 +145,21 @@ export function useWorkAssistant(
       setNotice("");
       setStatus("Connecting...");
       try {
+        await cancellations.get(userId);
+        request.controller.signal.throwIfAborted();
         await workApi.sendMessage(
           session.id,
           question.trim(),
           request.id,
-          audience,
+          context,
           request.controller.signal,
           (value) => {
-            if (alive.current) setStatus(assistantStatus(value));
+            if (
+              alive.current &&
+              active.current === request &&
+              !request.controller.signal.aborted
+            )
+              setStatus(assistantStatus(value));
           },
           (message) => {
             if (
@@ -149,13 +199,19 @@ export function useWorkAssistant(
             }
           },
         );
-        if (alive.current) {
+        if (
+          alive.current &&
+          active.current === request &&
+          !request.controller.signal.aborted
+        ) {
           await Promise.all([
             client.invalidateQueries({ queryKey: historyKey }),
             client.invalidateQueries({ queryKey: [...root, "sessions"] }),
           ]);
-          setPending(null);
-          setReply(null);
+          if (alive.current && active.current === request) {
+            setPending(null);
+            setReply(null);
+          }
         }
       } catch (cause) {
         if (alive.current) {
@@ -171,7 +227,7 @@ export function useWorkAssistant(
         if (alive.current) setStatus("");
       }
     },
-    [history.data, audience, client, historyKey, timeZone, root],
+    [history.data, context, client, historyKey, timeZone, root, userId],
   );
   const stop = async () => {
     const request = active.current;
@@ -182,11 +238,7 @@ export function useWorkAssistant(
       setStreaming(false);
       setNotice("Response stopped.");
     }
-    try {
-      await workApi.cancelRequest(request.id);
-    } catch {
-      /* Closing the stream also cancels the server request. */
-    }
+    await cancelStream(userId, request.id);
   };
   const messages =
     history.data?.pages

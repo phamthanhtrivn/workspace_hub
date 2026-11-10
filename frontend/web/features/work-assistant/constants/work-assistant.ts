@@ -1,4 +1,27 @@
-import type { Audience, WorkScope } from "../types";
+import type { Audience, ConversationContext, WorkScope } from "../types";
+
+export function conversationContext(
+  projectId: string | undefined,
+  audience: Audience,
+): ConversationContext {
+  return {
+    contextType: projectId
+      ? "project_detail"
+      : audience === "projects" || audience === "calendar"
+        ? audience
+        : "dashboard",
+    ...(projectId ? { projectId } : {}),
+  };
+}
+
+export function conversationContextKey(
+  projectId: string | undefined,
+  audience: Audience,
+) {
+  const context = conversationContext(projectId, audience);
+
+  return `${context.contextType}:${projectId ?? ""}`;
+}
 
 export const WORK_SUGGESTIONS = [
   { label: "Plan my day", question: "What should I work on first today?" },

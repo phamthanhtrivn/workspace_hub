@@ -53,6 +53,14 @@ void db
       ),
     ),
   )
+  .then(() =>
+    db.query(
+      readFileSync(
+        join(__dirname, "../migrations/008_work_assistant_contexts.sql"),
+        "utf8",
+      ),
+    ),
+  )
   .then(() => console.log("Notebook schema ready (legacy tables untouched)"))
   .catch(() => {
     console.error("Migration failed; check database and credentials");

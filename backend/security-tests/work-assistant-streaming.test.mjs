@@ -169,7 +169,7 @@ async function workflowCase({ finishReason = 'stop', revoke = false, cancel = fa
     finish: async (...args) => { saved.push(args); return { id: 'saved', role: 'assistant', content: args[4], sources: [] }; },
     fail: async (...args) => failures.push(args),
   };
-  const access = { scope: () => context.scope, visible: async (_actor, messages) => messages };
+  const access = { sessionScope: () => context.scope, visible: async (_actor, messages) => messages };
   const generation = new WorkAssistantGenerationService({ read: async () => context,
     authorize: async () => new Set(revoke ? [] : context.projectIds) }, store, access);
   const workflow = new WorkAssistantWorkflowService(store, generation, access);

@@ -65,8 +65,8 @@ export class WorkAssistantGenerationService {
     onReset: () => void,
   ) {
     const { actor, session, input, signal, timing } = request;
-    const { question, requestId, audience, timeZone } = input;
-    const scope = this.access.scope(session, audience);
+    const { question, requestId, timeZone } = input;
+    const scope = this.access.sessionScope(session);
     const [history, initial] = await Promise.all([
       timing.measure("history_ms", () =>
         this.store

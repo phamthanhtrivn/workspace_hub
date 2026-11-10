@@ -25,7 +25,7 @@ stub('./lib/axios.ts', { api: {
   get: async path => {
     await refreshGate?.(path);
     return { data: { data: path.endsWith('/sessions') ? { sessions: [], nextCursor: null }
-      : { id: sessionId, projectId: null, messages: persisted, nextCursor: null } } };
+      : { id: sessionId, contextType: 'dashboard', projectId: null, messages: persisted, nextCursor: null } } };
   },
   post: async (path, _body, options) => {
     if (path.endsWith('/cancel')) { canceled++; return {}; }

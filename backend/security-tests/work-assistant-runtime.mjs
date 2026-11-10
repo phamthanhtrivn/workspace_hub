@@ -10,6 +10,7 @@ import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Readable } from 'node:stream';
+import { verifyContextApi, verifyContextBrowser } from './work-assistant-context-runtime.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const ai = createRequire(resolve(root, 'backend/ai-service/api/package.json'));
@@ -17,7 +18,8 @@ const web = createRequire(resolve(root, 'frontend/web/package.json'));
 const out = resolve(process.env.TEMP || root, 'workspacehub-work-assistant-runtime');
 const runId = 'wh-work-runtime-' + randomBytes(5).toString('hex');
 const containers = [], children = [], reports = [], modelInputs = [];
-const actorId = randomUUID(), projectId = randomUUID(), taskId = randomUUID(), sessionId = randomUUID();
+const actorId = randomUUID(), projectId = randomUUID(), secondProjectId = randomUUID(), taskId = randomUUID(), sessionId = randomUUID();
+const allowedProjects = new Set([projectId, secondProjectId]);
 const email = 'runtime-fixture@example.test', secret = randomBytes(32).toString('hex');
 let db, browser, server, mode = 'normal', phase = 'setup', liveCalls = 0, providerEnv;
 const now = new Date().toISOString();
@@ -99,6 +101,11 @@ async function main() {
       'INSERT INTO notebook_ai.work_assistant_messages(id,session_id,request_id,role,content,created_at) VALUES($1,$2,$3,$4,$5,now()-make_interval(secs=>$6))',
       [randomUUID(), sessionId, id, role, `Earlier ${role} turn ${i + 1}. ` + 'Synthetic history detail. '.repeat(50), 3600 - i * 2 - offset]);
   }
+  const contextMigration = await readFile(resolve(root, 'backend/ai-service/api/migrations/008_work_assistant_contexts.sql'), 'utf8');
+  await db.query(contextMigration);
+  await db.query(contextMigration); // Must preserve legacy rows and support re-running the migration chain.
+  assert.equal((await db.query('SELECT context_type FROM notebook_ai.work_assistant_sessions WHERE id=$1', [sessionId])).rows[0].context_type, 'dashboard');
+  assert.equal((await db.query('SELECT count(*)::int n FROM notebook_ai.work_assistant_messages WHERE session_id=$1', [sessionId])).rows[0].n, 20);
   server = createServer(async (req, res) => {
     res.setHeader('access-control-allow-origin', webUrl); res.setHeader('access-control-allow-credentials', 'true');
     res.setHeader('access-control-allow-headers', 'authorization,content-type'); res.setHeader('access-control-allow-methods', 'GET,POST,OPTIONS');
@@ -127,11 +134,11 @@ async function main() {
         res.on('close', () => clearTimeout(timer)); return;
       }
       if (path === '/api/users/internal/sessions/authorize') return json(res, { active: true });
-      if (path === '/internal/work-assistant/authorize') { const data = await body(req); return json(res, { data: { projectIds: data.projectIds.filter(id => id === projectId) } }); }
+      if (path === '/internal/work-assistant/authorize') { const data = await body(req); return json(res, { data: { projectIds: data.projectIds.filter(id => allowedProjects.has(id)) } }); }
       if (path === '/internal/work-assistant/context') {
         const data = await body(req);
         return json(res, { data: 'windowStart' in data ? { available: true, timeZone: 'Asia/Ho_Chi_Minh', partial: false, busyPartial: false, busy: [], tasks: [], metrics: { ...metrics, open: 0, dueToday: 0 }, focus: { seconds: 0, sessions: 0, perTask: [] } }
-          : { available: true, projectIds: [projectId], partial: false, tasks: [task], metrics } });
+          : { available: true, projectIds: [data.projectId ?? projectId], partial: false, tasks: [{ ...task, projectId: data.projectId ?? projectId }], metrics } });
       }
       if (path.startsWith('/api/ai/work-assistant')) {
         const abort = new AbortController(); res.on('close', () => abort.abort());
@@ -158,18 +165,21 @@ async function main() {
   await until(async () => { if (apiProcess.exitCode !== null) throw new Error('API exited'); return (await fetch(apiUrl + '/health')).ok; }, 'compiled API');
   stage('cross-session-isolation');
   const foreignSession = randomUUID();
-  await db.query('INSERT INTO notebook_ai.work_assistant_sessions(id,owner_id,scope_key) VALUES($1,$2,$3)', [foreignSession, randomUUID(), foreignSession]);
+  await db.query("INSERT INTO notebook_ai.work_assistant_sessions(id,owner_id,scope_key,context_type) VALUES($1,$2,$3,'dashboard')", [foreignSession, randomUUID(), foreignSession]);
   const foreignRequest = randomUUID();
   await db.query("INSERT INTO notebook_ai.work_assistant_requests(id,session_id,owner_id,status) SELECT $1,id,owner_id,'COMPLETED' FROM notebook_ai.work_assistant_sessions WHERE id=$2", [foreignRequest, foreignSession]);
   await db.query("INSERT INTO notebook_ai.work_assistant_messages(id,session_id,request_id,role,content) VALUES($1,$2,$3,'assistant','FOREIGN_HISTORY_SHOULD_NEVER_APPEAR')", [randomUUID(), foreignSession, foreignRequest]);
   for (const [path, method, payload] of [
-    [`/api/ai/work-assistant/session?sessionId=${foreignSession}`, 'GET'],
-    [`/api/ai/work-assistant/sessions/${foreignSession}/messages`, 'POST', { question: 'Plan today', requestId: randomUUID(), audience: 'mine' }],
+    [`/api/ai/work-assistant/session?contextType=dashboard&sessionId=${foreignSession}`, 'GET'],
+    [`/api/ai/work-assistant/sessions/${foreignSession}/messages`, 'POST', { contextType: 'dashboard', question: 'Plan today', requestId: randomUUID(), audience: 'mine' }],
   ]) {
     const denied = await fetch(bridgeUrl + path, { method, ...(payload ? { headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) } : {}) });
     assert.equal(denied.status, 404); assert.equal((await denied.text()).includes('FOREIGN_HISTORY_SHOULD_NEVER_APPEAR'), false);
   }
   assert.equal(modelInputs.length, 0, 'A foreign session cannot invoke the model');
+  stage('context-api');
+  const contextChecks = await verifyContextApi({ db, bridgeUrl, actorId, projectId, secondProjectId, sessionId, modelInputs, allowedProjects });
+  const browserInputStart = modelInputs.length;
   stage('frontend');
   start(['node_modules/next/dist/bin/next', 'dev', '--webpack', '--hostname', '127.0.0.1', '--port', String(webPort)], resolve(root, 'frontend/web'), {
     NEXT_PUBLIC_API_URL: bridgeUrl, NEXT_TELEMETRY_DISABLED: '1',
@@ -190,7 +200,8 @@ async function main() {
     if (path === '/api/auth/refresh') data = { accessToken: token, userId: actorId, email, fullName: 'Runtime Fixture', role: 'USER' };
     else if (path === '/api/users/me/settings') data = { timezone: 'Asia/Ho_Chi_Minh', muteNotification: true, theme: 'LIGHT', language: 'EN', allowNewDirectMessages: true };
     else if (path.includes('/users/me')) data = { id: actorId, fullName: 'Runtime Fixture', email };
-    else if (path === '/api/projects') data = [{ id: projectId, name: 'Runtime fixture', ownerId: actorId, status: 'ACTIVE', archived: false }];
+    else if (path === '/api/projects') data = [projectId, secondProjectId].map((id, i) => ({ id, name: 'Runtime fixture ' + (i + 1), ownerId: actorId, status: 'ACTIVE', archived: false }));
+    else if (/^\/api\/projects\/[0-9a-f-]{36}$/.test(path)) data = { id: path.split('/').at(-1), name: 'Runtime fixture', ownerId: actorId, status: 'ACTIVE', archived: false };
     else if (path.includes('/notifications/unread-count')) data = { unreadCount: 0 };
     else if (path.includes('/pomodoro/state')) data = null;
     else if (path.includes('/pomodoro/config')) data = { focusDuration: 25, shortBreak: 5, longBreak: 15, longBreakInterval: 4, dailyGoalPomodoros: 8 };
@@ -212,11 +223,11 @@ async function main() {
     return label.top > 0 && label.bottom < input.top;
   }), 'streamed text scrolled into view', 10000);
   const firstVisibleMs = Math.round(performance.now() - began);
-  assert.equal((await db.query("SELECT count(*)::int n FROM notebook_ai.work_assistant_messages WHERE content='Start with Runtime smoke task today.'")).rows[0].n, 0);
+  assert.equal((await db.query("SELECT count(*)::int n FROM notebook_ai.work_assistant_messages WHERE session_id=$1 AND content='Start with Runtime smoke task today.'", [sessionId])).rows[0].n, 0, 'dashboard draft must not be saved while streaming');
   await page.screenshot({ path: resolve(out, 'desktop-streaming.png'), fullPage: true });
   await panel.getByRole('button', { name: 'Send question', exact: true }).waitFor();
-  await until(async () => (await db.query("SELECT count(*)::int n FROM notebook_ai.work_assistant_messages WHERE content='Start with Runtime smoke task today.'")).rows[0].n === 1, 'saved answer');
-  const history = modelInputs[0].messages.filter(message => typeof message.content === 'string' && message.content.startsWith('Earlier '));
+  await until(async () => (await db.query("SELECT count(*)::int n FROM notebook_ai.work_assistant_messages WHERE session_id=$1 AND content='Start with Runtime smoke task today.'", [sessionId])).rows[0].n === 1, 'saved answer');
+  const history = modelInputs[browserInputStart].messages.filter(message => typeof message.content === 'string' && message.content.startsWith('Earlier '));
   assert.equal(history.length, 20); assert.ok(Buffer.byteLength(JSON.stringify(history)) <= 12000);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: resolve(out, 'mobile-completed.png'), fullPage: true });
@@ -226,7 +237,7 @@ async function main() {
   await panel.getByText('Writing response…', { exact: true }).waitFor();
   await panel.getByRole('button', { name: 'Stop response', exact: true }).click();
   await panel.getByText('Response stopped.', { exact: true }).waitFor();
-  await until(async () => (await db.query("SELECT count(*)::int n FROM notebook_ai.work_assistant_requests WHERE status='CANCELED'")).rows[0].n === 1, 'canceled request');
+  await until(async () => (await db.query("SELECT count(*)::int n FROM notebook_ai.work_assistant_requests WHERE status='CANCELED' AND created_at>now()-interval '1 minute'")).rows[0].n === 1, 'canceled request');
   stage('browser-interrupted-provider'); mode = 'broken';
   await input.fill('What should I work on today?'); await panel.getByRole('button', { name: 'Send question', exact: true }).click();
   await panel.getByText('Writing response…', { exact: true }).waitFor();
@@ -243,12 +254,14 @@ async function main() {
   await panel.getByText('Writing response…', { exact: true }).waitFor();
   await panel.getByRole('button', { name: 'Send question', exact: true }).waitFor();
   assert.equal(modelInputs.at(-1).messages.some(message => typeof message.content === 'string' && message.content.startsWith('Earlier ')), false);
+  stage('browser-context-navigation');
+  contextChecks.push(...await verifyContextBrowser({ page, webUrl, db, actorId, projectId, secondProjectId, until, setMode: value => { mode = value; } }));
   let live = { requested: false };
   if (providerEnv) {
     stage('live-provider-synthetic-context'); mode = 'live';
     const started = performance.now();
     const response = await fetch(bridgeUrl + `/api/ai/work-assistant/sessions/${sessionId}/messages`, { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ question: 'What should I work on first today? Reply in one short English sentence.', requestId: randomUUID(), audience: 'mine', timeZone: 'Asia/Ho_Chi_Minh' }) });
+      body: JSON.stringify({ contextType: 'dashboard', question: 'What should I work on first today? Reply in one short English sentence.', requestId: randomUUID(), audience: 'mine', timeZone: 'Asia/Ho_Chi_Minh' }) });
     let firstDeltaMs, complete = false, text = '';
     const reader = response.body.getReader();
     while (true) { const part = await reader.read(); if (part.done) break; text += new TextDecoder().decode(part.value);
@@ -260,7 +273,7 @@ async function main() {
   }
   assert.deepEqual(errors, [], 'No browser page errors');
   const result = { passed: true, checks: ['compiled API', 'real isolated PostgreSQL/Redis', '20-message budget', 'progressive desktop rendering', 'completed-only persistence', 'mobile layout', 'cancellation', 'interrupted provider', 'foreign session access denied without model calls', 'new conversation excludes old history'],
-    firstVisibleMs, live, metrics: reports, pageErrorTypes: errors, screenshots: out };
+    contextChecks, firstVisibleMs, live, metrics: reports, pageErrorTypes: errors, screenshots: out };
   await writeFile(resolve(out, 'result.json'), JSON.stringify(result, null, 2));
   await writeFile(resolve(out, providerEnv ? 'result-live.json' : 'result-fixture.json'), JSON.stringify(result, null, 2));
   console.log(JSON.stringify(result));

@@ -1,5 +1,5 @@
 import { SseTransport } from "../../common/sse-transport";
-import { HttpException, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import type { Response } from "express";
 import { z } from "zod";
 import { messageSchema } from "./work-assistant.schemas";
@@ -21,9 +21,7 @@ export class WorkAssistantSseService {
     res: Response,
   ) {
     this.access.enabled();
-    const session = await this.access.owned(actor, sessionId);
-    if (session.project_id && input.audience !== "mine")
-      throw new HttpException("Project scope only supports mine audience", 400);
+    const session = await this.access.owned(actor, sessionId, input);
     await this.workflow.answer(actor, this.sse.create(res), session, input);
   }
 }

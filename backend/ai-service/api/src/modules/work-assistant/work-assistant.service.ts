@@ -8,6 +8,7 @@ import {
   messageSchema,
 } from "./work-assistant.schemas";
 import type { Actor } from "../../common/types";
+import type { ConversationContext } from "./work-assistant.types";
 import { WorkAssistantQueryService } from "./work-assistant-query.service";
 import { WorkAssistantWorkflowService } from "./work-assistant-workflow.service";
 import { WorkAssistantSseService } from "./work-assistant-sse.service";
@@ -31,8 +32,8 @@ export class WorkAssistantService {
     return this.queries.sessions(actor, data);
   }
 
-  async createSession(actor: Actor, projectId?: string) {
-    return this.queries.createSession(actor, projectId);
+  async createSession(actor: Actor, context: ConversationContext) {
+    return this.queries.createSession(actor, context);
   }
 
   async cancel(actor: Actor, requestId: string) {

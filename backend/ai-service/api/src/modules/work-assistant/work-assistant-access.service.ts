@@ -1,10 +1,14 @@
-import { Injectable, ServiceUnavailableException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import type { Actor } from "../../common/types";
 import { config } from "../../config/env.config";
 import { WorkContextService } from "./work-context";
 import { WorkStore, type WorkSession } from "./work-store";
 import type {
-  Audience,
+  ConversationContext,
   StoredMessage,
   WorkScope,
 } from "./work-assistant.types";
@@ -26,15 +30,21 @@ export class WorkAssistantAccessService {
       );
   }
 
-  scope(session: WorkSession, audience: Audience = "mine"): WorkScope {
+  scope(context: ConversationContext): WorkScope {
     return {
-      ...(session.project_id ? { projectId: session.project_id } : {}),
-      audience: session.project_id
-        ? "mine"
-        : audience === "projects" || audience === "calendar"
-          ? audience
+      ...(context.projectId ? { projectId: context.projectId } : {}),
+      audience:
+        context.contextType === "projects" || context.contextType === "calendar"
+          ? context.contextType
           : "mine",
     };
+  }
+
+  sessionScope(session: WorkSession): WorkScope {
+    return this.scope({
+      contextType: session.context_type,
+      projectId: session.project_id ?? undefined,
+    });
   }
 
   async visible(actor: Actor, messages: StoredMessage[], signal?: AbortSignal) {
@@ -54,9 +64,14 @@ export class WorkAssistantAccessService {
     );
   }
 
-  async owned(actor: Actor, id: string) {
+  async owned(actor: Actor, id: string, context: ConversationContext) {
     const session = await this.store.owned(actor, id);
-    await this.context.requireScope(actor, this.scope(session));
+    if (
+      session.context_type !== context.contextType ||
+      session.project_id !== (context.projectId ?? null)
+    )
+      throw new NotFoundException("Conversation not found in this context");
+    await this.context.requireScope(actor, this.sessionScope(session));
 
     return session;
   }
