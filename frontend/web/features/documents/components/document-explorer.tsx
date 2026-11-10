@@ -9,7 +9,11 @@ import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { DndContext } from "@dnd-kit/core";
 import { documentsApi } from "../api/documents.api";
 import { DocumentItem } from "../types/documents.types";
-import { DocumentRole, DocumentViewType } from "../types/documents.enums";
+import {
+  DocumentItemType,
+  DocumentRole,
+  DocumentViewType,
+} from "../types/documents.enums";
 
 // UI Building Blocks
 import { DocumentsConfirmDialog } from "./ui/documents-confirm-dialog";
@@ -272,6 +276,11 @@ export function DocumentExplorer({
   const canEditActiveDetailsItem =
     activeDetailsItem?.userRole === DocumentRole.OWNER ||
     activeDetailsItem?.userRole === DocumentRole.EDITOR;
+  const canAccessActiveDetailsVersions = Boolean(
+    activeDetailsItem &&
+    activeDetailsItem.type !== DocumentItemType.FOLDER &&
+    activeDetailsItem.userRole !== DocumentRole.NONE,
+  );
 
   // Folder click navigation
   const handleFolderClick = useCallback(
@@ -571,6 +580,7 @@ export function DocumentExplorer({
           {activeDetailsItem ? (
             <DetailsPanel
               item={activeDetailsItem}
+              activeView={activeView}
               onClose={() => setActiveDetailsItemId(null)}
               onRename={
                 canEditActiveDetailsItem
@@ -578,13 +588,15 @@ export function DocumentExplorer({
                   : undefined
               }
               onShare={
-                canEditActiveDetailsItem && !isProjectDocuments
+                activeDetailsItem.userRole === DocumentRole.OWNER &&
+                !activeDetailsItem.projectId &&
+                !isProjectDocuments
                   ? () => openShareModal(activeDetailsItem)
                   : undefined
               }
               onDownload={() => downloadItem(activeDetailsItem)}
               onManageVersions={
-                canEditActiveDetailsItem
+                canAccessActiveDetailsVersions
                   ? () => openVersionModal(activeDetailsItem)
                   : undefined
               }

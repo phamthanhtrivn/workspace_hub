@@ -28,7 +28,8 @@ export function documentBulkBlockReason(
     return M.ACTIVE_REQUIRED;
   if (action === Action.DELETE && !item.projectId && !item.isArchived)
     return M.TRASH_REQUIRED;
-  if (action === Action.STAR || action === Action.UNSTAR) return;
+  if (action === Action.STAR || action === Action.UNSTAR)
+    return role === DocumentRole.OWNER ? undefined : M.OWNER_REQUIRED;
   if (item.projectId)
     return role === DocumentRole.VIEWER ? M.EDITOR_REQUIRED : undefined;
 

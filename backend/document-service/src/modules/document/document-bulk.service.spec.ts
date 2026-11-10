@@ -175,7 +175,6 @@ void test('failed writes roll back the entire batch and publish no success event
 
 void test('star and unstar are explicit idempotent operations on every selected item', async () => {
   const h = setup();
-  h.roles.set('b', DocumentRole.VIEWER);
   await h.service.execute('owner', 'owner@example.com', {
     ids: ['a', 'b'],
     action: Action.STAR,
@@ -190,6 +189,27 @@ void test('star and unstar are explicit idempotent operations on every selected 
     action: Action.UNSTAR,
   });
   assert.equal(h.stars.size, 0);
+});
+
+void test('shared viewers and editors cannot star or unstar shared documents', async () => {
+  const h = setup();
+  h.roles.set('a', DocumentRole.VIEWER);
+  await assert.rejects(
+    h.service.execute('recipient', 'recipient@example.com', {
+      ids: ['a'],
+      action: Action.STAR,
+    }),
+    BadRequestException,
+  );
+  h.roles.set('a', DocumentRole.EDITOR);
+  await assert.rejects(
+    h.service.execute('recipient', 'recipient@example.com', {
+      ids: ['a'],
+      action: Action.UNSTAR,
+    }),
+    BadRequestException,
+  );
+  assert.equal(h.transactions(), 0);
 });
 
 void test('move, trash, restore and permanent deletion operate on the complete batch', async () => {

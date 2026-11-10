@@ -12,6 +12,7 @@ import type { DocumentEventPublisher } from './document-event-publisher.service'
 import type { DocumentPresentationService } from './document-presentation.service';
 import type { DocumentAccessService } from './document-access.service';
 import type { DocumentTreeService } from './document-tree.service';
+import type { RenameItemDto } from './dto/rename-item.dto';
 
 function setup() {
   const source = {
@@ -118,6 +119,55 @@ void test('single and bulk Move preparation retain project boundaries and reject
     }),
     /descendants/,
   );
+});
+
+void test('a shared Editor can rename a personal file while Viewer permission is insufficient', async () => {
+  const item = {
+    id: 'shared-file',
+    name: 'before.pdf',
+    ownerUserId: 'owner',
+    projectId: null,
+    parentFolderId: null,
+  } as DocumentItem;
+  let requiredRole: DocumentRole | undefined;
+  const access = {
+    checkPermission: (
+      _id: string,
+      _userId: string,
+      _email: string,
+      role: DocumentRole,
+    ) => {
+      requiredRole = role;
+      if (role === DocumentRole.EDITOR) return Promise.resolve(item);
+      throw new ForbiddenException();
+    },
+  } as unknown as DocumentAccessService;
+  const service = new DocumentLifecycleService(
+    {
+      documentItem: {
+        update: ({ data }: { data: { name: string } }) =>
+          Promise.resolve({ ...item, ...data }),
+      },
+    } as unknown as PrismaService,
+    {} as StorageCleanupService,
+    {
+      normalizeItemName: (name: string) => name.trim(),
+      assertNoActiveSiblingWithName: () => Promise.resolve(),
+    } as unknown as DocumentLocationService,
+    { publishProjectDocumentEvent: () => Promise.resolve() } as unknown as DocumentEventPublisher,
+    { enrichDocumentItem: (renamed: DocumentItem) => Promise.resolve(renamed) } as unknown as DocumentPresentationService,
+    access,
+    {} as DocumentTreeService,
+  );
+
+  const renamed = await service.renameItem(
+    'editor',
+    'editor@example.test',
+    item.id,
+    { name: 'after.pdf' } as RenameItemDto,
+  );
+  assert.equal(requiredRole, DocumentRole.EDITOR);
+  assert.equal(renamed.name, 'after.pdf');
 });
 
 void test('Move preparation rejects project root folders and rechecks edit access', async () => {

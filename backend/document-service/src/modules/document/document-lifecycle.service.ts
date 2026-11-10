@@ -269,13 +269,12 @@ export class DocumentLifecycleService {
     id: string,
     isStarred: boolean,
   ) {
-    const item = await this.access.checkPermission(
+    const item = await this.access.checkPersonalOwnerFeature(
       id,
       userId,
       userEmail,
-      DocumentRole.VIEWER,
+      'Star is',
     );
-    this.access.assertPersonalDocumentFeature(item, 'Star is');
 
     if (isStarred) {
       await this.prisma.userStarredDocument.upsert({

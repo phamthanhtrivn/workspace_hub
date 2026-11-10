@@ -74,7 +74,8 @@ export function VersionManagementModal({
       isModalOpen &&
       !!item &&
       item.type !== DocumentItemType.FOLDER &&
-      (item.userRole === DocumentRole.OWNER ||
+      (item.userRole === DocumentRole.VIEWER ||
+        item.userRole === DocumentRole.OWNER ||
         item.userRole === DocumentRole.EDITOR),
   });
 

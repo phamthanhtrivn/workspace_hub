@@ -234,7 +234,7 @@ export class DocumentQueryService {
       id,
       userId,
       userEmail,
-      DocumentRole.EDITOR,
+      DocumentRole.VIEWER,
     );
 
     if (item.type === ItemType.FOLDER) {

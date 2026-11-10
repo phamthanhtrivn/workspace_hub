@@ -48,6 +48,7 @@ export function DocumentActionsMenu({
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
+  if (activeView === DocumentViewType.SHARED) return null;
   const actions =
     activeView === DocumentViewType.TRASH
       ? [Action.RESTORE, Action.DELETE]

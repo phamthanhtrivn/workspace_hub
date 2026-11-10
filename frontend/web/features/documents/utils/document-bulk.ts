@@ -29,7 +29,8 @@ export function getBulkItemBlockReason(
   } else if (action !== Action.DELETE && item.isArchived) return M.ARCHIVED;
   if (action === Action.DELETE && !item.projectId && !item.isArchived)
     return M.DELETE;
-  if (action === Action.STAR || action === Action.UNSTAR) return;
+  if (action === Action.STAR || action === Action.UNSTAR)
+    return role === DocumentRole.OWNER ? undefined : M.OWNER;
   if (item.projectId)
     return role === DocumentRole.VIEWER ? M.EDITOR : undefined;
 
