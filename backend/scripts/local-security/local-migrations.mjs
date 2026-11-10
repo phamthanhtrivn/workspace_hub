@@ -12,7 +12,7 @@ export const LOCAL_SECURITY_MIGRATIONS = {
   document: ['backend/document-service/prisma/migrations/20261105000100_user_event_delivery/migration.sql'],
   calendar: ['backend/calendar-service/prisma/migrations/20261105000100_user_event_delivery/migration.sql'],
   notification: [],
-  ai: ['001_notebooks.sql', '002_meeting_summaries.sql', '003_work_assistant.sql', '004_work_assistant_conversations.sql', '005_ai_performance.sql', '008_work_assistant_contexts.sql'].map((name) => 'backend/ai-service/api/migrations/' + name),
+  ai: ['001_notebooks.sql', '002_meeting_summaries.sql', '003_work_assistant.sql', '004_work_assistant_conversations.sql', '005_ai_performance.sql'].map((name) => 'backend/ai-service/api/migrations/' + name),
 };
 
 async function dockerTransfer(args, { input, output } = {}) {
