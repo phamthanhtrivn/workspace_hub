@@ -2,11 +2,9 @@ import { aiServiceMessage } from "@/lib/ai-feedback";
 import { z } from "zod";
 import { api } from "@/lib/axios";
 import type {
-  Audience,
   ConversationContext,
   WorkMessage,
   WorkConversationPage,
-  WorkOverview,
   WorkSession,
 } from "../types";
 const base = "/api/ai/work-assistant";
@@ -59,19 +57,6 @@ export async function getSession(
       })
     ).data.data,
   );
-}
-export async function getOverview(
-  projectId?: string,
-  audience: Audience = "mine",
-  signal?: AbortSignal,
-  timeZone?: string,
-): Promise<WorkOverview> {
-  return (
-    await api.get(base + "/overview", {
-      params: { projectId, audience, timeZone },
-      signal,
-    })
-  ).data.data;
 }
 export async function getConversations(
   context: ConversationContext,

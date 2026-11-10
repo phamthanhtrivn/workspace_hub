@@ -12,17 +12,6 @@ export type TaskReference = {
   url: string;
   dueAt: string | null;
 };
-export type WorkTask = TaskReference & {
-  allDay: boolean;
-  priority: string;
-  status: string;
-  overdue: boolean;
-  dueToday: boolean;
-  blockedBy: { id: string; title: string }[];
-  unblocks: number;
-  description?: string | null;
-  project?: string;
-};
 export type WorkMessage = {
   id: string;
   role: "user" | "assistant";
@@ -54,37 +43,4 @@ export type WorkConversation = {
 export type WorkConversationPage = {
   sessions: WorkConversation[];
   nextCursor: string | null;
-};
-export type SourceState = {
-  state: "ready" | "empty" | "partial" | "unavailable";
-  message?: string;
-};
-export type Metrics = {
-  open: number;
-  overdue: number;
-  dueToday: number;
-  completedInPeriod: number;
-  completedWithDeadline: number;
-  onTime: number;
-  late: number;
-  onTimeRate: number | null;
-};
-export type WorkOverview = {
-  scope: { projectId?: string; audience: Audience };
-  date: string;
-  fetchedAt: string;
-  timeZone: string;
-  days: 7 | 30;
-  sources: { project: SourceState; calendar: SourceState };
-  tasks: WorkTask[];
-  detailPartial: boolean;
-  busyPartial: boolean;
-  metrics: {
-    project: Metrics | null;
-    personal: Metrics | null;
-    focusSeconds: number | null;
-    focusSessions: number | null;
-  };
-  schedulingBasis: "calendar";
-  freeSlots: { startAt: string; endAt: string }[];
 };

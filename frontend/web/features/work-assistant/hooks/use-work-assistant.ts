@@ -132,6 +132,10 @@ export function useWorkAssistant(
         controller: new AbortController(),
       };
       active.current = request;
+      const isCurrentRequest = () =>
+        alive.current &&
+        active.current === request &&
+        !request.controller.signal.aborted;
       setPending({
         id: request.id,
         role: "user",
@@ -154,31 +158,17 @@ export function useWorkAssistant(
           context,
           request.controller.signal,
           (value) => {
-            if (
-              alive.current &&
-              active.current === request &&
-              !request.controller.signal.aborted
-            )
-              setStatus(assistantStatus(value));
+            if (isCurrentRequest()) setStatus(assistantStatus(value));
           },
           (message) => {
-            if (
-              alive.current &&
-              active.current === request &&
-              !request.controller.signal.aborted
-            ) {
+            if (isCurrentRequest()) {
               setReply(message);
               setStreaming(false);
             }
           },
           timeZone,
           (text) => {
-            if (
-              !alive.current ||
-              active.current !== request ||
-              request.controller.signal.aborted
-            )
-              return;
+            if (!isCurrentRequest()) return;
             setStreaming(true);
             setReply((current) => ({
               id: `stream-${request.id}`,
@@ -189,21 +179,13 @@ export function useWorkAssistant(
             }));
           },
           () => {
-            if (
-              alive.current &&
-              active.current === request &&
-              !request.controller.signal.aborted
-            ) {
+            if (isCurrentRequest()) {
               setReply(null);
               setStreaming(false);
             }
           },
         );
-        if (
-          alive.current &&
-          active.current === request &&
-          !request.controller.signal.aborted
-        ) {
+        if (isCurrentRequest()) {
           await Promise.all([
             client.invalidateQueries({ queryKey: historyKey }),
             client.invalidateQueries({ queryKey: [...root, "sessions"] }),

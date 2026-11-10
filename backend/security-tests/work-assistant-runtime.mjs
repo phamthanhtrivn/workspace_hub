@@ -1,5 +1,4 @@
 // Opt-in acceptance run: real compiled API, PostgreSQL/Redis and browser; synthetic users/work data.
-// Add --live-model for exactly one additional request to the configured provider using only fixture data.
 // --live-context runs six isolated live recall/isolation checks without the browser suite.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -76,7 +75,7 @@ async function main() {
   const apiPort = await port(), webPort = await port(), bridgePort = await port(), pgPort = await port(), redisPort = await port();
   const apiUrl = `http://127.0.0.1:${apiPort}`, webUrl = `http://127.0.0.1:${webPort}`, bridgeUrl = `http://127.0.0.1:${bridgePort}`;
   const token = jwt(), key = randomBytes(32).toString('hex'), password = randomBytes(24).toString('hex');
-  if (process.argv.includes('--live-model') || liveContext) {
+  if (liveContext) {
     const { parse } = ai('dotenv');
     providerEnv = parse(await readFile(resolve(root, 'backend/ai-service/.env'), 'utf8'));
     assert.ok(providerEnv.LLM_BASE_URL && providerEnv.LLM_API_KEY && providerEnv.LLM_MODEL, 'Configured live provider required');
@@ -117,8 +116,8 @@ async function main() {
     try {
       if (path === '/v1/chat/completions') {
         const data = await body(req); modelInputs.push(data);
-        if (mode === 'live' || mode === 'live-context') {
-          assert.ok(++liveCalls <= (liveContext ? 6 : 1), 'Live provider request cap');
+        if (liveContext) {
+          assert.ok(++liveCalls <= 6, 'Live provider request cap');
           const abort = new AbortController(); res.on('close', () => abort.abort());
           const response = await fetch(providerEnv.LLM_BASE_URL.replace(/\/$/, '') + '/chat/completions', { method: 'POST', redirect: 'error',
             headers: { 'content-type': 'application/json', authorization: 'Bearer ' + providerEnv.LLM_API_KEY },
@@ -184,7 +183,7 @@ async function main() {
   }
   assert.equal(modelInputs.length, 0, 'A foreign session cannot invoke the model');
   if (liveContext) {
-    stage('live-context'); mode = 'live-context';
+    stage('live-context');
     const result = await verifyLiveContext({ db, bridgeUrl, actorId, projectId, secondProjectId, modelInputs,
       configuredModel: providerEnv.CONVERSATION_AI_MODEL || providerEnv.LLM_MODEL });
     assert.equal(liveCalls, result.providerRequests);
@@ -273,26 +272,10 @@ async function main() {
   assert.equal(modelInputs.at(-1).messages.some(message => typeof message.content === 'string' && message.content.startsWith('Earlier ')), false);
   stage('browser-context-navigation');
   contextChecks.push(...await verifyContextBrowser({ page, webUrl, db, actorId, projectId, secondProjectId, until, setMode: value => { mode = value; } }));
-  let live = { requested: false };
-  if (providerEnv) {
-    stage('live-provider-synthetic-context'); mode = 'live';
-    const started = performance.now();
-    const response = await fetch(bridgeUrl + `/api/ai/work-assistant/sessions/${sessionId}/messages`, { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ contextType: 'dashboard', question: 'What should I work on first today? Reply in one short English sentence.', requestId: randomUUID(), audience: 'mine', timeZone: 'Asia/Ho_Chi_Minh' }) });
-    let firstDeltaMs, complete = false, text = '';
-    const reader = response.body.getReader();
-    while (true) { const part = await reader.read(); if (part.done) break; text += new TextDecoder().decode(part.value);
-      if (firstDeltaMs === undefined && text.includes('event: delta')) firstDeltaMs = Math.round(performance.now() - started);
-      if (text.includes('event: done')) complete = true;
-    }
-    live = { requested: true, calls: liveCalls, status: response.status, completed: complete, firstDeltaMs, totalMs: Math.round(performance.now() - started) };
-    assert.equal(liveCalls, 1); assert.equal(complete, true, 'Live provider must complete the fixture request');
-  }
   assert.deepEqual(errors, [], 'No browser page errors');
   const result = { passed: true, checks: ['compiled API', 'real isolated PostgreSQL/Redis', '20-message budget', 'progressive desktop rendering', 'completed-only persistence', 'mobile layout', 'cancellation', 'interrupted provider', 'foreign session access denied without model calls', 'new conversation excludes old history'],
-    contextChecks, firstVisibleMs, live, metrics: reports, pageErrorTypes: errors, screenshots: out };
-  await writeFile(resolve(out, 'result.json'), JSON.stringify(result, null, 2));
-  await writeFile(resolve(out, providerEnv ? 'result-live.json' : 'result-fixture.json'), JSON.stringify(result, null, 2));
+    contextChecks, firstVisibleMs, metrics: reports, pageErrorTypes: errors, screenshots: out };
+  await writeFile(resolve(out, 'result-fixture.json'), JSON.stringify(result, null, 2));
   console.log(JSON.stringify(result));
 }
 
