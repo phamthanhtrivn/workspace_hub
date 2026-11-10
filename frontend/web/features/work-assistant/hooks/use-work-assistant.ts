@@ -60,6 +60,7 @@ export function useWorkAssistant(
   });
   const [pending, setPending] = useState<WorkMessage | null>(null);
   const [reply, setReply] = useState<WorkMessage | null>(null);
+  const [streaming, setStreaming] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -96,6 +97,7 @@ export function useWorkAssistant(
         created_at: new Date().toISOString(),
       });
       setReply(null);
+      setStreaming(false);
       setError("");
       setNotice("");
       setStatus("Connecting...");
@@ -110,9 +112,42 @@ export function useWorkAssistant(
             if (alive.current) setStatus(assistantStatus(value));
           },
           (message) => {
-            if (alive.current) setReply(message);
+            if (
+              alive.current &&
+              active.current === request &&
+              !request.controller.signal.aborted
+            ) {
+              setReply(message);
+              setStreaming(false);
+            }
           },
           timeZone,
+          (text) => {
+            if (
+              !alive.current ||
+              active.current !== request ||
+              request.controller.signal.aborted
+            )
+              return;
+            setStreaming(true);
+            setReply((current) => ({
+              id: `stream-${request.id}`,
+              role: "assistant",
+              content: (current?.content ?? "") + text,
+              sources: [],
+              created_at: current?.created_at ?? new Date().toISOString(),
+            }));
+          },
+          () => {
+            if (
+              alive.current &&
+              active.current === request &&
+              !request.controller.signal.aborted
+            ) {
+              setReply(null);
+              setStreaming(false);
+            }
+          },
         );
         if (alive.current) {
           await client.invalidateQueries({ queryKey: historyKey });
@@ -121,6 +156,10 @@ export function useWorkAssistant(
           setReply(null);
         }
       } catch (cause) {
+        if (alive.current) {
+          setReply(null);
+          setStreaming(false);
+        }
         if (alive.current && !request.controller.signal.aborted)
           setError(workError(cause));
         if (alive.current)
@@ -135,15 +174,16 @@ export function useWorkAssistant(
   const stop = async () => {
     const request = active.current;
     if (!request) return;
+    request.controller.abort();
+    if (alive.current) {
+      setReply(null);
+      setStreaming(false);
+      setNotice("Response stopped.");
+    }
     try {
       await workApi.cancelRequest(request.id);
     } catch {
       /* Closing the stream also cancels the server request. */
-    }
-    request.controller.abort();
-    if (alive.current) {
-      setStatus("Stopping...");
-      setNotice("Response stopped.");
     }
   };
   const messages =
@@ -157,6 +197,7 @@ export function useWorkAssistant(
     messages,
     pending,
     reply,
+    streaming,
     status,
     error,
     notice,

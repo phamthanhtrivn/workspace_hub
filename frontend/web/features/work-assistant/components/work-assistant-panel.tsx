@@ -241,7 +241,16 @@ function Conversation({
             {assistant.reply &&
               !assistant.messages.some(
                 (message) => message.id === assistant.reply?.id,
-              ) && <Message message={assistant.reply} />}
+              ) && (
+                <div aria-busy={assistant.streaming}>
+                  <Message message={assistant.reply} />
+                  {assistant.streaming && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Writing response…
+                    </p>
+                  )}
+                </div>
+              )}
             {assistant.status && (
               <p
                 role="status"

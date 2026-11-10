@@ -27,6 +27,7 @@ export class WorkAssistantWorkflowService {
     await this.store.begin(actor, session, requestId);
     if (stream.destroyed) {
       await this.store.fail(actor, requestId, true);
+
       return;
     }
     const controller = new AbortController();
@@ -52,6 +53,8 @@ export class WorkAssistantWorkflowService {
       const result = await this.generation.generateAnswer(
         { actor, session, input, signal: controller.signal, timing },
         (message) => stream.emit("status", { message }),
+        (text) => stream.emit("delta", { text }),
+        () => stream.emit("answer-reset", {}),
       );
       completed = true;
       stream.emit("done", result);
@@ -96,12 +99,14 @@ export class WorkAssistantWorkflowService {
     if (status === 403)
       return "Quyền truy cập đã thay đổi. Vui lòng mở lại trợ lý.";
     if (status === 429) return "AI đang chờ hạn mức. Hãy thử lại sau.";
+
     return "Chưa thể trả lời lúc này. Vui lòng thử lại; trợ lý chưa thay đổi dữ liệu công việc.";
   }
 
   async cancel(actor: Actor, requestId: string) {
     this.access.enabled();
     await this.store.cancel(actor, requestId);
+
     return { data: { canceled: true } };
   }
 }

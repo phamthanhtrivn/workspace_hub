@@ -148,6 +148,8 @@ export async function sendMessage(
   onStatus: (status: string) => void,
   onDone: (message: WorkMessage) => void,
   timeZone?: string,
+  onDelta: (text: string) => void = () => {},
+  onReset: () => void = () => {},
 ) {
   const response = await api.post<ReadableStream<Uint8Array>>(
     base + "/sessions/" + id + "/messages",
@@ -155,6 +157,9 @@ export async function sendMessage(
     { adapter: "fetch", responseType: "stream", signal, timeout: 115000 },
   );
   await consumeEvents(response.data, ({ event, data }) => {
+    if (event === "delta")
+      onDelta(z.object({ text: z.string().max(16000) }).parse(data).text);
+    if (event === "answer-reset") onReset();
     if (event === "status")
       onStatus(z.object({ message: z.string() }).parse(data).message);
     if (event === "done")

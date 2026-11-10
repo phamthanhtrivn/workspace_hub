@@ -34,6 +34,7 @@ export class WorkAssistantGenerationService {
     );
     const initial = contexts.at(-1)!;
     if (contexts.length === 1) return initial;
+
     return {
       ...initial,
       projectIds: [
@@ -60,6 +61,8 @@ export class WorkAssistantGenerationService {
       timing: Profile;
     },
     onStatus: (message: string) => void,
+    onDelta: (text: string) => void,
+    onReset: () => void,
   ) {
     const { actor, session, input, signal, timing } = request;
     const { question, requestId, audience, timeZone } = input;
@@ -74,14 +77,44 @@ export class WorkAssistantGenerationService {
         this.initialContext(actor, scope, question, signal, timeZone),
       ),
     ]);
+    const streamingProjects = new Set([
+      ...initial.projectIds,
+      ...history.flatMap((message) => message.project_ids),
+    ]);
+    let lastAuthorization = 0;
     const result = await timing.measure("model_ms", () =>
       workAnswer(
         question,
         history,
         initial,
-        (days) => this.context.read(actor, scope, days, signal, timeZone),
+        async (days) => {
+          const context = await this.context.read(
+            actor,
+            scope,
+            days,
+            signal,
+            timeZone,
+          );
+          for (const id of context.projectIds) streamingProjects.add(id);
+          lastAuthorization = 0;
+
+          return context;
+        },
         signal,
         onStatus,
+        async (text) => {
+          signal.throwIfAborted();
+          if (Date.now() - lastAuthorization >= 3000) {
+            const ids = [...streamingProjects];
+            const allowed = await this.context.authorize(actor, ids, signal);
+            if (ids.some((id) => !allowed.has(id)))
+              throw new HttpException("Quyền truy cập dự án đã thay đổi.", 403);
+            lastAuthorization = Date.now();
+          }
+          signal.throwIfAborted();
+          onDelta(text);
+        },
+        onReset,
       ),
     );
     signal.throwIfAborted();
@@ -124,6 +157,7 @@ export class WorkAssistantGenerationService {
         },
       ),
     );
+
     return {
       requestId,
       message,

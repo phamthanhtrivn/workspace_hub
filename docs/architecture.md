@@ -58,4 +58,6 @@ Nguồn notebook trỏ tới phiên bản Document được cấp quyền. Worke
 
 Provider LLM/embedding và các tính năng tùy chọn được cấu hình bằng env. Readiness không chứng minh chất lượng câu trả lời; hoạt động với model thật, media thật và dữ liệu thật cần được xác minh riêng.
 
+Bong bóng trợ lý công việc dùng tối đa 20 tin nhắn gần nhất trong hội thoại hiện tại; mỗi tin cũ giới hạn 1.000 ký tự cho người dùng và 1.500 ký tự cho trợ lý. Dữ liệu công việc vẫn được lấy mới và giới hạn theo ngân sách token. Nội dung trả lời được truyền từng phần qua SSE; giao diện thay bản nháp bằng tin đã lưu khi nhận `done`. Lỗi, ngắt kết nối hoặc hủy sẽ bỏ bản nháp; chỉ câu trả lời hoàn tất, đã kiểm tra lại quyền mới được lưu. Luồng `@AI Bot` trong chat giữ giới hạn lịch sử riêng.
+
 Xem [chạy local](local-development.md), [Notebook AI](../deploy/ai/README.md), [migration](migrations.md) và [triển khai](deployment.md).

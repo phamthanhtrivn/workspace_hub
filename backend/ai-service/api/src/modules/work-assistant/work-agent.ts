@@ -1,6 +1,7 @@
 import { tool } from "langchain";
 import {
   AIMessage,
+  AIMessageChunk,
   BaseMessage,
   HumanMessage,
   SystemMessage,
@@ -124,6 +125,8 @@ export async function workAnswer(
   read: (days: 7 | 30) => Promise<WorkContext>,
   signal: AbortSignal,
   onStatus: (message: string) => void,
+  onDelta: (text: string) => Promise<void> = async () => {},
+  onReset: () => void = () => {},
 ) {
   let latest = initial;
   const plainQuestion = normalizeQuestion(question);
@@ -185,7 +188,7 @@ export async function workAnswer(
       ".",
   ].join(" ");
   const messages: BaseMessage[] = [new SystemMessage(system)];
-  for (const message of history.slice(-4)) {
+  for (const message of history.slice(-20)) {
     if (message.hidden) continue;
     messages.push(
       message.role === "user"
@@ -222,13 +225,35 @@ export async function workAnswer(
     signal.throwIfAborted();
     onStatus("Đang phân tích công việc…");
     const toolChoice = step < 2 && !usePrefetchedWindow ? "auto" : "none";
-    const answer = await model
+    const response = await model
       .bindTools([contextTool], {
         tool_choice: toolChoice,
       })
-      .invoke(messages, { signal });
+      .stream(messages, { signal });
+    let answer: AIMessageChunk | undefined;
+    let toolResponse = false;
+    for await (const chunk of response) {
+      signal.throwIfAborted();
+      answer = answer ? answer.concat(chunk) : chunk;
+      if (chunk.tool_call_chunks?.length || chunk.tool_calls?.length) {
+        if (!toolResponse) onReset();
+        toolResponse = true;
+      }
+      if (typeof answer.content !== "string" || answer.content.length > 16000)
+        throw new Error("Invalid work answer");
+      if (!toolResponse && typeof chunk.content === "string" && chunk.content)
+        await onDelta(chunk.content);
+    }
+    signal.throwIfAborted();
+    if (!answer) throw new Error("Empty work response");
     if (answer.response_metadata.finish_reason === "length")
       throw new Error("Truncated work answer");
+    if (
+      !["stop", "tool_calls"].includes(
+        String(answer.response_metadata.finish_reason),
+      )
+    )
+      throw new Error("Incomplete work response");
     if (
       answer.invalid_tool_calls?.length ||
       (answer.tool_calls?.length ?? 0) > 1 ||
@@ -237,6 +262,8 @@ export async function workAnswer(
       throw new Error("Invalid work tool response");
     if (!answer.tool_calls?.length) {
       if (
+        toolResponse ||
+        answer.response_metadata.finish_reason !== "stop" ||
         typeof answer.content !== "string" ||
         !answer.content.trim() ||
         answer.content.length > 16000

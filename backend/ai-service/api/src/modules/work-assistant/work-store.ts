@@ -41,6 +41,7 @@ export class WorkStore {
         "INSERT INTO notebook_ai.work_assistant_sessions(id,owner_id,project_id,scope_key) VALUES($1,$2,$3,$4) RETURNING *",
         [sessionId, actor.id, projectId ?? null, sessionId],
       );
+
       return session;
     });
   }
@@ -73,6 +74,7 @@ export class WorkStore {
       parameters,
     );
     const page = sessions.slice(0, 30);
+
     return {
       sessions: page,
       nextCursor:
@@ -87,6 +89,7 @@ export class WorkStore {
       [id, actor.id],
     );
     if (!session) throw new NotFoundException();
+
     return session;
   }
   async history(session: WorkSession, before?: string) {
@@ -106,6 +109,7 @@ export class WorkStore {
       before ? [session.id, before] : [session.id],
     );
     const page = messages.slice(0, 30).reverse();
+
     return {
       messages: page,
       nextCursor: messages.length > 30 ? page[0]?.id : null,
@@ -113,9 +117,10 @@ export class WorkStore {
   }
   async recent(session: WorkSession) {
     const messages = await this.database.rows<StoredMessage>(
-      "SELECT * FROM notebook_ai.work_assistant_messages WHERE session_id=$1 ORDER BY created_at DESC,id DESC LIMIT 4",
+      "SELECT * FROM notebook_ai.work_assistant_messages WHERE session_id=$1 ORDER BY created_at DESC,id DESC LIMIT 20",
       [session.id],
     );
+
     return messages.reverse();
   }
   async begin(actor: Actor, session: WorkSession, requestId: string) {
@@ -162,6 +167,7 @@ export class WorkStore {
       "SELECT cancel_requested,status FROM notebook_ai.work_assistant_requests WHERE id=$1 AND owner_id=$2",
       [id, actor.id],
     );
+
     return !row || row.cancel_requested || row.status !== "RUNNING";
   }
   async cancel(actor: Actor, id: string) {
@@ -211,6 +217,7 @@ export class WorkStore {
         "UPDATE notebook_ai.work_assistant_sessions SET updated_at=clock_timestamp() WHERE id=$1 AND owner_id=$2",
         [session.id, actor.id],
       );
+
       return message;
     });
   }
