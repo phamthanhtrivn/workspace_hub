@@ -200,7 +200,7 @@ export function useNotificationSocket() {
         if (isCancelled || revision !== reconciliationRevision) return;
         dispatch(setUnreadCount(response.data.unreadCount));
         dispatchNotificationCollectionChanged();
-        void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        void queryClient.invalidateQueries({ queryKey: ['notifications'] }, { cancelRefetch: false });
       } catch { /* Reconcile again after the next connection/event. */ }
     };
 
