@@ -135,3 +135,7 @@ Results (2026-11-10):
 
 The regular application database has not been changed by this test run. Apply
 migration 008 as part of the coordinated application rollout described above.
+
+The subsequent [live model validation](work-assistant-live-context.md) measures
+recall and isolation through the real provider; it includes the strict failure
+result rather than treating fixture acceptance as a live-model guarantee.

@@ -1,5 +1,6 @@
 // Opt-in acceptance run: real compiled API, PostgreSQL/Redis and browser; synthetic users/work data.
 // Add --live-model for exactly one additional request to the configured provider using only fixture data.
+// --live-context runs six isolated live recall/isolation checks without the browser suite.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -11,6 +12,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Readable } from 'node:stream';
 import { verifyContextApi, verifyContextBrowser } from './work-assistant-context-runtime.mjs';
+import { verifyLiveContext } from './work-assistant-live-context.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const ai = createRequire(resolve(root, 'backend/ai-service/api/package.json'));
@@ -20,6 +22,7 @@ const runId = 'wh-work-runtime-' + randomBytes(5).toString('hex');
 const containers = [], children = [], reports = [], modelInputs = [];
 const actorId = randomUUID(), projectId = randomUUID(), secondProjectId = randomUUID(), taskId = randomUUID(), sessionId = randomUUID();
 const allowedProjects = new Set([projectId, secondProjectId]);
+const liveContext = process.argv.includes('--live-context');
 const email = 'runtime-fixture@example.test', secret = randomBytes(32).toString('hex');
 let db, browser, server, mode = 'normal', phase = 'setup', liveCalls = 0, providerEnv;
 const now = new Date().toISOString();
@@ -73,7 +76,7 @@ async function main() {
   const apiPort = await port(), webPort = await port(), bridgePort = await port(), pgPort = await port(), redisPort = await port();
   const apiUrl = `http://127.0.0.1:${apiPort}`, webUrl = `http://127.0.0.1:${webPort}`, bridgeUrl = `http://127.0.0.1:${bridgePort}`;
   const token = jwt(), key = randomBytes(32).toString('hex'), password = randomBytes(24).toString('hex');
-  if (process.argv.includes('--live-model')) {
+  if (process.argv.includes('--live-model') || liveContext) {
     const { parse } = ai('dotenv');
     providerEnv = parse(await readFile(resolve(root, 'backend/ai-service/.env'), 'utf8'));
     assert.ok(providerEnv.LLM_BASE_URL && providerEnv.LLM_API_KEY && providerEnv.LLM_MODEL, 'Configured live provider required');
@@ -114,8 +117,8 @@ async function main() {
     try {
       if (path === '/v1/chat/completions') {
         const data = await body(req); modelInputs.push(data);
-        if (mode === 'live') {
-          assert.equal(++liveCalls, 1, 'Live model is called once only');
+        if (mode === 'live' || mode === 'live-context') {
+          assert.ok(++liveCalls <= (liveContext ? 6 : 1), 'Live provider request cap');
           const abort = new AbortController(); res.on('close', () => abort.abort());
           const response = await fetch(providerEnv.LLM_BASE_URL.replace(/\/$/, '') + '/chat/completions', { method: 'POST', redirect: 'error',
             headers: { 'content-type': 'application/json', authorization: 'Bearer ' + providerEnv.LLM_API_KEY },
@@ -138,7 +141,7 @@ async function main() {
       if (path === '/internal/work-assistant/context') {
         const data = await body(req);
         return json(res, { data: 'windowStart' in data ? { available: true, timeZone: 'Asia/Ho_Chi_Minh', partial: false, busyPartial: false, busy: [], tasks: [], metrics: { ...metrics, open: 0, dueToday: 0 }, focus: { seconds: 0, sessions: 0, perTask: [] } }
-          : { available: true, projectIds: [data.projectId ?? projectId], partial: false, tasks: [{ ...task, projectId: data.projectId ?? projectId }], metrics } });
+          : { available: true, projectIds: [data.projectId ?? projectId], partial: false, tasks: [{ ...task, projectId: data.projectId ?? projectId, url: `/projects/${data.projectId ?? projectId}?taskId=${taskId}` }], metrics } });
       }
       if (path.startsWith('/api/ai/work-assistant')) {
         const abort = new AbortController(); res.on('close', () => abort.abort());
@@ -159,8 +162,11 @@ async function main() {
     AI_GATEWAY_KEY: key, AI_DOCUMENT_SERVICE_KEY: key, RAG_SERVICE_KEY: key, AI_TO_USER_KEY: key, AI_TO_PROJECT_KEY: key, AI_TO_CALENDAR_KEY: key,
     DOCUMENT_SERVICE_URL: bridgeUrl, RAG_WORKER_URL: bridgeUrl, USER_SERVICE_URL: bridgeUrl,
     WORK_ASSISTANT_PROJECT_URL: bridgeUrl, WORK_ASSISTANT_CALENDAR_URL: bridgeUrl, FRONTEND_URL: webUrl,
-    JWT_SECRET_KEY: secret, JWT_ISSUER: 'workspace-hub', LLM_BASE_URL: bridgeUrl + '/v1', LLM_API_KEY: 'fixture-only', LLM_MODEL: 'runtime-fixture',
-    LLM_REQUESTS_PER_MINUTE: '100', LLM_TOKENS_PER_MINUTE: '200000', LLM_REQUESTS_PER_DAY: '1000',
+    JWT_SECRET_KEY: secret, JWT_ISSUER: 'workspace-hub', LLM_BASE_URL: bridgeUrl + '/v1', LLM_API_KEY: 'fixture-only', LLM_MODEL: liveContext ? providerEnv.LLM_MODEL : 'runtime-fixture',
+    ...(liveContext ? { CONVERSATION_AI_MODEL: providerEnv.CONVERSATION_AI_MODEL || providerEnv.LLM_MODEL, CONVERSATION_AI_MAX_TOKENS: providerEnv.CONVERSATION_AI_MAX_TOKENS || '1800' } : {}),
+    LLM_REQUESTS_PER_MINUTE: liveContext ? providerEnv.LLM_REQUESTS_PER_MINUTE || '5' : '100',
+    LLM_TOKENS_PER_MINUTE: liveContext ? providerEnv.LLM_TOKENS_PER_MINUTE || '10000' : '200000',
+    LLM_REQUESTS_PER_DAY: liveContext ? providerEnv.LLM_REQUESTS_PER_DAY || '1000' : '1000',
   });
   await until(async () => { if (apiProcess.exitCode !== null) throw new Error('API exited'); return (await fetch(apiUrl + '/health')).ok; }, 'compiled API');
   stage('cross-session-isolation');
@@ -177,6 +183,17 @@ async function main() {
     assert.equal(denied.status, 404); assert.equal((await denied.text()).includes('FOREIGN_HISTORY_SHOULD_NEVER_APPEAR'), false);
   }
   assert.equal(modelInputs.length, 0, 'A foreign session cannot invoke the model');
+  if (liveContext) {
+    stage('live-context'); mode = 'live-context';
+    const result = await verifyLiveContext({ db, bridgeUrl, actorId, projectId, secondProjectId, modelInputs,
+      configuredModel: providerEnv.CONVERSATION_AI_MODEL || providerEnv.LLM_MODEL });
+    assert.equal(liveCalls, result.providerRequests);
+    const artifact = resolve(out, 'result-live-context.json');
+    await writeFile(artifact, JSON.stringify(result, null, 2));
+    console.log(JSON.stringify({ phase: 'live-context-complete', ...result.summary, providerRequests: liveCalls, report: artifact }));
+    if (!result.passed) process.exitCode = 1;
+    return;
+  }
   stage('context-api');
   const contextChecks = await verifyContextApi({ db, bridgeUrl, actorId, projectId, secondProjectId, sessionId, modelInputs, allowedProjects });
   const browserInputStart = modelInputs.length;
@@ -280,7 +297,7 @@ async function main() {
 }
 
 try { await main(); }
-catch (error) { console.error(JSON.stringify({ passed: false, phase, errorType: error.constructor.name, reason: error instanceof assert.AssertionError || error.name === 'TimeoutError' ? error.message.split('\n')[0].slice(0, 250) : undefined })); process.exitCode = 1; }
+catch (error) { console.error(JSON.stringify({ passed: false, phase, errorType: error.constructor.name, reason: error instanceof assert.AssertionError || error.name === 'TimeoutError' ? error.message.slice(0, 1500) : undefined })); process.exitCode = 1; }
 finally {
   if (browser) await browser.close().catch(() => {});
   for (const child of children.reverse()) if (child.exitCode === null) {
