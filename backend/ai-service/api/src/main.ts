@@ -8,6 +8,7 @@ import { aiQueues } from "./infrastructure/queue/ai-queue.client";
 import type { Server } from "node:http";
 import { createShutdownHandler, settleAll } from "./common/shutdown";
 import { logError } from "./common/errors/error-log";
+import { closeProviderConnections } from "./infrastructure/integrations/provider-http";
 const db = aiDatabase.pool;
 const closeQueues = aiQueues.close;
 
@@ -27,7 +28,7 @@ async function main() {
         });
         await app.close();
       } finally {
-        await settleAll([closeQueues(), db.end()]);
+        await settleAll([closeQueues(), db.end(), closeProviderConnections()]);
       }
     },
     config.AI_SHUTDOWN_TIMEOUT_MS,

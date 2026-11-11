@@ -9,7 +9,6 @@ import time
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
-import httpx
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.utils import get_tokenizer
 from qdrant_client import QdrantClient, models
@@ -20,6 +19,7 @@ from .errors import InvalidSource, ValidationBusy
 from .prepared import PreparedCache
 from .profiling import profile, Profile
 from .visual import IMAGE_TYPES, VisualExtractor, enabled as visual_enabled, open_image
+from .api_embeddings import ApiEmbeddings
 
 
 class Engine:
@@ -32,6 +32,11 @@ class Engine:
         self.converter = None
         self.model_lock = threading.Lock()
         self.index_lock = threading.Lock()
+        self.collection_lock = threading.Lock()
+        self.api_embeddings = ApiEmbeddings(
+            os.environ.get("EMBEDDING_BASE_URL", ""), os.environ.get("EMBEDDING_API_KEY", ""), self.model_name,
+            int(os.environ.get("EMBEDDING_MAX_CONCURRENCY", "5")),
+        ) if self.provider == "api" else None
         self.prepared_cache = PreparedCache()
         self.readiness_lock = threading.Lock()
         self.embedding_verified = False
@@ -40,21 +45,13 @@ class Engine:
         self.tokenizer = get_tokenizer()
         self.splitter = SentenceSplitter(chunk_size=384, chunk_overlap=48, tokenizer=self.tokenizer)
         signature = f"text-pdf-v2:{self.provider}:{self.model_name}:384:48:{os.environ.get('INDEX_PIPELINE_VERSION', 'notebook-v1')}"
+        if self.api_embeddings:
+            signature += ":api-v2:" + self.api_embeddings.endpoint
         self.collection = "wh_notebook_" + hashlib.sha256(signature.encode()).hexdigest()[:16]
 
     def embed(self, texts: list[str], query=False) -> list[list[float]]:
         if self.provider == "api":
-            endpoint = os.environ.get("EMBEDDING_BASE_URL", "").rstrip("/")
-            if not endpoint.startswith("https://") and not endpoint.startswith("http://host.docker.internal:"):
-                raise ValueError("Configure an HTTPS embedding endpoint or trusted local model server")
-            with httpx.Client(timeout=30, follow_redirects=False) as client:
-                response = client.post(endpoint + "/embeddings", headers={"Authorization": "Bearer " + os.environ.get("EMBEDDING_API_KEY", "")},
-                                       json={"model": self.model_name, "input": texts})
-                response.raise_for_status()
-                data = sorted(response.json()["data"], key=lambda row: row["index"])
-                if len(data) != len(texts):
-                    raise ValueError("Incomplete embeddings")
-                return [row["embedding"] for row in data]
+            return self.api_embeddings.embed(texts, query=query)
         if self.provider != "local":
             raise ValueError("Unsupported embedding provider")
         with self.model_lock:
@@ -246,14 +243,17 @@ class Engine:
         return models.Filter(must=conditions)
 
     def index(self, scope_id: str, source_id: str, revision: str, name: str, content: str, pages=None, visuals=None):
-        # Serialize CPU parsing/embedding, leaving retrieval to independent HTTP threads.
+        # CPU parsers stay serialized. API embedding waits must not hold this lock.
         with profile("index") as timing:
             started = time.perf_counter()
             with self.index_lock:
                 timing.metrics["index_lock_ms"] = (time.perf_counter() - started) * 1000
-                return self._index(scope_id, source_id, revision, name, content, timing, pages, visuals)
+                if self.provider != "api":
+                    return self._index(scope_id, source_id, revision, name, content, timing, pages, visuals)
+                chunks = self._index_chunks(scope_id, name, content, timing, pages, visuals)
+            return self._index(scope_id, source_id, revision, name, content, timing, pages, visuals, chunks)
 
-    def _index(self, scope_id, source_id, revision, name, content, timing, pages=None, visuals=None):
+    def _index_chunks(self, scope_id, name, content, timing, pages=None, visuals=None):
         if pages is None:
             chunks = [(text, page, None) for text, page in self.prepare(scope_id, name, content, timing)]
         else:
@@ -265,11 +265,17 @@ class Engine:
                       for part in self.splitter.split_text(item["text"]) if part.strip()]
             if not chunks or len(chunks) > 2000:
                 raise InvalidSource("Empty or oversized index")
+        return chunks
+
+    def _index(self, scope_id, source_id, revision, name, content, timing, pages=None, visuals=None, chunks=None):
+        if chunks is None:
+            chunks = self._index_chunks(scope_id, name, content, timing, pages, visuals)
         timing.metrics["chunk_count"] = len(chunks)
         with timing.measure("embedding_ms"):
             first = self.embed([text for text, _, _ in chunks[:16]])
         with timing.measure("qdrant_ms"):
-            self._ensure_collection(len(first[0]))
+            with self.collection_lock:
+                self._ensure_collection(len(first[0]))
             # Replacing partial vectors must not evict the freshly validated parse cache.
             self.delete(scope_id, source_id, clear_prepared=False)
         for start in range(0, len(chunks), 16):
@@ -285,6 +291,10 @@ class Engine:
         embedding_seconds = timing.metrics["embedding_ms"] / 1000
         timing.metrics["embedding_chunks_per_sec"] = len(chunks) / embedding_seconds if embedding_seconds else 0
         return {"chunkCount": len(chunks)}
+
+    def close(self):
+        if self.api_embeddings:
+            self.api_embeddings.close()
 
     def _ensure_collection(self, dimensions):
         if not self.client.collection_exists(self.collection):

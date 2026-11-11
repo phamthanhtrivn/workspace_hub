@@ -14,6 +14,7 @@ import { indexSource } from "./index.processor";
 import { summarize } from "./summary.processor";
 import { logError } from "../common/errors/error-log";
 import { createShutdownHandler, settleAll } from "../common/shutdown";
+import { closeProviderConnections } from "../infrastructure/integrations/provider-http";
 const db = aiDatabase.pool;
 const queue = aiQueues.jobs;
 const closeQueues = aiQueues.close;
@@ -33,6 +34,7 @@ async function profileJob<T>(
   try {
     const result = await timing.measure("processing_ms", process);
     completed = true;
+
     return result;
   } finally {
     timing.finish(completed ? "ok" : "failed");
@@ -72,7 +74,7 @@ export function startWorkers() {
   const worker = new Worker("notebook-jobs", processJob, {
     connection,
     prefix: "wh-notebook",
-    concurrency: 1,
+    concurrency: config.NOTEBOOK_INDEX_CONCURRENCY,
     autorun: false,
   });
   const summaryWorker = new Worker(
@@ -80,6 +82,7 @@ export function startWorkers() {
     (job) => {
       if (job.name !== "summary")
         throw new UnrecoverableError("Unknown summary job");
+
       return processJob(job);
     },
     { connection, prefix: "wh-notebook", concurrency: 1, autorun: false },
@@ -91,6 +94,7 @@ export function startWorkers() {
           (job) => {
             if (job.name !== "conversation")
               throw new UnrecoverableError("Unknown conversation job");
+
             return processConversationJob(job);
           },
           {
@@ -120,6 +124,7 @@ export function startWorkers() {
               config.MEETING_SUMMARY_ENABLED !== "true"
             )
               throw new UnrecoverableError("Unknown meeting job");
+
             return processMeetingSummary(job.data.recordingId, job.data.runId);
           },
           {
@@ -178,6 +183,7 @@ export function startWorkers() {
         recovery = undefined;
       });
     }
+
     return recovery;
   }
   const heartbeat = setInterval(() => {
@@ -208,6 +214,7 @@ export function startWorkers() {
             "ready:conversation-v1",
             { EX: 45 },
           );
+
         return client.set(
           "wh-notebook:worker-heartbeat",
           WORKER_HEARTBEAT_VALUE,
@@ -235,7 +242,7 @@ export function startWorkers() {
           ...(heartbeatTask ? [heartbeatTask] : []),
         ]);
       } finally {
-        await settleAll([closeQueues(), db.end()]);
+        await settleAll([closeQueues(), db.end(), closeProviderConnections()]);
       }
     },
     config.AI_SHUTDOWN_TIMEOUT_MS,
@@ -245,6 +252,7 @@ export function startWorkers() {
     recoveryAbort.abort();
     clearInterval(heartbeat);
     clearInterval(sweep);
+
     return finishShutdown();
   }
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, shutdown);

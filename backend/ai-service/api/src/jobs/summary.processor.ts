@@ -21,6 +21,9 @@ import type {
 import { setTimeout as pause } from "node:timers/promises";
 import { ModelMinuteQuotaException } from "../common/errors/model-quota.exception";
 import { pollUntilAborted } from "../common/abort-polling";
+import { logError } from "../common/errors/error-log";
+import { isProviderConnectTimeout } from "../infrastructure/integrations/provider-http";
+import { notebookFailureMessage } from "../modules/chat/notebook-failure";
 const sourcesService = new SourcesService();
 type Section = { content: string; citations: Citation[]; sourceId: string };
 export async function summarize(id: string) {
@@ -31,7 +34,7 @@ export async function summarize(id: string) {
   if (!artifact || ["COMPLETED", "CANCELLED"].includes(artifact.status)) return;
   if (artifact.in_flight) {
     await rows(
-      "UPDATE notebook_ai.artifacts SET status='FAILED',error='Worker bị gián đoạn khi gọi model. Chủ động tiếp tục để chạy lại phần chưa checkpoint.' WHERE id=$1",
+      "UPDATE notebook_ai.artifacts SET status='FAILED',error='The previous provider request was interrupted and its outcome is unknown. Completed sections are saved. Select Resume summary to continue.' WHERE id=$1",
       [id],
     );
     throw new UnrecoverableError("Previous provider outcome unknown");
@@ -44,29 +47,45 @@ export async function summarize(id: string) {
       await sourcesService.sources(artifact.notebook_id),
     );
     await authorizeSources(actor, sources);
-  } catch {
+  } catch (error) {
+    logError("notebook_summary_failed", error, {
+      artifact_id: id,
+      stage: "source_snapshot",
+    });
     await rows(
-      "UPDATE notebook_ai.artifacts SET status='FAILED',error='Không xác minh được snapshot nguồn. Kiểm tra quyền và phiên bản trước khi tiếp tục.' WHERE id=$1",
-      [id],
+      "UPDATE notebook_ai.artifacts SET status='FAILED',error=$2 WHERE id=$1",
+      [id, notebookFailureMessage(error)],
     );
     throw new UnrecoverableError("Source snapshot unavailable");
   }
   const controller = new AbortController();
   const stopPolling = pollUntilAborted(controller, 1000, async () => {
-    const [state] = await rows(
-      "SELECT status FROM notebook_ai.artifacts WHERE id=$1",
-      [id],
-    );
-    if (!state || state.status === "CANCELLED") controller.abort();
-    if (
-      !visibleSnapshot(
-        artifact.sources,
-        await sourcesService.sources(artifact.notebook_id),
+    try {
+      const [state] = await rows(
+        "SELECT status FROM notebook_ai.artifacts WHERE id=$1",
+        [id],
+      );
+      if (!state || state.status === "CANCELLED") {
+        controller.abort();
+
+        return;
+      }
+      if (
+        !visibleSnapshot(
+          artifact.sources,
+          await sourcesService.sources(artifact.notebook_id),
+        )
       )
-    )
-      controller.abort();
-    await authorizeSources(actor, sources);
+        controller.abort(new Error("Nguồn đã thay đổi"));
+      await authorizeSources(actor, sources);
+    } catch (error) {
+      logError("notebook_summary_source_check_failed", error, {
+        artifact_id: id,
+      });
+      controller.abort(error);
+    }
   });
+  let stage = "fetch_chunks";
   try {
     await rows(
       "UPDATE notebook_ai.artifacts SET status='RUNNING',error=NULL,updated_at=now() WHERE id=$1 AND status<>'CANCELLED'",
@@ -104,6 +123,7 @@ export async function summarize(id: string) {
         "Bản nháp cũ cần được tạo lại theo định dạng tóm tắt mới.",
       );
     for (let i = sections.length; i < groups.length; i++) {
+      stage = "source_authorization";
       controller.signal.throwIfAborted();
       await authorizeSources(actor, sources);
       const question =
@@ -111,6 +131,7 @@ export async function summarize(id: string) {
           ? "Viết tổng quan ngắn từ các đoạn trích, nói rõ đây không phải tóm tắt toàn văn; kết thúc bằng 3 câu hỏi gợi ý dựa trên nội dung."
           : "Tóm tắt file này bằng tiếng Việt, tối đa 250 từ, giúp người đọc nhanh chóng hiểu file nói về gì và cần nhớ gì. Mở đầu bằng 1–2 câu nêu chủ đề, mục đích và nội dung chính. Sau đó viết 'Điểm quan trọng:' và 3–5 gạch đầu dòng chọn lọc: yêu cầu hoặc việc cần làm, số liệu và thời hạn thiết yếu, điều kiện cần chú ý, quyết định hoặc kết luận chính, tùy nội dung thực tế. File ngắn có thể ít hơn 3 ý; không thêm ý để đủ số lượng. Không liệt kê mọi chi tiết, không ép nội dung vào mục không phù hợp, không suy diễn điều tài liệu không nói. Không trộn với file khác, không giải thích cách xử lý hay nhắc phạm vi hoặc số phần. Trích dẫn các thông tin từ tài liệu.";
       let content = "";
+      stage = "model_response";
       while (true) {
         await rows(
           "UPDATE notebook_ai.artifacts SET in_flight=true WHERE id=$1 AND status='RUNNING'",
@@ -142,8 +163,10 @@ export async function summarize(id: string) {
           await authorizeSources(actor, sources);
         }
       }
+      stage = "validate_citations";
       const citations = validateCitations(content, groups[i]);
       sections.push({ content, citations, sourceId: groups[i][0].sourceId });
+      stage = "save_checkpoint";
       await rows(
         "UPDATE notebook_ai.artifacts SET sections=$2,progress=$3,in_flight=false,updated_at=now() WHERE id=$1 AND status='RUNNING'",
         [
@@ -154,6 +177,7 @@ export async function summarize(id: string) {
       );
     }
     controller.signal.throwIfAborted();
+    stage = "complete_summary";
     await authorizeSources(actor, sources);
     if (!sections.length || sections.length !== groups.length)
       throw new Error("Chưa đọc đủ các phần");
@@ -163,6 +187,7 @@ export async function summarize(id: string) {
           .filter((_section, index) => groups[index][0].sourceId === source.id)
           .map((section) => section.content);
         if (!paragraphs.length) return "";
+
         return `${sources.length > 1 ? `${source.name}\n\n` : ""}${paragraphs.join("\n\n")}`;
       })
       .filter(Boolean)
@@ -173,12 +198,34 @@ export async function summarize(id: string) {
       [id, content, JSON.stringify(sections.flatMap((s) => s.citations))],
     );
   } catch (error) {
+    const failure = controller.signal.aborted
+      ? controller.signal.reason
+      : error;
+    const canceled =
+      controller.signal.aborted &&
+      failure instanceof Error &&
+      failure.name === "AbortError";
+    logError("notebook_summary_failed", failure, {
+      artifact_id: id,
+      stage,
+      canceled,
+      completed_sections: Array.isArray(artifact.sections)
+        ? artifact.sections.length
+        : 0,
+    });
+    const outputLimit =
+      failure instanceof Error &&
+      failure.message.startsWith("Câu trả lời bị cắt ở giới hạn ");
     await rows(
       "UPDATE notebook_ai.artifacts SET status=$2,error=$3,updated_at=now() WHERE id=$1 AND status<>'CANCELLED'",
       [
         id,
-        controller.signal.aborted ? "CANCELLED" : "FAILED",
-        "Chưa hoàn tất. Các phần đã xong được giữ lại; kiểm tra quota/model rồi thử lại.",
+        canceled ? "CANCELLED" : "FAILED",
+        outputLimit
+          ? "AI reached its output limit before completing this section. Completed sections are saved. Select Resume summary to continue."
+          : isProviderConnectTimeout(failure)
+            ? "Could not connect to the AI provider. Completed sections are saved. Select Resume summary to try again."
+            : `${notebookFailureMessage(failure)} Completed sections are saved. Select Resume summary to try again.`,
       ],
     );
     // Provider outcomes are not replayed automatically. A user can explicitly resume checkpoints.

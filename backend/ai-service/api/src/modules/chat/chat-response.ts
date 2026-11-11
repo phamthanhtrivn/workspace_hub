@@ -2,6 +2,7 @@ import type { Citation, VisualInput } from "../../common/types";
 import { inspectAnswerCitations } from "./citation-check";
 import { aiModels } from "../../infrastructure/integrations/ai-model.provider";
 import { isFollowUp, type ChatTurn } from "./chat-history";
+import { isClearlyUnrelated, notebookScopeRefusal } from "./notebook-scope";
 
 function normalizedQuestion(question: string) {
   return question
@@ -23,10 +24,12 @@ export function greetingReply(question: string): string | null {
     )
   )
     return "Chào bạn! Bạn muốn hỏi gì về tài liệu?";
+
   return null;
 }
 
 export function immediateReply(question: string): string | null {
+  if (isClearlyUnrelated(question)) return notebookScopeRefusal(question);
   const greeting = greetingReply(question);
   if (greeting) return greeting;
   const text = normalizedQuestion(question);
@@ -53,6 +56,7 @@ export function immediateReply(question: string): string | null {
     /^(explain( please)?|explain this|what do you mean|help( me)?)$/.test(text)
   )
     return "Which topic or part of the documents would you like help with?";
+
   return null;
 }
 
@@ -78,15 +82,20 @@ export async function generateChatResponse(
       "Chưa tìm thấy thông tin phù hợp trong những nguồn đã chọn. Bạn muốn hỏi cụ thể nội dung nào hoặc bổ sung tài liệu nào?";
     signal.throwIfAborted();
     emit(content);
+
     return { content, citations: [] as Citation[] };
   }
   let content = "";
   let clarification = false;
+  let outOfScope = false;
   for await (const delta of aiModels.answer(question, evidence, signal, {
     history,
     images,
     onClarification: () => {
       clarification = true;
+    },
+    onOutOfScope: () => {
+      outOfScope = true;
     },
   })) {
     signal.throwIfAborted();
@@ -96,6 +105,12 @@ export async function generateChatResponse(
     if (!clarification) emit(delta);
   }
   signal.throwIfAborted();
+  if (outOfScope) {
+    const refusal = notebookScopeRefusal(question);
+    emit(refusal);
+
+    return { content: refusal, citations: [] as Citation[] };
+  }
   if (clarification) {
     validateClarification(content);
     emit(content);
@@ -108,5 +123,6 @@ export async function generateChatResponse(
     content += note;
     emit(note);
   }
+
   return { content, citations: checked.citations };
 }

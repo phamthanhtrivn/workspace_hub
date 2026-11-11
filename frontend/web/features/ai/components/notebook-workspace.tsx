@@ -20,6 +20,7 @@ import type { NotebookActionKey, NotebookActionRunner } from "../types";
 
 export function NotebookWorkspace({ id }: { id: string }) {
   const userId = useAppSelector((state) => state.auth.userId);
+
   return userId ? (
     <Workspace key={`${userId}-${id}`} id={id} />
   ) : (
@@ -36,16 +37,22 @@ function Workspace({ id }: { id: string }) {
   const [question, setQuestion] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState("");
-  const [pendingAction, setPendingAction] = useState<NotebookActionKey | null>(null);
+  const [pendingAction, setPendingAction] = useState<NotebookActionKey | null>(
+    null,
+  );
   const run: NotebookActionRunner = (action, key) => {
     setPendingAction(key ?? null);
-    void query.action(action).catch(() => {}).finally(() => setPendingAction(null));
+    void query
+      .action(action)
+      .catch(() => {})
+      .finally(() => setPendingAction(null));
   };
   if (query.isError)
     return (
       <div className="space-y-4 p-8" role="alert">
         <p>
-          Unable to load this notebook or verify source access. Content is temporarily hidden.
+          Unable to load this notebook or verify source access. Content is
+          temporarily hidden.
         </p>
         <Button onClick={() => query.refetch()}>Retry</Button>
         <Button variant="link" asChild>
@@ -70,6 +77,7 @@ function Workspace({ id }: { id: string }) {
     ),
   );
   const panel = "min-h-0 rounded-xl border bg-background p-4 xl:block";
+
   return (
     <main className="flex min-h-0 flex-1 flex-col gap-4 bg-muted/30 p-3 md:p-5 xl:h-[calc(100dvh-100px)]">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -136,12 +144,18 @@ function Workspace({ id }: { id: string }) {
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
-          <Button loading={query.saving && pendingAction === "rename"} disabled={query.saving || !name.trim()}>Save</Button>
+          <Button
+            loading={query.saving && pendingAction === "rename"}
+            disabled={query.saving || !name.trim()}
+          >
+            Save
+          </Button>
         </form>
       )}
       {query.actionError && (
         <p role="alert" className="text-sm text-destructive">
-          Unable to complete this action. Check source access and upload limits, then try again.
+          Unable to complete this action. Check source access and upload limits,
+          then try again.
         </p>
       )}
       <nav aria-label="Notebook workspace" className="flex gap-2 xl:hidden">
@@ -186,7 +200,9 @@ function Workspace({ id }: { id: string }) {
           <h2 className="flex items-center gap-2 border-b pb-4 font-semibold">
             <Bot className="size-5 text-link" aria-hidden="true" />
             AI Assistant
-            <span className="ml-auto text-xs font-normal text-muted-foreground">{selected.length} sources selected</span>
+            <span className="ml-auto text-xs font-normal text-muted-foreground">
+              {selected.length} sources selected
+            </span>
           </h2>
           <div
             className="min-h-0 flex-1 space-y-5 overflow-y-auto py-5"
@@ -199,25 +215,31 @@ function Workspace({ id }: { id: string }) {
                   Ask about your documents
                 </h3>
                 <p>
-                  Add a source, wait until it is ready, then select it to ask questions with citations.
+                  Add a source, wait until it is ready, then select it to ask
+                  questions with citations.
                 </p>
-                <p className="mt-3">
-                  For a full-document summary, use Studio.
-                </p>
+                <p className="mt-3">For a full-document summary, use Studio.</p>
               </div>
             )}
             {notebook.messages.map((message) => (
               <article
                 key={message.id}
-                className={message.role === "USER" ? "ml-6 rounded-xl bg-muted p-4" : "min-w-0 py-3"}
+                className={
+                  message.role === "USER"
+                    ? "ml-6 rounded-xl bg-muted p-4"
+                    : "min-w-0 py-3"
+                }
               >
                 <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                  {message.role !== "USER" && <Bot className="size-4" aria-hidden="true" />}
+                  {message.role !== "USER" && (
+                    <Bot className="size-4" aria-hidden="true" />
+                  )}
                   {message.role === "USER" ? "You" : "AI Assistant"}
                 </p>
                 {message.hidden ? (
                   <p className="text-sm text-muted-foreground">
-                    Content is hidden because a source was removed, updated or is no longer accessible.
+                    Content is hidden because a source was removed, updated or
+                    is no longer accessible.
                   </p>
                 ) : (
                   <>
@@ -237,18 +259,23 @@ function Workspace({ id }: { id: string }) {
                       ["FAILED", "CANCELLED"].includes(
                         message.summary_status || "",
                       ) && (
-                        <Button loading={query.saving && pendingAction === `summary:${message.id}`}
+                        <Button
+                          loading={
+                            query.saving &&
+                            pendingAction === `summary:${message.id}`
+                          }
                           className="mt-3"
                           size="sm"
                           variant="outline"
                           disabled={query.saving}
                           onClick={() =>
-                            run(() =>
-                              notebooksApi.artifact(
-                                id,
-                                "SUMMARY",
-                                message.sources.map((source) => source.id),
-                              ),
+                            run(
+                              () =>
+                                notebooksApi.artifact(
+                                  id,
+                                  "SUMMARY",
+                                  message.sources.map((source) => source.id),
+                                ),
                               `summary:${message.id}`,
                             )
                           }
@@ -259,17 +286,22 @@ function Workspace({ id }: { id: string }) {
                     {message.role === "ASSISTANT" &&
                       (!message.artifact_id ||
                         message.summary_status === "COMPLETED") && (
-                        <Button loading={query.saving && pendingAction === `note:${message.id}`}
+                        <Button
+                          loading={
+                            query.saving &&
+                            pendingAction === `note:${message.id}`
+                          }
                           className="mt-3"
                           size="sm"
                           variant="outline"
                           disabled={query.saving}
                           onClick={() =>
-                            run(() =>
-                              notebooksApi.note(id, {
-                                title: "Saved from chat",
-                                messageId: message.id,
-                              }),
+                            run(
+                              () =>
+                                notebooksApi.note(id, {
+                                  title: "Saved from chat",
+                                  messageId: message.id,
+                                }),
                               `note:${message.id}`,
                             )
                           }
@@ -283,9 +315,13 @@ function Workspace({ id }: { id: string }) {
             ))}
             {(chat.busy || chat.error) && visibleDraft && (
               <article className="rounded-lg border p-4">
-                <p role={chat.busy ? "status" : undefined} className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <p
+                  role={chat.busy ? "status" : undefined}
+                  className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"
+                >
                   {chat.busy && <Spinner size={14} />}
-                  {chat.busy ? chat.stage : "Response received so far"} · Incomplete
+                  {chat.busy ? chat.stage : "Response received so far"} ·
+                  Incomplete
                 </p>
                 {chat.draft?.text ? (
                   <AnswerContent content={chat.draft.text} />
@@ -297,9 +333,21 @@ function Workspace({ id }: { id: string }) {
               </article>
             )}
             {chat.error && (
-              <p role="alert" className="text-sm text-destructive">
-                {chat.error}
-              </p>
+              <div className="space-y-2">
+                <p role="alert" className="text-sm text-destructive">
+                  {chat.error}
+                </p>
+                {chat.retryQuestion && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={chat.busy || !selected.length}
+                    onClick={() => void chat.ask(chat.retryQuestion, selected)}
+                  >
+                    Retry question
+                  </Button>
+                )}
+              </div>
             )}
           </div>
           <form
@@ -341,7 +389,12 @@ function Workspace({ id }: { id: string }) {
           </form>
         </section>
         <aside className={`${panel} ${tab === "studio" ? "block" : "hidden"}`}>
-          <StudioPanel notebook={notebook} saving={query.saving} pendingAction={query.saving ? pendingAction : null} run={run} />
+          <StudioPanel
+            notebook={notebook}
+            saving={query.saving}
+            pendingAction={query.saving ? pendingAction : null}
+            run={run}
+          />
         </aside>
       </div>
     </main>

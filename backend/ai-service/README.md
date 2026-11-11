@@ -8,6 +8,29 @@ Source của AI được đặt chung tại đây; mỗi thành phần vẫn ch�
 | `rag-worker` | Parse tài liệu, embedding, retrieval và OCR |
 | `speech-worker` | Nhận dạng âm thanh cho tóm tắt họp |
 
+Notebook chỉ trả lời trong phạm vi các tài liệu đang chọn và thông tin dự án có
+trong những nguồn đó. Câu hỏi cá nhân không liên quan được từ chối; câu hỏi nối
+tiếp vẫn phải tuân theo cùng phạm vi. Notebook không có quyền mua hàng, tạo lịch
+hoặc đọc task Project bên ngoài nguồn tài liệu. Trợ lý công việc là luồng riêng.
+
+Kết nối LLM dùng HTTP agent riêng và giữ lại kết nối để giảm số lần mở TCP mới.
+Mỗi lần kết nối chờ tối đa 10 giây, tối đa 3 lần trong cùng deadline LLM hiện có.
+Chỉ `UND_ERR_CONNECT_TIMEOUT` hoặc `ETIMEDOUT` tại syscall `connect`, trước khi
+gửi được HTTP request, mới được thử lại với JSON body có thể gửi lại. Không tự replay lỗi HTTP, lỗi socket
+không rõ kết quả hoặc stream đã bắt đầu; checkpoint tóm tắt vẫn chờ người dùng
+chọn tiếp tục khi cần.
+
+Notebook gửi heartbeat mỗi 15 giây sau khi xác thực nguồn để giữ kết nối trong
+lúc chờ model. Parser SSE hỗ trợ dữ liệu chia nhỏ, UTF-8, CRLF và frame cuối
+thiếu newline. Lỗi kết nối, quota, trích dẫn, định dạng, phiên bản nguồn và phản
+hồi bị ngắt có thông báo riêng. Retry question chỉ gửi lại khi người dùng bấm;
+lỗi refresh sau khi lưu thành công không được gửi lại model.
+
+Log `notebook_generation_failed` và `notebook_summary_failed` có trường `stage`
+để phân biệt retrieval, model, kiểm tra quyền và lưu kết quả; log không chứa câu
+hỏi, tài liệu, nội dung phản hồi hoặc thông tin xác thực. `/ready` xác nhận dịch
+vụ nội bộ sẵn sàng, không bảo đảm provider bên ngoài luôn truy cập được.
+
 ## Chuẩn bị
 
 Chạy các lệnh bên dưới từ **repository root**. Docker Desktop và hạ tầng

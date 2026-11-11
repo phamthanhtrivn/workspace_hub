@@ -1,12 +1,16 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { config } from "../../config/env.config";
+import { providerFetch } from "./provider-http";
 
 export function createChatModel(model: string, maxTokens: number) {
   return new ChatOpenAI({
     model,
     maxTokens,
     apiKey: config.LLM_API_KEY,
-    configuration: { baseURL: config.LLM_BASE_URL.replace(/\/$/, "") },
+    configuration: {
+      baseURL: config.LLM_BASE_URL.replace(/\/$/, ""),
+      fetch: providerFetch,
+    },
     temperature: 0.1,
     timeout: config.LLM_TIMEOUT_MS,
     // An unknown provider outcome must never be replayed automatically.

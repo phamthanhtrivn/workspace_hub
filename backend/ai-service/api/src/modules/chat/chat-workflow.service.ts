@@ -9,6 +9,8 @@ import { config } from "../../config/env.config";
 import { immediateReply } from "./chat-response";
 import { completeChatRequest } from "./chat-request";
 import { ChatGenerationService } from "./chat-generation.service";
+import { logError } from "../../common/errors/error-log";
+import { notebookFailureMessage } from "./notebook-failure";
 
 @Injectable()
 export class ChatWorkflowService {
@@ -37,11 +39,18 @@ export class ChatWorkflowService {
       signal: controller.signal,
     });
     const check = async () => {
-      const [state] = await this.database.rows(
-        "SELECT status FROM notebook_ai.requests WHERE id=$1",
-        [requestId],
-      );
-      if (state?.status !== "RUNNING") controller.abort();
+      try {
+        const [state] = await this.database.rows(
+          "SELECT status FROM notebook_ai.requests WHERE id=$1",
+          [requestId],
+        );
+        if (state?.status !== "RUNNING") controller.abort();
+      } catch (error) {
+        logError("notebook_cancel_check_failed", error, {
+          request_id: requestId,
+        });
+        controller.abort(error);
+      }
     };
     const stopPolling = pollUntilAborted(
       controller,
@@ -50,8 +59,14 @@ export class ChatWorkflowService {
     );
     const permissions = setInterval(() => {
       if (!controller.signal.aborted)
-        void authorize().catch(() => controller.abort());
+        void authorize().catch((error) => {
+          logError("notebook_source_check_failed", error, {
+            request_id: requestId,
+          });
+          controller.abort(error);
+        });
     }, 3000);
+    let stage = "generation";
     try {
       stream.start();
       stream.emit("status", {
@@ -64,8 +79,10 @@ export class ChatWorkflowService {
         snapshot,
         authorize,
       });
+      stage = "final_source_check";
       await authorize();
       controller.signal.throwIfAborted();
+      stage = "save_answer";
       const id = await completeChatRequest(
         requestId,
         notebookId,
@@ -76,14 +93,32 @@ export class ChatWorkflowService {
       if (answer.artifactId) stream.emit("delta", { text: answer.content });
       stream.emit("done", { id, ...answer });
     } catch (error) {
-      await this.database.rows(
-        "UPDATE notebook_ai.requests SET status=$2,updated_at=now() WHERE id=$1 AND status='RUNNING'",
-        [requestId, controller.signal.aborted ? "CANCELLED" : "FAILED"],
-      );
+      const failure = controller.signal.aborted
+        ? controller.signal.reason
+        : error;
+      const canceled =
+        controller.signal.aborted &&
+        failure instanceof Error &&
+        failure.name === "AbortError";
+      logError("notebook_chat_failed", failure, {
+        request_id: requestId,
+        stage,
+        canceled,
+      });
+      try {
+        await this.database.rows(
+          "UPDATE notebook_ai.requests SET status=$2,updated_at=now() WHERE id=$1 AND status='RUNNING'",
+          [requestId, canceled ? "CANCELLED" : "FAILED"],
+        );
+      } catch (saveError) {
+        logError("notebook_request_status_failed", saveError, {
+          request_id: requestId,
+        });
+      }
       stream.emit("error", {
-        message: controller.signal.aborted
-          ? "Đã hủy câu trả lời."
-          : safeError(error),
+        message: canceled
+          ? "Response stopped. The request was not resent."
+          : notebookFailureMessage(failure),
       });
     } finally {
       stopPolling();
@@ -102,17 +137,7 @@ export class ChatWorkflowService {
       "UPDATE notebook_ai.artifacts SET status='CANCELLED',updated_at=now() WHERE id=$1 AND notebook_id IN(SELECT id FROM notebook_ai.notebooks WHERE owner_id=$2) AND status IN ('QUEUED','RUNNING')",
       [requestId, actor.id],
     );
+
     return {};
   }
-}
-
-function safeError(error: unknown) {
-  const message = (error as Error)?.message ?? "";
-  if (
-    /hạn mức|HTTP \d{3}|bị cắt|trích dẫn|thiếu trích|phiên bản|Mất quyền/i.test(
-      message,
-    )
-  )
-    return message;
-  return "AI chưa hoàn tất yêu cầu. Kiểm tra kết nối/model và thử lại; yêu cầu không được tự gửi lại.";
 }

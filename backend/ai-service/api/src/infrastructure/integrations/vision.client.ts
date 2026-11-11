@@ -1,5 +1,6 @@
 import { config } from "../../config/env.config";
 import { admitModel } from "./llm.client";
+import { providerFetch } from "./provider-http";
 import {
   BadRequestException,
   ServiceUnavailableException,
@@ -22,7 +23,7 @@ export async function describeImage(
   await admitModel(
     1024 + Math.ceil(Buffer.byteLength(prompt) / 3) + config.VISION_MAX_TOKENS,
   );
-  const response = await fetch(
+  const response = await providerFetch(
     `${config.LLM_BASE_URL.replace(/\/$/, "")}/chat/completions`,
     {
       method: "POST",
@@ -58,10 +59,12 @@ export async function describeImage(
       }),
     },
   );
-  if (!response.ok)
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => {});
     throw new ServiceUnavailableException(
       `VISION_PROVIDER_FAILED: Nhà cung cấp đọc ảnh trả HTTP ${response.status}`,
     );
+  }
   const body = (await response.json()) as {
     choices?: { finish_reason?: string; message?: { content?: string } }[];
   };
@@ -72,5 +75,6 @@ export async function describeImage(
       "VISION_INCOMPLETE: Chưa đọc ảnh hoàn tất. Hãy thử lại hoặc tách trang rõ hơn.",
     );
   signal.throwIfAborted();
+
   return text;
 }

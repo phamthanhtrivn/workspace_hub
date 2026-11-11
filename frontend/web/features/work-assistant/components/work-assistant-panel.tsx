@@ -281,9 +281,22 @@ function Conversation({
           busy={!!assistant.status}
           disabled={!assistant.history.isSuccess}
           error={error}
-          canRetry={assistant.history.isError}
+          canRetry={
+            assistant.history.isError ||
+            Boolean(assistant.error && assistant.pending)
+          }
           retrying={assistant.history.isFetching}
-          onRetry={() => void assistant.history.refetch()}
+          onRetry={() => {
+            if (assistant.history.isError) {
+              void assistant.history.refetch();
+            } else if (
+              assistant.error &&
+              assistant.pending &&
+              !assistant.status
+            ) {
+              void assistant.send(assistant.pending.content);
+            }
+          }}
         />
       )}
     </SheetPanel>

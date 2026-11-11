@@ -42,6 +42,21 @@ export function conversationHistory(
 }
 
 export function isFollowUp(question: string): boolean {
+  const plain = question
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .replace(/đ/gi, "d")
+    .toLowerCase();
+  if (
+    /\b(?:huong dan|chi (?:toi|minh)|giup (?:toi|minh) (?:lam|bat dau))\b/.test(
+      plain,
+    ) ||
+    /\b(?:(?:gio|bay gio|vay|the) )?(?:(?:toi|minh) )?(?:nen|can|phai) (?:lam gi|bat dau|lam buoc nao)|\b(?:buoc tiep theo|tiep theo lam gi|what should i do|what next|where should i start|how do i start)\b/.test(
+      plain,
+    )
+  )
+    return true;
+
   return (
     /\b(it|that|these|those|more|explain further)\b|(?:cái|điều|phần|ý) (?:đó|này)|giải thích thêm|nói rõ hơn|còn .* thì sao/i.test(
       question,
@@ -57,7 +72,9 @@ export function retrievalQuestion(
   history: ChatTurn[],
 ): string {
   if (!history.length || !isFollowUp(question)) return question;
-  const previous = history.filter((turn) => turn.role === "user").at(-1);
+  const previous = history.slice(-2);
 
-  return previous ? `${question}\n${previous.content}` : question;
+  return previous.length
+    ? `${question}\nConversation context (resolve the topic only, not evidence):\n${previous.map((turn) => `${turn.role}: ${turn.content}`).join("\n")}`
+    : question;
 }

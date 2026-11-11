@@ -28,6 +28,7 @@ export function useNotebook(id: string) {
     onSuccess: () => refresh(),
     retry: false,
   });
+
   return {
     ...query,
     refresh,
@@ -50,6 +51,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
   const [stage, setStage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [retryQuestion, setRetryQuestion] = useState("");
   const cancel = useCallback(() => {
     const request = active.current;
     if (!request) return;
@@ -77,6 +79,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
     active.current = request;
     setBusy(true);
     setError("");
+    setRetryQuestion("");
     setStage("Finding relevant passages...");
     setDraft({
       question,
@@ -104,11 +107,18 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
         },
       );
       if (active.current === request) {
-        await refresh();
-        setDraft(null);
+        try {
+          await refresh();
+          setDraft(null);
+        } catch {
+          setError(
+            "The answer was saved, but the notebook could not refresh. Reload the notebook to view it.",
+          );
+        }
       }
     } catch (cause) {
       if (active.current === request) {
+        setRetryQuestion(question);
         setDraft((current) => (current?.text ? current : null));
         setError(
           request.controller.signal.aborted
@@ -121,9 +131,10 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
       if (active.current === request) {
         active.current = null;
         setBusy(false);
-        void refresh();
+        void refresh().catch(() => {});
       }
     }
   };
-  return { ask, cancel, busy, draft, stage, error };
+
+  return { ask, cancel, busy, draft, stage, error, retryQuestion };
 }

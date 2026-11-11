@@ -16,6 +16,7 @@ export function parseEvent(frame: string): StreamEvent | null {
     .map((line) => line.slice(5).trim())
     .join("\n");
   if (!event || !data) return null;
+
   return { event, data: JSON.parse(data) };
 }
 
@@ -30,19 +31,29 @@ export async function readAnswer(
   try {
     while (true) {
       const { value, done } = await reader.read();
-      if (done) break;
-      pending += decoder.decode(value, { stream: true }).replace(/\r/g, "");
-      if (pending.length > 100000) throw new Error("The response exceeds the size limit.");
+      pending += (
+        done ? decoder.decode() : decoder.decode(value, { stream: true })
+      ).replace(/\r/g, "");
+      if (done && pending.trim()) pending += "\n\n";
       let boundary: number;
       while ((boundary = pending.indexOf("\n\n")) >= 0) {
         const event = parseEvent(pending.slice(0, boundary));
         pending = pending.slice(boundary + 2);
         if (!event) continue;
         if (event.event === "error")
-          throw new Error(aiServiceMessage(event.data.message, "AI did not complete the response. Check your sources and try again."));
+          throw new Error(
+            aiServiceMessage(
+              event.data.message,
+              "AI did not complete the response. Check your sources and try again.",
+            ),
+          );
         if (event.event === "done") completed = true;
         onEvent(event);
+        if (completed) return;
       }
+      if (pending.length > 100000)
+        throw new Error("The response exceeds the size limit.");
+      if (done) break;
     }
     if (!completed)
       throw new Error(
@@ -50,5 +61,6 @@ export async function readAnswer(
       );
   } finally {
     await reader.cancel().catch(() => {});
+    reader.releaseLock();
   }
 }
