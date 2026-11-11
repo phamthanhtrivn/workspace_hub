@@ -20,7 +20,6 @@ import {
   groupCalendarTasks,
   TaskStatusFilter,
 } from "../../utils/calendar-tasks.utils";
-import { cleanTaskDescription } from "../../utils/calendar-event.utils";
 import { CalendarTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
 
 interface CalendarTaskListProps {
@@ -219,14 +218,20 @@ function TaskRowItem({
 }) {
   const completed = Boolean(task.completedAt);
   const taskColor = task.color || task.calendar?.color || color;
-  const dateLabel = formatTaskDueDate(task.startAt, task.allDay, locale);
+  const dateLabel = task.deadlineDate
+    ? formatTaskDueDate(
+        `${task.deadlineDate}T${task.deadlineTime || "00:00"}:00`,
+        !task.deadlineTime,
+        locale,
+      )
+    : "";
   const isRecurring = Boolean(task.recurrenceRule || task.recurrenceParentId);
 
   return (
-    <div className="group relative flex items-start gap-2.5 rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-background">
+    <div className="group relative flex items-center gap-2.5 rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-background">
       {readOnly ? (
         <span
-          className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md"
+          className="grid h-5 w-5 shrink-0 place-items-center rounded-md"
           style={{ backgroundColor: `${taskColor}18`, color: "var(--foreground)" }}
           aria-hidden="true"
         >
@@ -237,7 +242,7 @@ function TaskRowItem({
           checked={completed}
           onCheckedChange={() => onToggle?.()}
           onClick={(event) => event.stopPropagation()}
-          className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-full border transition-all focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-5 w-5 shrink-0 cursor-pointer rounded-full border transition-all focus-visible:ring-2 focus-visible:ring-ring"
           style={{
             borderColor: "var(--input)",
             backgroundColor: completed ? taskColor : "transparent",
@@ -250,11 +255,11 @@ function TaskRowItem({
       <Button
         type="button"
         variant="ghost"
-        className="h-auto min-w-0 flex-1 cursor-pointer justify-start rounded-none p-0 text-left hover:bg-transparent"
+        className="flex h-auto min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-none p-0 text-left hover:bg-transparent"
         onClick={onSelect}
       >
         <span
-          className={`block truncate text-sm font-medium leading-snug ${
+          className={`min-w-0 flex-1 truncate text-sm font-medium leading-5 ${
             completed
               ? "line-through text-muted-foreground"
               : "text-foreground group-hover:text-foreground"
@@ -266,7 +271,7 @@ function TaskRowItem({
 
         {dateLabel && (
           <span
-            className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-xs leading-4 ${
               completed
                 ? "border-border bg-background text-muted-foreground"
                 : isOverdue
@@ -276,7 +281,7 @@ function TaskRowItem({
           >
             {isOverdue && !completed ? (
               <Clock className="h-3 w-3 shrink-0 text-destructive-content" />
-            ) : task.allDay ? (
+            ) : !task.deadlineTime ? (
               <Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />
             ) : (
               <Clock
@@ -289,12 +294,6 @@ function TaskRowItem({
             {isRecurring && (
               <Repeat className="ml-0.5 h-2.5 w-2.5 shrink-0 text-info-content" />
             )}
-          </span>
-        )}
-
-        {task.description && cleanTaskDescription(task.description) && (
-          <span className="mt-1 block line-clamp-1 text-xs text-muted-foreground">
-            {cleanTaskDescription(task.description)}
           </span>
         )}
       </Button>
