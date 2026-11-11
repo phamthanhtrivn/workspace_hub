@@ -51,8 +51,9 @@ export function VersionManagementModal({
     [item, isPublic],
   );
   const canUploadVersion =
-    item?.userRole === DocumentRole.OWNER ||
-    item?.userRole === DocumentRole.EDITOR;
+    !item?.isStarred &&
+    (item?.userRole === DocumentRole.OWNER ||
+      item?.userRole === DocumentRole.EDITOR);
   const { uploads, isUploading, uploadFile, retryFailed } = useDocumentUpload({
     currentFolderId: null,
     enabled: isModalOpen && canUploadVersion,

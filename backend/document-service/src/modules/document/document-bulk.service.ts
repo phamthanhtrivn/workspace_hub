@@ -32,7 +32,12 @@ export class DocumentBulkService {
     for (const id of [...new Set(dto.ids)].sort())
       contexts.push(await this.access.getAccessContext(id, userId, userEmail));
     const blocked = contexts.flatMap(({ item, role }) => {
-      const reason = documentBulkBlockReason(item, role, dto.action);
+      const reason = documentBulkBlockReason(
+        item,
+        role,
+        dto.action,
+        Boolean(item.isStarred),
+      );
 
       return reason ? [`${item.name}: ${reason}`] : [];
     });
@@ -41,6 +46,12 @@ export class DocumentBulkService {
         `${DOCUMENT_BULK.INVALID_SELECTION} ${blocked.join(' ')}`,
       );
     const items = contexts.map((context) => context.item);
+    if (
+      dto.action === Action.MOVE &&
+      new Set(items.map((item) => Boolean(item.isStarred))).size > 1
+    ) {
+      throw new BadRequestException(DOCUMENT_BULK.CROSS_REGION_MOVE);
+    }
     if (dto.action === Action.MOVE) {
       const selectedIds = new Set(items.map((item) => item.id));
       const parents = new Map(
@@ -80,6 +91,16 @@ export class DocumentBulkService {
 
     await this.prisma.$transaction(
       async (tx) => {
+        if (dto.action === Action.STAR || dto.action === Action.UNSTAR) {
+          await this.lifecycle.setStarredTreesInTransaction(
+            tx,
+            userId,
+            items,
+            dto.action === Action.STAR,
+          );
+
+          return;
+        }
         if (dto.action === Action.DELETE) {
           await this.lifecycle.deleteTreesInTransaction(
             tx,
@@ -91,6 +112,11 @@ export class DocumentBulkService {
         for (const item of items) {
           if (dto.action === Action.MOVE) {
             const move = moves.find((move) => move.item.id === item.id)!;
+            await this.lifecycle.assertMoveRegion(
+              tx,
+              item.id,
+              move.destParentFolderId,
+            );
             await this.locations.lockAvailableName(
               tx,
               item.ownerUserId,
@@ -98,6 +124,7 @@ export class DocumentBulkService {
               move.destParentFolderId,
               move.destProjectId,
               [item.id],
+              item.isStarred,
             );
             await tx.documentItem.update({
               where: { id: item.id },
@@ -105,18 +132,6 @@ export class DocumentBulkService {
                 parentFolderId: move.destParentFolderId,
                 projectId: move.destProjectId,
               },
-            });
-          } else if (dto.action === Action.STAR) {
-            await tx.userStarredDocument.upsert({
-              where: {
-                userId_documentItemId: { userId, documentItemId: item.id },
-              },
-              create: { userId, documentItemId: item.id },
-              update: {},
-            });
-          } else if (dto.action === Action.UNSTAR) {
-            await tx.userStarredDocument.deleteMany({
-              where: { userId, documentItemId: item.id },
             });
           } else {
             const archive = dto.action === Action.TRASH;
@@ -128,6 +143,7 @@ export class DocumentBulkService {
                 item.parentFolderId,
                 item.projectId,
                 [item.id],
+                item.isStarred,
               );
             await tx.documentItem.update({
               where: { id: item.id },

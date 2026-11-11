@@ -16,6 +16,11 @@ export const DOCUMENT_BULK = {
   PROJECT_ROOT: 'Project root folders cannot be moved or deleted.',
   PROJECT_PERSONAL_ACTION: 'Project documents do not support stars or Trash.',
   OWNER_REQUIRED: 'Only the owner can perform this action.',
+  UNSTAR_REQUIRED: 'Only starred items can be unstarred.',
+  STARRED_CREATE: 'Create folders and upload files from My files only.',
+  PARENT_UNAVAILABLE: 'Parent folder is unavailable.',
+  CROSS_REGION_MOVE:
+    'Move is only allowed within My files or within Starred. Use Star or Unstar to switch views.',
   EDITOR_REQUIRED: 'Editing permission is required.',
   TRASH_REQUIRED:
     'Personal documents must be in Trash before permanent deletion.',

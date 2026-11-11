@@ -149,6 +149,7 @@ export function DocumentBulkControls({
           movingItemIds={selection.items.map((item) => item.id)}
           initialFolderId={currentFolderId}
           projectId={selection.items[0]?.projectId ?? undefined}
+          isStarred={Boolean(selection.items[0]?.isStarred)}
           projectRootFolderId={projectRootFolderId}
           rootLabel={projectRootLabel}
           busy={selection.busy}

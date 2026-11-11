@@ -12,6 +12,7 @@ export interface BreadcrumbLinkProps {
   isActive: boolean;
   onClick: () => void;
   allowRootDrop?: boolean;
+  isStarred?: boolean;
 }
 
 export function BreadcrumbLink({
@@ -20,6 +21,7 @@ export function BreadcrumbLink({
   isActive,
   onClick,
   allowRootDrop = true,
+  isStarred = false,
 }: BreadcrumbLinkProps) {
   const navigationLabels: Partial<Record<NavigationLabel | "Folder", string>> =
     {
@@ -36,6 +38,7 @@ export function BreadcrumbLink({
     folderId,
     displayName,
     allowRootDrop,
+    isStarred,
   );
 
   return (

@@ -9,6 +9,7 @@ export function documentBulkBlockReason(
   item: DocumentItem,
   role: DocumentRole,
   action: Action,
+  isStarred?: boolean,
 ): string | undefined {
   const personalAction =
     action === Action.STAR ||
@@ -29,7 +30,9 @@ export function documentBulkBlockReason(
   if (action === Action.DELETE && !item.projectId && !item.isArchived)
     return M.TRASH_REQUIRED;
   if (action === Action.STAR || action === Action.UNSTAR)
-    return role === DocumentRole.OWNER ? undefined : M.OWNER_REQUIRED;
+    if (role !== DocumentRole.OWNER) return M.OWNER_REQUIRED;
+  if (action === Action.UNSTAR && isStarred === false) return M.UNSTAR_REQUIRED;
+  if (action === Action.STAR || action === Action.UNSTAR) return;
   if (item.projectId)
     return role === DocumentRole.VIEWER ? M.EDITOR_REQUIRED : undefined;
 

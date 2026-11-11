@@ -44,6 +44,7 @@ import { useDocumentBulkSelection } from "../hooks/useDocumentBulkSelection";
 import { DocumentBulkControls } from "./explorer/document-bulk-controls";
 import { DocumentActionsMenu } from "./explorer/document-actions-menu";
 import { DocumentBulkAction } from "../types/document-bulk.types";
+import { DOCUMENT_BULK_MESSAGES } from "../types/document-bulk.types";
 import { Info, UploadCloud, FolderPlus, Edit3 } from "lucide-react";
 import { resolveDocumentProjectContext } from "../utils/project-documents";
 import { documentFolderAccessKey } from "../utils/document-navigation";
@@ -90,6 +91,8 @@ export function DocumentExplorer({
   const isProjectDocuments = Boolean(projectId);
   const canWriteCurrentFolder =
     canEditDocuments &&
+    activeView === DocumentViewType.MY_FILES &&
+    !folderAccess.data?.isStarred &&
     (!currentFolderId ||
       folderAccess.data?.userRole === DocumentRole.OWNER ||
       folderAccess.data?.userRole === DocumentRole.EDITOR);
@@ -302,6 +305,7 @@ export function DocumentExplorer({
 
   // Input Modal Confirmations
   const handleConfirmCreateFolder = async (name: string) => {
+    if (!canWriteCurrentFolder) return;
     await createFolder(name);
     closeCreateFolder();
   };
@@ -345,7 +349,11 @@ export function DocumentExplorer({
           className={`relative z-20 shrink-0 flex flex-col gap-3 bg-card min-w-0 p-3 @min-[640px]/explorer:p-4`}
         >
           <ExplorerBreadcrumbs
-            allowRootDrop={activeView === DocumentViewType.MY_FILES}
+            allowRootDrop={
+              activeView === DocumentViewType.MY_FILES ||
+              activeView === DocumentViewType.STARRED
+            }
+            isStarred={activeView === DocumentViewType.STARRED}
             path={path}
             onBreadcrumbClick={handleBreadcrumbClick}
           />
@@ -362,6 +370,7 @@ export function DocumentExplorer({
                 <DocumentActionsMenu
                   items={items}
                   activeView={activeView}
+                  currentFolderId={currentFolderId}
                   projectId={projectId}
                   hasMore={!!hasNextPage}
                   disabled={isLoading || bulkSelection.busy}
@@ -379,11 +388,14 @@ export function DocumentExplorer({
               onUploadFile={uploadFile}
               canEditDocuments={canWriteCurrentFolder}
               editDisabledReason={
-                folderAccess.isFetching && !folderAccess.data
-                  ? "Checking folder permissions..."
-                  : isProjectDocuments
-                    ? PERMISSION_REASON.projectDocuments
-                    : PERMISSION_REASON.documentEdit
+                activeView === DocumentViewType.STARRED ||
+                folderAccess.data?.isStarred
+                  ? DOCUMENT_BULK_MESSAGES.STARRED_CREATE
+                  : folderAccess.isFetching && !folderAccess.data
+                    ? "Checking folder permissions..."
+                    : isProjectDocuments
+                      ? PERMISSION_REASON.projectDocuments
+                      : PERMISSION_REASON.documentEdit
               }
             />
           )}
@@ -459,7 +471,9 @@ export function DocumentExplorer({
                       ? `No matching resources found for "${searchQuery}"`
                       : activeView === DocumentViewType.TRASH
                         ? "Deleted items will appear here before permanent removal"
-                        : "Upload files or create new folders to get started"
+                        : activeView === DocumentViewType.STARRED
+                          ? "Star files or folders from My files to see them here"
+                          : "Upload files or create new folders to get started"
                   }
                 />
               ) : viewLayout === "GRID" ? (

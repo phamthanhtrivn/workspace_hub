@@ -10,6 +10,7 @@ interface ExplorerBreadcrumbsProps {
   onBreadcrumbClick: (index: number) => void;
   onBackToParent?: () => void;
   allowRootDrop?: boolean;
+  isStarred?: boolean;
 }
 
 export function ExplorerBreadcrumbs({
@@ -17,6 +18,7 @@ export function ExplorerBreadcrumbs({
   onBreadcrumbClick,
   onBackToParent,
   allowRootDrop = true,
+  isStarred = false,
 }: ExplorerBreadcrumbsProps) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-1 break-all text-sm font-semibold text-foreground">
@@ -41,6 +43,7 @@ export function ExplorerBreadcrumbs({
             name={p.name}
             folderId={p.id}
             allowRootDrop={allowRootDrop}
+            isStarred={isStarred}
             isActive={idx === path.length - 1}
             onClick={() => onBreadcrumbClick(idx)}
           />

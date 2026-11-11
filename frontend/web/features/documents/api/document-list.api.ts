@@ -28,6 +28,9 @@ export function getDocumentListPage(
       {
         ...common,
         folderId: scope.currentFolderId,
+        starred:
+          (!scope.projectId && scope.activeView === DocumentViewType.STARRED) ||
+          undefined,
       },
       signal,
     );

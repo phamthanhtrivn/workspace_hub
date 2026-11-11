@@ -12,7 +12,6 @@ import type { DocumentEventPublisher } from './document-event-publisher.service'
 import type { DocumentPresentationService } from './document-presentation.service';
 import type { DocumentAccessService } from './document-access.service';
 import type { DocumentTreeService } from './document-tree.service';
-import type { RenameItemDto } from './dto/rename-item.dto';
 
 function setup() {
   const source = {
@@ -154,8 +153,12 @@ void test('a shared Editor can rename a personal file while Viewer permission is
       normalizeItemName: (name: string) => name.trim(),
       assertNoActiveSiblingWithName: () => Promise.resolve(),
     } as unknown as DocumentLocationService,
-    { publishProjectDocumentEvent: () => Promise.resolve() } as unknown as DocumentEventPublisher,
-    { enrichDocumentItem: (renamed: DocumentItem) => Promise.resolve(renamed) } as unknown as DocumentPresentationService,
+    {
+      publishProjectDocumentEvent: () => Promise.resolve(),
+    } as unknown as DocumentEventPublisher,
+    {
+      enrichDocumentItem: (renamed: DocumentItem) => Promise.resolve(renamed),
+    } as unknown as DocumentPresentationService,
     access,
     {} as DocumentTreeService,
   );
@@ -164,10 +167,47 @@ void test('a shared Editor can rename a personal file while Viewer permission is
     'editor',
     'editor@example.test',
     item.id,
-    { name: 'after.pdf' } as RenameItemDto,
+    { name: 'after.pdf' },
   );
   assert.equal(requiredRole, DocumentRole.EDITOR);
   assert.equal(renamed.name, 'after.pdf');
+});
+
+void test('Move stays within the current star region, including moves to its root', async () => {
+  const h = setup();
+  h.source.isStarred = true;
+  h.destination.isStarred = false;
+  await assert.rejects(
+    h.service.prepareMove('owner', 'owner@example.com', 'source', {
+      parentFolderId: 'destination',
+    }),
+    /within My files or within Starred/,
+  );
+  h.source.isStarred = false;
+  h.destination.isStarred = true;
+  await assert.rejects(
+    h.service.prepareMove('owner', 'owner@example.com', 'source', {
+      parentFolderId: 'destination',
+    }),
+    /within My files or within Starred/,
+  );
+  h.source.isStarred = true;
+  assert.equal(
+    (
+      await h.service.prepareMove('owner', 'owner@example.com', 'source', {
+        parentFolderId: 'destination',
+      })
+    ).destParentFolderId,
+    'destination',
+  );
+  assert.equal(
+    (
+      await h.service.prepareMove('owner', 'owner@example.com', 'source', {
+        parentFolderId: null,
+      })
+    ).destParentFolderId,
+    null,
+  );
 });
 
 void test('Move preparation rejects project root folders and rechecks edit access', async () => {

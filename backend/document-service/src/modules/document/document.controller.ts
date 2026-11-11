@@ -449,6 +449,7 @@ export class DocumentController {
         mimeType: item.mimeType,
         userRole,
         projectId: item.projectId ?? null,
+        isStarred: item.isStarred,
       },
     };
   }

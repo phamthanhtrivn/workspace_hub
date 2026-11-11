@@ -41,9 +41,12 @@ test("Move destinations stay visible and reject forbidden clicks with feedback",
       auth: { ...store.getState().auth, userId: null },
     }),
   });
-  client.setQueryData(["folder-picker", null, "readonly", undefined, null], {
-    data: [project],
-  });
+  client.setQueryData(
+    ["folder-picker", null, "readonly", undefined, null, false],
+    {
+      data: [project],
+    },
+  );
   client.setQueryData(["folder-picker-access", null, "readonly"], {
     ...project,
     id: "readonly",

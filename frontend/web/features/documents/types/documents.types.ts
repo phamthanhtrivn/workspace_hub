@@ -53,7 +53,7 @@ export interface UserStorageQuota {
 
 export type AccessibleDocumentItem = Pick<
   DocumentItem,
-  "id" | "name" | "type" | "sizeBytes" | "mimeType" | "projectId"
+  "id" | "name" | "type" | "sizeBytes" | "mimeType" | "projectId" | "isStarred"
 > & {
   userRole: DocumentRole;
 };

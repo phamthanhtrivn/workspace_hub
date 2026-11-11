@@ -29,6 +29,8 @@ export function getBulkItemBlockReason(
   } else if (action !== Action.DELETE && item.isArchived) return M.ARCHIVED;
   if (action === Action.DELETE && !item.projectId && !item.isArchived)
     return M.DELETE;
+  if (action === Action.STAR && item.isStarred) return M.STARRED;
+  if (action === Action.UNSTAR && !item.isStarred) return M.UNSTAR;
   if (action === Action.STAR || action === Action.UNSTAR)
     return role === DocumentRole.OWNER ? undefined : M.OWNER;
   if (item.projectId)
@@ -57,6 +59,15 @@ export function getBulkBlockers(items: DocumentItem[], action: Action) {
       reason: M.MIXED_PROJECTS,
     }));
   }
+  if (
+    action === Action.MOVE &&
+    new Set(items.map((item) => Boolean(item.isStarred))).size > 1
+  )
+    return items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      reason: M.CROSS_REGION_MOVE,
+    }));
 
   return reasons;
 }
@@ -65,12 +76,19 @@ export function getMoveDestinationBlockReason(
   folder: DocumentDropDestination,
   projectId?: string,
   excludedIds: readonly string[] = [],
+  isStarred?: boolean,
 ): string | undefined {
   if (folder.id && excludedIds.includes(folder.id))
     return M.SELECTED_DESTINATION;
   if (projectId ? folder.projectId !== projectId : !!folder.projectId)
     return projectId ? M.OTHER_PROJECT : M.PROJECT_DESTINATION;
   if (folder.isArchived) return M.ARCHIVED;
+  if (
+    !projectId &&
+    isStarred !== undefined &&
+    Boolean(folder.isStarred) !== isStarred
+  )
+    return M.CROSS_REGION_MOVE;
 
   return folder.userRole === DocumentRole.OWNER ||
     folder.userRole === DocumentRole.EDITOR
@@ -92,6 +110,7 @@ export function getDocumentDropBlockReason(
       folder,
       item.projectId ?? undefined,
       items.map((selected) => selected.id),
+      Boolean(item.isStarred),
     );
     if (reason) return reason;
     if (ancestorIds.includes(item.id) || folder.parentFolderId === item.id)
@@ -117,7 +136,12 @@ export function buildDocumentDropPath(
   return [
     {
       id: null,
-      name: destination.userRole === DocumentRole.OWNER ? "My files" : "Shared",
+      name:
+        destination.userRole === DocumentRole.OWNER
+          ? destination.isStarred
+            ? "Starred"
+            : "My files"
+          : "Shared",
     },
     ...folders,
   ];

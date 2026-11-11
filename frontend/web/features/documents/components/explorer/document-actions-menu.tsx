@@ -34,6 +34,7 @@ const icons: Record<Action, LucideIcon> = {
 export function DocumentActionsMenu({
   items,
   activeView,
+  currentFolderId,
   projectId,
   hasMore,
   disabled,
@@ -41,6 +42,7 @@ export function DocumentActionsMenu({
 }: {
   items: DocumentItem[];
   activeView: DocumentViewType;
+  currentFolderId: string | null;
   projectId?: string;
   hasMore: boolean;
   disabled: boolean;
@@ -49,12 +51,33 @@ export function DocumentActionsMenu({
   const id = useId();
   const [open, setOpen] = useState(false);
   if (activeView === DocumentViewType.SHARED) return null;
+  const starActions = projectId
+    ? []
+    : activeView === DocumentViewType.STARRED && !currentFolderId
+      ? [Action.UNSTAR]
+      : activeView === DocumentViewType.STARRED
+        ? [
+            ...(items.some(
+              (item) =>
+                !item.isStarred && !getBulkBlockers([item], Action.STAR).length,
+            )
+              ? [Action.STAR]
+              : []),
+            ...(items.some(
+              (item) =>
+                item.isStarred &&
+                !getBulkBlockers([item], Action.UNSTAR).length,
+            )
+              ? [Action.UNSTAR]
+              : []),
+          ]
+        : [Action.STAR];
   const actions =
     activeView === DocumentViewType.TRASH
       ? [Action.RESTORE, Action.DELETE]
       : projectId
         ? [Action.MOVE, Action.DELETE]
-        : [Action.MOVE, Action.STAR, Action.UNSTAR, Action.TRASH];
+        : [Action.MOVE, ...starActions, Action.TRASH];
   if (
     !projectId &&
     activeView !== DocumentViewType.TRASH &&

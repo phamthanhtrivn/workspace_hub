@@ -73,6 +73,7 @@ model DocumentItem {
   
   // Trash details
   isArchived     Boolean         @default(false) @map("is_archived") // Soft delete
+  isStarred      Boolean         @default(false) @map("is_starred") // Personal document region, shared by the entire tree
   archivedAt     DateTime?       @map("archived_at")
   
   // Link Sharing

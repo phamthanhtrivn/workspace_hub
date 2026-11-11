@@ -32,6 +32,7 @@ export class DocumentPublicQueryService {
       ownerEmail: string;
       createdAt: Date;
       linkAccess: LinkAccess;
+      isStarred: boolean;
     };
     userRole: DocumentRole;
   }> {
@@ -67,6 +68,7 @@ export class DocumentPublicQueryService {
         ownerEmail: item.ownerEmail,
         createdAt: item.createdAt,
         linkAccess: item.linkAccess,
+        isStarred: item.isStarred,
       },
       userRole,
     };
