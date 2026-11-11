@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import axios from "axios";
 import { store, useAppSelector } from "@/store/store";
 import { urlBase64ToUint8Array } from "../utils/push-subscription.utils";
+import { getPushVapidPublicKey, savePushSubscription } from '../api/push-subscription.api';
+import { getPushSetupDiagnostic, type PushSetupStep } from '../utils/push-setup-diagnostic';
 
-let hasLoggedPushSetupFailure = false;
+const loggedPushSetupFailures = new Set<string>();
 
 export default function PushSubscriptionManager() {
   const accessToken = useAppSelector((state) => state.auth.accessToken);
@@ -32,6 +33,8 @@ export default function PushSubscriptionManager() {
     let isCancelled = false;
 
     const setupPushSubscription = async () => {
+      let step: PushSetupStep = 'permission';
+      let endpoint: string | undefined;
       try {
         let permission = Notification.permission;
         if (permission === "default") {
@@ -42,22 +45,14 @@ export default function PushSubscriptionManager() {
           return;
         }
 
+        step = 'service-worker';
         const registration = await navigator.serviceWorker.register("/sw.js");
         await navigator.serviceWorker.ready;
 
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-        const response = await axios.get(
-          `${apiUrl}/api/notifications/push/vapid-public-key`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          },
-        );
+        step = 'vapid-key';
+        const vapidPublicKey = await getPushVapidPublicKey(accessToken);
 
-        const vapidPublicKey = response.data?.data?.publicKey;
-        if (!vapidPublicKey) {
-          throw new Error("Failed to retrieve public VAPID key");
-        }
-
+        step = 'browser-subscription';
         let subscription = await registration.pushManager.getSubscription();
         if (!subscription) {
           subscription = await registration.pushManager.subscribe({
@@ -67,26 +62,17 @@ export default function PushSubscriptionManager() {
         }
 
         if (isCancelled) return;
-
-        await axios.post(
-          `${apiUrl}/api/notifications/push/subscribe`,
-          subscription,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              "Content-Type": "application/json",
-            },
-          },
-        );
+        endpoint = subscription.endpoint;
+        step = 'save-subscription';
+        await savePushSubscription(accessToken, subscription.toJSON());
+        loggedPushSetupFailures.clear();
       } catch (error) {
-        if (!hasLoggedPushSetupFailure) {
-          hasLoggedPushSetupFailure = true;
-          const message = axios.isAxiosError(error)
-            ? error.message
-            : error instanceof Error
-              ? error.message
-              : "Unknown error";
-          console.warn(`Web Push setup skipped: ${message}`);
+        if (isCancelled) return;
+        const diagnostic = getPushSetupDiagnostic(error, step, endpoint);
+        const key = JSON.stringify(diagnostic);
+        if (!loggedPushSetupFailures.has(key)) {
+          loggedPushSetupFailures.add(key);
+          console.warn(`Web Push setup skipped [${diagnostic.step}]: ${diagnostic.reason}`, diagnostic);
         }
       }
     };

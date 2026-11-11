@@ -33,7 +33,7 @@ export function useProjectSummaryMetrics(
   const isSoftware = options?.isSoftware ?? false;
 
   return useMemo(() => {
-    const activeTasks = tasks.filter((task) => !task.archived);
+    const activeTasks = tasks.filter((task) => !task.deletedAt);
     const parentIds = new Set(
       activeTasks.flatMap((task) => task.parentTaskId ? [task.parentTaskId] : []),
     );

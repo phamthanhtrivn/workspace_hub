@@ -101,6 +101,7 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
           client.invalidateQueries({ queryKey: ["document-quota"] }),
           client.invalidateQueries({ queryKey: [METADATA_QUERY_KEY] }),
           client.invalidateQueries({ queryKey: ["folder-picker"] }),
+          client.invalidateQueries({ queryKey: ["folder-picker-access"] }),
         ]);
       } finally {
         mutationInFlight.current = false;
@@ -130,7 +131,14 @@ export function useDocumentBulkSelection(scope: DocumentListScope) {
         staleTime: 0,
         retry: false,
       });
-      const items = results.filter((item) => !isProjectRootFolder(item));
+      const items = results.filter(
+        (item) =>
+          !isProjectRootFolder(item) &&
+          (!state.action ||
+            (state.action !== DocumentBulkAction.STAR &&
+              state.action !== DocumentBulkAction.UNSTAR) ||
+            !getBulkBlockers([item], state.action).length),
+      );
       setSelection((previous) =>
         previous.scopeKey === scopeKey && previous.loadToken === token
           ? {

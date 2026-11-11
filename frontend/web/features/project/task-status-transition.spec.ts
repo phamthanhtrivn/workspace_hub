@@ -20,11 +20,10 @@ test("every status pair follows backend rules, including the review-to-progress 
   }
 });
 
-test("unavailable transitions explain current, backwards, closed and archived states", () => {
+test("unavailable transitions explain current, backwards and closed states", () => {
   assert.match(getTaskStatusTransitionReason(task(TaskStatus.TODO), TaskStatus.TODO)!, /current status/i);
   assert.match(getTaskStatusTransitionReason(task(TaskStatus.IN_PROGRESS), TaskStatus.TODO)!, /backwards/i);
   assert.match(getTaskStatusTransitionReason(task(TaskStatus.DONE), TaskStatus.IN_REVIEW)!, /read-only/i);
-  assert.match(getTaskStatusTransitionReason(task(TaskStatus.TODO, { archived: true }), TaskStatus.DONE)!, /archived/i);
 });
 
 test("only active unfinished children block Done; cancellation and forward moves remain available", () => {
@@ -37,7 +36,6 @@ test("only active unfinished children block Done; cancellation and forward moves
   for (const finishedChild of [
     { ...child, status: TaskStatus.DONE },
     { ...child, status: TaskStatus.CANCELLED },
-    { ...child, archived: true },
     { ...child, deletedAt: new Date().toISOString() },
     { ...child, parentTaskId: "another-parent" },
   ]) {

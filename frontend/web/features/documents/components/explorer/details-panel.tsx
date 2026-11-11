@@ -3,7 +3,11 @@
 import React from "react";
 import { SheetPanel } from "@/components/ui/sheet";
 import { DocumentItem } from "../../types/documents.types";
-import { DocumentItemType } from "../../types/documents.enums";
+import {
+  DocumentRole,
+  DocumentItemType,
+  DocumentViewType,
+} from "../../types/documents.enums";
 import {
   formatBytes,
   formatDateLong,
@@ -27,6 +31,7 @@ import { DocumentProjectBadge } from "../ui/document-project-badge";
 
 interface DetailsPanelProps {
   item: DocumentItem | null;
+  activeView: DocumentViewType;
   onClose: () => void;
   onRename?: () => void;
   onMove?: () => void;
@@ -39,6 +44,7 @@ interface DetailsPanelProps {
 
 export function DetailsPanel({
   item,
+  activeView,
   onClose,
   onRename,
   onShare,
@@ -48,6 +54,11 @@ export function DetailsPanel({
   if (!item) return null;
 
   const isFolder = item.type === DocumentItemType.FOLDER;
+  const isSharedItem =
+    activeView === DocumentViewType.SHARED ||
+    (!item.projectId && item.userRole !== DocumentRole.OWNER);
+  const hasActions =
+    onDownload || onManageVersions || (!isSharedItem && (onShare || onRename));
 
   return (
     <SheetPanel
@@ -92,36 +103,41 @@ export function DetailsPanel({
         </div>
 
         {/* Action Buttons */}
-        <div className="mt-6 grid grid-cols-4 gap-2 border-y border-border py-3">
-          {onDownload ? (
-            <DocumentsIconButton
-              icon={Download}
-              label={isFolder ? "ZIP" : "Download"}
-              onClick={onDownload}
-            />
-          ) : null}
-          {onShare && !item.projectId ? (
-            <DocumentsIconButton
-              icon={Share2}
-              label="Share"
-              onClick={onShare}
-            />
-          ) : null}
-          {onRename ? (
-            <DocumentsIconButton
-              icon={Edit3}
-              label="Rename"
-              onClick={onRename}
-            />
-          ) : null}
-          {onManageVersions && !isFolder ? (
-            <DocumentsIconButton
-              icon={History}
-              label="Versions"
-              onClick={onManageVersions}
-            />
-          ) : null}
-        </div>
+        {hasActions ? (
+          <div className="mt-6 grid grid-cols-4 gap-2 border-y border-border py-3">
+            {onDownload ? (
+              <DocumentsIconButton
+                icon={Download}
+                label={isFolder ? "ZIP" : "Download"}
+                onClick={onDownload}
+              />
+            ) : null}
+            {onShare && !item.projectId && !isSharedItem ? (
+              <DocumentsIconButton
+                icon={Share2}
+                label="Share"
+                onClick={onShare}
+              />
+            ) : null}
+            {onRename &&
+            (!isSharedItem ||
+              item.userRole === DocumentRole.EDITOR ||
+              item.userRole === DocumentRole.OWNER) ? (
+              <DocumentsIconButton
+                icon={Edit3}
+                label="Rename"
+                onClick={onRename}
+              />
+            ) : null}
+            {onManageVersions && !isFolder ? (
+              <DocumentsIconButton
+                icon={History}
+                label="Versions"
+                onClick={onManageVersions}
+              />
+            ) : null}
+          </div>
+        ) : null}
 
         {/* Metadata Properties */}
         <div className="mt-6 space-y-4 text-xs">

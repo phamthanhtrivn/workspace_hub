@@ -8,6 +8,8 @@ import { Notification } from "../../types/notification.types";
 import { formatTimeAgo } from "@/lib/date";
 import { NotificationListRow } from "../notification-list-row";
 import { Button } from "@/components/ui/button";
+import { NotificationCategoryIcon } from "../notification-category-icon";
+import { getNotificationCategory } from "../../utils/notification-category.utils";
 
 export const DefaultListItemRenderer: React.FC<{
   notification: Notification;
@@ -20,18 +22,21 @@ export const DefaultModalRenderer: React.FC<{
   notification: Notification;
   onClose: () => void;
 }> = ({ notification, onClose }) => {
+  const category = getNotificationCategory(notification);
+  const showResourceIcon = category === "PROJECT" || category === "DOCUMENT";
+
   return (
     <div className="p-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative h-12 w-12 rounded-full bg-muted overflow-hidden flex items-center justify-center text-muted-foreground">
+      <div className={`flex gap-3 mb-4 ${showResourceIcon ? "items-start" : "items-center"}`}>
+        {showResourceIcon ? <NotificationCategoryIcon notification={notification} /> : <div className="relative h-12 w-12 rounded-full bg-muted overflow-hidden flex items-center justify-center text-muted-foreground">
           {notification.senderId || notification.senderAvatar ? <UserAvatar
               src={notification?.senderAvatar}
               alt="Avatar"
               fill
               className="object-cover"
             /> : <Bell size={24} />}
-        </div>
-        <div>
+        </div>}
+        <div className="min-w-0 flex-1">
           <h3 className="font-semibold text-foreground">{notification.title}</h3>
           <p className="text-xs text-muted-foreground">
             {formatTimeAgo(new Date(notification.createdAt))}

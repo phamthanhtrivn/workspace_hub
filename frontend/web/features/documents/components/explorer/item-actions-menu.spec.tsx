@@ -41,14 +41,14 @@ function text(node: React.ReactNode): string {
     .join("|");
 }
 
-function actions(item: DocumentItem) {
+function actions(item: DocumentItem, activeView = DocumentViewType.MY_FILES) {
   let labels = "";
   const noop = () => {};
   function Harness() {
     labels = text(
       ItemActionsMenu({
         item,
-        activeView: DocumentViewType.MY_FILES,
+        activeView,
         activeMenuId: item.id,
         setActiveMenuId: noop,
         onRename: noop,
@@ -56,7 +56,10 @@ function actions(item: DocumentItem) {
         onToggleStar: noop,
         onArchive: noop,
         onViewDetails: noop,
+        onPreview: noop,
+        onDownload: noop,
         onDownloadFolder: noop,
+        onManageVersions: noop,
         onDeletePermanently: noop,
         onShare: noop,
         onShareToChat: noop,
@@ -117,4 +120,27 @@ test("personal files shared with Viewer/Editor do not expose Share to chat", () 
     }).includes("Share to chat"),
     true,
   );
+});
+
+test("shared files expose read actions to both Viewers and Editors", () => {
+  for (const userRole of [DocumentRole.VIEWER, DocumentRole.EDITOR]) {
+    const labels = actions(
+      { ...root, projectId: null, userRole },
+      DocumentViewType.SHARED,
+    );
+    assert.deepEqual(
+      labels,
+      userRole === DocumentRole.EDITOR
+        ? ["Preview", "Download", "Details", "Rename", "Manage versions"]
+        : ["Preview", "Download", "Details", "Manage versions"],
+    );
+  }
+});
+
+test("shared folders expose ZIP download and details without mutation actions", () => {
+  const labels = actions(
+    { ...root, projectId: null, userRole: DocumentRole.EDITOR },
+    DocumentViewType.SHARED,
+  );
+  assert.deepEqual(labels, ["Download ZIP", "Details", "Rename"]);
 });

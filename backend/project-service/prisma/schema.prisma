@@ -107,7 +107,6 @@ model Task {
   completedBy        String?      @map("completed_by") @db.Uuid
   deletedAt          DateTime?    @map("deleted_at")
   rank               String?      @db.VarChar(100)
-  archived           Boolean      @default(false)
   createdAt          DateTime     @map("created_at")
   updatedAt          DateTime?    @map("updated_at")
   version            BigInt       @default(0)
@@ -124,7 +123,7 @@ model Task {
   dependenciesFrom TaskDependency[] @relation("DependencyPredecessor")
   dependenciesTo TaskDependency[] @relation("DependencySuccessor")
 
-  @@index([projectId, archived, rank, createdAt], map: "idx_tasks_project_active_rank")
+  @@index([projectId, rank, createdAt], map: "idx_tasks_project_rank")
   @@index([projectId, dueDate], map: "idx_tasks_project_due")
   @@index([parentTaskId], map: "idx_tasks_parent")
   @@unique([id, projectId], map: "uk_tasks_id_project")

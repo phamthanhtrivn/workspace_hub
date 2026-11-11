@@ -33,7 +33,6 @@ export class ProjectQueryService {
         ? {
             tasks: {
               some: {
-                archived: false,
                 deletedAt: null,
                 assignees: { some: { userId } },
               },
@@ -87,7 +86,6 @@ export class ProjectQueryService {
             by: ["projectId", "status"],
             where: {
               projectId: { in: projectIds },
-              archived: false,
               deletedAt: null,
             },
             _count: { _all: true },

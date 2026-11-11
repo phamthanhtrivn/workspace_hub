@@ -240,7 +240,7 @@ test("shared folders keep the Open Folder action instead of a preview modal", as
   await openFolder.props.onClick();
   assert.equal(
     harness.push.mock.calls[0].arguments[0],
-    `/documents?view=SHARED&folderId=${metadata.id}`,
+    `/documents?view=shared&folderId=${metadata.id}`,
   );
   assert.equal(
     elements.some((element) => element.type === FilePreviewModal),
@@ -271,7 +271,9 @@ for (const role of [
     assert.equal(harness.metadataRequest.mock.callCount(), 1);
     assert.equal(
       harness.push.mock.calls[0].arguments[0],
-      `/documents?view=${role === DocumentRole.OWNER ? "MY_FILES" : "SHARED"}&folderId=${metadata.id}`,
+      role === DocumentRole.OWNER
+        ? `/documents?folderId=${metadata.id}`
+        : `/documents?view=shared&folderId=${metadata.id}`,
     );
   });
 }

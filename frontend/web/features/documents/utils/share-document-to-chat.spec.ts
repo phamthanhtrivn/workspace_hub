@@ -31,6 +31,7 @@ function setup(context: TestContext) {
     setting: { allowSendMessage: true },
   } as ChannelResponse;
   const access: AccessibleDocumentItem = {
+    isStarred: false,
     id: "document",
     name: "file",
     type: DocumentItemType.FILE,

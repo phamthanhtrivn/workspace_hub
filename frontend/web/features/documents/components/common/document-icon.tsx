@@ -33,11 +33,14 @@ export interface IconConfig {
   colorClass: string;
   bgClass: string;
   bgSelectedClass: string;
+  isFallback?: boolean;
 }
 
 // ─── Icon resolution logic ─────────────────────────────────────────────────────
 
-export function getDocumentIconConfig(item: DocumentItem): IconConfig {
+export function getDocumentIconConfig(
+  item: Pick<DocumentItem, "type" | "name" | "mimeType">,
+): IconConfig {
   const isFolder = item.type === DocumentItemType.FOLDER;
 
   if (isFolder) {
@@ -139,7 +142,7 @@ export function getDocumentIconConfig(item: DocumentItem): IconConfig {
   }
 
   // Default fallback
-  return { icon: FaFile, ...ICON_COLORS.DEFAULT };
+  return { icon: FaFile, ...ICON_COLORS.DEFAULT, isFallback: true };
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────────

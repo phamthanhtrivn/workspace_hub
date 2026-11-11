@@ -11,6 +11,8 @@ export interface ProjectTaskNotificationMetadata {
 
 export function isProjectTaskNotification(notification: Notification): boolean {
   return notification.type === NotificationType.PROJECT_TASK_ASSIGNED ||
+    notification.type === NotificationType.PROJECT_TASK_UNASSIGNED ||
+    notification.type === NotificationType.PROJECT_TASK_DELETED ||
     notification.type === NotificationType.PROJECT_TASK_UPDATED;
 }
 
@@ -33,10 +35,19 @@ export function getProjectTaskNotificationMetadata(
 
 export function getProjectTaskNotificationLink(notification: Notification): string | undefined {
   const metadata = getProjectTaskNotificationMetadata(notification);
+  if (metadata && notification.type === NotificationType.PROJECT_TASK_DELETED) return `/projects/${metadata.projectId}`;
   return metadata ? getProjectTaskLink(metadata.projectId, metadata.taskId) : undefined;
 }
 
 export function projectTaskNotificationHeading(notification: Notification, senderName: string): string {
+  if (notification.metadata?.activityKind === 'COMMENT') {
+    const field = Array.isArray(notification.metadata.changes) ? notification.metadata.changes[0]?.field : undefined;
+    return `${senderName} ${field === 'comment_created' ? 'commented in a task' : field === 'comment_deleted' ? 'deleted a comment in a task' : 'edited a comment in a task'}`;
+  }
+  if (notification.type === NotificationType.PROJECT_TASK_UNASSIGNED) return `${senderName} removed your task assignment`;
+  if (notification.type === NotificationType.PROJECT_TASK_DELETED) return `${senderName} deleted a task`;
+  const changes = Array.isArray(notification.metadata?.changes) ? notification.metadata.changes : [];
+  if (changes.some((change: { field?: string }) => change.field === 'created') && notification.type !== NotificationType.PROJECT_TASK_ASSIGNED) return `${senderName} created a task`;
   return notification.type === NotificationType.PROJECT_TASK_ASSIGNED
     ? `${senderName} assigned a task to you`
     : `${senderName} updated a task`;

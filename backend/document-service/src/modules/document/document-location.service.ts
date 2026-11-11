@@ -8,6 +8,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { ItemType, DocumentItem, DocumentShare, Prisma } from '@prisma/client';
 import { DocumentRole } from '../../common/enums/document.enum';
 import { DocumentAccessService } from './document-access.service';
+import { DOCUMENT_BULK } from './types/document-bulk.constants';
 
 @Injectable()
 export class DocumentLocationService {
@@ -23,6 +24,7 @@ export class DocumentLocationService {
     ownerUserId: string,
     parentFolderId?: string | null,
     projectId?: string | null,
+    isStarred = false,
   ) {
     if (parentFolderId) {
       return { parentFolderId };
@@ -31,7 +33,7 @@ export class DocumentLocationService {
       return { parentFolderId: null, projectId };
     }
 
-    return { ownerUserId, parentFolderId: null, projectId: null };
+    return { ownerUserId, parentFolderId: null, projectId: null, isStarred };
   }
 
   async findActiveSiblingByName(
@@ -40,6 +42,7 @@ export class DocumentLocationService {
     parentFolderId?: string | null,
     projectId?: string | null,
     excludeId?: string,
+    isStarred = false,
   ) {
     const normalizedName = this.normalizeItemName(name);
     if (!normalizedName) {
@@ -48,7 +51,12 @@ export class DocumentLocationService {
 
     return this.prisma.documentItem.findFirst({
       where: {
-        ...this.buildSiblingScopeWhere(ownerUserId, parentFolderId, projectId),
+        ...this.buildSiblingScopeWhere(
+          ownerUserId,
+          parentFolderId,
+          projectId,
+          isStarred,
+        ),
         isArchived: false,
         name: { equals: normalizedName, mode: 'insensitive' },
         ...(excludeId ? { id: { not: excludeId } } : {}),
@@ -78,15 +86,26 @@ export class DocumentLocationService {
     parentFolderId: string | null,
     projectId: string | null,
     excludeIds: string[] = [],
+    isStarred = false,
   ) {
     if (!name) throw new BadRequestException('Name cannot be empty');
     const scope = JSON.stringify(
-      this.buildSiblingScopeWhere(ownerUserId, parentFolderId, projectId),
+      this.buildSiblingScopeWhere(
+        ownerUserId,
+        parentFolderId,
+        projectId,
+        isStarred,
+      ),
     );
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${scope}, 8085))::text AS locked`;
     const conflict = await tx.documentItem.findFirst({
       where: {
-        ...this.buildSiblingScopeWhere(ownerUserId, parentFolderId, projectId),
+        ...this.buildSiblingScopeWhere(
+          ownerUserId,
+          parentFolderId,
+          projectId,
+          isStarred,
+        ),
         isArchived: false,
         name: { equals: name, mode: 'insensitive' },
         ...(excludeIds.length ? { id: { notIn: excludeIds } } : {}),
@@ -102,6 +121,7 @@ export class DocumentLocationService {
     parentFolderId?: string | null,
     projectId?: string | null,
     excludeId?: string,
+    isStarred = false,
   ) {
     const conflict = await this.findActiveSiblingByName(
       ownerUserId,
@@ -109,6 +129,7 @@ export class DocumentLocationService {
       parentFolderId,
       projectId,
       excludeId,
+      isStarred,
     );
     if (conflict) {
       this.throwDuplicateNameConflict(conflict);
@@ -167,8 +188,26 @@ export class DocumentLocationService {
     if (parentFolder.isArchived) {
       throw new BadRequestException(archivedMessage);
     }
+    if (parentFolder.isStarred) {
+      throw new BadRequestException(DOCUMENT_BULK.STARRED_CREATE);
+    }
 
     return parentFolder;
+  }
+
+  async lockWritableParent(
+    tx: Prisma.TransactionClient,
+    parentFolderId: string | null,
+  ) {
+    if (!parentFolderId) return;
+    await tx.$queryRaw`SELECT id FROM document_items WHERE id = ${parentFolderId}::uuid FOR UPDATE`;
+    const parent = await tx.documentItem.findUnique({
+      where: { id: parentFolderId },
+    });
+    if (!parent || parent.isArchived)
+      throw new BadRequestException(DOCUMENT_BULK.PARENT_UNAVAILABLE);
+    if (parent.isStarred)
+      throw new BadRequestException(DOCUMENT_BULK.STARRED_CREATE);
   }
 
   async validateUploadNameConflict(

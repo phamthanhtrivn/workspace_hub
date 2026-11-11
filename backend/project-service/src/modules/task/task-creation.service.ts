@@ -6,15 +6,12 @@ import { ProjectAccessService } from "../project/project-access.service";
 import { ProjectSpaceClient } from "../project/project-space.client";
 import { toTaskResponse } from "../project/project.mapper";
 import { ActivityService } from "../activity/activity.service";
-import { NotificationOutboxService } from "../notification-outbox/notification-outbox.service";
 import { taskInclude } from "./task-query";
 import { normalizeTaskRank } from "./task-rank";
 import { UserProfileSnapshotService } from "../user-profile-snapshot/user-profile-snapshot.service";
-import { KAFKA_EVENTS } from "../../common/constants/kafka.constants";
 import { resolveProfilesForItem } from "../../common/utils/profile-mapper.util";
 import { TaskSyncOutboxService } from "../task-sync/task-sync-outbox.service";
 import { TaskValidationService } from "./task-validation.service";
-import { buildTaskNotification } from "../../common/utils/task-notification.util";
 
 const taskWithCount = taskInclude;
 
@@ -25,7 +22,6 @@ export class TaskCreationService {
     private readonly projectSpace: ProjectSpaceClient,
     private readonly prisma: PrismaService,
     private readonly activities: ActivityService,
-    private readonly notifications: NotificationOutboxService,
     private readonly taskSync: TaskSyncOutboxService,
     private readonly userProfiles: UserProfileSnapshotService,
     private readonly validation: TaskValidationService,
@@ -78,7 +74,6 @@ export class TaskCreationService {
           completedAt: isTerminalTaskStatus(status) ? now : undefined,
           completedBy: isTerminalTaskStatus(status) ? userId : undefined,
           rank: normalizeTaskRank(dto.rank),
-          archived: false,
           createdAt: now,
           updatedAt: now,
           assignees: dto.assigneeUserId
@@ -101,18 +96,7 @@ export class TaskCreationService {
         created.title,
         tx,
       );
-      if (dto.assigneeUserId && dto.assigneeUserId !== userId) {
-        await this.notifications.enqueueNotification(
-          buildTaskNotification({
-            recipientId: dto.assigneeUserId,
-            senderId: userId,
-            type: KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED,
-            project: { id: projectId, name: projectSequence.name },
-            task: created,
-          }),
-          tx,
-        );
-      }
+      if (created.parentTaskId) await this.activities.record(created.parentTaskId, userId, 'subtask_created', null, created.title, tx);
       await this.taskSync.enqueue(created, tx);
       return created;
     });

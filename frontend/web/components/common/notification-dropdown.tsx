@@ -13,15 +13,14 @@ import {
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
-  setNotifications,
-  setLoading,
   markAllReadSuccess,
 } from "@/store/notification/notification.slice";
 import {
-  getNotifications,
   markAllAsRead,
 } from "@/features/notification/api/notification.api";
 import { useNotificationActions } from "@/features/notification/hooks/use-notification-actions";
+import { useNotificationList } from "@/features/notification/hooks/use-notification-list";
+import { NotificationLoadMore } from "@/features/notification/components/notification-load-more";
 import { useOpenProjectTaskNotification } from "@/features/notification/hooks/use-open-project-task-notification";
 import { ProjectTaskListItemRenderer, ProjectTaskModalRenderer } from "@/features/notification/components/renderers/project-task-renderer";
 import {
@@ -33,7 +32,6 @@ import type {
   Notification,
   NotificationReadFilter,
   NotificationTimeFilter,
-  NotificationUnreadCountsByCategory,
 } from "@/features/notification/types/notification.types";
 
 import { QueryFeedback } from "@/components/common/query-feedback";
@@ -41,6 +39,7 @@ import NotificationList from "@/features/notification/components/notification-li
 import NotificationDetailModal from "@/features/notification/components/notification-detail-modal";
 import { ChannelMemberAddedModalRenderer, ChannelOwnershipTransferredModalRenderer } from "@/features/notification/components/renderers/channel-member-added-renderer";
 import { registerNotificationRenderer } from "@/features/notification/components/notification-registry";
+import { ContextNotificationListItem, ContextNotificationModal } from '@/features/notification/components/renderers/context-notification-renderer';
 import { logApiError } from "@/lib/interceptors";
 
 // Renderers
@@ -74,12 +73,10 @@ import {
 } from "@/features/notification/components/renderers/calendar-reminder-renderer";
 import {
   NOTIFICATION_CATEGORIES,
-  NOTIFICATION_CHANGED_EVENT,
   isNotificationInCategory,
 } from "@/features/notification/utils/notification-category.utils";
 import {
   formatNotificationCount,
-  getReadFilterValue,
 } from "@/features/notification/utils/notification-display.utils";
 import {
   getNotificationDateRange,
@@ -99,22 +96,10 @@ import {
   CustomTabs,
   type CustomTabOption,
 } from "@/components/ui/custom/custom-tabs";
-import { SimplePagination } from "@/components/ui/custom/simple-pagination";
 import type { CustomSelectOption } from "@/components/ui/custom/custom-select";
 import { toast } from "sonner";
 import { useMeetingConfirmDialog } from "@/features/meeting/hooks/useMeetingConfirmDialog";
 import { MeetingAlertDialog } from "@/features/meeting/components/common/meeting-alert-dialog";
-
-const PAGE_SIZE = 10;
-
-const EMPTY_UNREAD_COUNTS_BY_CATEGORY: NotificationUnreadCountsByCategory = {
-  ALL: 0,
-  PROJECT: 0,
-  CHAT: 0,
-  CALENDAR: 0,
-  MEETING: 0,
-  DOCUMENT: 0,
-};
 
 const categoryConfig: Record<
   NotificationCategory,
@@ -134,8 +119,13 @@ const categoryConfig: Record<
 // Initialize Registry
 let isRegistryInitialized = false;
 if (!isRegistryInitialized) {
-  for (const type of [NotificationType.PROJECT_TASK_ASSIGNED, NotificationType.PROJECT_TASK_UPDATED]) {
+  for (const type of [NotificationType.PROJECT_TASK_ASSIGNED, NotificationType.PROJECT_TASK_UPDATED, NotificationType.PROJECT_TASK_UNASSIGNED, NotificationType.PROJECT_TASK_DELETED]) {
     registerNotificationRenderer(type, ProjectTaskModalRenderer, ProjectTaskListItemRenderer);
+  }
+  for (const type of [NotificationType.PROJECT_INVITATION_ACCEPTED, NotificationType.PROJECT_INVITATION_DECLINED,
+    NotificationType.PROJECT_PERMISSIONS_UPDATED, NotificationType.PROJECT_MEMBER_REMOVED,
+    NotificationType.DOCUMENT_SHARED, NotificationType.DOCUMENT_PERMISSION_UPDATED, NotificationType.DOCUMENT_SHARE_REMOVED]) {
+    registerNotificationRenderer(type, ContextNotificationModal, ContextNotificationListItem);
   }
   registerNotificationRenderer(NotificationType.CHANNEL_MEMBER_ADDED, ChannelMemberAddedModalRenderer, DefaultListItemRenderer);
   registerNotificationRenderer(NotificationType.CHANNEL_MEMBER_REMOVED, DefaultModalRenderer, DefaultListItemRenderer);
@@ -195,14 +185,9 @@ if (!isRegistryInitialized) {
 
 const NotificationDropdown = React.memo(function NotificationDropdown() {
   const dispatch = useAppDispatch();
-  const {
-    list: notifications,
-    unreadCount,
-    loading,
-  } = useAppSelector((state) => state.notification);
-  const { accessToken } = useAppSelector((state) => state.auth);
+  const { unreadCount } = useAppSelector((state) => state.notification);
+  const { accessToken, userId } = useAppSelector((state) => state.auth);
 
-  const [listError, setListError] = useState(false);
   const [markingRead, setMarkingRead] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [tab, setTab] = useState<NotificationReadFilter>("ALL");
@@ -215,21 +200,10 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   const [customToDate, setCustomToDate] = useState(() =>
     toLocalDateInputValue(new Date()),
   );
-  const [page, setPage] = useState(1);
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (listRef.current) listRef.current.scrollTop = 0;
-  }, [isOpen, page, category, tab, timeFilter, customFromDate, customToDate]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    total: 0,
-    totalPages: 1,
-    categoryUnreadCount: 0,
-  });
-  const [unreadCountsByCategory, setUnreadCountsByCategory] =
-    useState<NotificationUnreadCountsByCategory>(
-      EMPTY_UNREAD_COUNTS_BY_CATEGORY,
-    );
+  }, [isOpen, category, tab, timeFilter, customFromDate, customToDate]);
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
   const openTaskNotification = useOpenProjectTaskNotification();
@@ -249,73 +223,13 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     Boolean(customToDate) &&
     customFromDate > customToDate;
 
-  const listRevision = useRef(0);
-  const fetchList = React.useCallback(
-    async (nextPage = page) => {
-      if (!accessToken) return;
-      const revision = ++listRevision.current;
-      if (isCustomRangeInvalid) {
-        dispatch(setLoading(false));
-        dispatch(
-          setNotifications({
-            list: [],
-            total: 0,
-          }),
-        );
-        setPagination({
-          page: 1,
-          total: 0,
-          totalPages: 1,
-          categoryUnreadCount: 0,
-        });
-        setUnreadCountsByCategory(EMPTY_UNREAD_COUNTS_BY_CATEGORY);
-        return;
-      }
-      try {
-        dispatch(setLoading(true));
-        setListError(false);
-        const res = await getNotifications(nextPage, PAGE_SIZE, getReadFilterValue(tab), category, dateRange);
-        if (revision !== listRevision.current) return;
-        const fallbackUnreadCounts: NotificationUnreadCountsByCategory = {
-          ...EMPTY_UNREAD_COUNTS_BY_CATEGORY,
-          ALL: res.pagination.unreadCount,
-          [category]:
-            res.pagination.categoryUnreadCount ?? res.pagination.unreadCount,
-        };
-        const nextUnreadCounts =
-          res.pagination.unreadCountsByCategory ?? fallbackUnreadCounts;
-        dispatch(
-          setNotifications({
-            list: res.data,
-            total: res.pagination.total,
-          }),
-        );
-        setUnreadCountsByCategory(nextUnreadCounts);
-        setPagination({
-          page: res.pagination.page,
-          total: res.pagination.total,
-          totalPages: res.pagination.totalPages,
-          categoryUnreadCount:
-            res.pagination.categoryUnreadCount ??
-            nextUnreadCounts[category] ??
-            res.pagination.unreadCount,
-        });
-      } catch (error) {
-        logApiError(error, "Failed to fetch notifications");
-        if (revision === listRevision.current) setListError(true);
-      } finally {
-        if (revision === listRevision.current) dispatch(setLoading(false));
-      }
-    },
-    [
-      accessToken,
-      category,
-      dateRange,
-      dispatch,
-      isCustomRangeInvalid,
-      page,
-      tab,
-    ],
+  const {
+    list: notifications, total, unreadCountsByCategory,
+    loading, listError, loadMoreError, isFetching, isLoadingMore,
+    hasMore, loadMore, refresh,
+  } = useNotificationList(
+    { viewerId: userId, category, readFilter: tab, dateRange },
+    Boolean(isOpen && accessToken && userId && !isCustomRangeInvalid),
   );
   const {
     deleteNotificationMutation,
@@ -323,37 +237,13 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     deletingNotificationId,
   } = useNotificationActions();
 
-  useEffect(() => {
-    if (isOpen) void fetchList(page);
-  }, [fetchList, isOpen, page]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleNotificationChanged = () => {
-      void fetchList(page);
-    };
-
-    window.addEventListener(
-      NOTIFICATION_CHANGED_EVENT,
-      handleNotificationChanged,
-    );
-    return () => {
-      window.removeEventListener(
-        NOTIFICATION_CHANGED_EVENT,
-        handleNotificationChanged,
-      );
-    };
-  }, [fetchList, isOpen, page]);
-
   const handleMarkAllAsRead = async () => {
     if (markingRead) return;
     setMarkingRead(true);
     try {
       await markAllAsRead();
       dispatch(markAllReadSuccess());
-      setPage(1);
-      if (isOpen) void fetchList(1);
+      if (isOpen) void refresh();
     } catch (error) {
       console.error("Failed to mark all as read", error);
       toast.error("Could not mark notifications as read.", { action: { label: "Retry", onClick: () => void handleMarkAllAsRead() } });
@@ -362,27 +252,22 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
 
   const handleCategoryChange = (nextCategory: NotificationCategory) => {
     setCategory(nextCategory);
-    setPage(1);
   };
 
   const handleTabChange = (nextTab: NotificationReadFilter) => {
     setTab(nextTab);
-    setPage(1);
   };
 
   const handleTimeFilterChange = (nextFilter: NotificationTimeFilter) => {
     setTimeFilter(nextFilter);
-    setPage(1);
   };
 
   const handleCustomFromDateChange = (value: string) => {
     setCustomFromDate(value);
-    setPage(1);
   };
 
   const handleCustomToDateChange = (value: string) => {
     setCustomToDate(value);
-    setPage(1);
   };
 
   const handleItemClick = (notification: Notification) => {
@@ -422,13 +307,6 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
 
     try {
       await deleteNotificationMutation.mutateAsync(notificationId);
-      const nextPage =
-        page > 1 && visibleNotifications.length <= 1 ? page - 1 : page;
-      if (nextPage !== page) {
-        setPage(nextPage);
-      } else if (isOpen) {
-        void fetchList(nextPage);
-      }
       toast.success("Notification deleted");
     } catch (error) {
       logApiError(error, "Failed to delete notification");
@@ -458,8 +336,6 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
         isRead: true,
         dateRange,
       });
-      setPage(1);
-      if (isOpen) void fetchList(1);
       toast.success(
         isAll ? "All notifications deleted" : "Category notifications deleted",
       );
@@ -473,8 +349,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     isNotificationInCategory(notification, category),
   );
   const unreadTabCount = unreadCountsByCategory[category] ?? 0;
-  const hasCategoryData = pagination.total > 0;
-  const currentPage = Math.min(page, pagination.totalPages);
+  const hasCategoryData = total > 0;
   const timeFilterOptions = React.useMemo<
     CustomSelectOption<NotificationTimeFilter>[]
   >(
@@ -517,10 +392,6 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     ],
     [unreadTabCount],
   );
-  const handlePageChange = (nextPage: number) => {
-    setPage(Math.min(Math.max(1, nextPage), pagination.totalPages));
-  };
-
   return (
     <div className="relative">
       <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -654,8 +525,8 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
 
           <Separator />
 
-          <div ref={listRef} role="region" aria-label="Notification list" aria-busy={loading} tabIndex={0} className="min-h-0 max-h-[52vh] overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-gutter:stable] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
-            <QueryFeedback label="notifications" error={listError} retrying={loading} onRetry={() => fetchList(page)} />
+          <div ref={listRef} role="region" aria-label="Notification list" aria-busy={loading || isLoadingMore} tabIndex={0} className="min-h-0 max-h-[52vh] overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-gutter:stable] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+            <QueryFeedback label="notifications" error={listError} retrying={isFetching} onRetry={refresh} />
             {(!listError || visibleNotifications.length > 0) && <NotificationList
               notifications={visibleNotifications}
               onItemClick={handleItemClick}
@@ -668,14 +539,9 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
               deletingNotificationId={deletingNotificationId}
               isLoading={loading}
             />}
-          </div>
-
-          <div className="shrink-0 border-t border-border bg-background px-3 py-2">
-            <SimplePagination
-              page={currentPage}
-              totalPages={pagination.totalPages}
-              isLoading={loading}
-              onPageChange={handlePageChange}
+            <NotificationLoadMore
+              hasMore={hasMore} loading={isLoadingMore} fetching={isFetching}
+              error={loadMoreError} onLoadMore={loadMore}
             />
           </div>
         </PopoverContent>

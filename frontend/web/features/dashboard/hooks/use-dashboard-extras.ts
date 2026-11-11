@@ -14,7 +14,7 @@ export function useDashboardExtras(userId: string | null) {
   const queryClient = useQueryClient();
   useEffect(() => {
     const refresh = () => {
-      void queryClient.invalidateQueries({ queryKey: notificationKeys.root });
+      void queryClient.invalidateQueries({ queryKey: notificationKeys.root }, { cancelRefetch: false });
     };
     window.addEventListener(NOTIFICATION_CHANGED_EVENT, refresh);
     return () =>

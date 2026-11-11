@@ -21,6 +21,7 @@ export function useDocumentBreadcrumbDrop(
   folderId: string | null,
   name: string,
   allowRootDrop: boolean,
+  isStarred = false,
 ) {
   const userId = useAppSelector((state) => state.auth.userId);
   const { active } = useDndContext();
@@ -49,6 +50,7 @@ export function useDocumentBreadcrumbDrop(
       ? (target.data?.access.userRole ?? DocumentRole.NONE)
       : DocumentRole.OWNER,
     isArchived: false,
+    isStarred: folderId ? target.data?.access.isStarred : isStarred,
   };
   const ancestorIds = target.data?.ancestors.map((folder) => folder.id) ?? [];
   const blockedReason =

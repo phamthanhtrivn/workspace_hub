@@ -9,6 +9,8 @@ import {
 const project = {
   id: "00000000-0000-4000-8000-000000000001",
   name: "Workspace",
+  icon: "🎯",
+  color: "#22396f",
 };
 const task = {
   id: "00000000-0000-4000-8000-000000000002",
@@ -35,6 +37,8 @@ test("task notifications retain project/task context and link to the task drawer
     assert.deepEqual(notification.metadata, {
       projectId: project.id,
       projectName: project.name,
+      projectIcon: project.icon,
+      projectColor: project.color,
       taskId: task.id,
       taskTitle: task.title,
       taskNumber: task.taskNumber,

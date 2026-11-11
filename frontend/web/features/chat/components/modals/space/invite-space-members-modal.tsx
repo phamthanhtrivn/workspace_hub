@@ -155,7 +155,7 @@ function InviteSpaceMembersModalForm({
               placeholder="Enter user email to search..."
               value={email}
               onChange={(event) => { setEmail(event.target.value); setResults([]); setError(""); setLoading(false); }}
-              className="w-full pl-9 pr-4 py-2.5 bg-background border border-transparent focus:bg-card rounded-control text-sm outline-none transition"
+              className="w-full pl-9 pr-4 py-2.5 bg-background border border-input focus:bg-card rounded-control text-sm outline-none transition"
             />
           </div>
 

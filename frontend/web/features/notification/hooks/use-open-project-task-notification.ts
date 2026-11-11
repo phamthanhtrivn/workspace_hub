@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useAppDispatch } from "@/store/store";
 import { markReadSuccess } from "@/store/notification/notification.slice";
 import { markAsRead } from "../api/notification.api";
-import type { Notification } from "../types/notification.types";
+import { NotificationType, type Notification } from "../types/notification.types";
 import { getProjectTaskNotificationLink } from "../utils/project-task-notification.utils";
 
 export function useOpenProjectTaskNotification() {
@@ -27,6 +27,7 @@ export function useOpenProjectTaskNotification() {
     };
     if (!notification.isRead) void markRead();
     onClose();
+    if (notification.type === NotificationType.PROJECT_TASK_DELETED) toast.info('This task was deleted. Opening its project.');
     router.push(link, { scroll: false });
     return true;
   };

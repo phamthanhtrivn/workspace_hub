@@ -26,6 +26,30 @@ test("push endpoint requires an explicit host, HTTPS, standard port and no embed
   }
 });
 
+test("configured Windows and FCM endpoints are accepted without allowing other hosts", () => {
+  const previous = process.env.WEB_PUSH_ALLOWED_HOSTS;
+  try {
+    process.env.WEB_PUSH_ALLOWED_HOSTS =
+      "fcm.googleapis.com,wns2-pn1p.notify.windows.com";
+    for (const host of ["fcm.googleapis.com", "wns2-pn1p.notify.windows.com"]) {
+      assert.equal(
+        assertPushEndpoint(`https://${host}/test-subscription`).hostname,
+        host,
+      );
+    }
+    for (const endpoint of [
+      "https://wns2-pn1p.notify.windows.com.evil.test/test-subscription",
+      "https://another.notify.windows.com/test-subscription",
+      "http://wns2-pn1p.notify.windows.com/test-subscription",
+      "https://wns2-pn1p.notify.windows.com:8443/test-subscription",
+    ])
+      assert.throws(() => assertPushEndpoint(endpoint));
+  } finally {
+    if (previous === undefined) delete process.env.WEB_PUSH_ALLOWED_HOSTS;
+    else process.env.WEB_PUSH_ALLOWED_HOSTS = previous;
+  }
+});
+
 test("push delivery never exceeds the configured global concurrency", async () => {
   let running = 0,
     maximum = 0;

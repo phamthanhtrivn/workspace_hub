@@ -55,6 +55,44 @@ test("drag/drop checks every selected file and accepts writable folders in the s
   );
 });
 
+test("Move and drag/drop cannot cross My files and Starred, but Starred root remains a valid destination", () => {
+  const starredFile = {
+    ...file,
+    isStarred: true,
+    parentFolderId: "old-folder",
+  };
+  const folder = { ...file, id: "destination", type: DocumentItemType.FOLDER };
+  assert.ok(getDocumentDropBlockReason([starredFile], folder));
+  assert.ok(getDocumentDropBlockReason([file], { ...folder, isStarred: true }));
+  assert.equal(
+    getDocumentDropBlockReason([starredFile], { ...folder, isStarred: true }),
+    undefined,
+  );
+  assert.equal(
+    getDocumentDropBlockReason([starredFile], {
+      ...folder,
+      id: null,
+      isStarred: true,
+    }),
+    undefined,
+  );
+  assert.ok(getBulkBlockers([file, starredFile], Action.MOVE).length);
+  assert.equal(
+    getBulkBlockers(
+      [file, { ...file, id: "child", parentFolderId: file.id }],
+      Action.UNSTAR,
+    ).length,
+    2,
+  );
+  assert.equal(
+    getBulkBlockers(
+      [starredFile, { ...starredFile, id: "child", parentFolderId: file.id }],
+      Action.UNSTAR,
+    ).length,
+    0,
+  );
+});
+
 test("folders cannot be dropped onto themselves, descendants or their current parent", () => {
   const folder = { ...file, id: "parent", type: DocumentItemType.FOLDER };
   assert.ok(getDocumentDropBlockReason([folder], folder));
@@ -114,7 +152,20 @@ test("mixed permissions disable the whole action and identify the exact item to 
     getBulkBlockers([file, viewer], Action.TRASH).map((item) => item.name),
     ["Shared report.pdf"],
   );
-  assert.equal(getBulkBlockers([file, viewer], Action.STAR).length, 0);
+  assert.equal(getBulkBlockers([file, viewer], Action.STAR).length, 1);
+});
+
+test("star bulk actions are limited to items matching their star state", () => {
+  assert.equal(getBulkBlockers([file], Action.STAR).length, 0);
+  assert.equal(
+    getBulkBlockers([{ ...file, isStarred: true }], Action.STAR).length,
+    1,
+  );
+  assert.equal(getBulkBlockers([file], Action.UNSTAR).length, 1);
+  assert.equal(
+    getBulkBlockers([{ ...file, isStarred: true }], Action.UNSTAR).length,
+    0,
+  );
 });
 
 test("project roots, read-only documents, and mixed project moves are blocked", () => {

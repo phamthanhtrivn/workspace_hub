@@ -7,7 +7,7 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import type { WorkContextDto } from "./work-assistant.controller";
 
-const active = { archived: false, deletedAt: null };
+const active = { deletedAt: null };
 function localDate(date: Date, timeZone: string) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -132,7 +132,6 @@ export class WorkAssistantService {
                   id: true,
                   title: true,
                   status: true,
-                  archived: true,
                   deletedAt: true,
                 },
               },
@@ -207,7 +206,6 @@ export class WorkAssistantService {
         blockedBy: task.dependenciesTo
           .filter(
             (d) =>
-              !d.predecessor.archived &&
               !d.predecessor.deletedAt &&
               !["DONE", "CANCELLED"].includes(d.predecessor.status),
           )

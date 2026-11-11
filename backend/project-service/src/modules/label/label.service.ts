@@ -51,12 +51,20 @@ export class LabelService {
     const label = await this.getLabel(labelId);
     await this.access.requireCanManageLabels(userId, label.projectId);
     try {
-      return await this.prisma.taskLabel.update({
+      return await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.taskLabel.update({
         where: { id: labelId },
         data: {
           ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
           ...(dto.color !== undefined ? { color: dto.color } : {}),
         },
+      });
+      if (label.name !== updated.name || label.color !== updated.color) {
+        const mappings = await tx.taskLabelMapping.findMany({ where: { labelId }, select: { taskId: true } });
+        for (const { taskId } of mappings) await this.activities.record(taskId, userId, 'label_updated',
+          { name: label.name, color: label.color }, { name: updated.name, color: updated.color }, tx);
+      }
+      return updated;
       });
     } catch (error) {
       if (isUniqueConstraintError(error)) {
@@ -69,7 +77,11 @@ export class LabelService {
   async remove(userId: string, labelId: string) {
     const label = await this.getLabel(labelId);
     await this.access.requireCanManageLabels(userId, label.projectId);
-    await this.prisma.taskLabel.delete({ where: { id: labelId } });
+    await this.prisma.$transaction(async (tx) => {
+      const mappings = await tx.taskLabelMapping.findMany({ where: { labelId }, select: { taskId: true } });
+      await tx.taskLabel.delete({ where: { id: labelId } });
+      for (const { taskId } of mappings) await this.activities.record(taskId, userId, 'label_detached', label.name, null, tx);
+    });
     return { id: labelId };
   }
 

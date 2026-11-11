@@ -34,7 +34,7 @@ export class DocumentDownloadService {
       id,
       userId,
       userEmail,
-      versionId ? DocumentRole.EDITOR : DocumentRole.VIEWER,
+      DocumentRole.VIEWER,
     );
 
     if (item.type === ItemType.FOLDER) {
@@ -71,7 +71,7 @@ export class DocumentDownloadService {
       id,
       userId,
       userEmail,
-      versionId ? DocumentRole.EDITOR : DocumentRole.VIEWER,
+      DocumentRole.VIEWER,
     );
 
     if (item.type === ItemType.FOLDER) {

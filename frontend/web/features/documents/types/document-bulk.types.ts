@@ -41,7 +41,11 @@ export type DocumentDropDestination = Omit<
     | "isArchived"
   >,
   "id"
-> & { id: string | null; path?: { id: string | null; name: string }[] };
+> & {
+  id: string | null;
+  isStarred?: boolean;
+  path?: { id: string | null; name: string }[];
+};
 export interface DocumentDropData {
   document: DocumentDropDestination;
   ancestorIds: string[];
@@ -61,6 +65,11 @@ export const DOCUMENT_BULK_LABELS: Record<DocumentBulkAction, string> = {
 export const DOCUMENT_BULK_MESSAGES = {
   NO_SELECTION: "Select files or folders first.",
   OWNER: "Owner permission is required.",
+  STARRED: "Item is already starred.",
+  UNSTAR: "Only starred items can be unstarred.",
+  STARRED_CREATE: "Create folders and upload files from My files only.",
+  CROSS_REGION_MOVE:
+    "Move is only allowed within My files or within Starred. Use Star or Unstar to switch views.",
   EDITOR: "Editing permission is required.",
   PROJECT_ROOT: "Project root folders cannot be moved or deleted.",
   PROJECT_PERSONAL: "Project documents do not support stars or Trash.",

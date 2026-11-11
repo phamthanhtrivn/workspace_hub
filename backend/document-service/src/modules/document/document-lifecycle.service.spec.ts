@@ -63,6 +63,7 @@ function setup() {
     {} as DocumentPresentationService,
     access,
     tree,
+    { publishForItem: () => Promise.resolve() } as never,
   );
 
   return {
@@ -117,6 +118,97 @@ void test('single and bulk Move preparation retain project boundaries and reject
       parentFolderId: 'destination',
     }),
     /descendants/,
+  );
+});
+
+void test('a shared Editor can rename a personal file while Viewer permission is insufficient', async () => {
+  const item = {
+    id: 'shared-file',
+    name: 'before.pdf',
+    ownerUserId: 'owner',
+    projectId: null,
+    parentFolderId: null,
+  } as DocumentItem;
+  let requiredRole: DocumentRole | undefined;
+  const access = {
+    checkPermission: (
+      _id: string,
+      _userId: string,
+      _email: string,
+      role: DocumentRole,
+    ) => {
+      requiredRole = role;
+      if (role === DocumentRole.EDITOR) return Promise.resolve(item);
+      throw new ForbiddenException();
+    },
+  } as unknown as DocumentAccessService;
+  const service = new DocumentLifecycleService(
+    {
+      documentItem: {
+        update: ({ data }: { data: { name: string } }) =>
+          Promise.resolve({ ...item, ...data }),
+      },
+    } as unknown as PrismaService,
+    {} as StorageCleanupService,
+    {
+      normalizeItemName: (name: string) => name.trim(),
+      assertNoActiveSiblingWithName: () => Promise.resolve(),
+    } as unknown as DocumentLocationService,
+    {
+      publishProjectDocumentEvent: () => Promise.resolve(),
+    } as unknown as DocumentEventPublisher,
+    {
+      enrichDocumentItem: (renamed: DocumentItem) => Promise.resolve(renamed),
+    } as unknown as DocumentPresentationService,
+    access,
+    {} as DocumentTreeService,
+    { publishForItem: () => Promise.resolve() } as never,
+  );
+
+  const renamed = await service.renameItem(
+    'editor',
+    'editor@example.test',
+    item.id,
+    { name: 'after.pdf' },
+  );
+  assert.equal(requiredRole, DocumentRole.EDITOR);
+  assert.equal(renamed.name, 'after.pdf');
+});
+
+void test('Move stays within the current star region, including moves to its root', async () => {
+  const h = setup();
+  h.source.isStarred = true;
+  h.destination.isStarred = false;
+  await assert.rejects(
+    h.service.prepareMove('owner', 'owner@example.com', 'source', {
+      parentFolderId: 'destination',
+    }),
+    /within My files or within Starred/,
+  );
+  h.source.isStarred = false;
+  h.destination.isStarred = true;
+  await assert.rejects(
+    h.service.prepareMove('owner', 'owner@example.com', 'source', {
+      parentFolderId: 'destination',
+    }),
+    /within My files or within Starred/,
+  );
+  h.source.isStarred = true;
+  assert.equal(
+    (
+      await h.service.prepareMove('owner', 'owner@example.com', 'source', {
+        parentFolderId: 'destination',
+      })
+    ).destParentFolderId,
+    'destination',
+  );
+  assert.equal(
+    (
+      await h.service.prepareMove('owner', 'owner@example.com', 'source', {
+        parentFolderId: null,
+      })
+    ).destParentFolderId,
+    null,
   );
 });
 
@@ -197,6 +289,7 @@ void test('overlapping deleted trees reclaim each file version once and enqueue 
     {} as DocumentPresentationService,
     {} as DocumentAccessService,
     tree,
+    { publishForItem: () => Promise.resolve() } as never,
   );
   await service.deleteTreesInTransaction(tx, ['parent', 'child']);
   assert.deepEqual(quotas, [[30n, 'uploader']]);

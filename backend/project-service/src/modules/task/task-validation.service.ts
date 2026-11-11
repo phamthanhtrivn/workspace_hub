@@ -31,15 +31,12 @@ export class TaskValidationService {
     const parent = await database.task.findFirst({
       where: { id: parentTaskId, projectId, deletedAt: null },
       select: {
-        archived: true,
         parentTaskId: true,
         status: true,
       },
     });
     if (!parent)
       throw new NotFoundException("Parent task not found in this project");
-    if (parent.archived)
-      throw new ConflictException("An archived task cannot be a parent");
     assertTaskEditable(parent.status);
     if (parent.parentTaskId)
       throw new ConflictException("Only top-level tasks can be parents");
@@ -83,7 +80,6 @@ export class TaskValidationService {
       where: {
         parentTaskId: taskId,
         deletedAt: null,
-        archived: false,
         status: { notIn: [TaskStatus.DONE, TaskStatus.CANCELLED] },
       },
     });

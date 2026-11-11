@@ -173,7 +173,6 @@ export async function getProjectDashboardTasks(
             return tasks
               .filter(
                 (task) =>
-                  !task.archived &&
                   !task.deletedAt &&
                   !task.completedAt &&
                   !isTerminalTaskStatus(task.status) &&

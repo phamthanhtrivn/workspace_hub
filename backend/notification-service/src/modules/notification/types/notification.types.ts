@@ -15,6 +15,12 @@ const CATEGORY_TYPES: Record<
 > = {
   PROJECT: [
     NotificationType.PROJECT_INVITATION,
+    NotificationType.PROJECT_INVITATION_ACCEPTED,
+    NotificationType.PROJECT_INVITATION_DECLINED,
+    NotificationType.PROJECT_PERMISSIONS_UPDATED,
+    NotificationType.PROJECT_MEMBER_REMOVED,
+    NotificationType.PROJECT_TASK_UNASSIGNED,
+    NotificationType.PROJECT_TASK_DELETED,
     NotificationType.PROJECT_TASK_ASSIGNED,
     NotificationType.PROJECT_TASK_UPDATED,
     NotificationType.PROJECT_SPRINT_STARTED,
@@ -77,7 +83,10 @@ export function getNotificationCategoryWhere(
   if (category === "ALL") return {};
   if (category === "DOCUMENT") {
     return {
-      link: { startsWith: "/documents" },
+      OR: [
+        { type: { in: [NotificationType.DOCUMENT_SHARED, NotificationType.DOCUMENT_PERMISSION_UPDATED, NotificationType.DOCUMENT_SHARE_REMOVED] } },
+        { link: { startsWith: "/documents" } },
+      ],
     };
   }
   return {

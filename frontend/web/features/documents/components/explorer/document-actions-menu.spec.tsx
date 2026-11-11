@@ -42,6 +42,7 @@ test("the compact Actions menu starts the chosen action without opening a destin
         } as DocumentItem,
       ],
       activeView: DocumentViewType.MY_FILES,
+      currentFolderId: null,
       disabled: false,
       hasMore: false,
       onChoose: choose,
@@ -53,6 +54,11 @@ test("the compact Actions menu starts the chosen action without opening a destin
   const items = descendants(tree).filter(
     (element) => element.type === DropdownMenuItem,
   ) as React.ReactElement<React.ComponentProps<typeof DropdownMenuItem>>[];
+  const labels = descendants(tree)
+    .filter((element) => element.type === "span")
+    .map((element) => element.props.children);
+  assert.equal(labels.includes("Star"), true);
+  assert.equal(labels.includes("Unstar"), false);
   const move = items.find((item) =>
     descendants(item).some(
       (child) => child.type === "span" && child.props.children === "Move",
@@ -65,4 +71,40 @@ test("the compact Actions menu starts the chosen action without opening a destin
   );
   assert.equal(choose.mock.callCount(), 1);
   assert.equal(choose.mock.calls[0].arguments[0], Action.MOVE);
+});
+
+test("Starred exposes only Unstar in its root Actions menu", (context) => {
+  const useState = React.useState;
+  context.mock.method(React, "useState", ((initial: unknown) =>
+    initial === false
+      ? [true, () => {}]
+      : useState(initial)) as typeof React.useState);
+  let tree: React.ReactNode;
+  function Harness() {
+    tree = DocumentActionsMenu({
+      items: [
+        {
+          id: "file",
+          userRole: DocumentRole.OWNER,
+          projectId: null,
+          isArchived: false,
+          isStarred: true,
+          type: DocumentItemType.FILE,
+        } as DocumentItem,
+      ],
+      activeView: DocumentViewType.STARRED,
+      currentFolderId: null,
+      disabled: false,
+      hasMore: false,
+      onChoose: () => {},
+    });
+
+    return null;
+  }
+  renderToStaticMarkup(<Harness />);
+  const labels = descendants(tree)
+    .filter((element) => element.type === "span")
+    .map((element) => element.props.children);
+  assert.equal(labels.includes("Star"), false);
+  assert.equal(labels.includes("Unstar"), true);
 });

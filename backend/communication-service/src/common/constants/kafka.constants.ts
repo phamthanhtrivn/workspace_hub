@@ -1,5 +1,6 @@
 export const KAFKA_TOPICS = {
   PROJECT_TASK_SYNC: 'project-task-sync-v1',
+  DOCUMENT_ACCESS_REALTIME: 'document-access-realtime-v1',
   NOTIFICATION_TOPIC: 'notification-topic',
 };
 

@@ -125,6 +125,31 @@ export class ChatSocketPublisher {
     this.publishToRooms(targetRooms, ChatEvent.MESSAGE_UPDATED, message);
   }
 
+  async publishDocumentAccessUpdated(
+    documentIds: string[],
+    targets: Array<{ channelId: string } | { conversationId: string }>,
+  ): Promise<void> {
+    for (const target of targets) {
+      if ('channelId' in target) {
+        const rooms = await this.roomResolver.getChannelTargetRooms(
+          target.channelId,
+        );
+        this.publishToRooms(rooms, ChatEvent.DOCUMENT_ACCESS_UPDATED, {
+          channelId: target.channelId,
+          documentIds,
+        });
+      } else {
+        const rooms = await this.roomResolver.getDirectTargetRooms(
+          target.conversationId,
+        );
+        this.publishToRooms(rooms, ChatEvent.DOCUMENT_ACCESS_UPDATED, {
+          conversationId: target.conversationId,
+          documentIds,
+        });
+      }
+    }
+  }
+
   async publishChannelMessagePinned(
     channelId: string,
     message: ChatSocketMessage,

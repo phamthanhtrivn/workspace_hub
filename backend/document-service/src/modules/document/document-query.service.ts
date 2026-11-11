@@ -76,10 +76,11 @@ export class DocumentQueryService {
       ];
     } else if (options.isArchived) {
       where.ownerUserId = userId;
-    } else if (options.isStarredOnly) {
-      where.starredBy = {
-        some: { userId },
-      };
+    } else if (options.isStarredOnly && !options.folderId) {
+      where.isStarred = true;
+      where.parentFolderId = null;
+      where.ownerUserId = userId;
+      where.projectId = null;
     } else if (options.projectId) {
       where.projectId = options.projectId;
       where.parentFolderId = null;
@@ -107,9 +108,12 @@ export class DocumentQueryService {
         throw new BadRequestException('The provided ID is not a folder');
       }
       where.parentFolderId = options.folderId;
+      if (!folder.projectId && folder.ownerUserId === userId)
+        where.isStarred = Boolean(options.isStarredOnly);
     } else {
       where.ownerUserId = userId;
       where.parentFolderId = null;
+      where.isStarred = false;
     }
 
     // 3. Sorting (folders first, then sortBy)
@@ -137,9 +141,6 @@ export class DocumentQueryService {
         where,
         include: {
           shares: true,
-          starredBy: {
-            where: { userId },
-          },
         },
         orderBy: orderDirections,
         skip: filterPermissions ? undefined : skip,
@@ -176,7 +177,7 @@ export class DocumentQueryService {
           ...item,
           sizeBytes,
           ...(containedSizeBytes !== undefined ? { containedSizeBytes } : {}),
-          isStarred: item.starredBy.length > 0,
+          isStarred: item.ownerUserId === userId && item.isStarred,
           userRole,
         };
       }),
@@ -234,7 +235,7 @@ export class DocumentQueryService {
       id,
       userId,
       userEmail,
-      DocumentRole.EDITOR,
+      DocumentRole.VIEWER,
     );
 
     if (item.type === ItemType.FOLDER) {

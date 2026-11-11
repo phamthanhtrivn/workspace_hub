@@ -69,7 +69,7 @@ export default function TaskDependenciesSection({
   const dependencyCandidates = tasks.filter(
     (item) =>
       item.id !== task.id &&
-      !item.archived &&
+      !item.deletedAt &&
       !isDirectParentChild(task, item) &&
       !taskDependencies.some(
         (dependency) => dependency.predecessorTaskId === item.id,

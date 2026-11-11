@@ -148,10 +148,10 @@ export default function ProjectDetailScreen() {
   // States
   const [viewMode, setViewMode] = useState<ProjectViewMode>("board");
   const [selectedTaskSnapshot, setSelectedTask] = useState<Task | null>(null);
-  const selectedTask = selectedTaskSnapshot
-    ? (serverTasks.find((task) => task.id === selectedTaskSnapshot.id) ??
-      selectedTaskSnapshot)
-    : null;
+  const selectedTaskDetails = useLinkedProjectTask(projectId, selectedTaskSnapshot?.id ?? null, serverTasks, Boolean(project));
+  const listedSelectedTask = selectedTaskDetails.task;
+  const selectedTask = selectedTaskSnapshot && listedSelectedTask && Date.parse(listedSelectedTask.updatedAt) >= Date.parse(selectedTaskSnapshot.updatedAt)
+    ? listedSelectedTask : selectedTaskSnapshot;
   const [chatTask, setChatTask] = useState<Task | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(() => searchParams.get("view") === "settings");

@@ -194,7 +194,6 @@ export interface Task {
   completedAt?: string;
   deletedAt?: string;
   rank: string;
-  archived: boolean;
   createdAt: string;
   updatedAt: string;
 
