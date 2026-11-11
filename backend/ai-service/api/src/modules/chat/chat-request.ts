@@ -73,5 +73,6 @@ export async function completeChatRequest(
       [requestId],
     );
   });
+
   return id;
 }

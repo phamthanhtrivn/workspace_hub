@@ -54,6 +54,7 @@ export async function recognizeMeetingChunk(
   } finally {
     await reader.cancel().catch(() => undefined);
   }
+
   return speechResponse
     .parse(JSON.parse(Buffer.concat(chunks).toString("utf8")))
     .text.trim();

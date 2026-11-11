@@ -1,15 +1,31 @@
 import { randomUUID } from "node:crypto";
-import { TooManyRequestsException } from "../../common/errors/rate-limit.exception";
 import { config } from "../../config/env.config";
 import { transaction } from "../database/database";
 import type { Citation, VisualInput } from "../../common/types";
-import { ModelMinuteQuotaException } from "../../common/errors/model-quota.exception";
+import {
+  ModelDailyQuotaException,
+  ModelInputBudgetException,
+  ModelMinuteQuotaException,
+} from "../../common/errors/model-quota.exception";
 import { providerFetch } from "./provider-http";
 import { providerEvents } from "./provider-events";
 
-export async function admitModel(input: number, model = config.LLM_MODEL) {
+export async function admitModel(
+  input: number,
+  model = config.LLM_MODEL,
+  purpose: "interactive" | "vision" = "interactive",
+) {
+  if (
+    !Number.isSafeInteger(input) ||
+    input < 1 ||
+    input > config.LLM_TOKENS_PER_MINUTE
+  )
+    throw new ModelInputBudgetException();
   await transaction(async (client) => {
-    await client.query("SELECT pg_advisory_xact_lock(8087002)");
+    await client.query(
+      "SELECT pg_advisory_xact_lock(hashtextextended($1,8087002))",
+      [model],
+    );
     const {
       rows: [usage],
     } = await client.query(
@@ -21,13 +37,24 @@ export async function admitModel(input: number, model = config.LLM_MODEL) {
       FROM notebook_ai.model_calls WHERE model=$1 AND created_at >= LEAST(date_trunc('day',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC',now()-interval '1 minute')`,
       [model],
     );
-    if (
-      input > config.LLM_TOKENS_PER_MINUTE ||
-      usage.daily >= config.LLM_REQUESTS_PER_DAY
-    )
-      throw new TooManyRequestsException(
-        "AI đang chờ hạn mức. Vui lòng thử lại sau.",
+    const reserve = Math.min(
+      config.LLM_INTERACTIVE_RESERVE_PER_DAY ?? 0,
+      Math.floor(config.LLM_REQUESTS_PER_DAY / 2),
+    );
+    const dailyLimit =
+      config.LLM_REQUESTS_PER_DAY - (purpose === "vision" ? reserve : 0);
+    if (usage.daily >= dailyLimit) {
+      const now = new Date();
+      const reset = Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate() + 1,
       );
+      throw new ModelDailyQuotaException(
+        reset - now.getTime(),
+        purpose === "vision",
+      );
+    }
     if (
       usage.rpm >= config.LLM_REQUESTS_PER_MINUTE ||
       usage.tokens + input > config.LLM_TOKENS_PER_MINUTE

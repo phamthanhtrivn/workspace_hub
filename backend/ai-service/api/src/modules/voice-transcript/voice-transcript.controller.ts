@@ -30,6 +30,7 @@ export class VoiceTranscriptController {
     const parsed = request.safeParse(body);
     if (!parsed.success)
       throw new BadRequestException("Invalid voice transcript request");
+
     return this.service.status(id, parsed.data.actorId, parsed.data.chatType);
   }
   @Post(":id")
@@ -42,6 +43,7 @@ export class VoiceTranscriptController {
     const parsed = request.safeParse(body);
     if (!parsed.success)
       throw new BadRequestException("Invalid voice transcript request");
+
     return this.service.start(id, parsed.data.actorId, parsed.data.chatType);
   }
 }

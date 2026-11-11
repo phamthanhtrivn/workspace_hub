@@ -56,6 +56,7 @@ export class NotebooksController {
     @Param("id", ParseUUIDPipe) id: string,
   ) {
     await this.notebooks.remove(req.actor, id);
+
     return { data: {} };
   }
 }

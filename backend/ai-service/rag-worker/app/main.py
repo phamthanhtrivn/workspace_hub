@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 
 from .engine import Engine
 from .multi_engine import MultiEngine
-from .errors import InvalidSource, ValidationBusy
+from .errors import InvalidSource, ValidationBusy, FallbackPending
 
 logger = logging.getLogger("workspace.rag")
 
@@ -122,6 +122,8 @@ def execute(method, *args):
         raise HTTPException(422, {"code": error.code}) from None
     except ValidationBusy:
         raise HTTPException(503, {"code": "RAG_BUSY"}) from None
+    except FallbackPending:
+        raise HTTPException(503, {'code': 'RAG_FALLBACK_PENDING', 'retryAfterMs': 2000}) from None
     except MemoryError:
         logger.error("RAG operation=%s error=MemoryError", getattr(method, "__name__", "unknown"))
         raise HTTPException(503, {"code": "RAG_MEMORY_PRESSURE"}) from None

@@ -1,4 +1,4 @@
-import { documentPreviewUrl } from '../../infrastructure/integrations/document.client';
+import { documentPreviewUrl } from "../../infrastructure/integrations/document.client";
 import {
   BadRequestException,
   ForbiddenException,
@@ -33,6 +33,7 @@ export class SourcesService {
     if (sources.length > 1) {
       try {
         await authorizeSources(actor, sources);
+
         return sources;
       } catch (error) {
         if (!(error instanceof ForbiddenException)) throw error;
@@ -50,6 +51,7 @@ export class SourcesService {
         }
       }),
     );
+
     return sources;
   }
   async add(
@@ -113,11 +115,13 @@ export class SourcesService {
         );
         result.push(source);
       }
+
       return result;
     });
     for (const source of added)
       if (source.status === "QUEUED")
         await enqueue("index", source.id, { sourceId: source.id });
+
     return added;
   }
   async visual(actor: Actor, id: string, sourceId: string, imageId: string) {
@@ -134,6 +138,7 @@ export class SourcesService {
     );
     if (!image) throw new NotFoundException();
     await authorizeSources(actor, [source]);
+
     return { dataUrl: image.data_url, description: image.description };
   }
   async sourceAction(
@@ -151,14 +156,14 @@ export class SourcesService {
     if (action === "remove") {
       await enqueue("cleanup", source.id, { scopeId: id, sourceId });
       await rows("DELETE FROM notebook_ai.sources WHERE id=$1", [sourceId]);
+
       return {};
     }
-    const [manifest] = await authorizeSources(
-      actor,
-      [source],
-      false,
-    );
-    if (action === "preview") return { url: await documentPreviewUrl(manifest.documentId, authorization) };
+    const [manifest] = await authorizeSources(actor, [source], false);
+    if (action === "preview")
+      return {
+        url: await documentPreviewUrl(manifest.documentId, authorization),
+      };
     if (!["FAILED", "QUEUED", "READY"].includes(source.status))
       throw new BadRequestException("Nguồn đang xử lý");
     await withUploadCheck(async () => {
@@ -170,6 +175,7 @@ export class SourcesService {
       [sourceId],
     );
     await enqueue("index", sourceId, { sourceId });
+
     return {};
   }
 }

@@ -30,6 +30,11 @@ test('transient Vision provider errors still allow retry and preserve the real m
   assert.equal(sourceFailure(null).canRetry, true);
 });
 
+test('daily Vision quota and queued fallback explain the actual state', () => {
+  assert.match(sourceFailure('VISION_DAILY_QUOTA: hết hạn mức').message, /00:00 UTC/);
+  assert.match(sourceFailure('RAG_FALLBACK_PENDING: đang chuẩn bị').message, /background/);
+});
+
 test('files rejected by the previous 40k token limit can retry under the new 100k limit', () => {
   for (const message of ['Nội dung vượt 40.000 token/file.', 'This file exceeds 40,000 tokens.']) {
     const result = sourceFailure(message);

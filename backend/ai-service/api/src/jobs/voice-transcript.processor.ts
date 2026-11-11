@@ -13,7 +13,10 @@ import { pcmWaveSeconds } from "../modules/voice-transcript/wave-duration";
 import { pollUntilAborted } from "../common/abort-polling";
 import { isRetryableVoiceFailure } from "../modules/voice-transcript/voice-transcript-retry";
 
-export async function processVoiceTranscript(runId: string, attemptsRemaining = 0) {
+export async function processVoiceTranscript(
+  runId: string,
+  attemptsRemaining = 0,
+) {
   const [state] = await rows<VoiceTranscriptState>(
     `UPDATE notebook_ai.voice_transcripts SET status='RUNNING',updated_at=now() WHERE run_id=$1 AND status='QUEUED' RETURNING *`,
     [runId],
@@ -34,6 +37,7 @@ export async function processVoiceTranscript(runId: string, attemptsRemaining = 
     );
     if (source.revision !== state.revision)
       throw new Error("Voice message changed");
+
     return source;
   };
   const stopPolling = pollUntilAborted(
@@ -88,6 +92,7 @@ export async function processVoiceTranscript(runId: string, attemptsRemaining = 
         [runId],
       );
       if (retried.length) throw new Error(VOICE_TRANSCRIPT.failed);
+
       return;
     }
     const message =

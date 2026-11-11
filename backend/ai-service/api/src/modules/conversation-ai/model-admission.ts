@@ -17,6 +17,7 @@ export async function admitConversationModel(
       signal.throwIfAborted();
       try {
         await admitModel(tokens, model);
+
         return;
       } catch (error) {
         const remaining = deadline - performance.now();

@@ -8,3 +8,7 @@ class InvalidSource(ValueError):
 
 class ValidationBusy(RuntimeError):
     """Reject preflight rather than queue more CPU/memory-heavy work."""
+
+
+class FallbackPending(RuntimeError):
+    """Local document conversion is queued; querying must not run inference inline."""

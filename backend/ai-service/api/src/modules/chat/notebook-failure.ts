@@ -1,9 +1,17 @@
 import { isProviderConnectTimeout } from "../../infrastructure/integrations/provider-http";
-import { ModelMinuteQuotaException } from "../../common/errors/model-quota.exception";
+import {
+  ModelDailyQuotaException,
+  ModelInputBudgetException,
+  ModelMinuteQuotaException,
+} from "../../common/errors/model-quota.exception";
 import { TooManyRequestsException } from "../../common/errors/rate-limit.exception";
 import { HttpException } from "@nestjs/common";
 
 export function notebookFailureMessage(error: unknown): string {
+  if (error instanceof Error && error.message.includes("RAG_FALLBACK_PENDING"))
+    return "Documents are being prepared by the local model in the background. Please try again shortly.";
+  if (error instanceof ModelDailyQuotaException) return error.message;
+  if (error instanceof ModelInputBudgetException) return error.message;
   if (isProviderConnectTimeout(error))
     return "Could not connect to the AI provider. Please try again.";
   if (

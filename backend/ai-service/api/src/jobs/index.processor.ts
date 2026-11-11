@@ -20,6 +20,7 @@ export async function indexSource(id: string) {
   const actor = { id: source.owner_id, email: source.owner_email };
   const timing = new Profile("index");
   let completed = false;
+  let visualAttempt = false;
   try {
     const [manifest] = await timing.measure("authorize_ms", () =>
       authorizeSources(actor, [source], true),
@@ -40,11 +41,12 @@ export async function indexSource(id: string) {
     const content = await timing.measure("encode_ms", () =>
       data.toString("base64"),
     );
-    const enriched =
+    visualAttempt =
       config.VISUAL_ENABLED === "true" &&
-      /\.(pdf|docx|png|jpe?g|webp)$/i.test(source.name)
-        ? await enrichVisualSource(source, actor, content)
-        : {};
+      /\.(pdf|docx|png|jpe?g|webp)$/i.test(source.name);
+    const enriched = visualAttempt
+      ? await enrichVisualSource(source, actor, content)
+      : {};
     await rows(
       "UPDATE notebook_ai.sources SET progress=85,updated_at=now() WHERE id=$1 AND status='INDEXING'",
       [id],
@@ -94,6 +96,10 @@ export async function indexSource(id: string) {
             : "INDEX_DEPENDENCY_FAILED: Không tải hoặc xử lý được nguồn. Kiểm tra Document Service, RAG worker và bộ nhớ; thử lại khi dịch vụ sẵn sàng.",
       ],
     );
+    if (visualAttempt && !(failure instanceof UnrecoverableError))
+      throw new UnrecoverableError(
+        "VISUAL_INDEX_INTERRUPTED: Completed images are saved. Retry explicitly after checking the source error.",
+      );
     throw failure;
   } finally {
     timing.finish(completed ? "ok" : "failed");

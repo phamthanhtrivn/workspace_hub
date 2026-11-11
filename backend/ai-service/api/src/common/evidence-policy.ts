@@ -14,18 +14,21 @@ export function visibleSnapshot(snapshot: Snapshot[], sources: Source[]) {
 export function selectSources(ids: string[], sources: Source[]) {
   if (!ids.length || ids.length > 5 || new Set(ids).size !== ids.length)
     throw new Error("Chọn từ 1 đến 5 nguồn");
+
   return ids.map((id) => {
     const source = sources.find(
       (item) => item.id === id && item.status === "READY",
     );
     if (!source)
       throw new Error("Nguồn chưa sẵn sàng hoặc không thuộc notebook");
+
     return source;
   });
 }
 
 export function snapshotSources(snapshot: Snapshot[], sources: Source[]) {
   if (!visibleSnapshot(snapshot, sources)) throw new Error("Nguồn đã thay đổi");
+
   return selectSources(
     snapshot.map((ref) => ref.id),
     sources,
@@ -40,6 +43,7 @@ export function citeEvidence(
     const source = sources.find((source) => source.id === item.sourceId);
     if (!source || item.text.length > 12000)
       throw new Error("Invalid retrieval scope");
+
     return {
       ...item,
       label: `S${i + 1}`,
@@ -59,6 +63,7 @@ export function validateCitations(content: string, evidence: Citation[]) {
     labels.some((label) => !evidence.some((item) => item.label === label))
   )
     throw new Error("AI trả lời thiếu trích dẫn hợp lệ. Hãy thử lại.");
+
   return evidence.filter((item) => labels.includes(item.label));
 }
 
@@ -82,5 +87,6 @@ export function summaryGroups(evidence: Citation[]) {
   if (current.length) groups.push(current);
   if (!groups.length || groups.length > 60)
     throw new Error("Nội dung vượt giới hạn tóm tắt; giảm số nguồn");
+
   return groups;
 }

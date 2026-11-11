@@ -52,6 +52,7 @@ export async function visualEvidence(
     "SELECT requested.label,v.data_url FROM jsonb_to_recordset($1::jsonb) AS requested(source_id uuid,revision text,image_id text,label text,position int) JOIN notebook_ai.source_visuals v ON v.source_id=requested.source_id AND v.revision=requested.revision AND v.image_id=requested.image_id ORDER BY requested.position LIMIT 2",
     [JSON.stringify(candidates)],
   );
+
   return images.map((image) => ({
     label: image.label,
     dataUrl: image.data_url,

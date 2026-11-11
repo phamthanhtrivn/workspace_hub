@@ -37,6 +37,8 @@ async function describeImageRequest(
     context.slice(0, 6000);
   await admitModel(
     1024 + Math.ceil(Buffer.byteLength(prompt) / 3) + config.VISION_MAX_TOKENS,
+    config.LLM_MODEL,
+    "vision",
   );
   const response = await providerFetch(
     `${config.LLM_BASE_URL.replace(/\/$/, "")}/chat/completions`,

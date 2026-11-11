@@ -21,7 +21,12 @@ export const conversationQueue = new Queue("conversation-ai-jobs", options);
 export const summaryQueue = new Queue("notebook-summary-jobs", options);
 export const meetingSummaryQueue = new Queue("meeting-summary-jobs", options);
 let lastError = 0;
-for (const current of [queue, summaryQueue, conversationQueue, meetingSummaryQueue])
+for (const current of [
+  queue,
+  summaryQueue,
+  conversationQueue,
+  meetingSummaryQueue,
+])
   current.on("error", () => {
     if (Date.now() - lastError > 30000) {
       lastError = Date.now();
@@ -45,7 +50,12 @@ export async function enqueue(kind: string, id: string, data: object) {
   const old = await target.getJob(jobId);
   if (old && ["failed", "completed"].includes(await old.getState()))
     await old.remove();
-  await target.add(kind, data, { jobId });
+  await target.add(kind, data, {
+    jobId,
+    ...(kind === "index" && config.VISUAL_ENABLED === "true"
+      ? { attempts: 1 }
+      : {}),
+  });
 }
 
 export async function findQueuedJob(
@@ -57,6 +67,7 @@ export async function findQueuedJob(
   const legacy = await queue.getJob(jobId);
   if (legacy && !["failed", "completed"].includes(await legacy.getState()))
     return legacy;
+
   return (await summaryQueue.getJob(jobId)) ?? legacy;
 }
 

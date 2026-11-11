@@ -119,6 +119,7 @@ export const config = z
     LLM_REQUESTS_PER_MINUTE: z.coerce.number().int().min(1).default(5),
     LLM_TOKENS_PER_MINUTE: z.coerce.number().int().min(1000).default(20000),
     LLM_REQUESTS_PER_DAY: z.coerce.number().int().min(1).default(100),
+    LLM_INTERACTIVE_RESERVE_PER_DAY: z.coerce.number().int().min(0).default(50),
   })
   .superRefine((value, context) => {
     if (

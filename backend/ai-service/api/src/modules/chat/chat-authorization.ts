@@ -24,10 +24,12 @@ export function createChatAuthorization(options: {
     );
     options.signal.throwIfAborted();
   }
+
   return () => {
     pending ??= check().finally(() => {
       pending = undefined;
     });
+
     return pending;
   };
 }

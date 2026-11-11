@@ -36,6 +36,7 @@ export class VoiceTranscriptService {
       chatType,
       AbortSignal.timeout(VOICE_TRANSCRIPT.sourceTimeoutMs),
     );
+
     return this.readState(mediaId, chatType, source.revision);
   }
 
@@ -48,6 +49,7 @@ export class VoiceTranscriptService {
       `SELECT status,text,error FROM notebook_ai.voice_transcripts WHERE media_id=$1 AND chat_type=$2 AND revision=$3`,
       [mediaId, chatType, revision],
     );
+
     return state
       ? {
           status: state.status,
@@ -105,6 +107,7 @@ export class VoiceTranscriptService {
         throw new ServiceUnavailableException(VOICE_TRANSCRIPT.unavailable);
       }
     }
+
     return this.readState(mediaId, chatType, source.revision);
   }
 }

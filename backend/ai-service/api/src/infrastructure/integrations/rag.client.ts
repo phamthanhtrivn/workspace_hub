@@ -64,11 +64,17 @@ export async function rag<T>(
     try {
       const body = (await response.json()) as { detail?: { code?: string } };
       if (body.detail?.code === "RAG_BUSY") code = "RAG_BUSY";
+      if (body.detail?.code === "RAG_FALLBACK_PENDING")
+        code = "RAG_FALLBACK_PENDING";
       if (body.detail?.code === "RAG_MEMORY_PRESSURE")
         code = "RAG_MEMORY_PRESSURE";
     } catch {
       /* Never surface arbitrary upstream bodies. */
     }
+    if (code === "RAG_FALLBACK_PENDING")
+      throw new ServiceUnavailableException(
+        "RAG_FALLBACK_PENDING: Đang chuẩn bị chỉ mục local trong nền. Vui lòng thử lại sau ít giây.",
+      );
     if (code === "RAG_BUSY")
       throw new ServiceUnavailableException(
         "RAG đang xử lý file khác. Chưa thêm nguồn AI; vui lòng thử lại sau ít giây.",

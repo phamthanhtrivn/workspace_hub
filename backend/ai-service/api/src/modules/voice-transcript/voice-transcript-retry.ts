@@ -22,6 +22,7 @@ export function isRetryableVoiceFailure(error: unknown): boolean {
     RETRYABLE_NETWORK_CODES.has(error.code)
   )
     return true;
+
   return error.cause !== undefined && error.cause !== error
     ? isRetryableVoiceFailure(error.cause)
     : false;

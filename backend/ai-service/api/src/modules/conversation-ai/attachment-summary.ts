@@ -75,8 +75,10 @@ export function attachmentExcerpts(
             .replace(/\uFFFD$/, "");
     truncated ||= text !== p.text;
     remaining -= Buffer.byteLength(text);
+
     return { page: p.page, text };
   });
+
   return { excerpts, truncated };
 }
 
@@ -178,6 +180,7 @@ export async function summarizeAttachment(
     answer.content.length > 18000
   )
     throw new Error("Invalid attachment summary");
+
   return presentAttachmentSummary(answer.content, manifest.name, {
     truncated,
     hasImages: extracted.images.length > 0,

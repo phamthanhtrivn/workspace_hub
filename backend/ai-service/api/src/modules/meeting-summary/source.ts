@@ -40,5 +40,6 @@ export async function meetingSource(
     source.durationSeconds > config.MEETING_SUMMARY_MAX_SECONDS
   )
     throw new Error("Recording exceeds summary limits");
+
   return source;
 }

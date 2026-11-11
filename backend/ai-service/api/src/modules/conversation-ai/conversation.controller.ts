@@ -26,6 +26,7 @@ export class ConversationController {
       throw new ServiceUnavailableException();
     if (!matchesServiceKey(key, expected)) throw new UnauthorizedException();
     await enqueue("conversation", id, { requestId: id });
+
     return { queued: true };
   }
 }

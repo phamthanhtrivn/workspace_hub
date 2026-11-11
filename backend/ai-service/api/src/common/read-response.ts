@@ -24,6 +24,7 @@ export async function readResponseText(response: Response, maxBytes: number) {
       parts.push(decoder.decode(value, { stream: true }));
     }
     parts.push(decoder.decode());
+
     return parts.join("");
   } finally {
     reader.releaseLock();

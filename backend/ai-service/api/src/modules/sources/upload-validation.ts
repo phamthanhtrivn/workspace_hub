@@ -74,6 +74,7 @@ export function checkManifests(existing: Source[], manifests: Manifest[]) {
       fresh.length,
       fresh.reduce((sum, m) => sum + m.sizeBytes, 0),
     );
+
   return fresh;
 }
 
@@ -148,10 +149,12 @@ export async function validateContent(
   scopeId: string,
 ) {
   checkFile(name, data.length);
+
   return profiled("preflight", async (timing) => {
     const content = await timing.measure("encode_ms", () =>
       data.toString("base64"),
     );
+
     return timing.measure("rag_ms", () =>
       rag<{ chunkCount: number }>(
         "/validate",
@@ -211,5 +214,6 @@ export async function downloadSource(
   }
   if (size !== manifest.sizeBytes)
     throw new BadRequestException("Kích thước phiên bản nguồn không khớp.");
+
   return Buffer.concat(parts, size);
 }

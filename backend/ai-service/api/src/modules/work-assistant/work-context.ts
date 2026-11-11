@@ -307,15 +307,15 @@ export class WorkContextService {
           state: !includeCalendarContext
             ? "empty"
             : !calendar
-            ? "unavailable"
-            : calendar.partial || calendar.busyPartial
-              ? "partial"
-              : (calendar.tasks.length ||
-                  calendar.metrics.completedInPeriod) ||
-                  calendar.busy.length ||
-                  calendar.focus.sessions
-                ? "ready"
-                : "empty",
+              ? "unavailable"
+              : calendar.partial || calendar.busyPartial
+                ? "partial"
+                : calendar.tasks.length ||
+                    calendar.metrics.completedInPeriod ||
+                    calendar.busy.length ||
+                    calendar.focus.sessions
+                  ? "ready"
+                  : "empty",
         },
       },
       metrics: {
@@ -336,8 +336,11 @@ export class WorkContextService {
         (includeCalendarContext && calendar?.partial) ||
         tasks.length > 60
       ),
-      busyPartial: includeCalendarContext && (!calendar || calendar.busyPartial),
-      focusPerTask: includeCalendarContext ? (calendar?.focus.perTask ?? []) : [],
+      busyPartial:
+        includeCalendarContext && (!calendar || calendar.busyPartial),
+      focusPerTask: includeCalendarContext
+        ? (calendar?.focus.perTask ?? [])
+        : [],
       schedulingBasis: "calendar",
       freeSlots: includeCalendarContext
         ? freeSlots(

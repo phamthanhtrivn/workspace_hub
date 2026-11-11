@@ -76,6 +76,7 @@ export function verifyAccessClaims(
       !isUUID(claims.sub)
     )
       throw new Error(AUTHENTICATION_ERROR);
+
     return claims as AccessClaims & {
       sub: string;
       role: string;

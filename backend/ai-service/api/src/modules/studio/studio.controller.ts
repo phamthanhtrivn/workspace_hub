@@ -32,6 +32,7 @@ export class StudioController {
         .refine((v) => Boolean(v.content?.trim() || v.messageId)),
       body,
     );
+
     return { data: await this.studio.note(req.actor, id, data) };
   }
   @Delete("notebooks/:id/notes/:noteId") async deleteNote(
@@ -40,6 +41,7 @@ export class StudioController {
     @Param("noteId", ParseUUIDPipe) noteId: string,
   ) {
     await this.studio.deleteNote(req.actor, id, noteId);
+
     return { data: {} };
   }
   @Post("notebooks/:id/artifacts") async artifact(
@@ -54,6 +56,7 @@ export class StudioController {
       }),
       body,
     );
+
     return { data: await this.studio.artifact(req.actor, id, kind, sourceIds) };
   }
 }

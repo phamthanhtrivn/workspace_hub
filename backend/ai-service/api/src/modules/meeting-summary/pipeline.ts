@@ -70,6 +70,7 @@ export async function transcribeMeeting(
             await authorize();
             const text = await recognizeMeetingChunk(files[index], signal);
             signal.throwIfAborted();
+
             return { startSeconds: index * AUDIO_CHUNK_SECONDS, text };
           }),
         ),
@@ -136,5 +137,6 @@ export async function summarizeMeeting(context: MeetingPipeline) {
   );
   await authorize();
   signal.throwIfAborted();
+
   return content;
 }

@@ -27,6 +27,7 @@ export async function processMeetingSummary(
       WHERE recording_id=$1 AND run_id=$2 AND status='RUNNING'`,
       [recordingId, runId],
     );
+
     return;
   }
   const controller = new AbortController();
@@ -51,6 +52,7 @@ export async function processMeetingSummary(
     const current = await meetingSource(recordingId, state.actor_id, signal);
     if (current.revision !== state.revision)
       throw new Error("Recording revision changed");
+
     return current;
   };
   const stopPolling = pollUntilAborted(

@@ -53,6 +53,7 @@ async function recoverBatches(
     // Advance even when a job fails or stays active, so it cannot starve later jobs.
     cursor = batch[batch.length - 1];
   }
+
   return counts;
 }
 
@@ -79,6 +80,7 @@ export function recoverInterruptedJobs(signal?: AbortSignal) {
             "INDEX_INTERRUPTED: Worker bị gián đoạn. Bấm Thử lại để lập chỉ mục.",
           ],
         );
+
         return updated.length > 0;
       } else {
         const updated = await rows(
@@ -89,6 +91,7 @@ export function recoverInterruptedJobs(signal?: AbortSignal) {
             "SUMMARY_INTERRUPTED: Worker bị gián đoạn. Các phần đã xong được giữ; chủ động tiếp tục, không tự gọi lại LLM.",
           ],
         );
+
         return updated.length > 0;
       }
     },
@@ -120,6 +123,7 @@ export async function reconcileQueuedJobs(
           WHERE run_id=$1 AND status IN ('QUEUED','RUNNING') AND updated_at<now()-interval '2 minutes' RETURNING run_id`,
             [item.run_id, VOICE_TRANSCRIPT.interrupted],
           );
+
           return updated.length > 0;
         },
         signal,
@@ -146,6 +150,7 @@ export async function reconcileQueuedJobs(
         AND updated_at<now()-interval '2 minutes' RETURNING recording_id`,
             [item.id, item.run_id],
           );
+
           return updated.length > 0;
         },
         signal,
@@ -165,6 +170,7 @@ export async function reconcileQueuedJobs(
          WHERE id=$1 AND status='RUNNING' AND created_at<now()-interval '3 minutes' RETURNING id`,
           [item.id],
         );
+
         return updated.length > 0;
       },
       signal,
@@ -184,6 +190,7 @@ export async function reconcileQueuedJobs(
             item.id,
             kind === "index" ? { sourceId: item.id } : { artifactId: item.id },
           );
+
           return true;
         },
         signal,
@@ -206,5 +213,6 @@ export async function reconcileQueuedJobs(
       aborted: signal?.aborted ?? false,
     }),
   );
+
   return counts;
 }

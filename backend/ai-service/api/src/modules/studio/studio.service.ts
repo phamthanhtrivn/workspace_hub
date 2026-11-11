@@ -71,6 +71,7 @@ export class StudioService {
         )
       )
         throw new NotFoundException();
+
       return (
         await rows(
           "UPDATE notebook_ai.notes SET title=$3,content=$4,updated_at=now() WHERE id=$1 AND notebook_id=$2 RETURNING *",
@@ -78,6 +79,7 @@ export class StudioService {
         )
       )[0];
     }
+
     return (
       await rows(
         "INSERT INTO notebook_ai.notes(id,notebook_id,title,content,sources,citations,kind) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING *",
@@ -121,7 +123,7 @@ export class StudioService {
         JSON.stringify({
           snapshot,
           kind,
-          prompt: "source-key-points-v3",
+          prompt: "source-key-points-v4-synthesis",
           ...(sources.some((source) => source.index_version === "visual-v1")
             ? { visualPipeline: "visual-v1" }
             : {}),
@@ -141,6 +143,7 @@ export class StudioService {
     );
     if (artifact.status === "QUEUED")
       await enqueue("summary", artifact.id, { artifactId: artifact.id });
+
     return artifact;
   }
 }

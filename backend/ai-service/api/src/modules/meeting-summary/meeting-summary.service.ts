@@ -31,6 +31,7 @@ export class MeetingSummaryService {
       jsonb_array_length(transcript) AS "transcribedChunks" FROM notebook_ai.meeting_summaries WHERE recording_id=$1`,
       [id],
     );
+
     return summary ?? { status: "NOT_CREATED" };
   }
 
@@ -77,6 +78,7 @@ export class MeetingSummaryService {
         throw new ServiceUnavailableException("Meeting queue unavailable");
       }
     }
+
     return this.status(id);
   }
 }

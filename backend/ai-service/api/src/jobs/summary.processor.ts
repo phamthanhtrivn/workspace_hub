@@ -24,6 +24,7 @@ import { pollUntilAborted } from "../common/abort-polling";
 import { logError } from "../common/errors/error-log";
 import { isProviderConnectTimeout } from "../infrastructure/integrations/provider-http";
 import { notebookFailureMessage } from "../modules/chat/notebook-failure";
+import { synthesizeDocument } from "./summary-synthesis";
 const sourcesService = new SourcesService();
 type Section = { content: string; citations: Citation[]; sourceId: string };
 export async function summarize(id: string) {
@@ -117,6 +118,10 @@ export async function summarize(id: string) {
           )
         : all;
     const groups = summaryGroups(selected);
+    const needsSynthesis = sources.some(
+      (source) =>
+        groups.filter((group) => group[0].sourceId === source.id).length > 1,
+    );
     const sections = artifact.sections as Section[];
     if (sections.some((section) => !section.sourceId))
       throw new Error(
@@ -172,30 +177,87 @@ export async function summarize(id: string) {
         [
           id,
           JSON.stringify(sections),
-          Math.round((sections.length * 100) / groups.length),
+          Math.round(
+            (sections.length * (needsSynthesis ? 90 : 100)) / groups.length,
+          ),
         ],
       );
     }
     controller.signal.throwIfAborted();
     stage = "complete_summary";
     await authorizeSources(actor, sources);
-    if (!sections.length || sections.length !== groups.length)
+    if (!sections.length || sections.length < groups.length)
       throw new Error("Chưa đọc đủ các phần");
-    const content = sources
-      .map((source) => {
-        const paragraphs = sections
-          .filter((_section, index) => groups[index][0].sourceId === source.id)
-          .map((section) => section.content);
-        if (!paragraphs.length) return "";
+    stage = "synthesize_summary";
+    const summaries: Section[] = [];
+    for (const source of sources) {
+      const original = sections
+        .slice(0, groups.length)
+        .filter((section) => section.sourceId === source.id);
+      summaries.push(
+        await synthesizeDocument(
+          source.id,
+          original,
+          sections,
+          async (question, evidence) => {
+            while (true) {
+              await authorizeSources(actor, sources);
+              controller.signal.throwIfAborted();
+              await rows(
+                "UPDATE notebook_ai.artifacts SET in_flight=true WHERE id=$1 AND status='RUNNING'",
+                [id],
+              );
+              let content = "";
+              try {
+                for await (const delta of modelAnswer(
+                  question,
+                  evidence,
+                  controller.signal,
+                  { purpose: "summary" },
+                )) {
+                  content += delta;
+                  if (content.length > 20000)
+                    throw new Error("Summary synthesis exceeds size limit");
+                }
 
-        return `${sources.length > 1 ? `${source.name}\n\n` : ""}${paragraphs.join("\n\n")}`;
-      })
-      .filter(Boolean)
+                return content;
+              } catch (error) {
+                if (
+                  !(error instanceof ModelMinuteQuotaException) ||
+                  content.length
+                )
+                  throw error;
+                await rows(
+                  "UPDATE notebook_ai.artifacts SET in_flight=false,updated_at=now() WHERE id=$1 AND status='RUNNING'",
+                  [id],
+                );
+                await pause(error.retryAfterMs, undefined, {
+                  signal: controller.signal,
+                });
+              }
+            }
+          },
+          async () => {
+            await rows(
+              "UPDATE notebook_ai.artifacts SET sections=$2,progress=$3,in_flight=false,updated_at=now() WHERE id=$1 AND status='RUNNING'",
+              [id, JSON.stringify(sections), 99],
+            );
+          },
+        ),
+      );
+    }
+    await authorizeSources(actor, sources);
+    controller.signal.throwIfAborted();
+    const content = summaries
+      .map(
+        (section, index) =>
+          `${sources.length > 1 ? `${sources[index].name}\n\n` : ""}${section.content}`,
+      )
       .join("\n\n");
     await rows(
       `UPDATE notebook_ai.artifacts SET status='COMPLETED',progress=100,content=$2,citations=$3,updated_at=now()
       WHERE id=$1 AND status='RUNNING'`,
-      [id, content, JSON.stringify(sections.flatMap((s) => s.citations))],
+      [id, content, JSON.stringify(summaries.flatMap((s) => s.citations))],
     );
   } catch (error) {
     const failure = controller.signal.aborted

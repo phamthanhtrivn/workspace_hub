@@ -18,6 +18,7 @@ export class MeetingSummaryController {
     @Headers("x-internal-service-key") key?: string,
   ) {
     this.service.authorize(key);
+
     return this.service.status(id);
   }
 
@@ -28,6 +29,7 @@ export class MeetingSummaryController {
     @Body("actorId", ParseUUIDPipe) actorId: string,
   ) {
     this.service.authorize(key);
+
     return this.service.start(id, actorId);
   }
 }

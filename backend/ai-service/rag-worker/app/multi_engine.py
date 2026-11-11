@@ -8,6 +8,9 @@ from concurrent.futures import ThreadPoolExecutor
 from .engine import Engine
 from .policy import reciprocal_rank_many
 from .profiling import profile
+from .fallback_queue import FallbackQueue
+from .errors import FallbackPending
+from .document_locks import document_lock
 
 logger = logging.getLogger("workspace.rag")
 
@@ -31,6 +34,9 @@ class MultiEngine:
         self.model = primary.model
         self.embedding_models = [engine.model_name for engine in self.engines]
         self.embedding_collections = {engine.model_name: engine.collection for engine in self.engines}
+        self.manifests = getattr(primary, 'manifests', None)
+        self.fallbacks = FallbackQueue(self.manifests, self.local_copy, self.delete) if self.manifests else None
+        self.recovered = False
 
     def _run_all(self, method, *args):
         futures = [self.pool.submit(getattr(engine, method), *args) for engine in self.engines]
@@ -61,13 +67,25 @@ class MultiEngine:
             raise failures[0]
         if self.strategy == 'shard' and self.quota_until and not any(engine.provider == 'local' for engine in available):
             raise RuntimeError('Local quota fallback is unavailable')
+        if self.fallbacks and not self.recovered:
+            self.fallbacks.recover(self.engines)
+            self.recovered = True
 
     def quota_exhausted(self, engine):
         return self.quota_until.get(engine.collection, 0) > time.monotonic()
 
     def mark_quota(self, engine, error):
         if isinstance(error, httpx.HTTPStatusError) and error.response.status_code == 429:
-            self.quota_until[engine.collection] = time.monotonic() + 3600
+            delay = 60
+            try:
+                detail = error.response.json().get('error', {}).get('details', [])
+                if any('PerDay' in str(item.get('quotaId', '')) for row in detail for item in row.get('violations', [])):
+                    delay = 3600
+                else:
+                    delay = max(1, min(3600, float(error.response.headers.get('retry-after', '60'))))
+            except (ValueError, TypeError, AttributeError):
+                pass
+            self.quota_until[engine.collection] = time.monotonic() + delay
             logger.warning('Embedding quota exhausted model=%s; local fallback required', engine.model_name)
             return True
         return False
@@ -76,6 +94,9 @@ class MultiEngine:
         return next((engine for engine in self.engines if engine.provider == 'local'), None)
 
     def remember(self, scope, source, engine):
+        if self.manifests:
+            self.manifests.put(scope, source, collection=engine.collection)
+            return
         cache = getattr(self.primary, 'vector_cache', None)
         if cache:
             cache.set_route(scope, source, engine.collection)
@@ -87,8 +108,9 @@ class MultiEngine:
         return self.primary.extract(*args)
 
     def owner(self, scope_id, source_id):
+        route = self.manifests.get(scope_id, source_id) if self.manifests else None
         cache = getattr(self.primary, 'vector_cache', None)
-        collection = cache.route(scope_id, source_id) if cache else None
+        collection = route['collection'] if route else cache.route(scope_id, source_id) if cache else None
         if collection:
             for engine in self.engines:
                 if engine.collection == collection:
@@ -98,6 +120,10 @@ class MultiEngine:
             f'{scope_id}:{source_id}:{engine.collection}'.encode()).digest())
 
     def local_copy(self, scope, source, previous):
+        with document_lock(scope, source):
+            return self._local_copy(scope, source, previous)
+
+    def _local_copy(self, scope, source, previous):
         local = self.local_engine()
         if local is None:
             raise RuntimeError('No local fallback model')
@@ -123,10 +149,21 @@ class MultiEngine:
 
     def groups(self, scope_id, source_ids):
         owners = {}
+        pending = False
         if self.strategy == 'shard':
             for source in source_ids:
                 owner = self.owner(scope_id, source)
-                owners[source] = self.local_copy(scope_id, source, owner) if self.quota_exhausted(owner) else owner
+                if self.quota_exhausted(owner) and self.fallbacks:
+                    if owner.client.collection_exists(owner.collection) and owner.client.count(owner.collection,
+                            count_filter=owner.scope_filter(scope_id, [source]), exact=True).count == 0:
+                        owners[source] = owner
+                        continue
+                    self.fallbacks.enqueue(scope_id, source, owner)
+                    pending = True
+                else:
+                    owners[source] = self.local_copy(scope_id, source, owner) if self.quota_exhausted(owner) else owner
+        if pending:
+            raise FallbackPending()
         return [(engine, source_ids if self.strategy == 'ensemble' else [
             source for source in source_ids if owners[source] is engine]) for engine in self.engines]
 
@@ -180,6 +217,10 @@ class MultiEngine:
             return engine._index(scope_id, source_id, revision, name, content, timing, chunks=chunks)
 
     def index(self, scope_id, source_id, revision, name, content, pages=None, visuals=None):
+        with document_lock(scope_id, source_id):
+            return self._index_source(scope_id, source_id, revision, name, content, pages, visuals)
+
+    def _index_source(self, scope_id, source_id, revision, name, content, pages=None, visuals=None):
         with profile("index_parse") as timing, self.primary.index_lock:
             chunks = self.primary._index_chunks(scope_id, name, content, timing, pages, visuals)
         if self.strategy == 'shard':
@@ -217,7 +258,12 @@ class MultiEngine:
             if self.strategy != 'shard' or not self.mark_quota(engine, error) or self.local_engine() is None:
                 raise
             for source in sources:
-                self.local_copy(scope, source, engine)
+                if self.fallbacks:
+                    self.fallbacks.enqueue(scope, source, engine)
+                else:
+                    self.local_copy(scope, source, engine)
+            if self.fallbacks:
+                raise FallbackPending() from None
             return self.local_engine().retrieve(scope, sources, question)
 
     def retrieve(self, scope_id, source_ids, question):
@@ -256,9 +302,13 @@ class MultiEngine:
         cache = getattr(self.primary, 'vector_cache', None)
         if cache:
             cache.delete_routes(*args)
+        if self.manifests:
+            self.manifests.delete(*args)
         return {"ok": True}
 
     def close(self):
+        if self.fallbacks:
+            self.fallbacks.close()
         self.pool.shutdown(wait=True)
         for engine in self.engines:
             engine.close()

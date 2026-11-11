@@ -17,7 +17,8 @@ async function main() {
     const { embeddingCollections: collections } = await response.json();
     if (!collections || Object.keys(collections).length !== 3) throw new Error('Expected three model collections');
     await new Promise((resolve, reject) => {
-      const child = spawn('docker', ['exec', '-i', 'wh-notebook-rag-worker-1', 'python', '-m', 'app.prepare_shards'],
+      const module = process.argv.includes('--migrate-routes') ? 'app.migrate_routes' : 'app.prepare_shards';
+      const child = spawn('docker', ['exec', '-i', 'wh-notebook-rag-worker-1', 'python', '-m', module],
         { cwd: root, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
       child.stdout.pipe(process.stdout);
       child.stderr.pipe(process.stderr);

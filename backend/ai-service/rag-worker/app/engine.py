@@ -7,7 +7,7 @@ import tempfile
 import threading
 import time
 from pathlib import Path
-from uuid import NAMESPACE_URL, uuid5
+from uuid import NAMESPACE_URL, uuid5, uuid4
 
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.utils import get_tokenizer
@@ -21,6 +21,8 @@ from .profiling import profile, Profile
 from .visual import IMAGE_TYPES, VisualExtractor, enabled as visual_enabled, open_image
 from .api_embeddings import ApiEmbeddings, GeminiEmbeddings
 from .vector_cache import VectorCache
+from .manifests import ManifestStore
+from .document_locks import document_lock
 
 
 class Engine:
@@ -59,6 +61,7 @@ class Engine:
                     signature += ":search-result-prefix-v1"
         self.collection = "wh_notebook_" + hashlib.sha256(signature.encode()).hexdigest()[:16]
         self.vector_cache = VectorCache(os.environ.get('EMBEDDING_CACHE_PATH', '/models/embedding-cache.sqlite3'))
+        self.manifests = ManifestStore(self.client)
 
     def embed(self, texts: list[str], query=False) -> list[list[float]]:
         if self.api_embeddings:
@@ -249,10 +252,17 @@ class Engine:
         finally:
             self.index_lock.release()
 
-    def scope_filter(self, scope_id: str, source_ids: list[str] | None = None):
+    def scope_filter(self, scope_id: str, source_ids: list[str] | None = None, active=True):
         conditions = [models.FieldCondition(key="scopeId", match=models.MatchValue(value=scope_id))]
         if source_ids:
             conditions.append(models.FieldCondition(key="sourceId", match=models.MatchAny(any=source_ids)))
+            if active and getattr(self, 'manifests', None):
+                versions = []
+                for source in source_ids:
+                    manifest = self.manifests.get(scope_id, source, self.collection)
+                    generation = models.FieldCondition(key='generation', match=models.MatchValue(value=manifest['generation'])) if manifest else models.IsEmptyCondition(is_empty=models.PayloadField(key='generation'))
+                    versions.append(models.Filter(must=[models.FieldCondition(key='sourceId', match=models.MatchValue(value=source)), generation]))
+                conditions.append(models.Filter(should=versions))
         return models.Filter(must=conditions)
 
     def index(self, scope_id: str, source_id: str, revision: str, name: str, content: str, pages=None, visuals=None):
@@ -281,6 +291,10 @@ class Engine:
         return chunks
 
     def _index(self, scope_id, source_id, revision, name, content, timing, pages=None, visuals=None, chunks=None):
+        with document_lock(scope_id, source_id, self.collection):
+            return self._stage_index(scope_id, source_id, revision, name, content, timing, pages, visuals, chunks)
+
+    def _stage_index(self, scope_id, source_id, revision, name, content, timing, pages=None, visuals=None, chunks=None):
         if chunks is None:
             chunks = self._index_chunks(scope_id, name, content, timing, pages, visuals)
         timing.metrics["chunk_count"] = len(chunks)
@@ -299,18 +313,28 @@ class Engine:
         with timing.measure("qdrant_ms"):
             with self.collection_lock:
                 self._ensure_collection(len(first[0]))
-            # Replacing partial vectors must not evict the freshly validated parse cache.
-            self.delete(scope_id, source_id, clear_prepared=False)
+        generation = str(uuid4())
         for start in range(0, len(chunks), 16):
             batch = chunks[start:start + 16]
             with timing.measure("embedding_ms"):
                 vectors = first if start == 0 else self.embed_documents(scope_id, [text for text, _, _ in batch], timing)
-            points = [models.PointStruct(id=str(uuid5(NAMESPACE_URL, f"{scope_id}:{source_id}:{revision}:{start+i}")), vector=vector,
+            points = [models.PointStruct(id=str(uuid5(NAMESPACE_URL, f"{scope_id}:{source_id}:{generation}:{start+i}")), vector=vector,
                 payload={"scopeId": scope_id, "sourceId": source_id, "revision": revision, "text": text, "page": page, "position": start + i,
+                         'generation': generation,
                          **({"imageId": image_id} if image_id else {})})
                 for i, ((text, page, image_id), vector) in enumerate(zip(batch, vectors, strict=True))]
             with timing.measure("qdrant_ms"):
                 self.client.upsert(self.collection, points, wait=True)
+        if getattr(self, 'manifests', None):
+            staged = self.scope_filter(scope_id, [source_id], active=False)
+            staged.must.append(models.FieldCondition(key='generation', match=models.MatchValue(value=generation)))
+            if self.client.count(self.collection, count_filter=staged, exact=True).count != len(chunks):
+                raise RuntimeError('Staged document index is incomplete')
+            self.manifests.put(scope_id, source_id, self.collection,
+                               generation=generation, revision=revision, chunkCount=len(chunks))
+            obsolete = self.scope_filter(scope_id, [source_id], active=False)
+            obsolete.must_not = [models.FieldCondition(key='generation', match=models.MatchValue(value=generation))]
+            self.client.delete(self.collection, points_selector=models.FilterSelector(filter=obsolete), wait=True)
         embedding_seconds = timing.metrics["embedding_ms"] / 1000
         timing.metrics["embedding_chunks_per_sec"] = len(chunks) / embedding_seconds if embedding_seconds else 0
         return {"chunkCount": len(chunks), "embeddingCache": {
@@ -366,6 +390,8 @@ class Engine:
         if not self.client.collection_exists(self.collection):
             raise ValueError("Index pipeline changed; re-index sources")
         filter_ = self.scope_filter(scope_id, source_ids)
+        if self.client.count(self.collection, count_filter=filter_, exact=True).count == 0:
+            return {'evidence': []}
         dense = self.client.query_points(self.collection, query=self.query_vector(question),
             query_filter=filter_, limit=12, with_payload=True).points
         terms = query_terms(question)
@@ -403,8 +429,10 @@ class Engine:
     def delete(self, scope_id: str, source_id: str | None = None, clear_prepared=True):
         if clear_prepared:
             self.prepared_cache.clear_scope(scope_id)
-            if getattr(self, 'vector_cache', None):
+            if source_id is None and getattr(self, 'vector_cache', None):
                 self.vector_cache.clear_scope(scope_id)
         if self.client.collection_exists(self.collection):
-            self.client.delete(self.collection, points_selector=models.FilterSelector(filter=self.scope_filter(scope_id, [source_id] if source_id else None)), wait=True)
+            self.client.delete(self.collection, points_selector=models.FilterSelector(filter=self.scope_filter(scope_id, [source_id] if source_id else None, active=False)), wait=True)
+        if getattr(self, 'manifests', None):
+            self.manifests.delete(scope_id, source_id, self.collection)
         return {"ok": True}

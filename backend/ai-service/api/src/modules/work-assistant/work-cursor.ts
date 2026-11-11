@@ -27,6 +27,7 @@ export function parseConversationCursor(value: string): {
   try {
     if (value.length > 512 || !/^[A-Za-z0-9_-]+$/.test(value))
       throw new Error();
+
     return cursorSchema.parse(
       JSON.parse(Buffer.from(value, "base64url").toString("utf8")),
     );

@@ -43,6 +43,7 @@ async function communication<T>(
     await res.body?.cancel();
     throw new CommunicationError(res.status);
   }
+
   return ((await res.json()) as { data: T }).data;
 }
 export async function processConversation(
@@ -132,6 +133,7 @@ export async function processConversation(
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       await communication(id, "complete", answer);
+
       return;
     } catch (error) {
       if (

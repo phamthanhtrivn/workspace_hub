@@ -28,7 +28,9 @@ export function inspectAnswerCitations(content: string, evidence: Citation[]) {
       /chưa thể khẳng định|không (?:phải|đại diện|bao quát)/i.test(block)
     )
       return false;
+
     return true;
   });
+
   return { citations: used, uncitedBlocks };
 }

@@ -25,6 +25,7 @@ export class SseTransport {
       },
       onClose: (listener) => {
         response.once("close", listener);
+
         return () => {
           response.off("close", listener);
         };

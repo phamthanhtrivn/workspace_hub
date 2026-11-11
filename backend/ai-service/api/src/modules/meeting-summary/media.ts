@@ -119,6 +119,7 @@ export async function prepareAudioChunks(
     files.length > Math.ceil(limits.maxSeconds / AUDIO_CHUNK_SECONDS)
   )
     throw new Error("Recording audio duration is invalid");
+
   return files.map((name) => join(directory, name));
 }
 export const prepareMeetingAudio = prepareAudioChunks;

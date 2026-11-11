@@ -25,6 +25,7 @@ export class NotebooksService {
   }
   async rename(actor: Actor, id: string, title: string) {
     await ownedNotebook(actor, id);
+
     return (
       await rows(
         "UPDATE notebook_ai.notebooks SET title=$2,updated_at=now() WHERE id=$1 RETURNING *",
@@ -73,14 +74,15 @@ export class NotebooksService {
             status: "STALE",
             hidden: true,
           };
+
     return {
       ...notebook,
-      sources: sources.map(
-        ({
-          owner_email: _email,
-          ...source
-        }: Source & { owner_email?: string }) => source,
-      ),
+      sources: sources.map((source: Source & { owner_email?: string }) => {
+        const visible = { ...source };
+        delete visible.owner_email;
+
+        return visible;
+      }),
       messages: messages.reverse().map(mask),
       notes: notes.map(mask),
       artifacts: artifacts.map(mask),

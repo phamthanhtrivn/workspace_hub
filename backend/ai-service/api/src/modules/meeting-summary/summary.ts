@@ -54,6 +54,7 @@ export function transcriptBatches(
     }
   }
   if (current) batches.push(current);
+
   return batches;
 }
 export async function meetingSummaryText(
@@ -93,5 +94,6 @@ export async function meetingSummaryText(
     answer.content.length > MEETING_LIMITS.answerCharacters
   )
     throw new Error("Incomplete meeting summary");
+
   return answer.content.trim();
 }

@@ -41,13 +41,16 @@ export async function checkHttpDependencies() {
     result.status === "fulfilled" ? [result.value] : [],
   );
   try {
-    if (
-      responses.length !== (speechEnabled ? 3 : 2) ||
-      !responses[0].ok ||
-      responses.at(-1)?.status !== 400 ||
-      (speechEnabled && !responses[1].ok)
-    )
+    const rag = results[0].status === "fulfilled" ? results[0].value : null;
+    const document = results.at(-1);
+    const documentResponse =
+      document?.status === "fulfilled" ? document.value : null;
+    if (!rag?.ok || documentResponse?.status !== 400)
       throw new Error("AI dependency unavailable or misconfigured");
+    const speech =
+      speechEnabled && results[1].status === "fulfilled" && results[1].value.ok;
+
+    return { notebook: true, speech: Boolean(speech) };
   } finally {
     await Promise.all(responses.map((response) => response.body?.cancel()));
   }

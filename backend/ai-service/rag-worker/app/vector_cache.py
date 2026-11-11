@@ -25,7 +25,10 @@ class VectorCache:
         self.connection.execute('''CREATE TABLE IF NOT EXISTS routes (
             scope TEXT NOT NULL, source TEXT NOT NULL, collection TEXT NOT NULL,
             PRIMARY KEY(scope,source))''')
+        self.connection.execute('CREATE INDEX IF NOT EXISTS vectors_touched ON vectors(touched)')
         self.connection.commit()
+        self.estimated_count = self.connection.execute('SELECT count(*) FROM vectors').fetchone()[0]
+        self.next_cleanup = 0
 
     @staticmethod
     def digest(text):
@@ -69,11 +72,15 @@ class VectorCache:
             return
         with self.lock, self.connection:
             self.connection.executemany('INSERT OR REPLACE INTO vectors VALUES(?,?,?,?,?)', values)
-            self.connection.execute('DELETE FROM vectors WHERE touched<?', [time.time() - 30 * 86400])
-            count = self.connection.execute('SELECT count(*) FROM vectors').fetchone()[0]
-            if count > self.max_entries:
-                self.connection.execute('DELETE FROM vectors WHERE rowid IN (SELECT rowid FROM vectors ORDER BY touched LIMIT ?)',
-                                        [count - self.max_entries])
+            self.estimated_count += len(values)
+            if time.monotonic() >= self.next_cleanup or self.estimated_count > self.max_entries:
+                self.connection.execute('DELETE FROM vectors WHERE touched<?', [time.time() - 30 * 86400])
+                count = self.connection.execute('SELECT count(*) FROM vectors').fetchone()[0]
+                if count > self.max_entries:
+                    self.connection.execute('DELETE FROM vectors WHERE rowid IN (SELECT rowid FROM vectors ORDER BY touched LIMIT ?)',
+                                            [count - self.max_entries])
+                self.estimated_count = min(count, self.max_entries)
+                self.next_cleanup = time.monotonic() + 60
 
     def embed(self, scope, namespace, texts, generate):
         unique = {self.digest(text): text for text in texts}

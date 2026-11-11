@@ -10,6 +10,7 @@ import {
 } from "../../infrastructure/queue/notebook.queue";
 import { checkHttpDependencies } from "./http-dependencies";
 import { VOICE_TRANSCRIPT } from "../../modules/voice-transcript/voice.constants";
+import { logError } from "../errors/error-log";
 @Controller()
 export class HealthController {
   @Get("health") health() {
@@ -20,8 +21,10 @@ export class HealthController {
     };
   }
   @Get("ready") async ready() {
+    let stage = "DATABASE";
     try {
       await db.query("SELECT id FROM notebook_ai.notebooks LIMIT 0");
+      stage = "QUEUE";
       await Promise.all([
         queue.getJobCounts("waiting"),
         summaryQueue.getJobCounts("waiting"),
@@ -60,10 +63,16 @@ export class HealthController {
         )
           throw new Error("Conversation worker unavailable");
       }
-      await checkHttpDependencies();
-      return this.health();
-    } catch {
-      throw new ServiceUnavailableException();
+      stage = "DEPENDENCIES";
+      const capabilities = await checkHttpDependencies();
+
+      return { ...this.health(), capabilities };
+    } catch (error) {
+      logError("ai_readiness_failed", error, { stage });
+      throw new ServiceUnavailableException({
+        code: `AI_${stage}_UNAVAILABLE`,
+        message: `AI_${stage}_UNAVAILABLE: AI dependency is unavailable. Please try again later.`,
+      });
     }
   }
 }

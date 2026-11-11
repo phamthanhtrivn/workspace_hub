@@ -44,5 +44,6 @@ export async function voiceSource(
   const source = schema.parse(payload.data);
   if (source.mediaId !== mediaId || source.chatType !== chatType)
     throw new Error("Voice message source mismatch");
+
   return source;
 }

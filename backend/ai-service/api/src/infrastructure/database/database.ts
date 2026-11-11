@@ -21,6 +21,7 @@ export async function transaction<T>(run: (client: PoolClient) => Promise<T>) {
     await client.query("BEGIN");
     const result = await run(client);
     await client.query("COMMIT");
+
     return result;
   } catch (error) {
     await client.query("ROLLBACK");

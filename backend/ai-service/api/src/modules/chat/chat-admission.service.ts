@@ -29,6 +29,7 @@ export class ChatAdmissionService {
     await authorizeSources(actor, sources, false, signal);
     signal.throwIfAborted();
     await startChatRequest(actor.id, notebookId, requestId);
+
     return sources;
   }
 }

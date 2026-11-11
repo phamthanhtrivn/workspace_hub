@@ -35,6 +35,7 @@ export class SourcesController {
     @Res({ passthrough: true }) res: Response,
   ) {
     res.set("Cache-Control", "no-store");
+
     return {
       data: await this.sources.visual(req.actor, id, sourceId, imageId),
     };
@@ -66,6 +67,7 @@ export class SourcesController {
       );
       checkCapacity(await this.sources.sources(id), count, bytes);
       const content = await readUpload(req, size);
+
       return { data: await validateContent(name, content, id) };
     });
   }
@@ -88,6 +90,7 @@ export class SourcesController {
       }),
       body,
     );
+
     return { data: await this.sources.add(req.actor, id, refs) };
   }
   @Post("notebooks/:id/sources/:sourceId/:action") async source(
