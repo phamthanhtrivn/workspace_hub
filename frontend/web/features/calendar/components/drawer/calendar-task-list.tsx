@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarEvent } from "../../types/calendar.types";
 import {
   formatTaskDueDate,
+  getTaskDueDate,
   groupCalendarTasks,
   TaskStatusFilter,
 } from "../../utils/calendar-tasks.utils";
@@ -218,13 +219,10 @@ function TaskRowItem({
 }) {
   const completed = Boolean(task.completedAt);
   const taskColor = task.color || task.calendar?.color || color;
-  const dateLabel = task.deadlineDate
-    ? formatTaskDueDate(
-        `${task.deadlineDate}T${task.deadlineTime || "00:00"}:00`,
-        !task.deadlineTime,
-        locale,
-      )
-    : "";
+  const dueDate = getTaskDueDate(task);
+  const dateLabel = Number.isNaN(dueDate.getTime())
+    ? ""
+    : formatTaskDueDate(dueDate.toISOString(), task.allDay, locale);
   const isRecurring = Boolean(task.recurrenceRule || task.recurrenceParentId);
 
   return (
@@ -281,7 +279,7 @@ function TaskRowItem({
           >
             {isOverdue && !completed ? (
               <Clock className="h-3 w-3 shrink-0 text-destructive-content" />
-            ) : !task.deadlineTime ? (
+            ) : task.allDay ? (
               <Calendar className="h-3 w-3 shrink-0 text-muted-foreground" />
             ) : (
               <Clock

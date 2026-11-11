@@ -131,8 +131,6 @@ export function useCalendarEventForm({
       calendarId: values.calendarId,
       title: values.title.trim(),
       description: values.description.trim() || null,
-      deadlineDate: values.deadlineDate ?? null,
-      deadlineTime: values.deadlineTime ?? null,
       location: finalLocation,
       startAt: fromDateTimeLocal(values.startAt),
       endAt: fromDateTimeLocal(values.endAt),
@@ -176,7 +174,6 @@ export function useCalendarEventForm({
     errors: FieldErrors<CalendarEventEditorValues>,
   ) => {
     const message =
-      errors.deadlineDate?.message || errors.deadlineTime?.message ||
       errors.endAt?.message ||
       errors.startAt?.message ||
       errors.title?.message ||

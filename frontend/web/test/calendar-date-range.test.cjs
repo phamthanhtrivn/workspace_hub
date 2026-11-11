@@ -45,24 +45,21 @@ function loadCalendarModule(relativePath, stubs = {}, cache = new Map()) {
   return target.exports;
 }
 
-test('structured deadlines validate date against Start and time against End without description markers', () => {
-  const { getTaskDeadlineError, formatTaskDeadline } = loadCalendarModule('features/calendar/utils/calendar-task-deadline.utils.ts');
-  const check = (date, time) => getTaskDeadlineError(date, time, '2030-01-01T23:00', '2030-01-02T10:00');
-  assert.equal(check('2030-01-01', null), undefined);
-  assert.ok(check('2029-12-31', null));
-  assert.ok(check('2030-01-02', '09:59'));
-  assert.equal(check('2030-01-02', '10:00'), undefined);
-  assert.ok(check('2030-02-30', null));
-  assert.equal(formatTaskDeadline({ deadlineDate: '2030-01-01' }), 'Jan 1, 2030');
-  assert.match(formatTaskDeadline({ deadlineDate: '2030-01-02', deadlineTime: '10:00' }), /10:00 AM/);
+test('task form defaults and task detail use startAt/endAt without separate deadline fields or redundant Tasks row', () => {
   const { createCalendarEventFormDefaults } = loadCalendarModule('features/calendar/utils/calendar-event-form.utils.ts');
-  const defaults = createCalendarEventFormDefaults({ calendarId: 'calendar', event: { startAt: '2030-01-01T09:00:00Z', endAt: '2030-01-01T10:00:00Z', description: 'Actual task description', deadlineDate: '2030-01-02', deadlineTime: '10:00', sourceType: 'TASK' } });
+  const defaults = createCalendarEventFormDefaults({
+    calendarId: 'calendar',
+    event: {
+      startAt: '2030-01-01T09:00:00Z',
+      endAt: '2030-01-01T10:00:00Z',
+      description: 'Actual task description',
+      sourceType: 'TASK',
+    },
+  });
   assert.equal(defaults.values.description, 'Actual task description');
-  assert.equal(defaults.values.deadlineDate, '2030-01-02');
-  assert.equal(defaults.values.deadlineTime, '10:00');
-});
+  assert.equal('deadlineDate' in defaults.values, false);
+  assert.equal('deadlineTime' in defaults.values, false);
 
-test('task detail renders a separate deadline and keeps user description unchanged', () => {
   const { renderToStaticMarkup } = require('react-dom/server');
   const { CalendarEventReadonlyDetails } = loadCalendarModule('features/calendar/components/modal/calendar-event-readonly-details.tsx', {
     '@/store/store': { useAppSelector: selector => selector({ auth: { userId: 'owner' } }) },
@@ -70,12 +67,48 @@ test('task detail renders a separate deadline and keeps user description unchang
     './calendar-documents-section': { CalendarDocumentsSection: () => null },
     './event-attendee-list': { EventAttendeeList: () => null },
   });
-  const html = renderToStaticMarkup(CalendarEventReadonlyDetails({ event: { sourceType: 'TASK', description: 'Bring the report', deadlineDate: '2030-01-02', deadlineTime: '10:00', documentIds: [], attendees: [] } }));
-  assert.match(html, /Deadline/);
-  assert.match(html, /Jan 2, 2030/);
-  assert.match(html, /10:00 AM/);
+  const html = renderToStaticMarkup(
+    CalendarEventReadonlyDetails({
+      event: {
+        sourceType: 'TASK',
+        description: 'Bring the report',
+        documentIds: [],
+        attendees: [],
+      },
+    }),
+  );
+  assert.match(html, /To do/);
   assert.match(html, /Bring the report/);
+  assert.doesNotMatch(html, /Deadline/);
+  assert.doesNotMatch(html, />Tasks</);
   assert.doesNotMatch(html, /\[TASK\]|\[Deadline:/);
+});
+
+test('calendar tasks group and filter by endAt as the effective deadline', () => {
+  const { getTaskDueDate, groupCalendarTasks, filterCalendarTasks } = loadCalendarModule('features/calendar/utils/calendar-tasks.utils.ts');
+  const reference = new Date(2026, 10, 12, 12, 0, 0);
+  const overdueTask = {
+    id: 'overdue-1',
+    title: 'Overdue by endAt',
+    startAt: new Date(2026, 10, 10, 9, 0, 0).toISOString(),
+    endAt: new Date(2026, 10, 11, 17, 0, 0).toISOString(),
+    allDay: false,
+    completedAt: null,
+  };
+  const spanningTodayTask = {
+    id: 'today-1',
+    title: 'Started yesterday but ends today',
+    startAt: new Date(2026, 10, 11, 9, 0, 0).toISOString(),
+    endAt: new Date(2026, 10, 12, 18, 0, 0).toISOString(),
+    allDay: false,
+    completedAt: null,
+  };
+  assert.equal(getTaskDueDate(spanningTodayTask).getDate(), 12);
+  const grouped = groupCalendarTasks([overdueTask, spanningTodayTask], reference, { allOverdue: true, allUpcoming: true });
+  assert.deepEqual(grouped.overdue.map(t => t.id), ['overdue-1']);
+  assert.deepEqual(grouped.today.map(t => t.id), ['today-1']);
+  assert.deepEqual(filterCalendarTasks([overdueTask, spanningTodayTask], 'overdue', 'all', reference).map(t => t.id), ['overdue-1']);
+  assert.deepEqual(filterCalendarTasks([overdueTask, spanningTodayTask], 'today', 'all', reference).map(t => t.id), ['today-1']);
 });
 
 test('repeat summaries capitalize Every and include weekdays, endings and implicit dates', () => {

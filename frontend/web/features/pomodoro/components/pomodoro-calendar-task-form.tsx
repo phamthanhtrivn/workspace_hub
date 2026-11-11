@@ -11,8 +11,7 @@ import { useCalendarEventTime } from "@/features/calendar/hooks/use-calendar-eve
 import { createCalendarEventFormSchema, type CalendarEventEditorValues } from "@/features/calendar/schemas/calendar-event-form.schema";
 import { createCalendarEventFormDefaults } from "@/features/calendar/utils/calendar-event-form.utils";
 import { CalendarTimeFields, QuickRow } from "@/features/calendar/components/modal/calendar-time-fields";
-import { CalendarTaskDeadlineFields } from "@/features/calendar/components/modal/calendar-task-deadline-fields";
-import { EventSourceType, type CalendarTaskDeadline } from "@/features/calendar/types/calendar.types";
+import { EventSourceType } from "@/features/calendar/types/calendar.types";
 import { CALENDAR_DEFAULT_TASK_COLOR, CALENDAR_MIN_EVENT_DURATION_MS } from "@/features/calendar/types/calendar.constants";
 import { CALENDAR_FORM_COPY as copy } from "@/features/calendar/constants/calendar-form-copy";
 import { Button } from "@/components/ui/button";
@@ -44,7 +43,6 @@ export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSa
   });
   const form = useForm<CalendarEventEditorValues>({ resolver: zodResolver(createCalendarEventFormSchema("create")), defaultValues: { ...defaults, calendarId: defaultCalendarId, reminders: [] } });
   const time = useCalendarEventTime(form, "create");
-  const [deadline, setDeadline] = useState<CalendarTaskDeadline>({ enabled: false, date: "", time: "" });
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
   const creatingRef = useRef(false);
@@ -68,7 +66,7 @@ export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSa
     try {
       let target = createdTask;
       if (!target) {
-        const event = await createCalendarFocusTask(values, userId, deadline);
+        const event = await createCalendarFocusTask(values, userId);
         target = toCalendarFocusTask(event);
         setCreatedTask(target);
         void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
@@ -107,7 +105,6 @@ export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSa
       <CalendarTimeFields form={form} mode={time.mode} today={time.today} onStartDateChange={time.handleStartDateChange} onEndDateChange={time.handleEndDateChange}
         onStartTimeChange={time.handleStartTimeChange} onEndDateTimeChange={time.handleEndDateTimeChange} onAllDayChange={time.handleAllDayChange} />
       {errors.endAt && <p role="alert" className="text-xs text-destructive-content">{errors.endAt.message}</p>}
-      <CalendarTaskDeadlineFields value={deadline} onChange={setDeadline} disabled={locked} startAt={time.startAt} endAt={time.endAt} />
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground" htmlFor={`${formId}-description`}>Description (optional)</label>
         <Textarea {...register("description")} id={`${formId}-description`} rows={3} maxLength={POMODORO_TASK_SETTINGS.maxDescriptionLength}

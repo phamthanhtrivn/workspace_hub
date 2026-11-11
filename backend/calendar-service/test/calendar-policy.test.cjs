@@ -13,28 +13,12 @@ test('range rejects invalid dates and durations shorter than 15 minutes', () => 
   assert.doesNotThrow(() => validation.assertValidRange('2020-01-01T09:00:00Z', '2020-01-01T09:15:00Z'));
 });
 
-test('deadline blocks creating a recurring task and adding it to an existing series', () => {
-  const deadline = '2030-01-02';
-  assert.throws(() => validation.assertTaskDeadlineCompatibility(true, null, deadline, false, 'FREQ=DAILY'));
-  assert.throws(() => validation.assertTaskDeadlineCompatibility(true, null, deadline, true, undefined));
-  assert.doesNotThrow(() => validation.assertTaskDeadlineCompatibility(true, deadline, null, false, 'FREQ=DAILY'));
-  assert.doesNotThrow(() => validation.assertTaskDeadlineCompatibility(true, null, deadline, false, null));
-});
-
-test('deadline dates compare to Start, while timed deadlines compare to End in calendar time zone', () => {
-  const validate = (date, time) => validation.assertValidTaskDeadline(true, date, time, '2030-01-01T16:00:00Z', '2030-01-02T03:00:00Z', 'Asia/Bangkok');
-  assert.doesNotThrow(() => validate('2030-01-01', null));
-  assert.throws(() => validate('2029-12-31', null));
-  assert.throws(() => validate('2030-01-02', '09:59'));
-  assert.doesNotThrow(() => validate('2030-01-02', '10:00'));
-  assert.throws(() => validate('2030-02-30', null));
-  assert.throws(() => validate(null, '10:00'));
-  assert.throws(() => validation.assertValidTaskDeadline(false, '2030-01-02', null, '2030-01-01T00:00:00Z', '2030-01-01T01:00:00Z', 'UTC'));
+test('task detection uses sourceType and ignores description markers', () => {
   assert.equal(validation.isTaskEvent({ sourceType: 'USER', description: '[TASK] literal user text' }), false);
   assert.equal(validation.isTaskEvent({ sourceType: 'TASK', description: 'Plain description' }), true);
 });
 
-test('task creation stores the description, task type and deadline independently', async () => {
+test('task creation stores the description and task type independently', async () => {
   const { CalendarEventMutationService } = require('../dist/modules/calendar-event/calendar-event-mutation.service');
   let saved;
   const service = new CalendarEventMutationService(
@@ -44,11 +28,11 @@ test('task creation stores the description, task type and deadline independently
     { $transaction: async callback => callback({ calendarEvent: { create: async ({ data }) => { saved = { ...data, id: 'task' }; return saved; } } }) },
     validation, { getEventById: async () => saved }, { enqueueCreatedStandalone: async () => {} },
   );
-  await service.createEvent('owner', undefined, { calendarId: 'calendar', title: 'Task', sourceType: 'TASK', description: 'Actual notes', deadlineDate: '2030-01-02', deadlineTime: '10:00', startAt: '2030-01-01T16:00:00Z', endAt: '2030-01-02T03:00:00Z' });
+  await service.createEvent('owner', undefined, { calendarId: 'calendar', title: 'Task', sourceType: 'TASK', description: 'Actual notes', startAt: '2030-01-01T16:00:00Z', endAt: '2030-01-02T03:00:00Z' });
   assert.equal(saved.description, 'Actual notes');
   assert.equal(saved.sourceType, 'TASK');
-  assert.equal(saved.deadlineDate, '2030-01-02');
-  assert.equal(saved.deadlineTime, '10:00');
+  assert.equal('deadlineDate' in saved, false);
+  assert.equal('deadlineTime' in saved, false);
 });
 
 test('every update scope rejects recurrence/time edits while allowing title updates', async () => {

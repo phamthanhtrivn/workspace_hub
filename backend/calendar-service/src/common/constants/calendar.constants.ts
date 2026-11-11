@@ -34,13 +34,7 @@ export const CALENDAR_ERROR_MESSAGES = {
   INVALID_EVENT_RANGE: 'Event endAt must be at least 15 minutes after startAt',
   RECURRING_EVENT_FIELDS_LOCKED:
     'The recurrence rule and time fields cannot be changed after an event repeats',
-  RECURRING_TASK_DEADLINE:
-    'Tasks with a deadline cannot repeat',
   TASK_CONFERENCE_UNSUPPORTED: 'Tasks cannot have video meetings',
-  INVALID_TASK_DEADLINE: 'Choose a valid deadline date and optional time',
-  TASK_DEADLINE_BEFORE_START: 'Deadline date must be on or after the start date',
-  TASK_DEADLINE_BEFORE_END: 'Deadline date and time must be on or after the end date and time',
-  ONLY_TASKS_HAVE_DEADLINES: 'Only tasks can have deadlines',
   TOO_MANY_ATTENDEES: 'Too many attendees',
   TOO_MANY_REMINDERS: 'Too many reminders',
   INVALID_QUERY_RANGE:

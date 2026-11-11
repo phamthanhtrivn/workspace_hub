@@ -11,7 +11,6 @@ import {
   IsUUID,
   IsNotEmpty,
   MaxLength,
-  Matches,
   ValidateNested,
 } from 'class-validator';
 import { EventSourceType, EventStatus, EventVisibility } from '@prisma/client';
@@ -20,14 +19,6 @@ import { CalendarEventAttendeeDto } from './calendar-event-attendee.dto';
 import { CalendarEventReminderDto } from './calendar-event-reminder.dto';
 
 export class CreateCalendarEventDto {
-  @IsOptional()
-  @Matches(/^\d{4}-\d{2}-\d{2}$/)
-  deadlineDate?: string | null;
-
-  @IsOptional()
-  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/)
-  deadlineTime?: string | null;
-
   @IsOptional()
   @ValidateNested()
   @Type(() => CalendarConferenceDto)

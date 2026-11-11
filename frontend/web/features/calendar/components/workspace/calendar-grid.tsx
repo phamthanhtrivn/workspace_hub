@@ -27,8 +27,6 @@ import {
 import { CalendarEventMoveInfo } from "../../hooks/calendar-workspace.types";
 import { CalendarEvent, EventSourceType } from "../../types/calendar.types";
 import { LoadingState } from "@/components/ui/loading-state";
-import { formatTaskDeadline } from "../../utils/calendar-task-deadline.utils";
-import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
 
 const FULL_CALENDAR_PLUGINS = [
   dayGridPlugin,
@@ -99,7 +97,6 @@ export const CalendarGrid = memo(function CalendarGrid({
         isTask && Boolean(arg.event.extendedProps.completedAt);
       const isDeclined = Boolean(arg.event.extendedProps.isDeclined);
       const taskEvent = arg.event.extendedProps.model as CalendarEvent | undefined;
-      const deadlineLabel = isTask && taskEvent ? formatTaskDeadline(taskEvent) : null;
       const canToggleTask =
         isTask && !isProjectTask && Boolean(taskEvent?.permissions?.canManage);
       const taskToggleLabel = isCompletedTask ? "Mark task incomplete" : "Mark task completed";
@@ -139,7 +136,7 @@ export const CalendarGrid = memo(function CalendarGrid({
 
       return (
         <div
-          title={`${arg.event.title}\n${arg.timeText}${deadlineLabel ? `\n${copy.deadline}: ${deadlineLabel}` : ""}`}
+          title={`${arg.event.title}\n${arg.timeText}`}
           className={`calendar-event-content relative min-h-full min-w-0 overflow-hidden rounded px-1.5 py-1 text-primary-foreground ${
             isTask ? "calendar-task-event-content" : ""
           }`}

@@ -121,8 +121,6 @@ export function createCalendarEventFormDefaults({
       calendarId: event?.calendarId || draft?.calendarId || calendarId,
       title: event?.title || "",
       description: event?.description || "",
-      deadlineDate: event?.deadlineDate ?? null,
-      deadlineTime: event?.deadlineTime ?? null,
       location: event?.location || "",
       startAt: initialStartAt,
       endAt: initialEndAt,

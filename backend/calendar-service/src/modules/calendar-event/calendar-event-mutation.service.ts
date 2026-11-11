@@ -39,19 +39,11 @@ export class CalendarEventMutationService {
     this.accessPolicy.assertPersonalCalendar(calendar);
     this.validation.assertValidRange(dto.startAt, dto.endAt);
     const isTask = dto.sourceType === EventSourceType.TASK;
-    this.validation.assertValidTaskDeadline(isTask, dto.deadlineDate, dto.deadlineTime, dto.startAt, dto.endAt, calendar.timeZone);
     this.validation.assertConferenceSupportedForSource(
       isTask,
       dto.conference?.enabled,
     );
     this.recurrence.assertValidRule(dto.recurrenceRule);
-    this.validation.assertTaskDeadlineCompatibility(
-      isTask,
-      undefined,
-      dto.deadlineDate,
-      false,
-      dto.recurrenceRule,
-    );
     await this.resourceAccess.assertDocumentAccess(
       userId,
       userEmail,
@@ -86,8 +78,6 @@ export class CalendarEventMutationService {
           createdBy: userId,
           title: dto.title,
           description: dto.description ?? null,
-          deadlineDate: dto.deadlineDate ?? null,
-          deadlineTime: dto.deadlineTime ?? null,
           location: dto.location ?? null,
           conferenceEnabled: dto.conference?.enabled ?? false,
           startAt: new Date(dto.startAt),
@@ -151,22 +141,6 @@ export class CalendarEventMutationService {
       this.validation.assertValidRange(
         dto.startAt ?? event.startAt.toISOString(),
         dto.endAt ?? event.endAt.toISOString(),
-      );
-    }
-    this.validation.assertTaskDeadlineCompatibility(
-      isTask,
-      event.deadlineDate,
-      dto.deadlineDate === undefined ? event.deadlineDate : dto.deadlineDate,
-      Boolean(event.recurrenceSeries),
-      dto.recurrenceRule,
-    );
-
-    if (dto.deadlineDate !== undefined || dto.deadlineTime !== undefined || dto.startAt !== undefined || dto.endAt !== undefined || dto.calendarId !== undefined) {
-      this.validation.assertValidTaskDeadline(
-        isTask,
-        dto.deadlineDate === undefined ? event.deadlineDate : dto.deadlineDate,
-        dto.deadlineDate === null ? null : dto.deadlineTime === undefined ? event.deadlineTime : dto.deadlineTime,
-        dto.startAt ?? event.startAt.toISOString(), dto.endAt ?? event.endAt.toISOString(), calendar.timeZone,
       );
     }
 
@@ -261,8 +235,6 @@ export class CalendarEventMutationService {
           updatedBy: userId,
           title: dto.title,
           description: dto.description,
-          deadlineDate: dto.deadlineDate,
-          deadlineTime: dto.deadlineDate === null ? null : dto.deadlineTime,
           location: dto.location,
           conferenceEnabled: dto.conference?.enabled,
           startAt: dto.startAt ? nextStartAt : undefined,

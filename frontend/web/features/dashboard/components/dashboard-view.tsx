@@ -3,6 +3,8 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   AlertCircle,
   Clock3,
@@ -10,6 +12,18 @@ import {
   Video,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { CALENDAR_FORM_COPY as copy } from "@/features/calendar/constants/calendar-form-copy";
+import {
+  useCalendarCalendars,
+  useCreateCalendarEvent,
+} from "@/features/calendar/hooks/use-calendar-queries";
+import { CALENDAR_DEFAULT_TASK_COLOR } from "@/features/calendar/types/calendar.constants";
+import {
+  type CalendarEventDraft,
+  EventSourceType,
+} from "@/features/calendar/types/calendar.types";
+import { createDefaultEventDraft } from "@/features/calendar/utils/calendar-event.utils";
 import { useDashboard } from "../hooks/use-dashboard";
 import { Badge } from "@/components/ui/badge";
 import { DashboardDay } from "./day/dashboard-day";
@@ -30,13 +44,38 @@ import { DashboardWeather } from "./weather/dashboard-weather";
 import { formatScheduledRelativeTime, selectDashboardContext } from "../utils/dashboard-context.utils";
 import { LoadingState } from "@/components/ui/loading-state";
 
-const DashboardQuickTaskDialog = dynamic(() => import("./overview/dashboard-quick-task-dialog"), {
-  loading: () => <LoadingState label="Opening task form…" className="text-sm text-muted-foreground" />,
-});
+const EventFormModal = dynamic(
+  () =>
+    import("@/features/calendar/components/modal/event-form-modal").then(
+      (mod) => mod.EventFormModal,
+    ),
+  {
+    loading: () => (
+      <LoadingState
+        label="Opening task form…"
+        className="text-sm text-muted-foreground"
+      />
+    ),
+  },
+);
 
 function PersonalDashboard() {
   const dashboard = useDashboard();
-  const [creatingTask, setCreatingTask] = useState(false);
+  const queryClient = useQueryClient();
+  const calendarsQuery = useCalendarCalendars();
+  const createEvent = useCreateCalendarEvent();
+  const calendars = calendarsQuery.data ?? [];
+  const defaultCalendar =
+    calendars.find((calendar) => !calendar.projectId && calendar.isDefault) ??
+    calendars.find((calendar) => !calendar.projectId) ??
+    calendars[0];
+  const [taskDraft, setTaskDraft] = useState<CalendarEventDraft | null>(null);
+  const handleOpenCreateTask = () => {
+    setTaskDraft({
+      ...createDefaultEventDraft(defaultCalendar?.id),
+      sourceType: EventSourceType.TASK,
+    });
+  };
   const {
     auth,
     today,
@@ -175,7 +214,7 @@ function PersonalDashboard() {
               </div>
             </div>
           </div>
-          <DashboardQuickActions onCreateTask={() => setCreatingTask(true)} disabled={!dashboard.ready} />
+          <DashboardQuickActions onCreateTask={handleOpenCreateTask} disabled={!dashboard.ready} />
         </header>
         <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => {
@@ -226,7 +265,7 @@ function PersonalDashboard() {
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-6 @min-[960px]/dashboard:grid-cols-2">
           <div id="my-tasks" className="flex min-h-0 min-w-0 scroll-mt-6">
-            <DashboardTasks dashboard={dashboard} onCreateTask={() => setCreatingTask(true)} />
+            <DashboardTasks dashboard={dashboard} onCreateTask={handleOpenCreateTask} />
           </div>
           <DashboardDay dashboard={dashboard} nextItemKey={nextItem?.key} />
           <div id="upcoming-meetings" className="flex min-h-0 min-w-0 scroll-mt-6">
@@ -244,10 +283,32 @@ function PersonalDashboard() {
           </div>
           <DashboardAnalytics dashboard={dashboard} />
         </section>
-        {creatingTask && <DashboardQuickTaskDialog zone={zone} onClose={() => setCreatingTask(false)} onCreated={() => {
-          dashboard.setTaskFilter("All");
-          setCreatingTask(false);
-        }} />}
+        {taskDraft && (
+          <EventFormModal
+            key={taskDraft.startAt.toISOString()}
+            open
+            calendars={calendars}
+            initialDraft={taskDraft}
+            tasksColor={CALENDAR_DEFAULT_TASK_COLOR}
+            submitting={createEvent.isPending}
+            onClose={() => setTaskDraft(null)}
+            onSubmit={async (values) => {
+              try {
+                await createEvent.mutateAsync(values);
+                void queryClient.invalidateQueries({
+                  queryKey: ["pomodoro", "focus-tasks"],
+                });
+                toast.success(copy.eventSaved);
+                dashboard.setTaskFilter("All");
+                setTaskDraft(null);
+              } catch (permissionError) {
+                toast.error(
+                  getActionErrorMessage(permissionError, copy.eventSaveFailed),
+                );
+              }
+            }}
+          />
+        )}
       </div>
     </div>
   );

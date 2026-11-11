@@ -4,6 +4,29 @@ export function isProjectCalendarTask(task: CalendarEvent): boolean {
   return Boolean(task.calendar?.projectId);
 }
 
+export function getTaskDueDate(
+  task: Pick<CalendarEvent, "startAt" | "endAt" | "allDay">,
+): Date {
+  const end = new Date(task.endAt || task.startAt);
+  if (Number.isNaN(end.getTime())) {
+    return new Date(task.startAt);
+  }
+  if (task.allDay) {
+    const start = new Date(task.startAt);
+    if (
+      !Number.isNaN(start.getTime()) &&
+      end.getTime() > start.getTime() &&
+      end.getHours() === 0 &&
+      end.getMinutes() === 0 &&
+      end.getSeconds() === 0 &&
+      end.getMilliseconds() === 0
+    ) {
+      return new Date(end.getTime() - 1);
+    }
+  }
+  return end;
+}
+
 export type TaskTimeFilter = "all" | "today" | "week" | "month" | "overdue";
 export type TaskStatusFilter = "all" | "active" | "completed";
 
@@ -41,7 +64,7 @@ export function filterCalendarTasks(
     // 2. Time Filter
     if (timeFilter === "all") return true;
 
-    const taskTime = new Date(task.startAt).getTime();
+    const taskTime = getTaskDueDate(task).getTime();
 
     if (timeFilter === "overdue") {
       return !isCompleted && taskTime < startOfToday.getTime();
@@ -159,7 +182,7 @@ export function groupCalendarTasks(
       continue;
     }
 
-    const taskDate = new Date(task.startAt);
+    const taskDate = getTaskDueDate(task);
     if (taskDate.getTime() < startOfToday.getTime()) {
       if (
         options?.allOverdue ||
@@ -181,24 +204,24 @@ export function groupCalendarTasks(
   }
 
   overdue.sort(
-    (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+    (a, b) => getTaskDueDate(a).getTime() - getTaskDueDate(b).getTime(),
   );
 
   today.sort(
-    (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+    (a, b) => getTaskDueDate(a).getTime() - getTaskDueDate(b).getTime(),
   );
 
   upcoming.sort(
-    (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+    (a, b) => getTaskDueDate(a).getTime() - getTaskDueDate(b).getTime(),
   );
 
   completed.sort((a, b) => {
     const timeA = a.completedAt
       ? new Date(a.completedAt).getTime()
-      : new Date(a.startAt).getTime();
+      : getTaskDueDate(a).getTime();
     const timeB = b.completedAt
       ? new Date(b.completedAt).getTime()
-      : new Date(b.startAt).getTime();
+      : getTaskDueDate(b).getTime();
     return timeB - timeA;
   });
 

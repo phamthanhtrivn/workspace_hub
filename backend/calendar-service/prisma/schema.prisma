@@ -74,8 +74,6 @@ model Calendar {
 }
 
 model RecurrenceSeries {
-  deadlineDate String? @map("deadline_date") @db.VarChar(10)
-  deadlineTime String? @map("deadline_time") @db.VarChar(5)
   conferenceEnabled Boolean @default(false) @map("conference_enabled")
   id                       String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   calendarId               String          @map("calendar_id") @db.Uuid
@@ -111,8 +109,6 @@ model RecurrenceSeries {
 }
 
 model CalendarEvent {
-  deadlineDate String? @map("deadline_date") @db.VarChar(10)
-  deadlineTime String? @map("deadline_time") @db.VarChar(5)
   conferenceEnabled Boolean @default(false) @map("conference_enabled")
   id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   calendarId           String          @map("calendar_id") @db.Uuid
