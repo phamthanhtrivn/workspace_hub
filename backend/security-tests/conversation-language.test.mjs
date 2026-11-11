@@ -18,7 +18,7 @@ function stub(file, exports) {
 let modelContent = '', capturedMessages = [], invocations = 0, extraction;
 const model = {
   async invoke(messages) {
-    invocations++; capturedMessages = messages;
+    invocations++; capturedMessages = [...messages];
     return { content: modelContent, response_metadata: { finish_reason: 'stop' }, tool_calls: [], invalid_tool_calls: [] };
   },
   bindTools() { return this; },
@@ -96,7 +96,7 @@ test('attachment worker passes the original question and keeps answer language a
 test('ordinary AI answers are passed through in English or Vietnamese without translation', async () => {
   for (const [question, content] of [['Explain this concept.', 'An English answer.'], ['Giải thích khái niệm này.', 'Câu trả lời bằng tiếng Việt.'], ['Giải thích bằng tiếng Anh.', 'An explicitly requested English answer.']]) {
     modelContent = content; invocations = 0;
-    const result = await conversationAnswer(question, async () => { assert.fail('general questions do not require history'); }, new AbortController().signal);
+    const result = await conversationAnswer(question, async () => [], new AbortController().signal);
     assert.equal(result, content);
     assert.ok(capturedMessages[0].content.includes(CONVERSATION_LANGUAGE_POLICY));
     assert.equal(capturedMessages[1].content, question);
@@ -134,4 +134,72 @@ test('interrupted delivery emits English feedback without replaying generation',
     assert.equal(deliveries, 1);
     assert.equal(invocations, 0);
   } finally { globalThis.fetch = previousFetch; }
+});
+
+test('every ordinary question receives the latest 30 shared messages including prior AI answers once', async () => {
+  const history = Array.from({ length: 30 }, (_, index) => ({
+    content: `Message ${index}`, senderName: index % 2 ? 'AI Bot' : `Participant ${index}`,
+    role: index % 2 ? 'assistant' : 'user', createdAt: '2026-11-11T00:00:00Z',
+  }));
+  let reads = 0, authorizations = 0;
+  modelContent = 'A follow-up answer.'; invocations = 0;
+  const result = await conversationAnswer('Explain that further.', async () => { reads++; return history; },
+    new AbortController().signal, async () => { authorizations++; });
+  assert.equal(result, modelContent);
+  assert.equal(reads, 1);
+  assert.equal(invocations, 1);
+  assert.ok(authorizations >= 2);
+  assert.equal(capturedMessages[1].content, 'Explain that further.');
+  assert.deepEqual(JSON.parse(capturedMessages[3].content), history);
+  assert.ok(capturedMessages[0].content.includes('Earlier AI answers are conversation context'));
+});
+
+test('history access failure prevents model generation', async () => {
+  invocations = 0;
+  await assert.rejects(conversationAnswer('Continue.', async () => { throw Error('Access revoked'); }, new AbortController().signal), /Access revoked/);
+  assert.equal(invocations, 0);
+});
+
+for (const file of ['./src/prisma/prisma.service.ts', './src/modules/socket/chat/chat-socket.publisher.ts', './src/infrastructure/s3/s3.service.ts']) {
+  const id = communicationRequire.resolve(file), entry = new Module(id);
+  entry.filename = id; entry.loaded = true; entry.exports = {};
+  communicationRequire.cache[id] = entry;
+}
+const { ConversationAiService } = communicationRequire('./src/modules/conversation-ai/conversation-ai.service.ts');
+
+test('shared context preserves chat/thread boundaries, chronological order and the 24k byte cap', async () => {
+  for (const chatType of ['CHANNEL', 'DIRECT_MESSAGE']) for (const threadParentId of [null, 'thread-id']) {
+    const service = Object.create(ConversationAiService.prototype);
+    const request = { chat_id: 'chat-id', actor_id: 'actor-id', chat_type: chatType, status: 'RUNNING' };
+    let checks = 0, query;
+    service.request = async () => request;
+    service.authorized = async () => { checks++; return { id: 'current-id', threadParentId }; };
+    service.prisma = { $queryRaw: async sql => {
+      query = sql;
+      return Array.from({ length: 30 }, (_, index) => ({
+        content: `${29 - index}:` + 'Tiếng Việt 😀'.repeat(200), role: index % 2 ? 'assistant' : 'user',
+        senderName: index % 2 ? 'AI Bot' : 'Participant', createdAt: '2026-11-11T00:00:00Z',
+      }));
+    } };
+    const history = await service.history('current-id', 'token');
+    assert.equal(checks, 2);
+    assert.equal(history.length, 30);
+    assert.ok(history[0].content.startsWith('0:'));
+    assert.ok(history.at(-1).content.startsWith('29:'));
+    assert.ok(history.every(message => !message.content.includes('\uFFFD')));
+    assert.ok(Buffer.byteLength(history.map(message => message.content).join('')) <= 24000);
+    assert.match(query.text, /LIMIT 30/);
+    assert.match(query.text, /m.type='TEXT' OR \(m.type='AI' AND m.sender_id=/);
+    assert.match(query.text, /m.deleted_at IS NULL AND NOT m.recalled/);
+    assert.match(query.text, /\(m.created_at,m.id\)</);
+    assert.ok(query.values.includes('chat-id'));
+    if (threadParentId) {
+      assert.ok(query.values.includes(threadParentId));
+      assert.match(query.text, /m.thread_parent_id=\$\d+::uuid/);
+      assert.doesNotMatch(query.text, /OR m.id=/);
+      assert.doesNotMatch(query.text, /thread_parent_id IS NULL/);
+    }
+    else assert.match(query.text, /thread_parent_id IS NULL/);
+    assert.ok(query.text.includes(chatType === 'CHANNEL' ? 'channel_id' : 'conversation_id'));
+  }
 });

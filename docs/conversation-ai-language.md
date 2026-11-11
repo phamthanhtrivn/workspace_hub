@@ -21,6 +21,17 @@ heading and coverage notes; malformed output produces English failure feedback.
 The saved chat message and public API remain plain text. Language selection does
 not add a model call or retry an unknown provider outcome.
 
+Every ordinary bot question automatically loads up to 30 preceding messages from
+the same conversation or thread, including all participants' text messages and
+AI Bot answers. Messages are chronological, excluding deleted/recalled messages
+and the current question. Inside a thread, only replies with that exact thread
+parent ID are loaded; the root message and other chat/thread messages are excluded.
+History is capped at 24,000 UTF-8 content bytes and 2,000
+characters per message; long messages are shortened. Earlier AI answers are
+context for follow-ups, not evidence of participant decisions or commitments.
+The history is fetched once per request. Attachment summaries remain scoped to
+the selected document and current question.
+
 Deploy the updated Communication service, AI API/worker, and frontend together.
 No database migration is required. Existing stored messages and checkpointed
 answers are preserved.
