@@ -21,6 +21,7 @@ import { useCalendarEvent, useRetryCalendarConference } from "../../hooks/use-ca
 import { buildCalendarMeetingUrl } from "../../utils/calendar-conference.utils";
 
 import { CalendarEventReadonlyDetails } from "./calendar-event-readonly-details";
+import { CalendarEventRecurrenceDetails } from "./calendar-event-recurrence-details";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
@@ -225,6 +226,8 @@ export function EventDetailModal({
               </p>
             </div>
           </div>
+
+          <CalendarEventRecurrenceDetails event={event} />
 
           {isTask && currentUserId && event.calendar?.ownerUserId === currentUserId && !event.calendar.projectId && (
             <div className="flex flex-col gap-4">

@@ -56,9 +56,37 @@ function parseRule(rule: string) {
   return RRule.parseString(rule.replace(/^RRULE:/, ""));
 }
 
-export function formatRecurrenceRuleSummary(rule: string): string {
+export function formatRecurrenceRuleSummary(
+  rule: string,
+  context?: { startAt: string; timeZone?: string },
+): string {
   try {
-    return new RRule(parseRule(rule)).toText();
+    const options = parseRule(rule);
+    const start = context?.startAt ? new Date(context.startAt) : undefined;
+    if (start && Number.isFinite(start.getTime())) {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        day: "numeric",
+        month: "numeric",
+        weekday: "short",
+        timeZone: context?.timeZone,
+      }).formatToParts(start);
+      const day = Number(parts.find(part => part.type === "day")?.value);
+      const month = Number(parts.find(part => part.type === "month")?.value);
+      if (options.freq === RRule.MONTHLY && options.bymonthday == null && options.byweekday == null) {
+        options.bymonthday = day;
+      }
+      if (options.freq === RRule.YEARLY && options.bymonthday == null && options.byweekday == null) {
+        options.bymonth ??= month;
+        options.bymonthday = day;
+      }
+      if (options.freq === RRule.WEEKLY && options.byweekday == null) {
+        const weekday = parts.find(part => part.type === "weekday")?.value;
+        const weekdayIndex = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday ?? "");
+        if (weekdayIndex >= 0) options.byweekday = weekdayByCode[weekdayCodes[weekdayIndex]];
+      }
+    }
+    const summary = new RRule(options).toText();
+    return summary.charAt(0).toUpperCase() + summary.slice(1);
   } catch {
     return rule;
   }

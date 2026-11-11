@@ -45,6 +45,31 @@ function loadCalendarModule(relativePath, stubs = {}, cache = new Map()) {
   return target.exports;
 }
 
+test('repeat summaries capitalize Every and include weekdays, endings and implicit dates', () => {
+  const { formatRecurrenceRuleSummary } = loadCalendarModule('features/calendar/utils/calendar-recurrence.utils.ts');
+  const weekly = formatRecurrenceRuleSummary('FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,FR;COUNT=10');
+  assert.match(weekly, /^Every 2 weeks/);
+  assert.match(weekly, /Monday/);
+  assert.match(weekly, /Friday/);
+  assert.match(weekly, /10 times/);
+  assert.match(formatRecurrenceRuleSummary('FREQ=DAILY;UNTIL=20261231T235959Z'), /until December 31, 2026/);
+  const context = { startAt: '2026-11-09T18:30:00Z', timeZone: 'Asia/Bangkok' };
+  assert.match(formatRecurrenceRuleSummary('FREQ=MONTHLY', context), /10th/);
+  assert.match(formatRecurrenceRuleSummary('FREQ=YEARLY', context), /November/);
+  assert.doesNotMatch(formatRecurrenceRuleSummary('FREQ=YEARLY;BYDAY=MO', context), /November/);
+  assert.match(formatRecurrenceRuleSummary('FREQ=WEEKLY', context), /Tuesday/);
+});
+
+test('repeat detail is hidden for non-recurring entries and uses the original occurrence date', () => {
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const { CalendarEventRecurrenceDetails } = loadCalendarModule('features/calendar/components/modal/calendar-event-recurrence-details.tsx');
+  const event = { recurrenceRule: null, originalStartAt: null, startAt: '2026-11-15T09:00:00Z', timeZone: 'UTC' };
+  assert.equal(renderToStaticMarkup(CalendarEventRecurrenceDetails({ event })), '');
+  const html = renderToStaticMarkup(CalendarEventRecurrenceDetails({ event: { ...event, recurrenceRule: 'FREQ=MONTHLY;COUNT=5', originalStartAt: '2026-11-10T09:00:00Z' } }));
+  assert.match(html, /Every month on the 10th for 5 times/);
+  assert.match(html, /Repeat:/);
+});
+
 test('calendar keeps root and dropdown component identities across parent renders', () => {
   const { Calendar } = loadCalendarModule('components/ui/calendar.tsx', {
     './custom/custom-select': { CustomSelect: () => null },

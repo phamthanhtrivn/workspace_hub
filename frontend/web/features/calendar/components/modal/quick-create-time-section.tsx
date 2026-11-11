@@ -24,7 +24,7 @@ export function QuickCreateTimeSection({ kind, recurrencePreset, recurrenceOptio
   return <div className="space-y-2">
     <CalendarTimeFields {...timeProps} showTimeZone={kind === "event"} allowPastStart />
     {showRecurrence && <QuickRow icon={null}>
-      {recurrenceDisabled && recurrenceRule ? <p aria-label={copy.recurrence} className="rounded-panel border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">{formatRecurrenceRuleSummary(recurrenceRule)}</p> :
+      {recurrenceDisabled && recurrenceRule ? <p aria-label={copy.recurrence} className="rounded-panel border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">{formatRecurrenceRuleSummary(recurrenceRule, { startAt: timeProps.form.getValues("startAt") })}</p> :
       <CalendarSelect disabled={timeProps.disabled || recurrenceDisabled} value={recurrencePreset} options={recurrenceOptions} ariaLabel={copy.recurrence}
         onChange={(value) => onRecurrenceChange(value as CalendarRecurrencePreset)} alignItemWithTrigger={false}
         triggerClassName="h-10 w-full justify-between rounded-panel border border-input bg-muted px-3 text-sm font-semibold text-muted-foreground hover:bg-accent/70 data-[state=open]:bg-card"
