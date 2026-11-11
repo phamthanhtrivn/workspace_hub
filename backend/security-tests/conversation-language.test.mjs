@@ -40,7 +40,6 @@ const { CONVERSATION_AI_MESSAGES: communicationMessages } = communicationRequire
 const { aiQuestion } = communicationRequire('./src/modules/conversation-ai/conversation-ai-mention.ts');
 const { attachmentSummaryPrompt } = require('../../frontend/web/features/chat/utils/attachment-summary.ts');
 
-aiRequire('./src/modules/conversation-ai/attachment-summary-presentation.spec.ts');
 
 async function runWorker(question, answer, extracted = { pages: [{ page: 1, text: 'Original source text.' }], images: [] }) {
   const previousFetch = globalThis.fetch;
@@ -166,6 +165,33 @@ for (const file of ['./src/prisma/prisma.service.ts', './src/modules/socket/chat
   communicationRequire.cache[id] = entry;
 }
 const { ConversationAiService } = communicationRequire('./src/modules/conversation-ai/conversation-ai.service.ts');
+const { historyContent } = communicationRequire('./src/modules/conversation-ai/conversation-history-content.ts');
+
+test('task cards expose only shared snapshot fields and distinguish deleted tasks', () => {
+  const task = JSON.parse(historyContent({type:'TASK',content:JSON.stringify({taskId:'task',projectId:'project',title:'Release',status:'TODO',priority:'HIGH',dueDate:'2026-12-01',secret:'not shared'})}));
+  assert.equal(task.title,'Release');assert.equal(task.status,'TODO');assert.ok(!('secret' in task));
+  assert.match(historyContent({type:'TASK',content:'{"deleted":true}'}),/deleted/);
+  assert.match(historyContent({type:'TASK',content:'Legacy task card'}),/Legacy task card/);
+});
+
+test('notes and polls enter bounded context without raw resource fields or voter identities', async () => {
+  const service=Object.create(ConversationAiService.prototype);
+  service.request=async()=>({chat_id:'channel',chat_type:'CHANNEL',status:'RUNNING'});
+  service.authorized=async()=>({id:'question',threadParentId:'thread'});
+  let query;
+  service.prisma={$queryRaw:async sql=>{query=sql;return [
+    {type:'NOTE',content:null,noteTitle:'Plan',noteContent:'Ship on Friday',role:'user',senderName:'Participant',createdAt:new Date()},
+    {type:'POLL',content:null,poll:{title:'Choose date',multipleChoice:true,anonymous:true,isLocked:false,expiresAt:null,optionCount:2,options:[{text:'Friday',votes:3},{text:'Monday',votes:1}]},role:'user',senderName:'Participant',createdAt:new Date()},
+  ];}};
+  const history=await service.history('question','token');
+  assert.match(history[0].content,/Friday: 3 votes/);
+  assert.match(history[0].content,/not necessarily unique voters/);
+  assert.match(history[1].content,/Plan\nShip on Friday/);
+  assert.ok(history.every(item=>!('poll' in item)&&!('noteContent' in item)));
+  assert.match(query.text,/WITH recent AS/);assert.match(query.text,/m.type='TASK'/);
+  assert.match(query.text,/LEFT JOIN notes/);assert.match(query.text,/LEFT JOIN polls/);
+  assert.doesNotMatch(query.text,/v\.user_id/);
+});
 
 test('shared context preserves chat/thread boundaries, chronological order and the 24k byte cap', async () => {
   for (const chatType of ['CHANNEL', 'DIRECT_MESSAGE']) for (const threadParentId of [null, 'thread-id']) {

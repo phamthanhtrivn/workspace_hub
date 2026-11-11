@@ -18,6 +18,10 @@ import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 
 import { AI_BOT_ID, AI_BOT_NAME, aiQuestion } from './conversation-ai-mention';
 import { CONVERSATION_AI_MESSAGES } from './conversation-ai.messages';
+import {
+  historyContent,
+  type HistoryResource,
+} from './conversation-history-content';
 export { AI_BOT_ID, aiQuestion } from './conversation-ai-mention';
 type RequestRow = {
   id: string;
@@ -441,36 +445,67 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
       ? Prisma.sql`m.thread_parent_id=${m.threadParentId}::uuid`
       : Prisma.sql`thread_parent_id IS NULL`;
     const rows = await this.prisma.$queryRaw<
-      {
+      (HistoryResource & {
         content: string;
         senderName: string;
         role: 'user' | 'assistant';
         createdAt: Date;
-      }[]
+      })[]
     >(Prisma.sql`
-      SELECT left(m.content,2000) AS content,
+      WITH recent AS (
+        SELECT m.* FROM ${table} m
+        WHERE ${scope}=${r.chat_id}::uuid AND ${thread} AND m.deleted_at IS NULL AND NOT m.recalled
+        AND (m.type='TEXT' OR (m.type='AI' AND m.sender_id=${AI_BOT_ID}::uuid) OR m.type='TASK' OR (${r.chat_type === 'CHANNEL'} AND m.type IN ('NOTE','POLL')))
+        AND (nullif(btrim(m.content),'') IS NOT NULL OR m.type IN ('NOTE','POLL'))
+        AND (m.created_at,m.id)<(SELECT created_at,id FROM ${table} WHERE id=${m.id}::uuid)
+        ORDER BY m.created_at DESC,m.id DESC LIMIT 30
+      )
+      SELECT left(m.content,4000) AS content, m.type::text AS type,
+      left(n.title,200) AS "noteTitle", left(n.content,6000) AS "noteContent",
+      CASE WHEN poll.id IS NOT NULL THEN jsonb_build_object(
+        'title',left(poll.title,300),'multipleChoice',poll.multiple_choice,'anonymous',poll.anonymous,
+        'isLocked',poll.is_locked,'expiresAt',poll.expires_at,
+        'optionCount',(SELECT count(*)::int FROM poll_options WHERE poll_id=poll.id),
+        'options',coalesce(options.items,'[]'::jsonb)) ELSE NULL END AS poll,
       CASE WHEN m.sender_id=${AI_BOT_ID}::uuid AND m.type='AI' THEN 'AI Bot' ELSE left(coalesce(p.full_name,'Participant'),120) END AS "senderName",
       CASE WHEN m.sender_id=${AI_BOT_ID}::uuid AND m.type='AI' THEN 'assistant' ELSE 'user' END AS role,
       m.created_at AS "createdAt"
-      FROM ${table} m LEFT JOIN user_profile_snapshots p ON p.user_id=m.sender_id
-      WHERE ${scope}=${r.chat_id}::uuid AND ${thread} AND m.deleted_at IS NULL AND NOT m.recalled
-      AND (m.type='TEXT' OR (m.type='AI' AND m.sender_id=${AI_BOT_ID}::uuid)) AND nullif(btrim(m.content),'') IS NOT NULL
-      AND (m.created_at,m.id)<(SELECT created_at,id FROM ${table} WHERE id=${m.id}::uuid) ORDER BY m.created_at DESC,m.id DESC LIMIT 30`);
+      FROM recent m LEFT JOIN user_profile_snapshots p ON p.user_id=m.sender_id
+      LEFT JOIN notes n ON n.message_id=m.id AND ${r.chat_type === 'CHANNEL'} AND m.type='NOTE'
+      LEFT JOIN polls poll ON poll.message_id=m.id AND ${r.chat_type === 'CHANNEL'} AND m.type='POLL'
+      LEFT JOIN LATERAL (
+        SELECT jsonb_agg(jsonb_build_object('text',left(o.text,300),'votes',
+          (SELECT count(*)::int FROM poll_votes v WHERE v.poll_option_id=o.id)) ORDER BY o.id) AS items
+        FROM (SELECT id,text FROM poll_options WHERE poll_id=poll.id ORDER BY id LIMIT 20) o
+      ) options ON poll.id IS NOT NULL
+      ORDER BY m.created_at DESC,m.id DESC`);
     await this.authorized(r);
     const bytesPerMessage = Math.floor(24000 / Math.max(rows.length, 1));
 
-    return rows.reverse().map((item) =>
-      Buffer.byteLength(item.content) <= bytesPerMessage
-        ? item
-        : {
-            ...item,
-            content: Buffer.from(item.content)
-              .subarray(0, bytesPerMessage)
-              .toString('utf8')
-              .replace(/\uFFFD$/, ''),
-            truncated: true,
-          },
-    );
+    return rows
+      .reverse()
+      .map(({ noteTitle, noteContent, poll, type, ...message }) => ({
+        ...message,
+        content: historyContent({
+          ...message,
+          noteTitle,
+          noteContent,
+          poll,
+          type,
+        }),
+      }))
+      .map((item) =>
+        Buffer.byteLength(item.content) <= bytesPerMessage
+          ? item
+          : {
+              ...item,
+              content: Buffer.from(item.content)
+                .subarray(0, bytesPerMessage)
+                .toString('utf8')
+                .replace(/\uFFFD$/, ''),
+              truncated: true,
+            },
+      );
   }
   async complete(id: string, token: string, content: string, failed = false) {
     if (!content.trim() || content.length > 20000)
