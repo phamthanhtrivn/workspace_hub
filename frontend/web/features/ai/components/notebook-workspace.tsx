@@ -15,7 +15,7 @@ import { SourcePanel } from "./source-panel";
 import { StudioPanel } from "./studio-panel";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Spinner } from "@/components/ui/spinner";
-import { Bot } from "lucide-react";
+import { ArrowLeft, Bot } from "lucide-react";
 import type { NotebookActionKey, NotebookActionRunner } from "../types";
 
 export function NotebookWorkspace({ id }: { id: string }) {
@@ -81,19 +81,29 @@ function Workspace({ id }: { id: string }) {
   return (
     <main className="flex min-h-0 flex-1 flex-col gap-4 bg-muted/30 p-3 md:p-5 xl:h-[calc(100dvh-100px)]">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <Link
-            href="/ai"
-            className="text-xs text-muted-foreground hover:underline"
+        <div className="flex min-w-0 items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-9 shrink-0 rounded-full bg-background"
+            asChild
           >
-            Your notebooks
-          </Link>
-          <h1 className="mt-1 break-words text-xl font-semibold">
-            {notebook.title}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Private · {notebook.sources.length} sources
-          </p>
+            <Link
+              href="/ai"
+              aria-label="Back to notebooks"
+              title="Back to notebooks"
+            >
+              <ArrowLeft aria-hidden="true" />
+            </Link>
+          </Button>
+          <div className="min-w-0">
+            <h1 className="break-words text-xl font-semibold">
+              {notebook.title}
+            </h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Private · {notebook.sources.length} sources
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button
@@ -355,7 +365,7 @@ function Workspace({ id }: { id: string }) {
             onSubmit={(event) => {
               event.preventDefault();
               const value = question.trim();
-              if (!value) return;
+              if (!value || chat.busy || !selected.length) return;
               setQuestion("");
               void chat.ask(value, selected);
             }}
@@ -370,6 +380,23 @@ function Workspace({ id }: { id: string }) {
               value={question}
               disabled={chat.busy}
               onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={(event) => {
+                if (
+                  event.key !== "Enter" ||
+                  event.shiftKey ||
+                  event.nativeEvent.isComposing ||
+                  event.nativeEvent.keyCode === 229
+                )
+                  return;
+                event.preventDefault();
+                if (
+                  !event.repeat &&
+                  !chat.busy &&
+                  question.trim() &&
+                  selected.length
+                )
+                  event.currentTarget.form?.requestSubmit();
+              }}
               placeholder="Ask a question about your sources..."
             />
             <div className="flex items-center justify-between gap-3">

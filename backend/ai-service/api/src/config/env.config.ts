@@ -88,7 +88,18 @@ export const config = z
       .default("development"),
     BIND_HOST: z.string().default("127.0.0.1"),
     DATABASE_URL: z.string().min(1),
-    NOTEBOOK_INDEX_CONCURRENCY: z.coerce.number().int().min(1).max(5).default(1),
+    NOTEBOOK_INDEX_CONCURRENCY: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(5)
+      .default(1),
+    NOTEBOOK_INDEX_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(30000)
+      .max(1800000)
+      .default(240000),
     REDIS_URL: z.string().url(),
     AI_GATEWAY_KEY: z.string().trim().default(""),
     AI_GATEWAY_KEY_PREVIOUS: z.string().trim().default(""),
@@ -102,6 +113,7 @@ export const config = z
     LLM_MODEL: z.string().min(1),
     VISUAL_ENABLED: z.enum(["true", "false"]).default("false"),
     VISION_MAX_TOKENS: z.coerce.number().int().min(512).max(4096).default(2048),
+    VISION_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(3),
     LLM_TIMEOUT_MS: z.coerce.number().min(1000).max(120000).default(90000),
     LLM_MAX_TOKENS: z.coerce.number().int().min(256).max(10000).default(4096),
     LLM_REQUESTS_PER_MINUTE: z.coerce.number().int().min(1).default(5),

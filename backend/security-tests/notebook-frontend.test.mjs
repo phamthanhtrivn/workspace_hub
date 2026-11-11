@@ -8,6 +8,35 @@ tooling('ts-node').register({ transpileOnly: true, skipProject: true,
 tooling('tsconfig-paths').register({ baseUrl: fileURLToPath(new URL('../../frontend/web/', import.meta.url)), paths: { '@/*': ['./*'] } });
 const require = createRequire(new URL('../../frontend/web/package.json', import.meta.url));
 const { readAnswer } = require('./features/ai/api/stream.ts');
+const { sourceFailure } = require('./features/ai/source-failure.ts');
+
+test('source limits display their actionable reason and prevent futile retries', () => {
+  for (const message of [
+    'File vượt 24 trang/hình cần Vision hoặc 16 MiB ảnh trích xuất. Hãy tách tài liệu nhỏ hơn.',
+    'VISUAL_PAGE_LIMIT', 'This file exceeds 100,000 tokens.', 'PDF vượt 100 trang.',
+    'Nội dung DOCX sau giải nén vượt 100 MiB.',
+  ]) {
+    const result = sourceFailure(message);
+    assert.equal(result.canRetry, false);
+    assert.match(result.message, /split/i);
+    assert.ok(!result.message.includes('Unable to process this source'));
+  }
+  assert.match(sourceFailure('VISUAL_PAGE_LIMIT').message, /24 pages\/images.*16 MiB/);
+});
+
+test('transient Vision provider errors still allow retry and preserve the real message', () => {
+  const message = 'VISION_PROVIDER_FAILED: The image-reading provider returned HTTP 503.';
+  assert.deepEqual(sourceFailure(message), { message, canRetry: true });
+  assert.equal(sourceFailure(null).canRetry, true);
+});
+
+test('files rejected by the previous 40k token limit can retry under the new 100k limit', () => {
+  for (const message of ['Nội dung vượt 40.000 token/file.', 'This file exceeds 40,000 tokens.']) {
+    const result = sourceFailure(message);
+    assert.equal(result.canRetry, true);
+    assert.match(result.message, /now 100,000 tokens/);
+  }
+});
 const encoder = new TextEncoder();
 function body(text, size = 1) {
   const bytes = encoder.encode(text); let offset = 0;

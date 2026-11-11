@@ -1,5 +1,7 @@
 "use client";
 
+import { sourceFailure } from "../source-failure";
+
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Folder, Upload, X } from "lucide-react";
@@ -15,7 +17,6 @@ import { uploadError } from "../upload";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Spinner } from "@/components/ui/spinner";
 import { Details, DetailsSummary } from "@/components/ui/details";
-import { aiServiceMessage } from "@/lib/ai-feedback";
 import type { NotebookActionKey, NotebookActionRunner } from "../types";
 
 const states: Record<string, string> = {
@@ -55,8 +56,12 @@ export function SourcePanel({
     refresh,
   );
   const sourceBusy = busy || uploading || pickerBusy;
+
   return (
-    <section className="flex h-full flex-col gap-4" aria-label="Document sources">
+    <section
+      className="flex h-full flex-col gap-4"
+      aria-label="Document sources"
+    >
       <header className="flex items-center justify-between">
         <h2 className="font-semibold">Sources</h2>
         <span className="text-xs text-muted-foreground">
@@ -64,7 +69,8 @@ export function SourcePanel({
         </span>
       </header>
       <div className="grid gap-2">
-        <Button loading={uploading}
+        <Button
+          loading={uploading}
           variant="outline"
           disabled={sourceBusy || sources.length >= 5}
           onClick={() => upload.current?.click()}
@@ -98,9 +104,17 @@ export function SourcePanel({
         }}
       />
       <Details className="text-xs leading-relaxed text-muted-foreground">
-        <DetailsSummary className="cursor-pointer">File types & limits</DetailsSummary>
-        <p className="mt-2">PDF, DOCX, TXT, MD, PNG, JPEG and WebP. Up to 20 MiB per file and 50 MiB per notebook.</p>
-        <p className="mt-2">PDFs: up to 100 pages. Each file supports up to 40,000 tokens and 24 scanned pages or images requiring image analysis.</p>
+        <DetailsSummary className="cursor-pointer">
+          File types & limits
+        </DetailsSummary>
+        <p className="mt-2">
+          PDF, DOCX, TXT, MD, PNG, JPEG and WebP. Up to 20 MiB per file and 50
+          MiB per notebook.
+        </p>
+        <p className="mt-2">
+          PDFs: up to 100 pages. Each file supports up to 100,000 tokens and 24
+          scanned pages or images requiring image analysis.
+        </p>
       </Details>
       {error && (
         <p role="alert" className="text-xs text-destructive">
@@ -123,7 +137,10 @@ export function SourcePanel({
           </p>
         )}
         {sources.map((source) => (
-          <article key={source.id} className={`rounded-lg border p-3 ${selected.includes(source.id) ? "border-primary/30 bg-primary/5" : "bg-background"}`}>
+          <article
+            key={source.id}
+            className={`rounded-lg border p-3 ${selected.includes(source.id) ? "border-primary/30 bg-primary/5" : "bg-background"}`}
+          >
             <label className="flex items-start gap-2 text-sm font-medium">
               <Checkbox
                 className="mt-1"
@@ -135,7 +152,9 @@ export function SourcePanel({
             </label>
             <p className="mt-2 text-xs text-muted-foreground">
               {states[source.status] || source.status}
-              {source.status === "READY" ? ` · ${source.chunk_count} passages` : ""}
+              {source.status === "READY"
+                ? ` · ${source.chunk_count} passages`
+                : ""}
             </p>
             {source.status === "INDEXING" && (
               <p role="status" className="mt-1 flex items-center gap-2 text-xs">
@@ -149,8 +168,11 @@ export function SourcePanel({
               </p>
             )}
             {source.error && (
-              <p className="mt-2 break-words text-xs text-destructive">
-                {aiServiceMessage(source.error, "Unable to process this source. Check its format and limits, then retry.")}
+              <p
+                id={`source-error-${source.id}`}
+                className="mt-2 break-words text-xs text-destructive"
+              >
+                {sourceFailure(source.error).message}
               </p>
             )}
             <div className="mt-2 flex gap-2">
@@ -159,9 +181,15 @@ export function SourcePanel({
                   loading={pendingAction === `retry:${source.id}`}
                   size="sm"
                   variant="outline"
-                  disabled={sourceBusy}
+                  disabled={sourceBusy || !sourceFailure(source.error).canRetry}
+                  aria-describedby={
+                    source.error ? `source-error-${source.id}` : undefined
+                  }
                   onClick={() =>
-                    run(() => notebooksApi.source(id, source.id, "retry"), `retry:${source.id}`)
+                    run(
+                      () => notebooksApi.source(id, source.id, "retry"),
+                      `retry:${source.id}`,
+                    )
                   }
                 >
                   Retry
@@ -174,7 +202,10 @@ export function SourcePanel({
                   variant="ghost"
                   disabled={sourceBusy}
                   onClick={() =>
-                    run(() => notebooksApi.source(id, source.id, "retry"), `retry:${source.id}`)
+                    run(
+                      () => notebooksApi.source(id, source.id, "retry"),
+                      `retry:${source.id}`,
+                    )
                   }
                 >
                   Reindex
@@ -186,7 +217,10 @@ export function SourcePanel({
                 variant="ghost"
                 disabled={sourceBusy}
                 onClick={() =>
-                  run(() => notebooksApi.source(id, source.id, "remove"), `remove:${source.id}`)
+                  run(
+                    () => notebooksApi.source(id, source.id, "remove"),
+                    `remove:${source.id}`,
+                  )
                 }
               >
                 <X />
@@ -223,7 +257,9 @@ function DocumentPicker({
   const [search, setSearch] = useState("");
   const [term, setTerm] = useState("");
   const [pending, setPending] = useState(false);
-  const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(null);
+  const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const folderId = folders.at(-1);
   const query = useQuery({
@@ -264,6 +300,7 @@ function DocumentPicker({
       onPending(false);
     }
   };
+
   return (
     <div className="space-y-2 rounded-lg border bg-muted/40 p-2">
       <div className="flex gap-1">

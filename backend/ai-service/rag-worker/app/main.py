@@ -2,6 +2,7 @@ import hmac
 import logging
 import os
 import threading
+from contextlib import asynccontextmanager
 from functools import lru_cache
 from typing import Annotated
 from uuid import UUID
@@ -11,6 +12,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from .engine import Engine
+from .multi_engine import MultiEngine
 from .errors import InvalidSource, ValidationBusy
 
 logger = logging.getLogger("workspace.rag")
@@ -24,8 +26,17 @@ def authorize(x_internal_service_key: Annotated[str, Header()] = ""):
         raise HTTPException(401, "Internal authentication required")
 
 
+@asynccontextmanager
+async def lifespan(_app):
+    try:
+        yield
+    finally:
+        if cached_engine.cache_info().currsize:
+            cached_engine().close()
+
+
 app = FastAPI(title="WorkSpaceHub RAG Worker", docs_url=None, redoc_url=None, openapi_url=None,
-              dependencies=[Depends(authorize)])
+              dependencies=[Depends(authorize)], lifespan=lifespan)
 
 
 @app.middleware("http")
@@ -44,7 +55,25 @@ _engine_lock = threading.Lock()
 
 @lru_cache
 def cached_engine():
-    return Engine()
+    primary = Engine()
+    secondary = os.environ.get("EMBEDDING_SECONDARY_MODEL", "").strip()
+    local_enabled = os.environ.get("EMBEDDING_LOCAL_ENABLED", "false") == "true"
+    if not secondary and not local_enabled:
+        return primary
+    if primary.provider != "gemini" or secondary == primary.model_name:
+        primary.close()
+        raise ValueError("Configure two distinct Gemini embedding models")
+    engines = [primary]
+    try:
+        if secondary:
+            engines.append(Engine(model_name=secondary))
+        if local_enabled:
+            engines.append(Engine(model_name="intfloat/multilingual-e5-small", provider="local"))
+        return MultiEngine(*engines, strategy=os.environ.get('EMBEDDING_INDEX_STRATEGY', 'ensemble'))
+    except Exception:
+        for engine in engines:
+            engine.close()
+        raise
 
 
 def engine():
@@ -105,7 +134,13 @@ def execute(method, *args):
 @app.get("/ready")
 def ready():
     execute(engine().ready)
-    return {"status": "ok", "embeddingLoaded": engine().model is not None, "collection": engine().collection}
+    return {"status": "ok", "embeddingLoaded": engine().model is not None, "collection": engine().collection,
+            "embeddingProvider": engine().provider, "embeddingModel": engine().model_name,
+            "embeddingModels": getattr(engine(), "embedding_models", [engine().model_name]),
+            "embeddingCollections": getattr(engine(), "embedding_collections", {engine().model_name: engine().collection}),
+            "embeddingIndexStrategy": getattr(engine(), 'strategy', 'single'),
+            "embeddingAvailableModels": [item.model_name for item in getattr(engine(), 'engines', [engine()])
+                if not hasattr(engine(), 'quota_exhausted') or not engine().quota_exhausted(item)]}
 
 
 @app.post("/index")

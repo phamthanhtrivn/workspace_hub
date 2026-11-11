@@ -6,6 +6,7 @@ import { UnrecoverableError } from "bullmq";
 import type { Actor, Source } from "../common/types";
 import { config } from "../config/env.config";
 import { ModelMinuteQuotaException } from "../common/errors/model-quota.exception";
+import { mapVisionImages } from "../common/vision-concurrency";
 import { rows, transaction } from "../infrastructure/database/database";
 import { authorizeSources } from "../infrastructure/integrations/document.client";
 import { rag } from "../infrastructure/integrations/rag.client";
@@ -89,9 +90,12 @@ async function extractOnce(
   }
   const payload = {
     ...extracted,
-    images: extracted.images.map(
-      ({ dataUrl: _dataUrl, ...metadata }) => metadata,
-    ),
+    images: extracted.images.map((image) => ({
+      id: image.id,
+      hash: image.hash,
+      page: image.page,
+      context: image.context,
+    })),
   };
   await transaction(async (client) => {
     for (const image of extracted.images)
@@ -118,6 +122,7 @@ async function extractOnce(
       ],
     );
   });
+
   return extracted;
 }
 
@@ -129,7 +134,8 @@ export async function enrichVisualSource(
   const controller = new AbortController();
   const deadline = AbortSignal.timeout(15 * 60_000);
   const signal = AbortSignal.any([controller.signal, deadline]);
-  const authorize = async () => {
+  const checkAuthorization = async () => {
+    signal.throwIfAborted();
     const [current] = await rows(
       "SELECT revision,status FROM notebook_ai.sources WHERE id=$1 AND notebook_id=$2",
       [source.id, source.notebook_id],
@@ -143,72 +149,100 @@ export async function enrichVisualSource(
     await authorizeSources(actor, [source]);
     signal.throwIfAborted();
   };
+  let checking: Promise<void> | undefined;
+  const authorize = () => {
+    checking ??= checkAuthorization().finally(() => {
+      checking = undefined;
+    });
+
+    return checking;
+  };
   const stopPolling = pollUntilAborted(controller, 3000, authorize);
   try {
     await authorize();
     const result = await extractOnce(source, content, signal);
-    const visuals: { text: string; page: number | null; imageId: string }[] =
-      [];
-    for (const [index, image] of result.images.entries()) {
-      await authorize();
+    for (const image of result.images) {
       if (
         hash(Buffer.from(image.dataUrl.split(",")[1], "base64")) !== image.hash
       )
         throw new UnrecoverableError("Ảnh trích xuất không khớp mã kiểm tra");
-      const contextHash = hash(image.context);
-      const [cached] = await rows<{ description: string }>(
-        `SELECT description FROM notebook_ai.source_visuals WHERE source_id=$1 AND revision=$2 AND image_hash=$3 AND context_hash=$4 AND model=$5 AND prompt_version=$6 LIMIT 1`,
-        [
-          source.id,
-          source.revision,
-          image.hash,
-          contextHash,
-          config.LLM_MODEL,
-          VISION_PROMPT_VERSION,
-        ],
-      );
-      let description = cached?.description;
-      while (!description) {
+    }
+    let completed = 0;
+    const descriptions = new Map<string, Promise<string>>();
+    const visuals = await mapVisionImages(
+      result.images,
+      config.VISION_CONCURRENCY ?? 3,
+      async (image) => {
         await authorize();
-        try {
-          description = await describeImage(
-            image.dataUrl,
-            image.context,
-            signal,
-          );
-        } catch (error) {
-          if (!(error instanceof ModelMinuteQuotaException)) throw error;
-          await pause(1500, undefined, { signal });
+        const contextHash = hash(image.context);
+        const [cached] = await rows<{ description: string }>(
+          `SELECT description FROM notebook_ai.source_visuals WHERE source_id=$1 AND revision=$2 AND image_hash=$3 AND context_hash=$4 AND model=$5 AND prompt_version=$6 LIMIT 1`,
+          [
+            source.id,
+            source.revision,
+            image.hash,
+            contextHash,
+            config.LLM_MODEL,
+            VISION_PROMPT_VERSION,
+          ],
+        );
+        let description = cached?.description;
+        if (!description) {
+          const key = `${image.hash}:${contextHash}`;
+          let pending = descriptions.get(key);
+          if (!pending) {
+            pending = (async () => {
+              while (true) {
+                await authorize();
+                try {
+                  return await describeImage(
+                    image.dataUrl,
+                    image.context,
+                    signal,
+                  );
+                } catch (error) {
+                  if (!(error instanceof ModelMinuteQuotaException))
+                    throw error;
+                  await pause(error.retryAfterMs, undefined, { signal });
+                }
+              }
+            })();
+            descriptions.set(key, pending);
+          }
+          description = await pending;
         }
-      }
-      await authorize();
-      await rows(
-        `INSERT INTO notebook_ai.source_visuals(source_id,revision,image_id,image_hash,context_hash,model,prompt_version,page,data_url,description)
+        await authorize();
+        await rows(
+          `INSERT INTO notebook_ai.source_visuals(source_id,revision,image_id,image_hash,context_hash,model,prompt_version,page,data_url,description)
          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
          ON CONFLICT(source_id,revision,image_id) DO UPDATE SET context_hash=excluded.context_hash,model=excluded.model,prompt_version=excluded.prompt_version,data_url=excluded.data_url,description=excluded.description`,
-        [
-          source.id,
-          source.revision,
-          image.id,
-          image.hash,
-          contextHash,
-          config.LLM_MODEL,
-          VISION_PROMPT_VERSION,
-          image.page,
-          image.dataUrl,
-          description,
-        ],
-      );
-      visuals.push({
-        text: `Nội dung đọc từ hình${image.page ? ` tại trang ${image.page}` : ""}:\n${description}`,
-        page: image.page,
-        imageId: image.id,
-      });
-      await rows(
-        "UPDATE notebook_ai.sources SET progress=$2,updated_at=now() WHERE id=$1 AND status='INDEXING'",
-        [source.id, 40 + Math.floor(((index + 1) / result.images.length) * 40)],
-      );
-    }
+          [
+            source.id,
+            source.revision,
+            image.id,
+            image.hash,
+            contextHash,
+            config.LLM_MODEL,
+            VISION_PROMPT_VERSION,
+            image.page,
+            image.dataUrl,
+            description,
+          ],
+        );
+        completed++;
+        await rows(
+          "UPDATE notebook_ai.sources SET progress=GREATEST(progress,$2),updated_at=now() WHERE id=$1 AND status='INDEXING'",
+          [source.id, 40 + Math.floor((completed / result.images.length) * 40)],
+        );
+
+        return {
+          text: `Nội dung đọc từ hình${image.page ? ` tại trang ${image.page}` : ""}:\n${description}`,
+          page: image.page,
+          imageId: image.id,
+        };
+      },
+    );
+
     return { pages: result.pages, visuals };
   } finally {
     stopPolling();

@@ -1,6 +1,7 @@
 """One shared HTTP pool; document calls run concurrently, queries retain a slot."""
 import math
 import threading
+import time
 from urllib.parse import urlsplit
 
 import httpx
@@ -32,16 +33,24 @@ class ApiEmbeddings:
         )
 
     def embed(self, texts: list[str], query: bool = False) -> list[list[float]]:
-        if not texts or len(texts) > 16 or any(not isinstance(text, str) or not text.strip() for text in texts):
-            raise ValueError("Embed one to sixteen nonempty text chunks per request")
+        self.validate_input(texts)
         # No paid request is automatically replayed after an unknown outcome.
         with self._queries if query else self._documents:
             response = self.client.post(
                 self.endpoint + "/embeddings", headers={"Authorization": "Bearer " + self._key},
                 json={"model": self.model, "input": texts, "encoding_format": "float"},
+                timeout=httpx.Timeout(10, connect=5) if query else httpx.Timeout(30, connect=10),
             )
             response.raise_for_status()
             body = response.json()
+        return self.validate_response(body, texts)
+
+    @staticmethod
+    def validate_input(texts):
+        if not texts or len(texts) > 16 or any(not isinstance(text, str) or not text.strip() for text in texts):
+            raise ValueError("Embed one to sixteen nonempty text chunks per request")
+
+    def validate_response(self, body, texts):
         if not isinstance(body, dict) or body.get("model", self.model) != self.model:
             raise ValueError("Embedding response model mismatch")
         rows = body.get("data")
@@ -69,3 +78,67 @@ class ApiEmbeddings:
 
     def close(self):
         self.client.close()
+
+
+class GeminiEmbeddings(ApiEmbeddings):
+    def __init__(self, api_key: str, model: str = "gemini-embedding-001", concurrency: int = 5,
+                 dimensions: int = 768, client: httpx.Client | None = None):
+        if model not in ("gemini-embedding-001", "gemini-embedding-2") or dimensions not in (768, 1536, 3072):
+            raise ValueError("Configure Gemini Embedding 1 or 2 with 768, 1536 or 3072 dimensions")
+        super().__init__("https://generativelanguage.googleapis.com/v1beta", api_key, model, concurrency, client)
+        self.dimensions = dimensions
+        self._dimensions = dimensions
+
+    def embed(self, texts: list[str], query: bool = False) -> list[list[float]]:
+        self.validate_input(texts)
+        requests = []
+        for text in texts:
+            if self.model == "gemini-embedding-2":
+                text = f"task: search result | query: {text}" if query else f"title: none | text: {text}"
+            request = {"model": "models/" + self.model, "content": {"parts": [{"text": text}]},
+                       "outputDimensionality": self.dimensions}
+            if self.model == "gemini-embedding-001":
+                request["taskType"] = "RETRIEVAL_QUERY" if query else "RETRIEVAL_DOCUMENT"
+            requests.append(request)
+        # Each chunk is a separate request, avoiding Embedding 2's aggregation of multiple inputs.
+        payload = {"requests": requests}
+        with self._queries if query else self._documents:
+            for attempt in range(1 if query else 3):
+                response = self.client.post(
+                    self.endpoint + "/models/" + self.model + ":batchEmbedContents",
+                    headers={"x-goog-api-key": self._key}, json=payload,
+                    timeout=httpx.Timeout(10, connect=5) if query else httpx.Timeout(30, connect=10),
+                )
+                # A received quota rejection means no embedding was generated.
+                # Connection/stream failures and every other HTTP error are not replayed here.
+                daily_quota = False
+                if response.status_code == 429:
+                    try:
+                        daily_quota = any('PerDay' in str(violation.get('quotaId', ''))
+                            for detail in response.json().get('error', {}).get('details', [])
+                            for violation in detail.get('violations', []))
+                    except (ValueError, AttributeError, TypeError):
+                        pass
+                if response.status_code == 429 and not daily_quota and not query and attempt < 2:
+                    try:
+                        delay = float(response.headers.get("retry-after", "60"))
+                    except ValueError:
+                        delay = 60
+                    time.sleep(max(1, min(delay, 60)))
+                    continue
+                response.raise_for_status()
+                body = response.json()
+                break
+        embeddings = body.get("embeddings") if isinstance(body, dict) else None
+        if not isinstance(embeddings, list):
+            raise ValueError("Incomplete Gemini embeddings")
+        rows = [{"index": i, "embedding": item.get("values") if isinstance(item, dict) else None}
+                for i, item in enumerate(embeddings)]
+        vectors = self.validate_response({"data": rows}, texts)
+        normalized = []
+        for vector in vectors:
+            norm = math.hypot(*vector)
+            if not math.isfinite(norm) or norm == 0:
+                raise ValueError("Invalid embedding norm")
+            normalized.append([value / norm for value in vector])
+        return normalized

@@ -35,7 +35,7 @@ export async function rag<T>(
       PDF_OCR_REQUIRED:
         "PDF có trang scan chưa có lớp văn bản. Hãy OCR file trước khi tải lên.",
       SOURCE_TOKEN_LIMIT:
-        "Nội dung vượt 40.000 token/file. Hãy tách tài liệu thành file nhỏ hơn.",
+        "This file exceeds 100,000 tokens. Split it into smaller files and upload them again.",
       DOCX_EXPANDED_LIMIT:
         "Nội dung DOCX sau giải nén vượt 100 MiB. Hãy giảm ảnh hoặc tách file.",
       VISUAL_PAGE_LIMIT:
@@ -77,6 +77,7 @@ export async function rag<T>(
       `${code}: RAG worker chưa xử lý được tài liệu (HTTP ${response.status}). Kiểm tra model, Qdrant và bộ nhớ.`,
     );
   }
+
   return (await response.json()) as T;
 }
 export function retrieve(

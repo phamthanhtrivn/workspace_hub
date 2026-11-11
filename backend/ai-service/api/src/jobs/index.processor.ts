@@ -60,7 +60,7 @@ export async function indexSource(id: string) {
           content,
           ...enriched,
         },
-        AbortSignal.timeout(240000),
+        AbortSignal.timeout(config.NOTEBOOK_INDEX_TIMEOUT_MS),
       ),
     );
     await timing.measure("authorize_ms", () =>

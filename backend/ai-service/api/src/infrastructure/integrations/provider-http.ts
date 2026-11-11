@@ -4,7 +4,7 @@ import { logError } from "../../common/errors/error-log";
 
 const connections = new Agent({
   connect: { timeout: Math.min(config.LLM_TIMEOUT_MS, 10000) },
-  connections: 2,
+  connections: Math.max(2, (config.VISION_CONCURRENCY ?? 3) + 1),
   pipelining: 1,
   keepAliveTimeout: 30000,
   keepAliveMaxTimeout: 60000,

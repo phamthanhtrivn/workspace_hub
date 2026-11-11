@@ -33,6 +33,52 @@ vụ nội bộ sẵn sàng, không bảo đảm provider bên ngoài luôn truy
 
 ## Chuẩn bị
 
+### Gemini embedding và tài liệu chạy song song
+
+`VISION_CONCURRENCY=3` cho phép đọc tối đa 3 ảnh cùng lúc trên toàn process worker,
+không phải 3 ảnh cho mỗi tài liệu. Mỗi ảnh vẫn được kiểm tra quyền và lưu mô tả
+riêng; kết quả trả về giữ thứ tự ảnh, tiến độ không lùi khi ảnh hoàn tất lệch thứ
+tự. Nếu một ảnh lỗi, chờ các ảnh đang chạy lưu xong trước khi báo lỗi; lần Retry
+dùng lại mô tả đã lưu. Ảnh trùng nội dung và ngữ cảnh trong cùng lượt xử lý chia
+sẻ một yêu cầu Vision. Giới hạn RPM/TPM/ngày vẫn được áp dụng trước mỗi lần gọi.
+
+`EMBEDDING_LOCAL_ENABLED=true` thêm `intfloat/multilingual-e5-small` làm model
+thứ ba bên cạnh hai Gemini. Local dùng cache model có sẵn, khóa CPU riêng và
+collection 384 chiều; hai Gemini tiếp tục dùng collection 768 chiều riêng biệt.
+Tìm kiếm chạy trên mọi model, gộp thứ hạng và loại kết quả trùng. Dùng nhiều model
+tăng lượng công việc, không bảo đảm nhanh hơn. Khuyến nghị giới hạn RAM RAG 3 GiB.
+Trước khi bật, đồng bộ chunk vào local bằng
+`node backend/scripts/migrate-gemini-embeddings.cjs --apply --model=intfloat/multilingual-e5-small`.
+
+Thêm `EMBEDDING_SECONDARY_MODEL=gemini-embedding-2` để dùng cả Embedding 1 và 2.
+Mỗi model có collection riêng. Nội dung chỉ parse một lần rồi embedding đồng
+thời cho hai model; tìm kiếm chạy cả hai, gộp theo thứ hạng và loại đoạn trùng.
+Summary chỉ đọc một bộ nội dung để không nhân đôi trích dẫn. Embedding 2 dùng
+prefix truy vấn/tài liệu, không gửi `taskType`; từng chunk là một request trong
+batch để không bị gộp thành một vector. Việc chạy hai model tăng số request/token.
+
+Trước khi bật model thứ hai, tạo vector bằng
+`node backend/scripts/migrate-gemini-embeddings.cjs --apply --model=gemini-embedding-2`.
+Script giữ nguyên model đang chạy, kiểm tra quyền/snapshot và bỏ qua chunk đã
+chuyển thành công. Nếu một model lỗi khi tìm kiếm, model còn lại vẫn trả kết quả;
+lỗi quota của truy vấn không được chờ/thử lại khiến cả luồng bị treo.
+
+`EMBEDDING_PROVIDER=gemini` dùng `gemini-embedding-001`, vector 768 chiều,
+`RETRIEVAL_DOCUMENT` cho nội dung và `RETRIEVAL_QUERY` cho câu hỏi. Key nằm trong
+`deploy/ai/.env`, không dùng chung key chat và không ghi vào log. Xem mẫu tại
+[`embedding-gemini.env.example`](../../deploy/ai/embedding-gemini.env.example).
+
+Worker hỗ trợ `NOTEBOOK_INDEX_CONCURRENCY=5`: tối đa 5 tài liệu cùng embedding,
+khớp giới hạn 5 tài liệu mỗi Notebook. Parser CPU được khóa riêng; thời gian chờ
+API không giữ khóa parser. HTTP pool có chỗ riêng cho câu hỏi và kiểm tra vector
+đầy đủ, đúng thứ tự, đúng số chiều trước khi lưu. Lỗi 429 được chờ và thử lại có
+giới hạn; lỗi mạng không rõ kết quả không được tự gửi lại tại lớp embedding.
+
+Khi đổi model/provider/số chiều, phải tạo vector mới trong collection riêng trước
+khi chuyển retrieval. Giữ collection local cũ để có thể quay lại; không trộn hai
+không gian vector. `NOTEBOOK_INDEX_TIMEOUT_MS=900000` cho phép job chờ quota trong
+quá trình xử lý tài liệu; giá trị mặc định khi chưa bật API vẫn là 240000.
+
 Chạy các lệnh bên dưới từ **repository root**. Docker Desktop và hạ tầng
 WorkspaceHub phải đang chạy, có network `wh_network`, PostgreSQL `wh_postgres`,
 Redis `wh_redis` và database `notebook_db`. AI tiếp tục dùng PostgreSQL/Redis chung.
