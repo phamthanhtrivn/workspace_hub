@@ -37,7 +37,7 @@ export function TaskFocusButton({ target, compact = false }: { target: PomodoroA
     </span>
   );
   return (
-    <span data-card-interactive="true" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+    <span className="inline-flex w-fit items-center" data-card-interactive="true" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
       <Button loading={starting} type="button" size="sm" variant="outline" disabled={disabled}
         title={label} aria-label={`${label}: ${target.title}`} onClick={(event) => { event.stopPropagation(); void focus(); }}
         className="h-8 gap-1.5 rounded-control text-xs">

@@ -148,6 +148,7 @@ export function mapProjectTasksToDomainCalendarEvents(
         updatedAt: task.updatedAt,
         extendedProps: {
           projectTask: task,
+          project,
           projectId: project.id,
           projectColor: project.color,
           completedAt: task.completedAt,

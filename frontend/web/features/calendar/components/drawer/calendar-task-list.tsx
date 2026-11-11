@@ -21,7 +21,11 @@ import {
   groupCalendarTasks,
   TaskStatusFilter,
 } from "../../utils/calendar-tasks.utils";
-import { CalendarTaskFocusButton } from "@/features/pomodoro/components/task-focus-button";
+import {
+  CalendarTaskFocusButton,
+  ProjectTaskFocusButton,
+} from "@/features/pomodoro/components/task-focus-button";
+import type { Project, Task } from "@/features/project/types/project";
 
 interface CalendarTaskListProps {
   tasks: CalendarEvent[];
@@ -224,6 +228,8 @@ function TaskRowItem({
     ? ""
     : formatTaskDueDate(dueDate.toISOString(), task.allDay, locale);
   const isRecurring = Boolean(task.recurrenceRule || task.recurrenceParentId);
+  const projectTask = task.extendedProps?.projectTask as Task | undefined;
+  const project = task.extendedProps?.project as Project | undefined;
 
   return (
     <div className="group relative flex items-center gap-2.5 rounded-lg border border-transparent p-2 transition-colors hover:border-border hover:bg-background">
@@ -295,7 +301,13 @@ function TaskRowItem({
           </span>
         )}
       </Button>
-      {!readOnly && <CalendarTaskFocusButton event={task} compact />}
+      {readOnly ? (
+        projectTask ? (
+          <ProjectTaskFocusButton task={projectTask} project={project} compact />
+        ) : null
+      ) : (
+        <CalendarTaskFocusButton event={task} compact />
+      )}
     </div>
   );
 }

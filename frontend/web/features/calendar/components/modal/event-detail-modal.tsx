@@ -233,7 +233,7 @@ export function EventDetailModal({
 
           {isTask && currentUserId && event.calendar?.ownerUserId === currentUserId && !event.calendar.projectId && (
             <div className="flex flex-col gap-4">
-              <div className="flex items-center"><CalendarTaskFocusButton event={event} /></div>
+              <CalendarTaskFocusButton event={event} />
               <TaskFocusHistory target={{ eventId: event.id }} />
             </div>
           )}
