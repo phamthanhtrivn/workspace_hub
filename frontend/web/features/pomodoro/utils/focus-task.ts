@@ -65,7 +65,7 @@ export function isCalendarFocusOverdue(event: Pick<CalendarEvent, "startAt" | "e
 }
 
 export function isCalendarFocusEligible(event: CalendarEvent, userId: string, scope: FocusTaskScope = "all", now = new Date()): boolean {
-  const isTask = event.sourceType === "TASK" || Boolean(event.description?.includes("[TASK]"));
+  const isTask = event.sourceType === "TASK";
   const isPersonal = Boolean(event.calendar && !event.calendar.projectId && event.calendar.ownerUserId === userId);
   const dates = calendarFocusDates(event);
   return isTask && isPersonal && event.permissions?.canManage !== false &&

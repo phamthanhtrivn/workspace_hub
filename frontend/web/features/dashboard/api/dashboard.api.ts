@@ -6,7 +6,6 @@ import {
   listCalendarPomodoroSessions,
 } from "@/features/calendar/api/calendar.api";
 import type { CalendarPomodoroSession } from "@/features/calendar/types/calendar.types";
-import { readTaskDeadline } from "@/features/calendar/utils/calendar-task-deadline.utils";
 import { fetchAllPages } from "@/features/project/api/pagination";
 import { getProjects } from "@/features/project/api/project.api";
 import { getProjectTasks } from "@/features/project/api/task.api";
@@ -21,7 +20,6 @@ import type { UpcomingMeetingItem } from "@/features/meeting/types/meeting.types
 import { isCalendarFocusEligible, isProjectFocusEligible, toCalendarFocusTask, toProjectFocusTask } from "@/features/pomodoro/utils/focus-task";
 import { CALENDAR_DEFAULT_TASK_COLOR } from "@/features/calendar/types/calendar.constants";
 import { EventSourceType } from "@/features/calendar/types/calendar.types";
-import { writeTaskDeadline } from "@/features/calendar/utils/calendar-task-deadline.utils";
 import { getPersonalTaskCalendar } from "@/features/pomodoro/utils/personal-task-calendar";
 import { POMODORO_TASK_MESSAGES } from "@/features/pomodoro/constants/pomodoro-task";
 import { dashboardQuickTaskSchema, type DashboardQuickTaskInput } from "../schemas/dashboard-quick-task.schema";
@@ -37,7 +35,8 @@ export async function createDashboardQuickTask(input: DashboardQuickTaskInput, u
   return createCalendarEvent({
     calendarId: calendar.id,
     title,
-    description: writeTaskDeadline("", deadline.date, deadline.time, deadline.enabled),
+    deadlineDate: deadline.enabled ? deadline.date : null,
+    deadlineTime: deadline.enabled ? deadline.time || null : null,
     startAt,
     endAt,
     allDay: true,
@@ -123,7 +122,7 @@ export async function getPersonalDashboardTasks(
       event.status === "CANCELLED"
     )
       return [];
-    const deadline = readTaskDeadline(event.description);
+    const deadline = { date: event.deadlineDate, time: event.deadlineTime };
     let dueAt: string | null = deadline.date || null;
     if (deadline.date && deadline.time) {
       dueAt = Temporal.PlainDateTime.from(`${deadline.date}T${deadline.time}`)

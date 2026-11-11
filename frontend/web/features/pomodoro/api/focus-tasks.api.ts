@@ -3,7 +3,6 @@ import { calendarEventFormSchema, type CalendarEventEditorValues } from "@/featu
 import { CALENDAR_DEFAULT_TASK_COLOR } from "@/features/calendar/types/calendar.constants";
 import { EventSourceType, type CalendarTaskDeadline } from "@/features/calendar/types/calendar.types";
 import { fromDateTimeLocal } from "@/features/calendar/utils/calendar-date.utils";
-import { writeTaskDeadline } from "@/features/calendar/utils/calendar-task-deadline.utils";
 import { getProject, getProjectMembers, getProjects } from "@/features/project/api/project.api";
 import { getProjectTasks, getTask, updateTask } from "@/features/project/api/task.api";
 import { fetchAllPages } from "@/features/project/api/pagination";
@@ -38,16 +37,18 @@ export async function getAvailableCalendarFocusTasks(userId: string) {
 export async function createCalendarFocusTask(values: Omit<CalendarEventEditorValues, "calendarId">, userId: string, deadline: CalendarTaskDeadline) {
   const calendar = getPersonalTaskCalendar(await getCalendars(), userId);
   if (!calendar) throw new Error(POMODORO_TASK_MESSAGES.personalCalendarRequired);
-  const parsed = calendarEventFormSchema.parse({ ...values, calendarId: calendar.id });
+  const parsed = calendarEventFormSchema.parse({ ...values, calendarId: calendar.id, sourceType: EventSourceType.TASK, deadlineDate: deadline.enabled ? deadline.date : null, deadlineTime: deadline.enabled ? deadline.time || null : null });
   if (deadline.enabled && (!/^\d{4}-\d{2}-\d{2}$/.test(deadline.date) || !Number.isFinite(Date.parse(`${deadline.date}T${deadline.time || "00:00"}`)))) {
     throw new Error(POMODORO_TASK_MESSAGES.invalidDeadline);
   }
-  const description = writeTaskDeadline(parsed.description, deadline.date, deadline.time, deadline.enabled);
+  const description = parsed.description;
   if (description.length > POMODORO_TASK_SETTINGS.maxDescriptionLength) throw new Error(POMODORO_TASK_MESSAGES.descriptionTooLong);
   const event = await createCalendarEvent({
     calendarId: calendar.id,
     title: parsed.title,
     description,
+    deadlineDate: parsed.deadlineDate,
+    deadlineTime: parsed.deadlineTime,
     startAt: fromDateTimeLocal(parsed.startAt),
     endAt: fromDateTimeLocal(parsed.endAt),
     allDay: parsed.allDay,

@@ -167,6 +167,8 @@ export class RecurrenceOccurrenceService {
       visibility: dto.visibility ?? event.visibility,
       sourceType: event.sourceType,
       sourceId: event.sourceId,
+      deadlineDate: event.deadlineDate,
+      deadlineTime: event.deadlineTime,
       completedAt: event.completedAt,
       cancelledAt:
         dto.status === EventStatus.CANCELLED ? new Date() : event.cancelledAt,

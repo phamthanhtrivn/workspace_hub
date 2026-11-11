@@ -81,6 +81,8 @@ export class RecurrenceFollowingMutationService {
         createdBy: series.createdBy,
         updatedBy: userId,
         title: dto.title ?? series.title,
+        deadlineDate: series.deadlineDate,
+        deadlineTime: series.deadlineTime,
         description:
           dto.description === undefined ? series.description : dto.description,
         location: dto.location === undefined ? series.location : dto.location,

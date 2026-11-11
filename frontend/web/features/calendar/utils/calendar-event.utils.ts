@@ -59,27 +59,11 @@ export function isTaskCalendarEvent(event?: {
   if (!event) return false;
   if (event.sourceType === EventSourceType.TASK) return true;
   if (event.extendedProps?.sourceType === EventSourceType.TASK) return true;
-  if (
-    typeof event.description === "string" &&
-    event.description.includes("[TASK]")
-  ) {
-    return true;
-  }
-  const extDesc = event.extendedProps?.description;
-  if (typeof extDesc === "string" && extDesc.includes("[TASK]")) {
-    return true;
-  }
   return false;
 }
 
-export function cleanTaskDescription(
-  description: string | null | undefined,
-): string {
-  if (!description) return "";
-  return description
-    .replace(/^\[TASK\]\s*/, "")
-    .replace(/\n?\[TASK\]\s*/g, "")
-    .trim();
+export function cleanTaskDescription(description: string | null | undefined): string {
+  return description?.trim() ?? "";
 }
 
 export function mapCalendarEventToFullCalendar(

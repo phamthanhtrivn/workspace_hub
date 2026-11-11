@@ -9,11 +9,13 @@ import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
 import { QuickRow } from "./calendar-time-fields";
 import type { CalendarTaskDeadline } from "../../types/calendar.types";
 
-export function CalendarTaskDeadlineFields({ value, onChange, error, disabled }: {
+export function CalendarTaskDeadlineFields({ value, onChange, error, disabled, startAt = "", endAt = "" }: {
   value: CalendarTaskDeadline;
   onChange: (deadline: CalendarTaskDeadline) => void;
   error?: string;
   disabled?: boolean;
+  startAt?: string;
+  endAt?: string;
 }) {
   const errorId = useId();
   return <><QuickRow icon={<Target className="size-5" />}>
@@ -22,8 +24,10 @@ export function CalendarTaskDeadlineFields({ value, onChange, error, disabled }:
       <div className="flex min-w-0 items-start gap-2">
         <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_7.5rem]">
           <CustomDatePicker ariaLabel={copy.deadline} value={value.date} required disabled={disabled}
+            min={(value.time ? endAt : startAt).slice(0, 10) || undefined}
             invalid={Boolean(error)} descriptionId={error ? errorId : undefined} onChange={(date) => onChange({ ...value, date })} />
           <CustomTimePicker ariaLabel={copy.deadlineTime} value={value.time} disabled={disabled}
+            min={value.date === endAt.slice(0, 10) ? endAt.slice(11, 16) : undefined}
             invalid={Boolean(error)} descriptionId={error ? errorId : undefined} onChange={(time) => onChange({ ...value, time })} />
         </div>
         <Button type="button" variant="ghost" size="icon" disabled={disabled} aria-label={copy.removeDeadline}

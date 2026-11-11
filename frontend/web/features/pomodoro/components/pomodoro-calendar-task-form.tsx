@@ -107,7 +107,7 @@ export function PomodoroCalendarTaskForm({ focusDurationMinutes, onCreated, onSa
       <CalendarTimeFields form={form} mode={time.mode} today={time.today} onStartDateChange={time.handleStartDateChange} onEndDateChange={time.handleEndDateChange}
         onStartTimeChange={time.handleStartTimeChange} onEndDateTimeChange={time.handleEndDateTimeChange} onAllDayChange={time.handleAllDayChange} />
       {errors.endAt && <p role="alert" className="text-xs text-destructive-content">{errors.endAt.message}</p>}
-      <CalendarTaskDeadlineFields value={deadline} onChange={setDeadline} disabled={locked} />
+      <CalendarTaskDeadlineFields value={deadline} onChange={setDeadline} disabled={locked} startAt={time.startAt} endAt={time.endAt} />
       <div className="space-y-1.5">
         <label className="text-xs font-medium text-muted-foreground" htmlFor={`${formId}-description`}>Description (optional)</label>
         <Textarea {...register("description")} id={`${formId}-description`} rows={3} maxLength={POMODORO_TASK_SETTINGS.maxDescriptionLength}

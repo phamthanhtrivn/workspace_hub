@@ -22,6 +22,7 @@ import { buildCalendarMeetingUrl } from "../../utils/calendar-conference.utils";
 
 import { CalendarEventReadonlyDetails } from "./calendar-event-readonly-details";
 import { CalendarEventRecurrenceDetails } from "./calendar-event-recurrence-details";
+import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
@@ -220,6 +221,7 @@ export function EventDetailModal({
                 }`}
               >
                 {event.title}
+                {isTask && <span className="ml-2 inline-flex rounded-full border border-border bg-muted px-2 py-0.5 align-middle text-xs font-semibold text-muted-foreground">{copy.task}</span>}
               </h2>
               <p className="mt-1 text-sm font-normal text-muted-foreground">
                 {formatCalendarEventRange(event, "en")}

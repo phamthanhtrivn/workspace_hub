@@ -58,10 +58,7 @@ export class CalendarEventQueryService {
   async getTasks(userId: string, filters: GetCalendarTasksQueryDto) {
     const where: Prisma.CalendarEventWhereInput = {
       status: { not: EventStatus.CANCELLED },
-      OR: [
-        { sourceType: EventSourceType.TASK },
-        { description: { contains: '[TASK]' } },
-      ],
+      sourceType: EventSourceType.TASK,
       AND: [
         {
           OR: [

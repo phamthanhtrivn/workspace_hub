@@ -153,6 +153,8 @@ export interface CalendarConference {
 }
 
 export interface CalendarEvent {
+  deadlineDate?: string | null;
+  deadlineTime?: string | null;
   conference?: CalendarConference;
   id: string;
   calendarId: string;
@@ -285,6 +287,8 @@ export interface CalendarGroupedTasks {
 }
 
 export interface CalendarEventFormValues {
+  deadlineDate?: string | null;
+  deadlineTime?: string | null;
   conference?: { enabled: boolean };
   calendarId: string;
   title: string;
@@ -305,6 +309,8 @@ export interface CalendarEventFormValues {
 }
 
 export interface CreateCalendarEventPayload {
+  deadlineDate?: string | null;
+  deadlineTime?: string | null;
   conference?: { enabled: boolean };
   calendarId: string;
   title: string;

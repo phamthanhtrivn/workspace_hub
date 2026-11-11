@@ -136,11 +136,14 @@ export class RecurrenceTransactionService {
       new Date(dto.endAt).getTime() !== event.endAt.getTime();
     const allDayChanged =
       dto.allDay !== undefined && dto.allDay !== event.allDay;
+    const deadlineChanged =
+      (dto.deadlineDate !== undefined && dto.deadlineDate !== event.deadlineDate) ||
+      (dto.deadlineTime !== undefined && dto.deadlineTime !== event.deadlineTime);
     const exceptionsChanged = dto.exceptionDates !== undefined &&
       JSON.stringify([...dto.exceptionDates].map(value => new Date(value).toISOString()).sort()) !==
       JSON.stringify(event.recurrenceSeries!.exceptions.map(value => value.occurrenceStart.toISOString()).sort());
 
-    if (ruleChanged || startChanged || endChanged || allDayChanged || exceptionsChanged) {
+    if (ruleChanged || startChanged || endChanged || allDayChanged || exceptionsChanged || deadlineChanged) {
       throw new BadRequestException(
         CALENDAR_ERROR_MESSAGES.RECURRING_EVENT_FIELDS_LOCKED,
       );

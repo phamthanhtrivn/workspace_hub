@@ -26,10 +26,6 @@ import {
   EventSourceType,
   WorkspaceCalendar,
 } from "../../types/calendar.types";
-import {
-  readTaskDeadline,
-  writeTaskDeadline,
-} from "../../utils/calendar-task-deadline.utils";
 import { CalendarDocumentsSection } from "./calendar-documents-section";
 import { EventCalendarSelect } from "./event-calendar-select";
 import { QuickCreateEventFields } from "./quick-create-event-fields";
@@ -75,9 +71,11 @@ export function QuickCreateModal({
   const dialogRef = useRef<HTMLFormElement>(null);
   const isEditing = Boolean(event?.id);
 
-  const { control, formState, getValues, register, setValue } = controller.form;
+  const { control, formState, register, setValue } = controller.form;
   const calendarId = useWatch({ control, name: "calendarId" });
   const reminders = useWatch({ control, name: "reminders" });
+  const startAt = useWatch({ control, name: "startAt" });
+  const endAt = useWatch({ control, name: "endAt" });
   const modalAccent = kind === "task" ? "var(--warning-content)" : "var(--link)";
   const modalTitle = isEditing
     ? kind === "task"
@@ -110,13 +108,17 @@ export function QuickCreateModal({
   });
 
   // Task deadline state
-  const initialDeadline = readTaskDeadline(event?.description);
   const [deadline, setDeadline] = useState<CalendarTaskDeadline>({
-    enabled: Boolean(initialDeadline.date), date: initialDeadline.date, time: initialDeadline.time,
+    enabled: Boolean(event?.deadlineDate), date: event?.deadlineDate ?? "", time: event?.deadlineTime ?? "",
   });
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (submitEvent) => {
     if (kind === "task") {
+      if (deadline.enabled && !deadline.date) {
+        submitEvent.preventDefault();
+        controller.form.setError("deadlineDate", { type: "validate", message: copy.deadlineInvalid });
+        return;
+      }
       setValue("sourceType", EventSourceType.TASK);
       setValue("useEventColor", true);
       setValue("color", tasksColor || "var(--warning)");
@@ -127,17 +129,12 @@ export function QuickCreateModal({
       if (personalCalendar) {
         setValue("calendarId", personalCalendar.id);
       }
-      setValue(
-        "description",
-        writeTaskDeadline(
-          getValues("description") || "",
-          deadline.date,
-          deadline.time,
-          deadline.enabled,
-        ),
-      );
+      setValue("deadlineDate", deadline.enabled ? deadline.date : null);
+      setValue("deadlineTime", deadline.enabled ? deadline.time || null : null);
     } else {
       setValue("sourceType", EventSourceType.USER);
+      setValue("deadlineDate", null);
+      setValue("deadlineTime", null);
     }
     controller.submit(submitEvent);
   };
@@ -294,8 +291,9 @@ export function QuickCreateModal({
               />
             )}
 
-            {kind === "task" && <CalendarTaskDeadlineFields value={deadline} onChange={(nextDeadline) => {
+            {kind === "task" && <CalendarTaskDeadlineFields value={deadline} startAt={startAt} endAt={endAt} error={formState.errors.deadlineDate?.message} onChange={(nextDeadline) => {
               setDeadline(nextDeadline);
+              controller.form.clearErrors(["deadlineDate", "deadlineTime"]);
               if (nextDeadline.enabled && !controller.isRecurring) controller.clearRecurrence();
             }} disabled={submitting || controller.isRecurring} />}
 

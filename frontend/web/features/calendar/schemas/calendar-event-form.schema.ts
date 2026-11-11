@@ -1,4 +1,5 @@
 import { getDateRangeErrors } from "@/lib/date-range";
+import { getTaskDeadlineError } from "../utils/calendar-task-deadline.utils";
 import { z } from "zod";
 import { CALENDAR_FORM_COPY as copy } from "../constants/calendar-form-copy";
 import {
@@ -29,6 +30,8 @@ export const createCalendarEventFormSchema = (mode: "create" | "edit") => z
     calendarId: z.string().min(1, copy.requiredFields),
     title: z.string().trim().min(1, copy.requiredFields).max(CALENDAR_TASK_TITLE_MAX_LENGTH),
     description: z.string().max(2_000),
+    deadlineDate: z.string().nullable().optional(),
+    deadlineTime: z.string().nullable().optional(),
     location: z.string().max(500),
     startAt: z.string().min(1, copy.requiredFields),
     endAt: z.string().min(1, copy.requiredFields),
@@ -49,6 +52,10 @@ export const createCalendarEventFormSchema = (mode: "create" | "edit") => z
     });
     if (errors.start) context.addIssue({ code: "custom", message: errors.start, path: ["startAt"] });
     if (errors.end) context.addIssue({ code: "custom", message: errors.end, path: ["endAt"] });
+    if (values.sourceType === EventSourceType.TASK) {
+      const deadlineError = getTaskDeadlineError(values.deadlineDate, values.deadlineTime, values.startAt, values.endAt);
+      if (deadlineError) context.addIssue({ code: "custom", message: deadlineError, path: ["deadlineDate"] });
+    }
   });
 
 export const calendarEventFormSchema = createCalendarEventFormSchema("edit");

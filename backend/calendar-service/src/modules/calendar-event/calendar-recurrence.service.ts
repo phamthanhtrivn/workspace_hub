@@ -313,6 +313,8 @@ export class CalendarRecurrenceService {
             updatedBy: root.updatedBy,
             title: root.title,
             description: root.description,
+            deadlineDate: root.deadlineDate,
+            deadlineTime: root.deadlineTime,
             location: root.location,
             conferenceEnabled: root.conferenceEnabled,
             startAt: occurrenceStart,

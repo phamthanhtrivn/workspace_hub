@@ -22,6 +22,8 @@ export function buildCalendarEventUpdate(
     "calendarId",
     "title",
     "description",
+    "deadlineDate",
+    "deadlineTime",
     "location",
     "allDay",
     "color",

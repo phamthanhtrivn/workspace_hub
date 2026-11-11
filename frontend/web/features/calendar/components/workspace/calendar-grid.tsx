@@ -27,6 +27,8 @@ import {
 import { CalendarEventMoveInfo } from "../../hooks/calendar-workspace.types";
 import { CalendarEvent, EventSourceType } from "../../types/calendar.types";
 import { LoadingState } from "@/components/ui/loading-state";
+import { formatTaskDeadline } from "../../utils/calendar-task-deadline.utils";
+import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
 
 const FULL_CALENDAR_PLUGINS = [
   dayGridPlugin,
@@ -97,6 +99,7 @@ export const CalendarGrid = memo(function CalendarGrid({
         isTask && Boolean(arg.event.extendedProps.completedAt);
       const isDeclined = Boolean(arg.event.extendedProps.isDeclined);
       const taskEvent = arg.event.extendedProps.model as CalendarEvent | undefined;
+      const deadlineLabel = isTask && taskEvent ? formatTaskDeadline(taskEvent) : null;
       const canToggleTask =
         isTask && !isProjectTask && Boolean(taskEvent?.permissions?.canManage);
       const taskToggleLabel = isCompletedTask ? "Mark task incomplete" : "Mark task completed";
@@ -136,7 +139,7 @@ export const CalendarGrid = memo(function CalendarGrid({
 
       return (
         <div
-          title={`${arg.event.title}\n${arg.timeText}`}
+          title={`${arg.event.title}\n${arg.timeText}${deadlineLabel ? `\n${copy.deadline}: ${deadlineLabel}` : ""}`}
           className={`calendar-event-content relative min-h-full min-w-0 overflow-hidden rounded px-1.5 py-1 text-primary-foreground ${
             isTask ? "calendar-task-event-content" : ""
           }`}
@@ -192,8 +195,10 @@ export const CalendarGrid = memo(function CalendarGrid({
                   className="calendar-event-status mr-1 inline-block h-3.5 w-3.5 align-text-bottom"
                 />
               ) : null}
+              {isTask && <span className="mr-1 inline-flex rounded border border-current px-1 text-[10px] font-medium leading-tight">{copy.task}</span>}
               {arg.event.title}
             </p>
+            {deadlineLabel && <p className="mt-0.5 truncate text-[10px] leading-tight">{copy.deadline}: {deadlineLabel}</p>}
             {!arg.event.allDay && (
               <p
                 className={`mt-0.5 whitespace-nowrap text-xs font-medium leading-[1.2] tabular-nums ${

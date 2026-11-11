@@ -45,6 +45,39 @@ function loadCalendarModule(relativePath, stubs = {}, cache = new Map()) {
   return target.exports;
 }
 
+test('structured deadlines validate date against Start and time against End without description markers', () => {
+  const { getTaskDeadlineError, formatTaskDeadline } = loadCalendarModule('features/calendar/utils/calendar-task-deadline.utils.ts');
+  const check = (date, time) => getTaskDeadlineError(date, time, '2030-01-01T23:00', '2030-01-02T10:00');
+  assert.equal(check('2030-01-01', null), undefined);
+  assert.ok(check('2029-12-31', null));
+  assert.ok(check('2030-01-02', '09:59'));
+  assert.equal(check('2030-01-02', '10:00'), undefined);
+  assert.ok(check('2030-02-30', null));
+  assert.equal(formatTaskDeadline({ deadlineDate: '2030-01-01' }), 'Jan 1, 2030');
+  assert.match(formatTaskDeadline({ deadlineDate: '2030-01-02', deadlineTime: '10:00' }), /10:00 AM/);
+  const { createCalendarEventFormDefaults } = loadCalendarModule('features/calendar/utils/calendar-event-form.utils.ts');
+  const defaults = createCalendarEventFormDefaults({ calendarId: 'calendar', event: { startAt: '2030-01-01T09:00:00Z', endAt: '2030-01-01T10:00:00Z', description: 'Actual task description', deadlineDate: '2030-01-02', deadlineTime: '10:00', sourceType: 'TASK' } });
+  assert.equal(defaults.values.description, 'Actual task description');
+  assert.equal(defaults.values.deadlineDate, '2030-01-02');
+  assert.equal(defaults.values.deadlineTime, '10:00');
+});
+
+test('task detail renders a separate deadline and keeps user description unchanged', () => {
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const { CalendarEventReadonlyDetails } = loadCalendarModule('features/calendar/components/modal/calendar-event-readonly-details.tsx', {
+    '@/store/store': { useAppSelector: selector => selector({ auth: { userId: 'owner' } }) },
+    '../../hooks/use-calendar-users': { useAttendeeProfiles: () => ({}) },
+    './calendar-documents-section': { CalendarDocumentsSection: () => null },
+    './event-attendee-list': { EventAttendeeList: () => null },
+  });
+  const html = renderToStaticMarkup(CalendarEventReadonlyDetails({ event: { sourceType: 'TASK', description: 'Bring the report', deadlineDate: '2030-01-02', deadlineTime: '10:00', documentIds: [], attendees: [] } }));
+  assert.match(html, /Deadline/);
+  assert.match(html, /Jan 2, 2030/);
+  assert.match(html, /10:00 AM/);
+  assert.match(html, /Bring the report/);
+  assert.doesNotMatch(html, /\[TASK\]|\[Deadline:/);
+});
+
 test('repeat summaries capitalize Every and include weekdays, endings and implicit dates', () => {
   const { formatRecurrenceRuleSummary } = loadCalendarModule('features/calendar/utils/calendar-recurrence.utils.ts');
   const weekly = formatRecurrenceRuleSummary('FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,FR;COUNT=10');
