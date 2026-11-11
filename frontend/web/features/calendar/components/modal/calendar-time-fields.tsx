@@ -33,11 +33,13 @@ export function QuickRow({
   children,
   className,
   contentClassName,
+  iconAlignment = "start",
 }: {
   icon: ReactNode;
   children: ReactNode;
   className?: string;
   contentClassName?: string;
+  iconAlignment?: "start" | "center";
 }) {
   return (
     <div
@@ -46,7 +48,12 @@ export function QuickRow({
         className,
       )}
     >
-      <span className="mt-1 grid h-9 w-9 place-items-center rounded-panel text-muted-foreground">
+      <span
+        className={cn(
+          "mt-1 grid h-9 w-9 place-items-center rounded-panel text-muted-foreground",
+          iconAlignment === "center" && "mt-0 self-center",
+        )}
+      >
         {icon}
       </span>
       <div className={cn("min-w-0", contentClassName)}>{children}</div>

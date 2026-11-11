@@ -94,6 +94,14 @@ export function useCalendarEventForm({
 
 
   const persistValidForm = async (values: CalendarEventEditorValues) => {
+    if (
+      hasConference &&
+      new Date(fromDateTimeLocal(values.startAt)).getTime() <= Date.now()
+    ) {
+      toast.error("Cannot add video conference to past events");
+      return;
+    }
+
     const finalLocation = values.location.trim() || null;
     await onSubmit({
       conference: { enabled: hasConference },
