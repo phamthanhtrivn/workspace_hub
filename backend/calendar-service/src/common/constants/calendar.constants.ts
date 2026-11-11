@@ -8,6 +8,7 @@ export const CALENDAR_DEFAULTS = {
   MAX_REMINDERS: 5,
   MAX_DOCUMENTS: 20,
   MAX_RECURRENCE_EXCEPTIONS: 1_000,
+  MIN_EVENT_DURATION_MS: 15 * 60 * 1_000,
   DEFAULT_PAGE_SIZE: 100,
   MAX_PAGE_SIZE: 200,
   MAX_QUERY_RANGE_DAYS: 366,
@@ -30,7 +31,12 @@ export const CALENDAR_ERROR_MESSAGES = {
   FORBIDDEN_EVENT_UPDATE:
     'Only the event creator or calendar owner can update this event',
   FORBIDDEN_RESPONSE: 'Only invited attendees can respond to this event',
-  INVALID_EVENT_RANGE: 'Event endAt must be after startAt',
+  INVALID_EVENT_RANGE: 'Event endAt must be at least 15 minutes after startAt',
+  RECURRING_EVENT_FIELDS_LOCKED:
+    'The recurrence rule and time fields cannot be changed after an event repeats',
+  RECURRING_TASK_DEADLINE:
+    'Tasks with a deadline cannot repeat',
+  TASK_CONFERENCE_UNSUPPORTED: 'Tasks cannot have video meetings',
   TOO_MANY_ATTENDEES: 'Too many attendees',
   TOO_MANY_REMINDERS: 'Too many reminders',
   INVALID_QUERY_RANGE:

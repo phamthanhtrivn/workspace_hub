@@ -108,6 +108,11 @@ export function mapCalendarEventToFullCalendar(
     allDay: allDay === event.allDay ? event.allDay : true,
     sourceType: normalizedSourceType,
   };
+  const canEditSchedule = Boolean(
+    event.permissions?.canManage &&
+      !event.recurrenceRule &&
+      !event.recurrenceParentId,
+  );
 
   return {
     id: event.id,
@@ -127,9 +132,9 @@ export function mapCalendarEventToFullCalendar(
         : []),
       ...(isDeclined ? ["calendar-event-declined"] : []),
     ],
-    editable: event.permissions?.canManage ?? false,
-    durationEditable: event.permissions?.canManage ?? false,
-    startEditable: event.permissions?.canManage ?? false,
+    editable: canEditSchedule,
+    durationEditable: canEditSchedule,
+    startEditable: canEditSchedule,
     extendedProps: {
       model: normalizedEvent,
       calendarId: event.calendarId,

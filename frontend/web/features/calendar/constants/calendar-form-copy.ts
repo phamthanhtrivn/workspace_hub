@@ -38,6 +38,7 @@ export const CALENDAR_FORM_COPY = {
   editRecurringEvent: "Edit recurring event",
   recurrenceOccurrences: "occurrences",
   recurrenceInvalid: "Enter a whole interval from 1 to 365, a count from 1 to 10,000, and an end date on or after the start.",
+  recurringTimeLocked: "Time and repeat settings are locked. To change them, delete this event or task and create a new one.",
   editTask: "Edit task",
   end: "End",
   endDate: "End date",

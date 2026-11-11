@@ -56,6 +56,14 @@ function parseRule(rule: string) {
   return RRule.parseString(rule.replace(/^RRULE:/, ""));
 }
 
+export function formatRecurrenceRuleSummary(rule: string): string {
+  try {
+    return new RRule(parseRule(rule)).toText();
+  } catch {
+    return rule;
+  }
+}
+
 function getParsedWeekdays(
   byweekday: ReturnType<typeof parseRule>["byweekday"],
 ): CalendarRecurrenceWeekday[] {

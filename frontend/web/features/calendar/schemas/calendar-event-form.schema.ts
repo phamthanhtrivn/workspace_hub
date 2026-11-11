@@ -45,6 +45,7 @@ export const createCalendarEventFormSchema = (mode: "create" | "edit") => z
     const errors = getDateRangeErrors({
       start: values.startAt, end: values.endAt, mode,
       requireStart: true, requireEnd: true, minDurationMs: CALENDAR_MIN_EVENT_DURATION_MS,
+      allowPastStart: true,
     });
     if (errors.start) context.addIssue({ code: "custom", message: errors.start, path: ["startAt"] });
     if (errors.end) context.addIssue({ code: "custom", message: errors.end, path: ["endAt"] });

@@ -20,6 +20,7 @@ export function useCalendarRecurrence(
   defaultStart: Date,
   event?: CalendarEvent | null,
 ) {
+  const recurrenceStartAt = startAt || defaultStart.toISOString();
   const [recurrenceRule, setRecurrenceRule] = useState<string | null>(
     event?.recurrenceRule || null,
   );
@@ -36,14 +37,14 @@ export function useCalendarRecurrence(
   const handleRecurrenceChange = (preset: CalendarRecurrencePreset) => {
     if (preset === CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM) {
       setCustomRecurrence(
-        parseCustomRecurrenceRule(recurrenceRule, new Date(startAt)),
+        parseCustomRecurrenceRule(recurrenceRule, new Date(recurrenceStartAt)),
       );
       setShowCustomRecurrence(true);
       return;
     }
     setRecurrencePreset(preset);
     setRecurrenceDirty(true);
-    setRecurrenceRule(getPresetRecurrenceRule(preset, new Date(startAt)));
+    setRecurrenceRule(getPresetRecurrenceRule(preset, new Date(recurrenceStartAt)));
   };
 
   const handleCustomRecurrenceSave = (
@@ -69,17 +70,17 @@ export function useCalendarRecurrence(
       {
         value: CALENDAR_RECURRENCE_PRESET_VALUES.WEEKLY,
         label: copy.recurrenceWeeklyOn(
-          getWeekdayName(new Date(startAt), CALENDAR_FORM_LOCALE),
+          getWeekdayName(new Date(recurrenceStartAt), CALENDAR_FORM_LOCALE),
         ),
       },
       {
         value: CALENDAR_RECURRENCE_PRESET_VALUES.MONTHLY,
-        label: copy.recurrenceMonthlyOn(new Date(startAt).getDate()),
+        label: copy.recurrenceMonthlyOn(new Date(recurrenceStartAt).getDate()),
       },
       {
         value: CALENDAR_RECURRENCE_PRESET_VALUES.YEARLY,
         label: copy.recurrenceYearlyOn(
-          getMonthDayName(new Date(startAt), CALENDAR_FORM_LOCALE),
+          getMonthDayName(new Date(recurrenceStartAt), CALENDAR_FORM_LOCALE),
         ),
       },
       {
@@ -91,10 +92,16 @@ export function useCalendarRecurrence(
         label: copy.recurrenceCustom,
       },
     ],
-    [startAt],
+    [recurrenceStartAt],
   );
 
   return {
+    clearRecurrence: () => {
+      setRecurrenceDirty(true);
+      setRecurrencePreset(CALENDAR_RECURRENCE_PRESET_VALUES.NONE);
+      setRecurrenceRule(null);
+      setShowCustomRecurrence(false);
+    },
     closeCustomRecurrence: () => setShowCustomRecurrence(false),
     customRecurrence,
     getRecurrenceRule: (valuesStartAt: string) =>
@@ -102,7 +109,7 @@ export function useCalendarRecurrence(
       recurrencePreset === CALENDAR_RECURRENCE_PRESET_VALUES.NONE ||
       recurrencePreset === CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM
         ? recurrenceRule
-        : getPresetRecurrenceRule(recurrencePreset, new Date(valuesStartAt)),
+        : getPresetRecurrenceRule(recurrencePreset, new Date(valuesStartAt || recurrenceStartAt)),
     handleCustomRecurrenceSave,
     handleRecurrenceChange,
     recurrenceOptions,

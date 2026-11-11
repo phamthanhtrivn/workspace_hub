@@ -301,6 +301,7 @@
 
   .field-focus:focus,
   .field-focus-container:focus-within,
+  .field-focus-container[data-state="open"],
   .field-focus-group:focus-within > .field-focus,
   .field-focus-open[data-state="open"] {
     border-color: var(--ring);
@@ -323,6 +324,7 @@
   .field-focus-open[aria-invalid="true"],
   .field-focus-container[data-invalid="true"],
   .field-focus-container[data-invalid="true"]:focus-within,
+  .field-focus-container[data-invalid="true"][data-state="open"],
   .field-focus-group:focus-within > .field-focus[aria-invalid="true"] {
     border-color: var(--destructive-outline);
   }
@@ -336,6 +338,7 @@
   @media (forced-colors: active) {
     .field-focus:focus,
     .field-focus-container:focus-within,
+    .field-focus-container[data-state="open"],
     .field-focus-group:focus-within > .field-focus,
     .field-focus-open[data-state="open"] {
       outline: 2px solid Highlight;

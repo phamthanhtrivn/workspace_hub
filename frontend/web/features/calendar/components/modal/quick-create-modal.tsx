@@ -89,6 +89,15 @@ export function QuickCreateModal({
 
   const locationValue = useWatch({ control, name: "location" }) ?? "";
 
+  const handleKindChange = (nextKind: QuickCreateKind) => {
+    onKindChange(nextKind);
+    if (nextKind === "task" && deadline.enabled) controller.clearRecurrence();
+    setValue(
+      "sourceType",
+      nextKind === "task" ? EventSourceType.TASK : EventSourceType.USER,
+    );
+  };
+
 
   // Expand "More options" downwards
   const [showMoreOptions, setShowMoreOptions] = useState<boolean>(() => {
@@ -195,7 +204,7 @@ export function QuickCreateModal({
             {...register("title")}
             required={kind === "task"}
             maxLength={kind === "task" ? CALENDAR_TASK_TITLE_MAX_LENGTH : undefined}
-            data-modal-initial-focus={isEditing || undefined}
+            data-modal-initial-focus
             focusMode="container"
             id="calendar-quick-create-title"
             aria-label={kind === "task" ? copy.taskTitle : copy.addTitle}
@@ -222,7 +231,7 @@ export function QuickCreateModal({
                   variant="ghost"
 
                   aria-pressed={kind === tab.value}
-                  onClick={() => onKindChange(tab.value)}
+                  onClick={() => handleKindChange(tab.value)}
                   className={cn(
                     "h-9 min-w-20 rounded-control border px-4 py-0 text-sm font-semibold leading-none transition-colors focus-visible:ring-inset motion-reduce:transition-none",
                     kind === tab.value
@@ -251,7 +260,7 @@ export function QuickCreateModal({
             <QuickCreateTimeSection
               mode={controller.mode}
               today={controller.today}
-              disabled={submitting || formState.isSubmitting}
+              disabled={submitting || formState.isSubmitting || controller.isRecurring}
               form={controller.form}
               kind={kind}
               recurrencePreset={controller.recurrencePreset}
@@ -262,7 +271,11 @@ export function QuickCreateModal({
               onEndDateTimeChange={controller.handleEndDateTimeChange}
               onAllDayChange={controller.handleAllDayChange}
               onRecurrenceChange={controller.handleRecurrenceChange}
+              showRecurrence={kind !== "task" || !deadline.enabled}
+              recurrenceDisabled={controller.isRecurring}
+              recurrenceRule={event?.recurrenceRule}
             />
+            {controller.isRecurring && <p className="ml-12 text-xs text-muted-foreground">{copy.recurringTimeLocked}</p>}
 
             {/* Event Specific: Attendees, Video Conference, Location */}
             {kind === "event" && (
@@ -281,7 +294,10 @@ export function QuickCreateModal({
               />
             )}
 
-            {kind === "task" && <CalendarTaskDeadlineFields value={deadline} onChange={setDeadline} disabled={submitting} />}
+            {kind === "task" && <CalendarTaskDeadlineFields value={deadline} onChange={(nextDeadline) => {
+              setDeadline(nextDeadline);
+              if (nextDeadline.enabled && !controller.isRecurring) controller.clearRecurrence();
+            }} disabled={submitting || controller.isRecurring} />}
 
             {/* Description */}
             <QuickRow icon={<AlignLeft className="h-5 w-5" />}>
