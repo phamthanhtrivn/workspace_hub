@@ -67,6 +67,7 @@ function fixture(type: ItemType, previousRecipient?: string) {
     { checkPersonalOwnerFeature: () => Promise.resolve(item) },
     { publishProjectDocumentEvent: () => Promise.resolve(undefined) },
     new DocumentShareNotificationService(),
+    { publishForItem: () => Promise.resolve() },
   ] as unknown as ConstructorParameters<typeof DocumentSharingService>;
 
   return { service: new DocumentSharingService(...dependencies), payloads };

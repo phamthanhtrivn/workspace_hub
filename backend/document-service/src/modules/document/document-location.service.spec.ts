@@ -27,6 +27,7 @@ void test('Starred folders reject direct create-folder, upload initiation and up
     {} as never,
     access,
     {} as never,
+    { publishForItem: () => Promise.resolve() } as never,
   );
   const uploads = new DocumentUploadService(
     {} as never,

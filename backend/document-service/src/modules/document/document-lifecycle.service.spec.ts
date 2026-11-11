@@ -63,6 +63,7 @@ function setup() {
     {} as DocumentPresentationService,
     access,
     tree,
+    { publishForItem: () => Promise.resolve() } as never,
   );
 
   return {
@@ -161,6 +162,7 @@ void test('a shared Editor can rename a personal file while Viewer permission is
     } as unknown as DocumentPresentationService,
     access,
     {} as DocumentTreeService,
+    { publishForItem: () => Promise.resolve() } as never,
   );
 
   const renamed = await service.renameItem(
@@ -287,6 +289,7 @@ void test('overlapping deleted trees reclaim each file version once and enqueue 
     {} as DocumentPresentationService,
     {} as DocumentAccessService,
     tree,
+    { publishForItem: () => Promise.resolve() } as never,
   );
   await service.deleteTreesInTransaction(tx, ['parent', 'child']);
   assert.deepEqual(quotas, [[30n, 'uploader']]);

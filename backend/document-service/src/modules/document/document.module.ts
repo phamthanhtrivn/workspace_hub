@@ -27,6 +27,7 @@ import { S3Module } from '../../infrastructure/s3/s3.module';
 import { TrashCleanupService } from './trash-cleanup.service';
 import { ProjectDocumentRealtimeClient } from './project-document-realtime.client';
 import { StorageCleanupService } from './storage-cleanup.service';
+import { DocumentAccessRealtimePublisher } from './document-access-realtime.publisher';
 
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
 
@@ -65,6 +66,7 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     TrashCleanupService,
     ProjectDocumentRealtimeClient,
     StorageCleanupService,
+    DocumentAccessRealtimePublisher,
   ],
   exports: [DocumentService, DocumentAccessService],
 })

@@ -26,6 +26,7 @@ import {
   ChatSocketSettingUpdatedPayload,
   ChatSocketUpdatedPayload,
   ChatSocketDirectMessagePermissionPayload,
+  ChatSocketDocumentAccessUpdatedPayload,
   ThreadFollowerPayload,
 } from "../../types/chat-socket.types";
 import {
@@ -44,6 +45,7 @@ import {
   updateDirectMessagesCache,
 } from "../../utils/chat-cache";
 import { applyChatMessageUpdate, mergeChatMessageUpdate } from '../../utils/message-update-cache';
+import { chatDocumentMetadataKey, METADATA_QUERY_KEY } from '../../types/document.constants';
 
 function isChannelPayload(payload: {
   chatType?: ChatContextType;
@@ -603,6 +605,18 @@ export function useChatSocket() {
       });
     };
 
+    const handleDocumentAccessUpdated = (
+      payload: ChatSocketDocumentAccessUpdatedPayload,
+    ) => {
+      if (!Array.isArray(payload.documentIds)) return;
+      for (const documentId of payload.documentIds) {
+        if (typeof documentId !== "string" || !documentId) continue;
+        void queryClient.invalidateQueries({
+          queryKey: chatDocumentMetadataKey(currentUserId, documentId),
+        });
+      }
+    };
+
     const handleSocketConnect = () => {
       for (const queryKey of [chatKeys.allMessages(), chatKeys.allThreadMessages(), chatKeys.allFollowedThreads(), chatKeys.allThreads(), chatKeys.allPinnedMessagesPreview(), chatKeys.allPinnedMessagesDetail()]) {
         void queryClient.invalidateQueries({ queryKey });
@@ -615,6 +629,9 @@ export function useChatSocket() {
         queryKey: [ChatQueryRoot.DIRECT_MESSAGE_SEND_PERMISSION],
       });
       queryClient.invalidateQueries({
+        queryKey: [METADATA_QUERY_KEY, currentUserId],
+      });
+      queryClient.invalidateQueries({
         queryKey: chatKeys.directMessages(currentUserId),
       });
     };
@@ -624,6 +641,7 @@ export function useChatSocket() {
     socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
     socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
     socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
+    socket.on(ChatEvent.DOCUMENT_ACCESS_UPDATED, handleDocumentAccessUpdated);
     socket.on(ChatEvent.MESSAGE_READ, handleMessageRead);
     socket.on(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
     socket.on(ChatEvent.CHANNEL_SETTING_UPDATED, handleChannelSettingUpdated);
@@ -645,6 +663,7 @@ export function useChatSocket() {
       socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.off(ChatEvent.MESSAGE_MOVED, handleNewMessage);
       socket.off(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
+      socket.off(ChatEvent.DOCUMENT_ACCESS_UPDATED, handleDocumentAccessUpdated);
       socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);
       socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
       socket.off(

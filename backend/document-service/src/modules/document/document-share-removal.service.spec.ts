@@ -86,6 +86,7 @@ function fixture(
       },
     },
     new DocumentShareNotificationService(),
+    { publishForItem: () => Promise.resolve() },
   ] as unknown as ConstructorParameters<typeof DocumentSharingService>;
 
   return {

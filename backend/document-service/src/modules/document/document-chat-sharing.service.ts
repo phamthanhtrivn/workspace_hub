@@ -11,6 +11,7 @@ import { authorizeProject } from '../../common/auth/project-authorization';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { DocumentAccessService } from './document-access.service';
 import { DOCUMENT_CHAT_SHARING } from './types/document-chat-sharing.constants';
+import { DocumentAccessRealtimePublisher } from './document-access-realtime.publisher';
 
 @Injectable()
 export class DocumentChatSharingService {
@@ -18,6 +19,7 @@ export class DocumentChatSharingService {
     private readonly prisma: PrismaService,
     private readonly access: DocumentAccessService,
     private readonly profiles: UserProfileSnapshotService,
+    private readonly accessRealtime: DocumentAccessRealtimePublisher,
   ) {}
 
   async prepareShare(
@@ -25,7 +27,8 @@ export class DocumentChatSharingService {
     userEmail: string,
     documentId: string,
     recipientUserIds: string[],
-  ): Promise<void> {
+    confirmInheritedEditorAccess = false,
+  ): Promise<{ requiresConfirmation: boolean; inheritedEditorCount: number }> {
     const { item } = await this.access.getAccessContext(
       documentId,
       userId,
@@ -50,13 +53,17 @@ export class DocumentChatSharingService {
         }
       }
 
-      return; // Project membership remains the sole source of document access.
+      return {
+        requiresConfirmation: false,
+        inheritedEditorCount: 0,
+      }; // Project membership remains the sole source of document access.
     }
 
     if (item.ownerUserId !== userId)
       throw new ForbiddenException(DOCUMENT_CHAT_SHARING.OWNER_REQUIRED);
     const profiles = await this.profiles.getProfilesByUserIds(recipients);
     const grants: Array<{ userId: string; email: string }> = [];
+    let inheritedEditorCount = 0;
     for (const recipientId of recipients) {
       const email = profiles.get(recipientId)?.email?.trim().toLowerCase();
       if (!email)
@@ -70,13 +77,29 @@ export class DocumentChatSharingService {
           recipientId,
           email,
         );
-        // An explicit Viewer grant must not override inherited Editor access.
-        if (role === DocumentRole.OWNER || role === DocumentRole.EDITOR)
-          continue;
+        const directGrant = item.shares?.find((share) =>
+          share.shareWithUserId
+            ? share.shareWithUserId === recipientId
+            : share.shareWithEmail.toLowerCase() === email,
+        );
+        if (
+          role === DocumentRole.EDITOR &&
+          directGrant?.permission !== SharePermission.EDITOR
+        ) {
+          inheritedEditorCount += 1;
+        }
+        // Keep a direct Viewer grant so access survives moving the file out of
+        // an Editor-shared folder. The resolver keeps inherited Editor access
+        // effective while the file remains inside that folder.
+        if (role === DocumentRole.OWNER) continue;
       } catch (error) {
         if (!(error instanceof ForbiddenException)) throw error;
       }
       grants.push({ userId: recipientId, email });
+    }
+
+    if (inheritedEditorCount && !confirmInheritedEditorAccess) {
+      return { requiresConfirmation: true, inheritedEditorCount };
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -116,5 +139,7 @@ export class DocumentChatSharingService {
         });
       }
     });
+    if (grants.length) await this.accessRealtime.publishForItem(documentId);
+    return { requiresConfirmation: false, inheritedEditorCount };
   }
 }

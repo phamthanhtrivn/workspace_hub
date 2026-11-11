@@ -22,12 +22,14 @@ export async function shareDocumentToChat({
   target,
   currentUserId,
   introMessage,
+  confirmInheritedEditorAccess = false,
 }: {
   documentId: string;
   target: DocumentChatShareTarget;
   currentUserId: string;
   introMessage: string;
-}): Promise<void> {
+  confirmInheritedEditorAccess?: boolean;
+}): Promise<{ requiresConfirmation: boolean; inheritedEditorCount: number }> {
   const access = await documentsApi.getAccessibleItem(documentId);
   let recipientIds: string[];
   if (access.projectId) {
@@ -77,8 +79,14 @@ export async function shareDocumentToChat({
   if (!recipients.length && target.type === ShareTabType.DM)
     throw new Error(ERRORS.TARGET_UNAVAILABLE);
   // No message is sent if verification/granting fails.
-  if (recipients.length)
-    await documentsApi.prepareChatShare(documentId, recipients);
+  const permissionResult = recipients.length
+    ? await documentsApi.prepareChatShare(
+        documentId,
+        recipients,
+        confirmInheritedEditorAccess,
+      )
+    : { requiresConfirmation: false, inheritedEditorCount: 0 };
+  if (permissionResult.requiresConfirmation) return permissionResult;
   const send =
     target.type === ShareTabType.CHANNEL
       ? sendChannelMessage
@@ -99,4 +107,5 @@ export async function shareDocumentToChat({
   } catch (error) {
     throw new Error(ERRORS.SEND_FAILED, { cause: error });
   }
+  return permissionResult;
 }

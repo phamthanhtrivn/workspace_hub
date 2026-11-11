@@ -635,14 +635,15 @@ export class DocumentController {
     @Body() dto: PrepareChatShareDto,
   ) {
     this.validateUserHeaders(userId, userEmail);
-    await this.chatSharing.prepareShare(
+    const result = await this.chatSharing.prepareShare(
       userId,
       userEmail,
       id,
       dto.recipientUserIds,
+      dto.confirmInheritedEditorAccess,
     );
 
-    return { message: DOCUMENT_CHAT_SHARING.SUCCESS };
+    return { message: DOCUMENT_CHAT_SHARING.SUCCESS, data: result };
   }
 
   @Post(':id/sharing/check-permissions')

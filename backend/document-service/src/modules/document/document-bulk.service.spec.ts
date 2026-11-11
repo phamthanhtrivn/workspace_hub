@@ -191,6 +191,7 @@ function setup() {
       lifecycle,
       locations,
       publisher,
+      { publishForItem: () => Promise.resolve() } as never,
     ),
     records,
     roles,

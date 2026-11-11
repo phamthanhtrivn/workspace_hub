@@ -4,7 +4,7 @@ import { useId as useInputFieldId } from "react";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 
 import React from "react";
-import { Send, Users, MessageSquare } from "lucide-react";
+import { Send, Users, MessageSquare, TriangleAlert } from "lucide-react";
 import { DocumentItem } from "../../types/documents.types";
 import { ShareTabType } from "../../types/documents.enums";
 import { useShareToChat } from "../../hooks/useShareToChat";
@@ -51,6 +51,8 @@ export function ShareToChatModal({
     channels,
     directConversations,
     handleShare,
+    inheritedEditorWarningCount,
+    clearInheritedEditorWarning,
     currentUserId,
     isProjectDocuments,
     isLoadingProjectSpace,
@@ -154,6 +156,38 @@ export function ShareToChatModal({
           ) : null}
 
           <div className={`${dialogLayout.body} mt-4 space-y-4 p-1`}>
+            {inheritedEditorWarningCount > 0 ? (
+              <div
+                role="alert"
+                className="flex items-start gap-3 rounded-panel border border-warning-outline bg-warning-soft/40 p-3 text-sm"
+              >
+                <TriangleAlert
+                  className="mt-0.5 size-5 shrink-0 text-warning-content"
+                  aria-hidden="true"
+                />
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground">
+                    Permission notice
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    {inheritedEditorWarningCount === 1
+                      ? "One recipient already has"
+                      : `${inheritedEditorWarningCount} recipients already have`}{" "}
+                    Editor access through a parent folder. They will keep Editor
+                    access while this item stays there and retain Viewer access
+                    if it is moved out.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="mt-2 h-8 px-2 text-xs"
+                    onClick={clearInheritedEditorWarning}
+                  >
+                    Go back
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             {selectedTab === ShareTabType.CHANNEL ? (
               <>
                 {!isProjectDocuments ? (
@@ -243,7 +277,11 @@ export function ShareToChatModal({
               onClick={handleShare}
               className="h-10 rounded-control bg-primary hover:bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
             >
-              {isSubmitting || isLoadingProjectSpace ? "Sharing..." : "Share"}
+              {isSubmitting || isLoadingProjectSpace
+                ? "Sharing..."
+                : inheritedEditorWarningCount > 0
+                  ? "Continue sharing"
+                  : "Share"}
             </Button>
           </DialogFooter>
         </DialogContent>

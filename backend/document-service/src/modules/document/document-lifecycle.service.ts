@@ -13,6 +13,7 @@ import { DocumentAccessService } from './document-access.service';
 import { DocumentTreeService } from './document-tree.service';
 import { DOCUMENT_BULK } from './types/document-bulk.constants';
 import { setDocumentTreesStarred } from './document-star-tree';
+import { DocumentAccessRealtimePublisher } from './document-access-realtime.publisher';
 
 @Injectable()
 export class DocumentLifecycleService {
@@ -24,6 +25,7 @@ export class DocumentLifecycleService {
     private readonly presentation: DocumentPresentationService,
     private readonly access: DocumentAccessService,
     private readonly tree: DocumentTreeService,
+    private readonly accessRealtime: DocumentAccessRealtimePublisher,
   ) {}
   async createFolder(
     userId: string,
@@ -232,6 +234,7 @@ export class DocumentLifecycleService {
       });
     });
     await this.events.publishProjectDocumentEvent(updated, userId, 'UPDATED');
+    await this.accessRealtime.publishForItem(id);
     if (item.projectId && item.projectId !== updated.projectId) {
       await this.events.publishProjectDocumentEvent(item, userId, 'DELETED');
     }
@@ -303,6 +306,7 @@ export class DocumentLifecycleService {
       userId,
       archive ? 'DELETED' : 'UPDATED',
     );
+    await this.accessRealtime.publishForItem(id);
 
     return this.presentation.enrichDocumentItem(updated);
   }

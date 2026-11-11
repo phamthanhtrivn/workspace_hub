@@ -10,6 +10,7 @@ import {
   DOCUMENT_BULK,
 } from './types/document-bulk.constants';
 import { documentBulkBlockReason } from './document-bulk-policy';
+import { DocumentAccessRealtimePublisher } from './document-access-realtime.publisher';
 
 @Injectable()
 export class DocumentBulkService {
@@ -19,6 +20,7 @@ export class DocumentBulkService {
     private readonly lifecycle: DocumentLifecycleService,
     private readonly locations: DocumentLocationService,
     private readonly events: DocumentEventPublisher,
+    private readonly accessRealtime: DocumentAccessRealtimePublisher,
   ) {}
 
   async execute(
@@ -159,6 +161,8 @@ export class DocumentBulkService {
     );
     for (const item of items) {
       const move = moves.find((prepared) => prepared.item.id === item.id);
+      if (move || dto.action === Action.TRASH)
+        await this.accessRealtime.publishForItem(item.id);
       await this.events.publishProjectDocumentEvent(
         move
           ? {

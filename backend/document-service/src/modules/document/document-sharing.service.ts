@@ -18,6 +18,7 @@ import { UserProfileSnapshotResponse } from '../user-profile-snapshot/types/user
 import { DocumentAccessService } from './document-access.service';
 import { DocumentEventPublisher } from './document-event-publisher.service';
 import { DocumentShareNotificationService } from './document-share-notification.service';
+import { DocumentAccessRealtimePublisher } from './document-access-realtime.publisher';
 
 @Injectable()
 export class DocumentSharingService {
@@ -27,6 +28,7 @@ export class DocumentSharingService {
     private readonly access: DocumentAccessService,
     private readonly events: DocumentEventPublisher,
     private readonly notifications: DocumentShareNotificationService,
+    private readonly accessRealtime: DocumentAccessRealtimePublisher,
   ) {}
   async getSharing(
     userId: string,
@@ -78,6 +80,7 @@ export class DocumentSharingService {
       data: { linkAccess: linkAccess === LinkAccess.NONE ? LinkAccess.NONE : LinkAccess.VIEWER, shareToken: randomUUID() },
     });
     await this.events.publishProjectDocumentEvent(updated, userId, 'UPDATED');
+    await this.accessRealtime.publishForItem(id);
     return updated;
   }
 
@@ -105,6 +108,7 @@ export class DocumentSharingService {
     });
 
     await this.events.publishProjectDocumentEvent(item, userId, 'UPDATED');
+    await this.accessRealtime.publishForItem(id);
     return share;
   }
 
@@ -132,6 +136,7 @@ export class DocumentSharingService {
       await this.notifications.enqueueRemoved(tx, item, userId, recipientId, share.permission);
     });
     await this.events.publishProjectDocumentEvent(item, userId, 'UPDATED');
+    await this.accessRealtime.publishForItem(id);
   }
 
   async addSharesBatch(
@@ -159,6 +164,7 @@ export class DocumentSharingService {
     });
 
     await this.events.publishProjectDocumentEvent(item, userId, 'UPDATED');
+    await this.accessRealtime.publishForItem(id);
     return shares;
   }
 

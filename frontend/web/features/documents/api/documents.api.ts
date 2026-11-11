@@ -616,10 +616,19 @@ export const documentsApi = {
   prepareChatShare: async (
     id: string,
     recipientUserIds: string[],
-  ): Promise<void> => {
-    await api.post(`/api/documents/${id}/sharing/chat-access`, {
-      recipientUserIds,
-    });
+    confirmInheritedEditorAccess = false,
+  ): Promise<{
+    requiresConfirmation: boolean;
+    inheritedEditorCount: number;
+  }> => {
+    const response = await api.post(
+      `/api/documents/${id}/sharing/chat-access`,
+      {
+        recipientUserIds,
+        confirmInheritedEditorAccess,
+      },
+    );
+    return response.data.data;
   },
 
   addSharesBatch: async (
