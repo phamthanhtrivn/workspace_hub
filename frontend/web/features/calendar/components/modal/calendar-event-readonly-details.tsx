@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AlignLeft, Bell, Calendar, CheckCircle2, Circle, ExternalLink, ListTodo, MapPin, Paperclip, Target, Users } from "lucide-react";
+import { AlignLeft, Bell, Calendar, CheckCircle2, Circle, ExternalLink, MapPin, Paperclip, Target, Users } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import type { CalendarEvent } from "../../types/calendar.types";
 import { formatReminderLabel } from "../../utils/calendar-date.utils";
@@ -32,10 +32,10 @@ export function CalendarEventReadonlyDetails({ event, children }: { event: Calen
     <div className="flex items-start gap-4">
       <Bell aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><p className="min-w-0 text-sm text-foreground">{reminders}</p>
     </div>
-    <div className="flex items-start gap-4">
-      {isTask ? <ListTodo aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-info-content" /> : <Calendar aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />}
-      <p className="min-w-0 text-sm text-foreground">{isTask ? "Tasks" : calendarName}</p>
-    </div>
+    {!isTask && <div className="flex items-start gap-4">
+      <Calendar aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <p className="min-w-0 text-sm text-foreground">{calendarName}</p>
+    </div>}
     {children}
     {physicalLocation && <div className="flex items-start gap-4">
       <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />

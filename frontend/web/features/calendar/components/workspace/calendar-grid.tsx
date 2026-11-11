@@ -195,13 +195,11 @@ export const CalendarGrid = memo(function CalendarGrid({
                   className="calendar-event-status mr-1 inline-block h-3.5 w-3.5 align-text-bottom"
                 />
               ) : null}
-              {isTask && <span className="mr-1 inline-flex rounded border border-current px-1 text-[10px] font-medium leading-tight">{copy.task}</span>}
               {arg.event.title}
             </p>
-            {deadlineLabel && <p className="mt-0.5 truncate text-[10px] leading-tight">{copy.deadline}: {deadlineLabel}</p>}
             {!arg.event.allDay && (
               <p
-                className={`mt-0.5 whitespace-nowrap text-xs font-medium leading-[1.2] tabular-nums ${
+                className={`mt-0.5 truncate text-xs font-medium leading-[1.2] tabular-nums ${
                   isCompletedTask || isDeclined ? "line-through" : ""
                 }`}
               >
@@ -252,11 +250,9 @@ export const CalendarGrid = memo(function CalendarGrid({
         moreLinkClick="popover"
         moreLinkDidMount={({ el }) => el.setAttribute("role", "button")}
         slotEventOverlap={false}
+        displayEventEnd
+        eventTimeFormat={{ hour: "numeric", minute: "2-digit", hour12: false }}
         views={{
-          timeGrid: {
-            displayEventEnd: false,
-            eventTimeFormat: { hour: "numeric", minute: "2-digit", hour12: false },
-          },
           timeGridWeek: { eventMaxStack: 2 },
         }}
         expandRows

@@ -529,12 +529,46 @@
 }
 
 .calendar-shell .calendar-event-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
   white-space: normal;
   overflow-wrap: anywhere;
 }
 
 .calendar-shell .fc-timegrid-event {
-  container: calendar-event / inline-size;
+  container: calendar-event / size;
+}
+
+@container calendar-event (min-height: 58px) {
+  .calendar-shell .calendar-event-title {
+    -webkit-line-clamp: 2;
+  }
+}
+
+@container calendar-event (min-height: 76px) {
+  .calendar-shell .calendar-event-title {
+    -webkit-line-clamp: 3;
+  }
+}
+
+@container calendar-event (min-height: 100px) {
+  .calendar-shell .calendar-event-title {
+    -webkit-line-clamp: 4;
+  }
+}
+
+@container calendar-event (min-height: 120px) {
+  .calendar-shell .calendar-event-title {
+    -webkit-line-clamp: 6;
+  }
+}
+
+@container calendar-event (min-height: 160px) {
+  .calendar-shell .calendar-event-title {
+    -webkit-line-clamp: 8;
+  }
 }
 
 @container calendar-event (max-width: 80px) {
