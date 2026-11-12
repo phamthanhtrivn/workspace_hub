@@ -12,7 +12,7 @@ import { useNotebook, useNotebookChat } from "../hooks/use-notebook";
 import { Citations } from "./citations";
 import { AnswerContent } from "./answer-content";
 import { SourcePanel } from "./source-panel";
-import { StudioPanel } from "./studio-panel";
+import { NotesPanel } from "./notes-panel";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Spinner } from "@/components/ui/spinner";
 import { ArrowLeft, Bot } from "lucide-react";
@@ -172,7 +172,7 @@ function Workspace({ id }: { id: string }) {
         {[
           ["sources", "Sources"],
           ["chat", "Chat"],
-          ["studio", "Notes"],
+          ["notes", "Notes"],
         ].map(([value, label]) => (
           <Button
             key={value}
@@ -258,32 +258,29 @@ function Workspace({ id }: { id: string }) {
                       markdown={message.role !== "USER"}
                       content={message.content}
                     />
-                    {message.role === "ASSISTANT" &&
-                      (!message.artifact_id ||
-                        message.summary_status === "COMPLETED") && (
-                        <Button
-                          loading={
-                            query.saving &&
-                            pendingAction === `note:${message.id}`
-                          }
-                          className="mt-3"
-                          size="sm"
-                          variant="outline"
-                          disabled={query.saving}
-                          onClick={() =>
-                            run(
-                              () =>
-                                notebooksApi.note(id, {
-                                  title: "Saved from chat",
-                                  messageId: message.id,
-                                }),
-                              `note:${message.id}`,
-                            )
-                          }
-                        >
-                          Save to notes
-                        </Button>
-                      )}
+                    {message.role === "ASSISTANT" && (
+                      <Button
+                        loading={
+                          query.saving && pendingAction === `note:${message.id}`
+                        }
+                        className="mt-3"
+                        size="sm"
+                        variant="outline"
+                        disabled={query.saving}
+                        onClick={() =>
+                          run(
+                            () =>
+                              notebooksApi.note(id, {
+                                title: "Saved from chat",
+                                messageId: message.id,
+                              }),
+                            `note:${message.id}`,
+                          )
+                        }
+                      >
+                        Save to notes
+                      </Button>
+                    )}
                   </>
                 )}
               </article>
@@ -380,8 +377,8 @@ function Workspace({ id }: { id: string }) {
             </div>
           </form>
         </section>
-        <aside className={`${panel} ${tab === "studio" ? "block" : "hidden"}`}>
-          <StudioPanel
+        <aside className={`${panel} ${tab === "notes" ? "block" : "hidden"}`}>
+          <NotesPanel
             notebook={notebook}
             saving={query.saving}
             pendingAction={query.saving ? pendingAction : null}

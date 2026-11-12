@@ -7,7 +7,7 @@ import { HealthController } from "./common/health/health.controller";
 import { NotebooksModule } from "./modules/notebooks/notebooks.module";
 import { SourcesModule } from "./modules/sources/sources.module";
 import { ChatModule } from "./modules/chat/chat.module";
-import { StudioModule } from "./modules/studio/studio.module";
+import { NotesModule } from "./modules/notes/notes.module";
 @Module({
   imports: [
     WorkAssistantModule,
@@ -17,7 +17,7 @@ import { StudioModule } from "./modules/studio/studio.module";
     NotebooksModule,
     SourcesModule,
     ChatModule,
-    StudioModule,
+    NotesModule,
   ],
   controllers: [HealthController],
 })

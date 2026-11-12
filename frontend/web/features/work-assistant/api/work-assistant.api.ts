@@ -75,8 +75,8 @@ export async function createConversation(
 ): Promise<WorkSession> {
   return session.parse((await api.post(base + "/sessions", context)).data.data);
 }
-export async function cancelRequest(id: string) {
-  await api.post(base + "/requests/" + id + "/cancel");
+export async function cancelRequest(id: string, sessionId: string) {
+  await api.post(base + "/requests/" + id + "/cancel", { sessionId });
 }
 export type StreamEvent = { event: string; data: unknown };
 export async function consumeEvents(

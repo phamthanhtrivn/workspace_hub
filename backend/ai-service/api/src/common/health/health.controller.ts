@@ -24,11 +24,11 @@ export class HealthController {
     try {
       await Promise.all([
         db.query("SELECT id FROM notebook_ai.notebooks LIMIT 0"),
-        db.query(
-          "SELECT artifact_id,artifact_run_id FROM notebook_ai.requests LIMIT 0",
-        ),
+        db.query("SELECT id,status FROM notebook_ai.requests LIMIT 0"),
         db.query("SELECT run_id FROM notebook_ai.sources LIMIT 0"),
-        db.query("SELECT run_id FROM notebook_ai.artifacts LIMIT 0"),
+        db.query(
+          "SELECT id,status,content,citations FROM notebook_ai.artifacts LIMIT 0",
+        ),
         db.query(
           "SELECT id,scope_id,source_id FROM notebook_ai.cleanup_outbox LIMIT 0",
         ),

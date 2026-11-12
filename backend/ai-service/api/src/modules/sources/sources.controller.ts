@@ -16,13 +16,9 @@ import { SourcesService } from "./sources.service";
 import { ownedNotebook } from "../../common/auth/notebook-access";
 import { parse } from "../../common/validation";
 import type { Response } from "express";
-import {
-  checkCapacity,
-  checkFile,
-  readUpload,
-  validateContent,
-  withUploadCheck,
-} from "./upload-validation";
+import { validateContent, withUploadCheck } from "./upload-validation";
+import { checkCapacity, checkFile } from "./upload-rules";
+import { readUpload } from "./upload-stream";
 @Controller("api/ai")
 @UseGuards(AuthGuard)
 export class SourcesController {

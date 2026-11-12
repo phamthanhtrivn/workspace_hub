@@ -197,15 +197,21 @@ export class WorkStore {
 
     return !row || row.cancel_requested || row.status !== "RUNNING";
   }
-  async cancel(actor: Actor, id: string) {
+  async cancel(actor: Actor, id: string, sessionId: string) {
     await transaction(async (client) => {
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
         [actor.id],
       );
       const { rows: result } = await client.query(
-        "UPDATE notebook_ai.work_assistant_requests SET cancel_requested=true,status=CASE WHEN status='RUNNING' THEN 'CANCELED' ELSE status END,updated_at=now() WHERE id=$1 AND owner_id=$2 RETURNING id",
-        [id, actor.id],
+        `INSERT INTO notebook_ai.work_assistant_requests(id,session_id,owner_id,status,cancel_requested)
+         SELECT $1,id,$2,'CANCELED',true FROM notebook_ai.work_assistant_sessions
+         WHERE id=$3 AND owner_id=$2
+         ON CONFLICT(id) DO UPDATE SET cancel_requested=true,
+           status=CASE WHEN work_assistant_requests.status='RUNNING' THEN 'CANCELED' ELSE work_assistant_requests.status END,
+           updated_at=now()
+         WHERE work_assistant_requests.owner_id=$2 AND work_assistant_requests.session_id=$3 RETURNING id`,
+        [id, actor.id, sessionId],
       );
       if (!result.length) throw new NotFoundException();
     });

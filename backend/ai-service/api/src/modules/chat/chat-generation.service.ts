@@ -7,6 +7,7 @@ import { citeEvidence, visibleSnapshot } from "../../common/evidence-policy";
 import type { Citation, Source } from "../../common/types";
 import { generateChatResponse } from "./chat-response";
 import { visualEvidence } from "./visual-evidence";
+import { notebookMessages } from "../notebooks/notebook-messages";
 import { logError } from "../../common/errors/error-log";
 import {
   conversationHistory,
@@ -18,7 +19,7 @@ import {
 export class ChatGenerationService {
   async generateReply(
     input: ChatGenerationInput,
-  ): Promise<{ content: string; citations: Citation[]; artifactId?: string }> {
+  ): Promise<{ content: string; citations: Citation[] }> {
     const {
       actor,
       notebookId,
@@ -120,17 +121,9 @@ export class ChatGenerationService {
   }
 
   async history(notebookId: string, sources: Source[]) {
-    const previous = await rows<{
-      role: string;
-      content: string;
-      sources: { id: string; revision: string }[];
-    }>(
-      `SELECT m.role, CASE WHEN a.status='COMPLETED' THEN a.content ELSE m.content END AS content,m.sources
-         FROM notebook_ai.messages m LEFT JOIN notebook_ai.artifacts a ON a.id=m.artifact_id
-         WHERE m.notebook_id=$1 AND (m.artifact_id IS NULL OR a.status='COMPLETED')
-         AND m.role IN ('USER','ASSISTANT')
-         ORDER BY m.created_at DESC,m.id DESC LIMIT ${NOTEBOOK_HISTORY_LIMIT * 2}`,
-      [notebookId],
+    const previous = await notebookMessages(
+      notebookId,
+      NOTEBOOK_HISTORY_LIMIT * 2,
     );
 
     return conversationHistory(previous.reverse(), sources);

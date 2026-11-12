@@ -10,7 +10,7 @@ import { singleFlight } from "../../common/single-flight";
 import { admitModel } from "../../infrastructure/integrations/llm.client";
 import { measureConversationStage } from "./telemetry";
 import { rag } from "../../infrastructure/integrations/rag.client";
-import { downloadSource } from "../sources/upload-validation";
+import { downloadSource } from "../sources/source-download";
 import { CONVERSATION_AI_MESSAGES } from "./conversation-ai.messages";
 import {
   ATTACHMENT_SUMMARY_INSTRUCTIONS,

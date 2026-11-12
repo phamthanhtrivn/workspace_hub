@@ -13,13 +13,10 @@ import {
 } from "../../infrastructure/integrations/document.client";
 import { enqueue } from "../../infrastructure/queue/notebook.queue";
 import { ownedNotebook } from "../../common/auth/notebook-access";
-import {
-  checkManifests,
-  downloadSource,
-  validateContent,
-  withUploadCheck,
-} from "./upload-validation";
+import { validateContent, withUploadCheck } from "./upload-validation";
 import type { Actor, Source } from "../../common/types";
+import { checkManifests } from "./upload-rules";
+import { downloadSource } from "./source-download";
 import { deleteSource } from "../../common/delete-source";
 @Injectable()
 export class SourcesService {

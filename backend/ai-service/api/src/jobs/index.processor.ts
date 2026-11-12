@@ -5,7 +5,7 @@ import { rows } from "../infrastructure/database/database";
 import { authorizeSources } from "../infrastructure/integrations/document.client";
 import { rag } from "../infrastructure/integrations/rag.client";
 import type { Source } from "../common/types";
-import { downloadSource } from "../modules/sources/upload-validation";
+import { downloadSource } from "../modules/sources/source-download";
 import { Profile } from "../common/profiling/pipeline-profiler";
 import { config } from "../config/env.config";
 import { enrichVisualSource } from "./visual-ingestion";

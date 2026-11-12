@@ -12,15 +12,12 @@ import { AuthGuard, AuthRequest } from "../../common/auth/auth.guard";
 import { z } from "zod";
 import type { Response } from "express";
 import { ChatSseService } from "./chat-sse.service";
-import { ChatWorkflowService } from "./chat-workflow.service";
+import { cancelChatRequest } from "./chat-request";
 import { parse } from "../../common/validation";
 @Controller("api/ai")
 @UseGuards(AuthGuard)
 export class ChatController {
-  constructor(
-    private readonly transport: ChatSseService,
-    private readonly workflow: ChatWorkflowService,
-  ) {}
+  constructor(private readonly transport: ChatSseService) {}
   @Post("notebooks/:id/messages") async message(
     @Req() req: AuthRequest,
     @Param("id", ParseUUIDPipe) id: string,
@@ -49,11 +46,10 @@ export class ChatController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() body: unknown,
   ) {
-    const data = parse(
-      z.object({ runId: z.string().uuid().optional() }),
-      body ?? {},
-    );
+    const data = parse(z.object({ notebookId: z.string().uuid() }), body);
 
-    return { data: await this.workflow.cancel(req.actor, id, data.runId) };
+    await cancelChatRequest(req.actor.id, data.notebookId, id);
+
+    return { data: {} };
   }
 }

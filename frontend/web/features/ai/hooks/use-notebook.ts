@@ -63,7 +63,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
     setDraft(null);
     setStage("Stopping response...");
     setError("");
-    void notebooksApi.cancel(request.requestId).then(
+    void notebooksApi.cancel(id, request.requestId).then(
       () => {
         if (active.current !== request) return;
         active.current = null;
@@ -79,13 +79,14 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
           );
       },
     );
-  }, []);
+  }, [id]);
   useEffect(
     () => () => {
       const request = active.current;
       active.current = null;
       request?.controller.abort();
-      if (request) void notebooksApi.cancel(request.requestId).catch(() => {});
+      if (request)
+        void notebooksApi.cancel(id, request.requestId).catch(() => {});
     },
     [id],
   );

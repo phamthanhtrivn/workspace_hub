@@ -126,8 +126,8 @@ export class WorkAssistantWorkflowService {
     return "Chưa thể trả lời lúc này. Vui lòng thử lại; trợ lý chưa thay đổi dữ liệu công việc.";
   }
 
-  async cancel(actor: Actor, requestId: string) {
-    await this.store.cancel(actor, requestId);
+  async cancel(actor: Actor, requestId: string, sessionId: string) {
+    await this.store.cancel(actor, requestId, sessionId);
 
     return { data: { canceled: true } };
   }

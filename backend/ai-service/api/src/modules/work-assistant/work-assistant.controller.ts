@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { Response } from "express";
+import { z } from "zod";
 import { AuthGuard, type AuthRequest } from "../../common/auth/auth.guard";
 import { parse } from "../../common/validation";
 import {
@@ -69,7 +70,13 @@ export class WorkAssistantController {
   async cancel(
     @Req() req: AuthRequest,
     @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
   ) {
-    return this.workflow.cancel(req.actor, id);
+    const { sessionId } = parse(
+      z.object({ sessionId: z.string().uuid() }),
+      body,
+    );
+
+    return this.workflow.cancel(req.actor, id, sessionId);
   }
 }

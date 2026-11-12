@@ -8,6 +8,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import * as workApi from "../api/work-assistant.api";
+import { cancelStream, confirmCancellation } from "../api/cancellation";
 import { getUserSettings } from "@/features/user-setting/api/user-setting.api";
 import type { Audience, WorkMessage } from "../types";
 import {
@@ -15,21 +16,6 @@ import {
   conversationContextKey,
 } from "../constants/work-assistant";
 
-// Await server cancellation before another context uses the user's active slot.
-const cancellations = new Map<string, Promise<void>>();
-function cancelStream(userId: string, id: string) {
-  const previous = cancellations.get(userId);
-  const pending = Promise.allSettled([
-    previous,
-    workApi.cancelRequest(id),
-  ]).then(() => undefined);
-  cancellations.set(userId, pending);
-  void pending.finally(() => {
-    if (cancellations.get(userId) === pending) cancellations.delete(userId);
-  });
-
-  return pending;
-}
 export function workError(error: unknown) {
   return aiErrorMessage(error, "Unable to connect to AI Assistant. Try again.");
 }
@@ -108,9 +94,12 @@ export function useWorkAssistant(
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const active = useRef<{ id: string; controller: AbortController } | null>(
-    null,
-  );
+  const [stopping, setStopping] = useState(false);
+  const active = useRef<{
+    id: string;
+    sessionId: string;
+    controller: AbortController;
+  } | null>(null);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -120,7 +109,9 @@ export function useWorkAssistant(
       const request = active.current;
       if (request) {
         request.controller.abort();
-        void cancelStream(userId, request.id);
+        void cancelStream(userId, request.id, request.sessionId).catch(
+          () => {},
+        );
       }
     };
   }, [userId]);
@@ -130,6 +121,7 @@ export function useWorkAssistant(
       if (!session || active.current || !question.trim()) return;
       const request = {
         id: crypto.randomUUID(),
+        sessionId: session.id,
         controller: new AbortController(),
       };
       active.current = request;
@@ -150,7 +142,7 @@ export function useWorkAssistant(
       setNotice("");
       setStatus("Connecting...");
       try {
-        await cancellations.get(userId);
+        await confirmCancellation(userId);
         request.controller.signal.throwIfAborted();
         await workApi.sendMessage(
           session.id,
@@ -215,13 +207,24 @@ export function useWorkAssistant(
   const stop = async () => {
     const request = active.current;
     if (!request) return;
+    setStopping(true);
     request.controller.abort();
     if (alive.current) {
       setReply(null);
       setStreaming(false);
-      setNotice("Response stopped.");
+      setNotice("");
     }
-    await cancelStream(userId, request.id);
+    try {
+      await cancelStream(userId, request.id, request.sessionId);
+      if (alive.current) setNotice("Response stopped.");
+    } catch {
+      if (alive.current)
+        setError(
+          "Unable to confirm cancellation. Retry before asking another question.",
+        );
+    } finally {
+      if (alive.current) setStopping(false);
+    }
   };
   const messages =
     history.data?.pages
@@ -235,7 +238,7 @@ export function useWorkAssistant(
     pending,
     reply,
     streaming,
-    status,
+    status: stopping ? "Stopping response..." : status,
     error,
     notice,
     send,

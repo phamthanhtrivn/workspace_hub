@@ -19,7 +19,7 @@ type Props = {
   run: NotebookActionRunner;
   pendingAction?: NotebookActionKey | null;
 };
-export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
+export function NotesPanel({ notebook, saving, pendingAction, run }: Props) {
   const [content, setContent] = useState("");
   const [title, setTitle] = useState("");
 

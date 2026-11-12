@@ -1,10 +1,9 @@
-import { rows, transaction } from "../../infrastructure/database/database";
+import { rows } from "../../infrastructure/database/database";
 import { ChatStreamInput } from "./chat-stream.types";
 import { Injectable } from "@nestjs/common";
 import { pollUntilAborted } from "../../common/abort-polling";
 import { isCancellation } from "../../common/abort-guard";
 import { SourcesService } from "../sources/sources.service";
-import type { Actor } from "../../common/types";
 import { createSourceAuthorization } from "../../common/source-authorization";
 import { config } from "../../config/env.config";
 import { notebookIntent } from "./chat-response";
@@ -89,9 +88,7 @@ export class ChatWorkflowService {
         notebookId,
         answer,
         snapshot,
-        answer.artifactId,
       );
-      if (answer.artifactId) stream.emit("delta", { text: answer.content });
       stream.emit("done", { id, ...answer });
     } catch (error) {
       const failure = controller.signal.aborted
@@ -124,25 +121,5 @@ export class ChatWorkflowService {
       controller.abort();
       stream.end();
     }
-  }
-
-  async cancel(actor: Actor, requestId: string, runId?: string) {
-    await transaction(async (client) => {
-      await client.query(
-        "UPDATE notebook_ai.requests SET status='CANCELLED',updated_at=now() WHERE id=$1 AND owner_id=$2 AND status='RUNNING'",
-        [requestId, actor.id],
-      );
-      await client.query(
-        `UPDATE notebook_ai.artifacts a SET status='CANCELLED',updated_at=now()
-       WHERE ((a.id=$1 AND a.run_id=$3) OR EXISTS (
-         SELECT 1 FROM notebook_ai.requests r WHERE r.id=$1 AND r.owner_id=$2
-         AND r.artifact_id=a.id AND r.artifact_run_id=a.run_id))
-       AND a.notebook_id IN(SELECT id FROM notebook_ai.notebooks WHERE owner_id=$2)
-       AND a.status IN ('QUEUED','RUNNING')`,
-        [requestId, actor.id, runId ?? null],
-      );
-    });
-
-    return {};
   }
 }
