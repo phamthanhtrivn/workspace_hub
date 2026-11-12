@@ -13,7 +13,7 @@ Cấu trúc mã Node.js theo feature module và ranh giới hạ tầng/jobs: [k
 
 ## Khởi động local
 
-Hướng dẫn start/stop toàn bộ stack nằm tại [AI Service](../../backend/ai-service/README.md).
+Chạy các lệnh dưới đây từ gốc repository để khởi động toàn bộ AI stack.
 
 1. Bật Docker Desktop, khởi động hạ tầng WorkSpaceHub hiện có để có network `wh_network`. Document Service và User Service phải đang chạy. Dùng bộ nhớ Docker đủ cho parser và embedding; chưa có số đo RAM thực tế để cam kết cấu hình tối thiểu. Image Python và lần tải model đầu có thể tốn vài phút, khác với thời gian trả lời sau khi index.
 2. Giữ `.env` đã cấu hình trong thư mục này. Với máy mới, tạo private `.env` theo các nhóm biến bên dưới; file này được Git ignore. Không ghi đè env đang dùng hoặc dùng nguyên env Python cũ.
