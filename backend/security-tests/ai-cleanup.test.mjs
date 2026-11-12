@@ -185,3 +185,11 @@ test('failed permission checks propagate to all callers and are not cached', asy
   for (const result of results) { assert.equal(result.status, 'rejected'); assert.equal(result.reason, error); }
   await assert.rejects(authorize(), (failure) => failure === error); assert.equal(calls, 2);
 });
+
+test('revoked work access prevents any provider request after quota admission', async () => {
+  selectedModels = [];
+  const context = { tasks: [], busy: [], freeSlots: [], focusPerTask: [], detailPartial: false };
+  await assert.rejects(workAnswer('next?', [], context, new AbortController().signal,
+    () => {}, async () => {}, async () => { throw new Error('revoked'); }), /revoked/);
+  assert.deepEqual(selectedModels, []);
+});

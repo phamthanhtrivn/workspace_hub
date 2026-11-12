@@ -48,11 +48,7 @@ export function validateInfrastructure(env, production = false) {
   if (production || env.AI_ENABLED === 'true') {
     for (const key of ['LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL']) requireValue(key);
   }
-  if (deploymentContract) {
-    if (production || env.CONVERSATION_AI_ENABLED === 'true' || env.MEETING_SUMMARY_ENABLED === 'true') requireKey('AI_COMMUNICATION_SERVICE_KEY');
-    if (production || env.WORK_ASSISTANT_ENABLED === 'true') requireKey('WORK_ASSISTANT_SERVICE_KEY');
-  } else {
-    requireKey('AI_TO_USER_KEY');
+  requireKey('AI_TO_USER_KEY');
     if (env.CONVERSATION_AI_ENABLED === 'true' || env.MEETING_SUMMARY_ENABLED === 'true') {
       requireKey('AI_TO_COMMUNICATION_KEY');
       requireKey('COMMUNICATION_TO_AI_KEY');
@@ -61,11 +57,9 @@ export function validateInfrastructure(env, production = false) {
       requireKey('AI_TO_PROJECT_KEY');
       requireKey('AI_TO_CALENDAR_KEY');
     }
-  }
   if (production || env.MEETING_SUMMARY_ENABLED === 'true') requireKey('MEETING_STT_SERVICE_KEY');
   const keys = ['AI_GATEWAY_KEY', 'AI_DOCUMENT_SERVICE_KEY', 'RAG_SERVICE_KEY', 'MEETING_STT_SERVICE_KEY',
-    ...(deploymentContract ? ['AI_COMMUNICATION_SERVICE_KEY', 'WORK_ASSISTANT_SERVICE_KEY'] :
-      ['AI_TO_USER_KEY', 'AI_TO_COMMUNICATION_KEY', 'COMMUNICATION_TO_AI_KEY', 'AI_TO_PROJECT_KEY', 'AI_TO_CALENDAR_KEY'])];
+    'AI_TO_USER_KEY', 'AI_TO_COMMUNICATION_KEY', 'COMMUNICATION_TO_AI_KEY', 'AI_TO_PROJECT_KEY', 'AI_TO_CALENDAR_KEY'];
   const configured = keys.filter(key => env[key]);
   if (new Set(configured.map(key => env[key])).size !== configured.length) invalid.add('distinct service keys');
   if (production) {

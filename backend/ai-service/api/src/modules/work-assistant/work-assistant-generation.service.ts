@@ -89,15 +89,23 @@ export class WorkAssistantGenerationService {
     };
     let lastAuthorization = 0;
     const result = await timing.measure("model_ms", () =>
-      workAnswer(question, history, initial, signal, onStatus, async (text) => {
-        signal.throwIfAborted();
-        if (Date.now() - lastAuthorization >= 3000) {
-          await authorize();
-          lastAuthorization = Date.now();
-        }
-        signal.throwIfAborted();
-        onDelta(text);
-      }),
+      workAnswer(
+        question,
+        history,
+        initial,
+        signal,
+        onStatus,
+        async (text) => {
+          signal.throwIfAborted();
+          if (Date.now() - lastAuthorization >= 3000) {
+            await authorize();
+            lastAuthorization = Date.now();
+          }
+          signal.throwIfAborted();
+          onDelta(text);
+        },
+        authorize,
+      ),
     );
     signal.throwIfAborted();
     await authorize();

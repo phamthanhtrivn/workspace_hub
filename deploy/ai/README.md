@@ -150,6 +150,21 @@ Sau khi đổi flag, build/restart RAG worker và AI API/jobs, chạy migration 
 
 ## Production: stack AI riêng trên APP
 
+Preflight phải dùng các khóa API thực sự đọc: `AI_TO_USER_KEY`,
+`AI_TO_COMMUNICATION_KEY`, `COMMUNICATION_TO_AI_KEY`, `AI_TO_PROJECT_KEY`,
+`AI_TO_CALENDAR_KEY` theo tính năng bật. Các tên cũ
+`AI_COMMUNICATION_SERVICE_KEY` và `WORK_ASSISTANT_SERVICE_KEY` trong hướng dẫn
+legacy bên dưới không thay thế được các khóa này.
+
+Khi nâng cấp bản này, chạy migration `009_cleanup_outbox.sql` và
+`010_summary_run_id.sql` trước khi khởi động
+API/jobs mới. Không coi `docker compose config` thành công là bằng chứng service
+đã khởi động được; cần kiểm tra migration, `/ready` và luồng nghiệp vụ thực tế.
+
+Khóa index/fallback/xóa notebook dùng chung bộ nhớ trong RAG worker. Giữ đúng
+một process (`--workers 1`) và một replica RAG như Compose hiện tại; muốn chạy
+nhiều replica phải chuyển khóa này sang cơ chế phân tán trước.
+
 `compose.production.yml` dùng image có digest hoặc tag `sha-<40 hex>`, không build trên server và không tạo PostgreSQL/Redis. Migration/API/jobs tham gia network external `workspacehub-app_default`; RAG/Qdrant/speech ở mạng riêng AI. Database và Redis trỏ private IP của INFRA; không publish cổng AI. Catalog và pipeline APP hiện có không triển khai AI.
 
 Quản lý `.env.production` riêng theo các nhóm biến trên, với `NODE_ENV=production`, URL service trên APP và database/Redis ở INFRA. Đồng bộ `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY`, `AI_COMMUNICATION_SERVICE_KEY`, `WORK_ASSISTANT_SERVICE_KEY` với env APP, mật khẩu `NOTEBOOK_POSTGRES_PASSWORD` với env INFRA dùng cho bootstrap. Cấp riêng khóa RAG/speech. Không dùng lại khóa local, không đổi PostgreSQL admin credential. `NOTEBOOK_ADMIN_HOST` là private IP INFRA; bootstrap chạy trên network APP và dùng env admin chỉ cho bước bootstrap.

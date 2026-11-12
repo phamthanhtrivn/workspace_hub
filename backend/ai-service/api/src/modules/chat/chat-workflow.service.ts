@@ -132,7 +132,7 @@ export class ChatWorkflowService {
       [requestId, actor.id],
     );
     await rows(
-      "UPDATE notebook_ai.artifacts SET status='CANCELLED',updated_at=now() WHERE id=$1 AND notebook_id IN(SELECT id FROM notebook_ai.notebooks WHERE owner_id=$2) AND status IN ('QUEUED','RUNNING')",
+      "UPDATE notebook_ai.artifacts SET status='CANCELLED',updated_at=now() WHERE (id=$1 OR id IN(SELECT artifact_id FROM notebook_ai.requests WHERE id=$1 AND owner_id=$2)) AND notebook_id IN(SELECT id FROM notebook_ai.notebooks WHERE owner_id=$2) AND status IN ('QUEUED','RUNNING')",
       [requestId, actor.id],
     );
 

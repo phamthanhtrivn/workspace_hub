@@ -9,6 +9,7 @@ import {
 import { logError } from "../common/errors/error-log";
 import { config } from "../config/env.config";
 import { VOICE_TRANSCRIPT } from "../modules/voice-transcript/voice.constants";
+import { rag } from "../infrastructure/integrations/rag.client";
 
 const RECOVERY_BATCH_SIZE = 100;
 // BullMQ owns stalled-job detection and locks. Never steal active/waiting work.
@@ -109,6 +110,28 @@ export async function reconcileQueuedJobs(
 ) {
   const started = performance.now();
   const stages: RecoveryCounts[] = [];
+  const cleanup = await rows<{
+    id: string;
+    scope_id: string;
+    source_id: string | null;
+  }>(
+    "SELECT * FROM notebook_ai.cleanup_outbox ORDER BY created_at,id LIMIT 100",
+  );
+  for (const item of cleanup) {
+    if (signal?.aborted) break;
+    try {
+      await rag("/delete", {
+        scopeId: item.scope_id,
+        sourceId: item.source_id,
+      });
+      await rows("DELETE FROM notebook_ai.cleanup_outbox WHERE id=$1", [
+        item.id,
+      ]);
+    } catch (error) {
+      logError("ai_cleanup_failed", error, { id: item.id });
+      break;
+    }
+  }
   if (config.VOICE_TRANSCRIPTION_ENABLED === "true") {
     stages.push(
       await recoverBatches(

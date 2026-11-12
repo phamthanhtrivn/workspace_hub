@@ -85,6 +85,18 @@ export class ChatGenerationService {
           "SUMMARY",
           sourceIds,
         );
+        const [request] = await rows(
+          "UPDATE notebook_ai.requests SET artifact_id=$2 WHERE id=$1 RETURNING status",
+          [input.requestId, artifact.id],
+        );
+        if (signal.aborted || request?.status !== "RUNNING") {
+          await rows(
+            "UPDATE notebook_ai.artifacts SET status='CANCELLED',updated_at=now() WHERE id=$1 AND status IN ('QUEUED','RUNNING')",
+            [artifact.id],
+          );
+          throw new DOMException("Request canceled", "AbortError");
+        }
+        signal.throwIfAborted();
 
         return {
           content:

@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from qdrant_client import models
 
 from .errors import FallbackPending
+from .document_locks import document_lock, scope_lock
 
 
 class FallbackQueue:
@@ -19,7 +20,7 @@ class FallbackQueue:
 
     def enqueue(self, scope, source, previous):
         key = (scope, source)
-        with self.lock:
+        with scope_lock(scope), self.lock:
             task = self.pending.get(key)
             if task and not task.done():
                 return
@@ -31,6 +32,14 @@ class FallbackQueue:
             self.pending[key] = self.pool.submit(self.run, scope, source, previous)
 
     def run(self, scope, source, previous):
+        try:
+            with scope_lock(scope), document_lock(scope, source):
+                self._run(scope, source, previous)
+        except ValueError:
+            # A deleted notebook must not recreate fallback metadata or vectors.
+            return
+
+    def _run(self, scope, source, previous):
         try:
             state = self.manifests.get(scope, source, 'fallback')
             if not state:

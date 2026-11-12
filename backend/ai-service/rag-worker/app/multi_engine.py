@@ -4,14 +4,13 @@ import hashlib
 import time
 import httpx
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import nullcontext
 
 from .engine import Engine
 from .policy import reciprocal_rank_many
 from .profiling import profile
 from .fallback_queue import FallbackQueue
 from .errors import FallbackPending, quota_info
-from .document_locks import document_lock
+from .document_locks import document_lock, scope_lock
 
 logger = logging.getLogger("workspace.rag")
 
@@ -112,7 +111,7 @@ class MultiEngine:
             f'{scope_id}:{source_id}:{engine.collection}'.encode()).digest())
 
     def local_copy(self, scope, source, previous):
-        with document_lock(scope, source):
+        with scope_lock(scope), document_lock(scope, source):
             return self._local_copy(scope, source, previous)
 
     def _local_copy(self, scope, source, previous):
@@ -208,7 +207,7 @@ class MultiEngine:
             return engine._index(scope_id, source_id, revision, name, content, timing, chunks=chunks)
 
     def index(self, scope_id, source_id, revision, name, content, pages=None, visuals=None):
-        with document_lock(scope_id, source_id):
+        with scope_lock(scope_id), document_lock(scope_id, source_id):
             return self._index_source(scope_id, source_id, revision, name, content, pages, visuals)
 
     def _index_source(self, scope_id, source_id, revision, name, content, pages=None, visuals=None):
@@ -286,7 +285,8 @@ class MultiEngine:
 
     def delete(self, *args):
         # A source-level delete must not interleave with indexing the same source.
-        with document_lock(args[0], args[1]) if len(args) > 1 and args[1] else nullcontext():
+        source = args[1] if len(args) > 1 else None
+        with scope_lock(args[0], deleting=source is None, cleanup=True), document_lock(args[0], source):
             self._run_all("delete", *args)
             self.primary.vector_cache.delete_legacy_routes(*args)
             self.manifests.delete(*args)

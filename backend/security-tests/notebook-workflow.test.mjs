@@ -42,9 +42,19 @@ const sources = ["one", "two"].map((id) => ({
   chunk_count: 1,
 }));
 let workflowRows;
+let modelHook;
 async function rows(sql, args) {
   if (workflowRows) return workflowRows(sql, args);
   if (sql.startsWith("SELECT a.*")) return [structuredClone(artifact)];
+  if (sql.includes("status='QUEUED' RETURNING *")) {
+    if (artifact.status !== "QUEUED") return [];
+    artifact.status = "RUNNING";
+    artifact.run_id = args[1];
+    return [structuredClone(artifact)];
+  }
+  const fence = sql.match(/AND run_id=\$(\d+)/);
+  if (fence && (artifact.run_id !== args[Number(fence[1]) - 1] || artifact.status !== 'RUNNING')) return [];
+  if (sql.startsWith('SELECT status')) return [{ status: artifact.status }];
   if (sql.includes("SET status='RUNNING'")) artifact.status = "RUNNING";
   else if (sql.includes("SET in_flight=true")) {
     artifact.in_flight = true;
@@ -65,7 +75,7 @@ async function rows(sql, args) {
     artifact.error = args[2];
   } else if (sql.includes("SET status='FAILED'")) artifact.status = "FAILED";
   else assert.fail("Unexpected summary SQL");
-  return [];
+  return sql.includes('RETURNING id') ? [{ id: artifact.id }] : [];
 }
 stub("./src/infrastructure/database/database.ts", { rows });
 
@@ -95,6 +105,7 @@ stub("./src/infrastructure/integrations/llm.client.ts", {
     await options?.beforeCall?.();
     const source = evidence[0].sourceId;
     modelCalls.push(source);
+    if (modelHook) await modelHook(source);
     if (failSecond && source === "two")
       throw new TypeError("fetch failed", {
         cause: { code: "ETIMEDOUT", syscall: "connect" },
@@ -151,6 +162,62 @@ test("full-summary failure preserves checkpoints and explicit resume processes o
   assert.equal(artifact.citations.length, 2);
   assert.ok(artifact.content.includes("one.pdf"));
   assert.ok(artifact.content.includes("two.pdf"));
+});
+
+test("concurrent summary delivery claims an artifact only once", async () => {
+  artifact.status = "QUEUED";
+  artifact.in_flight = false;
+  artifact.sections = [];
+  modelCalls = [];
+  failSecond = false;
+  await Promise.all([summarize("artifact"), summarize("artifact")]);
+  assert.deepEqual(modelCalls, ["one", "two"]);
+});
+
+test('a superseded summary cannot save checkpoints or errors into the resumed run', async () => {
+  for (const oldFails of [false, true]) {
+    artifact.status = 'QUEUED';
+    artifact.in_flight = false;
+    artifact.sections = [];
+    artifact.sources = sources.map(({ id, revision }) => ({ id, revision }));
+    modelCalls = [];
+    failSecond = false;
+    let releaseOld, releaseNew, enteredOld, enteredNew;
+    const oldStarted = new Promise(resolve => { enteredOld = resolve; });
+    const newStarted = new Promise(resolve => { enteredNew = resolve; });
+    const oldWait = new Promise(resolve => { releaseOld = resolve; });
+    const newWait = new Promise(resolve => { releaseNew = resolve; });
+    let calls = 0;
+    modelHook = async () => {
+      const call = ++calls;
+      if (call === 1) {
+        enteredOld();
+        await oldWait;
+        if (oldFails) throw new Error('Old provider failed');
+      } else if (call === 2) {
+        enteredNew();
+        await newWait;
+      }
+    };
+    const old = assert.rejects(summarize('artifact'));
+    await oldStarted;
+    const oldRun = artifact.run_id;
+    artifact.status = 'CANCELLED';
+    artifact.status = 'QUEUED';
+    artifact.in_flight = false;
+    const resumed = summarize('artifact');
+    await newStarted;
+    assert.notEqual(artifact.run_id, oldRun);
+    const before = structuredClone(artifact);
+    releaseOld();
+    await old;
+    assert.deepEqual(artifact, before, 'old completion/error cannot mutate the active run');
+    releaseNew();
+    await resumed;
+    assert.equal(artifact.status, 'COMPLETED');
+    assert.deepEqual(modelCalls, ['one', 'one', 'two']);
+    modelHook = undefined;
+  }
 });
 
 test("unknown previous summary outcomes are not replayed automatically", async () => {

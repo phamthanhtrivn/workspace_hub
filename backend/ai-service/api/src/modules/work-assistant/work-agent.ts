@@ -127,6 +127,7 @@ export async function workAnswer(
   signal: AbortSignal,
   onStatus: (message: string) => void,
   onDelta: (text: string) => Promise<void> = async () => {},
+  authorize: () => Promise<void> = async () => {},
 ) {
   const system = [
     "D\u00f9ng ng\u00f4n ng\u1eef ng\u01b0\u1eddi d\u00f9ng th\u00f4ng th\u01b0\u1eddng. Kh\u00f4ng n\u00f3i t\u00ean tr\u01b0\u1eddng/c\u00f4ng c\u1ee5 k\u1ef9 thu\u1eadt nh\u01b0 freeSlots, blockedBy, scope, audience, workContext; h\u00e3y n\u00f3i kho\u1ea3ng th\u1eddi gian tr\u1ed1ng, c\u00f4ng vi\u1ec7c ph\u1ee5 thu\u1ed9c v\u00e0 ph\u1ea1m vi.",
@@ -175,6 +176,8 @@ export async function workAnswer(
   );
   signal.throwIfAborted();
   onStatus("Đang phân tích công việc…");
+  await authorize();
+  signal.throwIfAborted();
   const model = createChatModel(modelName, maxTokens);
   const response = await model.stream(messages, { signal });
   let answer: AIMessageChunk | undefined;

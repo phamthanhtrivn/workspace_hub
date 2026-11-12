@@ -1,6 +1,5 @@
 import base64
 from collections import OrderedDict
-from contextlib import nullcontext
 from concurrent.futures import Future
 import hashlib
 import math
@@ -24,7 +23,7 @@ from .visual import IMAGE_TYPES, VisualExtractor, enabled as visual_enabled, ope
 from .api_embeddings import ApiEmbeddings, GeminiEmbeddings
 from .vector_cache import VectorCache
 from .manifests import ManifestStore, document_filter
-from .document_locks import document_lock
+from .document_locks import document_lock, scope_lock
 
 
 class Engine:
@@ -235,8 +234,6 @@ class Engine:
             raise InvalidSource("Invalid visual source") from error
 
     def extract(self, name, content):
-        if not visual_enabled():
-            raise InvalidSource("Visual ingestion is disabled", "VISUAL_DISABLED")
         acquired = self.index_lock.acquire(timeout=180) if self.api_embeddings else self.index_lock.acquire(blocking=False)
         if not acquired:
             raise ValidationBusy()
@@ -244,7 +241,8 @@ class Engine:
             data = base64.b64decode(content, validate=True)
             if not data or len(data) > 20 * 1024 * 1024:
                 raise InvalidSource("Empty or oversized source")
-            result = VisualExtractor(self.parse).extract(name, data)
+            result = (VisualExtractor(self.parse).extract(name, data) if visual_enabled() else
+                      {'pages': [{'text': text, 'page': page} for text, page in self.parse(name, data)], 'images': []})
             texts = "\n".join(page["text"] for page in result["pages"])
             if texts.strip():
                 bounded_text(texts)
@@ -286,7 +284,7 @@ class Engine:
         return chunks
 
     def _index(self, scope_id, source_id, revision, name, content, timing, pages=None, visuals=None, chunks=None):
-        with document_lock(scope_id, source_id, self.collection):
+        with scope_lock(scope_id, self.collection), document_lock(scope_id, source_id, self.collection):
             return self._stage_index(scope_id, source_id, revision, name, content, timing, pages, visuals, chunks)
 
     def _stage_index(self, scope_id, source_id, revision, name, content, timing, pages=None, visuals=None, chunks=None):
@@ -437,7 +435,7 @@ class Engine:
 
     def delete(self, scope_id: str, source_id: str | None = None, clear_prepared=True):
         # A source-level delete must not interleave with indexing the same source (same lock as _index).
-        with document_lock(scope_id, source_id, self.collection) if source_id else nullcontext():
+        with scope_lock(scope_id, self.collection, deleting=source_id is None, cleanup=True), document_lock(scope_id, source_id, self.collection):
             if clear_prepared:
                 self.prepared_cache.clear_scope(scope_id)
                 if source_id is None and getattr(self, 'vector_cache', None):

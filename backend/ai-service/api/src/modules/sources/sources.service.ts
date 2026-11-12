@@ -20,6 +20,7 @@ import {
   withUploadCheck,
 } from "./upload-validation";
 import type { Actor, Source } from "../../common/types";
+import { deleteSource } from "../../common/delete-source";
 @Injectable()
 export class SourcesService {
   sources(id: string) {
@@ -166,8 +167,7 @@ export class SourcesService {
     );
     if (!source) throw new NotFoundException();
     if (action === "remove") {
-      await enqueue("cleanup", source.id, { scopeId: id, sourceId });
-      await rows("DELETE FROM notebook_ai.sources WHERE id=$1", [sourceId]);
+      await deleteSource(id, sourceId);
 
       return {};
     }

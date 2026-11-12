@@ -425,7 +425,7 @@ test("the reported request goes to the complete-summary job instead of excerpt r
     assert.fail("whole summaries must not use top-k retrieval");
   rowsImpl = async () => {
     inserts++;
-    return [];
+    return [{ status: "RUNNING" }];
   };
   const service = new ChatGenerationService({
     artifact: async (_actor, notebookId, kind, sourceIds) => {
@@ -451,7 +451,7 @@ test("the reported request goes to the complete-summary job instead of excerpt r
   });
   assert.equal(result.artifactId, "summary-artifact");
   assert.equal(summaries, 1);
-  assert.equal(inserts, 1);
+  assert.equal(inserts, 2);
 });
 
 test("summary generation disables reasoning and still requires a complete cited answer", async () => {

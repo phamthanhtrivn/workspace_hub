@@ -1,4 +1,5 @@
 import { UnrecoverableError } from "bullmq";
+import { randomUUID } from "node:crypto";
 import { rows } from "../infrastructure/database/database";
 import { authorizeSources } from "../infrastructure/integrations/document.client";
 import { modelAnswer } from "../infrastructure/integrations/llm.client";
@@ -36,10 +37,17 @@ export async function summarize(id: string) {
     [id],
   );
   if (!artifact || ["COMPLETED", "CANCELLED"].includes(artifact.status)) return;
+  const runId = randomUUID();
+  const claimed = await rows(
+    "UPDATE notebook_ai.artifacts SET status='RUNNING',run_id=$2,updated_at=now() WHERE id=$1 AND status='QUEUED' RETURNING *",
+    [id, runId],
+  );
+  if (!claimed.length) return;
+  Object.assign(artifact, claimed[0]);
   if (artifact.in_flight) {
     await rows(
-      "UPDATE notebook_ai.artifacts SET status='FAILED',error='The previous provider request was interrupted and its outcome is unknown. Completed sections are saved. Select Resume summary to continue.' WHERE id=$1",
-      [id],
+      "UPDATE notebook_ai.artifacts SET status='FAILED',error='The previous provider request was interrupted and its outcome is unknown. Completed sections are saved. Select Resume summary to continue.' WHERE id=$1 AND run_id=$2 AND status='RUNNING'",
+      [id, runId],
     );
     throw new UnrecoverableError("Previous provider outcome unknown");
   }
@@ -57,8 +65,8 @@ export async function summarize(id: string) {
       stage: "source_snapshot",
     });
     await rows(
-      "UPDATE notebook_ai.artifacts SET status='FAILED',error=$2 WHERE id=$1",
-      [id, notebookFailureMessage(error)],
+      "UPDATE notebook_ai.artifacts SET status='FAILED',error=$2 WHERE id=$1 AND run_id=$3 AND status='RUNNING'",
+      [id, notebookFailureMessage(error), runId],
     );
     throw new UnrecoverableError("Source snapshot unavailable");
   }
@@ -79,8 +87,8 @@ export async function summarize(id: string) {
   guard.poll(1000, async () => {
     try {
       const [state] = await rows(
-        "SELECT status FROM notebook_ai.artifacts WHERE id=$1",
-        [id],
+        "SELECT status FROM notebook_ai.artifacts WHERE id=$1 AND run_id=$2 AND status='RUNNING'",
+        [id, runId],
       );
       if (!state || state.status === "CANCELLED") {
         controller.abort();
@@ -117,8 +125,8 @@ export async function summarize(id: string) {
           await authorize();
           controller.signal.throwIfAborted();
           const updated = await rows(
-            "UPDATE notebook_ai.artifacts SET in_flight=true WHERE id=$1 AND status='RUNNING' RETURNING id",
-            [id],
+            "UPDATE notebook_ai.artifacts SET in_flight=true WHERE id=$1 AND status='RUNNING' AND run_id=$2 RETURNING id",
+            [id, runId],
           );
           if (!updated.length) throw new Error("Summary is no longer running");
           stage = stages.model;
@@ -132,10 +140,6 @@ export async function summarize(id: string) {
     return content;
   };
   try {
-    await rows(
-      "UPDATE notebook_ai.artifacts SET status='RUNNING',error=NULL,updated_at=now() WHERE id=$1 AND status<>'CANCELLED'",
-      [id],
-    );
     const { evidence } = await rag<{ evidence: Evidence[] }>(
       "/chunks",
       { scopeId: artifact.notebook_id, sourceIds: sources.map((s) => s.id) },
@@ -188,16 +192,19 @@ export async function summarize(id: string) {
       originals.push(section);
       sections.push(section);
       stage = "save_checkpoint";
-      await rows(
-        "UPDATE notebook_ai.artifacts SET sections=$2,progress=$3,in_flight=false,updated_at=now() WHERE id=$1 AND status='RUNNING'",
+      const saved = await rows(
+        "UPDATE notebook_ai.artifacts SET sections=$2,progress=$3,in_flight=false,updated_at=now() WHERE id=$1 AND status='RUNNING' AND run_id=$4 RETURNING id",
         [
           id,
           JSON.stringify(sections),
           Math.round(
             (originals.length * (needsSynthesis ? 90 : 100)) / groups.length,
           ),
+          runId,
         ],
       );
+      if (!saved.length)
+        throw new DOMException("Summary superseded", "AbortError");
     }
     controller.signal.throwIfAborted();
     stage = "complete_summary";
@@ -225,10 +232,12 @@ export async function summarize(id: string) {
               notes,
             ),
           async () => {
-            await rows(
-              "UPDATE notebook_ai.artifacts SET sections=$2,progress=$3,in_flight=false,updated_at=now() WHERE id=$1 AND status='RUNNING'",
-              [id, JSON.stringify(sections), 99],
+            const saved = await rows(
+              "UPDATE notebook_ai.artifacts SET sections=$2,progress=$3,in_flight=false,updated_at=now() WHERE id=$1 AND status='RUNNING' AND run_id=$4 RETURNING id",
+              [id, JSON.stringify(sections), 99, runId],
             );
+            if (!saved.length)
+              throw new DOMException("Summary superseded", "AbortError");
           },
         ),
       );
@@ -243,8 +252,13 @@ export async function summarize(id: string) {
       .join("\n\n");
     await rows(
       `UPDATE notebook_ai.artifacts SET status='COMPLETED',progress=100,content=$2,citations=$3,updated_at=now()
-      WHERE id=$1 AND status='RUNNING'`,
-      [id, content, JSON.stringify(summaries.flatMap((s) => s.citations))],
+      WHERE id=$1 AND status='RUNNING' AND run_id=$4`,
+      [
+        id,
+        content,
+        JSON.stringify(summaries.flatMap((s) => s.citations)),
+        runId,
+      ],
     );
   } catch (error) {
     const failure = controller.signal.aborted
@@ -263,7 +277,7 @@ export async function summarize(id: string) {
       failure instanceof Error &&
       failure.message.startsWith("Câu trả lời bị cắt ở giới hạn ");
     await rows(
-      "UPDATE notebook_ai.artifacts SET status=$2,error=$3,updated_at=now() WHERE id=$1 AND status<>'CANCELLED'",
+      "UPDATE notebook_ai.artifacts SET status=$2,error=$3,updated_at=now() WHERE id=$1 AND status='RUNNING' AND run_id=$4",
       [
         id,
         canceled ? "CANCELLED" : "FAILED",
@@ -272,6 +286,7 @@ export async function summarize(id: string) {
           : isProviderConnectTimeout(failure)
             ? "Could not connect to the AI provider. Completed sections are saved. Select Resume summary to try again."
             : `${notebookFailureMessage(failure)} Completed sections are saved. Select Resume summary to try again.`,
+        runId,
       ],
     );
     // Provider outcomes are not replayed automatically. A user can explicitly resume checkpoints.

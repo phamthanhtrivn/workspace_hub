@@ -72,3 +72,11 @@ settings where needed to preserve their previous effective values.
 Summary checkpoints from the old `synthesis:...` source-ID representation remain
 readable. RAG promotes existing SQLite routes to Qdrant when first read; new
 caches store only embedding vectors. No database reset or re-index is required.
+
+Before running the updated API and worker, apply migration
+`009_cleanup_outbox.sql` with the normal AI migration command (`npm run migrate`
+from `backend/ai-service/api` after building). Source/notebook deletion writes a
+cleanup outbox entry in the same transaction; the worker drains committed entries
+on startup and every 30 seconds. Failed cleanup remains available for retry.
+The migration also links chat requests to summary artifacts so cancellation can
+stop the corresponding background summary.

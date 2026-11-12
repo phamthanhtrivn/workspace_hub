@@ -5,7 +5,7 @@ import { SourcesService } from "../sources/sources.service";
 import { visibleSnapshot } from "../../common/evidence-policy";
 import type { Actor, Source, Snapshot } from "../../common/types";
 import { randomUUID } from "node:crypto";
-import { enqueue } from "../../infrastructure/queue/notebook.queue";
+import { deleteSource } from "../../common/delete-source";
 @Injectable()
 export class NotebooksService {
   constructor(private readonly sourcesService: SourcesService) {}
@@ -35,12 +35,7 @@ export class NotebooksService {
   }
   async remove(actor: Actor, id: string) {
     await ownedNotebook(actor, id);
-    // The cleanup job survives the notebook row deletion and is restricted to its scope.
-    await enqueue("cleanup", id, { scopeId: id });
-    await rows(
-      "DELETE FROM notebook_ai.notebooks WHERE id=$1 AND owner_id=$2",
-      [id, actor.id],
-    );
+    await deleteSource(id);
   }
   async get(actor: Actor, id: string) {
     const notebook = await ownedNotebook(actor, id);
