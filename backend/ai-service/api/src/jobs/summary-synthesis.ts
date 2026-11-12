@@ -9,7 +9,19 @@ export type SummarySection = {
   content: string;
   citations: Citation[];
   sourceId: string;
+  checkpointKey?: string;
 };
+
+/** Reads checkpoints saved before synthesis keys had their own field. */
+export function readSummarySections(saved: SummarySection[]): SummarySection[] {
+  return saved.map((section) => {
+    const legacy = /^synthesis:([^:]+):[a-f0-9]{64}$/.exec(section.sourceId);
+
+    return legacy
+      ? { ...section, sourceId: legacy[1], checkpointKey: section.sourceId }
+      : section;
+  });
+}
 
 export async function synthesizeDocument(
   sourceId: string,
@@ -53,7 +65,11 @@ export async function synthesizeDocument(
       const digest = createHash("sha256")
         .update(
           JSON.stringify({
-            batch,
+            // Preserve cache identities from the old checkpoint representation.
+            batch: batch.map(({ checkpointKey, ...note }) => ({
+              ...note,
+              sourceId: checkpointKey ?? note.sourceId,
+            })),
             model: config.LLM_MODEL,
             provider: config.LLM_BASE_URL,
             maxTokens: config.LLM_MAX_TOKENS,
@@ -62,7 +78,7 @@ export async function synthesizeDocument(
         )
         .digest("hex");
       const key = `synthesis:${sourceId}:${digest}`;
-      let section = saved.find((item) => item.sourceId === key);
+      let section = saved.find((item) => item.checkpointKey === key);
       if (!section) {
         const citations = [
           ...new Map(
@@ -77,9 +93,10 @@ export async function synthesizeDocument(
           batch.map((note) => note.content),
         );
         section = {
-          sourceId: key,
+          sourceId,
           content,
           citations: validateCitations(content, citations),
+          checkpointKey: key,
         };
         saved.push(section);
         await checkpoint();
@@ -89,5 +106,5 @@ export async function synthesizeDocument(
     notes = reduced;
   }
 
-  return { ...notes[0], sourceId };
+  return { sourceId, content: notes[0].content, citations: notes[0].citations };
 }

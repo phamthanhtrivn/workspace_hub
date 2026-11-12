@@ -9,6 +9,7 @@ import {
 } from "../../common/errors/model-quota.exception";
 import { providerFetch } from "./provider-http";
 import { providerEvents } from "./provider-events";
+import { waitForModelAdmission } from "../../common/model-admission";
 
 export async function admitModel(
   input: number,
@@ -80,6 +81,7 @@ export async function* modelAnswer(
     notes?: string[];
     history?: { role: "user" | "assistant"; content: string }[];
     images?: VisualInput[];
+    beforeCall?: () => Promise<void>;
   },
 ) {
   const started = performance.now();
@@ -110,11 +112,18 @@ export async function* modelAnswer(
       : {}),
   });
   const images = (clarification?.images || []).slice(0, 2);
-  await admitModel(
-    Math.ceil(Buffer.byteLength(prompt) / 3) +
-      config.LLM_MAX_TOKENS +
-      images.length * 1024,
+  await waitForModelAdmission(
+    () =>
+      admitModel(
+        Math.ceil(Buffer.byteLength(prompt) / 3) +
+          config.LLM_MAX_TOKENS +
+          images.length * 1024,
+      ),
+    signal,
+    clarification?.purpose === "summary" ? config.LLM_QUOTA_WAIT_MS : 0,
   );
+  await clarification?.beforeCall?.();
+  signal.throwIfAborted();
   const timeout = AbortSignal.timeout(config.LLM_TIMEOUT_MS);
   const response = await providerFetch(
     `${config.LLM_BASE_URL.replace(/\/$/, "")}/chat/completions`,

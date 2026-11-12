@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { join, dirname, basename } from "node:path";
 import { tmpdir } from "node:os";
-import { prepareMeetingAudio, AUDIO_CHUNK_SECONDS } from "./media";
+import { prepareAudioChunks, AUDIO_CHUNK_SECONDS } from "./media";
 import { recognizeMeetingChunk } from "./speech.client";
 import {
   meetingSummaryText,
@@ -37,7 +37,7 @@ export async function transcribeMeeting(
   const directory = await mkdtemp(join(tmpdir(), "meeting-summary-"));
   try {
     const files = await measure("audio_ms", () =>
-      prepareMeetingAudio(source, directory, signal),
+      prepareAudioChunks(source, directory, signal),
     );
     const completed = new Set(
       state.transcript.map((chunk) => chunk.startSeconds / AUDIO_CHUNK_SECONDS),

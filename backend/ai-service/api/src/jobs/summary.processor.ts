@@ -18,15 +18,16 @@ import type {
   Snapshot,
   Source,
 } from "../common/types";
-import { setTimeout as pause } from "node:timers/promises";
-import { ModelMinuteQuotaException } from "../common/errors/model-quota.exception";
 import { createAbortGuard, isCancellation } from "../common/abort-guard";
 import { logError } from "../common/errors/error-log";
 import { isProviderConnectTimeout } from "../infrastructure/integrations/provider-http";
 import { notebookFailureMessage } from "../modules/chat/notebook-failure";
-import { synthesizeDocument } from "./summary-synthesis";
+import {
+  readSummarySections,
+  synthesizeDocument,
+  type SummarySection,
+} from "./summary-synthesis";
 const sourcesService = new SourcesService();
-type Section = { content: string; citations: Citation[]; sourceId: string };
 // The poller re-verifies source access at this cadence unless an inline check just did.
 const SOURCE_RECHECK_MS = 3000;
 export async function summarize(id: string) {
@@ -103,40 +104,32 @@ export async function summarize(id: string) {
     stages: { authorize: string; model: string },
     notes?: string[],
   ) => {
-    while (true) {
-      stage = stages.authorize;
-      await authorize();
-      controller.signal.throwIfAborted();
-      await rows(
-        "UPDATE notebook_ai.artifacts SET in_flight=true WHERE id=$1 AND status='RUNNING'",
-        [id],
-      );
-      stage = stages.model;
-      let content = "";
-      try {
-        for await (const delta of modelAnswer(
-          question,
-          evidence,
-          controller.signal,
-          { purpose: "summary", notes },
-        )) {
-          content += delta;
-          if (content.length > 20000) throw new Error("Kết quả vượt giới hạn");
-        }
-
-        return content;
-      } catch (error) {
-        if (!(error instanceof ModelMinuteQuotaException) || content.length)
-          throw error;
-        await rows(
-          "UPDATE notebook_ai.artifacts SET in_flight=false,updated_at=now() WHERE id=$1 AND status='RUNNING'",
-          [id],
-        );
-        await pause(error.retryAfterMs + Math.random() * 250, undefined, {
-          signal: controller.signal,
-        });
-      }
+    let content = "";
+    for await (const delta of modelAnswer(
+      question,
+      evidence,
+      controller.signal,
+      {
+        purpose: "summary",
+        notes,
+        beforeCall: async () => {
+          stage = stages.authorize;
+          await authorize();
+          controller.signal.throwIfAborted();
+          const updated = await rows(
+            "UPDATE notebook_ai.artifacts SET in_flight=true WHERE id=$1 AND status='RUNNING' RETURNING id",
+            [id],
+          );
+          if (!updated.length) throw new Error("Summary is no longer running");
+          stage = stages.model;
+        },
+      },
+    )) {
+      content += delta;
+      if (content.length > 20000) throw new Error("Kết quả vượt giới hạn");
     }
+
+    return content;
   };
   try {
     await rows(
@@ -173,12 +166,13 @@ export async function summarize(id: string) {
       (source) =>
         groups.filter((group) => group[0].sourceId === source.id).length > 1,
     );
-    const sections = artifact.sections as Section[];
+    const sections = readSummarySections(artifact.sections as SummarySection[]);
     if (sections.some((section) => !section.sourceId))
       throw new Error(
         "Bản nháp cũ cần được tạo lại theo định dạng tóm tắt mới.",
       );
-    for (let i = sections.length; i < groups.length; i++) {
+    const originals = sections.filter((section) => !section.checkpointKey);
+    for (let i = originals.length; i < groups.length; i++) {
       controller.signal.throwIfAborted();
       const question =
         artifact.kind === "OVERVIEW"
@@ -190,7 +184,9 @@ export async function summarize(id: string) {
       });
       stage = "validate_citations";
       const citations = validateCitations(content, groups[i]);
-      sections.push({ content, citations, sourceId: groups[i][0].sourceId });
+      const section = { content, citations, sourceId: groups[i][0].sourceId };
+      originals.push(section);
+      sections.push(section);
       stage = "save_checkpoint";
       await rows(
         "UPDATE notebook_ai.artifacts SET sections=$2,progress=$3,in_flight=false,updated_at=now() WHERE id=$1 AND status='RUNNING'",
@@ -198,21 +194,21 @@ export async function summarize(id: string) {
           id,
           JSON.stringify(sections),
           Math.round(
-            (sections.length * (needsSynthesis ? 90 : 100)) / groups.length,
+            (originals.length * (needsSynthesis ? 90 : 100)) / groups.length,
           ),
         ],
       );
     }
     controller.signal.throwIfAborted();
     stage = "complete_summary";
-    if (!sections.length || sections.length < groups.length)
+    if (!originals.length || originals.length < groups.length)
       throw new Error("Chưa đọc đủ các phần");
     stage = "synthesize_summary";
-    const summaries: Section[] = [];
+    const summaries: SummarySection[] = [];
     for (const source of sources) {
-      const original = sections
-        .slice(0, groups.length)
-        .filter((section) => section.sourceId === source.id);
+      const original = originals.filter(
+        (section) => section.sourceId === source.id,
+      );
       summaries.push(
         await synthesizeDocument(
           source.id,

@@ -15,7 +15,6 @@ export class MeetingAI {
       WORK_ASSISTANT_ENABLED: 'false',
       CONVERSATION_AI_ENABLED: 'false',
       VISUAL_ENABLED: 'false',
-      MEETING_STT_CONCURRENCY: '1',
       AI_GATEWAY_KEY: h.keys.COMMUNICATION_TO_AI_KEY,
       AI_DOCUMENT_SERVICE_KEY: h.keys.COMMUNICATION_TO_AI_KEY,
       RAG_SERVICE_KEY: h.keys.COMMUNICATION_TO_AI_KEY,
@@ -28,7 +27,7 @@ export class MeetingAI {
       LLM_REQUESTS_PER_MINUTE: '1000',
       LLM_TOKENS_PER_MINUTE: '10000000',
       LLM_REQUESTS_PER_DAY: '10000',
-      CONVERSATION_AI_QUOTA_WAIT_MS: '0',
+      LLM_QUOTA_WAIT_MS: '0',
       MEETING_STT_URL: h.providers.url,
       MEETING_STT_SERVICE_KEY: h.keys.MEETING_STT_SERVICE_KEY,
       MEETING_MEDIA_HOSTS: new URL(h.providers.url).host,
@@ -48,9 +47,9 @@ export class MeetingAI {
         'infrastructure/queue/notebook.queue.js',
       );
       this.media = load('ai-service/api', 'modules/meeting-summary/media.js');
-      this.originalMedia = this.media.prepareMeetingAudio;
+      this.originalMedia = this.media.prepareAudioChunks;
       this.scratch = new Set();
-      this.media.prepareMeetingAudio = async (source, directory, signal) => {
+      this.media.prepareAudioChunks = async (source, directory, signal) => {
         signal.throwIfAborted();
         this.scratch.add(directory);
         // Still exercise source download/size checking against the owned object endpoint.
@@ -124,7 +123,7 @@ export class MeetingAI {
     await this.worker?.close();
     await this.app?.close();
     if (this.media && this.originalMedia)
-      this.media.prepareMeetingAudio = this.originalMedia;
+      this.media.prepareAudioChunks = this.originalMedia;
     await this.queues?.closeQueues();
     await this.database?.db.end();
     if (this.scratch) await this.assertScratchRemoved();

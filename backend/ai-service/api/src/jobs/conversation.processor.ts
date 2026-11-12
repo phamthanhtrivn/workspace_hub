@@ -4,6 +4,7 @@ import { config } from "../config/env.config";
 import { conversationAnswer } from "../modules/conversation-ai/conversation-agent";
 import { setTimeout as pause } from "node:timers/promises";
 import { createAbortGuard } from "../common/abort-guard";
+import { singleFlight } from "../common/single-flight";
 import { CONVERSATION_AI_MESSAGES } from "../modules/conversation-ai/conversation-ai.messages";
 import {
   internalPost,
@@ -66,8 +67,9 @@ export async function processConversation(
     await checkpoint?.saveClaim?.(claim.token);
     const guard = createAbortGuard(180000);
     const { signal } = guard;
-    const authorize = () =>
-      communication(id, "validate", { token: claim.token }, signal);
+    const authorize = singleFlight(() =>
+      communication(id, "validate", { token: claim.token }, signal),
+    );
     let authorizeSource: (() => Promise<void>) | undefined;
     guard.poll(5000, async () => {
       await authorize();

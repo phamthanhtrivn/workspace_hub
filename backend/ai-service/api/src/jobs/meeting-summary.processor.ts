@@ -1,4 +1,4 @@
-import { config } from "../config/env.config";
+import { singleFlight } from "../common/single-flight";
 import { rows } from "../infrastructure/database/database";
 import { meetingSource } from "../modules/meeting-summary/source";
 import { SpeechRecognitionError } from "../modules/meeting-summary/speech.client";
@@ -44,14 +44,16 @@ export async function processMeetingSummary(
         (timings[stage] || 0) + Math.round(performance.now() - start);
     }
   };
-  const authorize = async () => {
+  const authorize = singleFlight(async () => {
     signal.throwIfAborted();
     const current = await meetingSource(recordingId, state.actor_id, signal);
     if (current.revision !== state.revision)
       throw new Error("Recording revision changed");
 
+    signal.throwIfAborted();
+
     return current;
-  };
+  });
   guard.poll(MEETING_LIMITS.accessCheckIntervalMs, authorize);
   const checkpoint = async (stage: string) => {
     currentStage = stage;
@@ -94,7 +96,6 @@ export async function processMeetingSummary(
         chunks: state.transcript.length,
         duration_ms: Math.round(performance.now() - started),
         timings,
-        stt_concurrency: config.MEETING_STT_CONCURRENCY,
       }),
     );
   } catch (error) {

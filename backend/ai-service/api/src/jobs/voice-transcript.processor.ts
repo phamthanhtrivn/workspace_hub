@@ -11,6 +11,7 @@ import {
 } from "../modules/voice-transcript/voice.constants";
 import { pcmWaveSeconds } from "../modules/voice-transcript/wave-duration";
 import { createAbortGuard } from "../common/abort-guard";
+import { singleFlight } from "../common/single-flight";
 import { isRetryableVoiceFailure } from "../modules/voice-transcript/voice-transcript-retry";
 
 export async function processVoiceTranscript(
@@ -24,7 +25,7 @@ export async function processVoiceTranscript(
   if (!state) return;
   const guard = createAbortGuard(VOICE_TRANSCRIPT.timeoutMs);
   const { signal } = guard;
-  const authorize = async () => {
+  const authorize = singleFlight(async () => {
     signal.throwIfAborted();
     const source = await voiceSource(
       state.media_id,
@@ -35,8 +36,10 @@ export async function processVoiceTranscript(
     if (source.revision !== state.revision)
       throw new Error("Voice message changed");
 
+    signal.throwIfAborted();
+
     return source;
-  };
+  });
   guard.poll(VOICE_TRANSCRIPT.accessIntervalMs, authorize);
   let directory: string | undefined;
   try {

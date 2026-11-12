@@ -11,6 +11,7 @@ import { completedModelText } from "../../common/model-response";
 import { TooManyRequestsException } from "../../common/errors/rate-limit.exception";
 import { createChatModel } from "../../infrastructure/integrations/chat-model";
 import { admitModel } from "../../infrastructure/integrations/llm.client";
+import { waitForModelAdmission } from "../../common/model-admission";
 import type { StoredMessage, WorkContext } from "./work-assistant.types";
 import { workHistory } from "./work-history";
 
@@ -164,11 +165,14 @@ export async function workAnswer(
     );
   }
   messages.push(new HumanMessage(""));
-  const modelName = config.CONVERSATION_AI_MODEL ?? config.LLM_MODEL;
-  const maxTokens = Math.min(config.CONVERSATION_AI_MAX_TOKENS ?? 1800, 2200);
+  const modelName = config.WORK_ASSISTANT_MODEL ?? config.LLM_MODEL;
+  const maxTokens = config.WORK_ASSISTANT_MAX_TOKENS;
   const fitted = fitContextToBudget(messages, initial, maxTokens, question);
   signal.throwIfAborted();
-  await admitModel(fitted.tokens, modelName);
+  await waitForModelAdmission(
+    () => admitModel(fitted.tokens, modelName),
+    signal,
+  );
   signal.throwIfAborted();
   onStatus("Đang phân tích công việc…");
   const model = createChatModel(modelName, maxTokens);

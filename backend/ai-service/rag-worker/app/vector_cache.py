@@ -22,9 +22,8 @@ class VectorCache:
             scope TEXT NOT NULL, namespace TEXT NOT NULL, digest TEXT NOT NULL,
             vector BLOB NOT NULL, touched REAL NOT NULL,
             PRIMARY KEY(scope,namespace,digest))''')
-        self.connection.execute('''CREATE TABLE IF NOT EXISTS routes (
-            scope TEXT NOT NULL, source TEXT NOT NULL, collection TEXT NOT NULL,
-            PRIMARY KEY(scope,source))''')
+        self.has_legacy_routes = self.connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='routes'").fetchone() is not None
         self.connection.execute('CREATE INDEX IF NOT EXISTS vectors_touched ON vectors(touched)')
         self.connection.commit()
         self.estimated_count = self.connection.execute('SELECT count(*) FROM vectors').fetchone()[0]
@@ -120,17 +119,17 @@ class VectorCache:
         with self.lock, self.connection:
             self.connection.execute('DELETE FROM vectors WHERE scope=?', [scope])
 
-    def route(self, scope, source):
+    def legacy_route(self, scope, source):
+        if not self.has_legacy_routes:
+            return None
         with self.lock:
             row = self.connection.execute('SELECT collection FROM routes WHERE scope=? AND source=?',
                                           [scope, source]).fetchone()
         return row[0] if row else None
 
-    def set_route(self, scope, source, collection):
-        with self.lock, self.connection:
-            self.connection.execute('INSERT OR REPLACE INTO routes VALUES(?,?,?)', [scope, source, collection])
-
-    def delete_routes(self, scope, source=None):
+    def delete_legacy_routes(self, scope, source=None):
+        if not self.has_legacy_routes:
+            return
         with self.lock, self.connection:
             if source is None:
                 self.connection.execute('DELETE FROM routes WHERE scope=?', [scope])

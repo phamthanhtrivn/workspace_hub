@@ -1,12 +1,10 @@
 import { createHash } from "node:crypto";
 import { createAbortGuard } from "../common/abort-guard";
 import { singleFlight } from "../common/single-flight";
-import { setTimeout as pause } from "node:timers/promises";
 import { z } from "zod";
 import { UnrecoverableError } from "bullmq";
 import type { Actor, Source } from "../common/types";
 import { config } from "../config/env.config";
-import { ModelMinuteQuotaException } from "../common/errors/model-quota.exception";
 import { mapVisionImages } from "../common/vision-concurrency";
 import { rows, transaction } from "../infrastructure/database/database";
 import { authorizeSources } from "../infrastructure/integrations/document.client";
@@ -185,22 +183,9 @@ export async function enrichVisualSource(
           const key = `${image.hash}:${contextHash}`;
           let pending = descriptions.get(key);
           if (!pending) {
-            pending = (async () => {
-              while (true) {
-                await authorize();
-                try {
-                  return await describeImage(
-                    image.dataUrl,
-                    image.context,
-                    signal,
-                  );
-                } catch (error) {
-                  if (!(error instanceof ModelMinuteQuotaException))
-                    throw error;
-                  await pause(error.retryAfterMs, undefined, { signal });
-                }
-              }
-            })();
+            pending = authorize().then(() =>
+              describeImage(image.dataUrl, image.context, signal),
+            );
             descriptions.set(key, pending);
           }
           description = await pending;

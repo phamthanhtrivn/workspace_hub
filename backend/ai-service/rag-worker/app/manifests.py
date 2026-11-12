@@ -3,6 +3,7 @@ import threading
 from uuid import NAMESPACE_URL, uuid5
 
 from qdrant_client import models
+from .document_locks import document_lock
 
 
 def document_filter(manifests, collection, scope_id, source_ids=None, active=True):
@@ -40,6 +41,17 @@ class ManifestStore:
             return None
         records = self.client.retrieve(self.collection, ids=[self.identity(scope, source, namespace)], with_vectors=False)
         return records[0].payload if records else None
+
+    def route(self, scope, source, legacy_cache):
+        with document_lock(scope, source):
+            route = self.get(scope, source)
+            if route:
+                return route['collection']
+            # Promote old routes under the same lock as indexing and deletion.
+            collection = legacy_cache.legacy_route(scope, source)
+            if collection:
+                self.put(scope, source, collection=collection)
+            return collection
 
     def put(self, scope, source, namespace='route', **payload):
         with self.creation_lock:

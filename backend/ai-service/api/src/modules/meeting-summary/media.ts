@@ -122,7 +122,6 @@ export async function prepareAudioChunks(
 
   return files.map((name) => join(directory, name));
 }
-export const prepareMeetingAudio = prepareAudioChunks;
 
 function runFfmpeg(args: string[], signal: AbortSignal) {
   return new Promise<void>((resolve, reject) => {

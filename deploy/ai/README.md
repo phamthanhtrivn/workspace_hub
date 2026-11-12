@@ -55,13 +55,13 @@ Các tên dưới đây thay cho file env mẫu; secret được cấp riêng v�
 | Database/queue | `NOTEBOOK_POSTGRES_USER`, `NOTEBOOK_POSTGRES_PASSWORD`, `DATABASE_URL`, `REDIS_URL`; local dùng `postgres` trên `notebook_db`; Redis DB index theo URL từng process. |
 | Proof gateway | `AI_GATEWAY_KEY` khớp Kong; `AI_GATEWAY_KEY_PREVIOUS` chỉ dùng trong cửa sổ xoay khóa. |
 | Document/RAG | `AI_DOCUMENT_SERVICE_KEY`, `DOCUMENT_SERVICE_URL`; `RAG_SERVICE_KEY`, `RAG_SERVICE_KEY_PREVIOUS`, `RAG_WORKER_URL`. Khóa khớp receiver, URL dùng DNS Docker hoặc localhost tương ứng. |
-| Provider | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`; ngân sách qua `LLM_TIMEOUT_MS`, `LLM_MAX_TOKENS`, `LLM_REQUESTS_PER_MINUTE`, `LLM_TOKENS_PER_MINUTE`, `LLM_REQUESTS_PER_DAY`. `FRONTEND_URL` là origin frontend. |
+| Provider | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`; ngân sách qua `LLM_TIMEOUT_MS`, `LLM_MAX_TOKENS`, `LLM_QUOTA_WAIT_MS`, `LLM_REQUESTS_PER_MINUTE`, `LLM_TOKENS_PER_MINUTE`, `LLM_REQUESTS_PER_DAY`. `FRONTEND_URL` là origin frontend. |
 | Retrieval | `QDRANT_URL`, `QDRANT_API_KEY`, `EMBEDDING_PROVIDER`, `EMBEDDING_MODEL`, `EMBEDDING_DEVICE`, `EMBEDDING_BASE_URL`, `EMBEDDING_API_KEY`, `INDEX_PIPELINE_VERSION`. Credential embedding chỉ cần khi provider yêu cầu. |
 | Tài nguyên RAG | `OMP_NUM_THREADS`, `TOKENIZERS_PARALLELISM`, `RAG_MEMORY_LIMIT`; đặt theo RAM/CPU thực tế. |
 | OCR/Vision | `VISUAL_ENABLED`, `VISION_MAX_TOKENS`; chỉ bật sau khi chấp thuận gửi hình tới provider theo phần OCR bên dưới. |
-| Bot chat | `CONVERSATION_AI_ENABLED`, `AI_TO_COMMUNICATION_KEY`, `COMMUNICATION_TO_AI_KEY`, `COMMUNICATION_SERVICE_URL`, `CONVERSATION_AI_CONCURRENCY`, `CONVERSATION_AI_QUOTA_WAIT_MS`; khóa theo từng chiều với Communication. |
-| Trợ lý công việc | `WORK_ASSISTANT_ENABLED`, `AI_TO_PROJECT_KEY`, `AI_TO_CALENDAR_KEY`, `WORK_ASSISTANT_PROJECT_URL`, `WORK_ASSISTANT_CALENDAR_URL`; khóa riêng theo đích. |
-| Tóm tắt họp | `MEETING_SUMMARY_ENABLED`, `MEETING_STT_SERVICE_KEY`, `MEETING_STT_URL`, `MEETING_STT_CONCURRENCY`, `MEETING_STT_TIMEOUT_MS`, `MEETING_FFMPEG_PATH`, `MEETING_SUMMARY_MAX_SECONDS`, `MEETING_SUMMARY_MAX_BYTES`, `MEETING_MEDIA_HOSTS`. Khi chạy speech trong Docker, bật `COMPOSE_PROFILES=meeting-summary`; `MEETING_STT_CPU_THREADS` điều chỉnh CPU. |
+| Bot chat | `CONVERSATION_AI_ENABLED`, `AI_TO_COMMUNICATION_KEY`, `COMMUNICATION_TO_AI_KEY`, `COMMUNICATION_SERVICE_URL`, `CONVERSATION_AI_CONCURRENCY`, `CONVERSATION_AI_MODEL`, `CONVERSATION_AI_MAX_TOKENS`; khóa theo từng chiều với Communication. |
+| Trợ lý công việc | `WORK_ASSISTANT_ENABLED`, `WORK_ASSISTANT_MODEL`, `WORK_ASSISTANT_MAX_TOKENS`, `AI_TO_PROJECT_KEY`, `AI_TO_CALENDAR_KEY`, `WORK_ASSISTANT_PROJECT_URL`, `WORK_ASSISTANT_CALENDAR_URL`; khóa riêng theo đích. |
+| Tóm tắt họp | `MEETING_SUMMARY_ENABLED`, `MEETING_SUMMARY_MODEL`, `MEETING_SUMMARY_MAX_TOKENS`, `MEETING_STT_SERVICE_KEY`, `MEETING_STT_URL`, `MEETING_STT_TIMEOUT_MS`, `MEETING_FFMPEG_PATH`, `MEETING_SUMMARY_MAX_SECONDS`, `MEETING_SUMMARY_MAX_BYTES`, `MEETING_MEDIA_HOSTS`. Khi chạy speech trong Docker, bật `COMPOSE_PROFILES=meeting-summary`; `MEETING_STT_CPU_THREADS` điều chỉnh CPU. |
 | Network/bootstrap | `AI_APP_NETWORK`; production thêm `NOTEBOOK_ADMIN_HOST`, `NOTEBOOK_ADMIN_PORT`. Admin user/password chỉ được nạp riêng cho bootstrap, không đưa vào runtime AI. |
 | Image production | `AI_IMAGE`, `RAG_IMAGE`, `SPEECH_IMAGE` phải có digest hoặc SHA tag; thiếu image/provider credential sẽ không qua preflight. |
 

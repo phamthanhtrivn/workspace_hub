@@ -3,13 +3,6 @@ import { z } from "zod";
 
 export const config = z
   .object({
-    MEETING_STT_CONCURRENCY: z.coerce
-      .number()
-      .refine(
-        (value) => value === 1,
-        "Local speech worker supports one audio chunk at a time",
-      )
-      .default(1),
     MEETING_STT_URL: z.string().url().default("http://127.0.0.1:8090"),
     MEETING_STT_SERVICE_KEY: z.string().default(""),
     MEETING_STT_TIMEOUT_MS: z.coerce
@@ -45,14 +38,23 @@ export const config = z
       .min(1)
       .max(8)
       .default(2),
-    CONVERSATION_AI_QUOTA_WAIT_MS: z.coerce
-      .number()
-      .int()
-      .min(0)
-      .max(60000)
-      .default(60000),
+    LLM_QUOTA_WAIT_MS: z.coerce.number().int().min(0).max(60000).default(60000),
     CONVERSATION_AI_MODEL: z.string().trim().min(1).optional(),
     CONVERSATION_AI_MAX_TOKENS: z.coerce
+      .number()
+      .int()
+      .min(256)
+      .max(8192)
+      .optional(),
+    WORK_ASSISTANT_MODEL: z.string().trim().min(1).optional(),
+    WORK_ASSISTANT_MAX_TOKENS: z.coerce
+      .number()
+      .int()
+      .min(256)
+      .max(2200)
+      .default(1800),
+    MEETING_SUMMARY_MODEL: z.string().trim().min(1).optional(),
+    MEETING_SUMMARY_MAX_TOKENS: z.coerce
       .number()
       .int()
       .min(256)

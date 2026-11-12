@@ -16,7 +16,7 @@ def migrate(data):
         for source in data['sources']:
             scope, identity = source['notebook_id'], source['id']
             route = store.get(scope, identity)
-            collection = route['collection'] if route else cache.route(scope, identity)
+            collection = route['collection'] if route else cache.legacy_route(scope, identity)
             collection = collection or max(data['collections'].values(), key=lambda name:
                 hashlib.sha256(f'{scope}:{identity}:{name}'.encode()).digest())
             filter_ = document_filter(store, collection, scope, [identity])

@@ -35,8 +35,8 @@ class MultiEngine:
         self.model = primary.model
         self.embedding_models = [engine.model_name for engine in self.engines]
         self.embedding_collections = {engine.model_name: engine.collection for engine in self.engines}
-        self.manifests = getattr(primary, 'manifests', None)
-        self.fallbacks = FallbackQueue(self.manifests, self.local_copy, self.delete) if self.manifests else None
+        self.manifests = primary.manifests
+        self.fallbacks = FallbackQueue(self.manifests, self.local_copy, self.delete)
         self.recovered = False
 
     def _run_all(self, method, *args):
@@ -72,7 +72,7 @@ class MultiEngine:
         if (self.strategy == 'shard' and any(self.quota_exhausted(engine) for engine in self.engines)
                 and not any(engine.provider == 'local' for engine in available)):
             raise RuntimeError('Local quota fallback is unavailable')
-        if self.fallbacks and not self.recovered:
+        if not self.recovered:
             self.fallbacks.recover(self.engines)
             self.recovered = True
         return [engine.model_name for engine in available]
@@ -93,12 +93,7 @@ class MultiEngine:
         return next((engine for engine in self.engines if engine.provider == 'local'), None)
 
     def remember(self, scope, source, engine):
-        if self.manifests:
-            self.manifests.put(scope, source, collection=engine.collection)
-            return
-        cache = getattr(self.primary, 'vector_cache', None)
-        if cache:
-            cache.set_route(scope, source, engine.collection)
+        self.manifests.put(scope, source, collection=engine.collection)
 
     def validate(self, *args):
         return self.primary.validate(*args)
@@ -107,9 +102,7 @@ class MultiEngine:
         return self.primary.extract(*args)
 
     def owner(self, scope_id, source_id):
-        route = self.manifests.get(scope_id, source_id) if self.manifests else None
-        cache = getattr(self.primary, 'vector_cache', None)
-        collection = route['collection'] if route else cache.route(scope_id, source_id) if cache else None
+        collection = self.manifests.route(scope_id, source_id, self.primary.vector_cache)
         if collection:
             for engine in self.engines:
                 if engine.collection == collection:
@@ -151,7 +144,7 @@ class MultiEngine:
         if self.strategy == 'shard':
             for source in source_ids:
                 owner = self.owner(scope_id, source)
-                if self.quota_exhausted(owner) and self.fallbacks:
+                if self.quota_exhausted(owner):
                     if owner.client.collection_exists(owner.collection) and owner.client.count(owner.collection,
                             count_filter=owner.scope_filter(scope_id, [source]), exact=True).count == 0:
                         owners[source] = owner
@@ -159,7 +152,7 @@ class MultiEngine:
                     self.fallbacks.enqueue(scope_id, source, owner)
                     pending = True
                 else:
-                    owners[source] = self.local_copy(scope_id, source, owner) if self.quota_exhausted(owner) else owner
+                    owners[source] = owner
         if pending:
             raise FallbackPending()
         return [(engine, source_ids if self.strategy == 'ensemble' else [
@@ -256,13 +249,8 @@ class MultiEngine:
             if self.strategy != 'shard' or not self.mark_quota(engine, error) or self.local_engine() is None:
                 raise
             for source in sources:
-                if self.fallbacks:
-                    self.fallbacks.enqueue(scope, source, engine)
-                else:
-                    self.local_copy(scope, source, engine)
-            if self.fallbacks:
-                raise FallbackPending() from None
-            return self.local_engine().retrieve(scope, sources, question)
+                self.fallbacks.enqueue(scope, source, engine)
+            raise FallbackPending() from None
 
     def retrieve(self, scope_id, source_ids, question):
         groups = [(engine, sources) for engine, sources in self.groups(scope_id, source_ids) if sources]
@@ -300,16 +288,12 @@ class MultiEngine:
         # A source-level delete must not interleave with indexing the same source.
         with document_lock(args[0], args[1]) if len(args) > 1 and args[1] else nullcontext():
             self._run_all("delete", *args)
-            cache = getattr(self.primary, 'vector_cache', None)
-            if cache:
-                cache.delete_routes(*args)
-            if self.manifests:
-                self.manifests.delete(*args)
+            self.primary.vector_cache.delete_legacy_routes(*args)
+            self.manifests.delete(*args)
         return {"ok": True}
 
     def close(self):
-        if self.fallbacks:
-            self.fallbacks.close()
+        self.fallbacks.close()
         self.pool.shutdown(wait=True)
         for engine in self.engines:
             engine.close()

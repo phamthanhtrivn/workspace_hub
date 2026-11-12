@@ -64,8 +64,8 @@ stub("./src/infrastructure/integrations/chat-model.ts", {
   createChatModel: () => model,
 });
 
-stub("./src/modules/conversation-ai/model-admission.ts", {
-  admitConversationModel: async () => {},
+stub("./src/infrastructure/integrations/llm.client.ts", {
+  admitModel: async () => {},
 });
 stub("./src/infrastructure/integrations/rag.client.ts", {
   rag: async () => extraction,

@@ -5,7 +5,9 @@ import { z } from "zod";
 import { resolveChatAttachment } from "../../infrastructure/integrations/document.client";
 import { config } from "../../config/env.config";
 import { completedModelText } from "../../common/model-response";
-import { admitConversationModel } from "./model-admission";
+import { waitForModelAdmission } from "../../common/model-admission";
+import { singleFlight } from "../../common/single-flight";
+import { admitModel } from "../../infrastructure/integrations/llm.client";
 import { measureConversationStage } from "./telemetry";
 import { rag } from "../../infrastructure/integrations/rag.client";
 import { downloadSource } from "../sources/upload-validation";
@@ -109,7 +111,7 @@ export async function summarizeAttachment(
       sizeBytes: selected.sizeBytes,
       downloadUrl: original.downloadUrl,
     };
-    checkDocument = async () => {
+    checkDocument = singleFlight(async () => {
       const current = documentManifestSchema.parse(
         await resolveChatAttachment(selected.document, false, signal),
       );
@@ -120,7 +122,7 @@ export async function summarizeAttachment(
         current.sizeBytes !== original.sizeBytes
       )
         throw new ForbiddenException("Document version changed");
-    };
+    });
     onSourceGuard?.(checkDocument);
   } else {
     manifest = selected;
@@ -162,9 +164,12 @@ export async function summarizeAttachment(
       }),
     ),
   ];
-  await admitConversationModel(
-    Math.ceil(Buffer.byteLength(JSON.stringify(messages)) / 3) + maxTokens,
-    modelName,
+  await waitForModelAdmission(
+    () =>
+      admitModel(
+        Math.ceil(Buffer.byteLength(JSON.stringify(messages)) / 3) + maxTokens,
+        modelName,
+      ),
     signal,
   );
   signal.throwIfAborted();

@@ -87,7 +87,3 @@ export function verifyAccessClaims(
     throw new UnauthorizedException(AUTHENTICATION_ERROR);
   }
 }
-
-export function verifyAccessToken(token: unknown): string {
-  return verifyAccessClaims(token).sub;
-}

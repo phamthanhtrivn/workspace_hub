@@ -46,7 +46,10 @@ async function rows(sql, args) {
   if (workflowRows) return workflowRows(sql, args);
   if (sql.startsWith("SELECT a.*")) return [structuredClone(artifact)];
   if (sql.includes("SET status='RUNNING'")) artifact.status = "RUNNING";
-  else if (sql.includes("SET in_flight=true")) artifact.in_flight = true;
+  else if (sql.includes("SET in_flight=true")) {
+    artifact.in_flight = true;
+    return [{ id: artifact.id }];
+  }
   else if (sql.includes("SET in_flight=false")) artifact.in_flight = false;
   else if (sql.includes("SET sections=$2")) {
     artifact.sections = JSON.parse(args[1]);
@@ -88,7 +91,8 @@ stub("./src/infrastructure/integrations/rag.client.ts", {
   }),
 });
 stub("./src/infrastructure/integrations/llm.client.ts", {
-  modelAnswer: async function* (_question, evidence) {
+  modelAnswer: async function* (_question, evidence, _signal, options) {
+    await options?.beforeCall?.();
     const source = evidence[0].sourceId;
     modelCalls.push(source);
     if (failSecond && source === "two")
