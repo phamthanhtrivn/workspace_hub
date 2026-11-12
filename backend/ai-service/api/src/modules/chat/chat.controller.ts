@@ -47,7 +47,13 @@ export class ChatController {
   @Post("requests/:id/cancel") async cancel(
     @Req() req: AuthRequest,
     @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
   ) {
-    return { data: await this.workflow.cancel(req.actor, id) };
+    const data = parse(
+      z.object({ runId: z.string().uuid().optional() }),
+      body ?? {},
+    );
+
+    return { data: await this.workflow.cancel(req.actor, id, data.runId) };
   }
 }

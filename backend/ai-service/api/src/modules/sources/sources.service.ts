@@ -182,10 +182,12 @@ export class SourcesService {
       const [file] = await authorizeSources(actor, [source], true);
       await validateContent(file.name, await downloadSource(file), id);
     });
-    await rows(
-      "UPDATE notebook_ai.sources SET status='QUEUED',error=NULL,progress=0,updated_at=now() WHERE id=$1",
+    const updated = await rows(
+      "UPDATE notebook_ai.sources SET status='QUEUED',error=NULL,progress=0,updated_at=now() WHERE id=$1 AND status IN ('FAILED','QUEUED','READY') RETURNING id",
       [sourceId],
     );
+    if (!updated.length)
+      throw new BadRequestException("Nguồn đã bị xóa hoặc đang xử lý");
     await enqueue("index", sourceId, { sourceId });
 
     return {};

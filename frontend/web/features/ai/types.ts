@@ -45,6 +45,8 @@ export const notebookSchema = z.object({
       role: z.string(),
       artifact_id: z.string().nullable().optional(),
       summary_status: z.string().nullable().optional(),
+      summary_progress: z.number().nullable().optional(),
+      summary_run_id: z.string().nullable().optional(),
       summary_error: z.string().nullable().optional(),
       sources: z
         .array(z.object({ id: z.string(), revision: z.string() }))
@@ -56,6 +58,7 @@ export const notebookSchema = z.object({
     derivedSchema.extend({
       kind: z.string(),
       status: z.string(),
+      run_id: z.string().nullable().optional(),
       progress: z.number(),
       error: z.string().nullable(),
       sources: z

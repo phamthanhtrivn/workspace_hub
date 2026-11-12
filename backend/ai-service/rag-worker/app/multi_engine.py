@@ -111,10 +111,7 @@ class MultiEngine:
             f'{scope_id}:{source_id}:{engine.collection}'.encode()).digest())
 
     def local_copy(self, scope, source, previous):
-        with scope_lock(scope), document_lock(scope, source):
-            return self._local_copy(scope, source, previous)
-
-    def _local_copy(self, scope, source, previous):
+        # FallbackQueue owns the scope/document lock for the entire conversion.
         local = self.local_engine()
         if local is None:
             raise RuntimeError('No local fallback model')

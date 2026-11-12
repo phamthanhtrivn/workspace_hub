@@ -48,8 +48,22 @@ export async function enqueue(kind: string, id: string, data: object) {
       return;
   }
   const old = await target.getJob(jobId);
-  if (old && ["failed", "completed"].includes(await old.getState()))
-    await old.remove();
+  if (old) {
+    const state = await old.getState();
+    if (state === "failed" || state === "completed") {
+      try {
+        await old.retry(state, {
+          resetAttemptsMade: true,
+          resetAttemptsStarted: true,
+        });
+      } catch (error) {
+        // Another enqueue may have moved the same job back to waiting already.
+        if (["failed", "completed"].includes(await old.getState())) throw error;
+      }
+    }
+
+    return;
+  }
   await target.add(kind, data, {
     jobId,
     ...(kind === "index" && config.VISUAL_ENABLED === "true"

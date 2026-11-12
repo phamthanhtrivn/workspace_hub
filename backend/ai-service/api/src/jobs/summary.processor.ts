@@ -37,9 +37,9 @@ export async function summarize(id: string) {
     [id],
   );
   if (!artifact || ["COMPLETED", "CANCELLED"].includes(artifact.status)) return;
-  const runId = randomUUID();
+  const runId = artifact.run_id || randomUUID();
   const claimed = await rows(
-    "UPDATE notebook_ai.artifacts SET status='RUNNING',run_id=$2,updated_at=now() WHERE id=$1 AND status='QUEUED' RETURNING *",
+    "UPDATE notebook_ai.artifacts SET status='RUNNING',run_id=$2,updated_at=now() WHERE id=$1 AND status='QUEUED' AND (run_id=$2 OR run_id IS NULL) RETURNING *",
     [id, runId],
   );
   if (!claimed.length) return;

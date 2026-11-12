@@ -42,7 +42,7 @@ export class NotebooksService {
     const sources = await this.sourcesService.checkedSources(actor, id);
     const [messages, notes, artifacts] = await Promise.all([
       rows(
-        `SELECT m.*, a.status AS summary_status,
+        `SELECT m.*, a.status AS summary_status,a.progress AS summary_progress,a.run_id AS summary_run_id,
           CASE WHEN a.status='COMPLETED' THEN a.content ELSE m.content END AS content,
           CASE WHEN a.status='COMPLETED' THEN a.citations ELSE m.citations END AS citations,
           a.error AS summary_error
@@ -55,7 +55,7 @@ export class NotebooksService {
         [id],
       ),
       rows(
-        "SELECT id,notebook_id,kind,status,progress,content,citations,sources,error,created_at FROM notebook_ai.artifacts WHERE notebook_id=$1 ORDER BY created_at DESC LIMIT 30",
+        "SELECT id,notebook_id,kind,status,run_id,progress,content,citations,sources,error,created_at FROM notebook_ai.artifacts WHERE notebook_id=$1 ORDER BY created_at DESC LIMIT 30",
         [id],
       ),
     ]);

@@ -111,7 +111,7 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
                   loading={saving && pendingAction === `cancel:${artifact.id}`}
                   onClick={() =>
                     run(
-                      () => notebooksApi.cancel(artifact.id),
+                      () => notebooksApi.cancel(artifact.id, artifact.run_id),
                       `cancel:${artifact.id}`,
                     )
                   }

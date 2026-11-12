@@ -16,6 +16,7 @@ import { StudioPanel } from "./studio-panel";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Spinner } from "@/components/ui/spinner";
 import { ArrowLeft, Bot } from "lucide-react";
+import { aiServiceMessage } from "@/lib/ai-feedback";
 import type { NotebookActionKey, NotebookActionRunner } from "../types";
 
 export function NotebookWorkspace({ id }: { id: string }) {
@@ -266,6 +267,48 @@ function Workspace({ id }: { id: string }) {
                       }
                     />
                     {message.artifact_id &&
+                      ["QUEUED", "RUNNING"].includes(
+                        message.summary_status || "",
+                      ) && (
+                        <div
+                          className="mt-3 flex items-center gap-3"
+                          role="status"
+                        >
+                          <Spinner size={14} />
+                          <span className="text-sm">
+                            {message.summary_status === "QUEUED"
+                              ? "Queued"
+                              : "Processing"}{" "}
+                            {message.summary_progress ?? 0}%
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={query.saving}
+                            onClick={() =>
+                              run(
+                                () =>
+                                  notebooksApi.cancel(
+                                    message.artifact_id!,
+                                    message.summary_run_id,
+                                  ),
+                                `cancel:${message.id}`,
+                              )
+                            }
+                          >
+                            Cancel task
+                          </Button>
+                        </div>
+                      )}
+                    {message.summary_error && (
+                      <p className="mt-2 text-sm text-destructive">
+                        {aiServiceMessage(
+                          message.summary_error,
+                          "Unable to complete this summary. Resume to continue from saved progress.",
+                        )}
+                      </p>
+                    )}
+                    {message.artifact_id &&
                       ["FAILED", "CANCELLED"].includes(
                         message.summary_status || "",
                       ) && (
@@ -290,7 +333,7 @@ function Workspace({ id }: { id: string }) {
                             )
                           }
                         >
-                          Retry summary
+                          Resume summary
                         </Button>
                       )}
                     {message.role === "ASSISTANT" &&

@@ -86,13 +86,13 @@ export class ChatGenerationService {
           sourceIds,
         );
         const [request] = await rows(
-          "UPDATE notebook_ai.requests SET artifact_id=$2 WHERE id=$1 RETURNING status",
-          [input.requestId, artifact.id],
+          "UPDATE notebook_ai.requests SET artifact_id=$2,artifact_run_id=$3 WHERE id=$1 RETURNING status",
+          [input.requestId, artifact.id, artifact.run_id],
         );
         if (signal.aborted || request?.status !== "RUNNING") {
           await rows(
-            "UPDATE notebook_ai.artifacts SET status='CANCELLED',updated_at=now() WHERE id=$1 AND status IN ('QUEUED','RUNNING')",
-            [artifact.id],
+            "UPDATE notebook_ai.artifacts SET status='CANCELLED',updated_at=now() WHERE id=$1 AND run_id=$2 AND status IN ('QUEUED','RUNNING')",
+            [artifact.id, artifact.run_id],
           );
           throw new DOMException("Request canceled", "AbortError");
         }

@@ -107,7 +107,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
       text: "",
       refs: sources.map((s) => ({ id: s.id, revision: s.revision })),
     });
-    const timeout = setTimeout(() => request.controller.abort(), 150000);
+    const timeout = setTimeout(() => cancel(), 150000);
     try {
       await notebooksApi.answer(
         id,

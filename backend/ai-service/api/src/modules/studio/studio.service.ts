@@ -117,7 +117,9 @@ export class StudioService {
       throw new BadRequestException(
         "Chờ tất cả nguồn sẵn sàng trước khi tạo tổng quan",
       );
-    const snapshot = sources.map((s) => ({ id: s.id, revision: s.revision }));
+    const snapshot = sources
+      .map((s) => ({ id: s.id, revision: s.revision }))
+      .sort((a, b) => a.id.localeCompare(b.id));
     const key = createHash("sha256")
       .update(
         JSON.stringify({
@@ -135,11 +137,20 @@ export class StudioService {
       )
       .digest("hex");
     const [artifact] = await rows(
-      `INSERT INTO notebook_ai.artifacts(id,notebook_id,kind,cache_key,sources,owner_email) VALUES($1,$2,$3,$4,$5,$6)
+      `INSERT INTO notebook_ai.artifacts(id,notebook_id,kind,cache_key,sources,owner_email,run_id) VALUES($1,$2,$3,$4,$5,$6,$7)
       ON CONFLICT(notebook_id,cache_key) DO UPDATE SET
+      run_id=CASE WHEN notebook_ai.artifacts.status IN ('FAILED','CANCELLED') THEN excluded.run_id ELSE notebook_ai.artifacts.run_id END,
       in_flight=CASE WHEN notebook_ai.artifacts.status IN ('FAILED','CANCELLED') THEN false ELSE notebook_ai.artifacts.in_flight END,
       status=CASE WHEN notebook_ai.artifacts.status IN ('FAILED','CANCELLED') THEN 'QUEUED' ELSE notebook_ai.artifacts.status END,error=NULL RETURNING *`,
-      [randomUUID(), id, kind, key, JSON.stringify(snapshot), actor.email],
+      [
+        randomUUID(),
+        id,
+        kind,
+        key,
+        JSON.stringify(snapshot),
+        actor.email,
+        randomUUID(),
+      ],
     );
     if (artifact.status === "QUEUED")
       await enqueue("summary", artifact.id, { artifactId: artifact.id });

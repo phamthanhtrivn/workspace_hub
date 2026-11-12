@@ -4,9 +4,10 @@ import { processVoiceTranscript } from "./voice-transcript.processor";
 import { VOICE_TRANSCRIPT } from "../modules/voice-transcript/voice.constants";
 import { Worker, UnrecoverableError, type Job } from "bullmq";
 import { config, connection } from "../config/env.config";
-import { db } from "../infrastructure/database/database";
+import { db, rows } from "../infrastructure/database/database";
 import {
   queue,
+  enqueue,
   closeQueues,
   WORKER_HEARTBEAT_VALUE,
 } from "../infrastructure/queue/notebook.queue";
@@ -142,6 +143,22 @@ export function startWorkers() {
     ...(meetingWorker ? [meetingWorker] : []),
   ];
   for (const current of workers) {
+    const resumeSummary = (job: Job | undefined) => {
+      if (job?.name !== "summary") return;
+      const id = job.data.artifactId as string;
+      void rows(
+        "SELECT id FROM notebook_ai.artifacts WHERE id=$1 AND status='QUEUED'",
+        [id],
+      )
+        .then((pending) =>
+          pending.length
+            ? enqueue("summary", id, { artifactId: id })
+            : undefined,
+        )
+        .catch((error) => logError("ai_summary_resume_failed", error));
+    };
+    current.on("completed", resumeSummary);
+    current.on("failed", resumeSummary);
     current.on("error", (error) =>
       logError("ai_worker_error", error, { queue: current.name }),
     );

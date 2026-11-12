@@ -62,8 +62,10 @@ export const notebooksApi = {
     api.delete(`${path(id)}/notes/${noteId}`),
   artifact: (id: string, kind: "OVERVIEW" | "SUMMARY", sourceIds?: string[]) =>
     api.post(`${path(id)}/artifacts`, { kind, sourceIds }),
-  cancel: (requestId: string) =>
-    api.post(`/api/ai/requests/${requestId}/cancel`),
+  cancel: (requestId: string, runId?: string | null) =>
+    api.post(`/api/ai/requests/${requestId}/cancel`, {
+      runId: runId ?? undefined,
+    }),
   answer: async (
     id: string,
     question: string,
