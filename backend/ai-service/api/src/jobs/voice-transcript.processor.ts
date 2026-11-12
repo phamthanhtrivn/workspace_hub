@@ -10,7 +10,7 @@ import {
   type VoiceTranscriptState,
 } from "../modules/voice-transcript/voice.constants";
 import { pcmWaveSeconds } from "../modules/voice-transcript/wave-duration";
-import { pollUntilAborted } from "../common/abort-polling";
+import { createAbortGuard } from "../common/abort-guard";
 import { isRetryableVoiceFailure } from "../modules/voice-transcript/voice-transcript-retry";
 
 export async function processVoiceTranscript(
@@ -22,11 +22,8 @@ export async function processVoiceTranscript(
     [runId],
   );
   if (!state) return;
-  const controller = new AbortController();
-  const signal = AbortSignal.any([
-    controller.signal,
-    AbortSignal.timeout(VOICE_TRANSCRIPT.timeoutMs),
-  ]);
+  const guard = createAbortGuard(VOICE_TRANSCRIPT.timeoutMs);
+  const { signal } = guard;
   const authorize = async () => {
     signal.throwIfAborted();
     const source = await voiceSource(
@@ -40,11 +37,7 @@ export async function processVoiceTranscript(
 
     return source;
   };
-  const stopPolling = pollUntilAborted(
-    controller,
-    VOICE_TRANSCRIPT.accessIntervalMs,
-    authorize,
-  );
+  guard.poll(VOICE_TRANSCRIPT.accessIntervalMs, authorize);
   let directory: string | undefined;
   try {
     const source = await authorize();
@@ -104,8 +97,7 @@ export async function processVoiceTranscript(
       [runId, message],
     );
   } finally {
-    stopPolling();
-    controller.abort();
+    guard.stop();
     if (
       directory &&
       dirname(directory) === tmpdir() &&

@@ -1,5 +1,6 @@
 import base64
 from collections import OrderedDict
+from contextlib import nullcontext
 import hashlib
 import math
 import os
@@ -21,7 +22,7 @@ from .profiling import profile, Profile
 from .visual import IMAGE_TYPES, VisualExtractor, enabled as visual_enabled, open_image
 from .api_embeddings import ApiEmbeddings, GeminiEmbeddings
 from .vector_cache import VectorCache
-from .manifests import ManifestStore
+from .manifests import ManifestStore, document_filter
 from .document_locks import document_lock
 
 
@@ -252,18 +253,9 @@ class Engine:
         finally:
             self.index_lock.release()
 
-    def scope_filter(self, scope_id: str, source_ids: list[str] | None = None, active=True):
-        conditions = [models.FieldCondition(key="scopeId", match=models.MatchValue(value=scope_id))]
-        if source_ids:
-            conditions.append(models.FieldCondition(key="sourceId", match=models.MatchAny(any=source_ids)))
-            if active and getattr(self, 'manifests', None):
-                versions = []
-                for source in source_ids:
-                    manifest = self.manifests.get(scope_id, source, self.collection)
-                    generation = models.FieldCondition(key='generation', match=models.MatchValue(value=manifest['generation'])) if manifest else models.IsEmptyCondition(is_empty=models.PayloadField(key='generation'))
-                    versions.append(models.Filter(must=[models.FieldCondition(key='sourceId', match=models.MatchValue(value=source)), generation]))
-                conditions.append(models.Filter(should=versions))
-        return models.Filter(must=conditions)
+    def scope_filter(self, scope_id: str, source_ids: list[str] | None = None, active=True, collection=None):
+        return document_filter(getattr(self, 'manifests', None), collection or self.collection,
+                               scope_id, source_ids, active)
 
     def index(self, scope_id: str, source_id: str, revision: str, name: str, content: str, pages=None, visuals=None):
         # CPU parsers stay serialized. API embedding waits must not hold this lock.
@@ -427,12 +419,14 @@ class Engine:
         return {"evidence": sorted(result, key=lambda item: (item["sourceId"], item["position"]))}
 
     def delete(self, scope_id: str, source_id: str | None = None, clear_prepared=True):
-        if clear_prepared:
-            self.prepared_cache.clear_scope(scope_id)
-            if source_id is None and getattr(self, 'vector_cache', None):
-                self.vector_cache.clear_scope(scope_id)
-        if self.client.collection_exists(self.collection):
-            self.client.delete(self.collection, points_selector=models.FilterSelector(filter=self.scope_filter(scope_id, [source_id] if source_id else None, active=False)), wait=True)
-        if getattr(self, 'manifests', None):
-            self.manifests.delete(scope_id, source_id, self.collection)
+        # A source-level delete must not interleave with indexing the same source (same lock as _index).
+        with document_lock(scope_id, source_id, self.collection) if source_id else nullcontext():
+            if clear_prepared:
+                self.prepared_cache.clear_scope(scope_id)
+                if source_id is None and getattr(self, 'vector_cache', None):
+                    self.vector_cache.clear_scope(scope_id)
+            if self.client.collection_exists(self.collection):
+                self.client.delete(self.collection, points_selector=models.FilterSelector(filter=self.scope_filter(scope_id, [source_id] if source_id else None, active=False)), wait=True)
+            if getattr(self, 'manifests', None):
+                self.manifests.delete(scope_id, source_id, self.collection)
         return {"ok": True}

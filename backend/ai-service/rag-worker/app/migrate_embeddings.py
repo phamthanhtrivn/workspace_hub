@@ -5,10 +5,8 @@ import sys
 import math
 from concurrent.futures import ThreadPoolExecutor
 
-from qdrant_client import models
-
 from .api_embeddings import GeminiEmbeddings
-from .engine import Engine
+from .profiling import profile
 
 
 def report(**values):
@@ -16,11 +14,13 @@ def report(**values):
 
 
 def migrate_source(engine, old_collection, source, index):
+    scope, source_id = source['notebook_id'], source['id']
+    source_filter = engine.scope_filter(scope, [source_id], collection=old_collection)
     points = []
     offset = None
     while True:
         page, offset = engine.client.scroll(
-            old_collection, scroll_filter=engine.scope_filter(source['notebook_id'], [source['id']]),
+            old_collection, scroll_filter=source_filter,
             limit=128, offset=offset, with_vectors=False,
         )
         points.extend(page)
@@ -34,27 +34,22 @@ def migrate_source(engine, old_collection, source, index):
         for i, point in enumerate(points)
     ):
         raise ValueError('Indexed source snapshot changed')
-    for start in range(0, len(points), 16):
-        batch = points[start:start + 16]
-        existing = {str(point.id): point for point in engine.client.retrieve(
-            engine.collection, ids=[point.id for point in batch], with_payload=True, with_vectors=False,
-        )}
-        missing = [point for point in batch if str(point.id) not in existing or existing[str(point.id)].payload != point.payload]
-        if missing:
-            vectors = engine.embed([point.payload['text'] for point in missing])
-            engine.client.upsert(engine.collection, points=[
-                models.PointStruct(id=point.id, vector=vector, payload=point.payload)
-                for point, vector in zip(missing, vectors, strict=True)
-            ], wait=True)
-        report(event='gemini_embedding_migration', source=index,
-               chunks_done=min(start + 16, len(points)), total_chunks=len(points))
+    chunks = [(point.payload['text'], point.payload.get('page'), point.payload.get('imageId'))
+              for point in points]
+    # Reuse staged generations and the persistent vector cache, including interrupted migrations.
+    with profile('embedding_migration') as timing:
+        engine._index(scope, source_id, source['revision'], 'migration.txt', '', timing, chunks=chunks)
     count = engine.client.count(engine.collection,
-                                count_filter=engine.scope_filter(source['notebook_id'], [source['id']]), exact=True).count
+                                count_filter=engine.scope_filter(scope, [source_id]), exact=True).count
     if count != source['chunk_count']:
         raise ValueError('Migrated source count mismatch')
+    report(event='gemini_embedding_migration', source=index,
+           chunks_done=len(points), total_chunks=len(points))
 
 
 def main():
+    from .engine import Engine
+
     payload = json.load(sys.stdin)
     key = payload['api_key']
     target_model = payload.get('target_model', 'gemini-embedding-001')

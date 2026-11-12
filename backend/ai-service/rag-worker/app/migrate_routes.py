@@ -3,8 +3,8 @@ import hashlib
 import json
 import os
 import sys
-from qdrant_client import QdrantClient, models
-from .manifests import ManifestStore
+from qdrant_client import QdrantClient
+from .manifests import ManifestStore, document_filter
 from .vector_cache import VectorCache
 
 
@@ -19,14 +19,10 @@ def migrate(data):
             collection = route['collection'] if route else cache.route(scope, identity)
             collection = collection or max(data['collections'].values(), key=lambda name:
                 hashlib.sha256(f'{scope}:{identity}:{name}'.encode()).digest())
-            conditions = [models.FieldCondition(key='scopeId', match=models.MatchValue(value=scope)),
-                          models.FieldCondition(key='sourceId', match=models.MatchValue(value=identity))]
-            manifest = store.get(scope, identity, collection)
-            conditions.append(models.FieldCondition(key='generation', match=models.MatchValue(value=manifest['generation']))
-                              if manifest else models.IsEmptyCondition(is_empty=models.PayloadField(key='generation')))
+            filter_ = document_filter(store, collection, scope, [identity])
             points, offset = [], None
             while True:
-                batch, offset = client.scroll(collection, scroll_filter=models.Filter(must=conditions),
+                batch, offset = client.scroll(collection, scroll_filter=filter_,
                                               limit=128, offset=offset, with_vectors=False)
                 points.extend(batch)
                 if offset is None:

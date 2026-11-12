@@ -4,7 +4,8 @@ import json
 import os
 import sys
 
-from qdrant_client import QdrantClient, models
+from qdrant_client import QdrantClient
+from .manifests import ManifestStore, document_filter
 from .vector_cache import VectorCache
 
 
@@ -12,6 +13,7 @@ def prepare(data):
     collections = list(data['collections'].values())
     client = QdrantClient(url=os.environ['QDRANT_URL'], api_key=os.environ.get('QDRANT_API_KEY') or None)
     cache = VectorCache(os.environ.get('EMBEDDING_CACHE_PATH', '/models/embedding-cache.sqlite3'))
+    store = ManifestStore(client)
     total = 0
     try:
         for source in data['sources']:
@@ -20,11 +22,8 @@ def prepare(data):
             if not client.collection_exists(collection):
                 raise ValueError('Assigned model collection is missing; keep ensemble strategy')
             points, offset = [], None
+            filter_ = document_filter(store, collection, scope, [source_id])
             while True:
-                filter_ = models.Filter(must=[
-                    models.FieldCondition(key='scopeId', match=models.MatchValue(value=scope)),
-                    models.FieldCondition(key='sourceId', match=models.MatchAny(any=[source_id])),
-                ])
                 batch, offset = client.scroll(collection, scroll_filter=filter_,
                                               limit=128, offset=offset, with_vectors=True)
                 points.extend(batch)

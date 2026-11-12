@@ -4,6 +4,7 @@ import {
 } from "@nestjs/common";
 import { config } from "../../config/env.config";
 import type { Evidence } from "../../common/types";
+import { internalPost, serviceUrl } from "./internal-http";
 export async function rag<T>(
   path: string,
   body: unknown,
@@ -11,15 +12,10 @@ export async function rag<T>(
 ): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${config.RAG_WORKER_URL}${path}`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-internal-service-key": config.RAG_SERVICE_KEY,
-      },
-      body: JSON.stringify(body),
+    response = await internalPost(serviceUrl(config.RAG_WORKER_URL, path), {
+      key: config.RAG_SERVICE_KEY,
+      body,
       signal,
-      redirect: "error",
     });
   } catch {
     throw new ServiceUnavailableException(

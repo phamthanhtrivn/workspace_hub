@@ -1,5 +1,5 @@
 export async function measureConversationStage<T>(
-  stage: "history" | "tasks" | "download" | "extract" | "model",
+  stage: "history" | "download" | "extract" | "model",
   run: () => Promise<T>,
 ) {
   const started = performance.now();

@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { config } from "../../config/env.config";
+import {
+  internalPost,
+  serviceUrl,
+} from "../../infrastructure/integrations/internal-http";
 
 export const sourceSchema = z.object({
   recordingId: z.uuid(),
@@ -15,17 +19,16 @@ export async function meetingSource(
   actorId: string,
   signal: AbortSignal,
 ) {
-  const response = await fetch(
-    `${config.COMMUNICATION_SERVICE_URL.replace(/\/$/, "")}/internal/meeting-summaries/${id}/source`,
+  const response = await internalPost(
+    serviceUrl(
+      config.COMMUNICATION_SERVICE_URL,
+      `/internal/meeting-summaries/${id}/source`,
+    ),
     {
-      method: "POST",
-      redirect: "error",
-      signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
-      headers: {
-        "content-type": "application/json",
-        "x-internal-service-key": config.AI_TO_COMMUNICATION_KEY,
-      },
-      body: JSON.stringify({ actorId }),
+      key: config.AI_TO_COMMUNICATION_KEY,
+      body: { actorId },
+      signal,
+      timeoutMs: 15000,
     },
   );
   if (!response.ok) {

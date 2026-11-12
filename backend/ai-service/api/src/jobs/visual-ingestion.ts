@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { pollUntilAborted } from "../common/abort-polling";
+import { createAbortGuard } from "../common/abort-guard";
+import { singleFlight } from "../common/single-flight";
 import { setTimeout as pause } from "node:timers/promises";
 import { z } from "zod";
 import { UnrecoverableError } from "bullmq";
@@ -47,6 +48,13 @@ const extractionSchema = z.object({
 type Extraction = z.infer<typeof extractionSchema>;
 const EXTRACTION_PIPELINE = "visual-v1";
 
+function validateImages(extraction: Extraction) {
+  for (const image of extraction.images) {
+    if (hash(Buffer.from(image.dataUrl.split(",")[1], "base64")) !== image.hash)
+      throw new UnrecoverableError("Ảnh trích xuất không khớp mã kiểm tra");
+  }
+}
+
 async function extractOnce(
   source: Source,
   content: string,
@@ -75,7 +83,11 @@ async function extractOnce(
         dataUrl: byId.get(image.id),
       })),
     });
-    if (parsed.success) return parsed.data;
+    if (parsed.success) {
+      validateImages(parsed.data);
+
+      return parsed.data;
+    }
   }
   const extracted = extractionSchema.parse(
     await rag(
@@ -84,10 +96,7 @@ async function extractOnce(
       AbortSignal.any([signal, AbortSignal.timeout(210000)]),
     ),
   );
-  for (const image of extracted.images) {
-    if (hash(Buffer.from(image.dataUrl.split(",")[1], "base64")) !== image.hash)
-      throw new UnrecoverableError("Ảnh trích xuất không khớp mã kiểm tra");
-  }
+  validateImages(extracted);
   const payload = {
     ...extracted,
     images: extracted.images.map((image) => ({
@@ -131,10 +140,9 @@ export async function enrichVisualSource(
   actor: Actor,
   content: string,
 ) {
-  const controller = new AbortController();
-  const deadline = AbortSignal.timeout(15 * 60_000);
-  const signal = AbortSignal.any([controller.signal, deadline]);
-  const checkAuthorization = async () => {
+  const guard = createAbortGuard(15 * 60_000);
+  const { signal } = guard;
+  const authorize = singleFlight(async () => {
     signal.throwIfAborted();
     const [current] = await rows(
       "SELECT revision,status FROM notebook_ai.sources WHERE id=$1 AND notebook_id=$2",
@@ -148,25 +156,11 @@ export async function enrichVisualSource(
       throw new UnrecoverableError("Nguồn đã bị xóa hoặc thay đổi khi đọc ảnh");
     await authorizeSources(actor, [source]);
     signal.throwIfAborted();
-  };
-  let checking: Promise<void> | undefined;
-  const authorize = () => {
-    checking ??= checkAuthorization().finally(() => {
-      checking = undefined;
-    });
-
-    return checking;
-  };
-  const stopPolling = pollUntilAborted(controller, 3000, authorize);
+  });
+  guard.poll(3000, authorize);
   try {
     await authorize();
     const result = await extractOnce(source, content, signal);
-    for (const image of result.images) {
-      if (
-        hash(Buffer.from(image.dataUrl.split(",")[1], "base64")) !== image.hash
-      )
-        throw new UnrecoverableError("Ảnh trích xuất không khớp mã kiểm tra");
-    }
     let completed = 0;
     const descriptions = new Map<string, Promise<string>>();
     const visuals = await mapVisionImages(
@@ -245,6 +239,6 @@ export async function enrichVisualSource(
 
     return { pages: result.pages, visuals };
   } finally {
-    stopPolling();
+    guard.stop();
   }
 }

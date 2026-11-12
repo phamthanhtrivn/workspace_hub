@@ -19,7 +19,6 @@ export class WorkAssistantQueryService {
     private readonly access: WorkAssistantAccessService,
   ) {}
   async overview(actor: Actor, input: z.infer<typeof overviewSchema>) {
-    this.access.enabled();
     const { timeZone, ...scope } = input;
 
     return {
@@ -28,7 +27,6 @@ export class WorkAssistantQueryService {
   }
 
   async session(actor: Actor, data: z.infer<typeof sessionSchema>) {
-    this.access.enabled();
     if (!data.sessionId)
       await this.context.requireScope(actor, this.access.scope(data));
     const session = data.sessionId
@@ -48,7 +46,6 @@ export class WorkAssistantQueryService {
   }
 
   async sessions(actor: Actor, data: z.infer<typeof sessionsSchema>) {
-    this.access.enabled();
     await this.context.requireScope(actor, this.access.scope(data));
     const page = await this.store.list(actor, data, data.before);
     const ids = [...new Set(page.sessions.flatMap((s) => s.project_ids))];
@@ -72,7 +69,6 @@ export class WorkAssistantQueryService {
   }
 
   async createSession(actor: Actor, context: ConversationContext) {
-    this.access.enabled();
     await this.context.requireScope(actor, this.access.scope(context));
     const session = await this.store.session(actor, context, true);
 

@@ -5,11 +5,12 @@ import type { Actor } from "../../common/types";
 import { Profile } from "../../common/profiling/pipeline-profiler";
 import { WorkContextService } from "./work-context";
 import { WorkStore, type WorkSession } from "./work-store";
-import { modelContext, requestedWorkWindows, workAnswer } from "./work-agent";
+import { requestedWorkWindows, workAnswer } from "./work-agent";
 import type {
   TaskReference,
   WorkScope,
   WorkContext,
+  StoredMessage,
 } from "./work-assistant.types";
 import { WorkAssistantAccessService } from "./work-assistant-access.service";
 
@@ -26,9 +27,10 @@ export class WorkAssistantGenerationService {
     question: string,
     signal: AbortSignal,
     timeZone?: string,
+    history: StoredMessage[] = [],
   ): Promise<WorkContext> {
     const contexts = await Promise.all(
-      requestedWorkWindows(question).map((days) =>
+      requestedWorkWindows(question, history).map((days) =>
         this.context.read(actor, scope, days, signal, timeZone),
       ),
     );
@@ -62,77 +64,47 @@ export class WorkAssistantGenerationService {
     },
     onStatus: (message: string) => void,
     onDelta: (text: string) => void,
-    onReset: () => void,
   ) {
     const { actor, session, input, signal, timing } = request;
     const { question, requestId, timeZone } = input;
     const scope = this.access.sessionScope(session);
-    const [history, initial] = await Promise.all([
-      timing.measure("history_ms", () =>
-        this.store
-          .recent(session)
-          .then((messages) => this.access.visible(actor, messages, signal)),
-      ),
-      timing.measure("context_ms", () =>
-        this.initialContext(actor, scope, question, signal, timeZone),
-      ),
-    ]);
-    const streamingProjects = new Set([
-      ...initial.projectIds,
-      ...history.flatMap((message) => message.project_ids),
-    ]);
-    let lastAuthorization = 0;
-    const result = await timing.measure("model_ms", () =>
-      workAnswer(
-        question,
-        history,
-        initial,
-        async (days) => {
-          const context = await this.context.read(
-            actor,
-            scope,
-            days,
-            signal,
-            timeZone,
-          );
-          for (const id of context.projectIds) streamingProjects.add(id);
-          lastAuthorization = 0;
-
-          return context;
-        },
-        signal,
-        onStatus,
-        async (text) => {
-          signal.throwIfAborted();
-          if (Date.now() - lastAuthorization >= 3000) {
-            const ids = [...streamingProjects];
-            const allowed = await this.context.authorize(actor, ids, signal);
-            if (ids.some((id) => !allowed.has(id)))
-              throw new HttpException("Quyền truy cập dự án đã thay đổi.", 403);
-            lastAuthorization = Date.now();
-          }
-          signal.throwIfAborted();
-          onDelta(text);
-        },
-        onReset,
-      ),
+    const history = await timing.measure("history_ms", () =>
+      this.store
+        .recent(session)
+        .then((messages) => this.access.visible(actor, messages, signal)),
     );
-    signal.throwIfAborted();
+    const initial = await timing.measure("context_ms", () =>
+      this.initialContext(actor, scope, question, signal, timeZone, history),
+    );
     const projectIds = [
       ...new Set([
-        ...result.context.projectIds,
-        ...history.flatMap((m) => m.project_ids),
+        ...initial.projectIds,
+        ...history.flatMap((message) => message.project_ids),
       ]),
     ];
-    const allowed = await this.context.authorize(actor, projectIds, signal);
-    if (projectIds.some((id) => !allowed.has(id)))
-      throw new HttpException("Quyền truy cập dự án đã thay đổi.", 403);
+    const authorize = async () => {
+      const allowed = await this.context.authorize(actor, projectIds, signal);
+      if (projectIds.some((id) => !allowed.has(id)))
+        throw new HttpException("Quyền truy cập dự án đã thay đổi.", 403);
+    };
+    let lastAuthorization = 0;
+    const result = await timing.measure("model_ms", () =>
+      workAnswer(question, history, initial, signal, onStatus, async (text) => {
+        signal.throwIfAborted();
+        if (Date.now() - lastAuthorization >= 3000) {
+          await authorize();
+          lastAuthorization = Date.now();
+        }
+        signal.throwIfAborted();
+        onDelta(text);
+      }),
+    );
+    signal.throwIfAborted();
+    await authorize();
     if (await this.store.canceled(actor, requestId))
       throw new DOMException("Request canceled", "AbortError");
     signal.throwIfAborted();
-    const references: TaskReference[] = (
-      result.referenceTasks ?? modelContext(result.context).tasks
-    ).map((t) => ({
+    const references: TaskReference[] = result.referenceTasks.map((t) => ({
       id: t.id,
       kind: t.kind,
       ...(t.projectId ? { projectId: t.projectId } : {}),

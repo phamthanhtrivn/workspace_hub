@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { Response } from "express";
-import { event, startEventStream } from "./sse";
+import { event, heartbeat, startEventStream } from "./sse";
 
 export interface ApplicationEventStream {
   readonly destroyed: boolean;
@@ -20,9 +20,7 @@ export class SseTransport {
       },
       start: () => startEventStream(response),
       emit: (name, payload) => event(response, name, payload),
-      heartbeat: () => {
-        if (!response.destroyed) response.write(": heartbeat\n\n");
-      },
+      heartbeat: () => heartbeat(response),
       onClose: (listener) => {
         response.once("close", listener);
 

@@ -70,7 +70,7 @@ export async function indexSource(id: string) {
     );
     const updated = await timing.measure("finalize_ms", () =>
       rows(
-        "UPDATE notebook_ai.sources SET status='READY',progress=100,chunk_count=$2,index_version=$3,updated_at=now() WHERE id=$1 RETURNING id",
+        "UPDATE notebook_ai.sources SET status='READY',progress=100,chunk_count=$2,index_version=$3,updated_at=now() WHERE id=$1 AND status='INDEXING' RETURNING id",
         [id, result.chunkCount, "pages" in enriched ? "visual-v1" : "text-v1"],
       ),
     );
@@ -86,7 +86,7 @@ export async function indexSource(id: string) {
         ? new UnrecoverableError(error.message)
         : error;
     await rows(
-      "UPDATE notebook_ai.sources SET status='FAILED',error=$2,updated_at=now() WHERE id=$1",
+      "UPDATE notebook_ai.sources SET status='FAILED',error=$2,updated_at=now() WHERE id=$1 AND status<>'READY'",
       [
         id,
         failure instanceof UnrecoverableError

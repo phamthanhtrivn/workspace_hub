@@ -8,8 +8,17 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { z } from "zod";
+import { authorizeCommunicationCaller } from "../../common/auth/service-key";
+import { config } from "../../config/env.config";
 import { VoiceTranscriptService } from "./voice-transcript.service";
 import { VOICE_TRANSCRIPT } from "./voice.constants";
+
+function authorize(key?: string) {
+  authorizeCommunicationCaller(key, {
+    enabled: config.VOICE_TRANSCRIPTION_ENABLED === "true",
+    unavailable: VOICE_TRANSCRIPT.unavailable,
+  });
+}
 
 const request = z
   .object({
@@ -26,7 +35,7 @@ export class VoiceTranscriptController {
     @Headers("x-internal-service-key") key: string,
     @Body() body: unknown,
   ) {
-    this.service.authorize(key);
+    authorize(key);
     const parsed = request.safeParse(body);
     if (!parsed.success)
       throw new BadRequestException("Invalid voice transcript request");
@@ -39,7 +48,7 @@ export class VoiceTranscriptController {
     @Headers("x-internal-service-key") key: string,
     @Body() body: unknown,
   ) {
-    this.service.authorize(key);
+    authorize(key);
     const parsed = request.safeParse(body);
     if (!parsed.success)
       throw new BadRequestException("Invalid voice transcript request");

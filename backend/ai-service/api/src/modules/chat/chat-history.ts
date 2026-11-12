@@ -1,4 +1,5 @@
 import type { Source, Snapshot } from "../../common/types";
+import { plainText } from "../../common/text";
 
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 export const NOTEBOOK_HISTORY_LIMIT = 20;
@@ -42,11 +43,7 @@ export function conversationHistory(
 }
 
 export function isFollowUp(question: string): boolean {
-  const plain = question
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .replace(/đ/gi, "d")
-    .toLowerCase();
+  const plain = plainText(question);
   if (
     /\b(?:huong dan|chi (?:toi|minh)|giup (?:toi|minh) (?:lam|bat dau))\b/.test(
       plain,
@@ -70,11 +67,19 @@ export function isFollowUp(question: string): boolean {
 export function retrievalQuestion(
   question: string,
   history: ChatTurn[],
+  followUp = isFollowUp(question),
 ): string {
-  if (!history.length || !isFollowUp(question)) return question;
-  const previous = history.slice(-2);
+  if (!history.length || !followUp) return question;
+  const prefix =
+    "\nConversation context (resolve the topic only, not evidence):\n";
+  const remaining = 4000 - question.length - prefix.length;
+  if (remaining <= 0) return question;
+  const context = history
+    .slice(-2)
+    .map((turn) => `${turn.role}: ${turn.content}`)
+    .join("\n")
+    .slice(0, remaining)
+    .replace(/[\uD800-\uDBFF]$/u, "");
 
-  return previous.length
-    ? `${question}\nConversation context (resolve the topic only, not evidence):\n${previous.map((turn) => `${turn.role}: ${turn.content}`).join("\n")}`
-    : question;
+  return question + prefix + context;
 }

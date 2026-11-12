@@ -4,10 +4,13 @@ import { processVoiceTranscript } from "./voice-transcript.processor";
 import { VOICE_TRANSCRIPT } from "../modules/voice-transcript/voice.constants";
 import { Worker, UnrecoverableError, type Job } from "bullmq";
 import { config, connection } from "../config/env.config";
-import { aiDatabase } from "../infrastructure/database/ai-database.client";
-import { aiQueues } from "../infrastructure/queue/ai-queue.client";
-import { WORKER_HEARTBEAT_VALUE } from "../infrastructure/queue/notebook.queue";
-import { aiModels } from "../infrastructure/integrations/ai-model.provider";
+import { db } from "../infrastructure/database/database";
+import {
+  queue,
+  closeQueues,
+  WORKER_HEARTBEAT_VALUE,
+} from "../infrastructure/queue/notebook.queue";
+import { rag } from "../infrastructure/integrations/rag.client";
 import { reconcileQueuedJobs } from "./job-recovery";
 import { Profile } from "../common/profiling/pipeline-profiler";
 import { indexSource } from "./index.processor";
@@ -15,10 +18,6 @@ import { summarize } from "./summary.processor";
 import { logError } from "../common/errors/error-log";
 import { createShutdownHandler, settleAll } from "../common/shutdown";
 import { closeProviderConnections } from "../infrastructure/integrations/provider-http";
-const db = aiDatabase.pool;
-const queue = aiQueues.jobs;
-const closeQueues = aiQueues.close;
-const rag = aiModels.rag;
 
 async function profileJob<T>(
   job: Job,

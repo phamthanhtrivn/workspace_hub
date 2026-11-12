@@ -1,30 +1,23 @@
-import { AiModelProvider } from "../../infrastructure/integrations/ai-model.provider";
-import { AiDatabaseClient } from "../../infrastructure/database/ai-database.client";
+import { rows } from "../../infrastructure/database/database";
+import { retrieve } from "../../infrastructure/integrations/rag.client";
 import { ChatGenerationInput } from "./chat-stream.types";
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { citeEvidence, visibleSnapshot } from "../../common/evidence-policy";
 import type { Citation, Source } from "../../common/types";
-import { immediateReply, generateChatResponse } from "./chat-response";
+import { generateChatResponse } from "./chat-response";
 import { visualEvidence } from "./visual-evidence";
 import { StudioService } from "../studio/studio.service";
-import { isNotebookSummaryRequest } from "./summary-request";
 import { logError } from "../../common/errors/error-log";
-import { isFirstQuestionRequest } from "./history-recall";
 import {
   conversationHistory,
   NOTEBOOK_HISTORY_LIMIT,
-  isFollowUp,
   retrievalQuestion,
 } from "./chat-history";
 
 @Injectable()
 export class ChatGenerationService {
-  constructor(
-    private readonly models: AiModelProvider,
-    private readonly database: AiDatabaseClient,
-    private readonly studio: StudioService,
-  ) {}
+  constructor(private readonly studio: StudioService) {}
   async generateReply(
     input: ChatGenerationInput,
   ): Promise<{ content: string; citations: Citation[]; artifactId?: string }> {
@@ -38,13 +31,14 @@ export class ChatGenerationService {
       snapshot,
       controller,
       authorize,
+      intent,
     } = input;
     const signal = controller.signal;
     let stage = "history";
     try {
-      const recall = isFirstQuestionRequest(question);
+      const recall = intent.kind === "recall";
       const [first] = recall
-        ? await this.database.rows<{
+        ? await rows<{
             content: string;
             sources: { id: string; revision: string }[];
           }>(
@@ -55,14 +49,17 @@ export class ChatGenerationService {
             [notebookId, actor.id],
           )
         : [];
-      const history = recall
-        ? []
-        : await this.history(notebookId, question, sources);
+      const history =
+        intent.kind === "answer" ? await this.history(notebookId, sources) : [];
       signal.throwIfAborted();
-      const reply = immediateReply(question);
-      const directReply = history.length && isFollowUp(question) ? null : reply;
+      const directReply =
+        intent.kind === "reply"
+          ? intent.content
+          : intent.kind === "answer" && !history.length
+            ? (intent.clarification ?? null)
+            : null;
       stage = "save_question";
-      await this.database.rows(
+      await rows(
         "INSERT INTO notebook_ai.messages(id,notebook_id,role,content,sources) VALUES($1,$2,'USER',$3,$4)",
         [randomUUID(), notebookId, question, JSON.stringify(snapshot)],
       );
@@ -79,7 +76,7 @@ export class ChatGenerationService {
 
         return { content, citations: [] };
       }
-      if (isNotebookSummaryRequest(question)) {
+      if (intent.kind === "summary") {
         stage = "queue_summary";
         signal.throwIfAborted();
         const artifact = await this.studio.artifact(
@@ -103,10 +100,14 @@ export class ChatGenerationService {
         ? []
         : citeEvidence(
             (
-              await this.models.retrieve(
+              await retrieve(
                 notebookId,
                 sourceIds,
-                retrievalQuestion(question, history),
+                retrievalQuestion(
+                  question,
+                  history,
+                  intent.kind === "answer" && intent.followUp,
+                ),
                 signal,
               )
             ).evidence,
@@ -128,6 +129,7 @@ export class ChatGenerationService {
         (text) => stream.emit("delta", { text }),
         history,
         images,
+        directReply,
       );
     } catch (error) {
       logError("notebook_generation_failed", error, {
@@ -138,9 +140,8 @@ export class ChatGenerationService {
     }
   }
 
-  async history(notebookId: string, question: string, sources: Source[]) {
-    if (immediateReply(question) && !isFollowUp(question)) return [];
-    const previous = await this.database.rows<{
+  async history(notebookId: string, sources: Source[]) {
+    const previous = await rows<{
       role: string;
       content: string;
       sources: { id: string; revision: string }[];

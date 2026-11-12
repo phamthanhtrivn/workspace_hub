@@ -4,6 +4,7 @@ import hashlib
 import time
 import httpx
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 
 from .engine import Engine
 from .policy import reciprocal_rank_many
@@ -65,7 +66,8 @@ class MultiEngine:
                     failures.append(error)
         if failures:
             raise failures[0]
-        if self.strategy == 'shard' and self.quota_until and not any(engine.provider == 'local' for engine in available):
+        if (self.strategy == 'shard' and any(self.quota_exhausted(engine) for engine in self.engines)
+                and not any(engine.provider == 'local' for engine in available)):
             raise RuntimeError('Local quota fallback is unavailable')
         if self.fallbacks and not self.recovered:
             self.fallbacks.recover(self.engines)
@@ -142,8 +144,7 @@ class MultiEngine:
         if any(point.payload['revision'] != revision or point.payload['position'] != index
                for index, point in enumerate(points)):
             raise ValueError('Document fallback index is incomplete')
-        if not self._complete(local, scope, source, revision, chunks):
-            self._index_model(local, scope, source, revision, 'fallback.txt', '', chunks)
+        self._index_model(local, scope, source, revision, 'fallback.txt', '', chunks)
         self.remember(scope, source, local)
         return local
 
@@ -275,9 +276,10 @@ class MultiEngine:
                 evidence = future.result()['evidence']
                 if any(item['sourceId'] not in sources for item in evidence):
                     raise ValueError("Invalid retrieval scope")
-                rankings.append([item['id'] for item in evidence])
+                # Chunk ids differ per model (each has its own generation), so fuse on a model-independent key.
+                rankings.append([(item['sourceId'], item['position']) for item in evidence])
                 for item in evidence:
-                    items.setdefault(item['id'], item)
+                    items.setdefault((item['sourceId'], item['position']), item)
             except Exception as error:
                 logger.warning("Embedding search unavailable model=%s error=%s", engine.model_name, type(error).__name__)
                 failures.append(error)
@@ -287,7 +289,7 @@ class MultiEngine:
             raise failures[0]
         candidates = reciprocal_rank_many(rankings, limit=24)
         result, budget = [], 0
-        # Each model already applied lexical reranking. Preserve cross-model consensus here.
+        # Each model already applied lexical reranking; chunks found by several models rank higher.
         for key in candidates:
             if len(result) >= 8:
                 break
@@ -298,12 +300,14 @@ class MultiEngine:
         return {"evidence": result}
 
     def delete(self, *args):
-        self._run_all("delete", *args)
-        cache = getattr(self.primary, 'vector_cache', None)
-        if cache:
-            cache.delete_routes(*args)
-        if self.manifests:
-            self.manifests.delete(*args)
+        # A source-level delete must not interleave with indexing the same source.
+        with document_lock(args[0], args[1]) if len(args) > 1 and args[1] else nullcontext():
+            self._run_all("delete", *args)
+            cache = getattr(self.primary, 'vector_cache', None)
+            if cache:
+                cache.delete_routes(*args)
+            if self.manifests:
+                self.manifests.delete(*args)
         return {"ok": True}
 
     def close(self):

@@ -22,7 +22,8 @@ export async function* providerEvents(body: ReadableStream<Uint8Array>) {
             data = [];
             frameSize = 0;
             if (payload.trim() === "[DONE]") return;
-            yield payload;
+            // Per the SSE spec a frame with an empty data buffer dispatches nothing.
+            if (payload !== "") yield payload;
           }
         } else if (line.startsWith("data:")) {
           const part = line.slice(5).replace(/^ /, "");

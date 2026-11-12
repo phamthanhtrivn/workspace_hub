@@ -1,17 +1,14 @@
 import type { Citation, Source, VisualInput } from "../../common/types";
 import { config } from "../../config/env.config";
 import { rows } from "../../infrastructure/database/database";
+import { plainText } from "../../common/text";
 
 export async function visualEvidence(
   question: string,
   evidence: Citation[],
   sources: Source[],
 ): Promise<VisualInput[]> {
-  const plain = question
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .replace(/đ/g, "d");
+  const plain = plainText(question);
   if (
     config.VISUAL_ENABLED !== "true" ||
     !/\b(hinh|anh|bieu do|so do|cong thuc|bang|image|picture|figure|chart|diagram|graph|table)\b/.test(

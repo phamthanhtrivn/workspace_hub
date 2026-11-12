@@ -1,6 +1,7 @@
 import { createChatModel } from "../../infrastructure/integrations/chat-model";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { config } from "../../config/env.config";
+import { completedModelText } from "../../common/model-response";
 import { admitConversationModel } from "../conversation-ai/model-admission";
 import { createHash } from "node:crypto";
 import { MEETING_LIMITS } from "./limits";
@@ -87,13 +88,7 @@ export async function meetingSummaryText(
   signal.throwIfAborted();
   const model = createChatModel(modelName, maxTokens);
   const answer = await model.invoke(messages, { signal });
-  if (
-    answer.response_metadata.finish_reason === "length" ||
-    typeof answer.content !== "string" ||
-    !answer.content.trim() ||
-    answer.content.length > MEETING_LIMITS.answerCharacters
-  )
-    throw new Error("Incomplete meeting summary");
+  signal.throwIfAborted();
 
-  return answer.content.trim();
+  return completedModelText(answer, MEETING_LIMITS.answerCharacters).trim();
 }

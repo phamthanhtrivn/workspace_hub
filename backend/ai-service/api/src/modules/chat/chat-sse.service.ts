@@ -1,4 +1,5 @@
 import { SseTransport } from "../../common/sse-transport";
+import { SSE_HEARTBEAT_MS } from "../../common/sse";
 import { Injectable } from "@nestjs/common";
 import type { Response } from "express";
 import type { Actor } from "../../common/types";
@@ -36,7 +37,7 @@ export class ChatSseService {
       );
       heartbeat = setInterval(() => {
         if (!controller.signal.aborted && !stream.destroyed) stream.heartbeat();
-      }, 15000);
+      }, SSE_HEARTBEAT_MS);
       await this.workflow.streamAnswer({
         actor,
         notebookId,

@@ -1,3 +1,4 @@
+import type { Job } from "bullmq";
 import { rows } from "../infrastructure/database/database";
 import {
   findQueuedJob,
@@ -10,6 +11,17 @@ import { config } from "../config/env.config";
 import { VOICE_TRANSCRIPT } from "../modules/voice-transcript/voice.constants";
 
 const RECOVERY_BATCH_SIZE = 100;
+// BullMQ owns stalled-job detection and locks. Never steal active/waiting work.
+const GONE_JOB_STATES = ["missing", "failed", "completed", "unknown"];
+
+async function jobIsGone(job: Job | undefined) {
+  return !job || GONE_JOB_STATES.includes(await job.getState());
+}
+
+/** Runs an `UPDATE ... RETURNING` and reports whether any row changed. */
+async function changed(sql: string, args: unknown[]) {
+  return (await rows(sql, args)).length > 0;
+}
 type Candidate = { id: string; kind: string; run_id?: string };
 type RecoveryCounts = { checked: number; recovered: number; failed: number };
 
@@ -66,13 +78,10 @@ export function recoverInterruptedJobs(signal?: AbortSignal) {
      SELECT id,'summary' AS kind FROM notebook_ai.artifacts
      WHERE status='RUNNING' AND updated_at<now()-interval '10 minutes'`,
     async (item) => {
-      const job = await findQueuedJob(item.kind, item.id);
-      const state = job ? await job.getState() : "missing";
-      // BullMQ owns stalled-job detection and locks. Never steal active/waiting work.
-      if (!["failed", "completed", "missing", "unknown"].includes(state))
+      if (!(await jobIsGone(await findQueuedJob(item.kind, item.id))))
         return false;
-      if (item.kind === "index") {
-        const updated = await rows(
+      if (item.kind === "index")
+        return changed(
           `UPDATE notebook_ai.sources SET status='FAILED',error=$2,updated_at=now()
          WHERE id=$1 AND status='INDEXING' AND updated_at<now()-interval '6 minutes' RETURNING id`,
           [
@@ -81,19 +90,14 @@ export function recoverInterruptedJobs(signal?: AbortSignal) {
           ],
         );
 
-        return updated.length > 0;
-      } else {
-        const updated = await rows(
-          `UPDATE notebook_ai.artifacts SET status='FAILED',error=$2,updated_at=now()
+      return changed(
+        `UPDATE notebook_ai.artifacts SET status='FAILED',error=$2,updated_at=now()
          WHERE id=$1 AND status='RUNNING' AND updated_at<now()-interval '10 minutes' RETURNING id`,
-          [
-            item.id,
-            "SUMMARY_INTERRUPTED: Worker bị gián đoạn. Các phần đã xong được giữ; chủ động tiếp tục, không tự gọi lại LLM.",
-          ],
-        );
-
-        return updated.length > 0;
-      }
+        [
+          item.id,
+          "SUMMARY_INTERRUPTED: Worker bị gián đoạn. Các phần đã xong được giữ; chủ động tiếp tục, không tự gọi lại LLM.",
+        ],
+      );
     },
     signal,
   );
@@ -115,16 +119,15 @@ export async function reconcileQueuedJobs(
           const job = await meetingSummaryQueue.getJob(
             `${VOICE_TRANSCRIPT.jobPrefix}${item.run_id}`,
           );
-          const status = job ? await job.getState() : "missing";
-          if (!["missing", "failed", "completed", "unknown"].includes(status))
-            return false;
-          const updated = await rows(
-            `UPDATE notebook_ai.voice_transcripts SET status='FAILED',error=$2,updated_at=now()
-          WHERE run_id=$1 AND status IN ('QUEUED','RUNNING') AND updated_at<now()-interval '2 minutes' RETURNING run_id`,
-            [item.run_id, VOICE_TRANSCRIPT.interrupted],
-          );
 
-          return updated.length > 0;
+          return (
+            (await jobIsGone(job)) &&
+            changed(
+              `UPDATE notebook_ai.voice_transcripts SET status='FAILED',error=$2,updated_at=now()
+          WHERE run_id=$1 AND status IN ('QUEUED','RUNNING') AND updated_at<now()-interval '2 minutes' RETURNING run_id`,
+              [item.run_id, VOICE_TRANSCRIPT.interrupted],
+            )
+          );
         },
         signal,
       ),
@@ -140,18 +143,17 @@ export async function reconcileQueuedJobs(
           const job = await meetingSummaryQueue.getJob(
             `meeting-${item.run_id}`,
           );
-          const state = job ? await job.getState() : "missing";
-          if (!["missing", "failed", "completed", "unknown"].includes(state))
-            return false;
-          const updated = await rows(
-            `UPDATE notebook_ai.meeting_summaries SET status='FAILED',stage='FAILED',
+
+          return (
+            (await jobIsGone(job)) &&
+            changed(
+              `UPDATE notebook_ai.meeting_summaries SET status='FAILED',stage='FAILED',
         error='Xử lý bị gián đoạn. Bạn có thể bấm thử lại.',updated_at=now()
         WHERE recording_id=$1 AND run_id=$2 AND status IN ('QUEUED','RUNNING')
         AND updated_at<now()-interval '2 minutes' RETURNING recording_id`,
-            [item.id, item.run_id],
+              [item.id, item.run_id],
+            )
           );
-
-          return updated.length > 0;
         },
         signal,
       ),
@@ -164,15 +166,12 @@ export async function reconcileQueuedJobs(
       "requests",
       `SELECT id,'request' AS kind FROM notebook_ai.requests
      WHERE status='RUNNING' AND created_at<now()-interval '3 minutes'`,
-      async (item) => {
-        const updated = await rows(
+      (item) =>
+        changed(
           `UPDATE notebook_ai.requests SET status='FAILED',updated_at=now()
          WHERE id=$1 AND status='RUNNING' AND created_at<now()-interval '3 minutes' RETURNING id`,
           [item.id],
-        );
-
-        return updated.length > 0;
-      },
+        ),
       signal,
     ),
   );

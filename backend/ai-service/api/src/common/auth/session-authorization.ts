@@ -2,6 +2,7 @@ import {
   ServiceUnavailableException,
   UnauthorizedException,
 } from "@nestjs/common";
+import { internalPost } from "../../infrastructure/integrations/internal-http";
 
 export const SESSION_AUTHORIZATION_PATH =
   "/api/users/internal/sessions/authorize";
@@ -21,16 +22,14 @@ export async function assertActiveSession(
     );
   let response: Response;
   try {
-    response = await fetch(new URL(SESSION_AUTHORIZATION_PATH, baseUrl), {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-internal-service-key": key,
+    response = await internalPost(
+      new URL(SESSION_AUTHORIZATION_PATH, baseUrl).toString(),
+      {
+        key,
+        body: { userId: identity.sub, sessionId: identity.sid },
+        timeoutMs: 5000,
       },
-      body: JSON.stringify({ userId: identity.sub, sessionId: identity.sid }),
-      signal: AbortSignal.timeout(5000),
-      redirect: "error",
-    });
+    );
   } catch {
     throw new ServiceUnavailableException("Session authorization unavailable");
   }

@@ -1,12 +1,12 @@
-import { AiDatabaseClient } from "../../infrastructure/database/ai-database.client";
+import { rows } from "../../infrastructure/database/database";
 import { ChatStreamInput } from "./chat-stream.types";
 import { Injectable } from "@nestjs/common";
 import { pollUntilAborted } from "../../common/abort-polling";
 import { SourcesService } from "../sources/sources.service";
 import type { Actor } from "../../common/types";
-import { createChatAuthorization } from "./chat-authorization";
+import { createSourceAuthorization } from "../../common/source-authorization";
 import { config } from "../../config/env.config";
-import { immediateReply } from "./chat-response";
+import { notebookIntent } from "./chat-response";
 import { completeChatRequest } from "./chat-request";
 import { ChatGenerationService } from "./chat-generation.service";
 import { logError } from "../../common/errors/error-log";
@@ -15,7 +15,6 @@ import { notebookFailureMessage } from "./notebook-failure";
 @Injectable()
 export class ChatWorkflowService {
   constructor(
-    private readonly database: AiDatabaseClient,
     private readonly sources: SourcesService,
     private readonly generation: ChatGenerationService,
   ) {}
@@ -29,9 +28,9 @@ export class ChatWorkflowService {
       sources,
       controller,
     } = input;
-    const reply = immediateReply(question);
+    const intent = notebookIntent(question);
     const snapshot = sources.map(({ id, revision }) => ({ id, revision }));
-    const authorize = createChatAuthorization({
+    const authorize = createSourceAuthorization({
       actor,
       sources,
       snapshot,
@@ -40,7 +39,7 @@ export class ChatWorkflowService {
     });
     const check = async () => {
       try {
-        const [state] = await this.database.rows(
+        const [state] = await rows(
           "SELECT status FROM notebook_ai.requests WHERE id=$1",
           [requestId],
         );
@@ -71,13 +70,14 @@ export class ChatWorkflowService {
       stream.start();
       stream.emit("status", {
         requestId,
-        stage: reply ? "GENERATING" : "RETRIEVING",
+        stage: intent.kind === "reply" ? "GENERATING" : "RETRIEVING",
       });
       controller.signal.throwIfAborted();
       const answer = await this.generation.generateReply({
         ...input,
         snapshot,
         authorize,
+        intent,
       });
       stage = "final_source_check";
       await authorize();
@@ -106,7 +106,7 @@ export class ChatWorkflowService {
         canceled,
       });
       try {
-        await this.database.rows(
+        await rows(
           "UPDATE notebook_ai.requests SET status=$2,updated_at=now() WHERE id=$1 AND status='RUNNING'",
           [requestId, canceled ? "CANCELLED" : "FAILED"],
         );
@@ -129,11 +129,11 @@ export class ChatWorkflowService {
   }
 
   async cancel(actor: Actor, requestId: string) {
-    await this.database.rows(
+    await rows(
       "UPDATE notebook_ai.requests SET status='CANCELLED',updated_at=now() WHERE id=$1 AND owner_id=$2 AND status='RUNNING'",
       [requestId, actor.id],
     );
-    await this.database.rows(
+    await rows(
       "UPDATE notebook_ai.artifacts SET status='CANCELLED',updated_at=now() WHERE id=$1 AND notebook_id IN(SELECT id FROM notebook_ai.notebooks WHERE owner_id=$2) AND status IN ('QUEUED','RUNNING')",
       [requestId, actor.id],
     );

@@ -4,6 +4,7 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import { resolveChatAttachment } from "../../infrastructure/integrations/document.client";
 import { config } from "../../config/env.config";
+import { completedModelText } from "../../common/model-response";
 import { admitConversationModel } from "./model-admission";
 import { measureConversationStage } from "./telemetry";
 import { rag } from "../../infrastructure/integrations/rag.client";
@@ -173,16 +174,13 @@ export async function summarizeAttachment(
   );
   signal.throwIfAborted();
   await authorize();
-  if (
-    answer.response_metadata.finish_reason === "length" ||
-    typeof answer.content !== "string" ||
-    !answer.content.trim() ||
-    answer.content.length > 18000
-  )
-    throw new Error("Invalid attachment summary");
 
-  return presentAttachmentSummary(answer.content, manifest.name, {
-    truncated,
-    hasImages: extracted.images.length > 0,
-  });
+  return presentAttachmentSummary(
+    completedModelText(answer, 18000),
+    manifest.name,
+    {
+      truncated,
+      hasImages: extracted.images.length > 0,
+    },
+  );
 }

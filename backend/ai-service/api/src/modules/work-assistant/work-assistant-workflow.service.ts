@@ -1,5 +1,10 @@
-import { ApplicationEventStream } from "../../common/sse-transport";
+import {
+  ApplicationEventStream,
+  SseTransport,
+} from "../../common/sse-transport";
 import { HttpException, Injectable } from "@nestjs/common";
+import type { Response } from "express";
+import { SSE_HEARTBEAT_MS } from "../../common/sse";
 import { pollUntilAborted } from "../../common/abort-polling";
 import { z } from "zod";
 import { messageSchema } from "./work-assistant.schemas";
@@ -12,11 +17,23 @@ import { WorkAssistantAccessService } from "./work-assistant-access.service";
 @Injectable()
 export class WorkAssistantWorkflowService {
   constructor(
+    private readonly sse: SseTransport,
     private readonly store: WorkStore,
     private readonly generation: WorkAssistantGenerationService,
     private readonly access: WorkAssistantAccessService,
   ) {}
-  async answer(
+
+  async message(
+    actor: Actor,
+    sessionId: string,
+    input: z.infer<typeof messageSchema>,
+    res: Response,
+  ) {
+    const session = await this.access.owned(actor, sessionId, input);
+    await this.answer(actor, this.sse.create(res), session, input);
+  }
+
+  private async answer(
     actor: Actor,
     stream: ApplicationEventStream,
     session: WorkSession,
@@ -51,7 +68,7 @@ export class WorkAssistantWorkflowService {
     stream.emit("request", { requestId });
     const heartbeat = setInterval(() => {
       stream.heartbeat();
-    }, 15000);
+    }, SSE_HEARTBEAT_MS);
     const timing = new Profile("work_assistant");
     let deltaCount = 0;
     let completed = false;
@@ -65,7 +82,6 @@ export class WorkAssistantWorkflowService {
           timing.set("delta_count", ++deltaCount);
           stream.emit("delta", { text });
         },
-        () => stream.emit("answer-reset", {}),
       );
       completed = true;
       stream.emit("done", result);
@@ -115,7 +131,6 @@ export class WorkAssistantWorkflowService {
   }
 
   async cancel(actor: Actor, requestId: string) {
-    this.access.enabled();
     await this.store.cancel(actor, requestId);
 
     return { data: { canceled: true } };

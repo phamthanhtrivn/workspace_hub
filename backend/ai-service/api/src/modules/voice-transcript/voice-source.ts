@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { config } from "../../config/env.config";
 import { readResponseText } from "../../common/read-response";
+import {
+  internalPost,
+  serviceUrl,
+} from "../../infrastructure/integrations/internal-http";
 import { VOICE_TRANSCRIPT, type VoiceChatType } from "./voice.constants";
 
 const schema = z.object({
@@ -21,17 +25,16 @@ export async function voiceSource(
   chatType: VoiceChatType,
   signal: AbortSignal,
 ) {
-  const response = await fetch(
-    `${config.COMMUNICATION_SERVICE_URL.replace(/\/$/, "")}/${VOICE_TRANSCRIPT.route}/${mediaId}/source`,
+  const response = await internalPost(
+    serviceUrl(
+      config.COMMUNICATION_SERVICE_URL,
+      `/${VOICE_TRANSCRIPT.route}/${mediaId}/source`,
+    ),
     {
-      method: "POST",
-      redirect: "error",
-      signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]),
-      headers: {
-        "content-type": "application/json",
-        "x-internal-service-key": config.AI_TO_COMMUNICATION_KEY,
-      },
-      body: JSON.stringify({ actorId, chatType }),
+      key: config.AI_TO_COMMUNICATION_KEY,
+      body: { actorId, chatType },
+      signal,
+      timeoutMs: 15000,
     },
   );
   if (!response.ok) {

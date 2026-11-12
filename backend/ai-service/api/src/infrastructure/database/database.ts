@@ -17,6 +17,8 @@ export async function rows<T extends QueryResultRow = QueryResultRow>(
 }
 export async function transaction<T>(run: (client: PoolClient) => Promise<T>) {
   const client = await db.connect();
+  // A connection whose ROLLBACK fails is in an unknown state: discard it instead of pooling it.
+  let broken: Error | undefined;
   try {
     await client.query("BEGIN");
     const result = await run(client);
@@ -24,9 +26,13 @@ export async function transaction<T>(run: (client: PoolClient) => Promise<T>) {
 
     return result;
   } catch (error) {
-    await client.query("ROLLBACK");
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      broken = rollbackError as Error;
+    }
     throw error;
   } finally {
-    client.release();
+    client.release(broken);
   }
 }

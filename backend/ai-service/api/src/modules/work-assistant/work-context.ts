@@ -13,6 +13,10 @@ import type {
   WorkTask,
 } from "./work-assistant.types";
 import { readResponseText } from "../../common/read-response";
+import {
+  internalPost,
+  serviceUrl,
+} from "../../infrastructure/integrations/internal-http";
 import { freeSlots, workRange } from "./work-time";
 
 const metricsSchema = z.object({
@@ -136,20 +140,9 @@ export class WorkContextService {
       service === "project"
         ? config.WORK_ASSISTANT_PROJECT_URL
         : config.WORK_ASSISTANT_CALENDAR_URL;
-    const response = await fetch(
-      base.replace(/\/$/, "") + "/internal/work-assistant/" + path,
-      {
-        method: "POST",
-        redirect: "error",
-        signal: signal
-          ? AbortSignal.any([signal, AbortSignal.timeout(10000)])
-          : AbortSignal.timeout(10000),
-        headers: {
-          "content-type": "application/json",
-          "x-internal-service-key": serviceKey,
-        },
-        body: JSON.stringify(body),
-      },
+    const response = await internalPost(
+      serviceUrl(base, "/internal/work-assistant/" + path),
+      { key: serviceKey, body, signal, timeoutMs: 10000 },
     );
     if (response.status === 403 || response.status === 404) {
       await response.body?.cancel();

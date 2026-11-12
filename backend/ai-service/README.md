@@ -13,6 +13,15 @@ trong những nguồn đó. Câu hỏi cá nhân không liên quan được từ
 tiếp vẫn phải tuân theo cùng phạm vi. Notebook không có quyền mua hàng, tạo lịch
 hoặc đọc task Project bên ngoài nguồn tài liệu. Trợ lý công việc là luồng riêng.
 
+Trợ lý công việc chọn kỳ 7/30 ngày trước khi gọi model; câu hỏi nối tiếp dùng kỳ
+trong lịch sử còn quyền xem nếu chưa chỉ định kỳ mới. Mỗi câu trả lời dùng một
+lượt streaming từ dữ liệu đã lấy. Bot hội thoại truyền lịch sử dưới dạng dữ liệu,
+không dựng tool call để đọc lại context đã có.
+
+Tổng hợp tóm tắt gửi mỗi ghi chú một lần và giữ nhãn trích dẫn nguồn gốc. Các
+luồng dùng ChatOpenAI chỉ lưu phản hồi kết thúc bằng `stop`, không có tool call
+ngoài dự kiến và nằm trong giới hạn nội dung.
+
 Kết nối LLM dùng HTTP agent riêng và giữ lại kết nối để giảm số lần mở TCP mới.
 Mỗi lần kết nối chờ tối đa 10 giây, tối đa 3 lần trong cùng deadline LLM hiện có.
 Chỉ `UND_ERR_CONNECT_TIMEOUT` hoặc `ETIMEDOUT` tại syscall `connect`, trước khi

@@ -1,4 +1,8 @@
 import { config } from "../../config/env.config";
+import {
+  internalPost,
+  serviceUrl,
+} from "../../infrastructure/integrations/internal-http";
 
 export async function checkHttpDependencies() {
   const speechEnabled =
@@ -23,18 +27,12 @@ export async function checkHttpDependencies() {
       : []),
     // A correctly authenticated malformed request reaches validation (400),
     // without accessing any user's documents or generating presigned URLs.
-    fetch(
-      `${config.DOCUMENT_SERVICE_URL}/internal/notebook-documents/resolve`,
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-internal-service-key": config.AI_DOCUMENT_SERVICE_KEY,
-        },
-        body: "{}",
-        signal: AbortSignal.timeout(3000),
-        redirect: "error",
-      },
+    internalPost(
+      serviceUrl(
+        config.DOCUMENT_SERVICE_URL,
+        "/internal/notebook-documents/resolve",
+      ),
+      { key: config.AI_DOCUMENT_SERVICE_KEY, timeoutMs: 3000 },
     ),
   ]);
   const responses = results.flatMap((result) =>

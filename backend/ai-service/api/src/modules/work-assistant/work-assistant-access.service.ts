@@ -1,10 +1,5 @@
-import {
-  Injectable,
-  NotFoundException,
-  ServiceUnavailableException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import type { Actor } from "../../common/types";
-import { config } from "../../config/env.config";
 import { WorkContextService } from "./work-context";
 import { WorkStore, type WorkSession } from "./work-store";
 import type {
@@ -19,17 +14,6 @@ export class WorkAssistantAccessService {
     private readonly context: WorkContextService,
     private readonly store: WorkStore,
   ) {}
-  enabled() {
-    if (
-      config.WORK_ASSISTANT_ENABLED !== "true" ||
-      config.AI_TO_PROJECT_KEY.length < 32 ||
-      config.AI_TO_CALENDAR_KEY.length < 32
-    )
-      throw new ServiceUnavailableException(
-        "Trợ lý công việc chưa được bật hoặc cấu hình.",
-      );
-  }
-
   scope(context: ConversationContext): WorkScope {
     return {
       ...(context.projectId ? { projectId: context.projectId } : {}),

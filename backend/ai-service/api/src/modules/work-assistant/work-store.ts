@@ -1,4 +1,4 @@
-import { AiDatabaseClient } from "../../infrastructure/database/ai-database.client";
+import { rows, transaction } from "../../infrastructure/database/database";
 import {
   ConflictException,
   Injectable,
@@ -24,7 +24,6 @@ export type WorkSession = {
 };
 @Injectable()
 export class WorkStore {
-  constructor(private readonly database: AiDatabaseClient) {}
   async session(actor: Actor, context: ConversationContext, create = false) {
     const { projectId, contextType } = context;
     const lookup =
@@ -35,14 +34,11 @@ export class WorkStore {
       ? [actor.id, contextType, projectId]
       : [actor.id, contextType];
     if (!create) {
-      const [existing] = await this.database.rows<WorkSession>(
-        lookup,
-        parameters,
-      );
+      const [existing] = await rows<WorkSession>(lookup, parameters);
       if (existing) return existing;
     }
 
-    return this.database.transaction(async (client) => {
+    return transaction(async (client) => {
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
         [actor.id],
@@ -69,7 +65,7 @@ export class WorkStore {
     const { projectId, contextType } = context;
     const boundary = before ? parseConversationCursor(before) : undefined;
     if (boundary) {
-      const [cursor] = await this.database.rows<{ updated_at: string }>(
+      const [cursor] = await rows<{ updated_at: string }>(
         `SELECT to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') updated_at FROM notebook_ai.work_assistant_sessions WHERE id=$1 AND owner_id=$2 AND project_id IS NOT DISTINCT FROM $3::uuid AND context_type=$4`,
         [boundary.id, actor.id, projectId ?? null, contextType],
       );
@@ -81,7 +77,7 @@ export class WorkStore {
       : [actor.id, contextType];
     const cursorParameter = parameters.length + 1;
     if (boundary) parameters.push(boundary.updatedAt!, boundary.id);
-    const sessions = await this.database.rows<{
+    const sessions = await rows<{
       id: string;
       project_id: string | null;
       context_type: ConversationContext["contextType"];
@@ -108,7 +104,7 @@ export class WorkStore {
     };
   }
   async owned(actor: Actor, id: string) {
-    const [session] = await this.database.rows<WorkSession>(
+    const [session] = await rows<WorkSession>(
       "SELECT * FROM notebook_ai.work_assistant_sessions WHERE id=$1 AND owner_id=$2",
       [id, actor.id],
     );
@@ -118,13 +114,13 @@ export class WorkStore {
   }
   async history(session: WorkSession, before?: string) {
     if (before) {
-      const [cursor] = await this.database.rows(
+      const [cursor] = await rows(
         "SELECT id FROM notebook_ai.work_assistant_messages WHERE id=$1 AND session_id=$2",
         [before, session.id],
       );
       if (!cursor) throw new NotFoundException("History cursor not found");
     }
-    const messages = await this.database.rows<StoredMessage>(
+    const messages = await rows<StoredMessage>(
       "SELECT * FROM notebook_ai.work_assistant_messages WHERE session_id=$1 " +
         (before
           ? "AND (created_at,id)<(SELECT created_at,id FROM notebook_ai.work_assistant_messages WHERE id=$2 AND session_id=$1) "
@@ -140,7 +136,7 @@ export class WorkStore {
     };
   }
   async recent(session: WorkSession) {
-    const messages = await this.database.rows<StoredMessage>(
+    const messages = await rows<StoredMessage>(
       `SELECT * FROM notebook_ai.work_assistant_messages WHERE session_id=$1 ORDER BY created_at DESC,id DESC LIMIT ${WORK_HISTORY_LIMIT}`,
       [session.id],
     );
@@ -153,7 +149,7 @@ export class WorkStore {
     requestId: string,
     signal?: AbortSignal,
   ) {
-    await this.database.transaction(async (client) => {
+    await transaction(async (client) => {
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
         [actor.id],
@@ -191,7 +187,7 @@ export class WorkStore {
     });
   }
   async canceled(actor: Actor, id: string) {
-    const [row] = await this.database.rows<{
+    const [row] = await rows<{
       cancel_requested: boolean;
       status: string;
     }>(
@@ -202,7 +198,7 @@ export class WorkStore {
     return !row || row.cancel_requested || row.status !== "RUNNING";
   }
   async cancel(actor: Actor, id: string) {
-    await this.database.transaction(async (client) => {
+    await transaction(async (client) => {
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
         [actor.id],
@@ -224,7 +220,7 @@ export class WorkStore {
     projectIds: string[],
     metadata: StoredMessage["context"],
   ) {
-    return this.database.transaction(async (client) => {
+    return transaction(async (client) => {
       const { rows: changed } = await client.query(
         "UPDATE notebook_ai.work_assistant_requests SET status='COMPLETED',updated_at=now() WHERE id=$1 AND owner_id=$2 AND session_id=$3 AND status='RUNNING' AND NOT cancel_requested RETURNING id",
         [requestId, actor.id, session.id],
@@ -259,7 +255,7 @@ export class WorkStore {
     });
   }
   async fail(actor: Actor, id: string, canceled: boolean) {
-    await this.database.rows(
+    await rows(
       "UPDATE notebook_ai.work_assistant_requests SET status=$3,updated_at=now() WHERE id=$1 AND owner_id=$2 AND status='RUNNING' RETURNING id",
       [id, actor.id, canceled ? "CANCELED" : "FAILED"],
     );

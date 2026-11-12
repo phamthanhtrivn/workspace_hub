@@ -2,13 +2,6 @@ import type { Citation } from "../../common/types";
 import { validateCitations } from "../../common/evidence-policy";
 
 /** Structural grounding checks, not a semantic entailment guarantee. */
-export function validateAnswerCitations(
-  content: string,
-  evidence: Citation[],
-): Citation[] {
-  return inspectAnswerCitations(content, evidence).citations;
-}
-
 export function inspectAnswerCitations(content: string, evidence: Citation[]) {
   const used = validateCitations(content, evidence);
   const blocks = content

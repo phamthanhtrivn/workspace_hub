@@ -3,7 +3,13 @@ import { z } from "zod";
 
 export const config = z
   .object({
-    MEETING_STT_CONCURRENCY: z.coerce.number().int().min(1).max(4).default(1),
+    MEETING_STT_CONCURRENCY: z.coerce
+      .number()
+      .refine(
+        (value) => value === 1,
+        "Local speech worker supports one audio chunk at a time",
+      )
+      .default(1),
     MEETING_STT_URL: z.string().url().default("http://127.0.0.1:8090"),
     MEETING_STT_SERVICE_KEY: z.string().default(""),
     MEETING_STT_TIMEOUT_MS: z.coerce
@@ -122,17 +128,6 @@ export const config = z
     LLM_INTERACTIVE_RESERVE_PER_DAY: z.coerce.number().int().min(0).default(50),
   })
   .superRefine((value, context) => {
-    if (
-      (value.MEETING_SUMMARY_ENABLED === "true" ||
-        value.VOICE_TRANSCRIPTION_ENABLED === "true") &&
-      value.MEETING_STT_CONCURRENCY !== 1
-    )
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["MEETING_STT_CONCURRENCY"],
-        message:
-          "Local speech worker supports one audio chunk at a time; configure MEETING_STT_CONCURRENCY=1",
-      });
     if (
       (value.MEETING_SUMMARY_ENABLED === "true" ||
         value.VOICE_TRANSCRIPTION_ENABLED === "true") &&

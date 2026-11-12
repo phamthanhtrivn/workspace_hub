@@ -39,25 +39,25 @@ function stub(file,exports){const id=require.resolve(file),entry=new Module(id);
 const hash=value=>createHash('sha256').update(value).digest('hex');
 stub('./src/config/env.config.ts',{config:{LLM_MODEL:'synthetic-model',VISION_CONCURRENCY:3}});
 stub('./src/common/abort-polling.ts',{pollUntilAborted:()=>()=>{}});
-let descriptions=new Map(),extraction,processor,checkAccess=async()=>{},updates=[],calls=[];
+let descriptions=new Map(),extraction,processor,checkAccess=async()=>{},updates=[],calls=[],cachedExtraction=true,extractionTransactions=0;
 const source={id:'source',notebook_id:'notebook',revision:'revision',name:'test.pdf'};
 function image(index,context='context '+index){const bytes=Buffer.from('synthetic '+index);return {id:hash('id'+index),hash:hash(bytes),page:index+1,context,dataUrl:'data:image/jpeg;base64,'+bytes.toString('base64')};}
 stub('./src/infrastructure/database/database.ts',{
   rows:async(sql,args)=>{
     if(sql.startsWith('SELECT revision,status'))return [{revision:'revision',status:'INDEXING'}];
-    if(sql.startsWith('SELECT payload'))return [{payload:{pages:extraction.pages,images:extraction.images.map(({dataUrl,...rest})=>rest)}}];
+    if(sql.startsWith('SELECT payload'))return cachedExtraction?[{payload:{pages:extraction.pages,images:extraction.images.map(({dataUrl,...rest})=>rest)}}]:[];
     if(sql.startsWith('SELECT image_id,data_url'))return extraction.images.map(item=>({image_id:item.id,data_url:item.dataUrl}));
     if(sql.startsWith('SELECT description'))return descriptions.has(args[2]+':'+args[3])?[{description:descriptions.get(args[2]+':'+args[3])}]:[];
     if(sql.startsWith('INSERT INTO notebook_ai.source_visuals')){descriptions.set(args[3]+':'+args[4],args[9]);return [];}
     if(sql.startsWith('UPDATE notebook_ai.sources SET progress')){assert.ok(sql.includes('GREATEST(progress,$2)'));updates.push(args[1]);return [];}
     assert.fail('Unexpected SQL');
-  },transaction:async()=>assert.fail('Extraction cache must be reused'),
+  },transaction:async(run)=>{assert.equal(cachedExtraction,false);extractionTransactions++;await run({query:async()=>({rows:[]})});cachedExtraction=true;},
 });
-stub('./src/infrastructure/integrations/rag.client.ts',{rag:async()=>assert.fail('Extraction cache must be reused')});
+stub('./src/infrastructure/integrations/rag.client.ts',{rag:async()=>{assert.equal(cachedExtraction,false);return extraction}});
 stub('./src/infrastructure/integrations/document.client.ts',{authorizeSources:(...args)=>checkAccess(...args)});
 stub('./src/infrastructure/integrations/vision.client.ts',{VISION_PROMPT_VERSION:'test',describeImage:async(dataUrl,context,signal)=>{calls.push(context);return processor(dataUrl,context,signal)}});
 const {enrichVisualSource}=require('./src/jobs/visual-ingestion.ts');
-function reset(images){descriptions=new Map();extraction={pages:[{text:'synthetic',page:1}],images};updates=[];calls=[];checkAccess=async()=>{};}
+function reset(images){descriptions=new Map();extraction={pages:[{text:'synthetic',page:1}],images};updates=[];calls=[];cachedExtraction=true;extractionTransactions=0;checkAccess=async()=>{};}
 
 test('production enrichment runs three images together, preserves order and reuses saved descriptions',async()=>{
   reset([image(0),image(1),image(2)]);const gates=[deferred(),deferred(),deferred()];
@@ -79,4 +79,24 @@ test('identical image and context share one in-flight model request',async()=>{
 test('corrupted cached image and denied source access cannot reach the model',async()=>{
   reset([{...image(0),hash:'a'.repeat(64)}]);processor=async()=>assert.fail();await assert.rejects(enrichVisualSource(source,{},'unused'));assert.equal(calls.length,0);
   reset([image(0)]);checkAccess=async()=>{throw new Error('access denied')};await assert.rejects(enrichVisualSource(source,{},'unused'),/access denied/);assert.equal(calls.length,0);
+});
+
+test('fresh and cached extractions each verify image bytes exactly once',async(t)=>{
+  const crypto=require('node:crypto'),original=crypto.createHash;let imageHashes=0;
+  t.mock.method(crypto,'createHash',(...args)=>{
+    const digest=original(...args),update=digest.update;
+    digest.update=function(value,...rest){if(Buffer.isBuffer(value))imageHashes++;return update.call(this,value,...rest)};
+    return digest;
+  });
+  for(const cached of [false,true]){
+    reset([image(0)]);cachedExtraction=cached;imageHashes=0;processor=async()=> 'description';
+    await enrichVisualSource(source,{},'unused');
+    assert.equal(imageHashes,1);assert.equal(extractionTransactions,cached?0:1);assert.equal(calls.length,1);
+  }
+});
+
+test('corrupted fresh extraction is rejected before saving images or calling Vision',async()=>{
+  reset([{...image(0),hash:'a'.repeat(64)}]);cachedExtraction=false;processor=async()=>assert.fail();
+  await assert.rejects(enrichVisualSource(source,{},'unused'));
+  assert.equal(extractionTransactions,0);assert.equal(calls.length,0);
 });

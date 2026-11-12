@@ -1,11 +1,5 @@
-import {
-  Injectable,
-  ServiceUnavailableException,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import { config } from "../../config/env.config";
-import { matchesServiceKey } from "../../common/auth/service-key";
 import { rows } from "../../infrastructure/database/database";
 import { meetingSummaryQueue } from "../../infrastructure/queue/notebook.queue";
 import {
@@ -17,18 +11,6 @@ import { voiceSource } from "./voice-source";
 
 @Injectable()
 export class VoiceTranscriptService {
-  authorize(key?: string) {
-    if (
-      config.AI_ENABLED !== "true" ||
-      config.VOICE_TRANSCRIPTION_ENABLED !== "true" ||
-      config.COMMUNICATION_TO_AI_KEY.length < 32
-    ) {
-      throw new ServiceUnavailableException(VOICE_TRANSCRIPT.unavailable);
-    }
-    if (!matchesServiceKey(key, config.COMMUNICATION_TO_AI_KEY))
-      throw new UnauthorizedException();
-  }
-
   async status(mediaId: string, actorId: string, chatType: VoiceChatType) {
     const source = await voiceSource(
       mediaId,

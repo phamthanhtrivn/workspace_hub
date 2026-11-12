@@ -5,6 +5,25 @@ from uuid import NAMESPACE_URL, uuid5
 from qdrant_client import models
 
 
+def document_filter(manifests, collection, scope_id, source_ids=None, active=True):
+    conditions = [models.FieldCondition(key='scopeId', match=models.MatchValue(value=scope_id))]
+    if source_ids:
+        conditions.append(models.FieldCondition(key='sourceId', match=models.MatchAny(any=source_ids)))
+        if active and manifests is not None:
+            versions = []
+            for source in source_ids:
+                manifest = manifests.get(scope_id, source, collection)
+                generation = (
+                    models.FieldCondition(key='generation', match=models.MatchValue(value=manifest['generation']))
+                    if manifest else models.IsEmptyCondition(is_empty=models.PayloadField(key='generation'))
+                )
+                versions.append(models.Filter(must=[
+                    models.FieldCondition(key='sourceId', match=models.MatchValue(value=source)), generation,
+                ]))
+            conditions.append(models.Filter(should=versions))
+    return models.Filter(must=conditions)
+
+
 class ManifestStore:
     collection = 'wh_notebook_manifests_v1'
     creation_lock = threading.Lock()
