@@ -12,9 +12,9 @@ it needs neither a Git checkout nor application build tools.
 | INFRA | `/opt/workspacehub/infra` | PostgreSQL, Redis, Kafka, topic initializer |
 
 Notebook AI has a separate, manually operated Compose stack on APP; it is not
-part of the 14-image APP release catalog. See [AI deployment](../deploy/ai/README.md#production-stack-ai-riêng-trên-app)
-for immutable image inputs, dedicated credentials, PostgreSQL 15 bootstrap and
-the production preflight gate. It uses INFRA PostgreSQL (`notebook_db`, restricted
+part of the 14-image APP release catalog. Its runtime configuration is in
+`deploy/ai/compose.production.yml`; validate credentials and image inputs with
+`backend/scripts/check-ai-infrastructure.mjs`. It uses INFRA PostgreSQL (`notebook_db`, restricted
 `notebook` role) and Redis DB 3; API/jobs/migration join `workspacehub-app_default`.
 Redis uses AOF/everysec/noeviction. Preparing these files does not deploy AI;
 production LLM credentials and published AI/RAG/speech images must be supplied

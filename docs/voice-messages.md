@@ -45,8 +45,7 @@ After retries are exhausted, the existing player retry action remains available.
 
 ## Setup and rollout
 
-1. Prepare the existing speech runtime using the
-   [AI setup instructions](../deploy/ai/README.md). For host execution, run
+1. Prepare the existing speech runtime in `deploy/ai/compose.yml`. For host execution, run
    `node backend/scripts/start-local-speech.mjs` from the repository root.
    FFmpeg must be available at `MEETING_FFMPEG_PATH`; prepare the local multilingual
    model before starting speech-worker. Keep the existing service keys and media

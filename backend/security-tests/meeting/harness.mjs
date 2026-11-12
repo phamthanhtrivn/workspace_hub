@@ -5,7 +5,6 @@ import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { MeetingInfrastructure } from './infrastructure.mjs';
 import { MeetingProviders } from './providers.mjs';
-import { MeetingAI } from './ai.mjs';
 import { serviceRequire, load, webRequire, json, until } from '../support.mjs';
 
 const require = serviceRequire('communication-service');
@@ -89,8 +88,6 @@ export class MeetingHarness {
     await this.configureServices();
     await this.mountHttp();
     await this.mountSockets();
-    this.ai = new MeetingAI();
-    await this.ai.start(this);
   }
 
   async seedActors() {
@@ -635,7 +632,6 @@ export class MeetingHarness {
       }
     };
     for (const client of this.clients) client.close();
-    await settle(() => this.ai?.close());
     await settle(async () => {
       if (this.io) await new Promise((resolve) => this.io.close(resolve));
     });

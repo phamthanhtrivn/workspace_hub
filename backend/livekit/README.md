@@ -40,5 +40,5 @@ host or Docker execution.
 | FFmpeg/workspace | `RECORDING_FFMPEG_PATH`, `RECORDING_WORK_ROOT`, `RECORDING_BACKUP_ROOT`; paths must be accessible to the host/container that reads them. |
 | Storage | Keep the S3 credentials used by Communication Service in its env. The local LiveKit Compose file does not interpolate AWS variables from `backend/livekit/.env`. Configure Egress storage separately when enabling recording. |
 
-Meeting summaries use a separate speech worker and dedicated AI credentials; see
-the [AI guide](../../deploy/ai/README.md#các-nhóm-biến-cấu-hình-ai).
+Meeting summaries use a separate speech worker and dedicated AI credentials,
+configured in `deploy/ai/compose.yml`.

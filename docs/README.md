@@ -12,7 +12,7 @@
 
 Tài liệu theo thành phần:
 
-- [Chạy và triển khai AI](../deploy/ai/README.md), [voice messages và speech runtime](voice-messages.md).
+- [Voice messages và speech runtime](voice-messages.md).
 - [LiveKit và recording](../backend/livekit/README.md).
 - [Kong](../backend/kong-gateway/README.md), [hạ tầng local](../backend/docker/README.md).
 - [Project](../backend/project-service/README.md), [Communication](../backend/communication-service/README.md), [Calendar](../backend/calendar-service/README.md).
