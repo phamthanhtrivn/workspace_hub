@@ -41,23 +41,26 @@ export function validateInfrastructure(env, production = false) {
       invalid.add('REDIS_URL');
     }
   } catch { invalid.add('REDIS_URL'); }
-  for (const flag of ['AI_ENABLED', 'CONVERSATION_AI_ENABLED', 'WORK_ASSISTANT_ENABLED', 'MEETING_SUMMARY_ENABLED', 'VISUAL_ENABLED']) {
-    if (env[flag] && !['true', 'false'].includes(env[flag])) invalid.add(flag);
+  for (const flag of ['AI_ENABLED', 'CONVERSATION_AI_ENABLED', 'WORK_ASSISTANT_ENABLED', 'MEETING_SUMMARY_ENABLED', 'VOICE_TRANSCRIPTION_ENABLED', 'VISUAL_ENABLED']) {
+    if (env[flag] !== undefined && !['true', 'false'].includes(env[flag])) invalid.add(flag);
   }
+  const speechEnabled = env.MEETING_SUMMARY_ENABLED === 'true'
+    || (env.VOICE_TRANSCRIPTION_ENABLED ?? env.MEETING_SUMMARY_ENABLED) === 'true';
   for (const key of ['AI_GATEWAY_KEY', 'AI_DOCUMENT_SERVICE_KEY', 'RAG_SERVICE_KEY']) requireKey(key);
   if (production || env.AI_ENABLED === 'true') {
     for (const key of ['LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL']) requireValue(key);
   }
   requireKey('AI_TO_USER_KEY');
-    if (env.CONVERSATION_AI_ENABLED === 'true' || env.MEETING_SUMMARY_ENABLED === 'true') {
-      requireKey('AI_TO_COMMUNICATION_KEY');
-      requireKey('COMMUNICATION_TO_AI_KEY');
-    }
-    if (env.WORK_ASSISTANT_ENABLED === 'true') {
-      requireKey('AI_TO_PROJECT_KEY');
-      requireKey('AI_TO_CALENDAR_KEY');
-    }
-  if (production || env.MEETING_SUMMARY_ENABLED === 'true') requireKey('MEETING_STT_SERVICE_KEY');
+  if (env.CONVERSATION_AI_ENABLED === 'true' || speechEnabled) {
+    requireKey('AI_TO_COMMUNICATION_KEY');
+    requireKey('COMMUNICATION_TO_AI_KEY');
+  }
+  if (env.WORK_ASSISTANT_ENABLED === 'true') {
+    requireKey('AI_TO_PROJECT_KEY');
+    requireKey('AI_TO_CALENDAR_KEY');
+  }
+  if (production || speechEnabled) requireKey('MEETING_STT_SERVICE_KEY');
+  if (speechEnabled) requireValue('MEETING_MEDIA_HOSTS');
   const keys = ['AI_GATEWAY_KEY', 'AI_DOCUMENT_SERVICE_KEY', 'RAG_SERVICE_KEY', 'MEETING_STT_SERVICE_KEY',
     'AI_TO_USER_KEY', 'AI_TO_COMMUNICATION_KEY', 'COMMUNICATION_TO_AI_KEY', 'AI_TO_PROJECT_KEY', 'AI_TO_CALENDAR_KEY'];
   const configured = keys.filter(key => env[key]);

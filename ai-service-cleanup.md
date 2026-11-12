@@ -42,3 +42,15 @@ parallel uploads, and both success/failure from an old run after explicit resume
 Post-fix validation: 92 Node tests and 9 Python tests passed (101 total); API
 lint/typecheck/build and syntax parsing of all 20 worker Python files passed.
 Migrations 009/010 and live stack startup have not been executed here.
+
+The four deployment review issues are fixed: Stop retains the Notebook request
+slot until server cancellation succeeds (failed cancellation can be retried),
+including protection from late stream/refresh callbacks; the migrator commits
+all pending DDL and history in one transaction with transaction-scoped locks and
+timeout; preflight validates voice-only access keys/media hosts and the voice
+flag; readiness checks cleanup_outbox, requests.artifact_id and artifacts.run_id.
+Regression coverage includes rollback on history/commit failure, cancellation
+failure/retry, voice-only settings and incomplete schemas. The actual migrator
+also passed rollback, concurrent invocation and lock-release checks against an
+isolated temporary PostgreSQL instance, removed after testing. No AI database
+was recreated in the shared local PostgreSQL instance.

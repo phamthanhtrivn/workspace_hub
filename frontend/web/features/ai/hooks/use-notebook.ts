@@ -42,6 +42,8 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
   const active = useRef<{
     controller: AbortController;
     requestId: string;
+    stopped: boolean;
+    canceling: boolean;
   } | null>(null);
   const [draft, setDraft] = useState<{
     question: string;
@@ -54,17 +56,34 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
   const [retryQuestion, setRetryQuestion] = useState("");
   const cancel = useCallback(() => {
     const request = active.current;
-    if (!request) return;
+    if (!request || request.canceling) return;
+    request.stopped = true;
+    request.canceling = true;
     request.controller.abort();
-    active.current = null;
-    setBusy(false);
     setDraft(null);
-    setError("Response stopped. You can ask another question.");
-    void notebooksApi.cancel(request.requestId).catch(() => {});
+    setStage("Stopping response...");
+    setError("");
+    void notebooksApi.cancel(request.requestId).then(
+      () => {
+        if (active.current !== request) return;
+        active.current = null;
+        setBusy(false);
+        setStage("");
+        setError("Response stopped. You can ask another question.");
+      },
+      () => {
+        request.canceling = false;
+        if (active.current === request)
+          setError(
+            "Unable to confirm cancellation. Press Stop response to try again.",
+          );
+      },
+    );
   }, []);
   useEffect(
     () => () => {
       const request = active.current;
+      active.current = null;
       request?.controller.abort();
       if (request) void notebooksApi.cancel(request.requestId).catch(() => {});
     },
@@ -75,6 +94,8 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
     const request = {
       controller: new AbortController(),
       requestId: crypto.randomUUID(),
+      stopped: false,
+      canceling: false,
     };
     active.current = request;
     setBusy(true);
@@ -95,7 +116,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
         request.requestId,
         request.controller.signal,
         (event) => {
-          if (active.current !== request) return;
+          if (active.current !== request || request.stopped) return;
           if (event.event === "status" && event.data.stage === "GENERATING")
             setStage("Writing your answer...");
           if (event.event === "delta")
@@ -106,18 +127,19 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
             );
         },
       );
-      if (active.current === request) {
+      if (active.current === request && !request.stopped) {
         try {
           await refresh();
-          setDraft(null);
+          if (active.current === request && !request.stopped) setDraft(null);
         } catch {
-          setError(
-            "The answer was saved, but the notebook could not refresh. Reload the notebook to view it.",
-          );
+          if (active.current === request && !request.stopped)
+            setError(
+              "The answer was saved, but the notebook could not refresh. Reload the notebook to view it.",
+            );
         }
       }
     } catch (cause) {
-      if (active.current === request) {
+      if (active.current === request && !request.stopped) {
         setRetryQuestion(question);
         setDraft((current) => (current?.text ? current : null));
         setError(
@@ -128,7 +150,7 @@ export function useNotebookChat(id: string, refresh: () => Promise<unknown>) {
       }
     } finally {
       clearTimeout(timeout);
-      if (active.current === request) {
+      if (active.current === request && !request.stopped) {
         active.current = null;
         setBusy(false);
         void refresh().catch(() => {});

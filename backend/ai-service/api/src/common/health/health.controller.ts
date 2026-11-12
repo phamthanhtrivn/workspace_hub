@@ -23,7 +23,14 @@ export class HealthController {
   @Get("ready") async ready() {
     let stage = "DATABASE";
     try {
-      await db.query("SELECT id FROM notebook_ai.notebooks LIMIT 0");
+      await Promise.all([
+        db.query("SELECT id FROM notebook_ai.notebooks LIMIT 0"),
+        db.query("SELECT artifact_id FROM notebook_ai.requests LIMIT 0"),
+        db.query("SELECT run_id FROM notebook_ai.artifacts LIMIT 0"),
+        db.query(
+          "SELECT id,scope_id,source_id FROM notebook_ai.cleanup_outbox LIMIT 0",
+        ),
+      ]);
       stage = "QUEUE";
       await Promise.all([
         queue.getJobCounts("waiting"),

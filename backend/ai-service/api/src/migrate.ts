@@ -14,8 +14,9 @@ export async function migrate() {
   let failed: Error | undefined;
   try {
     // Data migrations can outlast the pool-wide statement timeout.
-    await client.query("SET statement_timeout = 0");
-    await client.query("SELECT pg_advisory_lock($1)", [MIGRATION_LOCK]);
+    await client.query("BEGIN");
+    await client.query("SET LOCAL statement_timeout = 0");
+    await client.query("SELECT pg_advisory_xact_lock($1)", [MIGRATION_LOCK]);
     await client.query("CREATE SCHEMA IF NOT EXISTS notebook_ai");
     await client.query(
       `CREATE TABLE IF NOT EXISTS notebook_ai.schema_migrations(
@@ -25,10 +26,14 @@ export async function migrate() {
       "SELECT name FROM notebook_ai.schema_migrations",
     );
     const applied = new Set(rows.map((row) => row.name));
-    for (const file of files) {
-      if (applied.has(file)) continue;
+    const pending = files.filter((file) => !applied.has(file));
+    for (const file of pending) {
       try {
-        await client.query(readFileSync(join(directory, file), "utf8"));
+        // The runner owns the transaction, including migration history.
+        const sql = readFileSync(join(directory, file), "utf8")
+          .replace(/^\s*BEGIN;\s*/i, "")
+          .replace(/\s*COMMIT;\s*$/i, "");
+        await client.query(sql);
         await client.query(
           "INSERT INTO notebook_ai.schema_migrations(name) VALUES($1)",
           [file],
@@ -37,11 +42,12 @@ export async function migrate() {
         console.error(`Migration ${file} failed`);
         throw error;
       }
-      console.log(`Applied migration ${file}`);
     }
+    await client.query("COMMIT");
+    for (const file of pending) console.log(`Applied migration ${file}`);
   } catch (error) {
-    // The session may be inside an aborted transaction; do not return it to the pool.
     failed = error as Error;
+    await client.query("ROLLBACK").catch(() => undefined);
     throw error;
   } finally {
     client.release(failed);
