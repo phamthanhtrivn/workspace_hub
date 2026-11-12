@@ -12,15 +12,6 @@ import type {
   NotebookActionRunner,
 } from "../types";
 import { Citations } from "./citations";
-import { Spinner } from "@/components/ui/spinner";
-import { aiServiceMessage } from "@/lib/ai-feedback";
-
-const artifactStatus: Record<string, string> = {
-  QUEUED: "Queued",
-  RUNNING: "Processing",
-  FAILED: "Failed",
-  CANCELLED: "Cancelled",
-};
 
 type Props = {
   notebook: Notebook;
@@ -31,121 +22,10 @@ type Props = {
 export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
   const [content, setContent] = useState("");
   const [title, setTitle] = useState("");
-  const ready =
-    notebook.sources.length > 0 &&
-    notebook.sources.every((source) => source.status === "READY");
 
   return (
-    <section aria-label="Studio" className="h-full space-y-5 overflow-y-auto">
-      <h2 className="font-semibold">Studio</h2>
-      <div className="grid gap-2">
-        <Button
-          variant="outline"
-          className="h-auto min-h-10 whitespace-normal text-left"
-          loading={saving && pendingAction === "OVERVIEW"}
-          disabled={!ready || saving}
-          onClick={() =>
-            run(
-              () => notebooksApi.artifact(notebook.id, "OVERVIEW"),
-              "OVERVIEW",
-            )
-          }
-        >
-          Overview & questions
-        </Button>
-        <Button
-          variant="outline"
-          className="h-auto min-h-10 whitespace-normal text-left"
-          loading={saving && pendingAction === "SUMMARY"}
-          disabled={!ready || saving}
-          onClick={() =>
-            run(() => notebooksApi.artifact(notebook.id, "SUMMARY"), "SUMMARY")
-          }
-        >
-          Full-document summary
-        </Button>
-      </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Get an overview or summarize the full notebook. Full summaries may take
-        longer and can be resumed.
-      </p>
-      {notebook.artifacts.map((artifact) => (
-        <Details
-          className="rounded-lg border p-3"
-          key={artifact.id}
-          open={artifact.status === "RUNNING" || artifact.status === "QUEUED"}
-        >
-          <DetailsSummary className="cursor-pointer text-sm font-medium">
-            {["QUEUED", "RUNNING"].includes(artifact.status) && (
-              <Spinner size={14} className="mr-2 inline-block align-middle" />
-            )}
-            {artifact.kind === "SUMMARY" ? "Full summary" : "Overview"} ·{" "}
-            {artifact.status === "COMPLETED"
-              ? "Completed"
-              : `${artifactStatus[artifact.status] ?? "Processing"} ${artifact.progress}%`}
-          </DetailsSummary>
-          {artifact.hidden ? (
-            <p className="mt-3 text-xs">
-              Content is hidden because a source is no longer available.
-            </p>
-          ) : (
-            <>
-              <Citations
-                notebookId={notebook.id}
-                items={artifact.citations}
-                content={artifact.content || undefined}
-              />
-              {artifact.error && (
-                <p className="mt-2 text-xs text-destructive">
-                  {aiServiceMessage(
-                    artifact.error,
-                    "Unable to complete this summary. Try again.",
-                  )}
-                </p>
-              )}
-              {["QUEUED", "RUNNING"].includes(artifact.status) && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mt-3"
-                  loading={saving && pendingAction === `cancel:${artifact.id}`}
-                  onClick={() =>
-                    run(
-                      () => notebooksApi.cancel(artifact.id, artifact.run_id),
-                      `cancel:${artifact.id}`,
-                    )
-                  }
-                >
-                  Cancel task
-                </Button>
-              )}
-              {["FAILED", "CANCELLED"].includes(artifact.status) && (
-                <Button
-                  loading={saving && pendingAction === `summary:${artifact.id}`}
-                  size="sm"
-                  variant="outline"
-                  className="mt-3"
-                  onClick={() =>
-                    run(
-                      () =>
-                        notebooksApi.artifact(
-                          notebook.id,
-                          artifact.kind as "SUMMARY" | "OVERVIEW",
-                          artifact.sources.length
-                            ? artifact.sources.map((source) => source.id)
-                            : undefined,
-                        ),
-                      `summary:${artifact.id}`,
-                    )
-                  }
-                >
-                  Resume summary
-                </Button>
-              )}
-            </>
-          )}
-        </Details>
-      ))}
+    <section aria-label="Notes" className="h-full space-y-5 overflow-y-auto">
+      <h2 className="font-semibold">Notes</h2>
       <form
         className="space-y-2 border-t pt-4"
         onSubmit={(event) => {

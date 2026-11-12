@@ -7,7 +7,6 @@ import { citeEvidence, visibleSnapshot } from "../../common/evidence-policy";
 import type { Citation, Source } from "../../common/types";
 import { generateChatResponse } from "./chat-response";
 import { visualEvidence } from "./visual-evidence";
-import { StudioService } from "../studio/studio.service";
 import { logError } from "../../common/errors/error-log";
 import {
   conversationHistory,
@@ -17,7 +16,6 @@ import {
 
 @Injectable()
 export class ChatGenerationService {
-  constructor(private readonly studio: StudioService) {}
   async generateReply(
     input: ChatGenerationInput,
   ): Promise<{ content: string; citations: Citation[]; artifactId?: string }> {
@@ -75,37 +73,6 @@ export class ChatGenerationService {
         stream.emit("delta", { text: content });
 
         return { content, citations: [] };
-      }
-      if (intent.kind === "summary") {
-        stage = "queue_summary";
-        signal.throwIfAborted();
-        const artifact = await this.studio.artifact(
-          actor,
-          notebookId,
-          "SUMMARY",
-          sourceIds,
-        );
-        const [request] = await rows(
-          "UPDATE notebook_ai.requests SET artifact_id=$2,artifact_run_id=$3 WHERE id=$1 RETURNING status",
-          [input.requestId, artifact.id, artifact.run_id],
-        );
-        if (signal.aborted || request?.status !== "RUNNING") {
-          await rows(
-            "UPDATE notebook_ai.artifacts SET status='CANCELLED',updated_at=now() WHERE id=$1 AND run_id=$2 AND status IN ('QUEUED','RUNNING')",
-            [artifact.id, artifact.run_id],
-          );
-          throw new DOMException("Request canceled", "AbortError");
-        }
-        signal.throwIfAborted();
-
-        return {
-          content:
-            artifact.status === "COMPLETED"
-              ? artifact.content
-              : "Mình đang đọc tài liệu để tóm tắt. Kết quả sẽ xuất hiện ngay tại đây khi hoàn tất.",
-          citations: artifact.status === "COMPLETED" ? artifact.citations : [],
-          artifactId: artifact.id,
-        };
       }
       stage = "retrieval";
       const citations = directReply

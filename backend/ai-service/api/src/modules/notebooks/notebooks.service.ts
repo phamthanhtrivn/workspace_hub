@@ -40,22 +40,19 @@ export class NotebooksService {
   async get(actor: Actor, id: string) {
     const notebook = await ownedNotebook(actor, id);
     const sources = await this.sourcesService.checkedSources(actor, id);
-    const [messages, notes, artifacts] = await Promise.all([
+    const [messages, notes] = await Promise.all([
       rows(
         `SELECT m.*, a.status AS summary_status,a.progress AS summary_progress,a.run_id AS summary_run_id,
           CASE WHEN a.status='COMPLETED' THEN a.content ELSE m.content END AS content,
           CASE WHEN a.status='COMPLETED' THEN a.citations ELSE m.citations END AS citations,
           a.error AS summary_error
          FROM notebook_ai.messages m LEFT JOIN notebook_ai.artifacts a ON a.id=m.artifact_id
-         WHERE m.notebook_id=$1 ORDER BY m.created_at DESC,m.id DESC LIMIT 100`,
+         WHERE m.notebook_id=$1 AND (m.artifact_id IS NULL OR a.status='COMPLETED')
+         ORDER BY m.created_at DESC,m.id DESC LIMIT 100`,
         [id],
       ),
       rows(
         "SELECT * FROM notebook_ai.notes WHERE notebook_id=$1 ORDER BY created_at DESC LIMIT 100",
-        [id],
-      ),
-      rows(
-        "SELECT id,notebook_id,kind,status,run_id,progress,content,citations,sources,error,created_at FROM notebook_ai.artifacts WHERE notebook_id=$1 ORDER BY created_at DESC LIMIT 30",
         [id],
       ),
     ]);
@@ -80,7 +77,6 @@ export class NotebooksService {
       }),
       messages: messages.reverse().map(mask),
       notes: notes.map(mask),
-      artifacts: artifacts.map(mask),
     };
   }
 }

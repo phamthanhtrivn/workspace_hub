@@ -59,7 +59,7 @@ export function SourcePanel({
 
   return (
     <section
-      className="flex h-full flex-col gap-4"
+      className="flex h-full min-w-0 flex-col gap-4"
       aria-label="Document sources"
     >
       <header className="flex items-center justify-between">
@@ -175,7 +175,7 @@ export function SourcePanel({
                 {sourceFailure(source.error).message}
               </p>
             )}
-            <div className="mt-2 flex gap-2">
+            <div className="mt-2 flex flex-wrap gap-2 [&>button]:h-auto [&>button]:min-h-8 [&>button]:max-w-full [&>button]:whitespace-normal [&>button]:py-2">
               {source.status === "FAILED" && (
                 <Button
                   loading={pendingAction === `retry:${source.id}`}
@@ -224,7 +224,7 @@ export function SourcePanel({
                 }
               >
                 <X />
-                Remove source
+                Remove
               </Button>
             </div>
           </article>

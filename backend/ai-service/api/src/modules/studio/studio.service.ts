@@ -7,11 +7,9 @@ import {
 import { rows } from "../../infrastructure/database/database";
 import { ownedNotebook } from "../../common/auth/notebook-access";
 import { SourcesService } from "../sources/sources.service";
-import { selectSources, visibleSnapshot } from "../../common/evidence-policy";
+import { visibleSnapshot } from "../../common/evidence-policy";
 import type { Actor, Snapshot } from "../../common/types";
-import { createHash, randomUUID } from "node:crypto";
-import { enqueue } from "../../infrastructure/queue/notebook.queue";
-import { config } from "../../config/env.config";
+import { randomUUID } from "node:crypto";
 @Injectable()
 export class StudioService {
   constructor(private readonly sourcesService: SourcesService) {}
@@ -101,60 +99,5 @@ export class StudioService {
       noteId,
       id,
     ]);
-  }
-  async artifact(actor: Actor, id: string, kind: string, sourceIds?: string[]) {
-    await ownedNotebook(actor, id);
-    const available = await this.sourcesService.checkedSources(actor, id);
-    let sources = available;
-    if (sourceIds) {
-      try {
-        sources = selectSources(sourceIds, available);
-      } catch (cause) {
-        throw new BadRequestException((cause as Error).message);
-      }
-    }
-    if (!sources.length || sources.some((s) => s.status !== "READY"))
-      throw new BadRequestException(
-        "Chờ tất cả nguồn sẵn sàng trước khi tạo tổng quan",
-      );
-    const snapshot = sources
-      .map((s) => ({ id: s.id, revision: s.revision }))
-      .sort((a, b) => a.id.localeCompare(b.id));
-    const key = createHash("sha256")
-      .update(
-        JSON.stringify({
-          snapshot,
-          kind,
-          prompt: "source-key-points-v4-synthesis",
-          ...(sources.some((source) => source.index_version === "visual-v1")
-            ? { visualPipeline: "visual-v1" }
-            : {}),
-          provider: config.LLM_BASE_URL.replace(/\/$/, ""),
-          model: config.LLM_MODEL,
-          maxTokens: config.LLM_MAX_TOKENS,
-          language: "vi",
-        }),
-      )
-      .digest("hex");
-    const [artifact] = await rows(
-      `INSERT INTO notebook_ai.artifacts(id,notebook_id,kind,cache_key,sources,owner_email,run_id) VALUES($1,$2,$3,$4,$5,$6,$7)
-      ON CONFLICT(notebook_id,cache_key) DO UPDATE SET
-      run_id=CASE WHEN notebook_ai.artifacts.status IN ('FAILED','CANCELLED') THEN excluded.run_id ELSE notebook_ai.artifacts.run_id END,
-      in_flight=CASE WHEN notebook_ai.artifacts.status IN ('FAILED','CANCELLED') THEN false ELSE notebook_ai.artifacts.in_flight END,
-      status=CASE WHEN notebook_ai.artifacts.status IN ('FAILED','CANCELLED') THEN 'QUEUED' ELSE notebook_ai.artifacts.status END,error=NULL RETURNING *`,
-      [
-        randomUUID(),
-        id,
-        kind,
-        key,
-        JSON.stringify(snapshot),
-        actor.email,
-        randomUUID(),
-      ],
-    );
-    if (artifact.status === "QUEUED")
-      await enqueue("summary", artifact.id, { artifactId: artifact.id });
-
-    return artifact;
   }
 }

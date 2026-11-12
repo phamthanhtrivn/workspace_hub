@@ -4,11 +4,10 @@ import { modelAnswer } from "../../infrastructure/integrations/llm.client";
 import { isFollowUp, type ChatTurn } from "./chat-history";
 import { plainQuestion } from "../../common/text";
 import { isClearlyUnrelated, notebookScopeRefusal } from "./notebook-scope";
-import { isNotebookSummaryRequest } from "./summary-request";
 import { isFirstQuestionRequest } from "./history-recall";
 
 export type NotebookIntent =
-  | { kind: "recall" | "summary" }
+  | { kind: "recall" }
   | { kind: "reply"; content: string }
   | { kind: "answer"; followUp: boolean; clarification?: string };
 
@@ -29,7 +28,6 @@ function socialReply(text: string): string | null {
 
 export function notebookIntent(question: string): NotebookIntent {
   if (isFirstQuestionRequest(question)) return { kind: "recall" };
-  if (isNotebookSummaryRequest(question)) return { kind: "summary" };
   if (isClearlyUnrelated(question))
     return { kind: "reply", content: notebookScopeRefusal(question) };
   const text = plainQuestion(question);

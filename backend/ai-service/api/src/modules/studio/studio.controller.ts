@@ -44,19 +44,4 @@ export class StudioController {
 
     return { data: {} };
   }
-  @Post("notebooks/:id/artifacts") async artifact(
-    @Req() req: AuthRequest,
-    @Param("id", ParseUUIDPipe) id: string,
-    @Body() body: unknown,
-  ) {
-    const { kind, sourceIds } = parse(
-      z.object({
-        kind: z.enum(["OVERVIEW", "SUMMARY"]),
-        sourceIds: z.array(z.string().uuid()).min(1).max(5).optional(),
-      }),
-      body,
-    );
-
-    return { data: await this.studio.artifact(req.actor, id, kind, sourceIds) };
-  }
 }

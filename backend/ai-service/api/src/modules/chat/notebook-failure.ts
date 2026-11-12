@@ -32,7 +32,7 @@ export function notebookFailureMessage(error: unknown): string {
   if (status)
     return `An AI dependency returned HTTP ${status}. Please try again later.`;
   if (/bị cắt ở giới hạn/.test(message))
-    return "The AI response reached its output limit. Use Full summary for longer documents.";
+    return "The AI response reached its output limit. Ask a more specific question or select fewer sources.";
   if (/trích dẫn/.test(message))
     return "The AI response did not include valid source citations. Please try again.";
   if (/phạm vi|làm rõ/.test(message))

@@ -18,7 +18,6 @@ type Operation =
   | "index"
   | "preflight"
   | "job_index"
-  | "job_summary"
   | "job_cleanup"
   | "job_conversation"
   | "work_assistant";

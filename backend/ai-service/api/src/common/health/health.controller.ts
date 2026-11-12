@@ -3,7 +3,6 @@ import { config } from "../../config/env.config";
 import { db } from "../../infrastructure/database/database";
 import {
   queue,
-  summaryQueue,
   conversationQueue,
   WORKER_HEARTBEAT_VALUE,
   meetingSummaryQueue,
@@ -35,10 +34,7 @@ export class HealthController {
         ),
       ]);
       stage = "QUEUE";
-      await Promise.all([
-        queue.getJobCounts("waiting"),
-        summaryQueue.getJobCounts("waiting"),
-      ]);
+      await queue.getJobCounts("waiting");
       const redis = await queue.client;
       if (config.VOICE_TRANSCRIPTION_ENABLED === "true") {
         await db.query(

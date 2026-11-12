@@ -60,8 +60,6 @@ export const notebooksApi = {
   ) => api.post(`${path(id)}/notes`, data),
   deleteNote: (id: string, noteId: string) =>
     api.delete(`${path(id)}/notes/${noteId}`),
-  artifact: (id: string, kind: "OVERVIEW" | "SUMMARY", sourceIds?: string[]) =>
-    api.post(`${path(id)}/artifacts`, { kind, sourceIds }),
   cancel: (requestId: string, runId?: string | null) =>
     api.post(`/api/ai/requests/${requestId}/cancel`, {
       runId: runId ?? undefined,

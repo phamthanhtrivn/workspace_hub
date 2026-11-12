@@ -18,15 +18,9 @@ const options = {
 };
 export const queue = new Queue("notebook-jobs", options);
 export const conversationQueue = new Queue("conversation-ai-jobs", options);
-export const summaryQueue = new Queue("notebook-summary-jobs", options);
 export const meetingSummaryQueue = new Queue("meeting-summary-jobs", options);
 let lastError = 0;
-for (const current of [
-  queue,
-  summaryQueue,
-  conversationQueue,
-  meetingSummaryQueue,
-])
+for (const current of [queue, conversationQueue, meetingSummaryQueue])
   current.on("error", () => {
     if (Date.now() - lastError > 30000) {
       lastError = Date.now();
@@ -36,12 +30,7 @@ for (const current of [
 export async function enqueue(kind: string, id: string, data: object) {
   if (config.AI_ENABLED !== "true") return;
   const jobId = `${kind}-${id}`;
-  const target =
-    kind === "conversation"
-      ? conversationQueue
-      : kind === "summary"
-        ? summaryQueue
-        : queue;
+  const target = kind === "conversation" ? conversationQueue : queue;
   if (target !== queue) {
     const legacy = await queue.getJob(jobId);
     if (legacy && !["failed", "completed"].includes(await legacy.getState()))
@@ -77,18 +66,13 @@ export async function findQueuedJob(
   id: string,
 ): Promise<Job | undefined> {
   const jobId = `${kind}-${id}`;
-  if (kind !== "summary") return queue.getJob(jobId);
-  const legacy = await queue.getJob(jobId);
-  if (legacy && !["failed", "completed"].includes(await legacy.getState()))
-    return legacy;
 
-  return (await summaryQueue.getJob(jobId)) ?? legacy;
+  return queue.getJob(jobId);
 }
 
 export async function closeQueues() {
   await Promise.all([
     queue.close(),
-    summaryQueue.close(),
     conversationQueue.close(),
     meetingSummaryQueue.close(),
   ]);

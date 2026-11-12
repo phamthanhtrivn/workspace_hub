@@ -1,4 +1,5 @@
 import { config } from "../../config/env.config";
+import { SESSION_AUTHORIZATION_PATH } from "../auth/session-authorization";
 import {
   internalPost,
   serviceUrl,
@@ -25,6 +26,13 @@ export async function checkHttpDependencies() {
           }),
         ]
       : []),
+    internalPost(
+      new URL(
+        SESSION_AUTHORIZATION_PATH,
+        process.env.USER_SERVICE_URL,
+      ).toString(),
+      { key: process.env.AI_TO_USER_KEY || "", timeoutMs: 3000 },
+    ),
     // A correctly authenticated malformed request reaches validation (400),
     // without accessing any user's documents or generating presigned URLs.
     internalPost(
@@ -43,7 +51,14 @@ export async function checkHttpDependencies() {
     const document = results.at(-1);
     const documentResponse =
       document?.status === "fulfilled" ? document.value : null;
-    if (!rag?.ok || documentResponse?.status !== 400)
+    const session = results.at(-2);
+    const sessionResponse =
+      session?.status === "fulfilled" ? session.value : null;
+    if (
+      !rag?.ok ||
+      documentResponse?.status !== 400 ||
+      sessionResponse?.status !== 400
+    )
       throw new Error("AI dependency unavailable or misconfigured");
     const speech =
       speechEnabled && results[1].status === "fulfilled" && results[1].value.ok;

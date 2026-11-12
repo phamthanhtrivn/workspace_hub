@@ -26,15 +26,6 @@ export function selectSources(ids: string[], sources: Source[]) {
   });
 }
 
-export function snapshotSources(snapshot: Snapshot[], sources: Source[]) {
-  if (!visibleSnapshot(snapshot, sources)) throw new Error("Nguồn đã thay đổi");
-
-  return selectSources(
-    snapshot.map((ref) => ref.id),
-    sources,
-  );
-}
-
 export function citeEvidence(
   evidence: Evidence[],
   sources: Source[],
@@ -65,28 +56,4 @@ export function validateCitations(content: string, evidence: Citation[]) {
     throw new Error("AI trả lời thiếu trích dẫn hợp lệ. Hãy thử lại.");
 
   return evidence.filter((item) => labels.includes(item.label));
-}
-
-export function summaryGroups(evidence: Citation[]) {
-  const groups: Citation[][] = [];
-  let current: Citation[] = [];
-  let bytes = 0;
-  for (const item of evidence) {
-    const size = Buffer.byteLength(item.text);
-    if (
-      current.length &&
-      (bytes + size > 14000 || current[0].sourceId !== item.sourceId)
-    ) {
-      groups.push(current);
-      current = [];
-      bytes = 0;
-    }
-    current.push(item);
-    bytes += size;
-  }
-  if (current.length) groups.push(current);
-  if (!groups.length || groups.length > 60)
-    throw new Error("Nội dung vượt giới hạn tóm tắt; giảm số nguồn");
-
-  return groups;
 }

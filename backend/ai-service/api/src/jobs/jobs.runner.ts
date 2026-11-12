@@ -4,10 +4,9 @@ import { processVoiceTranscript } from "./voice-transcript.processor";
 import { VOICE_TRANSCRIPT } from "../modules/voice-transcript/voice.constants";
 import { Worker, UnrecoverableError, type Job } from "bullmq";
 import { config, connection } from "../config/env.config";
-import { db, rows } from "../infrastructure/database/database";
+import { db } from "../infrastructure/database/database";
 import {
   queue,
-  enqueue,
   closeQueues,
   WORKER_HEARTBEAT_VALUE,
 } from "../infrastructure/queue/notebook.queue";
@@ -15,14 +14,13 @@ import { rag } from "../infrastructure/integrations/rag.client";
 import { reconcileQueuedJobs } from "./job-recovery";
 import { Profile } from "../common/profiling/pipeline-profiler";
 import { indexSource } from "./index.processor";
-import { summarize } from "./summary.processor";
 import { logError } from "../common/errors/error-log";
 import { createShutdownHandler, settleAll } from "../common/shutdown";
 import { closeProviderConnections } from "../infrastructure/integrations/provider-http";
 
 async function profileJob<T>(
   job: Job,
-  pipeline: "job_index" | "job_summary" | "job_cleanup" | "job_conversation",
+  pipeline: "job_index" | "job_cleanup" | "job_conversation",
   process: () => Promise<T>,
 ) {
   const timing = new Profile(pipeline);
@@ -59,10 +57,6 @@ async function processJob(job: Job) {
       return processConversationJob(job);
     case "index":
       return profileJob(job, "job_index", () => indexSource(job.data.sourceId));
-    case "summary":
-      return profileJob(job, "job_summary", () =>
-        summarize(job.data.artifactId),
-      );
     case "cleanup":
       return profileJob(job, "job_cleanup", () => rag("/delete", job.data));
     default:
@@ -77,16 +71,6 @@ export function startWorkers() {
     concurrency: config.NOTEBOOK_INDEX_CONCURRENCY,
     autorun: false,
   });
-  const summaryWorker = new Worker(
-    "notebook-summary-jobs",
-    (job) => {
-      if (job.name !== "summary")
-        throw new UnrecoverableError("Unknown summary job");
-
-      return processJob(job);
-    },
-    { connection, prefix: "wh-notebook", concurrency: 1, autorun: false },
-  );
   const conversationWorker =
     config.CONVERSATION_AI_ENABLED === "true"
       ? new Worker(
@@ -138,27 +122,10 @@ export function startWorkers() {
       : undefined;
   const workers = [
     worker,
-    summaryWorker,
     ...(conversationWorker ? [conversationWorker] : []),
     ...(meetingWorker ? [meetingWorker] : []),
   ];
   for (const current of workers) {
-    const resumeSummary = (job: Job | undefined) => {
-      if (job?.name !== "summary") return;
-      const id = job.data.artifactId as string;
-      void rows(
-        "SELECT id FROM notebook_ai.artifacts WHERE id=$1 AND status='QUEUED'",
-        [id],
-      )
-        .then((pending) =>
-          pending.length
-            ? enqueue("summary", id, { artifactId: id })
-            : undefined,
-        )
-        .catch((error) => logError("ai_summary_resume_failed", error));
-    };
-    current.on("completed", resumeSummary);
-    current.on("failed", resumeSummary);
     current.on("error", (error) =>
       logError("ai_worker_error", error, { queue: current.name }),
     );

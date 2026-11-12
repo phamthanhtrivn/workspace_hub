@@ -74,29 +74,17 @@ export function recoverInterruptedJobs(signal?: AbortSignal) {
   return recoverBatches(
     "interrupted",
     `SELECT id,'index' AS kind FROM notebook_ai.sources
-     WHERE status='INDEXING' AND updated_at<now()-interval '6 minutes'
-     UNION ALL
-     SELECT id,'summary' AS kind FROM notebook_ai.artifacts
-     WHERE status='RUNNING' AND updated_at<now()-interval '10 minutes'`,
+     WHERE status='INDEXING' AND updated_at<now()-interval '6 minutes'`,
     async (item) => {
       if (!(await jobIsGone(await findQueuedJob(item.kind, item.id))))
         return false;
-      if (item.kind === "index")
-        return changed(
-          `UPDATE notebook_ai.sources SET status='FAILED',error=$2,updated_at=now()
-         WHERE id=$1 AND status='INDEXING' AND updated_at<now()-interval '6 minutes' RETURNING id`,
-          [
-            item.id,
-            "INDEX_INTERRUPTED: Worker bị gián đoạn. Bấm Thử lại để lập chỉ mục.",
-          ],
-        );
 
       return changed(
-        `UPDATE notebook_ai.artifacts SET status='FAILED',error=$2,updated_at=now()
-         WHERE id=$1 AND status='RUNNING' AND updated_at<now()-interval '10 minutes' RETURNING id`,
+        `UPDATE notebook_ai.sources SET status='FAILED',error=$2,updated_at=now()
+         WHERE id=$1 AND status='INDEXING' AND updated_at<now()-interval '6 minutes' RETURNING id`,
         [
           item.id,
-          "SUMMARY_INTERRUPTED: Worker bị gián đoạn. Các phần đã xong được giữ; chủ động tiếp tục, không tự gọi lại LLM.",
+          "INDEX_INTERRUPTED: Worker bị gián đoạn. Bấm Thử lại để lập chỉ mục.",
         ],
       );
     },
@@ -198,27 +186,18 @@ export async function reconcileQueuedJobs(
       signal,
     ),
   );
-  for (const [kind, table] of [
-    ["index", "sources"],
-    ["summary", "artifacts"],
-  ] as const) {
-    stages.push(
-      await recoverBatches(
-        `queued_${kind}`,
-        `SELECT id,'${kind}' AS kind FROM notebook_ai.${table} WHERE status='QUEUED'`,
-        async (item) => {
-          await enqueue(
-            kind,
-            item.id,
-            kind === "index" ? { sourceId: item.id } : { artifactId: item.id },
-          );
+  stages.push(
+    await recoverBatches(
+      "queued_index",
+      "SELECT id,'index' AS kind FROM notebook_ai.sources WHERE status='QUEUED'",
+      async (item) => {
+        await enqueue("index", item.id, { sourceId: item.id });
 
-          return true;
-        },
-        signal,
-      ),
-    );
-  }
+        return true;
+      },
+      signal,
+    ),
+  );
   const counts = stages.reduce(
     (total, stage) => ({
       checked: total.checked + stage.checked,

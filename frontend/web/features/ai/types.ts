@@ -54,18 +54,6 @@ export const notebookSchema = z.object({
     }),
   ),
   notes: z.array(derivedSchema.extend({ title: z.string() })),
-  artifacts: z.array(
-    derivedSchema.extend({
-      kind: z.string(),
-      status: z.string(),
-      run_id: z.string().nullable().optional(),
-      progress: z.number(),
-      error: z.string().nullable(),
-      sources: z
-        .array(z.object({ id: z.string(), revision: z.string() }))
-        .default([]),
-    }),
-  ),
 });
 export type Notebook = z.infer<typeof notebookSchema>;
 export type Source = z.infer<typeof sourceSchema>;
@@ -73,12 +61,8 @@ export type Citation = z.infer<typeof citationSchema>;
 export type NotebookActionKey =
   | "rename"
   | "remove"
-  | "OVERVIEW"
-  | "SUMMARY"
   | "create-note"
   | `note:${string}`
-  | `summary:${string}`
-  | `cancel:${string}`
   | `retry:${string}`
   | `remove:${string}`;
 

@@ -16,7 +16,6 @@ import { StudioPanel } from "./studio-panel";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Spinner } from "@/components/ui/spinner";
 import { ArrowLeft, Bot } from "lucide-react";
-import { aiServiceMessage } from "@/lib/ai-feedback";
 import type { NotebookActionKey, NotebookActionRunner } from "../types";
 
 export function NotebookWorkspace({ id }: { id: string }) {
@@ -77,7 +76,7 @@ function Workspace({ id }: { id: string }) {
         source.status === "READY",
     ),
   );
-  const panel = "min-h-0 rounded-xl border bg-background p-4 xl:block";
+  const panel = "min-h-0 min-w-0 rounded-xl border bg-background p-4 xl:block";
 
   return (
     <main className="flex min-h-0 flex-1 flex-col gap-4 bg-muted/30 p-3 md:p-5 xl:h-[calc(100dvh-100px)]">
@@ -173,7 +172,7 @@ function Workspace({ id }: { id: string }) {
         {[
           ["sources", "Sources"],
           ["chat", "Chat"],
-          ["studio", "Studio"],
+          ["studio", "Notes"],
         ].map(([value, label]) => (
           <Button
             key={value}
@@ -229,7 +228,6 @@ function Workspace({ id }: { id: string }) {
                   Add a source, wait until it is ready, then select it to ask
                   questions with citations.
                 </p>
-                <p className="mt-3">For a full-document summary, use Studio.</p>
               </div>
             )}
             {notebook.messages.map((message) => (
@@ -258,84 +256,8 @@ function Workspace({ id }: { id: string }) {
                       items={message.citations}
                       notebookId={id}
                       markdown={message.role !== "USER"}
-                      content={
-                        ["FAILED", "CANCELLED"].includes(
-                          message.summary_status || "",
-                        )
-                          ? "The summary is incomplete. Try again."
-                          : message.content
-                      }
+                      content={message.content}
                     />
-                    {message.artifact_id &&
-                      ["QUEUED", "RUNNING"].includes(
-                        message.summary_status || "",
-                      ) && (
-                        <div
-                          className="mt-3 flex items-center gap-3"
-                          role="status"
-                        >
-                          <Spinner size={14} />
-                          <span className="text-sm">
-                            {message.summary_status === "QUEUED"
-                              ? "Queued"
-                              : "Processing"}{" "}
-                            {message.summary_progress ?? 0}%
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={query.saving}
-                            onClick={() =>
-                              run(
-                                () =>
-                                  notebooksApi.cancel(
-                                    message.artifact_id!,
-                                    message.summary_run_id,
-                                  ),
-                                `cancel:${message.id}`,
-                              )
-                            }
-                          >
-                            Cancel task
-                          </Button>
-                        </div>
-                      )}
-                    {message.summary_error && (
-                      <p className="mt-2 text-sm text-destructive">
-                        {aiServiceMessage(
-                          message.summary_error,
-                          "Unable to complete this summary. Resume to continue from saved progress.",
-                        )}
-                      </p>
-                    )}
-                    {message.artifact_id &&
-                      ["FAILED", "CANCELLED"].includes(
-                        message.summary_status || "",
-                      ) && (
-                        <Button
-                          loading={
-                            query.saving &&
-                            pendingAction === `summary:${message.id}`
-                          }
-                          className="mt-3"
-                          size="sm"
-                          variant="outline"
-                          disabled={query.saving}
-                          onClick={() =>
-                            run(
-                              () =>
-                                notebooksApi.artifact(
-                                  id,
-                                  "SUMMARY",
-                                  message.sources.map((source) => source.id),
-                                ),
-                              `summary:${message.id}`,
-                            )
-                          }
-                        >
-                          Resume summary
-                        </Button>
-                      )}
                     {message.role === "ASSISTANT" &&
                       (!message.artifact_id ||
                         message.summary_status === "COMPLETED") && (
