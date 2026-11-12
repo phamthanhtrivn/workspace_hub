@@ -68,6 +68,28 @@ class MultiEngineTest(unittest.TestCase):
         multi.quota_until[a.collection] = time.monotonic() - 1
         multi.ready()
 
+    def test_ensemble_optional_model_failure_keeps_primary_ready(self):
+        primary, secondary = FakeEngine("primary"), FakeEngine("secondary")
+        secondary.ready = mock.Mock(side_effect=RuntimeError("model unavailable"))
+        multi = self.make(primary, secondary)
+        self.assertEqual(multi.ready(), ["primary"])
+        secondary.ready.side_effect = None
+        self.assertEqual(multi.ready(), ["primary", "secondary"])
+
+    def test_ensemble_requires_primary_for_parsing_and_full_summary(self):
+        primary, secondary = FakeEngine("primary"), FakeEngine("secondary")
+        primary.ready = mock.Mock(side_effect=RuntimeError("primary unavailable"))
+        multi = self.make(primary, secondary)
+        with self.assertRaisesRegex(RuntimeError, "primary unavailable"):
+            multi.ready()
+
+    def test_shards_do_not_hide_non_quota_model_failures(self):
+        primary, secondary = FakeEngine("primary"), FakeEngine("secondary")
+        secondary.ready = mock.Mock(side_effect=RuntimeError("shard unavailable"))
+        multi = self.make(primary, secondary, strategy="shard")
+        with self.assertRaisesRegex(RuntimeError, "shard unavailable"):
+            multi.ready()
+
     def test_local_fallback_checks_completeness_once(self):
         for complete in (False, True):
             with self.subTest(complete=complete):

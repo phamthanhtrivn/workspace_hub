@@ -10,8 +10,9 @@ import { selectSources } from "../../common/evidence-policy";
 export class ChatAdmissionService {
   constructor(private readonly sources: SourcesService) {}
   async selectedSources(notebookId: string, sourceIds: string[]) {
+    const sources = await this.sources.sources(notebookId);
     try {
-      return selectSources(sourceIds, await this.sources.sources(notebookId));
+      return selectSources(sourceIds, sources);
     } catch (error) {
       throw new BadRequestException((error as Error).message);
     }

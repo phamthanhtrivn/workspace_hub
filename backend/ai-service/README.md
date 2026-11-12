@@ -72,6 +72,12 @@ Script giữ nguyên model đang chạy, kiểm tra quyền/snapshot và bỏ qu
 chuyển thành công. Nếu một model lỗi khi tìm kiếm, model còn lại vẫn trả kết quả;
 lỗi quota của truy vấn không được chờ/thử lại khiến cả luồng bị treo.
 
+Ở chế độ `ensemble`, `/ready` yêu cầu model chính sẵn sàng vì model này còn
+phục vụ parse và đọc toàn bộ chunk. Model phụ lỗi warm-up không làm dịch vụ
+mất readiness; `embeddingAvailableModels` chỉ liệt kê các model đã kiểm tra
+thành công trong lần probe đó. Chế độ `shard` vẫn yêu cầu đủ shard cần thiết
+hoặc local fallback khi hết quota.
+
 `EMBEDDING_PROVIDER=gemini` dùng `gemini-embedding-001`, vector 768 chiều,
 `RETRIEVAL_DOCUMENT` cho nội dung và `RETRIEVAL_QUERY` cho câu hỏi. Key nằm trong
 `deploy/ai/.env`, không dùng chung key chat và không ghi vào log. Xem mẫu tại

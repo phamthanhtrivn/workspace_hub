@@ -5,7 +5,7 @@ import {
 import { HttpException, Injectable } from "@nestjs/common";
 import type { Response } from "express";
 import { SSE_HEARTBEAT_MS } from "../../common/sse";
-import { pollUntilAborted } from "../../common/abort-polling";
+import { createAbortGuard, isCancellation } from "../../common/abort-guard";
 import { z } from "zod";
 import { messageSchema } from "./work-assistant.schemas";
 import type { Actor } from "../../common/types";
@@ -41,27 +41,28 @@ export class WorkAssistantWorkflowService {
   ) {
     const { requestId } = input;
     if (stream.destroyed) return;
-    const controller = new AbortController();
+    const guard = createAbortGuard(105000);
+    const { controller, signal } = guard;
     const detach = stream.onClose(() => controller.abort());
     try {
-      await this.store.begin(actor, session, requestId, controller.signal);
+      await this.store.begin(actor, session, requestId, signal);
     } catch (error) {
+      const aborted = signal.aborted;
       detach();
-      if (controller.signal.aborted) return;
+      guard.stop();
+      if (aborted) return;
       throw error;
     }
-    if (stream.destroyed || controller.signal.aborted) {
+    if (stream.destroyed) controller.abort();
+    if (signal.aborted) {
       detach();
-      await this.store.fail(actor, requestId, true);
+      const canceled = isCancellation(signal);
+      guard.stop();
+      await this.store.fail(actor, requestId, canceled);
 
       return;
     }
-    let timedOut = false;
-    const timeout = setTimeout(() => {
-      timedOut = true;
-      controller.abort();
-    }, 105000);
-    const stopPolling = pollUntilAborted(controller, 1000, async () => {
+    guard.poll(1000, async () => {
       if (await this.store.canceled(actor, requestId)) controller.abort();
     });
     stream.start();
@@ -75,7 +76,7 @@ export class WorkAssistantWorkflowService {
     try {
       stream.emit("status", { message: "Đang lấy dữ liệu mới…" });
       const result = await this.generation.generateAnswer(
-        { actor, session, input, signal: controller.signal, timing },
+        { actor, session, input, signal, timing },
         (message) => stream.emit("status", { message }),
         (text) => {
           if (deltaCount === 0) timing.mark("first_delta_ms");
@@ -86,34 +87,29 @@ export class WorkAssistantWorkflowService {
       completed = true;
       stream.emit("done", result);
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError")
-        controller.abort();
-      await this.store
-        .fail(actor, requestId, controller.signal.aborted && !timedOut)
-        .catch(() => undefined);
-      const status = error instanceof HttpException ? error.getStatus() : 503;
+      const failure = signal.aborted ? signal.reason : error;
+      const canceled = isCancellation(signal);
+      const timedOut =
+        failure instanceof Error && failure.name === "TimeoutError";
+      await this.store.fail(actor, requestId, canceled).catch(() => undefined);
+      const status =
+        failure instanceof HttpException ? failure.getStatus() : 503;
       stream.emit("error", {
         requestId,
         status,
-        message: this.failureMessage(
-          status,
-          timedOut,
-          controller.signal.aborted,
-        ),
+        message: this.failureMessage(status, timedOut, canceled),
       });
       console.warn(
         JSON.stringify({
           event: "work_assistant_failed",
           requestId,
           status,
-          canceled: controller.signal.aborted,
+          canceled,
         }),
       );
     } finally {
       timing.finish(completed ? "ok" : "failed");
-      controller.abort();
-      clearTimeout(timeout);
-      stopPolling();
+      guard.stop();
       clearInterval(heartbeat);
       detach();
       stream.end();

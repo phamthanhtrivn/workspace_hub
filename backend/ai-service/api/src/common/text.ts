@@ -11,6 +11,7 @@ export function plainText(text: string) {
 export function plainQuestion(text: string) {
   return plainText(text)
     .trim()
-    .replace(/[.!?]+$/, "")
+    .replace(/[!?.…,]+$/u, "")
+    .trim()
     .replace(/\s+/g, " ");
 }

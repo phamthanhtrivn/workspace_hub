@@ -6,6 +6,8 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from .errors import quota_info
+
 
 class ApiEmbeddings:
     def __init__(self, endpoint: str, api_key: str, model: str, concurrency: int = 5,
@@ -111,21 +113,11 @@ class GeminiEmbeddings(ApiEmbeddings):
                 )
                 # A received quota rejection means no embedding was generated.
                 # Connection/stream failures and every other HTTP error are not replayed here.
-                daily_quota = False
                 if response.status_code == 429:
-                    try:
-                        daily_quota = any('PerDay' in str(violation.get('quotaId', ''))
-                            for detail in response.json().get('error', {}).get('details', [])
-                            for violation in detail.get('violations', []))
-                    except (ValueError, AttributeError, TypeError):
-                        pass
-                if response.status_code == 429 and not daily_quota and not query and attempt < 2:
-                    try:
-                        delay = float(response.headers.get("retry-after", "60"))
-                    except ValueError:
-                        delay = 60
-                    time.sleep(max(1, min(delay, 60)))
-                    continue
+                    daily_quota, delay = quota_info(response)
+                    if not daily_quota and not query and attempt < 2:
+                        time.sleep(max(1, min(delay, 60)))
+                        continue
                 response.raise_for_status()
                 body = response.json()
                 break

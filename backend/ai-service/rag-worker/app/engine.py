@@ -1,6 +1,7 @@
 import base64
 from collections import OrderedDict
 from contextlib import nullcontext
+from concurrent.futures import Future
 import hashlib
 import math
 import os
@@ -51,6 +52,7 @@ class Engine:
         self.embedding_verified = False
         self.query_lock = threading.Lock()
         self.query_vectors = OrderedDict()
+        self.query_flights = {}
         self.tokenizer = get_tokenizer()
         self.splitter = SentenceSplitter(chunk_size=384, chunk_overlap=48, tokenizer=self.tokenizer)
         signature = f"text-pdf-v2:{self.provider}:{self.model_name}:384:48:{os.environ.get('INDEX_PIPELINE_VERSION', 'notebook-v1')}"
@@ -97,7 +99,7 @@ class Engine:
                 raise RuntimeError("Vietnamese/English OCR language packs unavailable")
             self.ocr_verified = True
         if self.embedding_verified:
-            return
+            return [self.model_name]
         if not self.readiness_lock.acquire(blocking=False):
             raise RuntimeError("Embedding warm-up in progress")
         try:
@@ -109,6 +111,7 @@ class Engine:
                 self.embedding_verified = True
         finally:
             self.readiness_lock.release()
+        return [self.model_name]
 
     def _parse(self, name: str, content: str | bytes) -> list[tuple[str, int | None]]:
         data = content if isinstance(content, bytes) else base64.b64decode(content, validate=True)
@@ -367,16 +370,30 @@ class Engine:
         # Cache model output only, never document hits or authorization decisions.
         key = hashlib.sha256(question.encode()).digest()
         with self.query_lock:
-            now = time.monotonic()
             cached = self.query_vectors.pop(key, None)
-            if cached and now - cached[0] < 120:
+            if cached and time.monotonic() - cached[0] < 120:
                 self.query_vectors[key] = cached
                 return list(cached[1])
-            vector = self.embed([question], query=True)[0]
-            self.query_vectors[key] = (time.monotonic(), tuple(vector))
-            while len(self.query_vectors) > 128:
-                self.query_vectors.popitem(last=False)
+            pending = self.query_flights.get(key)
+            owner = pending is None
+            if owner:
+                pending = self.query_flights[key] = Future()
+        if not owner:
+            return list(pending.result())
+        try:
+            vector = tuple(self.embed([question], query=True)[0])
+            with self.query_lock:
+                self.query_vectors[key] = (time.monotonic(), vector)
+                while len(self.query_vectors) > 128:
+                    self.query_vectors.popitem(last=False)
+            pending.set_result(vector)
             return list(vector)
+        except BaseException as error:
+            pending.set_exception(error)
+            raise
+        finally:
+            with self.query_lock:
+                del self.query_flights[key]
 
     def retrieve(self, scope_id: str, source_ids: list[str], question: str):
         if not self.client.collection_exists(self.collection):

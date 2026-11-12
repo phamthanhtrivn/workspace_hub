@@ -135,14 +135,14 @@ def execute(method, *args):
 
 @app.get("/ready")
 def ready():
-    execute(engine().ready)
-    return {"status": "ok", "embeddingLoaded": engine().model is not None, "collection": engine().collection,
-            "embeddingProvider": engine().provider, "embeddingModel": engine().model_name,
-            "embeddingModels": getattr(engine(), "embedding_models", [engine().model_name]),
-            "embeddingCollections": getattr(engine(), "embedding_collections", {engine().model_name: engine().collection}),
-            "embeddingIndexStrategy": getattr(engine(), 'strategy', 'single'),
-            "embeddingAvailableModels": [item.model_name for item in getattr(engine(), 'engines', [engine()])
-                if not hasattr(engine(), 'quota_exhausted') or not engine().quota_exhausted(item)]}
+    current = engine()
+    available = execute(current.ready)
+    return {"status": "ok", "embeddingLoaded": current.model is not None, "collection": current.collection,
+            "embeddingProvider": current.provider, "embeddingModel": current.model_name,
+            "embeddingModels": getattr(current, "embedding_models", [current.model_name]),
+            "embeddingCollections": getattr(current, "embedding_collections", {current.model_name: current.collection}),
+            "embeddingIndexStrategy": getattr(current, 'strategy', 'single'),
+            "embeddingAvailableModels": available}
 
 
 @app.post("/index")

@@ -10,7 +10,7 @@ from .engine import Engine
 from .policy import reciprocal_rank_many
 from .profiling import profile
 from .fallback_queue import FallbackQueue
-from .errors import FallbackPending
+from .errors import FallbackPending, quota_info
 from .document_locks import document_lock
 
 logger = logging.getLogger("workspace.rag")
@@ -62,7 +62,10 @@ class MultiEngine:
                 task.result()
                 available.append(engine)
             except Exception as error:
-                if self.strategy != 'shard' or not self.mark_quota(engine, error):
+                if self.strategy == 'ensemble' and engine is not self.primary:
+                    logger.warning('Optional embedding model unavailable model=%s error=%s',
+                                   engine.model_name, type(error).__name__)
+                elif self.strategy != 'shard' or not self.mark_quota(engine, error):
                     failures.append(error)
         if failures:
             raise failures[0]
@@ -72,21 +75,15 @@ class MultiEngine:
         if self.fallbacks and not self.recovered:
             self.fallbacks.recover(self.engines)
             self.recovered = True
+        return [engine.model_name for engine in available]
 
     def quota_exhausted(self, engine):
         return self.quota_until.get(engine.collection, 0) > time.monotonic()
 
     def mark_quota(self, engine, error):
         if isinstance(error, httpx.HTTPStatusError) and error.response.status_code == 429:
-            delay = 60
-            try:
-                detail = error.response.json().get('error', {}).get('details', [])
-                if any('PerDay' in str(item.get('quotaId', '')) for row in detail for item in row.get('violations', [])):
-                    delay = 3600
-                else:
-                    delay = max(1, min(3600, float(error.response.headers.get('retry-after', '60'))))
-            except (ValueError, TypeError, AttributeError):
-                pass
+            daily_quota, retry_after = quota_info(error.response)
+            delay = 3600 if daily_quota else max(1, min(3600, retry_after))
             self.quota_until[engine.collection] = time.monotonic() + delay
             logger.warning('Embedding quota exhausted model=%s; local fallback required', engine.model_name)
             return True

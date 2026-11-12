@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import type { Actor } from "../../common/types";
 import { WorkContextService } from "./work-context";
 import { WorkStore, type WorkSession } from "./work-store";
+import { contextAudience } from "./work-assistant.schemas";
 import type {
   ConversationContext,
   StoredMessage,
@@ -17,10 +18,7 @@ export class WorkAssistantAccessService {
   scope(context: ConversationContext): WorkScope {
     return {
       ...(context.projectId ? { projectId: context.projectId } : {}),
-      audience:
-        context.contextType === "projects" || context.contextType === "calendar"
-          ? context.contextType
-          : "mine",
+      audience: contextAudience(context),
     };
   }
 

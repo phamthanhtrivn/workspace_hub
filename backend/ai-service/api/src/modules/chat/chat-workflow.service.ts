@@ -2,6 +2,7 @@ import { rows } from "../../infrastructure/database/database";
 import { ChatStreamInput } from "./chat-stream.types";
 import { Injectable } from "@nestjs/common";
 import { pollUntilAborted } from "../../common/abort-polling";
+import { isCancellation } from "../../common/abort-guard";
 import { SourcesService } from "../sources/sources.service";
 import type { Actor } from "../../common/types";
 import { createSourceAuthorization } from "../../common/source-authorization";
@@ -96,10 +97,7 @@ export class ChatWorkflowService {
       const failure = controller.signal.aborted
         ? controller.signal.reason
         : error;
-      const canceled =
-        controller.signal.aborted &&
-        failure instanceof Error &&
-        failure.name === "AbortError";
+      const canceled = isCancellation(controller.signal);
       logError("notebook_chat_failed", failure, {
         request_id: requestId,
         stage,

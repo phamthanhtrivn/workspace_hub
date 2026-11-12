@@ -20,7 +20,7 @@ import type {
 } from "../common/types";
 import { setTimeout as pause } from "node:timers/promises";
 import { ModelMinuteQuotaException } from "../common/errors/model-quota.exception";
-import { createAbortGuard } from "../common/abort-guard";
+import { createAbortGuard, isCancellation } from "../common/abort-guard";
 import { logError } from "../common/errors/error-log";
 import { isProviderConnectTimeout } from "../infrastructure/integrations/provider-http";
 import { notebookFailureMessage } from "../modules/chat/notebook-failure";
@@ -254,10 +254,7 @@ export async function summarize(id: string) {
     const failure = controller.signal.aborted
       ? controller.signal.reason
       : error;
-    const canceled =
-      controller.signal.aborted &&
-      failure instanceof Error &&
-      failure.name === "AbortError";
+    const canceled = isCancellation(controller.signal);
     logError("notebook_summary_failed", failure, {
       artifact_id: id,
       stage,

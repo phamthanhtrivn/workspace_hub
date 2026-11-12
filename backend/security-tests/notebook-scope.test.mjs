@@ -233,6 +233,32 @@ async function answer(question, chunks, history = []) {
   }
 }
 
+test("social replies bypass retrieval generation without relaxing document citation checks", async () => {
+  for (const question of [
+    "Hi!",
+    "Xin chào…",
+    "Thanks!",
+    "Thank you very much",
+    "CẢM ƠN BẠN!",
+    "Tạm biệt",
+  ]) {
+    const { result, calls } = await answer(question, ["unused"]);
+    assert.equal(calls, 0);
+    assert.ok(result.content);
+    assert.deepEqual(result.citations, []);
+  }
+  const question = "Thanks, explain the project in this document";
+  const { calls, prompt } = await answer(question, [
+    "[[ANSWER]]The project builds a store. [[S1]]",
+  ]);
+  assert.equal(calls, 1);
+  assert.ok(!prompt.messages[0].content.includes("no citation is needed"));
+  await assert.rejects(
+    answer(question, ["[[ANSWER]]An unsupported answer without citations."]),
+    /trích dẫn/,
+  );
+});
+
 test("personal shopping and leisure requests are refused without calling the model", async () => {
   for (const question of [
     "BẠN CÓ THỂ GIÚP TÔI MUA QUẦN ÁO KHÔNG",

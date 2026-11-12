@@ -56,6 +56,17 @@ export function checkManifests(existing: Source[], manifests: Manifest[]) {
     checkFile(m.name, m.sizeBytes);
     if (!m.current)
       throw new BadRequestException("Chỉ nhận phiên bản tài liệu hiện tại.");
+    if (
+      existing.some(
+        (source) =>
+          source.document_id === m.documentId &&
+          source.version_id === m.versionId &&
+          source.revision !== m.revision,
+      )
+    )
+      throw new BadRequestException(
+        "Nguồn đã thay đổi. Hãy chọn lại tài liệu.",
+      );
   }
   const unique = [
     ...new Map(

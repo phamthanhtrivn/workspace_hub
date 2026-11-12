@@ -60,30 +60,42 @@ export class SourcesService {
     refs: { documentId: string; versionId?: string }[],
   ) {
     await ownedNotebook(actor, id);
-    const manifests = await resolveDocuments(actor, refs);
+    const manifests = [
+      ...new Map(
+        (await resolveDocuments(actor, refs)).map((manifest) => [
+          `${manifest.documentId}:${manifest.versionId}`,
+          manifest,
+        ]),
+      ).values(),
+    ];
     const existingSources = await this.sources(id);
-    checkManifests(existingSources, manifests);
-    await withUploadCheck(async () => {
-      // Validate actual stored bytes, not a client assertion or the filename alone.
-      // Resolve signed URLs just in time, so later files cannot use expired URLs.
-      for (const m of manifests) {
-        const [current] = await resolveDocuments(
-          actor,
-          [{ documentId: m.documentId, versionId: m.versionId }],
-          true,
-        );
-        if (
-          !current?.current ||
-          current.documentId !== m.documentId ||
-          current.versionId !== m.versionId ||
-          current.revision !== m.revision
-        )
-          throw new BadRequestException(
-            "Nguồn đã thay đổi. Hãy chọn lại tài liệu.",
+    const fresh = checkManifests(existingSources, manifests);
+    if (fresh.length)
+      await withUploadCheck(async () => {
+        // Validate actual stored bytes, not a client assertion or the filename alone.
+        // Resolve signed URLs just in time, so later files cannot use expired URLs.
+        for (const m of fresh) {
+          const [current] = await resolveDocuments(
+            actor,
+            [{ documentId: m.documentId, versionId: m.versionId }],
+            true,
           );
-        await validateContent(current.name, await downloadSource(current), id);
-      }
-    });
+          if (
+            !current?.current ||
+            current.documentId !== m.documentId ||
+            current.versionId !== m.versionId ||
+            current.revision !== m.revision
+          )
+            throw new BadRequestException(
+              "Nguồn đã thay đổi. Hãy chọn lại tài liệu.",
+            );
+          await validateContent(
+            current.name,
+            await downloadSource(current),
+            id,
+          );
+        }
+      });
     const added = await transaction(async (client) => {
       const locked = await client.query(
         "SELECT id FROM notebook_ai.notebooks WHERE id=$1 AND owner_id=$2 FOR UPDATE",

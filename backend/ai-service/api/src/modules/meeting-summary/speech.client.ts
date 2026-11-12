@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { z } from "zod";
 import { config } from "../../config/env.config";
+import { readResponseText } from "../../common/read-response";
 
 export class SpeechRecognitionError extends Error {
   constructor(readonly status: number) {
@@ -39,23 +40,12 @@ export async function recognizeMeetingChunk(
     await response.body?.cancel();
     throw new SpeechRecognitionError(response.status);
   }
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error("Empty local speech response");
-  const chunks: Uint8Array[] = [];
-  let size = 0;
-  try {
-    while (true) {
-      const part = await reader.read();
-      if (part.done) break;
-      size += part.value.length;
-      if (size > 65536) throw new Error("Local speech response exceeds limit");
-      chunks.push(part.value);
-    }
-  } finally {
-    await reader.cancel().catch(() => undefined);
-  }
 
-  return speechResponse
-    .parse(JSON.parse(Buffer.concat(chunks).toString("utf8")))
-    .text.trim();
+  const text = await readResponseText(
+    response,
+    65536,
+    new Error("Local speech response exceeds limit"),
+  );
+
+  return speechResponse.parse(JSON.parse(text)).text.trim();
 }

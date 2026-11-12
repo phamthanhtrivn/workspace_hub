@@ -2,7 +2,7 @@ import type { Citation, VisualInput } from "../../common/types";
 import { inspectAnswerCitations } from "./citation-check";
 import { modelAnswer } from "../../infrastructure/integrations/llm.client";
 import { isFollowUp, type ChatTurn } from "./chat-history";
-import { plainText } from "../../common/text";
+import { plainQuestion } from "../../common/text";
 import { isClearlyUnrelated, notebookScopeRefusal } from "./notebook-scope";
 import { isNotebookSummaryRequest } from "./summary-request";
 import { isFirstQuestionRequest } from "./history-recall";
@@ -12,26 +12,17 @@ export type NotebookIntent =
   | { kind: "reply"; content: string }
   | { kind: "answer"; followUp: boolean; clarification?: string };
 
-function normalizedQuestion(question: string) {
-  return question
-    .normalize("NFC")
-    .trim()
-    .toLowerCase()
-    .replace(/[!?.…,]+$/u, "")
-    .trim()
-    .replace(/\s+/g, " ");
-}
-
-function greetingReply(question: string): string | null {
-  const text = normalizedQuestion(question);
+function socialReply(text: string): string | null {
   if (/^(hello|hi|hey|hi there|hello there)$/.test(text))
     return "Hello! What would you like to ask about your documents?";
-  if (
-    /^(xin chào|chào|chào bạn|chào bot|chào ai|chao|xin chao|chao ban)$/.test(
-      text,
-    )
-  )
+  if (/^(xin chao|chao(?: ban| bot| ai)?)$/.test(text))
     return "Chào bạn! Bạn muốn hỏi gì về tài liệu?";
+  if (/^(thanks(?: a lot)?|thank you(?: very much)?)$/.test(text))
+    return "You're welcome!";
+  if (/^(?:cam on(?: ban| bot| ai)?|xin cam on)$/.test(text))
+    return "Không có gì!";
+  if (/^(bye|goodbye|see you(?: later)?)$/.test(text)) return "Goodbye!";
+  if (/^(tam biet|hen gap lai)$/.test(text)) return "Hẹn gặp lại!";
 
   return null;
 }
@@ -41,13 +32,12 @@ export function notebookIntent(question: string): NotebookIntent {
   if (isNotebookSummaryRequest(question)) return { kind: "summary" };
   if (isClearlyUnrelated(question))
     return { kind: "reply", content: notebookScopeRefusal(question) };
-  const greeting = greetingReply(question);
-  if (greeting) return { kind: "reply", content: greeting };
-  const text = normalizedQuestion(question);
-  const plain = plainText(text);
+  const text = plainQuestion(question);
+  const reply = socialReply(text);
+  if (reply) return { kind: "reply", content: reply };
   if (
     /^(ban (co the |)(lam (gi|duoc gi)|giup (gi|duoc gi))|ban co (kha nang|chuc nang) gi|chuc nang cua ban la gi)( voi tai lieu)?$/.test(
-      plain,
+      text,
     )
   )
     return {
@@ -66,7 +56,7 @@ export function notebookIntent(question: string): NotebookIntent {
         "I can help summarize, explain, compare, and answer questions about your notebook documents, with citations when using source information. What would you like to start with?",
     };
   if (
-    /^(giải thích( đi)?|nói rõ hơn|cái này|cái đó|là sao|ý là sao|giúp mình|giúp tôi)$/.test(
+    /^(giai thich( di)?|noi ro hon|cai nay|cai do|la sao|y la sao|giup minh|giup toi)$/.test(
       text,
     )
   )
@@ -143,8 +133,9 @@ export async function generateChatResponse(
   if (clarification) {
     validateClarification(content);
     emit(content);
+
+    return { content, citations: [] as Citation[] };
   }
-  if (clarification) return { content, citations: [] as Citation[] };
   const checked = inspectAnswerCitations(content, evidence);
   if (checked.uncitedBlocks.length) {
     const note =

@@ -1,5 +1,13 @@
 import { z } from "zod";
 import { timeZoneSchema } from "./work-time";
+import type { Audience, ConversationContext } from "./work-assistant.types";
+
+export function contextAudience(context: ConversationContext): Audience {
+  return context.contextType === "projects" ||
+    context.contextType === "calendar"
+    ? context.contextType
+    : "mine";
+}
 
 export const audienceSchema = z
   .enum(["mine", "projects", "calendar"])
@@ -48,14 +56,10 @@ export const messageSchema = conversationContextSchema
   .safeExtend({
     question: z.string().trim().min(1).max(4000),
     requestId: z.string().uuid(),
-    audience: audienceSchema,
+    audience: audienceSchema.removeDefault().optional(),
     timeZone: timeZoneSchema.optional(),
   })
   .refine(
-    (s) =>
-      s.audience ===
-      (s.contextType === "projects" || s.contextType === "calendar"
-        ? s.contextType
-        : "mine"),
+    (s) => s.audience === undefined || s.audience === contextAudience(s),
     "Audience does not match conversation context",
   );

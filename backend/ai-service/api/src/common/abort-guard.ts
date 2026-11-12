@@ -1,5 +1,13 @@
 import { pollUntilAborted } from "./abort-polling";
 
+export function isCancellation(signal: AbortSignal) {
+  return (
+    signal.aborted &&
+    signal.reason instanceof Error &&
+    signal.reason.name === "AbortError"
+  );
+}
+
 /**
  * Cancellation scope for a long-running job: `signal` aborts on timeout or when
  * a periodic access check fails; `stop()` ends polling and aborts remaining work.
