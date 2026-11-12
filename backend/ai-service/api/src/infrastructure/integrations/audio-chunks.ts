@@ -5,7 +5,6 @@ import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { join } from "node:path";
 import { config } from "../../config/env.config";
-import type { MeetingSource } from "./source";
 
 export const AUDIO_CHUNK_SECONDS = 45;
 export class MediaDownloadError extends Error {
@@ -28,7 +27,7 @@ export function assertMediaUrl(value: string) {
     throw new Error("Recording media host is not allowed");
 }
 export async function prepareAudioChunks(
-  source: Pick<MeetingSource, "url" | "sizeBytes">,
+  source: { url: string; sizeBytes: number },
   directory: string,
   signal: AbortSignal,
   limits = {

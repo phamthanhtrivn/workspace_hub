@@ -10,7 +10,7 @@ export class SpeechRecognitionError extends Error {
 }
 const speechResponse = z.object({ text: z.string().max(12000) }).strict();
 
-export async function recognizeMeetingChunk(
+export async function recognizeSpeechChunk(
   path: string,
   signal: AbortSignal,
   language: "vi" | "en" | "auto" = "vi",

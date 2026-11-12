@@ -10,7 +10,7 @@ import { plainText } from "../../common/text";
 import { completedModelText } from "../../common/model-response";
 import { TooManyRequestsException } from "../../common/errors/rate-limit.exception";
 import { createChatModel } from "../../infrastructure/integrations/chat-model";
-import { admitModel } from "../../infrastructure/integrations/llm.client";
+import { admitModel } from "../../common/model-quota";
 import { waitForModelAdmission } from "../../common/model-admission";
 import type { StoredMessage, WorkContext } from "./work-assistant.types";
 import { workHistory } from "./work-history";

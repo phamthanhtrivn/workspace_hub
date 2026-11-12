@@ -61,10 +61,7 @@ class MultiEngine:
                 task.result()
                 available.append(engine)
             except Exception as error:
-                if self.strategy == 'ensemble' and engine is not self.primary:
-                    logger.warning('Optional embedding model unavailable model=%s error=%s',
-                                   engine.model_name, type(error).__name__)
-                elif self.strategy != 'shard' or not self.mark_quota(engine, error):
+                if self.strategy != 'shard' or not self.mark_quota(engine, error):
                     failures.append(error)
         if failures:
             raise failures[0]
@@ -72,8 +69,7 @@ class MultiEngine:
                 and not any(engine.provider == 'local' for engine in available)):
             raise RuntimeError('Local quota fallback is unavailable')
         if not self.recovered:
-            self.fallbacks.recover(self.engines)
-            self.recovered = True
+            self.recovered = self.fallbacks.recover(self.engines)
         return [engine.model_name for engine in available]
 
     def quota_exhausted(self, engine):

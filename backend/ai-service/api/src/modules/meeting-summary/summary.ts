@@ -3,7 +3,7 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { config } from "../../config/env.config";
 import { completedModelText } from "../../common/model-response";
 import { waitForModelAdmission } from "../../common/model-admission";
-import { admitModel } from "../../infrastructure/integrations/llm.client";
+import { admitModel } from "../../common/model-quota";
 import { createHash } from "node:crypto";
 import { MEETING_LIMITS } from "./limits";
 

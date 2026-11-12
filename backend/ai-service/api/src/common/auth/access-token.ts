@@ -1,5 +1,6 @@
 import { UnauthorizedException } from "@nestjs/common";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { config } from "../../config/env.config";
 const isUUID = (value: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
@@ -25,7 +26,7 @@ export function verifyAccessClaims(
   token: unknown,
 ): AccessClaims & { sub: string; role: string; sid: string; exp: number } {
   try {
-    const secret = process.env.JWT_SECRET_KEY;
+    const secret = config.JWT_SECRET_KEY;
     if (
       !secret ||
       Buffer.byteLength(secret) < 32 ||
@@ -65,7 +66,7 @@ export function verifyAccessClaims(
         (typeof claims.nbf !== "number" ||
           !Number.isSafeInteger(claims.nbf) ||
           claims.nbf > now)) ||
-      claims.iss !== (process.env.JWT_ISSUER || "workspace-hub") ||
+      claims.iss !== config.JWT_ISSUER ||
       typeof claims.role !== "string" ||
       !ACCESS_ROLES.has(claims.role) ||
       claims.token_use !== "access" ||

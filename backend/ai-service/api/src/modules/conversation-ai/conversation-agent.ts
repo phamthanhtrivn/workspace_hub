@@ -8,7 +8,7 @@ import { completedModelText } from "../../common/model-response";
 import { plainText } from "../../common/text";
 import { config } from "../../config/env.config";
 import { waitForModelAdmission } from "../../common/model-admission";
-import { admitModel } from "../../infrastructure/integrations/llm.client";
+import { admitModel } from "../../common/model-quota";
 import { measureConversationStage } from "./telemetry";
 import { CONVERSATION_LANGUAGE_POLICY } from "./conversation-language";
 import { CONVERSATION_AI_MESSAGES } from "./conversation-ai.messages";

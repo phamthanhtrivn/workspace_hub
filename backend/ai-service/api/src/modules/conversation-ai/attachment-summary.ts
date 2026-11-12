@@ -7,7 +7,7 @@ import { config } from "../../config/env.config";
 import { completedModelText } from "../../common/model-response";
 import { waitForModelAdmission } from "../../common/model-admission";
 import { singleFlight } from "../../common/single-flight";
-import { admitModel } from "../../infrastructure/integrations/llm.client";
+import { admitModel } from "../../common/model-quota";
 import { measureConversationStage } from "./telemetry";
 import { rag } from "../../infrastructure/integrations/rag.client";
 import { downloadSource } from "../sources/source-download";

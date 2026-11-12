@@ -15,7 +15,12 @@ export function useNotebook(id: string) {
     queryFn: ({ signal }) => notebooksApi.get(id, signal),
     enabled: Boolean(userId),
     retry: false,
-    refetchInterval: 3000,
+    refetchInterval: (query) =>
+      query.state.data?.sources.some((source) =>
+        ["QUEUED", "INDEXING"].includes(source.status),
+      )
+        ? 3000
+        : 30000,
     refetchIntervalInBackground: false,
     gcTime: 0,
   });

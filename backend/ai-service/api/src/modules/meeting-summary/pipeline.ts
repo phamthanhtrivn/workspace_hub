@@ -1,8 +1,11 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { join, dirname, basename } from "node:path";
 import { tmpdir } from "node:os";
-import { prepareAudioChunks, AUDIO_CHUNK_SECONDS } from "./media";
-import { recognizeMeetingChunk } from "./speech.client";
+import {
+  prepareAudioChunks,
+  AUDIO_CHUNK_SECONDS,
+} from "../../infrastructure/integrations/audio-chunks";
+import { recognizeSpeechChunk } from "../../infrastructure/integrations/speech.client";
 import {
   meetingSummaryText,
   meetingSummaryCacheKey,
@@ -57,7 +60,7 @@ export async function transcribeMeeting(
     for (const index of pending) {
       await authorize();
       const text = await measure("speech_ms", () =>
-        recognizeMeetingChunk(files[index], signal),
+        recognizeSpeechChunk(files[index], signal),
       );
       signal.throwIfAborted();
       state.transcript.push({

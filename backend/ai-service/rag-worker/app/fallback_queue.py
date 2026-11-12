@@ -56,17 +56,26 @@ class FallbackQueue:
 
     def recover(self, engines):
         if not self.manifests.client.collection_exists(self.manifests.collection):
-            return
-        points, _ = self.manifests.client.scroll(self.manifests.collection, limit=20, with_vectors=False,
-            scroll_filter=models.Filter(must=[
-                models.FieldCondition(key='namespace', match=models.MatchValue(value='fallback')),
-                models.FieldCondition(key='status', match=models.MatchAny(any=['QUEUED', 'RUNNING'])),
-            ]))
-        for point in points:
-            data = point.payload
-            previous = next((engine for engine in engines if engine.collection == data['previous']), None)
-            if previous:
-                self.enqueue(data['scopeId'], data['sourceId'], previous)
+            return True
+        offset = None
+        while True:
+            points, offset = self.manifests.client.scroll(
+                self.manifests.collection, limit=20, offset=offset, with_vectors=False,
+                scroll_filter=models.Filter(must=[
+                    models.FieldCondition(key='namespace', match=models.MatchValue(value='fallback')),
+                    models.FieldCondition(key='status', match=models.MatchAny(any=['QUEUED', 'RUNNING'])),
+                ]))
+            for point in points:
+                data = point.payload
+                previous = next((engine for engine in engines if engine.collection == data['previous']), None)
+                if previous:
+                    try:
+                        self.enqueue(data['scopeId'], data['sourceId'], previous)
+                    except FallbackPending:
+                        # Keep recovery pending; a later readiness probe retries after capacity frees.
+                        return False
+            if offset is None:
+                return True
 
     def close(self):
         self.pool.shutdown(wait=True)

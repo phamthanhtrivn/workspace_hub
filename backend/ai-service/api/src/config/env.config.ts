@@ -3,6 +3,10 @@ import { z } from "zod";
 
 export const config = z
   .object({
+    USER_SERVICE_URL: z.string().url().default("http://localhost:8081"),
+    AI_TO_USER_KEY: z.string().trim().default(""),
+    JWT_SECRET_KEY: z.string().default(""),
+    JWT_ISSUER: z.string().trim().min(1).default("workspace-hub"),
     MEETING_STT_URL: z.string().url().default("http://127.0.0.1:8090"),
     MEETING_STT_SERVICE_KEY: z.string().default(""),
     MEETING_STT_TIMEOUT_MS: z.coerce
@@ -168,6 +172,8 @@ export const config = z
       "AI_GATEWAY_KEY",
       "AI_DOCUMENT_SERVICE_KEY",
       "RAG_SERVICE_KEY",
+      "AI_TO_USER_KEY",
+      "JWT_SECRET_KEY",
     ] as const) {
       if (value[name].length < 32)
         context.addIssue({

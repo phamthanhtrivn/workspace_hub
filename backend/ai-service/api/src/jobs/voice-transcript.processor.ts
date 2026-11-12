@@ -2,8 +2,8 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { rows } from "../infrastructure/database/database";
-import { prepareAudioChunks } from "../modules/meeting-summary/media";
-import { recognizeMeetingChunk } from "../modules/meeting-summary/speech.client";
+import { prepareAudioChunks } from "../infrastructure/integrations/audio-chunks";
+import { recognizeSpeechChunk } from "../infrastructure/integrations/speech.client";
 import { voiceSource } from "../modules/voice-transcript/voice-source";
 import {
   VOICE_TRANSCRIPT,
@@ -56,7 +56,7 @@ export async function processVoiceTranscript(
     for (let index = 0; index < files.length; index++) {
       if (state.chunks.some((chunk) => chunk.index === index)) continue;
       await authorize();
-      const text = await recognizeMeetingChunk(files[index], signal, "auto");
+      const text = await recognizeSpeechChunk(files[index], signal, "auto");
       state.chunks.push({ index, text });
       if (
         state.chunks.reduce((size, chunk) => size + chunk.text.length, 0) >

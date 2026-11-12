@@ -1,7 +1,7 @@
 import { singleFlight } from "../common/single-flight";
 import { rows } from "../infrastructure/database/database";
 import { meetingSource } from "../modules/meeting-summary/source";
-import { SpeechRecognitionError } from "../modules/meeting-summary/speech.client";
+import { SpeechRecognitionError } from "../infrastructure/integrations/speech.client";
 import {
   transcribeMeeting,
   summarizeMeeting,

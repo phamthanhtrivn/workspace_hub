@@ -27,11 +27,8 @@ export async function checkHttpDependencies() {
         ]
       : []),
     internalPost(
-      new URL(
-        SESSION_AUTHORIZATION_PATH,
-        process.env.USER_SERVICE_URL,
-      ).toString(),
-      { key: process.env.AI_TO_USER_KEY || "", timeoutMs: 3000 },
+      new URL(SESSION_AUTHORIZATION_PATH, config.USER_SERVICE_URL).toString(),
+      { key: config.AI_TO_USER_KEY, timeoutMs: 3000 },
     ),
     // A correctly authenticated malformed request reaches validation (400),
     // without accessing any user's documents or generating presigned URLs.
@@ -62,6 +59,8 @@ export async function checkHttpDependencies() {
       throw new Error("AI dependency unavailable or misconfigured");
     const speech =
       speechEnabled && results[1].status === "fulfilled" && results[1].value.ok;
+    if (speechEnabled && !speech)
+      throw new Error("Enabled speech dependency unavailable or misconfigured");
 
     return { notebook: true, speech: Boolean(speech) };
   } finally {

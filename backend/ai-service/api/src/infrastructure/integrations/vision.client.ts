@@ -1,5 +1,5 @@
 import { config } from "../../config/env.config";
-import { admitModel } from "./llm.client";
+import { admitModel } from "../../common/model-quota";
 import { waitForModelAdmission } from "../../common/model-admission";
 import { providerFetch } from "./provider-http";
 import { providerErrorMetadata } from "./provider-error";

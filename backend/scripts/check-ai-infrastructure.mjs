@@ -92,7 +92,7 @@ export function validateInfrastructure(env, production = false) {
     if (env.NODE_ENV !== 'production') invalid.add('NODE_ENV');
     requireKey('JWT_SECRET_KEY');
     requireValue('JWT_ISSUER');
-    const serviceUrls = ['FRONTEND_URL', 'DOCUMENT_SERVICE_URL', 'RAG_WORKER_URL',
+    const serviceUrls = ['FRONTEND_URL', 'USER_SERVICE_URL', 'DOCUMENT_SERVICE_URL', 'RAG_WORKER_URL',
       ...(env.CONVERSATION_AI_ENABLED === 'true' || speechEnabled ? ['COMMUNICATION_SERVICE_URL'] : []),
       ...(speechEnabled ? ['MEETING_STT_URL'] : []),
       ...(env.WORK_ASSISTANT_ENABLED === 'true' ? ['WORK_ASSISTANT_PROJECT_URL', 'WORK_ASSISTANT_CALENDAR_URL'] : [])];
