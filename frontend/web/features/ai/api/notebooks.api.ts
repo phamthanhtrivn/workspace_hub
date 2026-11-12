@@ -35,8 +35,12 @@ export const notebooksApi = {
     sourceId: string,
     action: "remove" | "retry" | "preview",
   ): Promise<{ url?: string }> => {
-    const result = (await api.post(`${path(id)}/sources/${sourceId}/${action}`)).data.data;
-    return result.url ? { ...result, url: new URL(result.url, api.defaults.baseURL).toString() } : result;
+    const result = (await api.post(`${path(id)}/sources/${sourceId}/${action}`))
+      .data.data;
+
+    return result.url
+      ? { ...result, url: new URL(result.url, api.defaults.baseURL).toString() }
+      : result;
   },
   sourceImage: async (
     id: string,
@@ -92,7 +96,10 @@ export const notebooksApi = {
     if (!response.ok || !response.body) {
       const error = await response.json().catch(() => null);
       throw new Error(
-        aiServiceMessage(error?.message, `Unable to get an AI response (HTTP ${response.status}). Check source access and try again.`),
+        aiServiceMessage(
+          error?.message,
+          `Unable to get an AI response (HTTP ${response.status}). Check source access and try again.`,
+        ),
       );
     }
     await readAnswer(response.body, onEvent);

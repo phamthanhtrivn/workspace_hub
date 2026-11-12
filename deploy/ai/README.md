@@ -152,9 +152,9 @@ Sau khi đổi flag, build/restart RAG worker và AI API/jobs, chạy migration 
 
 Preflight phải dùng các khóa API thực sự đọc: `AI_TO_USER_KEY`,
 `AI_TO_COMMUNICATION_KEY`, `COMMUNICATION_TO_AI_KEY`, `AI_TO_PROJECT_KEY`,
-`AI_TO_CALENDAR_KEY` theo tính năng bật. Các tên cũ
-`AI_COMMUNICATION_SERVICE_KEY` và `WORK_ASSISTANT_SERVICE_KEY` trong hướng dẫn
-legacy bên dưới không thay thế được các khóa này.
+`AI_TO_CALENDAR_KEY` theo tính năng bật. Mỗi chiều và mỗi đích dùng khóa riêng.
+Các kiểm tra có thể chạy lại và giới hạn xác nhận production nằm trong
+[production-checks.md](production-checks.md).
 
 Khi nâng cấp bản này, chạy migration `009_cleanup_outbox.sql` và
 `010_summary_run_id.sql` trước khi khởi động
@@ -167,7 +167,16 @@ nhiều replica phải chuyển khóa này sang cơ chế phân tán trước.
 
 `compose.production.yml` dùng image có digest hoặc tag `sha-<40 hex>`, không build trên server và không tạo PostgreSQL/Redis. Migration/API/jobs tham gia network external `workspacehub-app_default`; RAG/Qdrant/speech ở mạng riêng AI. Database và Redis trỏ private IP của INFRA; không publish cổng AI. Catalog và pipeline APP hiện có không triển khai AI.
 
-Quản lý `.env.production` riêng theo các nhóm biến trên, với `NODE_ENV=production`, URL service trên APP và database/Redis ở INFRA. Đồng bộ `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY`, `AI_COMMUNICATION_SERVICE_KEY`, `WORK_ASSISTANT_SERVICE_KEY` với env APP, mật khẩu `NOTEBOOK_POSTGRES_PASSWORD` với env INFRA dùng cho bootstrap. Cấp riêng khóa RAG/speech. Không dùng lại khóa local, không đổi PostgreSQL admin credential. `NOTEBOOK_ADMIN_HOST` là private IP INFRA; bootstrap chạy trên network APP và dùng env admin chỉ cho bước bootstrap.
+Quản lý `.env.production` riêng theo các nhóm biến trên, với `NODE_ENV=production`,
+URL service trên APP và database/Redis ở INFRA. Đồng bộ `AI_GATEWAY_KEY`,
+`AI_DOCUMENT_SERVICE_KEY`, `AI_TO_USER_KEY`, `AI_TO_COMMUNICATION_KEY`,
+`COMMUNICATION_TO_AI_KEY`, `AI_TO_PROJECT_KEY`, `AI_TO_CALENDAR_KEY` với đúng
+caller/receiver; mật khẩu `NOTEBOOK_POSTGRES_PASSWORD` khớp credential bootstrap.
+Cấp riêng khóa RAG/speech. Không dùng lại khóa local hoặc đổi PostgreSQL admin
+credential. `NOTEBOOK_ADMIN_HOST` là private IP INFRA; bootstrap dùng env admin
+riêng. Khi bật speech/transcription, cấu hình `MEETING_STT_URL`,
+`MEETING_MEDIA_HOSTS` và `COMPOSE_PROFILES=meeting-summary`. Frontend dùng HTTPS;
+URL nội bộ production không được trỏ localhost trong container.
 
 Chuẩn bị image ở máy build/registry và điền `AI_IMAGE`, `RAG_IMAGE`, `SPEECH_IMAGE` bằng digest hoặc tag SHA. Điền LLM account production riêng; không sao chép tài khoản local. Env được chuẩn bị nhưng chưa có image/key không phải cấu hình sẵn sàng deploy. Validator và Compose chặn khởi động khi thiếu các đầu vào này.
 

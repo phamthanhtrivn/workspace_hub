@@ -6,13 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { notebooksApi } from "../api/notebooks.api";
-import type { Notebook, NotebookActionKey, NotebookActionRunner } from "../types";
+import type {
+  Notebook,
+  NotebookActionKey,
+  NotebookActionRunner,
+} from "../types";
 import { Citations } from "./citations";
 import { Spinner } from "@/components/ui/spinner";
 import { aiServiceMessage } from "@/lib/ai-feedback";
 
 const artifactStatus: Record<string, string> = {
-  QUEUED: "Queued", RUNNING: "Processing", FAILED: "Failed", CANCELLED: "Cancelled",
+  QUEUED: "Queued",
+  RUNNING: "Processing",
+  FAILED: "Failed",
+  CANCELLED: "Cancelled",
 };
 
 type Props = {
@@ -27,6 +34,7 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
   const ready =
     notebook.sources.length > 0 &&
     notebook.sources.every((source) => source.status === "READY");
+
   return (
     <section aria-label="Studio" className="h-full space-y-5 overflow-y-auto">
       <h2 className="font-semibold">Studio</h2>
@@ -37,7 +45,10 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
           loading={saving && pendingAction === "OVERVIEW"}
           disabled={!ready || saving}
           onClick={() =>
-            run(() => notebooksApi.artifact(notebook.id, "OVERVIEW"), "OVERVIEW")
+            run(
+              () => notebooksApi.artifact(notebook.id, "OVERVIEW"),
+              "OVERVIEW",
+            )
           }
         >
           Overview & questions
@@ -55,7 +66,8 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
         </Button>
       </div>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Get an overview or summarize the full notebook. Full summaries may take longer and can be resumed.
+        Get an overview or summarize the full notebook. Full summaries may take
+        longer and can be resumed.
       </p>
       {notebook.artifacts.map((artifact) => (
         <Details
@@ -64,7 +76,9 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
           open={artifact.status === "RUNNING" || artifact.status === "QUEUED"}
         >
           <DetailsSummary className="cursor-pointer text-sm font-medium">
-            {["QUEUED", "RUNNING"].includes(artifact.status) && <Spinner size={14} className="mr-2 inline-block align-middle" />}
+            {["QUEUED", "RUNNING"].includes(artifact.status) && (
+              <Spinner size={14} className="mr-2 inline-block align-middle" />
+            )}
             {artifact.kind === "SUMMARY" ? "Full summary" : "Overview"} ·{" "}
             {artifact.status === "COMPLETED"
               ? "Completed"
@@ -82,7 +96,12 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
                 content={artifact.content || undefined}
               />
               {artifact.error && (
-                <p className="mt-2 text-xs text-destructive">{aiServiceMessage(artifact.error, "Unable to complete this summary. Try again.")}</p>
+                <p className="mt-2 text-xs text-destructive">
+                  {aiServiceMessage(
+                    artifact.error,
+                    "Unable to complete this summary. Try again.",
+                  )}
+                </p>
               )}
               {["QUEUED", "RUNNING"].includes(artifact.status) && (
                 <Button
@@ -90,7 +109,12 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
                   variant="outline"
                   className="mt-3"
                   loading={saving && pendingAction === `cancel:${artifact.id}`}
-                  onClick={() => run(() => notebooksApi.cancel(artifact.id), `cancel:${artifact.id}`)}
+                  onClick={() =>
+                    run(
+                      () => notebooksApi.cancel(artifact.id),
+                      `cancel:${artifact.id}`,
+                    )
+                  }
                 >
                   Cancel task
                 </Button>
@@ -102,14 +126,15 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
                   variant="outline"
                   className="mt-3"
                   onClick={() =>
-                    run(() =>
-                      notebooksApi.artifact(
-                        notebook.id,
-                        artifact.kind as "SUMMARY" | "OVERVIEW",
-                        artifact.sources.length
-                          ? artifact.sources.map((source) => source.id)
-                          : undefined,
-                      ),
+                    run(
+                      () =>
+                        notebooksApi.artifact(
+                          notebook.id,
+                          artifact.kind as "SUMMARY" | "OVERVIEW",
+                          artifact.sources.length
+                            ? artifact.sources.map((source) => source.id)
+                            : undefined,
+                        ),
                       `summary:${artifact.id}`,
                     )
                   }
@@ -150,7 +175,11 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
           value={content}
           onChange={(event) => setContent(event.target.value)}
         />
-        <Button loading={saving && pendingAction === "create-note"} size="sm" disabled={saving || !content.trim()}>
+        <Button
+          loading={saving && pendingAction === "create-note"}
+          size="sm"
+          disabled={saving || !content.trim()}
+        >
           Save note
         </Button>
       </form>
@@ -179,7 +208,10 @@ export function StudioPanel({ notebook, saving, pendingAction, run }: Props) {
             className="mt-2 text-destructive"
             loading={saving && pendingAction === `remove:${note.id}`}
             onClick={() =>
-              run(() => notebooksApi.deleteNote(notebook.id, note.id), `remove:${note.id}`)
+              run(
+                () => notebooksApi.deleteNote(notebook.id, note.id),
+                `remove:${note.id}`,
+              )
             }
           >
             Delete note
@@ -205,13 +237,15 @@ function NoteEditor({
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
+
   return (
     <form
       className="mt-3 space-y-2"
       onSubmit={(event) => {
         event.preventDefault();
-        run(() =>
-          notebooksApi.note(notebookId, { title, content, noteId: note.id }),
+        run(
+          () =>
+            notebooksApi.note(notebookId, { title, content, noteId: note.id }),
           `note:${note.id}`,
         );
       }}

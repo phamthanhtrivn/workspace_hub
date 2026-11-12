@@ -28,6 +28,7 @@ export async function notebookUploadFolder(
     // Another tab may have created this notebook's folder meanwhile.
     const created = await documents.getNameConflict({ name });
     if (!created.exists) throw cause;
+
     return folderId(created);
   }
 }
@@ -37,6 +38,7 @@ function folderId(conflict: FolderConflict): string {
     throw new Error(
       "A file in Documents already uses this notebook folder name. Rename that file, then try again.",
     );
+
   return conflict.item.id;
 }
 
@@ -90,9 +92,13 @@ export function validateUploadBatch(
         `${file.name}: use PDF, DOCX, TXT, MD, PNG, JPEG or WebP, with a name of up to 300 characters.`,
       );
     if (!Number.isSafeInteger(file.size) || file.size <= 0)
-      throw new Error(`${file.name}: the file is empty or its size is invalid.`);
+      throw new Error(
+        `${file.name}: the file is empty or its size is invalid.`,
+      );
     if (file.size > 20 * 1024 * 1024)
-      throw new Error(`${file.name}: exceeds 20 MiB. Split it into smaller files.`);
+      throw new Error(
+        `${file.name}: exceeds 20 MiB. Split it into smaller files.`,
+      );
   }
   const bytes = files.reduce((sum, f) => sum + f.size, 0);
   if (
@@ -102,11 +108,15 @@ export function validateUploadBatch(
     throw new Error(
       "This notebook exceeds 50 MiB. Choose smaller files or remove a source.",
     );
+
   return { count: files.length, bytes };
 }
 
 export function uploadError(cause: unknown): string {
-  return aiErrorMessage(cause, "Unable to add this document. Check its format, size and your access, then try again.");
+  return aiErrorMessage(
+    cause,
+    "Unable to add this document. Check its format, size and your access, then try again.",
+  );
 }
 
 export async function uploadNotebookFiles<T extends FileInfo>(

@@ -41,11 +41,34 @@ export function validateInfrastructure(env, production = false) {
       invalid.add('REDIS_URL');
     }
   } catch { invalid.add('REDIS_URL'); }
-  for (const flag of ['AI_ENABLED', 'CONVERSATION_AI_ENABLED', 'WORK_ASSISTANT_ENABLED', 'MEETING_SUMMARY_ENABLED', 'VOICE_TRANSCRIPTION_ENABLED', 'VISUAL_ENABLED']) {
+  for (const flag of ['AI_ENABLED', 'CONVERSATION_AI_ENABLED', 'WORK_ASSISTANT_ENABLED', 'MEETING_SUMMARY_ENABLED', 'VOICE_TRANSCRIPTION_ENABLED', 'VISUAL_ENABLED', 'EMBEDDING_LOCAL_ENABLED']) {
     if (env[flag] !== undefined && !['true', 'false'].includes(env[flag])) invalid.add(flag);
   }
   const speechEnabled = env.MEETING_SUMMARY_ENABLED === 'true'
     || (env.VOICE_TRANSCRIPTION_ENABLED ?? env.MEETING_SUMMARY_ENABLED) === 'true';
+  const embeddingProvider = env.EMBEDDING_PROVIDER ?? 'local';
+  if (!['local', 'api', 'gemini'].includes(embeddingProvider)) invalid.add('EMBEDDING_PROVIDER');
+  if (!['ensemble', 'shard'].includes(env.EMBEDDING_INDEX_STRATEGY ?? 'ensemble')) invalid.add('EMBEDDING_INDEX_STRATEGY');
+  if ((embeddingProvider === 'api' && production) || embeddingProvider === 'gemini') {
+    requireValue('EMBEDDING_MODEL');
+    requireValue('EMBEDDING_API_KEY');
+  }
+  if (embeddingProvider === 'api') {
+    try {
+      const url = new URL(env.EMBEDDING_BASE_URL);
+      const trustedLocal = !production && url.protocol === 'http:' && url.hostname === 'host.docker.internal' && url.port;
+      if ((url.protocol !== 'https:' && !trustedLocal) || url.username || url.password || url.search || url.hash) invalid.add('EMBEDDING_BASE_URL');
+    } catch { invalid.add('EMBEDDING_BASE_URL'); }
+  }
+  if (embeddingProvider === 'gemini') {
+    if (!['gemini-embedding-001', 'gemini-embedding-2'].includes(env.EMBEDDING_MODEL)) invalid.add('EMBEDDING_MODEL');
+    if (![768, 1536, 3072].includes(Number(env.EMBEDDING_DIMENSIONS ?? 768))) invalid.add('EMBEDDING_DIMENSIONS');
+  }
+  if (env.EMBEDDING_LOCAL_ENABLED === 'true' || env.EMBEDDING_SECONDARY_MODEL) {
+    if (embeddingProvider !== 'gemini') invalid.add('EMBEDDING_PROVIDER');
+    if (env.EMBEDDING_SECONDARY_MODEL && (!['gemini-embedding-001', 'gemini-embedding-2'].includes(env.EMBEDDING_SECONDARY_MODEL)
+      || env.EMBEDDING_SECONDARY_MODEL === env.EMBEDDING_MODEL)) invalid.add('EMBEDDING_SECONDARY_MODEL');
+  }
   for (const key of ['AI_GATEWAY_KEY', 'AI_DOCUMENT_SERVICE_KEY', 'RAG_SERVICE_KEY']) requireKey(key);
   if (production || env.AI_ENABLED === 'true') {
     for (const key of ['LLM_BASE_URL', 'LLM_API_KEY', 'LLM_MODEL']) requireValue(key);
@@ -67,6 +90,23 @@ export function validateInfrastructure(env, production = false) {
   if (new Set(configured.map(key => env[key])).size !== configured.length) invalid.add('distinct service keys');
   if (production) {
     if (env.NODE_ENV !== 'production') invalid.add('NODE_ENV');
+    requireKey('JWT_SECRET_KEY');
+    requireValue('JWT_ISSUER');
+    const serviceUrls = ['FRONTEND_URL', 'DOCUMENT_SERVICE_URL', 'RAG_WORKER_URL',
+      ...(env.CONVERSATION_AI_ENABLED === 'true' || speechEnabled ? ['COMMUNICATION_SERVICE_URL'] : []),
+      ...(speechEnabled ? ['MEETING_STT_URL'] : []),
+      ...(env.WORK_ASSISTANT_ENABLED === 'true' ? ['WORK_ASSISTANT_PROJECT_URL', 'WORK_ASSISTANT_CALENDAR_URL'] : [])];
+    for (const key of serviceUrls) {
+      try {
+        const url = new URL(env[key]);
+        if (!['http:', 'https:'].includes(url.protocol)
+          || ['localhost', '127.0.0.1', 'host.docker.internal', '::1', '[::1]'].includes(url.hostname)
+          || (key === 'FRONTEND_URL' && url.protocol !== 'https:')) invalid.add(key);
+      } catch { invalid.add(key); }
+    }
+    if (env.BIND_HOST && env.BIND_HOST !== '0.0.0.0') invalid.add('BIND_HOST');
+    if (speechEnabled && !(env.COMPOSE_PROFILES ?? '').split(',').map(value => value.trim()).includes('meeting-summary'))
+      invalid.add('COMPOSE_PROFILES');
     for (const key of ['AI_IMAGE', 'RAG_IMAGE', 'SPEECH_IMAGE']) {
       if (!immutableImage.test(env[key] ?? '')) invalid.add(key);
     }

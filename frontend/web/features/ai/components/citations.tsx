@@ -54,6 +54,7 @@ export function Citations({
       );
     }
   };
+
   return (
     <div
       className={content === undefined ? "mt-3 space-y-2 text-xs" : "space-y-3"}
@@ -66,8 +67,10 @@ export function Citations({
               const item = byLabel.get(label);
               if (!item) return `[[${label}]]`;
               const description = `Source ${item.label}: ${item.name}${item.page ? `, page ${item.page}` : ""}`;
+
               return (
-                <Button variant="unstyled"
+                <Button
+                  variant="unstyled"
                   type="button"
                   title={description}
                   aria-label={description}
@@ -98,7 +101,9 @@ export function Citations({
                   {item.label.slice(1)}
                 </span>
                 {item.name} ·{" "}
-                {item.page ? `page ${item.page}` : `passage ${item.position + 1}`}
+                {item.page
+                  ? `page ${item.page}`
+                  : `passage ${item.position + 1}`}
               </DetailsSummary>
               <blockquote className="my-2 whitespace-pre-wrap break-words border-l-2 pl-3 leading-relaxed">
                 {item.text}
@@ -106,7 +111,8 @@ export function Citations({
               {item.imageId && (
                 <SourceImage notebookId={notebookId} citation={item} />
               )}
-              <Button variant="unstyled"
+              <Button
+                variant="unstyled"
                 type="button"
                 className="text-link underline"
                 onClick={() => preview(item)}
@@ -160,6 +166,7 @@ function SourceImage({
       setPending(false);
     }
   };
+
   return (
     <div className="my-3 space-y-2">
       {dataUrl ? (

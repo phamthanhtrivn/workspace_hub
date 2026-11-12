@@ -1,0 +1,70 @@
+name: AI production checks
+on:
+  pull_request:
+    paths:
+      - 'backend/ai-service/**'
+      - 'backend/communication-service/package*.json'
+      - 'backend/security-tests/**'
+      - 'backend/scripts/*ai*'
+      - 'frontend/web/features/ai/**'
+      - 'frontend/web/features/work-assistant/**'
+      - 'frontend/web/lib/ai-feedback*'
+      - 'frontend/web/app/layout.tsx'
+      - 'frontend/web/app/globals.css'
+      - 'frontend/web/package*.json'
+      - 'deploy/ai/**'
+      - '.github/workflows/ai-service.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ai-production-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ci-placeholder
+      AI_TEST_IMAGE: workspacehub-ai:production-check
+      AI_TEST_RAG_IMAGE: workspacehub-rag:production-check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: |
+            backend/ai-service/api/package-lock.json
+            backend/communication-service/package-lock.json
+            frontend/web/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies
+        run: |
+          npm ci --ignore-scripts --prefix backend/ai-service/api
+          npm ci --ignore-scripts --prefix backend/communication-service
+          npm ci --ignore-scripts --prefix frontend/web
+      - name: API lint, types and build
+        working-directory: backend/ai-service/api
+        run: |
+          npm run lint:check
+          npm run typecheck
+          npm run build
+      - name: Audit production Node dependencies
+        run: |
+          npm audit --omit=dev --prefix backend/ai-service/api
+          npm audit --omit=dev --prefix frontend/web
+      - name: AI UI lint and production build
+        working-directory: frontend/web
+        run: |
+          npx --no-install eslint features/ai features/work-assistant lib/ai-feedback.ts app/layout.tsx
+          npm run build
+      - name: Build production images (no publishing)
+        run: |
+          docker build -t "$AI_TEST_IMAGE" backend/ai-service/api
+          docker build -t "$AI_TEST_RAG_IMAGE" backend/ai-service/rag-worker
+      - name: Regression, real HTTP/worker/database tests and restore drill
+        run: node backend/scripts/test-ai.mjs --integration

@@ -9,8 +9,11 @@ services:
     image: qdrant/qdrant:v1.19.2@sha256:b7b0444c4c351c970b98e90a6f89c2ee4287c65b44e52b4cb503fa5b2aa927ad
     volumes: [notebook-qdrant:/qdrant/storage]
     restart: unless-stopped
+    logging: *bounded-logs
   rag-worker:
     image: ${RAG_IMAGE:?Set an immutable RAG_IMAGE}
+    deploy:
+      replicas: 1
     # Only the worker's own credential and model settings; never gateway, LLM or DB secrets.
     environment:
       RAG_SERVICE_KEY: ${RAG_SERVICE_KEY:?Configure dedicated RAG credentials first}
