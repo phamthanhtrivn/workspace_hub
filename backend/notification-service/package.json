@@ -5,7 +5,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "test:reminders": "nest build && node --test test/calendar-reminder.test.cjs",
+    "test:reminders": "node ../../tests/run-tests.mjs --match calendar-reminder.spec",
     "prisma:generate": "prisma generate",
     "prebuild": "npm run prisma:generate",
     "build": "nest build",
@@ -20,7 +20,11 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"src/**/*.ts\" --fix",
     "lint:check": "eslint \"src/**/*.ts\"",
-    "lint:fix": "eslint \"src/**/*.ts\" --fix"
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "test": "node ../../tests/run-tests.mjs",
+    "test:unit": "node ../../tests/run-tests.mjs",
+    "test:integration": "node ../../tests/run-tests.mjs --suite integration",
+    "test:typecheck": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@nestjs/common": "11.2.8",

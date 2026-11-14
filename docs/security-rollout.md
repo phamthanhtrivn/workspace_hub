@@ -52,7 +52,7 @@ weak key configuration at both startup and its protected request boundary.
 Frontend storage downloads/open actions only accept HTTP(S) URLs without
 embedded credentials, or a validated private storage reference.
 
-The reusable [security integration suite](../backend/security-tests/README.md) runs
+The reusable [security integration suite](../tests/system/README.md) runs
 the real User HTTP API, receiver credential checks, permission services, Kong,
 Socket.IO and Kafka failure/recovery tests against isolated infrastructure. Its
 source inventory reports HTTP/Kafka/socket declarations and the 16 caller edges.

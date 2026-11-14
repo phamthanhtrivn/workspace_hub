@@ -13,7 +13,11 @@
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "prisma:generate": "prisma generate",
-    "prisma:validate": "prisma validate"
+    "prisma:validate": "prisma validate",
+    "test": "node ../../tests/run-tests.mjs",
+    "test:unit": "node ../../tests/run-tests.mjs",
+    "test:integration": "node ../../tests/run-tests.mjs --suite integration",
+    "test:typecheck": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@nestjs/common": "11.2.8",

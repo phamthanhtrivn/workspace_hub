@@ -14,7 +14,11 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs}/**/*.ts\" --fix",
     "lint:check": "eslint \"{src,apps,libs}/**/*.ts\"",
-    "lint:fix": "eslint \"{src,apps,libs}/**/*.ts\" --fix"
+    "lint:fix": "eslint \"{src,apps,libs}/**/*.ts\" --fix",
+    "test": "node ../../tests/run-tests.mjs",
+    "test:unit": "node ../../tests/run-tests.mjs",
+    "test:integration": "node ../../tests/run-tests.mjs --suite integration",
+    "test:typecheck": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1080.0",

@@ -70,7 +70,7 @@ function actions(item: DocumentItem, activeView = DocumentViewType.MY_FILES) {
   }
   renderToStaticMarkup(<Harness />);
 
-  return labels.split("|");
+  return labels.split("|").filter(Boolean);
 }
 
 test("project roots in My files expose project-safe actions", () => {
@@ -125,7 +125,7 @@ test("personal files shared with Viewer/Editor do not expose Share to chat", () 
 test("shared files expose read actions to both Viewers and Editors", () => {
   for (const userRole of [DocumentRole.VIEWER, DocumentRole.EDITOR]) {
     const labels = actions(
-      { ...root, projectId: null, userRole },
+      { ...root, type: DocumentItemType.FILE, projectId: null, userRole },
       DocumentViewType.SHARED,
     );
     assert.deepEqual(

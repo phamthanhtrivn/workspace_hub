@@ -69,6 +69,7 @@ function setup(context: TestContext) {
     "prepareChatShare",
     async (_id: string, recipients: string[]) => {
       events.push(`grant:${recipients.join(",")}`);
+      return { requiresConfirmation: false, inheritedEditorCount: 0 };
     },
   );
   const send = async (_id: string, payload: { type?: string }) => {
@@ -149,6 +150,18 @@ test("grant failure sends neither text nor document", async (context) => {
     }),
   );
   assert.equal(h.sendDirect.mock.callCount(), 0);
+});
+
+test("inherited Editor access waits for explicit confirmation before sending", async (context) => {
+  const h = setup(context);
+  h.prepare.mock.mockImplementation(async () => ({ requiresConfirmation: true, inheritedEditorCount: 1 }));
+  const input = { documentId: "document", target: { type: ShareTabType.DM, chatId: "direct" }, currentUserId: "owner", introMessage: "Read this" };
+  assert.deepEqual(await shareDocumentToChat(input), { requiresConfirmation: true, inheritedEditorCount: 1 });
+  assert.equal(h.sendDirect.mock.callCount(), 0);
+  h.prepare.mock.mockImplementation(async () => ({ requiresConfirmation: false, inheritedEditorCount: 1 }));
+  await shareDocumentToChat({ ...input, confirmInheritedEditorAccess: true });
+  assert.equal(h.prepare.mock.calls[1].arguments[2], true);
+  assert.equal(h.sendDirect.mock.callCount(), 2);
 });
 
 test("a channel containing only the sender still accepts a document card", async (context) => {
