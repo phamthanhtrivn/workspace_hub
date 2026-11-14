@@ -177,7 +177,7 @@ export function MeetingLayout() {
       <section className="@container/meeting-content flex min-h-0 min-w-0 flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
         <div
           key={activeNavItemId}
-          className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain"
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-1"
           role="region"
           aria-label="Meetings content"
           tabIndex={0}

@@ -1,5 +1,7 @@
 "use client";
 
+import { RefreshCw } from "lucide-react";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
@@ -53,6 +55,7 @@ export function MeetingRecordingPlayer({
         const result = await refetch();
         if (result.isError || !result.data) {
           setPlaybackIssue(true);
+
           return;
         }
         access = result.data;
@@ -75,6 +78,7 @@ export function MeetingRecordingPlayer({
       },
       remaining > 30_000 ? remaining - 15_000 : Math.max(1000, remaining / 2),
     );
+
     return () => window.clearTimeout(timer);
   }, [query.data, refetch]);
 
@@ -97,11 +101,16 @@ export function MeetingRecordingPlayer({
           {recording.title}
         </DialogTitle>
         {query.isLoading && !current ? (
-          <LoadingState label="Loading recording…" layout="centered" className="py-12 text-center" />
+          <LoadingState
+            label="Loading recording…"
+            layout="centered"
+            className="py-12 text-center"
+          />
         ) : query.isError && !current ? (
           <div role="alert" className="py-8">
             <p>Recording unavailable or access has been revoked.</p>
             <MeetingButton className="mt-3" onClick={() => void refresh()}>
+              <RefreshCw className="size-4" aria-hidden="true" />
               Try again
             </MeetingButton>
           </div>
@@ -159,6 +168,7 @@ export function MeetingRecordingPlayer({
                       void refresh();
                     }}
                   >
+                    <RefreshCw className="size-4" aria-hidden="true" />
                     Refresh access
                   </MeetingButton>
                 </div>
@@ -166,7 +176,10 @@ export function MeetingRecordingPlayer({
             </>
           )
         )}
-        <MeetingRecordingSummary key={recording.id} recordingId={recording.id} />
+        <MeetingRecordingSummary
+          key={recording.id}
+          recordingId={recording.id}
+        />
       </DialogContent>
     </Dialog>
   );

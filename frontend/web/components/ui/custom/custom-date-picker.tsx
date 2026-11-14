@@ -19,6 +19,7 @@ interface CustomDatePickerProps {
   value: string;
   onChange: (value: string) => void;
   ariaLabel: string;
+  placeholder?: string;
   descriptionId?: string;
   invalid?: boolean;
   disabled?: boolean;
@@ -34,7 +35,7 @@ interface CustomDatePickerProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function CustomDatePicker({ id, ref, value, onChange, ariaLabel, descriptionId, invalid, disabled, required, name, className, triggerClassName, min, max, allowClear = !required, onBlur, focusMode = "self", onOpenChange }: CustomDatePickerProps) {
+export function CustomDatePicker({ id, ref, value, onChange, ariaLabel, placeholder = "Pick a date", descriptionId, invalid, disabled, required, name, className, triggerClassName, min, max, allowClear = !required, onBlur, focusMode = "self", onOpenChange }: CustomDatePickerProps) {
   const [open, setOpen] = useState(false);
   const [missingRequired, setMissingRequired] = useState(false);
   const requiredErrorId = useId();
@@ -65,7 +66,7 @@ export function CustomDatePicker({ id, ref, value, onChange, ariaLabel, descript
             aria-describedby={[descriptionId, missingRequired ? requiredErrorId : undefined].filter(Boolean).join(" ") || undefined}
             className={cn("h-9 w-full min-w-0 justify-start gap-2 border-input px-3 font-normal aria-invalid:border-destructive-outline motion-reduce:transition-none", triggerClassName, FIELD_FOCUS_CLASS_NAMES[focusMode], focusMode === "self" && FIELD_FOCUS_OPEN_CLASS_NAME)}>
             <CalendarDays aria-hidden className="size-4 text-muted-foreground" />
-            <span className={cn("truncate", !selected && "text-muted-foreground")}>{selected ? format(selected, "dd/MM/yyyy") : "Pick a date"}</span>
+            <span className={cn("truncate", !selected && "text-muted-foreground")}>{selected ? format(selected, "dd/MM/yyyy") : placeholder}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-auto max-w-[calc(100vw-1rem)] overflow-hidden p-0" aria-label={ariaLabel}>

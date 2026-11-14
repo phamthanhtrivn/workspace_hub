@@ -6,13 +6,13 @@ import { MeetingButton } from "../ui/meeting-form-controls";
 import { getMeetingHistoryPageNumbers } from "../../utils/meeting-history.utils";
 import { Button } from "@/components/ui/button";
 
-
 interface MeetingPaginationProps {
   page: number;
   limit: number;
   total: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  showSinglePage?: boolean;
 }
 
 export function MeetingPagination({
@@ -21,13 +21,19 @@ export function MeetingPagination({
   total,
   totalPages,
   onPageChange,
+  showSinglePage = false,
 }: MeetingPaginationProps) {
   const safePage = Math.min(Math.max(1, page), totalPages);
   const start = total === 0 ? 0 : (safePage - 1) * limit + 1;
   const end = Math.min(safePage * limit, total);
   const pageNumbers = getMeetingHistoryPageNumbers(safePage, totalPages);
 
-  if (totalPages <= 1) return null;
+  if (totalPages <= 1)
+    return showSinglePage ? (
+      <p className="border-t border-border pt-4 text-xs tabular-nums text-muted-foreground">
+        Showing {start}-{end} of {total}
+      </p>
+    ) : null;
 
   return (
     <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -50,7 +56,8 @@ export function MeetingPagination({
         </MeetingButton>
         {pageNumbers.map((pageNumber) =>
           typeof pageNumber === "number" ? (
-            <Button variant="unstyled"
+            <Button
+              variant="unstyled"
               key={pageNumber}
               type="button"
               onClick={() => onPageChange(pageNumber)}

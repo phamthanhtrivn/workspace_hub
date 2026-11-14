@@ -683,6 +683,18 @@ export class MeetingRecordingService {
   }
 
   async list(userId: string, query: ListRecordingsDto, joinToken?: string) {
+    const fromDate = query.fromDate ? new Date(query.fromDate) : undefined;
+    const toDate = query.toDate ? new Date(query.toDate) : undefined;
+    if (
+      (fromDate && !Number.isFinite(fromDate.getTime())) ||
+      (toDate && !Number.isFinite(toDate.getTime())) ||
+      (fromDate && toDate && fromDate >= toDate)
+    )
+      recordingError(
+        400,
+        'RECORDING_DATE_RANGE_INVALID',
+        'Choose a valid recording date range.',
+      );
     let meetingId = query.meetingId;
     if (joinToken) {
       const meeting = await this.prisma.meeting.findUnique({
@@ -703,6 +715,9 @@ export class MeetingRecordingService {
             };
     const where: Prisma.MeetingRecordingWhereInput = {
       AND: [access, { status: { not: 'DELETED' } }],
+      ...(fromDate || toDate
+        ? { requestedAt: { gte: fromDate, lt: toDate } }
+        : {}),
       meetingId,
       ...(query.status ? { status: query.status } : {}),
       ...(query.search?.trim()
@@ -806,7 +821,7 @@ export class MeetingRecordingService {
     if (!permissions.length) return [];
     const profiles = await this.prisma.userProfileSnapshot.findMany({
       where: { userId: { in: permissions.map((p) => p.userId) } },
-      select: { userId: true, fullName: true, email: true },
+      select: { userId: true, fullName: true, email: true, avatarUrl: true },
     });
     const profileById = new Map(
       profiles.map((profile) => [profile.userId, profile]),

@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import { Plus, type LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { MeetingButton } from "./meeting-form-controls";
@@ -36,6 +36,7 @@ export function MeetingEmptyState({
       </p>
       {actionLabel && onAction ? (
         <MeetingButton type="button" className="mt-5" onClick={onAction}>
+          <Plus className="size-4" aria-hidden="true" />
           {actionLabel}
         </MeetingButton>
       ) : null}

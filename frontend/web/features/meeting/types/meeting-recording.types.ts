@@ -87,12 +87,19 @@ export interface RecordingPage {
 }
 
 export interface RecordingPermission {
-  profile?: { fullName: string | null; email: string | null } | null;
+  profile?: {
+    fullName: string | null;
+    email: string | null;
+    avatarUrl?: string | null;
+  } | null;
   userId: string;
   canDownload: boolean;
 }
 
 export interface RecordingQuery {
+  fromDate?: string;
+  /** Exclusive upper timestamp, derived from the end of the selected local date. */
+  toDate?: string;
   page?: number;
   limit?: number;
   search?: string;

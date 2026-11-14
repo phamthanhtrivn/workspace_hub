@@ -1,6 +1,6 @@
 "use client";
 
-import { Grid, List, RotateCcw, VideoOff } from "lucide-react";
+import { Eye, EyeOff, Grid, List, RotateCcw, VideoOff } from "lucide-react";
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -100,6 +100,7 @@ export function MeetingPreviousView() {
                 aria-pressed={scope === visibility}
                 onClick={() => { setVisibility(scope); setPage(1); setSelectedIds([]); }}
               >
+                {scope === "visible" ? <Eye className="size-4" aria-hidden="true" /> : <EyeOff className="size-4" aria-hidden="true" />}
                 {MEETING_HISTORY_LABELS[scope]}
               </MeetingButton>
             ))}

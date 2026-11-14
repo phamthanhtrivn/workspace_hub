@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  IsDateString,
   IsIn,
   IsInt,
   IsOptional,
@@ -65,6 +66,15 @@ export class RenameRecordingDto {
 }
 
 export class ListRecordingsDto {
+  @IsOptional()
+  @IsDateString({ strict: true })
+  fromDate?: string;
+
+  /** Exclusive upper timestamp; clients convert inclusive calendar dates in their timezone. */
+  @IsOptional()
+  @IsDateString({ strict: true })
+  toDate?: string;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()
