@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { recordingApi } from "../../api/meeting-recording.api";
 import { useMeetingRecordings } from "../../hooks/useMeetingRecordings";
 import { useMeetingConfirmDialog } from "../../hooks/useMeetingConfirmDialog";
-import { recordingErrorMessage } from "../../utils/recording-errors";
+import { recordingErrorMessage, recordingFailureMessage } from "../../utils/recording-errors";
 import type {
   MeetingRecording,
   RecordingQuery,
@@ -159,12 +159,8 @@ export function MeetingRecordingsView() {
                     : ""}
                 </p>
                 {recording.failureCode && (
-                  <p className="mt-1 text-xs text-destructive-content">
-                    {recording.failureCode === "UPLOAD_BACKUP_REQUIRES_RECOVERY"
-                      ? "Upload failed. Contact the meeting administrator to recover the saved video."
-                      : recording.status === "FAILED"
-                        ? "Recording could not be completed."
-                        : "Verifying upload…"}
+                  <p className={`mt-1 text-xs ${recording.status === "FAILED" ? "text-destructive-content" : "text-muted-foreground"}`}>
+                    {recordingFailureMessage(recording.failureCode, recording.status)}
                   </p>
                 )}
               </div>

@@ -36,6 +36,9 @@ import {
   recordingCapabilities,
 } from '../utils/meeting-recording.utils';
 
+const START_CONFIRMATION_TIMEOUT_MS = 10 * 60_000;
+const RECORDING_JOB_MAX_ATTEMPTS = 12;
+
 @Injectable()
 export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MeetingRecordingWorker.name);
@@ -273,6 +276,7 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
         info.status === EgressStatus.EGRESS_STARTING
       )
         await this.liveKit.stopRecording(info.egressId);
+
       return true;
     }
     const timestamp = info.updatedAt || info.endedAt || info.startedAt;
@@ -354,6 +358,7 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
               updatedAt: timestamp,
             });
             if (changed) await this.publish(recording.id);
+
             return true;
           }
           data.status = 'COMPLETED';
@@ -363,6 +368,12 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
           data.failureCode = null;
         } catch {
           data.failureCode = 'VERIFYING_UPLOAD';
+          this.logger.warn({
+            event: 'recording_output_pending',
+            recordingId: recording.id,
+            egressId: info.egressId,
+            stage: 'VERIFY_UPLOAD',
+          });
         }
       }
     } else if (
@@ -371,6 +382,13 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
     ) {
       data.status = 'FAILED';
       data.failureCode = 'EGRESS_FAILED';
+      this.logger.warn({
+        event: 'recording_egress_failed',
+        recordingId: recording.id,
+        egressId: info.egressId,
+        stage: 'EGRESS',
+        code: 'EGRESS_FAILED',
+      });
       data.stoppedAt = egressDate(info.endedAt) ?? new Date();
     } else if (recording.pauseRequestedAt && !recording.stopRequestedAt) {
       data.status = 'PAUSING';
@@ -393,6 +411,7 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
     ) {
       if (data.failureCode === 'UPLOAD_RECOVERY_PENDING')
         await this.ensureRecovery(recording.id);
+
       return true;
     }
     const changed = await this.prisma.meetingRecording.updateMany({
@@ -408,6 +427,7 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
         await this.ensureRecovery(recording.id);
       await this.publish(recording.id);
     }
+
     return true;
   }
 
@@ -418,6 +438,7 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
       );
       if (file?.config.case === 'file') return file.config.value.filepath;
     }
+
     return info.fileResults[0]?.filename;
   }
 
@@ -446,6 +467,7 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
           uploadState: Prisma.DbNull,
         },
       });
+
       return;
     }
     if (job.state === 'FAILED')
@@ -527,6 +549,21 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
           else if (Date.now() - recording.updatedAt.getTime() > 30 * 60_000)
             await this.fail(recording.id, 'EGRESS_NOT_FOUND');
         }
+        if (recording.status === 'STARTING') {
+          const start = await this.prisma.meetingRecordingJob.findUnique({
+            where: {
+              recordingId_kind: { recordingId: recording.id, kind: 'START' },
+            },
+          });
+          const requestedAt = start?.dispatchedAt ?? recording.updatedAt;
+          if (
+            Date.now() - requestedAt.getTime() >
+            START_CONFIRMATION_TIMEOUT_MS
+          )
+            // A START RPC can finish before the template sends its actual start signal.
+            // Do not fail a recording that a concurrent webhook just promoted to RECORDING.
+            await this.fail(recording.id, 'START_UNCONFIRMED', 'STARTING');
+        }
         if (
           (recording.status === 'PROCESSING' ||
             recording.status === 'PAUSING') &&
@@ -580,6 +617,7 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
           create: { recordingId: recording.id, kind: 'MERGE' },
           update: {},
         });
+
         return;
       }
       await tx.meetingRecordingJob.upsert({
@@ -631,6 +669,10 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
     }, 30_000);
     heartbeat.unref();
     try {
+      // The dispatch checkpoint may have changed since the scheduler read this job.
+      job = await this.prisma.meetingRecordingJob.findUniqueOrThrow({
+        where: { id: job.id },
+      });
       const recording = await this.prisma.meetingRecording.findUniqueOrThrow({
         where: { id: job.recordingId },
         include: { meeting: true },
@@ -689,7 +731,19 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
         job.kind === 'DELETE' ||
         job.kind === 'STOP' ||
         job.kind === 'NOTIFY' ||
-        job.attempts < 12;
+        job.attempts < RECORDING_JOB_MAX_ATTEMPTS;
+      this.logger.warn({
+        event: 'recording_job_failed',
+        recordingId: job.recordingId,
+        jobId: job.id,
+        stage: job.kind,
+        attempt: job.attempts,
+        retry,
+        code:
+          error instanceof RecordingJobPending
+            ? 'DEPENDENCY_PENDING'
+            : 'RECORDING_JOB_FAILED',
+      });
       const retried = await this.prisma.meetingRecordingJob.updateMany({
         where: { id: job.id, leaseToken },
         data: {
@@ -736,6 +790,21 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
     );
     if (existing) {
       await this.applyEgress(existing);
+
+      return;
+    }
+    // Resume reuses the recording and START job; its deadline belongs to this segment.
+    const confirmationStartedAt =
+      job.dispatchedAt ?? recording.updatedAt ?? recording.requestedAt;
+    if (
+      Date.now() - confirmationStartedAt.getTime() >
+      START_CONFIRMATION_TIMEOUT_MS
+    ) {
+      await this.fail(
+        recording.id,
+        job.dispatchedAt ? 'START_UNCONFIRMED' : 'RECORDING_UNAVAILABLE',
+      );
+
       return;
     }
     if (job.dispatchedAt)
@@ -754,10 +823,30 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
       !recordingCapabilities(participant ?? undefined).canStart
     ) {
       await this.fail(recording.id, 'START_CANCELLED');
+
       return;
     }
-    if (!this.liveKit.isRecordingConfigured())
-      throw new RecordingJobPending('Waiting for recording configuration');
+    if (recording.layout.startsWith('app:')) {
+      const publisher = await this.liveKit
+        .createRoomServiceClient()
+        .getParticipant(
+          recording.meeting.roomName,
+          recording.controlRequestedBy ?? recording.startedBy,
+        );
+      if (
+        !publisher.tracks.some(
+          (track) =>
+            track.sid === recording.layout.slice(4) &&
+            track.name === 'meeting-tab-recording',
+        )
+      ) {
+        await this.fail(recording.id, 'RECORDING_CAPTURE_LOST');
+
+        return;
+      }
+    }
+    if (!(await this.liveKit.recordingReadiness()).ready)
+      throw new RecordingJobPending('Waiting for recording service readiness');
     const dispatched = await this.prisma.meetingRecordingJob.updateMany({
       where: { id: job.id, leaseToken, state: 'RUNNING' },
       data: { dispatchedAt: new Date() },
@@ -788,6 +877,7 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
     if (!info) {
       if (ACTIVE_RECORDING_STATUSES.includes(recording.status))
         throw new Error('waiting for egress');
+
       return;
     }
     if (
@@ -874,6 +964,7 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
         await this.publish(recording.id);
         await unlink(path).catch(() => undefined);
       }
+
       return;
     }
     const changed = await this.prisma.meetingRecording.updateMany({
@@ -943,9 +1034,16 @@ export class MeetingRecordingWorker implements OnModuleInit, OnModuleDestroy {
     await this.media?.cleanup(recording.id);
   }
 
-  private async fail(id: string, code: string) {
+  private async fail(
+    id: string,
+    code: string,
+    expectedStatus?: MeetingRecordingStatus,
+  ) {
     const changed = await this.prisma.meetingRecording.updateMany({
-      where: { id, status: { in: ACTIVE_RECORDING_STATUSES } },
+      where: {
+        id,
+        status: expectedStatus ?? { in: ACTIVE_RECORDING_STATUSES },
+      },
       data: {
         status: MeetingRecordingStatus.FAILED,
         failureCode: code,

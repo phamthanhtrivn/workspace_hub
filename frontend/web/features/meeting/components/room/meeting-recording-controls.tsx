@@ -15,6 +15,7 @@ import { useMeetingTabCapture } from "../../hooks/useMeetingTabCapture";
 import { MeetingRoomControlButton } from "../common/meeting-room-control-button";
 import { MeetingButton } from "../ui/meeting-form-controls";
 import { MeetingRecordingRequests } from "./meeting-recording-requests";
+import { recordingControlLabel } from "../../utils/recording-control-label";
 
 export function MeetingRecordingControls({
   joinToken,
@@ -37,18 +38,29 @@ export function MeetingRecordingControls({
   const state = query.data;
   const active = Boolean(state?.recording);
   const [capturing, setCapturing] = useState(false);
-  const { capture, release } = useMeetingTabCapture(joinToken, () => {
-    if (state?.recording && !state.recording.stopRequestedAt)
-      stop.mutate({ id: state.recording.id, key: crypto.randomUUID() });
-  });
+  const { capture, release, isCapturing } = useMeetingTabCapture(
+    joinToken,
+    () => {
+      if (state?.recording && !state.recording.stopRequestedAt)
+        stop.mutate({ id: state.recording.id, key: crypto.randomUUID() });
+    },
+  );
   useEffect(() => {
     if (!active) void release();
   }, [active, release]);
   const canStop = state?.capabilities.canStop;
-  const recordingPermissionReason = state?.unavailableReason || (state && !state.needsRecordingPermission &&
-    !(active ? state.capabilities.canStop : state.capabilities.canStart)
-      ? "You don't have permission to control this recording. Ask the meeting host to grant recording access."
-      : undefined);
+  const processing = Boolean(
+    state?.recording?.stopRequestedAt ||
+    state?.recording?.status === "PROCESSING",
+  );
+  const recordingPermissionReason = processing
+    ? "The recording is being processed."
+    : (!active && state?.unavailableReason) ||
+      (state &&
+      !state.needsRecordingPermission &&
+      !(active ? state.capabilities.canStop : state.capabilities.canStart)
+        ? "You don't have permission to control this recording. Ask the meeting host to grant recording access."
+        : undefined);
   const needsPermission = state?.needsRecordingPermission;
   const requesting = state?.recordingRequest?.status === "PENDING";
   const disabled =
@@ -68,26 +80,37 @@ export function MeetingRecordingControls({
     ? requesting
       ? "Request pending"
       : "Ask to record"
-    : state?.recording?.stopRequestedAt
-      ? "Processing"
-      : active
-        ? "Stop"
-        : "Record";
+    : recordingControlLabel(state?.recording);
 
   const submit = async () => {
     if (dialog === "start") {
       setCapturing(true);
+      let startRequested = false;
       try {
         const captureTrackSid = await capture();
-        await start.mutateAsync({ layout: "grid", captureTrackSid, key: crypto.randomUUID() });
+        startRequested = true;
+        const result = await start.mutateAsync({
+          layout: "grid",
+          captureTrackSid,
+          key: crypto.randomUUID(),
+        });
+        // The picker stream can end before the status query learns the accepted recording ID.
+        if (!isCapturing())
+          await stop.mutateAsync({ id: result.id, key: crypto.randomUUID() });
         setDialog(null);
       } catch (error) {
         await release();
-        if (error instanceof Error)
-          showMeetingActionError(error, error.name === "NotAllowedError"
-            ? "Tab recording was cancelled. Choose this Meeting tab to start."
-            : error.message);
-      } finally { setCapturing(false); }
+        // Mutation errors are already reported by the recording hook.
+        if (!startRequested && error instanceof Error)
+          showMeetingActionError(
+            error,
+            error.name === "NotAllowedError"
+              ? "Tab recording was cancelled. Choose this Meeting tab to start."
+              : error.message,
+          );
+      } finally {
+        setCapturing(false);
+      }
     } else if (state?.recording) {
       stop.mutate({ id: state.recording.id, key: crypto.randomUUID() });
       setDialog(null);
@@ -107,16 +130,24 @@ export function MeetingRecordingControls({
           label={label}
           ariaLabel={
             active && !state?.recording?.stopRequestedAt && !needsPermission
-              ? "Stop recording"
+              ? state?.recording?.status === "STARTING"
+                ? "Cancel recording startup"
+                : "Stop recording"
               : label
           }
           icon={needsPermission ? Hand : active ? Square : Circle}
           active={active && !needsPermission}
           disabled={disabled}
-          loading={capturing || start.isPending || stop.isPending || requestPermission.isPending}
+          loading={
+            capturing ||
+            start.isPending ||
+            stop.isPending ||
+            requestPermission.isPending
+          }
           onClick={() => {
             if (needsPermission) {
               requestPermission.mutate();
+
               return;
             }
             setDialog(active ? "stop" : "start");
@@ -182,7 +213,8 @@ export function MeetingRecordingControls({
             <MeetingButton tone="secondary" onClick={() => setDialog(null)}>
               Cancel
             </MeetingButton>
-            <MeetingButton loading={capturing || start.isPending || stop.isPending}
+            <MeetingButton
+              loading={capturing || start.isPending || stop.isPending}
               tone={dialog === "stop" ? "danger" : "primary"}
               onClick={submit}
               disabled={capturing || start.isPending || stop.isPending}

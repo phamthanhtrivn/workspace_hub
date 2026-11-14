@@ -9,9 +9,18 @@ import { config } from "../../config/env.config";
 import { rows } from "../../infrastructure/database/database";
 import { meetingSummaryQueue } from "../../infrastructure/queue/notebook.queue";
 import { meetingSource } from "./source";
+import { MeetingSummaryReadiness } from "./availability";
 
 @Injectable()
 export class MeetingSummaryService {
+  private readonly readiness = new MeetingSummaryReadiness(
+    async () =>
+      (await meetingSummaryQueue.client).get(
+        "wh-notebook:meeting-summary-worker-heartbeat",
+      ),
+    config.MEETING_STT_URL,
+    config.MEETING_STT_SERVICE_KEY,
+  );
   authorize(key?: string) {
     const expected = config.COMMUNICATION_TO_AI_KEY;
     if (
@@ -31,15 +40,15 @@ export class MeetingSummaryService {
       jsonb_array_length(transcript) AS "transcribedChunks" FROM notebook_ai.meeting_summaries WHERE recording_id=$1`,
       [id],
     );
-    return summary ?? { status: "NOT_CREATED" };
+
+    return {
+      ...(summary ?? { status: "NOT_CREATED" }),
+      available: await this.readiness.check(),
+    };
   }
 
   async start(id: string, actorId: string) {
-    const redis = await meetingSummaryQueue.client;
-    if (
-      (await redis.get("wh-notebook:meeting-summary-worker-heartbeat")) !==
-      "ready:meeting-v1"
-    )
+    if (!(await this.readiness.check()))
       throw new ServiceUnavailableException(
         "Meeting summary worker is unavailable",
       );
@@ -77,6 +86,7 @@ export class MeetingSummaryService {
         throw new ServiceUnavailableException("Meeting queue unavailable");
       }
     }
+
     return this.status(id);
   }
 }

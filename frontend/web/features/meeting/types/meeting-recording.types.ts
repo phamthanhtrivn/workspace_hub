@@ -8,6 +8,10 @@ export type RecordingStatus =
   | "FAILED"
   | "DELETED";
 export type RecordingLayout = "speaker" | "grid" | "screen";
+export interface RecordingCommandResult {
+  id: string;
+  status: RecordingStatus;
+}
 export type RecordingTemplateLayout = RecordingLayout | `app:TR_${string}`;
 export interface RecordingSettings {
   autoRecord: boolean;
@@ -42,6 +46,7 @@ export interface RecordingRoomStatus {
   ownerId: string;
   recordingAvailable: boolean;
   unavailableReason: string | null;
+  unavailableCode?: "RECORDING_UNAVAILABLE" | "RECORDING_NOT_CONFIGURED" | null;
   settings: RecordingSettings;
   pauseAvailable: boolean;
   customLayoutsAvailable: boolean;

@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   experimental: {
     optimizePackageImports: ["lucide-react"],
+    // Egress must hydrate without depending on the development React debug stream.
+    reactDebugChannel: false,
   },
   images: {
     remotePatterns: [
