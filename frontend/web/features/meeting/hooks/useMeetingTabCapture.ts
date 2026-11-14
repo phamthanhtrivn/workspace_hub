@@ -21,7 +21,9 @@ export function useMeetingTabCapture(joinToken: string, onEnded: () => void) {
   const trackRef = useRef<LocalVideoTrack | null>(null);
   const handleRef = useRef("");
   const endedRef = useRef(onEnded);
-  useEffect(() => { endedRef.current = onEnded; }, [onEnded]);
+  useEffect(() => {
+    endedRef.current = onEnded;
+  }, [onEnded]);
 
   const release = useCallback(async () => {
     const track = trackRef.current;
@@ -29,7 +31,9 @@ export function useMeetingTabCapture(joinToken: string, onEnded: () => void) {
     if (!track) return;
     track.stop();
     await room.localParticipant.unpublishTrack(track).catch(() => undefined);
-    await recordingApi.capturePermission(joinToken, false).catch(() => undefined);
+    await recordingApi
+      .capturePermission(joinToken, false)
+      .catch(() => undefined);
   }, [joinToken, room]);
 
   useEffect(() => {
@@ -40,6 +44,7 @@ export function useMeetingTabCapture(joinToken: string, onEnded: () => void) {
       exposeOrigin: true,
       permittedOrigins: [window.location.origin],
     });
+
     return () => {
       if (trackRef.current) endedRef.current();
       void release();
@@ -61,21 +66,38 @@ export function useMeetingTabCapture(joinToken: string, onEnded: () => void) {
     } as DisplayMediaStreamOptions);
     const mediaTrack = stream.getVideoTracks()[0] as CaptureTrack | undefined;
     const handle = mediaTrack?.getCaptureHandle?.();
-    if (!mediaTrack || mediaTrack.getSettings().displaySurface !== "browser" ||
-        handle?.handle !== handleRef.current || handle.origin !== window.location.origin) {
+    if (
+      !mediaTrack ||
+      mediaTrack.getSettings().displaySurface !== "browser" ||
+      handle?.handle !== handleRef.current ||
+      handle.origin !== window.location.origin
+    ) {
       stream.getTracks().forEach((track) => track.stop());
       throw new Error("Choose this Meeting tab to record the application.");
     }
     const track = new LocalVideoTrack(mediaTrack);
     track.source = Track.Source.Unknown;
     trackRef.current = track;
-    mediaTrack.addEventListener("ended", () => {
-      if (trackRef.current === track) { endedRef.current(); void release(); }
-    }, { once: true });
+    mediaTrack.addEventListener(
+      "ended",
+      () => {
+        if (trackRef.current === track) {
+          endedRef.current();
+          void release();
+        }
+      },
+      { once: true },
+    );
     mediaTrack.addEventListener("capturehandlechange", () => {
       const current = mediaTrack.getCaptureHandle?.();
-      if (trackRef.current === track && (current?.handle !== handleRef.current || current.origin !== window.location.origin))
-        { endedRef.current(); void release(); }
+      if (
+        trackRef.current === track &&
+        (current?.handle !== handleRef.current ||
+          current.origin !== window.location.origin)
+      ) {
+        endedRef.current();
+        void release();
+      }
     });
     try {
       await recordingApi.capturePermission(joinToken, true);
@@ -84,6 +106,7 @@ export function useMeetingTabCapture(joinToken: string, onEnded: () => void) {
         source: Track.Source.Unknown,
         simulcast: false,
       });
+
       return publication.trackSid;
     } catch (error) {
       await release();
@@ -91,5 +114,10 @@ export function useMeetingTabCapture(joinToken: string, onEnded: () => void) {
     }
   }, [joinToken, release, room]);
 
-  return { capture, release };
+  const isCapturing = useCallback(
+    () => trackRef.current?.mediaStreamTrack.readyState === "live",
+    [],
+  );
+
+  return { capture, release, isCapturing };
 }

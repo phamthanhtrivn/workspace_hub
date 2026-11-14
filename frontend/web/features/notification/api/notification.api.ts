@@ -13,6 +13,7 @@ export const getNotifications = async (
   isRead?: boolean,
   category: NotificationCategory = "ALL",
   dateRange: NotificationDateRange = {},
+  signal?: AbortSignal,
 ): Promise<GetNotificationsResponse> => {
   const params: Record<string, string | number | boolean> = { page, limit };
   if (isRead !== undefined) {
@@ -27,24 +28,29 @@ export const getNotifications = async (
   if (dateRange.toDate) {
     params.toDate = dateRange.toDate;
   }
-  const response = await api.get("/api/notifications", { params });
+  const response = await api.get("/api/notifications", { params, signal });
   return response.data;
 };
 
-export const getUnreadCount = async (): Promise<{ message: string; data: { unreadCount: number } }> => {
+export const getUnreadCount = async (): Promise<{
+  message: string;
+  data: { unreadCount: number };
+}> => {
   const response = await api.get("/api/notifications/unread-count");
   return response.data;
 };
 
 export const markAsRead = async (id: string): Promise<unknown> => {
   const response = await api.patch(`/api/notifications/${id}/read`);
-  if (typeof window !== "undefined") window.dispatchEvent(new Event(NOTIFICATION_READ_COMMITTED_EVENT));
+  if (typeof window !== "undefined")
+    window.dispatchEvent(new Event(NOTIFICATION_READ_COMMITTED_EVENT));
   return response.data;
 };
 
 export const markAllAsRead = async (): Promise<unknown> => {
   const response = await api.put("/api/notifications/read-all");
-  if (typeof window !== "undefined") window.dispatchEvent(new Event(NOTIFICATION_READ_COMMITTED_EVENT));
+  if (typeof window !== "undefined")
+    window.dispatchEvent(new Event(NOTIFICATION_READ_COMMITTED_EVENT));
   return response.data;
 };
 

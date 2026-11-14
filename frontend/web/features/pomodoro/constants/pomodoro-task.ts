@@ -51,6 +51,5 @@ export const POMODORO_TASK_MESSAGES = {
   personalCalendarRequired: "Your personal task list is unavailable. Open Calendar to set it up, then try again.",
   createFailed: "Unable to create the task. Please try again.",
   savedTaskUnavailable: "Task saved to My tasks, but it is not available for focus. Your current session has been kept.",
-  invalidDeadline: "Choose a valid deadline date and time.",
-  descriptionTooLong: "Shorten the description to leave room for the task deadline (2,000 characters total).",
+  descriptionTooLong: "Shorten the description to 2,000 characters or fewer.",
 } as const;

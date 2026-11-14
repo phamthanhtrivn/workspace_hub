@@ -128,7 +128,7 @@ export default function InviteMemberDialog({
               Name or Email
             </span>
             <span className="relative block">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 ref={inputRef}
                 type="text"
@@ -159,7 +159,7 @@ export default function InviteMemberDialog({
                     setResults([]);
                     inputRef.current?.focus();
                   }}
-                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 rounded-control text-muted-foreground hover:bg-muted cursor-pointer"
+                  className="absolute right-1 top-1/2 z-10 h-6 w-6 -translate-y-1/2 rounded-control text-muted-foreground hover:bg-muted cursor-pointer"
                   aria-label="Clear search"
                 >
                   <X className="h-3.5 w-3.5" />

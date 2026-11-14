@@ -22,6 +22,7 @@ import { MeetingModule } from './modules/meeting/meeting.module';
 import { LiveKitModule } from './infrastructure/livekit/livekit.module';
 import { HealthController } from './common/health.controller';
 import { RuntimeConfigModule } from './common/config/runtime-config.module';
+import { DocumentAccessRealtimeModule } from './modules/document-access-realtime/document-access-realtime.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { RuntimeConfigModule } from './common/config/runtime-config.module';
     DirectConversationModule,
     DirectMessageModule,
     UserProfileSnapshotModule,
+    DocumentAccessRealtimeModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, { provide: APP_GUARD, useClass: JwtIdentityGuard }],

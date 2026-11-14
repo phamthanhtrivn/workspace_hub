@@ -59,27 +59,11 @@ export function isTaskCalendarEvent(event?: {
   if (!event) return false;
   if (event.sourceType === EventSourceType.TASK) return true;
   if (event.extendedProps?.sourceType === EventSourceType.TASK) return true;
-  if (
-    typeof event.description === "string" &&
-    event.description.includes("[TASK]")
-  ) {
-    return true;
-  }
-  const extDesc = event.extendedProps?.description;
-  if (typeof extDesc === "string" && extDesc.includes("[TASK]")) {
-    return true;
-  }
   return false;
 }
 
-export function cleanTaskDescription(
-  description: string | null | undefined,
-): string {
-  if (!description) return "";
-  return description
-    .replace(/^\[TASK\]\s*/, "")
-    .replace(/\n?\[TASK\]\s*/g, "")
-    .trim();
+export function cleanTaskDescription(description: string | null | undefined): string {
+  return description?.trim() ?? "";
 }
 
 export function mapCalendarEventToFullCalendar(
@@ -108,6 +92,11 @@ export function mapCalendarEventToFullCalendar(
     allDay: allDay === event.allDay ? event.allDay : true,
     sourceType: normalizedSourceType,
   };
+  const canEditSchedule = Boolean(
+    event.permissions?.canManage &&
+      !event.recurrenceRule &&
+      !event.recurrenceParentId,
+  );
 
   return {
     id: event.id,
@@ -127,9 +116,9 @@ export function mapCalendarEventToFullCalendar(
         : []),
       ...(isDeclined ? ["calendar-event-declined"] : []),
     ],
-    editable: event.permissions?.canManage ?? false,
-    durationEditable: event.permissions?.canManage ?? false,
-    startEditable: event.permissions?.canManage ?? false,
+    editable: canEditSchedule,
+    durationEditable: canEditSchedule,
+    startEditable: canEditSchedule,
     extendedProps: {
       model: normalizedEvent,
       calendarId: event.calendarId,

@@ -1,4 +1,4 @@
-import { Lock } from "lucide-react";
+import { LockKeyhole, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   SHARED_DOCUMENT_ACCESS_CODE as CODE,
@@ -22,29 +22,40 @@ export function DocumentAccessNotice({
   const message = code
     ? DOCUMENT_ACCESS_NOTICE_MESSAGES[code]
     : DOCUMENT_ACTION_FAILED_MESSAGE;
+  const accessChanged = code === CODE.RESTRICTED || denied;
 
   return (
     <div
       role="status"
-      className="my-3 w-full max-w-sm rounded-panel border border-border bg-muted p-4 text-sm text-foreground"
+      className="my-3 w-full max-w-sm rounded-panel border border-border bg-card p-4 text-sm text-foreground shadow-sm"
     >
       <div className="flex items-start gap-3">
-        <Lock
-          size={20}
-          aria-hidden="true"
-          className="shrink-0 text-muted-foreground"
-        />
-        <p className="min-w-0 break-words">{message}</p>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-destructive-soft text-destructive-content">
+          <LockKeyhole size={18} aria-hidden="true" />
+        </span>
+        <div className="min-w-0 pt-0.5">
+          <p className="font-semibold leading-5">
+            {accessChanged ? "Access removed" : "This item is unavailable"}
+          </p>
+          <p className="mt-1 break-words text-muted-foreground">
+            {accessChanged
+              ? "You no longer have access to this file or folder. Contact the person who shared it to request access."
+              : message}
+          </p>
+        </div>
       </div>
-      <Button
-        variant="ghost"
-        className="mt-3"
-        loading={busy}
-        disabled={busy}
-        onClick={onRetry}
-      >
-        Check access again
-      </Button>
+      {!code && !denied ? (
+        <Button
+          variant="ghost"
+          className="mt-3"
+          loading={busy}
+          disabled={busy}
+          onClick={onRetry}
+        >
+          <RefreshCw size={14} aria-hidden="true" />
+          Try again
+        </Button>
+      ) : null}
     </div>
   );
 }

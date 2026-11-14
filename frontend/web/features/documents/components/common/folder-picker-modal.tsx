@@ -34,6 +34,7 @@ interface FolderPickerModalProps {
   busy?: boolean;
   initialFolderId?: string | null;
   projectId?: string;
+  isStarred?: boolean;
   projectRootFolderId?: string | null;
   rootLabel?: string;
   confirmLabel?: string;
@@ -60,6 +61,7 @@ function FolderPickerContent({
   busy = false,
   initialFolderId = null,
   projectId,
+  isStarred = false,
   projectRootFolderId = null,
   rootLabel,
   confirmLabel = "Move here",
@@ -78,7 +80,7 @@ function FolderPickerContent({
   const pickerRootName =
     rootLabel ||
     (projectId ? projectPath.data?.[0]?.name : undefined) ||
-    NavigationLabel.ROOT;
+    (isStarred ? NavigationLabel.STARRED : NavigationLabel.ROOT);
   const [chosenFolderId, setCurrentFolderId] = useState<string | null>(
     initialFolderId,
   );
@@ -113,11 +115,13 @@ function FolderPickerContent({
       currentFolderId,
       projectId,
       pickerRootFolderId,
+      isStarred,
     ],
     queryFn: () =>
       documentsApi.getDocuments({
         folderId: currentFolderId || undefined,
         projectId: projectId && !currentFolderId ? projectId : undefined,
+        starred: isStarred || undefined,
         limit: 1000,
       }),
     enabled:
@@ -152,6 +156,7 @@ function FolderPickerContent({
               },
               projectId,
               excludedIds,
+              isStarred,
             )
           : M.DROP_UNAVAILABLE
         : undefined;
@@ -291,12 +296,14 @@ function FolderPickerContent({
                   folder,
                   projectId,
                   excludedIds,
+                  isStarred,
                 )}
                 onClick={() => {
                   const reason = getMoveDestinationBlockReason(
                     folder,
                     projectId,
                     excludedIds,
+                    isStarred,
                   );
                   if (reason) {
                     toast.info(reason);

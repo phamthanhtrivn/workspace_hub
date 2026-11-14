@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import { useMeetingLocation } from "../hooks/use-meeting-location";
 import { toast } from "sonner";
 import { MeetingHero } from "./common/meeting-hero";
 import { MeetingActionTile } from "./common/meeting-action-tile";
@@ -37,12 +37,9 @@ const OVERVIEW_UPCOMING_LIMIT = 3;
 
 export function MeetingLayout() {
   const queryClient = useQueryClient();
-  const searchParams = useSearchParams();
+  const { activeView: activeNavItemId, changeView: setActiveNavItemId, highlightedMeeting: highlightedMeetingJoinToken } = useMeetingLocation();
   const clock = useMeetingClock();
   const [flowStep, setFlowStep] = useState(MeetingFlowStep.DASHBOARD);
-  const [activeNavItemId, setActiveNavItemId] = useState(
-    MeetingDashboardNavItemId.OVERVIEW,
-  );
   const [isJoinLinkModalOpen, setIsJoinLinkModalOpen] = useState(false);
   const [isScheduleMeetingModalOpen, setIsScheduleMeetingModalOpen] =
     useState(false);
@@ -60,7 +57,6 @@ export function MeetingLayout() {
     enabled: overviewEnabled,
     refetchOnWindowFocus: true,
   });
-  const highlightedMeetingJoinToken = searchParams.get("meeting");
   const {
     settings: preJoinSettings,
     setSettings: setPreJoinSettings,
@@ -94,16 +90,19 @@ export function MeetingLayout() {
   const handleActionClick = (actionId: MeetingDashboardActionId) => {
     if (actionId === MeetingDashboardActionId.VIEW_RECORDINGS) {
       setActiveNavItemId(MeetingDashboardNavItemId.RECORDINGS);
+
       return;
     }
     if (actionId === MeetingDashboardActionId.JOIN_MEETING) {
       setIsJoinLinkModalOpen(true);
+
       return;
     }
 
     if (actionId === MeetingDashboardActionId.SCHEDULE_MEETING) {
       setEditingScheduledMeeting(null);
       setIsScheduleMeetingModalOpen(true);
+
       return;
     }
 
@@ -142,17 +141,6 @@ export function MeetingLayout() {
     void queryClient.invalidateQueries({ queryKey: meetingKeys.historyRoot });
   }, [queryClient]);
 
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab === MeetingDashboardNavItemId.UPCOMING || tab === MeetingDashboardNavItemId.RECORDINGS) {
-      const selectUpcomingTimer = window.setTimeout(() => {
-        setActiveNavItemId(tab);
-      }, 0);
-
-      return () => window.clearTimeout(selectUpcomingTimer);
-    }
-  }, [searchParams]);
-
   useMeetingSocket({
     onHistoryVisibilityUpdated: refreshMeetingOverview,
     // onStatusUpdated also receives meeting-started events through the socket hook.
@@ -177,7 +165,7 @@ export function MeetingLayout() {
       <section className="@container/meeting-content flex min-h-0 min-w-0 flex-1 flex-col px-4 py-5 sm:px-6 lg:px-8">
         <div
           key={activeNavItemId}
-          className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain"
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-1"
           role="region"
           aria-label="Meetings content"
           tabIndex={0}

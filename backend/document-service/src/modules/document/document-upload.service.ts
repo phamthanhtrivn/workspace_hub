@@ -18,6 +18,7 @@ import { DocumentLocationService } from './document-location.service';
 import { DocumentPresentationService } from './document-presentation.service';
 import { DocumentEventPublisher } from './document-event-publisher.service';
 import { DocumentAccessService } from './document-access.service';
+import { DOCUMENT_BULK } from './types/document-bulk.constants';
 
 @Injectable()
 export class DocumentUploadService {
@@ -126,6 +127,7 @@ export class DocumentUploadService {
       if (!updatedItem) {
         throw new NotFoundException('Document or folder not found');
       }
+
       return this.presentation.enrichDocumentItem(updatedItem);
     }
 
@@ -142,6 +144,7 @@ export class DocumentUploadService {
         where: { s3Key: dto.s3Key, ownerUserId: userId },
       });
       if (previous) return previous;
+      await this.locations.lockWritableParent(tx, parentFolder?.id ?? null);
       await this.quotaService.reserve(tx, userId, dto.sizeBytes);
       await this.locations.lockAvailableName(
         tx,
@@ -178,6 +181,7 @@ export class DocumentUploadService {
     });
 
     await this.events.publishProjectDocumentEvent(item, userId, 'CREATED');
+
     return this.presentation.enrichDocumentItem(item);
   }
 
@@ -199,6 +203,7 @@ export class DocumentUploadService {
     if (item.type === ItemType.FOLDER) {
       throw new BadRequestException('Cannot create a new version for a folder');
     }
+    this.assertVersionUploadAllowed(item);
 
     await this.s3Service.assertUploadSize(dto.s3Key, dto.sizeBytes, {
       actorId: userId,
@@ -209,6 +214,9 @@ export class DocumentUploadService {
 
     const newVersion = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM document_items WHERE id = ${id}::uuid FOR UPDATE`;
+      this.assertVersionUploadAllowed(
+        await tx.documentItem.findUniqueOrThrow({ where: { id } }),
+      );
       const duplicate = await tx.documentVersion.findFirst({
         where: { documentItemId: id, s3Key: dto.s3Key },
       });
@@ -266,6 +274,7 @@ export class DocumentUploadService {
       await this.userProfileSnapshotService.attachProfilesToDocumentVersions([
         newVersion,
       ]);
+
     return enrichedVersion;
   }
 
@@ -287,6 +296,7 @@ export class DocumentUploadService {
     if (item.type === ItemType.FOLDER) {
       throw new BadRequestException('Cannot create a new version for a folder');
     }
+    this.assertVersionUploadAllowed(item);
 
     await this.s3Service.assertUploadSize(dto.s3Key, dto.sizeBytes, {
       actorId: activeUserId,
@@ -298,6 +308,9 @@ export class DocumentUploadService {
 
     const newVersion = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM document_items WHERE id = ${id}::uuid FOR UPDATE`;
+      this.assertVersionUploadAllowed(
+        await tx.documentItem.findUniqueOrThrow({ where: { id } }),
+      );
       const duplicate = await tx.documentVersion.findFirst({
         where: { documentItemId: id, s3Key: dto.s3Key },
       });
@@ -367,6 +380,7 @@ export class DocumentUploadService {
     if (item.type === ItemType.FOLDER) {
       throw new BadRequestException('Cannot upload a file for a folder');
     }
+    this.assertVersionUploadAllowed(item);
 
     await this.quotaService.checkQuota(item.ownerUserId, dto.sizeBytes);
 
@@ -383,5 +397,10 @@ export class DocumentUploadService {
       );
 
     return { presignedUrl, s3Key };
+  }
+
+  private assertVersionUploadAllowed(item: Pick<DocumentItem, 'isStarred'>) {
+    if (item.isStarred)
+      throw new BadRequestException(DOCUMENT_BULK.STARRED_CREATE);
   }
 }

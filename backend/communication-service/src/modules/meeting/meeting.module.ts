@@ -29,6 +29,7 @@ import { MeetingRoomService } from './services/meeting-room.service';
 import { MeetingScreenShareService } from './services/meeting-screen-share.service';
 import { MeetingRecordingController } from './meeting-recording.controller';
 import { MeetingRecordingService } from './services/meeting-recording.service';
+import { MeetingSummaryService } from './services/meeting-summary.service';
 import { MeetingRecordingWorker } from './services/meeting-recording.worker';
 import { MeetingRecordingMediaService } from './services/meeting-recording-media.service';
 import { MeetingRecordingSegmentsService } from './services/meeting-recording-segments.service';
@@ -65,6 +66,7 @@ import {
     MeetingCaptionsService,
     MeetingRecordingRequestsService,
     MeetingRecordingService,
+    MeetingSummaryService,
     MeetingRecordingMediaService,
     MeetingRecordingSegmentsService,
     MeetingRecordingWorker,

@@ -1,10 +1,9 @@
 "use client";
 import { PERMISSION_REASON } from "@/lib/permission-feedback";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 import Link from "next/link";
 import { Menu, MessageCircle, Plus, RotateCcw, UserPlus } from "lucide-react";
-import { AvatarStack } from "../ui/avatar-stack";
+import { TaskAssigneeFilter } from "../ui/task-assignee-filter";
 import { ProjectIdentityIcon } from "../ui/project-identity";
 import { ProjectSearchInput } from "../ui/project-form-controls";
 import TaskQuickFilters from "../ui/task-quick-filters";
@@ -73,7 +72,7 @@ function TaskStatusCounts({
 }) {
   const count = (status: TaskStatus) =>
     counts?.[status] ??
-    tasks.filter((task) => task.status === status && !task.archived).length;
+    tasks.filter((task) => task.status === status && !task.deletedAt).length;
 
   return (
     <div className="flex w-fit max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground [&>span:not(:empty)]:whitespace-nowrap">
@@ -252,55 +251,29 @@ export default function ProjectDetailToolbar({
               onAssigneeChange={onAssigneeChange}
             />
 
-            <Collapsible className="min-w-0 max-w-full"><CollapsibleTrigger render={<Button type="button" variant="ghost" className="group h-auto w-full justify-between whitespace-normal text-left" />} className="min-h-9 cursor-pointer rounded-control px-2 py-2 text-xs font-semibold text-muted-foreground">Assignee options{selectedAssigneeIds.length > 0 ? ` (${selectedAssigneeIds.length} selected)` : ""}{onlyMyIssues ? " · My tasks" : ""}</CollapsibleTrigger><CollapsibleContent><div className="flex flex-wrap items-center gap-3 pt-2">
-            <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1">
-              <span className="mr-1 text-xs font-semibold text-muted-foreground">
-                Assignee:
-              </span>
-              <div className="flex min-w-0 max-w-full flex-wrap gap-y-2 -space-x-1.5">
-                {members.map((member) => {
-                  const isSelected = selectedAssigneeIds.includes(member.userId);
-                  return (
-                    <Button
-                      key={member.id}
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onToggleAssignee(member.userId)}
-                      aria-label={`Filter tasks assigned to ${member.displayName}`} aria-pressed={isSelected}
-                      title={member.displayName}
-                      className={[
-                        "relative h-6 w-6 rounded-full ring-2 transition-transform cursor-pointer p-0",
-                        isSelected
-                          ? "z-10 scale-110 ring-primary"
-                          : "ring-border hover:z-10",
-                      ].join(" ")}
-                    >
-                      <AvatarStack users={[member]} size="xs" max={1} />
-                    </Button>
-                  );
-                })}
-              </div>
+            <div className="flex max-w-full flex-wrap items-center gap-3">
+              <TaskAssigneeFilter
+                members={members}
+                selectedAssigneeIds={selectedAssigneeIds}
+                onToggleAssignee={onToggleAssignee}
+              />
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-pressed={onlyMyIssues}
+                onClick={onToggleOnlyMyIssues}
+                className={[
+                  "h-9 rounded-control px-3 text-xs font-semibold transition cursor-pointer",
+                  onlyMyIssues
+                    ? "border-border bg-primary-soft text-info-content hover:bg-primary-soft"
+                    : "border-border bg-card text-muted-foreground hover:bg-background",
+                ].join(" ")}
+              >
+                Only My Tasks
+              </Button>
             </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              aria-pressed={onlyMyIssues}
-              onClick={onToggleOnlyMyIssues}
-              className={[
-                "h-9 rounded-control px-3 text-xs font-semibold transition cursor-pointer",
-                onlyMyIssues
-                  ? "border-border bg-primary-soft text-info-content hover:bg-primary-soft"
-                  : "border-border bg-card text-muted-foreground hover:bg-background",
-              ].join(" ")}
-            >
-              Only My Tasks
-            </Button>
-
-            </div></CollapsibleContent>
-    </Collapsible>
             {isFiltersActive && (
               <Button
                 type="button"

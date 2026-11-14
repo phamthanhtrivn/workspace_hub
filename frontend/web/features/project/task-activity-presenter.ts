@@ -15,7 +15,11 @@ export const ACTIVITY_ACTION_LABELS: Record<string, string> = {
   dueDate: "updated due date to",
   estimatedMinutes: "updated estimated duration to",
   allDay: "updated all-day setting",
-  archived: "archived this task",
+  deleted: "deleted this task",
+  subtask_created: 'added a subtask',
+  subtask_removed: 'removed a subtask',
+  dependency: 'changed task dependencies',
+  label_updated: 'updated an attached label',
   parentTaskId: "changed parent task to",
   assigneeUserId: "assigned task to",
   rank: "reordered task position",
@@ -106,7 +110,7 @@ export function createTaskActivityPresenter(
     if (["startDate", "dueDate"].includes(activity.field)) {
       return formatTaskDateTime(value);
     }
-    if (["allDay", "archived"].includes(activity.field)) {
+    if (activity.field === "allDay") {
       return value === "true" ? "Enabled" : "Disabled";
     }
     return value;

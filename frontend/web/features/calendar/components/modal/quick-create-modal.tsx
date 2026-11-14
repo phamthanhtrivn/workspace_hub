@@ -22,14 +22,9 @@ import { CalendarEventFormController } from "../../hooks/use-calendar-event-form
 
 import {
   CalendarEvent,
-  CalendarTaskDeadline,
   EventSourceType,
   WorkspaceCalendar,
 } from "../../types/calendar.types";
-import {
-  readTaskDeadline,
-  writeTaskDeadline,
-} from "../../utils/calendar-task-deadline.utils";
 import { CalendarDocumentsSection } from "./calendar-documents-section";
 import { EventCalendarSelect } from "./event-calendar-select";
 import { QuickCreateEventFields } from "./quick-create-event-fields";
@@ -38,7 +33,6 @@ import {
   QuickCreateTimeSection,
   QuickRow,
 } from "./quick-create-time-section";
-import { CalendarTaskDeadlineFields } from "./calendar-task-deadline-fields";
 import { CALENDAR_TASK_TITLE_MAX_LENGTH } from "../../types/calendar.constants";
 import { ReminderEditor } from "./reminder-editor";
 import { formatReminderSummary } from "../../utils/calendar-reminder.utils";
@@ -75,7 +69,7 @@ export function QuickCreateModal({
   const dialogRef = useRef<HTMLFormElement>(null);
   const isEditing = Boolean(event?.id);
 
-  const { control, formState, getValues, register, setValue } = controller.form;
+  const { control, formState, register, setValue, setFocus } = controller.form;
   const calendarId = useWatch({ control, name: "calendarId" });
   const reminders = useWatch({ control, name: "reminders" });
   const modalAccent = kind === "task" ? "var(--warning-content)" : "var(--link)";
@@ -89,6 +83,15 @@ export function QuickCreateModal({
 
   const locationValue = useWatch({ control, name: "location" }) ?? "";
 
+  const handleKindChange = (nextKind: QuickCreateKind) => {
+    onKindChange(nextKind);
+    setValue(
+      "sourceType",
+      nextKind === "task" ? EventSourceType.TASK : EventSourceType.USER,
+    );
+    setFocus("title");
+  };
+
 
   // Expand "More options" downwards
   const [showMoreOptions, setShowMoreOptions] = useState<boolean>(() => {
@@ -98,12 +101,6 @@ export function QuickCreateModal({
     );
     const hasDocs = Boolean(event.documentIds && event.documentIds.length > 0);
     return hasMultipleReminders || hasDocs;
-  });
-
-  // Task deadline state
-  const initialDeadline = readTaskDeadline(event?.description);
-  const [deadline, setDeadline] = useState<CalendarTaskDeadline>({
-    enabled: Boolean(initialDeadline.date), date: initialDeadline.date, time: initialDeadline.time,
   });
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (submitEvent) => {
@@ -118,15 +115,6 @@ export function QuickCreateModal({
       if (personalCalendar) {
         setValue("calendarId", personalCalendar.id);
       }
-      setValue(
-        "description",
-        writeTaskDeadline(
-          getValues("description") || "",
-          deadline.date,
-          deadline.time,
-          deadline.enabled,
-        ),
-      );
     } else {
       setValue("sourceType", EventSourceType.USER);
     }
@@ -195,7 +183,7 @@ export function QuickCreateModal({
             {...register("title")}
             required={kind === "task"}
             maxLength={kind === "task" ? CALENDAR_TASK_TITLE_MAX_LENGTH : undefined}
-            data-modal-initial-focus={isEditing || undefined}
+            data-modal-initial-focus
             focusMode="container"
             id="calendar-quick-create-title"
             aria-label={kind === "task" ? copy.taskTitle : copy.addTitle}
@@ -222,7 +210,7 @@ export function QuickCreateModal({
                   variant="ghost"
 
                   aria-pressed={kind === tab.value}
-                  onClick={() => onKindChange(tab.value)}
+                  onClick={() => handleKindChange(tab.value)}
                   className={cn(
                     "h-9 min-w-20 rounded-control border px-4 py-0 text-sm font-semibold leading-none transition-colors focus-visible:ring-inset motion-reduce:transition-none",
                     kind === tab.value
@@ -251,7 +239,7 @@ export function QuickCreateModal({
             <QuickCreateTimeSection
               mode={controller.mode}
               today={controller.today}
-              disabled={submitting || formState.isSubmitting}
+              disabled={submitting || formState.isSubmitting || controller.isRecurring}
               form={controller.form}
               kind={kind}
               recurrencePreset={controller.recurrencePreset}
@@ -262,7 +250,11 @@ export function QuickCreateModal({
               onEndDateTimeChange={controller.handleEndDateTimeChange}
               onAllDayChange={controller.handleAllDayChange}
               onRecurrenceChange={controller.handleRecurrenceChange}
+              showRecurrence
+              recurrenceDisabled={controller.isRecurring}
+              recurrenceRule={event?.recurrenceRule}
             />
+            {controller.isRecurring && <p className="ml-12 text-xs text-muted-foreground">{copy.recurringTimeLocked}</p>}
 
             {/* Event Specific: Attendees, Video Conference, Location */}
             {kind === "event" && (
@@ -280,8 +272,6 @@ export function QuickCreateModal({
                 register={register}
               />
             )}
-
-            {kind === "task" && <CalendarTaskDeadlineFields value={deadline} onChange={setDeadline} disabled={submitting} />}
 
             {/* Description */}
             <QuickRow icon={<AlignLeft className="h-5 w-5" />}>

@@ -39,7 +39,6 @@ export interface TaskApiModel {
   completedAt?: string | null;
   deletedAt?: string | null;
   rank?: string | null;
-  archived: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
   checklists?: TaskChecklist[];
@@ -77,7 +76,6 @@ export interface UpdateTaskPayload {
   dueDate?: string | null;
   allDay?: boolean;
   rank?: string;
-  archived?: boolean;
   parentTaskId?: string;
   clearParent?: boolean;
 }
@@ -119,7 +117,6 @@ export function normalizeTask(task: TaskApiModel): Task {
     completedAt: task.completedAt || undefined,
     deletedAt: task.deletedAt || undefined,
     rank: task.rank || "",
-    archived: task.archived,
     createdAt: task.createdAt || now,
     updatedAt: task.updatedAt || now,
     checklists: task.checklists || [],

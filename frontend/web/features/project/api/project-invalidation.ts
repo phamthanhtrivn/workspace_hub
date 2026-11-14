@@ -28,6 +28,9 @@ export function projectQueriesForEvent(event: ProjectChange): ProjectQueryInvali
   if (['PROJECT', 'MEMBER', 'INVITATION'].includes(event.resource)) {
     invalidations.push({ queryKey: projectKey, exact: true });
   }
+  if (event.resource === 'PROJECT' || event.resource === 'MEMBER') {
+    add([...projectKey, 'notification-identity']);
+  }
   const invitationAccepted = event.resource === 'INVITATION' &&
     typeof event.data === 'object' && event.data !== null &&
     'status' in event.data && event.data.status === 'ACCEPTED';
@@ -41,7 +44,7 @@ export function projectQueriesForEvent(event: ProjectChange): ProjectQueryInvali
 
   const resourceKeys: Partial<Record<ProjectChangedEvent['resource'], QueryKey[]>> = {
     PROJECT: [[...projectKey, 'access-sync'], [...projectKey, 'space-status']],
-    TASK: [[...projectKey, 'tasks'], [...projectKey, 'task-status-counts']],
+    TASK: [[...projectKey, 'tasks'], [...projectKey, 'task-status-counts'], [...projectKey, 'linked-task']],
     INVITATION: [[...projectKey, 'invitations', 'pending'], ['projects', 'invitations', 'mine']],
     PROJECT_SPACE: [[...projectKey, 'space-status']],
     CHECKLIST: [[...projectKey, 'tasks']],

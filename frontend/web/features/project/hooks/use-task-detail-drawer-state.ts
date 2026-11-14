@@ -68,10 +68,10 @@ export function useTaskDetailDrawerState({
   } = useTaskActivities(task?.id || "");
 
   const isReadOnly = task
-    ? isTerminalTaskStatus(task.status) || !canEditTask
+    ? Boolean(task.deletedAt) || isTerminalTaskStatus(task.status) || !canEditTask
     : true;
   const canChangeStatus = task
-    ? !task.archived && !isTerminalTaskStatus(task.status) && (canEditTask || canContributeTask)
+    ? !task.deletedAt && !isTerminalTaskStatus(task.status) && (canEditTask || canContributeTask)
     : false;
   const openSubtasks = task
     ? getOpenTaskSubtasks(task.id, tasks)

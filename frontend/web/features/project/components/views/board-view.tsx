@@ -218,7 +218,7 @@ export default function BoardView({
                       density="compact"
                       onClick={() => onTaskClick?.(task)}
                       onOpenChat={onOpenChat}
-                      canDrag={Boolean(onTaskMove) && !task.archived && canMoveTask(task)}
+                      canDrag={Boolean(onTaskMove) && !task.deletedAt && canMoveTask(task)}
                       onPriorityChange={
                         onTaskPriorityChange &&
                         canEditTask(task) &&

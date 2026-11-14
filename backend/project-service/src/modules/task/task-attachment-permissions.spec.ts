@@ -54,7 +54,6 @@ function fixture(
       findUnique: async () => ({
         id: "project",
         ownerId: options.owner ? userId : "owner",
-        archived: false,
         status: "ACTIVE",
         setting: {},
       }),

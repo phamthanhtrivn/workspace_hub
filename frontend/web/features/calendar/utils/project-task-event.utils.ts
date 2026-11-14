@@ -22,7 +22,7 @@ export function mapProjectTaskToCalendarEvent(
   project: Project,
 ): EventInput | null {
   if (
-    task.archived ||
+    task.deletedAt ||
     task.projectId !== project.id ||
     !task.startDate ||
     !task.dueDate
@@ -88,7 +88,7 @@ export function mapProjectTasksToDomainCalendarEvents(
   if (!project) return [];
   return tasks.flatMap((task) => {
     if (
-      task.archived ||
+      task.deletedAt ||
       task.projectId !== project.id ||
       !task.startDate ||
       !task.dueDate
@@ -148,6 +148,7 @@ export function mapProjectTasksToDomainCalendarEvents(
         updatedAt: task.updatedAt,
         extendedProps: {
           projectTask: task,
+          project,
           projectId: project.id,
           projectColor: project.color,
           completedAt: task.completedAt,

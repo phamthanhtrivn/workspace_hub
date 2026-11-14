@@ -8,12 +8,7 @@ export const PROJECT_DATE_MESSAGES = {
   endDateBeforeStartDate: DATE_RANGE_MESSAGES.endBeforeStart,
 } as const;
 
-export const PROJECT_COLOR_OPTIONS = [
-  "#6366f1", "#f59e0b", "#22c55e", "#ef4444", "#ec4899",
-  "#0ea5e9", "#8b5cf6", "#14b8a6", "#f97316", "#64748b",
-] as const;
-
-export const PROJECT_ICON_OPTIONS = [
-  "🚀", "📚", "📊", "💡", "🎯", "🔧", "📝", "🎨",
-  "⚡", "🏆", "💼", "🎓", "🧪", "📱", "🌐", "🔒",
-] as const;
+export {
+  WORKSPACE_COLOR_OPTIONS as PROJECT_COLOR_OPTIONS,
+  WORKSPACE_ICON_OPTIONS as PROJECT_ICON_OPTIONS,
+} from "@/components/ui/custom/appearance.constants";

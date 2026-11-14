@@ -15,11 +15,13 @@ import {
   updateNotificationSuccess,
 } from "@/store/notification/notification.slice";
 import { chatKeys } from "@/features/chat/types/chat.constant";
+import { startNotificationReconciliation } from '../utils/notification-reconciliation';
 import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import {
   getNotificationCategory,
   NOTIFICATION_CHANGED_EVENT,
   NOTIFICATION_READ_COMMITTED_EVENT,
+  NOTIFICATION_RECEIVED_EVENT,
 } from "../utils/notification-category.utils";
 import {
   NotificationType,
@@ -92,6 +94,13 @@ export function useNotificationSocket() {
 
     const handleNewNotification = (noti: AppNotification) => {
       dispatch(addNotification(noti));
+      window.dispatchEvent(new CustomEvent(NOTIFICATION_RECEIVED_EVENT, { detail: noti }));
+      if (noti.type.startsWith('DOCUMENT_')) {
+        void queryClient.invalidateQueries({ queryKey: ['documents'] });
+      }
+      if (noti.type.startsWith('PROJECT_')) {
+        void queryClient.invalidateQueries({ queryKey: ['projects'] });
+      }
 
       if (
         noti.type === NotificationType.CHANNEL_MEMBER_ADDED ||
@@ -161,6 +170,9 @@ export function useNotificationSocket() {
 
     const handleUpdatedNotification = (notification: AppNotification) => {
       dispatch(updateNotificationSuccess(notification));
+      window.dispatchEvent(
+        new CustomEvent(NOTIFICATION_RECEIVED_EVENT, { detail: notification }),
+      );
       if (MEETING_NOTIFICATION_TYPES.has(notification.type)) {
         queryClient.invalidateQueries({
           queryKey: meetingKeys.upcomingRoot,
@@ -191,7 +203,7 @@ export function useNotificationSocket() {
         if (isCancelled || revision !== reconciliationRevision) return;
         dispatch(setUnreadCount(response.data.unreadCount));
         dispatchNotificationCollectionChanged();
-        void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        void queryClient.invalidateQueries({ queryKey: ['notifications'] }, { cancelRefetch: false });
       } catch { /* Reconcile again after the next connection/event. */ }
     };
 
@@ -227,10 +239,19 @@ export function useNotificationSocket() {
     };
 
     window.addEventListener(NOTIFICATION_READ_COMMITTED_EVENT, reconcileNotifications);
+    const stopReconciliation = startNotificationReconciliation({
+      events: window, visibilityEvents: document,
+      isVisible: () => document.visibilityState === 'visible', refresh: reconcileNotifications,
+      schedule: (callback, interval) => {
+        const timer = window.setInterval(callback, interval);
+        return () => window.clearInterval(timer);
+      },
+    });
     void connectWhenReady();
 
     return () => {
       isCancelled = true;
+      stopReconciliation();
       window.removeEventListener(NOTIFICATION_READ_COMMITTED_EVENT, reconcileNotifications);
       if (retryTimer) {
         window.clearTimeout(retryTimer);

@@ -61,12 +61,14 @@ import { usePendingProjectInvitations } from "@/features/project/hooks/use-invit
 import { useProjectSidebarState } from "@/features/project/hooks/use-project-sidebar-state";
 import { projectSocketService } from "../api/project-socket.service";
 import { useLinkedProjectTask } from "../hooks/use-linked-project-task";
+import { useProjectLocation } from "../hooks/use-project-location";
+import { LEGACY_PROJECT_SETTINGS_VIEW, PROJECT_DETAIL_QUERY } from "../utils/project-navigation";
 import { QueryFeedback } from "@/components/common/query-feedback";
 
 export default function ProjectDetailScreen() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const requestedTaskId = searchParams.get("taskId") || searchParams.get("task");
+  const requestedTaskId = searchParams.get(PROJECT_DETAIL_QUERY.taskId) || searchParams.get(PROJECT_DETAIL_QUERY.legacyTask);
   const router = useRouter();
   const projectId = params.id as string;
   const { data: project, isLoading, isError } = useProject(projectId);
@@ -127,6 +129,7 @@ export default function ProjectDetailScreen() {
   useEffect(() => {
     if (!projectId) return;
     projectSocketService.joinProject(projectId);
+
     return () => {
       projectSocketService.leaveProject(projectId);
     };
@@ -146,15 +149,20 @@ export default function ProjectDetailScreen() {
   );
 
   // States
-  const [viewMode, setViewMode] = useState<ProjectViewMode>("board");
+  const { view: viewMode, changeView } = useProjectLocation();
   const [selectedTaskSnapshot, setSelectedTask] = useState<Task | null>(null);
-  const selectedTask = selectedTaskSnapshot
-    ? (serverTasks.find((task) => task.id === selectedTaskSnapshot.id) ??
-      selectedTaskSnapshot)
-    : null;
+  const [drawerView, setDrawerView] = useState(viewMode);
+  if (drawerView !== viewMode) {
+    setDrawerView(viewMode);
+    setSelectedTask(null);
+  }
+  const selectedTaskDetails = useLinkedProjectTask(projectId, selectedTaskSnapshot?.id ?? null, serverTasks, Boolean(project));
+  const listedSelectedTask = selectedTaskDetails.task;
+  const selectedTask = selectedTaskSnapshot && listedSelectedTask && Date.parse(listedSelectedTask.updatedAt) >= Date.parse(selectedTaskSnapshot.updatedAt)
+    ? listedSelectedTask : selectedTaskSnapshot;
   const [chatTask, setChatTask] = useState<Task | null>(null);
   const [showMembers, setShowMembers] = useState(false);
-  const [showProjectSettings, setShowProjectSettings] = useState(() => searchParams.get("view") === "settings");
+  const [showProjectSettings, setShowProjectSettings] = useState(() => searchParams.get(PROJECT_DETAIL_QUERY.view) === LEGACY_PROJECT_SETTINGS_VIEW);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [openedUrlTaskId, setOpenedUrlTaskId] = useState<string | null>(null);
   const linkedTask = useLinkedProjectTask(projectId, requestedTaskId, serverTasks, Boolean(project) && !tasksLoading);
@@ -178,8 +186,8 @@ export default function ProjectDetailScreen() {
     setSelectedTask(null);
     if (!requestedTaskId) return;
     const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.delete("taskId");
-    nextParams.delete("task");
+    nextParams.delete(PROJECT_DETAIL_QUERY.taskId);
+    nextParams.delete(PROJECT_DETAIL_QUERY.legacyTask);
     const query = nextParams.toString();
     router.replace(`/projects/${projectId}${query ? `?${query}` : ""}`, { scroll: false });
   };
@@ -188,8 +196,8 @@ export default function ProjectDetailScreen() {
     setSelectedTask(task);
     if (!requestedTaskId || requestedTaskId === task.id) return;
     const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.delete("task");
-    nextParams.set("taskId", task.id);
+    nextParams.delete(PROJECT_DETAIL_QUERY.legacyTask);
+    nextParams.set(PROJECT_DETAIL_QUERY.taskId, task.id);
     router.replace(`/projects/${projectId}?${nextParams.toString()}`, { scroll: false });
   };
 
@@ -213,7 +221,10 @@ export default function ProjectDetailScreen() {
   } = useProjectSidebarState();
 
   const handleSidebarViewChange = (view: ProjectViewMode) => {
-    setViewMode(view);
+    if (view !== viewMode) {
+      setSelectedTask(null);
+      changeView(view);
+    }
     closeMobileSidebar();
   };
 
@@ -232,12 +243,15 @@ export default function ProjectDetailScreen() {
     if (!target) return false;
     if (isTerminalTaskStatus(target.status)) {
       toast.info("This task is completed or cancelled and cannot be modified.");
+
       return true;
     }
     if (!permissions.canEditTask(target)) {
       toast.info("You do not have permission to edit this task.");
+
       return true;
     }
+
     return false;
   }
 
@@ -245,6 +259,7 @@ export default function ProjectDetailScreen() {
     const target = serverTasks.find((task) => task.id === taskId);
     if (!target || !isTerminalTaskStatus(target.status)) return false;
     toast.info("This task is completed or cancelled and cannot be modified.");
+
     return true;
   }
 
@@ -274,7 +289,6 @@ export default function ProjectDetailScreen() {
     searchQuery,
     setSearchQuery,
     assigneeIds: activeAssigneeFilters,
-    setAssigneeIds: setActiveAssigneeFilters,
     status: statusFilter,
     setStatus: setStatusFilter,
     priority: priorityFilter,
@@ -368,7 +382,9 @@ export default function ProjectDetailScreen() {
   };
 
   const handleOpenProjectChat = async () => {
-    if (["PENDING", "FAILED"].includes(accessState.data?.chat ?? "PENDING")) { toast.info("Chat access is being prepared. Please try again shortly."); return; }
+    if (["PENDING", "FAILED"].includes(accessState.data?.chat ?? "PENDING")) { toast.info("Chat access is being prepared. Please try again shortly.");
+
+ return; }
     try {
       const projectSpace = await openProjectSpaceMutation.mutateAsync();
       const searchParams = new URLSearchParams({
@@ -456,14 +472,11 @@ export default function ProjectDetailScreen() {
           canInviteMembers={permissions.canInviteMembers}
           canOpenProjectChat={canOpenProjectChat && !["PENDING", "FAILED"].includes(accessState.data?.chat ?? "PENDING")}
           isOpeningProjectChat={openProjectSpaceMutation.isPending}
-          onViewChange={setViewMode}
+          onViewChange={handleSidebarViewChange}
           onSearchChange={setSearchQuery}
           onStatusChange={setStatusFilter}
           onPriorityChange={setPriorityFilter}
-          onAssigneeChange={(value) => {
-            setQuickAssigneeFilter(value);
-            setActiveAssigneeFilters([]);
-          }}
+          onAssigneeChange={setQuickAssigneeFilter}
           onToggleAssignee={toggleAssigneeFilter}
           onToggleOnlyMyIssues={() => setOnlyMyIssues((value) => !value)}
           onClearFilters={clearAllFilters}
@@ -493,7 +506,7 @@ export default function ProjectDetailScreen() {
           onTaskMove={handleTaskMove}
           onTaskPriorityChange={handleTaskPriorityChange}
           onCreateTaskInline={handleCreateTaskInline}
-          onViewChange={setViewMode}
+          onViewChange={handleSidebarViewChange}
           onTaskReschedule={handleTaskReschedule}
         />
       </main>

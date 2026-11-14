@@ -5,6 +5,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "test:reminders": "nest build && node --test test/calendar-reminder.test.cjs",
     "prisma:generate": "prisma generate",
     "prebuild": "npm run prisma:generate",
     "build": "nest build",

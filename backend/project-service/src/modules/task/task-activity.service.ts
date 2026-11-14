@@ -39,8 +39,6 @@ export class TaskActivityService {
       changes.push(["allDay", current.allDay, updated.allDay]);
     if (dto.rank !== undefined)
       changes.push(["rank", current.rank, updated.rank]);
-    if (dto.archived !== undefined)
-      changes.push(["archived", current.archived, updated.archived]);
     if (dto.parentTaskId !== undefined || dto.clearParent)
       changes.push([
         "parentTaskId",

@@ -2,16 +2,18 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
-import { getProject, getUserProfiles } from "@/features/project/api/project.api";
+import { getUserProfiles } from "@/features/project/api/project.api";
 import { getTask } from "@/features/project/api/task.api";
 import type { Notification } from "../types/notification.types";
 import { getProjectTaskNotificationMetadata } from "../utils/project-task-notification.utils";
+import { useNotificationProject } from "./use-notification-project";
 
 const CONTEXT_STALE_TIME_MS = 5 * 60 * 1_000;
 
 /** Old notifications resolve missing context through the normal, permission-checked APIs. */
 export function useProjectTaskNotification(notification: Notification) {
   const metadata = getProjectTaskNotificationMetadata(notification);
+  const project = useNotificationProject(notification);
   const viewerId = useAppSelector(state => state.auth.userId);
   const hasToken = useAppSelector(state => Boolean(state.auth.accessToken));
   const enabled = Boolean(hasToken && viewerId === notification.recipientId && metadata);
@@ -28,14 +30,6 @@ export function useProjectTaskNotification(notification: Notification) {
     retry: false,
     refetchOnWindowFocus: false,
   });
-  const projectQuery = useQuery({
-    queryKey: ["notifications", "project-context", viewerId, metadata?.projectId],
-    queryFn: () => getProject(metadata!.projectId),
-    enabled: enabled && !metadata?.projectName,
-    staleTime: CONTEXT_STALE_TIME_MS,
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
   const senderQuery = useQuery({
     queryKey: ["notifications", "sender-context", viewerId, senderId],
     queryFn: async () => (await getUserProfiles([senderId!])).get(senderId!),
@@ -48,7 +42,7 @@ export function useProjectTaskNotification(notification: Notification) {
   return {
     senderName: notification.senderName || senderQuery.data?.fullName || senderQuery.data?.email || "A project member",
     senderAvatar: senderQuery.data ? senderQuery.data.avatarUrl : notification.senderAvatar,
-    projectName: metadata?.projectName || projectQuery.data?.name,
+    projectName: project.projectName || metadata?.projectName,
     taskTitle: metadata?.taskTitle || taskQuery.data?.title,
     taskNumber: metadata?.taskNumber || taskQuery.data?.taskNumber,
   };

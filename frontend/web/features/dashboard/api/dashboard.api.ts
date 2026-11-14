@@ -1,12 +1,11 @@
-import { Temporal } from "temporal-polyfill";
 import {
-  createCalendarEvent,
   getAllCalendarTasks,
   getCalendars,
   listCalendarPomodoroSessions,
 } from "@/features/calendar/api/calendar.api";
 import type { CalendarPomodoroSession } from "@/features/calendar/types/calendar.types";
-import { readTaskDeadline } from "@/features/calendar/utils/calendar-task-deadline.utils";
+import { formatLocalDateKey } from "@/features/calendar/utils/calendar-date.utils";
+import { getTaskDueDate } from "@/features/calendar/utils/calendar-tasks.utils";
 import { fetchAllPages } from "@/features/project/api/pagination";
 import { getProjects } from "@/features/project/api/project.api";
 import { getProjectTasks } from "@/features/project/api/task.api";
@@ -19,33 +18,6 @@ import type { DashboardCompletedTask } from "../types/dashboard-analytics.types"
 import { getUpcomingMeetings } from "@/features/meeting/api/meeting.api";
 import type { UpcomingMeetingItem } from "@/features/meeting/types/meeting.types";
 import { isCalendarFocusEligible, isProjectFocusEligible, toCalendarFocusTask, toProjectFocusTask } from "@/features/pomodoro/utils/focus-task";
-import { CALENDAR_DEFAULT_TASK_COLOR } from "@/features/calendar/types/calendar.constants";
-import { EventSourceType } from "@/features/calendar/types/calendar.types";
-import { writeTaskDeadline } from "@/features/calendar/utils/calendar-task-deadline.utils";
-import { getPersonalTaskCalendar } from "@/features/pomodoro/utils/personal-task-calendar";
-import { POMODORO_TASK_MESSAGES } from "@/features/pomodoro/constants/pomodoro-task";
-import { dashboardQuickTaskSchema, type DashboardQuickTaskInput } from "../schemas/dashboard-quick-task.schema";
-import { dayBounds } from "../utils/dashboard.utils";
-
-export async function createDashboardQuickTask(input: DashboardQuickTaskInput, userId: string, zone: string) {
-  const { title, deadline } = dashboardQuickTaskSchema.parse(input);
-  if (!userId) throw new Error(POMODORO_TASK_MESSAGES.personalCalendarRequired);
-  const today = Temporal.Now.instant().toZonedDateTimeISO(zone).toPlainDate().toString();
-  const calendar = getPersonalTaskCalendar(await getCalendars(), userId);
-  if (!calendar) throw new Error(POMODORO_TASK_MESSAGES.personalCalendarRequired);
-  const { startAt, endAt } = dayBounds(today, zone);
-  return createCalendarEvent({
-    calendarId: calendar.id,
-    title,
-    description: writeTaskDeadline("", deadline.date, deadline.time, deadline.enabled),
-    startAt,
-    endAt,
-    allDay: true,
-    sourceType: EventSourceType.TASK,
-    color: CALENDAR_DEFAULT_TASK_COLOR,
-    reminders: [],
-  });
-}
 
 export async function getDashboardCompletedTasks(userId: string): Promise<DashboardCompletedTask[]> {
   const [events, calendars, projects] = await Promise.all([
@@ -123,14 +95,12 @@ export async function getPersonalDashboardTasks(
       event.status === "CANCELLED"
     )
       return [];
-    const deadline = readTaskDeadline(event.description);
-    let dueAt: string | null = deadline.date || null;
-    if (deadline.date && deadline.time) {
-      dueAt = Temporal.PlainDateTime.from(`${deadline.date}T${deadline.time}`)
-        .toZonedDateTime(event.timeZone || "UTC")
-        .toInstant()
-        .toString();
-    }
+    const dueDate = getTaskDueDate(event);
+    const dueAt = Number.isNaN(dueDate.getTime())
+      ? null
+      : event.allDay
+        ? formatLocalDateKey(dueDate) || null
+        : dueDate.toISOString();
     return [
       {
         key: `calendar:${event.id}`,
@@ -140,7 +110,7 @@ export async function getPersonalDashboardTasks(
         href: `/calendar?event=${encodeURIComponent(event.id)}`,
         projectName: "Personal task",
         dueAt,
-        dateOnly: !deadline.time,
+        dateOnly: Boolean(event.allDay),
         priority: "MEDIUM",
         focusTask: isCalendarFocusEligible(event, userId) ? toCalendarFocusTask(event) : undefined,
       },
@@ -173,7 +143,6 @@ export async function getProjectDashboardTasks(
             return tasks
               .filter(
                 (task) =>
-                  !task.archived &&
                   !task.deletedAt &&
                   !task.completedAt &&
                   !isTerminalTaskStatus(task.status) &&

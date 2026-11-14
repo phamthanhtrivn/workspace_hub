@@ -30,8 +30,7 @@ export default function TaskStatusPicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const status = task.status;
   const disabledReason = disabled
-    ? task.archived ? TASK_STATUS_RESTRICTIONS.archived
-      : isTerminalTaskStatus(status) ? TASK_STATUS_RESTRICTIONS.readOnly : PERMISSION_REASON.projectContribute
+    ? isTerminalTaskStatus(status) ? TASK_STATUS_RESTRICTIONS.readOnly : PERMISSION_REASON.projectContribute
     : undefined;
 
 

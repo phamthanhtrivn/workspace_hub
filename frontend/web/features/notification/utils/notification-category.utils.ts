@@ -5,6 +5,7 @@ import {
 } from "../types/notification.types";
 
 export const NOTIFICATION_CHANGED_EVENT = "workspacehub:notification-changed";
+export const NOTIFICATION_RECEIVED_EVENT = 'workspacehub:notification-received';
 
 export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   "ALL",
@@ -17,6 +18,12 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
 
 const PROJECT_TYPES = new Set<string>([
   NotificationType.PROJECT_INVITATION,
+  NotificationType.PROJECT_INVITATION_ACCEPTED,
+  NotificationType.PROJECT_INVITATION_DECLINED,
+  NotificationType.PROJECT_PERMISSIONS_UPDATED,
+  NotificationType.PROJECT_MEMBER_REMOVED,
+  NotificationType.PROJECT_TASK_UNASSIGNED,
+  NotificationType.PROJECT_TASK_DELETED,
   NotificationType.PROJECT_TASK_ASSIGNED,
   NotificationType.PROJECT_TASK_UPDATED,
   NotificationType.PROJECT_SPRINT_STARTED,

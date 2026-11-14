@@ -5,6 +5,7 @@ import { TaskPolicyService } from '../task/task-policy.service';
 import { paginate, PaginationQueryDto } from '../../common/utils/pagination';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { toActivityResponse } from '../project/project.mapper';
+import { TaskActivityNotificationService } from './task-activity-notification.service';
 
 type ActivityDatabase = PrismaService | Prisma.TransactionClient;
 export type ActivityChange = [field: string, oldValue: unknown, newValue: unknown];
@@ -15,6 +16,7 @@ export class ActivityService {
     private readonly prisma: PrismaService,
     private readonly taskPolicy: TaskPolicyService,
     private readonly userProfiles: UserProfileSnapshotService,
+    private readonly notifications: TaskActivityNotificationService,
   ) {}
 
   async list(userId: string, taskId: string, query: PaginationQueryDto) {
@@ -57,7 +59,7 @@ export class ActivityService {
     const serializedOldValue = this.stringify(oldValue);
     const serializedNewValue = this.stringify(newValue);
     if (serializedOldValue === serializedNewValue) return;
-    return database.taskActivity.create({
+    const activity = await database.taskActivity.create({
       data: {
         id: crypto.randomUUID(),
         taskId,
@@ -68,6 +70,8 @@ export class ActivityService {
         createdAt: new Date(),
       },
     });
+    await this.notifications.notify(taskId, actorId, [[field, oldValue, newValue]], database);
+    return activity;
   }
 
   async recordMany(
@@ -76,11 +80,13 @@ export class ActivityService {
     changes: ActivityChange[],
     database: ActivityDatabase = this.prisma,
   ): Promise<void> {
-    await Promise.all(
-      changes.map(([field, oldValue, newValue]) =>
-        this.record(taskId, actorId, field, oldValue, newValue, database),
-      ),
-    );
+    const changed = changes.filter(([, before, after]) => this.stringify(before) !== this.stringify(after));
+    if (!changed.length) return;
+    await database.taskActivity.createMany({ data: changed.map(([field, oldValue, newValue]) => ({
+      id: crypto.randomUUID(), taskId, actorId, field,
+      oldValue: this.stringify(oldValue), newValue: this.stringify(newValue), createdAt: new Date(),
+    })) });
+    await this.notifications.notify(taskId, actorId, changed, database);
   }
 
   private stringify(value: unknown): string | null {

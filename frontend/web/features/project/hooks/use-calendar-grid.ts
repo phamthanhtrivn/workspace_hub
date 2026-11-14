@@ -76,7 +76,7 @@ export function useCalendarGrid({
     });
   }, [currentMonth, locale]);
 
-  const activeTasks = useMemo(() => tasks.filter((t) => !t.archived), [tasks]);
+  const activeTasks = useMemo(() => tasks.filter((t) => !t.deletedAt), [tasks]);
 
   const unscheduledTasks = useMemo(
     () => activeTasks.filter((task) => !task.startDate && !task.dueDate),

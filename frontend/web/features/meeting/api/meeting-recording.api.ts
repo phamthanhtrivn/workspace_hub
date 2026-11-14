@@ -7,6 +7,7 @@ import type {
   RecordingPermission,
   RecordingQuery,
   RecordingRoomStatus,
+  RecordingCommandResult,
   RecordingSettings,
   RecordingPermissionRequest,
 } from "../types/meeting-recording.types";
@@ -33,15 +34,25 @@ export const recordingApi = {
     normalizeApiResponse<RecordingRoomStatus>(
       (await api.get(`${room(token)}/recordings/status`)).data,
     ).data,
-  capturePermission: (token: string, enabled: boolean) => enabled
-    ? api.post(`${room(token)}/recordings/capture-permission`)
-    : api.delete(`${room(token)}/recordings/capture-permission`),
-  start: async (token: string, layout: RecordingLayout, key: string, captureTrackSid?: string) =>
-    api.post(
-      `${room(token)}/recordings`,
-      { layout, ...(captureTrackSid ? { captureTrackSid } : {}) },
-      { headers: { "Idempotency-Key": key } },
-    ),
+  capturePermission: (token: string, enabled: boolean) =>
+    enabled
+      ? api.post(`${room(token)}/recordings/capture-permission`)
+      : api.delete(`${room(token)}/recordings/capture-permission`),
+  start: async (
+    token: string,
+    layout: RecordingLayout,
+    key: string,
+    captureTrackSid?: string,
+  ) =>
+    normalizeApiResponse<RecordingCommandResult>(
+      (
+        await api.post(
+          `${room(token)}/recordings`,
+          { layout, ...(captureTrackSid ? { captureTrackSid } : {}) },
+          { headers: { "Idempotency-Key": key } },
+        )
+      ).data,
+    ).data,
   stop: async (token: string, id: string, key: string) =>
     api.post(
       `${room(token)}/recordings/${encodeURIComponent(id)}/stop`,

@@ -112,6 +112,10 @@ export interface ChatSocketDirectMessagePermissionPayload {
   allowNewDirectMessages: boolean;
 }
 
+export interface ChatSocketDocumentAccessUpdatedPayload extends Partial<ChatContextPayload> {
+  documentIds: string[];
+}
+
 export interface ChatSocketMediaUpdatedPayload extends Partial<ChatContextPayload> {
   messageId: string;
   media: ChatMessageResponse["medias"];
@@ -150,7 +154,12 @@ export interface ServerToClientChatEvents {
     payload: ChatSocketDirectMessagePermissionPayload,
   ) => void;
   [ChatEvent.MESSAGE_MOVED]: (payload: ChatSocketMessagePayload) => void;
-  [ChatEvent.MESSAGE_UPDATED]: (payload: ChatSocketMessageUpdatePayload) => void;
+  [ChatEvent.MESSAGE_UPDATED]: (
+    payload: ChatSocketMessageUpdatePayload,
+  ) => void;
+  [ChatEvent.DOCUMENT_ACCESS_UPDATED]: (
+    payload: ChatSocketDocumentAccessUpdatedPayload,
+  ) => void;
   [ChatEvent.REACTION_UPDATED]: (payload: ChatSocketMessagePayload) => void;
   [ChatEvent.MESSAGE_PINNED]: (payload: ChatSocketMessagePayload) => void;
   [ChatEvent.MESSAGE_UNPINNED]: (payload: ChatSocketMessagePayload) => void;

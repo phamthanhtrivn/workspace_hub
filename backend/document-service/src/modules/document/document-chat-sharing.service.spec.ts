@@ -88,7 +88,9 @@ function setup() {
   } as unknown as UserProfileSnapshotService;
 
   return {
-    service: new DocumentChatSharingService(prisma, access, profiles),
+    service: new DocumentChatSharingService(prisma, access, profiles, {
+      publishForItem: () => Promise.resolve(),
+    } as never),
     item,
     grants,
     roles,

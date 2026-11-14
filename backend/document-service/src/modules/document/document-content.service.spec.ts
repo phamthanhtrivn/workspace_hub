@@ -27,6 +27,9 @@ void test('content URLs recheck public grants, reject tampering, and stay revoke
   };
   const prisma = {
     documentItem: { findUnique: () => Promise.resolve(file) },
+    documentVersion: {
+      findUnique: () => Promise.resolve({ id: 'old-version', s3Key: 'old-key' }),
+    },
   } as unknown as PrismaService;
   let reads = 0,
     status = 0;
@@ -67,7 +70,14 @@ void test('content URLs recheck public grants, reject tampering, and stay revoke
     assert.ok(headers['Content-Disposition'].startsWith('attachment'));
     assert.ok(headers['Content-Security-Policy'].includes('sandbox'));
     file.mimeType = 'application/pdf';
-    await assert.rejects(service.issue('file', false, 'old-version'));
+    const oldVersionUrl = await service.issue('file', false, 'old-version');
+    await service.stream(
+      new URL(oldVersionUrl, 'https://api.example.test').searchParams.get(
+        'ticket',
+      )!,
+      request,
+      response,
+    );
     await assert.rejects(
       service.stream(ticket + 'tampered', request, response),
     );
@@ -76,7 +86,7 @@ void test('content URLs recheck public grants, reject tampering, and stay revoke
     await assert.rejects(service.stream(ticket, request, response));
     file.linkAccess = 'VIEWER';
     await assert.rejects(service.stream(ticket, request, response));
-    assert.equal(reads, 2);
+    assert.equal(reads, 3);
   } finally {
     if (previous === undefined) delete process.env.JWT_SECRET_KEY;
     else process.env.JWT_SECRET_KEY = previous;

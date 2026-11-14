@@ -76,7 +76,8 @@ export function MeetingPasswordGate({
                 setLocalError(null);
               }}
               placeholder="Enter meeting password"
-              className="h-12 border-border bg-card font-semibold text-foreground"
+              containerClassName="h-12 bg-card"
+              className="font-semibold text-foreground"
             />
           </div>
 

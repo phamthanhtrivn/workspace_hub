@@ -138,7 +138,7 @@ export function UpcomingMeetingCard({
         data-meeting-join-token={meeting.joinToken}
         className={`flex min-h-48 min-w-0 flex-col justify-between rounded-panel border bg-card p-4 text-card-foreground transition-colors duration-150 ${
           isHighlighted
-            ? "border-info-outline ring-2 ring-ring"
+            ? "border-info-outline ring-2 ring-inset ring-ring"
             : "border-border"
         }`}
       >

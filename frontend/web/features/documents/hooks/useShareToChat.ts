@@ -85,6 +85,8 @@ export function useShareToChat({
   const [chosenSpaceId, setSelectedSpaceId] = useState<string>("");
   const [introMessage, setIntroMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [inheritedEditorWarningCount, setInheritedEditorWarningCount] =
+    useState(0);
   const sharing = useRef(false);
 
   const queryClient = useQueryClient();
@@ -157,6 +159,10 @@ export function useShareToChat({
       : chosenChatId;
 
   useEffect(() => {
+    setInheritedEditorWarningCount(0);
+  }, [chosenChatId, activeTab, item?.id]);
+
+  useEffect(() => {
     if (!item || !accessToken || !channelSpaceId) return;
     if (activeTab !== ShareTabType.CHANNEL && !isProjectDocuments) return;
 
@@ -201,7 +207,7 @@ export function useShareToChat({
     sharing.current = true;
     setIsSubmitting(true);
     try {
-      await shareDocumentToChat({
+      const result = await shareDocumentToChat({
         documentId: item.id,
         target: {
           type: activeTab,
@@ -210,7 +216,13 @@ export function useShareToChat({
         },
         currentUserId,
         introMessage,
+        confirmInheritedEditorAccess: inheritedEditorWarningCount > 0,
       });
+      if (result.requiresConfirmation) {
+        setInheritedEditorWarningCount(result.inheritedEditorCount);
+        return;
+      }
+      setInheritedEditorWarningCount(0);
       toast.success(DOCUMENT_CHAT_SHARE_SUCCESS);
       onSuccess();
     } catch (error) {
@@ -219,7 +231,7 @@ export function useShareToChat({
         getActionErrorMessage(error, "Failed to share document to chat."),
       );
     } finally {
-      // Grants remain when sending fails, so refresh the Share dialog in both cases.
+      // Refresh document access and shares after a confirmation or send attempt.
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: ["document-sharing", item.id],
@@ -241,6 +253,8 @@ export function useShareToChat({
     setSelectedSpaceId,
     introMessage,
     setIntroMessage,
+    inheritedEditorWarningCount,
+    clearInheritedEditorWarning: () => setInheritedEditorWarningCount(0),
     isSubmitting,
     spaces,
     channels,

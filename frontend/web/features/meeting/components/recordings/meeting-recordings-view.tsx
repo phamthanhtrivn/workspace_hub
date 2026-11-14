@@ -1,9 +1,8 @@
 "use client";
 
 import { showMeetingActionError } from "../../utils/meeting-action-errors";
-import { PERMISSION_REASON } from "@/lib/permission-feedback";
 import { useEffect, useState } from "react";
-import { Download, Play, Radio, Share2, Trash2 } from "lucide-react";
+import { Pencil, Radio, RefreshCw, Save } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { recordingApi } from "../../api/meeting-recording.api";
@@ -16,31 +15,72 @@ import type {
 } from "../../types/meeting-recording.types";
 import { MeetingAlertDialog } from "../common/meeting-alert-dialog";
 import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
+import { MeetingRecordingCard } from "./meeting-recording-card";
+import { MeetingPagination } from "../common/meeting-pagination";
 import { MeetingRecordingPlayer } from "./meeting-recording-player";
 import { MeetingRecordingShareDialog } from "./meeting-recording-share-dialog";
-import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { MeetingRecordingFilters } from "./meeting-recording-filters";
+import {
+  recordingDateBounds,
+  type RecordingDateFilter,
+} from "../../utils/recording-date-filter";
 import { MEETING_LIST_PAGE_SIZE } from "../../types/meeting.constants";
 import { LoadingState } from "@/components/ui/loading-state";
 
-
 export function MeetingRecordingsView() {
   const [search, setSearch] = useState("");
+  const [dates, setDates] = useState<RecordingDateFilter>({ from: "", to: "" });
   const [params, setParams] = useState<RecordingQuery>({
     page: 1,
     limit: MEETING_LIST_PAGE_SIZE,
     scope: "all",
   });
   const { query, remove, refresh } = useMeetingRecordings(params);
+  const hasFilters = Boolean(
+    search.trim() || dates.from || dates.to || params.scope !== "all",
+  );
+  const updateDates = (next: RecordingDateFilter) => {
+    setDates(next);
+    const { invalid, fromDate, toDate } = recordingDateBounds(next);
+    if (!invalid)
+      setParams((current) => ({ ...current, page: 1, fromDate, toDate }));
+  };
+  const resetFilters = () => {
+    setSearch("");
+    setDates({ from: "", to: "" });
+    setParams((current) => ({
+      ...current,
+      page: 1,
+      scope: "all",
+      search: "",
+      fromDate: undefined,
+      toDate: undefined,
+    }));
+  };
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setParams((current) => current.search === search.trim() ? current : {
-        ...current, page: 1, search: search.trim(),
-      });
+      setParams((current) =>
+        current.search === search.trim()
+          ? current
+          : {
+              ...current,
+              page: 1,
+              search: search.trim(),
+            },
+      );
     }, 300);
+
     return () => window.clearTimeout(timer);
   }, [search]);
-  if (query.data && !query.isFetching && (params.page ?? 1) > query.data.totalPages) {
-    setParams((current) => ({ ...current, page: Math.max(1, query.data!.totalPages) }));
+  if (
+    query.data &&
+    !query.isFetching &&
+    (params.page ?? 1) > query.data.totalPages
+  ) {
+    setParams((current) => ({
+      ...current,
+      page: Math.max(1, query.data!.totalPages),
+    }));
   }
   const [watch, setWatch] = useState<MeetingRecording | null>(null);
   const [share, setShare] = useState<MeetingRecording | null>(null);
@@ -52,7 +92,8 @@ export function MeetingRecordingsView() {
       const result = await recordingApi.url(id, true);
       window.location.assign(result.url);
     },
-    onError: (error) => showMeetingActionError(error, recordingErrorMessage(error)),
+    onError: (error) =>
+      showMeetingActionError(error, recordingErrorMessage(error)),
   });
   const edit = useMutation({
     mutationFn: () => recordingApi.rename(rename!.id, title),
@@ -60,7 +101,8 @@ export function MeetingRecordingsView() {
       setRename(null);
       refresh();
     },
-    onError: (error) => showMeetingActionError(error, recordingErrorMessage(error)),
+    onError: (error) =>
+      showMeetingActionError(error, recordingErrorMessage(error)),
   });
 
   const deleteRecording = async (recording: MeetingRecording) => {
@@ -84,176 +126,82 @@ export function MeetingRecordingsView() {
           Your recordings and videos shared with you.
         </p>
       </div>
-      <div className="flex flex-wrap gap-3">
-        <MeetingInput
-          aria-label="Search recordings"
-          placeholder="Search recordings…"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          className="max-w-sm bg-card"
-        />
-        <CustomSelect
-          ariaLabel="Recording access filter"
-          triggerClassName="h-10 cursor-pointer rounded-control border border-input bg-card px-3 text-sm text-foreground"
-          value={params.scope ?? "all"}
-          onChange={nextValue =>
-            setParams((current) => ({
-              ...current,
-              page: 1,
-              scope: nextValue as RecordingQuery["scope"],
-            }))
-          }
-        >
-          <option value="all">All accessible</option>
-          <option value="owned">Owned by me</option>
-          <option value="shared">Shared with me</option>
-        </CustomSelect>
-        <MeetingButton tone="outline" onClick={refresh}>
-          Refresh
-        </MeetingButton>
-      </div>
+      <MeetingRecordingFilters
+        search={search}
+        onSearchChange={setSearch}
+        scope={params.scope ?? "all"}
+        onScopeChange={(scope) =>
+          setParams((current) => ({ ...current, page: 1, scope }))
+        }
+        dates={dates}
+        onDatesChange={updateDates}
+        invalidDates={recordingDateBounds(dates).invalid}
+        onReset={resetFilters}
+      />
       {query.isLoading ? (
-        <LoadingState label="Loading recordings…" layout="centered" className="py-12 text-center" />
+        <LoadingState
+          label="Loading recordings…"
+          layout="centered"
+          className="py-12 text-center"
+        />
       ) : query.isError ? (
-        <div role="alert" className="rounded-panel border border-border bg-card p-6 text-card-foreground">
+        <div
+          role="alert"
+          className="rounded-panel border border-border bg-card p-6 text-card-foreground"
+        >
           <p>Could not load recordings.</p>
           <MeetingButton className="mt-3" onClick={refresh}>
+            <RefreshCw className="size-4" aria-hidden="true" />
             Try again
           </MeetingButton>
         </div>
       ) : !query.data?.items.length ? (
         <div className="rounded-panel border border-border bg-card px-6 py-12 text-center text-card-foreground">
           <Radio className="mx-auto mb-3 size-8 text-muted-foreground" />
-          <p className="font-semibold">No recordings yet</p>
+          <p className="font-semibold">
+            {hasFilters ? "No matching recordings" : "No recordings yet"}
+          </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Start a recording during a meeting, or ask the owner to share one.
+            {hasFilters
+              ? "Try another search, access filter or date range."
+              : "Start a recording during a meeting, or ask the owner to share one."}
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-border rounded-panel border border-border bg-card text-card-foreground">
+        <div className="space-y-3">
           {query.data.items.map((recording) => (
-            <article
+            <MeetingRecordingCard
               key={recording.id}
-              className="flex flex-wrap items-center justify-between gap-4 p-5"
-            >
-              <div className="min-w-0 flex-1">
-                <h2 className="line-clamp-2 break-words font-semibold leading-6">{recording.title}</h2>
-                <p className="mt-1 text-sm tabular-nums text-muted-foreground">
-                  {new Date(recording.requestedAt).toLocaleString()} ·{" "}
-                  {recording.status === "RECORDING"
-                    ? "Recording"
-                    : recording.status === "STARTING"
-                      ? "Starting"
-                      : recording.status === "PAUSING" ? "Pausing"
-                      : recording.status === "PAUSED" ? "Paused"
-                      : recording.status === "PROCESSING"
-                        ? "Processing"
-                        : recording.status === "FAILED"
-                          ? "Failed"
-                          : "Ready"}
-                  {recording.durationSeconds != null
-                    ? ` · ${Math.floor(recording.durationSeconds / 60)}m ${recording.durationSeconds % 60}s`
-                    : ""}
-                  {recording.sizeBytes
-                    ? ` · ${(Number(recording.sizeBytes) / 1024 / 1024).toFixed(1)} MB`
-                    : ""}
-                </p>
-                {recording.failureCode && (
-                  <p className="mt-1 text-xs text-destructive-content">
-                    {recording.failureCode === "UPLOAD_BACKUP_REQUIRES_RECOVERY"
-                      ? "Upload failed. Contact the meeting administrator to recover the saved video."
-                      : recording.status === "FAILED"
-                        ? "Recording could not be completed."
-                        : "Verifying upload…"}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <MeetingButton
-                  disabled={recording.status !== "COMPLETED"}
-                  onClick={() => setWatch(recording)}
-                >
-                  <Play className="size-4" />
-                  Watch
-                </MeetingButton>
-                {(
-                  <MeetingButton disabledReason={!(recording.capabilities.canDownload) ? PERMISSION_REASON.recordingDownload : undefined} loading={download.isPending && download.variables === recording.id}
-                    tone="outline"
-                    disabled={
-                      recording.status !== "COMPLETED" || download.isPending
-                    }
-                    onClick={() => download.mutate(recording.id)}
-                  >
-                    <Download className="size-4" />
-                    Download
-                  </MeetingButton>
-                )}
-                {(
-                  <>
-                    <MeetingButton disabledReason={!(recording.capabilities.canManage) ? PERMISSION_REASON.recordingManage : undefined}
-                      tone="outline"
-                      onClick={() => setShare(recording)}
-                    >
-                      <Share2 className="size-4" />
-                      Share
-                    </MeetingButton>
-                    <MeetingButton disabledReason={!(recording.capabilities.canManage) ? PERMISSION_REASON.recordingManage : undefined}
-                      tone="ghost"
-                      onClick={() => {
-                        setRename(recording);
-                        setTitle(recording.title);
-                      }}
-                    >
-                      Rename
-                    </MeetingButton>
-                    <MeetingButton disabledReason={!(recording.capabilities.canManage) ? PERMISSION_REASON.recordingManage : undefined} loading={remove.isPending && remove.variables === recording.id}
-                      tone="danger"
-                      disabled={
-                        remove.isPending ||
-                        !["COMPLETED", "FAILED"].includes(recording.status)
-                      }
-                      onClick={() => void deleteRecording(recording)}
-                    >
-                      <Trash2 className="size-4" />
-                      Delete
-                    </MeetingButton>
-                  </>
-                )}
-              </div>
-            </article>
+              recording={recording}
+              downloading={
+                download.isPending && download.variables === recording.id
+              }
+              deleting={remove.isPending && remove.variables === recording.id}
+              downloadDisabled={download.isPending}
+              deleteDisabled={remove.isPending}
+              onWatch={() => setWatch(recording)}
+              onDownload={() => download.mutate(recording.id)}
+              onShare={() => setShare(recording)}
+              onRename={() => {
+                setRename(recording);
+                setTitle(recording.title);
+              }}
+              onDelete={() => void deleteRecording(recording)}
+            />
           ))}
         </div>
       )}
-      {query.data && query.data.totalPages > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <MeetingButton
-            tone="outline"
-            disabled={(params.page ?? 1) <= 1}
-            onClick={() =>
-              setParams((current) => ({
-                ...current,
-                page: (current.page ?? 1) - 1,
-              }))
-            }
-          >
-            Previous
-          </MeetingButton>
-          <span className="text-sm">
-            {params.page} / {query.data.totalPages}
-          </span>
-          <MeetingButton
-            tone="outline"
-            disabled={(params.page ?? 1) >= query.data.totalPages}
-            onClick={() =>
-              setParams((current) => ({
-                ...current,
-                page: (current.page ?? 1) + 1,
-              }))
-            }
-          >
-            Next
-          </MeetingButton>
-        </div>
+      {query.data && (
+        <MeetingPagination
+          page={query.data.page}
+          limit={params.limit ?? MEETING_LIST_PAGE_SIZE}
+          total={query.data.total}
+          totalPages={query.data.totalPages}
+          showSinglePage
+          onPageChange={(page) =>
+            setParams((current) => ({ ...current, page }))
+          }
+        />
       )}
       {watch && (
         <MeetingRecordingPlayer
@@ -265,7 +213,9 @@ export function MeetingRecordingsView() {
       {share && (
         <MeetingRecordingShareDialog
           key={share.id}
-          recording={query.data?.items.find((item) => item.id === share.id) ?? share}
+          recording={
+            query.data?.items.find((item) => item.id === share.id) ?? share
+          }
           onClose={() => setShare(null)}
         />
       )}
@@ -276,7 +226,11 @@ export function MeetingRecordingsView() {
         }}
       >
         <DialogContent className="p-6" aria-labelledby="recording-rename-title">
-          <DialogTitle id="recording-rename-title">
+          <DialogTitle
+            id="recording-rename-title"
+            className="flex items-center gap-2"
+          >
+            <Pencil className="size-4" aria-hidden="true" />
             Rename recording
           </DialogTitle>
           <form
@@ -293,10 +247,12 @@ export function MeetingRecordingsView() {
               value={title}
               onChange={(event) => setTitle(event.target.value)}
             />
-            <MeetingButton loading={edit.isPending}
+            <MeetingButton
+              loading={edit.isPending}
               type="submit"
               disabled={edit.isPending || !title.trim()}
             >
+              <Save className="size-4" aria-hidden="true" />
               Save
             </MeetingButton>
           </form>

@@ -1,11 +1,22 @@
 import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
+import { config } from "../../config/env.config";
 import { rows } from "../../infrastructure/database/database";
 import { meetingSummaryQueue } from "../../infrastructure/queue/notebook.queue";
 import { meetingSource } from "./source";
+import { MeetingSummaryReadiness } from "./availability";
 
 @Injectable()
 export class MeetingSummaryService {
+  private readonly readiness = new MeetingSummaryReadiness(
+    async () =>
+      (await meetingSummaryQueue.client).get(
+        "wh-notebook:meeting-summary-worker-heartbeat",
+      ),
+    config.MEETING_STT_URL,
+    config.MEETING_STT_SERVICE_KEY,
+  );
+
   async status(id: string) {
     const [summary] = await rows(
       `SELECT status,stage,content,error,updated_at AS "updatedAt",
@@ -13,15 +24,14 @@ export class MeetingSummaryService {
       [id],
     );
 
-    return summary ?? { status: "NOT_CREATED" };
+    return {
+      ...(summary ?? { status: "NOT_CREATED" }),
+      available: await this.readiness.check(),
+    };
   }
 
   async start(id: string, actorId: string) {
-    const redis = await meetingSummaryQueue.client;
-    if (
-      (await redis.get("wh-notebook:meeting-summary-worker-heartbeat")) !==
-      "ready:meeting-v1"
-    )
+    if (!(await this.readiness.check()))
       throw new ServiceUnavailableException(
         "Meeting summary worker is unavailable",
       );

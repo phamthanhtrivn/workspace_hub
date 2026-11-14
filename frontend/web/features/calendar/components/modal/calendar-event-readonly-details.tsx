@@ -1,11 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AlignLeft, Bell, Calendar, CheckCircle2, Circle, ExternalLink, ListTodo, MapPin, Paperclip, Users } from "lucide-react";
+import { AlignLeft, Bell, Calendar, CheckCircle2, Circle, ExternalLink, MapPin, Paperclip, Users } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import type { CalendarEvent } from "../../types/calendar.types";
 import { formatReminderLabel } from "../../utils/calendar-date.utils";
-import { cleanTaskDescription, isTaskCalendarEvent } from "../../utils/calendar-event.utils";
+import { isTaskCalendarEvent } from "../../utils/calendar-event.utils";
 import { useAttendeeProfiles } from "../../hooks/use-calendar-users";
 import { CalendarDocumentsSection } from "./calendar-documents-section";
 import { EventAttendeeList } from "./event-attendee-list";
@@ -14,7 +14,7 @@ export function CalendarEventReadonlyDetails({ event, children }: { event: Calen
   const currentUserId = useAppSelector(state => state.auth.userId);
   const profiles = useAttendeeProfiles(event, true);
   const isTask = isTaskCalendarEvent(event);
-  const description = cleanTaskDescription(event.description);
+  const description = event.description?.trim();
   const guests = event.attendees?.filter(attendee => attendee.userId !== event.createdBy) ?? [];
   const reminders = event.reminders?.length ? event.reminders.map(reminder => formatReminderLabel(reminder.minutesBefore)).join(", ") : "No reminders";
   const calendarName = event.calendar?.name || event.creatorProfile?.fullName || event.creatorProfile?.email || "My Calendar";
@@ -25,10 +25,10 @@ export function CalendarEventReadonlyDetails({ event, children }: { event: Calen
     <div className="flex items-start gap-4">
       <Bell aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><p className="min-w-0 text-sm text-foreground">{reminders}</p>
     </div>
-    <div className="flex items-start gap-4">
-      {isTask ? <ListTodo aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-info-content" /> : <Calendar aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />}
-      <p className="min-w-0 text-sm text-foreground">{isTask ? "Tasks" : calendarName}</p>
-    </div>
+    {!isTask && <div className="flex items-start gap-4">
+      <Calendar aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+      <p className="min-w-0 text-sm text-foreground">{calendarName}</p>
+    </div>}
     {children}
     {physicalLocation && <div className="flex items-start gap-4">
       <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />

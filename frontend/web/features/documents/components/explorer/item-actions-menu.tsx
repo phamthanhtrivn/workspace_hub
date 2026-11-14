@@ -69,9 +69,10 @@ export function ItemActionsMenu({
   onShareToChat,
   isProjectDocuments: isProjectContext = false,
 }: ItemActionsMenuProps) {
+  const menuId = React.useId();
+  const menuRef = useRef<HTMLDivElement>(null);
   const isProjectDocuments = isProjectContext || Boolean(item.projectId);
   const isProjectRoot = isProjectRootFolder(item);
-  const menuId = React.useId();
   const isOpen = activeMenuId === item.id;
   const userRole = item.userRole ?? DocumentRole.NONE;
   const isOwner = userRole === DocumentRole.OWNER;
@@ -79,8 +80,8 @@ export function ItemActionsMenu({
   const canEdit = isOwner || isEditor;
   const canMove = isProjectDocuments ? canEdit : isOwner;
   const isFolder = item.type === DocumentItemType.FOLDER;
-
-  const menuRef = useRef<HTMLDivElement>(null);
+  const isSharedItem =
+    activeView === DocumentViewType.SHARED || (!isProjectDocuments && !isOwner);
 
   return (
     <div className="relative" ref={menuRef}>
@@ -107,7 +108,92 @@ export function ItemActionsMenu({
           aria-label="Document actions"
           className="z-50 w-48 rounded-panel border border-border bg-card p-2 text-xs font-semibold text-foreground animate-in fade-in slide-in-from-top-1 duration-150 shadow-panel"
         >
-          {activeView !== DocumentViewType.TRASH ? (
+          {isSharedItem ? (
+            <>
+              {!isFolder && onPreview ? (
+                <DropdownMenuItem
+                  closeOnClick={false}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onPreview();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-info-content hover:bg-background transition cursor-pointer"
+                >
+                  <FaEye className="h-3.5 w-3.5" />
+                  <span>Preview</span>
+                </DropdownMenuItem>
+              ) : null}
+              {!isFolder && onDownload ? (
+                <DropdownMenuItem
+                  closeOnClick={false}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onDownload();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
+                >
+                  <FaDownload className="h-3.5 w-3.5 text-success-content" />
+                  <span>Download</span>
+                </DropdownMenuItem>
+              ) : null}
+              {isFolder && onDownloadFolder ? (
+                <DropdownMenuItem
+                  closeOnClick={false}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onDownloadFolder();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
+                >
+                  <FaDownload className="h-3.5 w-3.5 text-success-content" />
+                  <span>Download ZIP</span>
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuItem
+                closeOnClick={false}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveMenuId(null);
+                  onViewDetails?.();
+                }}
+                className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
+              >
+                <FaInfoCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Details</span>
+              </DropdownMenuItem>
+              {canEdit ? (
+                <DropdownMenuItem
+                  closeOnClick={false}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onRename();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
+                >
+                  <FaEdit className="h-3.5 w-3.5 text-warning-content" />
+                  <span>Rename</span>
+                </DropdownMenuItem>
+              ) : null}
+              {!isFolder && onManageVersions ? (
+                <DropdownMenuItem
+                  closeOnClick={false}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onManageVersions();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-control px-3 py-2 text-foreground hover:bg-background transition cursor-pointer"
+                >
+                  <FaHistory className="h-3.5 w-3.5 text-info-content" />
+                  <span>Manage versions</span>
+                </DropdownMenuItem>
+              ) : null}
+            </>
+          ) : activeView !== DocumentViewType.TRASH ? (
             <>
               {!isFolder && onPreview ? (
                 <DropdownMenuItem
@@ -160,7 +246,7 @@ export function ItemActionsMenu({
               {!isFolder && onManageVersions ? (
                 <DropdownMenuItem
                   blockedReason={
-                    !(isOwner || isEditor)
+                    userRole === DocumentRole.NONE
                       ? PERMISSION_REASON.documentEdit
                       : undefined
                   }
@@ -178,7 +264,7 @@ export function ItemActionsMenu({
                 </DropdownMenuItem>
               ) : null}
 
-              {!isProjectDocuments && onShare ? (
+              {!isProjectDocuments && isOwner && onShare ? (
                 <DropdownMenuItem
                   blockedReason={
                     !canEdit

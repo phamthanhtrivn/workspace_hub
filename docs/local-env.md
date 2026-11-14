@@ -80,3 +80,18 @@ cleanup outbox entry in the same transaction; the worker drains committed entrie
 on startup and every 30 seconds. Failed cleanup remains available for retry.
 The migration also links chat requests to summary artifacts so cancellation can
 stop the corresponding background summary.
+
+## Web Push provider hostnames
+
+`backend/notification-service/.env` must allow the exact hostname returned by the
+browser's push subscription. For the Windows endpoint observed locally:
+
+```dotenv
+WEB_PUSH_ALLOWED_HOSTS=fcm.googleapis.com,wns2-pn1p.notify.windows.com
+```
+
+Keep existing providers when adding another hostname. Do not use wildcards; a
+different Windows endpoint must be added explicitly after checking its provider.
+Restart notification-service after changing this value, then refresh the web app
+to retry subscription registration. A rejected push subscription affects browser
+push delivery; notification persistence and bell updates use separate paths.

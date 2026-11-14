@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState, type BaseSyntheticEvent } from "react";
 import { FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,6 +16,7 @@ import {
   CalendarEventAttendeePayload,
   CalendarEventDraft,
   CalendarEventFormValues,
+  EventSourceType,
   RecurrenceScope,
   WorkspaceCalendar,
 } from "../types/calendar.types";
@@ -68,6 +69,7 @@ export function useCalendarEventForm({
     useState<CalendarEventEditorValues | null>(null);
   const savingRef = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   const time = useCalendarEventTime(form, event ? "edit" : "create");
   const recurrence = useCalendarRecurrence(
@@ -75,12 +77,27 @@ export function useCalendarEventForm({
     defaults.defaultStart,
     event,
   );
+  const isRecurring = Boolean(event?.recurrenceRule || event?.recurrenceParentId);
 
-  const watchStartAt = form.watch("startAt");
+  const watchStartAt = time.startAt;
+  const conferenceStartTimestamp = new Date(
+    watchStartAt || defaults.values.startAt,
+  ).getTime();
+  const refreshScheduleToday = time.refreshToday;
+  const refreshToday = useCallback(() => {
+    const nextNow = Date.now();
+    // Focus can bubble repeatedly from a date picker. Only rerender when its
+    // time classification changes, rather than on every focus timestamp.
+    setNow(previous =>
+      (conferenceStartTimestamp <= previous) === (conferenceStartTimestamp <= nextNow)
+        ? previous
+        : nextNow,
+    );
+    return refreshScheduleToday();
+  }, [conferenceStartTimestamp, refreshScheduleToday]);
   const isPastEvent =
-    new Date(
-      fromDateTimeLocal(watchStartAt || defaults.values.startAt),
-    ).getTime() <= Date.now();
+    conferenceStartTimestamp <= now &&
+    !recurrence.getRecurrenceRule(watchStartAt || defaults.values.startAt);
 
   const handleToggleConference = (enabled: boolean) => {
     if (enabled && isPastEvent) {
@@ -94,9 +111,23 @@ export function useCalendarEventForm({
 
 
   const persistValidForm = async (values: CalendarEventEditorValues) => {
+    const hasRecurrence = Boolean(recurrence.getRecurrenceRule(values.startAt));
+    const startIsPast =
+      new Date(fromDateTimeLocal(values.startAt)).getTime() <= Date.now();
+    if (
+      hasConference &&
+      startIsPast &&
+      !hasRecurrence &&
+      values.sourceType !== EventSourceType.TASK &&
+      !event?.conference?.enabled
+    ) {
+      toast.error("Cannot add video conference to past events");
+      return;
+    }
+
     const finalLocation = values.location.trim() || null;
     await onSubmit({
-      conference: { enabled: hasConference },
+      conference: { enabled: values.sourceType !== EventSourceType.TASK && hasConference },
       calendarId: values.calendarId,
       title: values.title.trim(),
       description: values.description.trim() || null,
@@ -143,6 +174,8 @@ export function useCalendarEventForm({
     errors: FieldErrors<CalendarEventEditorValues>,
   ) => {
     const message =
+      errors.reminders?.find?.((reminder) => reminder?.minutesBefore?.message)
+        ?.minutesBefore?.message ||
       errors.endAt?.message ||
       errors.startAt?.message ||
       errors.title?.message ||
@@ -176,11 +209,13 @@ export function useCalendarEventForm({
   return {
     ...time,
     ...recurrence,
+    refreshToday,
     attendees,
     documentIds,
     enableEventColor,
     form,
     hasConference,
+    isRecurring,
     isSaving,
     pendingRecurrenceValues,
     confirmRecurrenceScope,
@@ -191,7 +226,8 @@ export function useCalendarEventForm({
     setHasConference: handleToggleConference,
     setShowCustomEventColor,
     showCustomEventColor,
-    submit: form.handleSubmit(submitWithRecurrenceScope, submitInvalidForm),
+    submit: (event?: BaseSyntheticEvent) =>
+      form.handleSubmit(submitWithRecurrenceScope, submitInvalidForm)(event),
   };
 }
 

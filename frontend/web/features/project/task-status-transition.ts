@@ -5,7 +5,7 @@ import {
 } from "./types/project";
 import { TASK_STATUS_RESTRICTIONS } from "./constants/task.constants";
 
-type StatusTask = Pick<Task, "status"> & Partial<Pick<Task, "id" | "archived">>;
+type StatusTask = Pick<Task, "status"> & Partial<Pick<Task, "id">>;
 
 const STATUS_FLOW = [
   TaskStatus.TODO,
@@ -16,7 +16,7 @@ const STATUS_FLOW = [
 
 export function getOpenTaskSubtasks(taskId: string, tasks: readonly Task[]): Task[] {
   return tasks.filter((candidate) =>
-    candidate.parentTaskId === taskId && !candidate.deletedAt && !candidate.archived && !isTerminalTaskStatus(candidate.status),
+    candidate.parentTaskId === taskId && !candidate.deletedAt && !isTerminalTaskStatus(candidate.status),
   );
 }
 
@@ -25,7 +25,6 @@ export function getTaskStatusTransitionReason(
   nextStatus: TaskStatus,
   tasks: readonly Task[] = [],
 ): string | undefined {
-  if (task.archived) return TASK_STATUS_RESTRICTIONS.archived;
   if (isTerminalTaskStatus(task.status)) return TASK_STATUS_RESTRICTIONS.readOnly;
   if (task.status === nextStatus) return TASK_STATUS_RESTRICTIONS.current;
   if (nextStatus === TaskStatus.CANCELLED) return undefined;

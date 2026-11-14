@@ -60,7 +60,8 @@ export class MeetingRecordingService {
         status: { in: ACTIVE_RECORDING_STATUSES },
       },
     });
-    const available = this.liveKit.isRecordingConfigured();
+    const readiness = await this.liveKit.recordingReadiness();
+    const available = readiness.ready;
     const capabilities = recordingCapabilities(participant, recording, userId);
 
     return {
@@ -76,9 +77,8 @@ export class MeetingRecordingService {
         process.env.LIVEKIT_RECORDING_TEMPLATE_URL,
       ),
       recordingAvailable: available,
-      unavailableReason: available
-        ? null
-        : 'Recording service is not configured',
+      unavailableReason: readiness.reason,
+      unavailableCode: readiness.code,
       recording: recording
         ? {
             id: recording.id,
@@ -139,10 +139,11 @@ export class MeetingRecordingService {
     key?: string,
     automatic = false,
   ) {
-    const { meeting } = await this.policy.assertJoinedMeetingParticipant({
-      joinToken,
-      userId,
-    });
+    const { meeting, participant: actor } =
+      await this.policy.assertJoinedMeetingParticipant({
+        joinToken,
+        userId,
+      });
     const requestKey = this.requestKey(userId, meeting.id, 'START', key);
     const layout = dto.captureTrackSid
       ? `app:${dto.captureTrackSid}`
@@ -158,6 +159,12 @@ export class MeetingRecordingService {
       where: { requestKey },
     });
     if (existing) return this.replay(existing, userId, requestHash);
+    if (!recordingCapabilities(actor).canStart)
+      recordingError(
+        403,
+        'RECORDING_FORBIDDEN',
+        'You cannot record this meeting',
+      );
     if (dto.captureTrackSid) {
       const participant = await this.liveKit
         .createRoomServiceClient()
@@ -175,12 +182,9 @@ export class MeetingRecordingService {
           'The meeting tab capture is no longer available. Start recording again.',
         );
     }
-    if (!this.liveKit.isRecordingConfigured())
-      recordingError(
-        503,
-        'RECORDING_UNAVAILABLE',
-        'Recording service is not configured',
-      );
+    const readiness = await this.liveKit.recordingReadiness();
+    if (!readiness.ready)
+      recordingError(503, readiness.code!, readiness.reason!);
 
     try {
       await this.liveKit.listRecordings();
@@ -679,6 +683,18 @@ export class MeetingRecordingService {
   }
 
   async list(userId: string, query: ListRecordingsDto, joinToken?: string) {
+    const fromDate = query.fromDate ? new Date(query.fromDate) : undefined;
+    const toDate = query.toDate ? new Date(query.toDate) : undefined;
+    if (
+      (fromDate && !Number.isFinite(fromDate.getTime())) ||
+      (toDate && !Number.isFinite(toDate.getTime())) ||
+      (fromDate && toDate && fromDate >= toDate)
+    )
+      recordingError(
+        400,
+        'RECORDING_DATE_RANGE_INVALID',
+        'Choose a valid recording date range.',
+      );
     let meetingId = query.meetingId;
     if (joinToken) {
       const meeting = await this.prisma.meeting.findUnique({
@@ -699,6 +715,9 @@ export class MeetingRecordingService {
             };
     const where: Prisma.MeetingRecordingWhereInput = {
       AND: [access, { status: { not: 'DELETED' } }],
+      ...(fromDate || toDate
+        ? { requestedAt: { gte: fromDate, lt: toDate } }
+        : {}),
       meetingId,
       ...(query.status ? { status: query.status } : {}),
       ...(query.search?.trim()
@@ -802,7 +821,7 @@ export class MeetingRecordingService {
     if (!permissions.length) return [];
     const profiles = await this.prisma.userProfileSnapshot.findMany({
       where: { userId: { in: permissions.map((p) => p.userId) } },
-      select: { userId: true, fullName: true, email: true },
+      select: { userId: true, fullName: true, email: true, avatarUrl: true },
     });
     const profileById = new Map(
       profiles.map((profile) => [profile.userId, profile]),

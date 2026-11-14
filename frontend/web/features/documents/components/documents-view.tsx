@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
 import DocumentExplorer from "./document-explorer";
+import { DocumentNotificationTarget } from './document-notification-target';
 import { DocumentsSidebar } from "./explorer/documents-sidebar";
 import { DocumentViewType, NavigationLabel } from "../types/documents.enums";
 import { DownloadQueueProvider } from "./download/download-queue-provider";
@@ -16,21 +17,22 @@ import {
   DOCUMENTS_PATH,
   documentFolderAccessKey,
   getDocumentView,
+  getDocumentViewUrl,
+  parseDocumentView,
 } from "../utils/document-navigation";
 
 type PathEntry = { id: string | null; name: string };
 
 function DocumentsView() {
+  return <DownloadQueueProvider><DocumentsLocation /></DownloadQueueProvider>;
+}
+
+function DocumentsLocation() {
   const params = useSearchParams();
   const router = useRouter();
   const userId = useAppSelector((state) => state.auth.userId);
   const view = params.get(DOCUMENT_QUERY_PARAMS.VIEW);
-  const initialView =
-    [
-      DocumentViewType.SHARED,
-      DocumentViewType.STARRED,
-      DocumentViewType.TRASH,
-    ].find((candidate) => candidate === view) ?? DocumentViewType.MY_FILES;
+  const initialView = parseDocumentView(view);
   const folderId = params.get(DOCUMENT_QUERY_PARAMS.FOLDER_ID);
   const resolveView =
     !!folderId &&
@@ -44,14 +46,13 @@ function DocumentsView() {
     retry: false,
   });
   const query = params.toString();
-  const canonicalQuery =
-    resolveView && access.data
-      ? canonicalizeDocumentFolderQuery(query, access.data.userRole)
-      : query;
+  const canonicalQuery = canonicalizeDocumentFolderQuery(
+    query, resolveView ? access.data?.userRole : undefined,
+  );
   useEffect(() => {
     if (canonicalQuery !== query)
       router.replace(
-        `${DOCUMENTS_PATH}?${canonicalQuery}${window.location.hash}`,
+        `${DOCUMENTS_PATH}${canonicalQuery ? `?${canonicalQuery}` : ""}${window.location.hash}`,
         { scroll: false },
       );
   }, [canonicalQuery, query, router]);
@@ -87,8 +88,9 @@ function DocumentsWorkspace({
   initialView: DocumentViewType;
   initialFolderId: string | null;
 }) {
-  const [activeView, setActiveView] = useState(initialView);
-  const [currentFolderId, setCurrentFolderId] = useState(initialFolderId);
+  const router = useRouter();
+  const activeView = initialView;
+  const currentFolderId = initialFolderId;
   const rootLabel =
     activeView === DocumentViewType.STARRED
       ? NavigationLabel.STARRED
@@ -120,39 +122,15 @@ function DocumentsWorkspace({
     );
   };
 
-  const handleNavigate = (
-    folderId: string | null,
-    folderName?: string,
-    viewContext?: DocumentViewType,
-  ) => {
-    setCurrentFolderId(folderId);
-    const activeV = viewContext !== undefined ? viewContext : activeView;
-
-    if (folderId === null) {
-      const rootLabel =
-        activeV === DocumentViewType.STARRED
-          ? NavigationLabel.STARRED
-          : activeV === DocumentViewType.SHARED
-            ? NavigationLabel.SHARED
-            : activeV === DocumentViewType.TRASH
-              ? NavigationLabel.TRASH
-              : NavigationLabel.ROOT;
-      setPath([{ id: null, name: rootLabel }]);
-    } else if (folderName) {
-      const exists = path.some((p) => p.id === folderId);
-      if (!exists) {
-        setPath([...path, { id: folderId, name: folderName }]);
-      }
-    }
+  const handleNavigate = (folderId: string | null) => {
+    router.push(getDocumentViewUrl(activeView, folderId), { scroll: false });
   };
 
   const handleViewChange = (view: DocumentViewType) => {
-    setActiveView(view);
-    handleNavigate(null, undefined, view);
+    router.push(getDocumentViewUrl(view), { scroll: false });
   };
 
   return (
-    <DownloadQueueProvider>
       <div className="@container/documents h-full min-h-0 min-w-0 w-full overflow-hidden bg-background text-foreground">
         <div className="flex h-full min-h-0 min-w-0 flex-col @min-[960px]/documents:flex-row">
           {/* Navigation Sidebar */}
@@ -163,6 +141,7 @@ function DocumentsWorkspace({
 
           {/* Document Explorer Main Canvas */}
           <section className="flex min-w-0 flex-1 flex-col min-h-0 overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
+            <DocumentNotificationTarget />
             <div className="flex min-w-0 w-full flex-1 flex-col min-h-0 rounded-lg border border-border bg-card overflow-hidden">
               <DocumentExplorer
                 currentFolderId={currentFolderId}
@@ -175,7 +154,6 @@ function DocumentsWorkspace({
           </section>
         </div>
       </div>
-    </DownloadQueueProvider>
   );
 }
 

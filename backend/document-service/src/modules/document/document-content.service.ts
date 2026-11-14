@@ -89,7 +89,7 @@ export class DocumentContentService {
       id,
       identity?.sub,
       typeof identity?.email === 'string' ? identity.email : undefined,
-      versionId ? DocumentRole.EDITOR : DocumentRole.VIEWER,
+      DocumentRole.VIEWER,
     );
     if (item.type !== 'FILE' || item.isArchived)
       throw new BadRequestException('File is unavailable');
@@ -153,7 +153,7 @@ export class DocumentContentService {
       ticket.id,
       ticket.actor?.sub,
       ticket.actor?.email,
-      ticket.versionId ? DocumentRole.EDITOR : DocumentRole.VIEWER,
+      DocumentRole.VIEWER,
     );
     if (item.isArchived || ticket.stamp !== (await this.stamp(ticket.id)))
       throw new ForbiddenException('Document URL has been revoked');

@@ -10,6 +10,7 @@ import {
   TrackSource,
 } from 'livekit-server-sdk';
 import { getLiveKitConfig, LiveKitConfig } from './livekit.config';
+import { RecordingReadinessProbe } from './recording-readiness';
 import {
   LiveKitParticipantTokenParams,
   LiveKitRoomMetadata,
@@ -24,6 +25,7 @@ import {
 @Injectable()
 export class LiveKitService {
   private readonly config: LiveKitConfig;
+  private readonly recordingProbe = new RecordingReadinessProbe();
 
   constructor() {
     this.config = getLiveKitConfig();
@@ -78,6 +80,7 @@ export class LiveKitService {
   async isParticipantConnected(roomName: string, userId: string) {
     const participants =
       await this.createRoomServiceClient().listParticipants(roomName);
+
     return participants.some((participant) => participant.identity === userId);
   }
 
@@ -106,12 +109,20 @@ export class LiveKitService {
     );
   }
 
+  recordingReadiness() {
+    return this.recordingProbe.check(
+      this.isRecordingConfigured(),
+      process.env.LIVEKIT_EGRESS_HEALTH_URL || '',
+    );
+  }
+
   startRecording(roomName: string, s3Key: string, layout: string) {
     const templateUrl = process.env.LIVEKIT_RECORDING_TEMPLATE_URL;
     if (!templateUrl)
       throw new ServiceUnavailableException(
         'The meeting recording template is not configured',
       );
+
     return this.createEgressClient().startEgress(
       new StartEgressRequest({
         roomName,

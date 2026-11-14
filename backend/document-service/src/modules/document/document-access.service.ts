@@ -56,6 +56,7 @@ export class DocumentAccessService {
               s.shareWithEmail.toLowerCase() === userEmail.toLowerCase(),
             ),
       );
+    const permissionRoles: DocumentRole[] = [];
     if (share && userId) {
       if (!share.shareWithUserId) {
         // HTTP identity is already verified. Claim a pending email grant once, then use the stable user id.
@@ -76,7 +77,7 @@ export class DocumentAccessService {
         }
       }
 
-      return { item, role: share.permission as DocumentRole };
+      permissionRoles.push(share.permission as DocumentRole);
     }
     if (item.parentFolderId) {
       try {
@@ -86,23 +87,31 @@ export class DocumentAccessService {
           userEmail,
           visited,
         );
-        if (inherited.role !== DocumentRole.VIEWER)
-          return { item, role: inherited.role };
-
-        // A valid viewer grant is enough for viewing this child.
-        return { item, role: DocumentRole.VIEWER };
+        permissionRoles.push(inherited.role);
       } catch (error) {
         if (!(error instanceof ForbiddenException)) throw error;
       }
     }
     if (item.linkAccess !== LinkAccess.NONE) {
       if (item.shareExpiresAt && item.shareExpiresAt <= new Date()) {
-        throw new ForbiddenException(DOCUMENT_ACCESS_ERRORS.EXPIRED);
+        if (!permissionRoles.length)
+          throw new ForbiddenException(DOCUMENT_ACCESS_ERRORS.EXPIRED);
+      } else {
+        permissionRoles.push(DocumentRole.VIEWER);
       }
-
-      return { item, role: DocumentRole.VIEWER };
     }
-    throw new ForbiddenException(DOCUMENT_ACCESS_ERRORS.RESTRICTED);
+    if (!permissionRoles.length)
+      throw new ForbiddenException(DOCUMENT_ACCESS_ERRORS.RESTRICTED);
+
+    const rolePriority: Record<DocumentRole, number> = {
+      [DocumentRole.VIEWER]: 1,
+      [DocumentRole.EDITOR]: 2,
+      [DocumentRole.OWNER]: 3,
+    };
+    const role = permissionRoles.reduce((strongest, candidate) =>
+      rolePriority[candidate] > rolePriority[strongest] ? candidate : strongest,
+    );
+    return { item, role };
   }
 
   async getPermissionRole(

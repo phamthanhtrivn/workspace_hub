@@ -11,6 +11,9 @@ import { DocumentEventPublisher } from './document-event-publisher.service';
 import { DocumentPresentationService } from './document-presentation.service';
 import { DocumentAccessService } from './document-access.service';
 import { DocumentTreeService } from './document-tree.service';
+import { DOCUMENT_BULK } from './types/document-bulk.constants';
+import { setDocumentTreesStarred } from './document-star-tree';
+import { DocumentAccessRealtimePublisher } from './document-access-realtime.publisher';
 
 @Injectable()
 export class DocumentLifecycleService {
@@ -22,6 +25,7 @@ export class DocumentLifecycleService {
     private readonly presentation: DocumentPresentationService,
     private readonly access: DocumentAccessService,
     private readonly tree: DocumentTreeService,
+    private readonly accessRealtime: DocumentAccessRealtimePublisher,
   ) {}
   async createFolder(
     userId: string,
@@ -40,6 +44,7 @@ export class DocumentLifecycleService {
     const projectId = parentFolder?.projectId || dto.projectId || null;
     const normalizedName = this.locations.normalizeItemName(dto.name);
     const folder = await this.prisma.$transaction(async (tx) => {
+      await this.locations.lockWritableParent(tx, parentFolder?.id ?? null);
       await this.locations.lockAvailableName(
         tx,
         userId,
@@ -85,6 +90,7 @@ export class DocumentLifecycleService {
       item.parentFolderId,
       item.projectId,
       id,
+      item.isStarred,
     );
 
     const updated = await this.prisma.documentItem.update({
@@ -120,6 +126,7 @@ export class DocumentLifecycleService {
 
     let destParentFolderId = dto.parentFolderId || null;
     let destProjectId: string | null = null;
+    let destIsStarred = item.isStarred;
 
     if (destParentFolderId) {
       if (item.type === ItemType.FOLDER) {
@@ -147,6 +154,7 @@ export class DocumentLifecycleService {
         );
       }
       destProjectId = destFolder.projectId;
+      destIsStarred = destFolder.isStarred;
     } else if (item.projectId) {
       if (!dto.projectId || dto.projectId !== item.projectId) {
         throw new BadRequestException(
@@ -180,6 +188,9 @@ export class DocumentLifecycleService {
         'Personal documents cannot be moved into project documents',
       );
     }
+    if (!item.projectId && Boolean(item.isStarred) !== Boolean(destIsStarred)) {
+      throw new BadRequestException(DOCUMENT_BULK.CROSS_REGION_MOVE);
+    }
 
     await this.locations.assertNoActiveSiblingWithName(
       item.ownerUserId,
@@ -187,6 +198,7 @@ export class DocumentLifecycleService {
       destParentFolderId,
       destProjectId,
       id,
+      item.isStarred,
     );
 
     return { item, destParentFolderId, destProjectId };
@@ -204,19 +216,53 @@ export class DocumentLifecycleService {
       id,
       dto,
     );
-    const updated = await this.prisma.documentItem.update({
-      where: { id },
-      data: {
-        parentFolderId: destParentFolderId,
-        projectId: destProjectId,
-      },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await this.assertMoveRegion(tx, id, destParentFolderId);
+      await this.locations.lockAvailableName(
+        tx,
+        item.ownerUserId,
+        item.name,
+        destParentFolderId,
+        destProjectId,
+        [id],
+        item.isStarred,
+      );
+
+      return tx.documentItem.update({
+        where: { id },
+        data: { parentFolderId: destParentFolderId, projectId: destProjectId },
+      });
     });
     await this.events.publishProjectDocumentEvent(updated, userId, 'UPDATED');
+    await this.accessRealtime.publishForItem(id);
     if (item.projectId && item.projectId !== updated.projectId) {
       await this.events.publishProjectDocumentEvent(item, userId, 'DELETED');
     }
 
     return this.presentation.enrichDocumentItem(updated);
+  }
+
+  async assertMoveRegion(
+    tx: Prisma.TransactionClient,
+    id: string,
+    parentId: string | null,
+  ) {
+    await this.tree.lockDocumentTree(tx, id);
+    if (parentId)
+      await tx.$queryRaw`SELECT id FROM document_items WHERE id = ${parentId}::uuid FOR UPDATE`;
+    const source = await tx.documentItem.findUniqueOrThrow({ where: { id } });
+    const destination = parentId
+      ? await tx.documentItem.findUniqueOrThrow({ where: { id: parentId } })
+      : null;
+    if (source.isArchived || destination?.isArchived)
+      throw new BadRequestException(DOCUMENT_BULK.ACTIVE_REQUIRED);
+    if (
+      !source.projectId &&
+      destination &&
+      Boolean(source.isStarred) !== Boolean(destination.isStarred)
+    ) {
+      throw new BadRequestException(DOCUMENT_BULK.CROSS_REGION_MOVE);
+    }
   }
 
   async archiveItem(
@@ -244,6 +290,7 @@ export class DocumentLifecycleService {
         item.parentFolderId,
         item.projectId,
         id,
+        item.isStarred,
       );
     }
 
@@ -259,6 +306,7 @@ export class DocumentLifecycleService {
       userId,
       archive ? 'DELETED' : 'UPDATED',
     );
+    await this.accessRealtime.publishForItem(id);
 
     return this.presentation.enrichDocumentItem(updated);
   }
@@ -269,44 +317,47 @@ export class DocumentLifecycleService {
     id: string,
     isStarred: boolean,
   ) {
-    const item = await this.access.checkPermission(
+    const item = await this.access.checkPersonalOwnerFeature(
       id,
       userId,
       userEmail,
-      DocumentRole.VIEWER,
+      'Star is',
     );
-    this.access.assertPersonalDocumentFeature(item, 'Star is');
+    await this.prisma.$transaction(
+      (tx) => this.setStarredTreesInTransaction(tx, userId, [item], isStarred),
+      { timeout: DOCUMENT_BULK.TRANSACTION_TIMEOUT_MS },
+    );
+    const updatedItem = await this.prisma.documentItem.findUniqueOrThrow({
+      where: { id },
+    });
 
-    if (isStarred) {
-      await this.prisma.userStarredDocument.upsert({
-        where: {
-          userId_documentItemId: {
-            userId,
-            documentItemId: id,
-          },
-        },
-        create: {
-          userId,
-          documentItemId: id,
-        },
-        update: {},
-      });
-    } else {
-      await this.prisma.userStarredDocument.deleteMany({
-        where: {
-          userId,
-          documentItemId: id,
-        },
-      });
-    }
-
-    await this.events.publishProjectDocumentEvent(item, userId, 'UPDATED');
+    await this.events.publishProjectDocumentEvent(
+      updatedItem,
+      userId,
+      'UPDATED',
+    );
 
     return {
-      ...item,
+      ...updatedItem,
       sizeBytes: Number(item.sizeBytes),
       isStarred,
     };
+  }
+
+  setStarredTreesInTransaction(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    items: DocumentItem[],
+    isStarred: boolean,
+  ) {
+    return setDocumentTreesStarred(
+      tx,
+      this.tree,
+      this.locations,
+      userId,
+      items,
+      isStarred,
+    );
   }
 
   async deleteItemPermanently(
@@ -398,6 +449,7 @@ export class DocumentLifecycleService {
       item.parentFolderId,
       item.projectId,
       id,
+      item.isStarred,
     );
 
     return this.prisma.documentItem.update({

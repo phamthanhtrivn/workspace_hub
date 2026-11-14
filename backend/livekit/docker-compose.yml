@@ -32,6 +32,8 @@ services:
     image: livekit/egress:v1.15.0
     container_name: wh_livekit_egress
     profiles: [recording]
+    ports:
+      - '127.0.0.1:${LIVEKIT_EGRESS_HEALTH_PORT:-7981}:7981'
     environment:
       EGRESS_CONFIG_FILE: /etc/egress.yaml
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY:?LIVEKIT_API_KEY is required}

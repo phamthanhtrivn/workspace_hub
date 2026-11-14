@@ -196,7 +196,7 @@ export const CalendarGrid = memo(function CalendarGrid({
             </p>
             {!arg.event.allDay && (
               <p
-                className={`mt-0.5 whitespace-nowrap text-xs font-medium leading-[1.2] tabular-nums ${
+                className={`mt-0.5 truncate text-xs font-medium leading-[1.2] tabular-nums ${
                   isCompletedTask || isDeclined ? "line-through" : ""
                 }`}
               >
@@ -247,11 +247,9 @@ export const CalendarGrid = memo(function CalendarGrid({
         moreLinkClick="popover"
         moreLinkDidMount={({ el }) => el.setAttribute("role", "button")}
         slotEventOverlap={false}
+        displayEventEnd
+        eventTimeFormat={{ hour: "numeric", minute: "2-digit", hour12: false }}
         views={{
-          timeGrid: {
-            displayEventEnd: false,
-            eventTimeFormat: { hour: "numeric", minute: "2-digit", hour12: false },
-          },
           timeGridWeek: { eventMaxStack: 2 },
         }}
         expandRows

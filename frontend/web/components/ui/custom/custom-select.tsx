@@ -111,11 +111,14 @@ export function CustomSelect<TValue extends string = string>({
         value={internalValue}
         disabled={disabled}
         onOpenChange={onOpenChange}
-        onValueChange={(nextValue) =>
+        onValueChange={(nextValue) => {
+          // Radix's native form select may emit an empty value when its options
+          // change. Explicit empty options use our sentinel instead.
+          if (nextValue === "") return;
           onChange(
             (nextValue === INTERNAL_EMPTY_VALUE ? "" : nextValue) as TValue,
-          )
-        }
+          );
+        }}
       >
         <SelectTrigger
           focusMode={focusMode}

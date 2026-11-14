@@ -65,6 +65,7 @@ export function useDocumentItemDragAndDrop(
         userRole: path.data.access.userRole,
         projectId: path.data.access.projectId,
         name: path.data.access.name,
+        isStarred: path.data.access.isStarred,
       }
     : item;
   const dropBlocked =
