@@ -12,6 +12,7 @@ export interface DateRangeOptions {
   mode: "create" | "edit";
   dateOnly?: boolean;
   today?: string;
+  allowPastStart?: boolean;
   requireStart?: boolean;
   requireEnd?: boolean;
   minDurationMs?: number;
@@ -35,7 +36,7 @@ function rangeTimestamp(value: string, dateOnly: boolean): number {
 export function getDateRangeErrors({
   start, end, mode, dateOnly = false, today = getTodayDateValue(),
   requireStart = false, requireEnd = false, minDurationMs = 0,
-  allowExistingEndWithoutStart = false,
+  allowExistingEndWithoutStart = false, allowPastStart = false,
 }: DateRangeOptions): DateRangeErrors {
   const errors: DateRangeErrors = {};
   if (!start) {
@@ -43,7 +44,11 @@ export function getDateRangeErrors({
     if (end && !allowExistingEndWithoutStart) errors.end = DATE_RANGE_MESSAGES.startRequired;
   } else if (!Number.isFinite(rangeTimestamp(start, dateOnly))) {
     errors.start = DATE_RANGE_MESSAGES.invalidDate;
-  } else if (mode === "create" && start.slice(0, 10) < today) {
+  } else if (
+    mode === "create" &&
+    !allowPastStart &&
+    start.slice(0, 10) < today
+  ) {
     errors.start = DATE_RANGE_MESSAGES.startInPast;
   }
   if (!end) {
@@ -72,8 +77,10 @@ function offsetDateTime(value: string, offsetMs: number): string | undefined {
 }
 
 export function getDateRangeBounds({ start, end, mode, dateOnly = false,
-  today = getTodayDateValue(), minDurationMs = 0 }: DateRangeOptions) {
-  const startMin = mode === "create" ? dateOnly ? today : `${today}T00:00` : undefined;
+  today = getTodayDateValue(), minDurationMs = 0, allowPastStart = false }: DateRangeOptions) {
+  const startMin = mode === "create" && !allowPastStart
+    ? dateOnly ? today : `${today}T00:00`
+    : undefined;
   const startMax = end ? dateOnly ? end : offsetDateTime(end, -minDurationMs) : undefined;
   return {
     startMin,

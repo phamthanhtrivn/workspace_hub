@@ -8,6 +8,9 @@ import { FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { normalizeHexColor } from "@/components/ui/custom/color-picker.utils";
+import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
+import { CalendarConfirmDialog } from "../ui/calendar-confirm-dialog";
 
 import { CALENDAR_DEFAULT_EVENT_COLOR } from "../../types/calendar.constants";
 import {
@@ -45,21 +48,33 @@ type CalendarModalProps =
 
 export function CalendarModal(props: CalendarModalProps) {
   const dialogRef = useRef<HTMLFormElement>(null);
-  const initialValues =
+  const [initialValues] = useState(() =>
     props.mode === "create"
       ? {
           name: "",
           icon: null,
           color: CALENDAR_DEFAULT_EVENT_COLOR,
         }
-      : props.initialValues;
+      : props.initialValues,
+  );
   const [name, setName] = useState(initialValues.name);
   const [icon, setIcon] = useState<string | null>(initialValues.icon);
   const [color, setColor] = useState(initialValues.color);
-  const [showCustomColor, setShowCustomColor] = useState(false);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const isCreateMode = props.mode === "create";
   const headingId = `calendar-${props.mode}-heading`;
   const previewName = name.trim() || "Calendar name";
+  const hasChanges =
+    name.trim() !== initialValues.name.trim() ||
+    icon !== initialValues.icon ||
+    (normalizeHexColor(color) ?? color) !==
+      (normalizeHexColor(initialValues.color) ?? initialValues.color);
+
+  const requestClose = () => {
+    if (props.pending) return;
+    if (hasChanges) setDiscardOpen(true);
+    else props.onClose();
+  };
 
 
 
@@ -88,8 +103,14 @@ export function CalendarModal(props: CalendarModalProps) {
     props.onRequestDelete?.();
   };
 
-  return <DialogSurface onClose={props.onClose}>{<div
+  return <><DialogSurface onClose={requestClose}>{<div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/40 p-4"
+      onPointerDown={(event) => {
+        if (event.button !== 0 || event.target !== event.currentTarget || event.defaultPrevented || discardOpen) return;
+        // A click outside a nested picker closes that picker first.
+        if (document.querySelector('[data-slot="popover-content"][data-state="open"]')) return;
+        requestClose();
+      }}
       onWheelCapture={(event) => {
         if (
           event.target instanceof Node &&
@@ -131,7 +152,7 @@ export function CalendarModal(props: CalendarModalProps) {
             variant="ghost"
             size="icon"
             disabled={props.pending}
-            onClick={props.onClose}
+            onClick={requestClose}
             aria-label="Close"
             className="grid h-8 w-8 cursor-pointer place-items-center rounded-control text-muted-foreground transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-60"
           >
@@ -179,7 +200,7 @@ export function CalendarModal(props: CalendarModalProps) {
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Icon
             </span>
-            <CalendarIconPicker value={icon} onChange={setIcon} />
+            <CalendarIconPicker value={icon} onChange={setIcon} disabled={props.pending} />
           </div>
 
           <div className="space-y-1.5">
@@ -188,9 +209,8 @@ export function CalendarModal(props: CalendarModalProps) {
             </span>
             <CalendarColorPicker
               value={color}
-              showCustomColor={showCustomColor}
               onChange={setColor}
-              onShowCustomColor={setShowCustomColor}
+              disabled={props.pending}
             />
           </div>
         </div>
@@ -216,7 +236,7 @@ export function CalendarModal(props: CalendarModalProps) {
               type="button"
               variant="outline"
               disabled={props.pending}
-              onClick={props.onClose}
+              onClick={requestClose}
               className="cursor-pointer rounded-control border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-background hover:text-foreground disabled:cursor-wait disabled:opacity-60"
             >
               Cancel
@@ -231,5 +251,10 @@ export function CalendarModal(props: CalendarModalProps) {
           </div>
         </div>
       </form>
-    </div>}</DialogSurface>;
+    </div>}</DialogSurface>
+    <CalendarConfirmDialog open={discardOpen} title={copy.discardCalendarTitle}
+      description={copy.discardCalendarDescription} confirmLabel={copy.discardChanges}
+      cancelLabel={copy.keepEditing} variant="warning" isLoading={props.pending}
+      onCancel={() => setDiscardOpen(false)} onConfirm={() => { if (!props.pending) props.onClose(); }} />
+  </>;
 }

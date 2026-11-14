@@ -27,7 +27,7 @@ export function TaskFocusButton({ target, compact = false }: { target: PomodoroA
   const label = current && status === "RUNNING" ? "Focusing" : current && status === "PAUSED" ? "Resume focus" : "Start focus";
   const disabled = !isReady || busy || (current && status === "RUNNING");
   if (compact) return (
-    <span data-ui-interaction-exception="Propagation boundary; the contained shared button owns activation." data-card-interactive="true" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+    <span className="inline-flex shrink-0 items-center" data-ui-interaction-exception="Propagation boundary; the contained shared button owns activation." data-card-interactive="true" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
       <Popover>
         <PopoverTrigger asChild><Button type="button" size="sm" variant="ghost" disabled={disabled} aria-label={`Focus actions: ${target.title}`} title={label} className="size-7 rounded-control p-1 text-info-content"><Timer className="size-3.5" /></Button></PopoverTrigger>
         <PopoverContent align="end" className="w-44 p-1">
@@ -37,7 +37,7 @@ export function TaskFocusButton({ target, compact = false }: { target: PomodoroA
     </span>
   );
   return (
-    <span data-card-interactive="true" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
+    <span className="inline-flex w-fit items-center" data-card-interactive="true" onPointerDown={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
       <Button loading={starting} type="button" size="sm" variant="outline" disabled={disabled}
         title={label} aria-label={`${label}: ${target.title}`} onClick={(event) => { event.stopPropagation(); void focus(); }}
         className="h-8 gap-1.5 rounded-control text-xs">

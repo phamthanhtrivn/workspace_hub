@@ -43,7 +43,7 @@ export function QuickCreateEventFields({
         />
       </QuickRow>
 
-      <QuickRow icon={<Video className="h-5 w-5" />}>
+      <QuickRow icon={<Video className="h-5 w-5" />} iconAlignment="center">
         <CalendarConferenceCard
           hasConference={hasConference}
           locationValue={conferenceUrl}

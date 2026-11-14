@@ -269,12 +269,6 @@ export interface CalendarEventDraft {
   attendees?: CalendarEventAttendeePayload[];
 }
 
-export interface CalendarTaskDeadline {
-  enabled: boolean;
-  date: string;
-  time: string;
-}
-
 export type CalendarTaskGroup = "overdue" | "today" | "upcoming" | "completed";
 
 export interface CalendarGroupedTasks {

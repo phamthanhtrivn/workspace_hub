@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { reminderSchedule } from './reminder-schedule';
 import {
   AttendeeResponseStatus,
   EventStatus,
   Prisma,
-  ReminderDeliveryStatus,
 } from '@prisma/client';
 import { RRuleSet, rrulestr } from 'rrule';
 import {
@@ -356,10 +356,7 @@ export class CalendarRecurrenceService {
               eventId: occurrence.id,
               minutesBefore: reminder.minutesBefore,
               method: reminder.method,
-              scheduledAt: new Date(
-                occurrenceStart.getTime() - reminder.minutesBefore * 60_000,
-              ),
-              deliveryStatus: ReminderDeliveryStatus.PENDING,
+              ...reminderSchedule(occurrenceStart, reminder.minutesBefore),
             })),
           });
         }

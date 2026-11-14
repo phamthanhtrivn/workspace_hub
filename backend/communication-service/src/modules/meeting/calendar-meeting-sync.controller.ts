@@ -22,7 +22,7 @@ export class CalendarMeetingSyncController {
     @Param('joinToken') joinToken: string,
   ) {
     this.assertKey(key);
-    return { data: await this.syncService.lookup(joinToken) };
+    return this.syncService.lookup(joinToken);
   }
   private assertKey(key: string) {
     const expected = process.env.CALENDAR_TO_COMMUNICATION_KEY;
@@ -35,6 +35,6 @@ export class CalendarMeetingSyncController {
     @Body() dto: SyncCalendarMeetingDto,
   ) {
     this.assertKey(key);
-    return { data: await this.syncService.sync(dto) };
+    return this.syncService.sync(dto);
   }
 }

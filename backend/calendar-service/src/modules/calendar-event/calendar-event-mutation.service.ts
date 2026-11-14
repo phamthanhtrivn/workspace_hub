@@ -38,6 +38,11 @@ export class CalendarEventMutationService {
     );
     this.accessPolicy.assertPersonalCalendar(calendar);
     this.validation.assertValidRange(dto.startAt, dto.endAt);
+    const isTask = dto.sourceType === EventSourceType.TASK;
+    this.validation.assertConferenceSupportedForSource(
+      isTask,
+      dto.conference?.enabled,
+    );
     this.recurrence.assertValidRule(dto.recurrenceRule);
     await this.resourceAccess.assertDocumentAccess(
       userId,
@@ -117,6 +122,11 @@ export class CalendarEventMutationService {
     this.accessPolicy.assertCanManageEvent(userId, event);
     this.accessPolicy.assertUserManagedEvent(event);
     this.recurrence.assertValidRule(dto.recurrenceRule);
+    const isTask = this.validation.isTaskEvent(event);
+    this.validation.assertConferenceSupportedForSource(
+      isTask,
+      dto.conference?.enabled,
+    );
     await this.resourceAccess.assertDocumentAccess(
       userId,
       userEmail,
@@ -127,10 +137,12 @@ export class CalendarEventMutationService {
       ? await this.accessPolicy.assertCalendarOwner(userId, dto.calendarId)
       : event.calendar;
     this.accessPolicy.assertPersonalCalendar(calendar);
-    this.validation.assertValidRange(
-      dto.startAt ?? event.startAt.toISOString(),
-      dto.endAt ?? event.endAt.toISOString(),
-    );
+    if (dto.startAt !== undefined || dto.endAt !== undefined) {
+      this.validation.assertValidRange(
+        dto.startAt ?? event.startAt.toISOString(),
+        dto.endAt ?? event.endAt.toISOString(),
+      );
+    }
 
     const updatedId = await this.updateByRecurrenceState(
       userId,

@@ -386,6 +386,9 @@ export function CalendarWorkspace() {
             } else {
               calendar.openDetail(task);
             }
+            if (task.startAt) {
+              handleMiniCalendarDateSelect(new Date(task.startAt));
+            }
           }}
         />
         </div>

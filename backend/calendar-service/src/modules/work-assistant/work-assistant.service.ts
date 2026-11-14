@@ -21,10 +21,7 @@ export class WorkAssistantService {
     const personal: Prisma.CalendarEventWhereInput = {
       calendar: { projectId: null, ownerUserId: input.userId },
       status: { not: 'CANCELLED' },
-      OR: [
-        { sourceType: 'TASK', sourceId: null },
-        { sourceType: 'USER', description: { contains: '[TASK]' } },
-      ],
+      sourceType: 'TASK', sourceId: null,
     };
     const focusWhere: Prisma.PomodoroSessionWhereInput = {
       userId: input.userId,
@@ -53,14 +50,6 @@ export class WorkAssistantService {
           startAt: { lt: windowEnd },
           endAt: { gt: windowStart },
           sourceType: 'USER',
-          AND: [
-            {
-              OR: [
-                { description: null },
-                { NOT: { description: { contains: '[TASK]' } } },
-              ],
-            },
-          ],
           OR: [
             { calendar: { ownerUserId: input.userId, projectId: null } },
             {

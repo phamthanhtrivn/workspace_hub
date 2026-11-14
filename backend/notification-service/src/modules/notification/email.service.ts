@@ -1,36 +1,41 @@
-import {
-  Injectable,
-  ServiceUnavailableException,
-} from "@nestjs/common";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import * as nodemailer from "nodemailer";
 import { SendProjectInvitationEmailDto } from "./dtos/send-project-invitation-email.dto";
+import {
+  buildCalendarReminderEmail,
+  type CalendarReminderEmailInput,
+} from "./templates/calendar-reminder.template";
+import { CALENDAR_REMINDER } from "./constants/calendar-reminder.constants";
 
 @Injectable()
 export class EmailService {
-  async sendCalendarReminderEmail(input: {
-    recipientEmail: string;
-    recipientName?: string | null;
-    eventTitle: string;
-    startAt: string;
-    location?: string | null;
-    eventUrl: string;
-  }): Promise<void> {
-    const transporter = this.createTransporter();
-    const from = process.env.MAIL_FROM || process.env.MAIL_USERNAME!;
-    const recipientName = input.recipientName || "there";
-    const eventTitle = this.escapeHtml(input.eventTitle);
-    const startAt = new Date(input.startAt).toLocaleString();
-    const location = input.location
-      ? `<p><strong>Location:</strong> ${this.escapeHtml(input.location)}</p>`
-      : "";
+  prepareCalendarReminderEmail(input: CalendarReminderEmailInput) {
+    return {
+      transporter: this.createTransporter(),
+      mail: {
+        from: process.env.MAIL_FROM || process.env.MAIL_USERNAME!,
+        to: input.recipientEmail,
+        ...buildCalendarReminderEmail(input),
+      },
+    };
+  }
 
-    await transporter.sendMail({
-      from,
-      to: input.recipientEmail,
-      subject: `Reminder: ${input.eventTitle}`,
-      text: `Hello ${recipientName},\n\n${input.eventTitle} starts at ${startAt}.${input.location ? ` Location: ${input.location}.` : ""}\n\n${input.eventUrl}`,
-      html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937"><h2>Calendar reminder</h2><p>Hello ${this.escapeHtml(recipientName)},</p><p><strong>${eventTitle}</strong> starts at ${this.escapeHtml(startAt)}.</p>${location}<p><a href="${this.escapeHtml(input.eventUrl)}">Open calendar</a></p></div>`,
-    });
+  async sendPreparedCalendarReminder(
+    prepared: ReturnType<EmailService["prepareCalendarReminderEmail"]>,
+  ): Promise<void> {
+    const result = await prepared.transporter.sendMail(prepared.mail);
+    if (!result.accepted?.length)
+      throw Object.assign(new Error("SMTP did not accept recipient"), {
+        code: "EENVELOPE",
+      });
+  }
+
+  async sendCalendarReminderEmail(
+    input: CalendarReminderEmailInput,
+  ): Promise<void> {
+    await this.sendPreparedCalendarReminder(
+      this.prepareCalendarReminderEmail(input),
+    );
   }
 
   async sendProjectInvitationEmail(
@@ -61,7 +66,12 @@ export class EmailService {
         "",
         "Workspace Hub",
       ].join("\n"),
-      html: this.buildInvitationHtml(dto, recipientName, inviterName, expiresText),
+      html: this.buildInvitationHtml(
+        dto,
+        recipientName,
+        inviterName,
+        expiresText,
+      ),
     });
   }
 
@@ -83,6 +93,8 @@ export class EmailService {
       host,
       port,
       secure: port === 465,
+      connectionTimeout: CALENDAR_REMINDER.SMTP_CONNECTION_TIMEOUT_MS,
+      socketTimeout: CALENDAR_REMINDER.SMTP_SOCKET_TIMEOUT_MS,
       auth: { user: username, pass: password },
     });
   }

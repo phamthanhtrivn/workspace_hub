@@ -54,6 +54,7 @@ model Notification {
   isRead       Boolean          @default(false) @map("is_read")
   link         String?          @map("link")
   metadata     Json?            @map("metadata")
+  pushClaimedAt DateTime?        @map("push_claimed_at")
   createdAt    DateTime         @default(now()) @map("created_at")
   updatedAt    DateTime         @updatedAt @map("updated_at")
 
@@ -87,4 +88,29 @@ model RejectedKafkaEvent {
 
   @@unique([topic, partition, offset])
   @@map("rejected_kafka_events")
+}
+
+enum ReminderEmailStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  UNKNOWN
+  SKIPPED
+}
+
+model ReminderEmailDelivery {
+  id          String              @id @default(uuid())
+  groupKey    String              @map("group_key")
+  recipientId String              @map("recipient_id")
+  status      ReminderEmailStatus  @default(PENDING)
+  attempts    Int                 @default(0)
+  claimedAt   DateTime?           @map("claimed_at")
+  sentAt      DateTime?           @map("sent_at")
+  lastError   String?             @map("last_error")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  @@unique([groupKey, recipientId])
+  @@map("reminder_email_deliveries")
 }

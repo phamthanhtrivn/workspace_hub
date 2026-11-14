@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker, getDefaultClassNames, useDayPicker, type DayButton, type DropdownProps } from "react-day-picker";
+import { DayPicker, getDefaultClassNames, useDayPicker, type DayButton, type DropdownProps, type ChevronProps, type RootProps } from "react-day-picker";
 import { CustomSelect } from "./custom/custom-select";
 import { setMonth, setYear } from "date-fns";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -40,18 +40,32 @@ function Calendar({ className, classNames, components, showOutsideDays = true, .
         ...classNames,
       }}
       components={{
-        Root: ({ rootRef, ...rootProps }) => <div data-slot="calendar" ref={rootRef} {...rootProps} />,
-        Chevron: ({ orientation, className: chevronClassName, ...chevronProps }) => {
-          const Icon = orientation === "left" ? ChevronLeft : orientation === "right" ? ChevronRight : ChevronDown;
-          return <Icon aria-hidden className={cn("size-4", chevronClassName)} {...chevronProps} />;
-        },
+        Root: CalendarRoot,
+        Chevron: CalendarChevron,
         DayButton: CalendarDayButton,
-        MonthsDropdown: (dropdownProps) => <CalendarDropdown {...dropdownProps} kind="month" />,
-        YearsDropdown: (dropdownProps) => <CalendarDropdown {...dropdownProps} kind="year" />,
+        MonthsDropdown: CalendarMonthsDropdown,
+        YearsDropdown: CalendarYearsDropdown,
         ...components,
       }}
       {...props} />
   );
+}
+
+function CalendarRoot({ rootRef, ...props }: RootProps) {
+  return <div data-slot="calendar" ref={rootRef} {...props} />;
+}
+
+function CalendarChevron({ orientation, className, ...props }: ChevronProps) {
+  const Icon = orientation === "left" ? ChevronLeft : orientation === "right" ? ChevronRight : ChevronDown;
+  return <Icon aria-hidden className={cn("size-4", className)} {...props} />;
+}
+
+function CalendarMonthsDropdown(props: DropdownProps) {
+  return <CalendarDropdown {...props} kind="month" />;
+}
+
+function CalendarYearsDropdown(props: DropdownProps) {
+  return <CalendarDropdown {...props} kind="year" />;
 }
 
 function CalendarDropdown({ kind, options = [], value, disabled, "aria-label": ariaLabel }: DropdownProps & { kind: "month" | "year" }) {

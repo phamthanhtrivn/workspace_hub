@@ -65,7 +65,7 @@ export function useCalendarEventMove(events: CalendarEvent[]) {
         return;
       }
       if (model.recurrenceRule || model.recurrenceParentId) {
-        setPendingEventMove(info);
+        info.revert();
         return;
       }
       void persistEventMove(info, RecurrenceScope.THIS);

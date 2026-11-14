@@ -53,7 +53,9 @@ export class CalendarConferenceSyncService
       const previous = byId.get(event.id);
       byId.delete(event.id);
       if (!event.conferenceEnabled && !previous) continue;
-      const enabled = event.conferenceEnabled && event.status !== 'CANCELLED';
+      // Keep existing meeting history, but never enqueue a new meeting for a past slot.
+      const enabled = event.conferenceEnabled && event.status !== 'CANCELLED' &&
+        (Boolean(previous?.meetingId) || event.startAt.getTime() > Date.now());
       const payload = {
         ...(previous &&
         typeof (previous.payload as Prisma.JsonObject).adoptJoinToken ===
@@ -200,6 +202,16 @@ export class CalendarConferenceSyncService
           data: { nextAttemptAt: new Date(Date.now() + SYNC_LEASE_MS) },
         });
         if (!claimed.count) continue;
+        // A delayed job can expire between reconciliation and delivery.
+        const scheduledStartAt = (job.payload as Prisma.JsonObject).scheduledStartAt;
+        if (job.enabled && !job.meetingId && typeof scheduledStartAt === 'string' &&
+          new Date(scheduledStartAt).getTime() <= Date.now()) {
+          await this.prisma.calendarConference.updateMany({
+            where: { eventId: job.eventId, revision: job.revision },
+            data: { enabled: false, status: ConferenceStatus.NONE, lastError: null },
+          });
+          continue;
+        }
         try {
           const key = process.env.CALENDAR_TO_COMMUNICATION_KEY;
           const serviceUrl = process.env.COMMUNICATION_SERVICE_URL;

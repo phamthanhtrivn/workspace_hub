@@ -11,11 +11,12 @@ export function useCalendarEventTime(form: UseFormReturn<CalendarEventEditorValu
   const startAt = useWatch({ control, name: "startAt" });
   const endAt = useWatch({ control, name: "endAt" });
   const allDay = useWatch({ control, name: "allDay" });
+  const allowPastStart = true;
   const { today, refreshToday } = useScheduleToday();
 
   const updateRange = (nextStart: string, nextEnd: string, field: "startAt" | "endAt") => {
     const errors = getDateRangeErrors({ start: nextStart, end: nextEnd, mode, today: refreshToday(),
-      minDurationMs: CALENDAR_MIN_EVENT_DURATION_MS });
+      minDurationMs: CALENDAR_MIN_EVENT_DURATION_MS, allowPastStart });
     if (hasDateRangeErrors(errors)) {
       const message = errors.start || errors.end!;
       form.setError(field, { type: "validate", message });
@@ -29,13 +30,24 @@ export function useCalendarEventTime(form: UseFormReturn<CalendarEventEditorValu
     return true;
   };
 
+  const updateStartTime = (nextStart: string) => {
+    const duration = new Date(endAt).getTime() - new Date(startAt).getTime();
+    const minutes = Number.isFinite(duration)
+      ? Math.max(duration, CALENDAR_MIN_EVENT_DURATION_MS) / 60_000
+      : 60;
+    updateRange(nextStart, addMinutesToDateTimeLocal(nextStart, minutes), "startAt");
+  };
   const handleStartDateChange = (date: string) => {
     if (!date) { updateRange("", "", "startAt"); return; }
-    updateRange(composeDateTimeLocal(date, allDay ? "00:00" : getTimeInputValue(startAt)), endAt, "startAt");
+    updateRange(
+      composeDateTimeLocal(date, allDay ? "00:00" : getTimeInputValue(startAt)),
+      endAt,
+      "startAt",
+    );
   };
   const handleStartTimeChange = (time: string) => {
     if (!startAt) return;
-    updateRange(composeDateTimeLocal(getDateInputValue(startAt), time), endAt, "startAt");
+    updateStartTime(composeDateTimeLocal(getDateInputValue(startAt), time));
   };
   const updateEndAt = (nextEnd: string) => { updateRange(startAt, nextEnd, "endAt"); };
   const handleEndDateChange = (date: string) => {

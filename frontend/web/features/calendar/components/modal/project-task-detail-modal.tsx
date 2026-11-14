@@ -35,8 +35,10 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
           </DialogHeader>
 
           <div className="space-y-6 border-t border-border px-6 py-5 text-sm text-foreground">
-            <ProjectTaskFocusButton task={task} project={project} />
-            <TaskFocusHistory target={{ taskId: task.id }} />
+            <div className="flex flex-col gap-4">
+              <ProjectTaskFocusButton task={task} project={project} />
+              <TaskFocusHistory target={{ taskId: task.id }} />
+            </div>
             <TaskReadonlyDetails task={task} projectId={project.id} />
           </div>
         </div>

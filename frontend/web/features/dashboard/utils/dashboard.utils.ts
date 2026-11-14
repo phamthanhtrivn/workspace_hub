@@ -95,8 +95,7 @@ export function buildDayItems(
     if (
       event.status === "CANCELLED" ||
       event.cancelledAt ||
-      event.sourceType === "TASK" ||
-      event.description?.includes("[TASK]")
+      event.sourceType === "TASK"
     )
       continue;
     const linkedToken =

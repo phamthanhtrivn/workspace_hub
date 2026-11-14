@@ -87,8 +87,9 @@ export class RecurrenceTransactionService {
     dto: UpdateCalendarEventDto,
     tx: Prisma.TransactionClient,
   ): Promise<string> {
-    if (dto.recurrenceRule === null) {
-      return this.single.removeRecurrence(userId, event, calendar, dto, tx);
+    this.assertRecurringFieldsUnchanged(event, dto);
+    if (calendar.timeZone !== event.recurrenceSeries!.timeZone) {
+      throw new BadRequestException(CALENDAR_ERROR_MESSAGES.RECURRING_EVENT_FIELDS_LOCKED);
     }
     const scope = dto.recurrenceScope ?? RecurrenceScope.THIS;
     if (scope === RecurrenceScope.THIS) {
@@ -118,6 +119,32 @@ export class RecurrenceTransactionService {
       );
     }
     return this.entire.updateEntireSeries(userId, event, calendar, dto, tx);
+  }
+
+  private assertRecurringFieldsUnchanged(
+    event: EventWithRelations,
+    dto: UpdateCalendarEventDto,
+  ): void {
+    const ruleChanged =
+      dto.recurrenceRule !== undefined &&
+      dto.recurrenceRule !== event.recurrenceSeries!.recurrenceRule;
+    const startChanged =
+      dto.startAt !== undefined &&
+      new Date(dto.startAt).getTime() !== event.startAt.getTime();
+    const endChanged =
+      dto.endAt !== undefined &&
+      new Date(dto.endAt).getTime() !== event.endAt.getTime();
+    const allDayChanged =
+      dto.allDay !== undefined && dto.allDay !== event.allDay;
+    const exceptionsChanged = dto.exceptionDates !== undefined &&
+      JSON.stringify([...dto.exceptionDates].map(value => new Date(value).toISOString()).sort()) !==
+      JSON.stringify(event.recurrenceSeries!.exceptions.map(value => value.occurrenceStart.toISOString()).sort());
+
+    if (ruleChanged || startChanged || endChanged || allDayChanged || exceptionsChanged) {
+      throw new BadRequestException(
+        CALENDAR_ERROR_MESSAGES.RECURRING_EVENT_FIELDS_LOCKED,
+      );
+    }
   }
 
   async cancelEvent(

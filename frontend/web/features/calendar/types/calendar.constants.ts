@@ -8,6 +8,7 @@ export const CALENDAR_DEFAULT_EVENT_DURATION_MS = 60 * 60 * 1000;
 export const CALENDAR_MIN_EVENT_DURATION_MS = 15 * 60 * 1000;
 export const CALENDAR_TASK_TITLE_MAX_LENGTH = 200;
 export const CALENDAR_MAX_REMINDERS = 5;
+export const CALENDAR_DEFAULT_REMINDER_MINUTES = 10;
 export const CALENDAR_MAX_RECURRENCE_INTERVAL = 365;
 export const CALENDAR_MAX_RECURRENCE_COUNT = 10_000;
 export const CALENDAR_MAX_REMINDER_MINUTES_BEFORE = 30 * 24 * 60;
@@ -17,38 +18,10 @@ export const CALENDAR_INITIAL_VIEW = "timeGridWeek";
 export const CALENDAR_SLOT_MIN_TIME = "00:00:00";
 export const CALENDAR_SLOT_MAX_TIME = "24:00:00";
 
-export const CALENDAR_COLOR_CHOICES = [
-  "#2563eb",
-  "#0ea5e9",
-  "#16a34a",
-  "#22c55e",
-  "#f59e0b",
-  "#f97316",
-  "#dc2626",
-  "#ec4899",
-  "#7c3aed",
-  "#6366f1",
-  "#64748b",
-] as const;
-
-export const CALENDAR_ICON_CHOICES = [
-  "📅",
-  "💼",
-  "📚",
-  "🎯",
-  "🏋️",
-  "🎂",
-  "✈️",
-  "🧠",
-  "🛠️",
-  "⭐",
-  "🏠",
-  "🎨",
-  "💡",
-  "🚀",
-  "📝",
-  "🏆",
-] as const;
+export {
+  WORKSPACE_COLOR_OPTIONS as CALENDAR_COLOR_CHOICES,
+  WORKSPACE_ICON_OPTIONS as CALENDAR_ICON_CHOICES,
+} from "@/components/ui/custom/appearance.constants";
 
 export const CALENDAR_VIEW_OPTIONS = [
   { value: "listYear", label: "Year" },
