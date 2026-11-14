@@ -62,9 +62,29 @@ jobs:
         continue-on-error: true
         run: npm run lint -- --no-fix
       - name: Generate client
-        if: ${{ matrix.directory != 'frontend/web' }}
+        if: ${{ matrix.directory != 'frontend/web' && matrix.directory != 'backend/ai-service/api' }}
         run: npx --no-install prisma generate
+      - name: Fast regression tests
+        run: npm test
       - run: npm run build
+      - name: Typecheck test sources
+        run: npm run test:typecheck
+  ai-tests:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend/ai-service/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+          cache-dependency-path: backend/ai-service/api/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:typecheck
   java:
     needs: changes
     if: ${{ needs.changes.outputs.java == 'true' }}
@@ -81,6 +101,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+      - name: Test discovery and local env tooling
+        run: node --test tests/support/discovery.spec.mjs backend/scripts/local-security/env-files.test.mjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

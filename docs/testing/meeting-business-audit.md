@@ -51,10 +51,11 @@ Pop-Location
 Push-Location backend/ai-service/api
 npm run build
 Pop-Location
-node --test backend/security-tests/meeting-frontend.test.mjs backend/security-tests/meeting-business-errors.test.mjs
+node tests/run-tests.mjs --project frontend/web --match schedule-meeting.schema
+node tests/run-tests.mjs --project frontend/web --match meeting-business-errors
 $env:WORKSPACEHUB_MEETING_INTEGRATION = '1'
 try {
-  node --test --test-concurrency=1 backend/security-tests/meeting-business.integration.test.mjs
+  node tests/run-tests.mjs --suite integration --match meeting-business.integration
 } finally {
   Remove-Item Env:WORKSPACEHUB_MEETING_INTEGRATION
 }

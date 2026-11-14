@@ -3,15 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "test:calendar-policy": "node --test test/calendar-date-range.test.cjs",
-    "test:calendar-appearance": "node --test test/calendar-appearance.test.cjs",
+    "test:calendar-policy": "node ../../tests/run-tests.mjs --match calendar-policy.spec",
+    "test:calendar-appearance": "node ../../tests/run-tests.mjs --match calendar-appearance.spec",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "lint:check": "eslint .",
     "lint:fix": "eslint . --fix",
-    "typecheck": "tsc --noEmit --incremental false"
+    "typecheck": "tsc --noEmit --incremental false",
+    "test": "node ../../tests/run-tests.mjs",
+    "test:unit": "node ../../tests/run-tests.mjs",
+    "test:integration": "node ../../tests/run-tests.mjs --suite integration",
+    "test:typecheck": "tsc --noEmit --incremental false"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

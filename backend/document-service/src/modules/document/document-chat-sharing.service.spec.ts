@@ -133,19 +133,35 @@ void test('sharing a personal file/folder grants stable Viewer access once and e
   assert.equal(h.grants.length, 1);
 });
 
-void test('existing and inherited Editor access is preserved', async () => {
+void test('inherited Editor access requires confirmation before adding stable Viewer grants', async () => {
   const h = setup();
   h.roles.set('editor', DocumentRole.EDITOR);
   h.roles.set('inherited-editor', DocumentRole.EDITOR);
-  await h.service.prepareShare('owner', 'owner@example.com', 'folder', [
+  const recipients = [
     'editor',
     'inherited-editor',
     'viewer',
-  ]);
+  ];
+  const preview = await h.service.prepareShare('owner', 'owner@example.com', 'folder', recipients);
+  assert.deepEqual(preview, { requiresConfirmation: true, inheritedEditorCount: 2 });
+  assert.equal(h.grants.length, 0);
+  assert.equal(h.transactions(), 0);
+  await h.service.prepareShare('owner', 'owner@example.com', 'folder', recipients, true);
   assert.deepEqual(
     h.grants.map((grant) => grant.shareWithUserId),
-    ['viewer'],
+    recipients,
   );
+  assert.ok(h.grants.every(grant => grant.permission === SharePermission.VIEWER));
+});
+
+void test('direct Editor grants remain unchanged when shared to chat again', async () => {
+  const h = setup();
+  h.roles.set('editor', DocumentRole.EDITOR);
+  const existing = { documentItemId: 'folder', shareWithUserId: 'editor', shareWithEmail: 'editor@example.com', permission: SharePermission.EDITOR };
+  h.grants.push(existing);
+  Object.assign(h.item, { shares: [existing] });
+  assert.deepEqual(await h.service.prepareShare('owner', 'owner@example.com', 'folder', ['editor']), { requiresConfirmation: false, inheritedEditorCount: 0 });
+  assert.deepEqual(h.grants, [existing]);
 });
 
 void test('non-owners cannot create grants; archived documents cannot be shared', async () => {

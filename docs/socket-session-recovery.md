@@ -29,7 +29,8 @@ Run the focused checks from the repository root after installing existing fronte
 and backend dependencies:
 
 ```powershell
-node --test backend/security-tests/frontend-session-recovery.test.mjs backend/security-tests/socket-session-recovery.test.mjs backend/security-tests/project-socket-recovery.test.mjs
+node tests/run-tests.mjs --project frontend/web --match session-recovery
+node tests/run-tests.mjs --suite system --match socket
 ```
 
 The tests use isolated HTTP/Socket.IO servers and test-only identities; they do not

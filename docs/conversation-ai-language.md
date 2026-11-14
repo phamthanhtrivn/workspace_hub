@@ -28,7 +28,7 @@ answers are preserved.
 Focused checks from the repository root:
 
 ```powershell
-node --test backend/security-tests/conversation-language.test.mjs
+node tests/run-tests.mjs --suite system --match conversation-language
 ```
 
 The suite uses a mocked model and isolated service responses. It verifies prompt
