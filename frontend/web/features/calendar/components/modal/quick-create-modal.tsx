@@ -69,7 +69,7 @@ export function QuickCreateModal({
   const dialogRef = useRef<HTMLFormElement>(null);
   const isEditing = Boolean(event?.id);
 
-  const { control, formState, register, setValue } = controller.form;
+  const { control, formState, register, setValue, setFocus } = controller.form;
   const calendarId = useWatch({ control, name: "calendarId" });
   const reminders = useWatch({ control, name: "reminders" });
   const modalAccent = kind === "task" ? "var(--warning-content)" : "var(--link)";
@@ -89,6 +89,7 @@ export function QuickCreateModal({
       "sourceType",
       nextKind === "task" ? EventSourceType.TASK : EventSourceType.USER,
     );
+    setFocus("title");
   };
 
 
