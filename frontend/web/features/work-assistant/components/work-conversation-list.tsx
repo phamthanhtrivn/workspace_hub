@@ -29,9 +29,7 @@ export default function WorkConversationList({
       aria-label="Conversations"
       className="space-y-4 p-4"
     >
-      <h3 className="text-sm font-semibold">
-        Conversations
-      </h3>
+      <h3 className="text-sm font-semibold">Conversations</h3>
       {loading && (
         <p role="status" className="text-xs text-muted-foreground">
           Loading conversations...
@@ -48,9 +46,7 @@ export default function WorkConversationList({
         </div>
       )}
       {!loading && !error && sessions.length === 0 && (
-        <p className="text-xs text-muted-foreground">
-          No conversations yet.
-        </p>
+        <p className="text-xs text-muted-foreground">No conversations yet.</p>
       )}
       <ul className="space-y-1">
         {sessions.map((session) => (

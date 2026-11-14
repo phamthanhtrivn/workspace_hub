@@ -19,6 +19,7 @@ function rehypeCitations() {
         .split(/(\[\[S\d+\]\])/g)
         .map((value) => {
           const label = /^\[\[(S\d+)\]\]$/.exec(value)?.[1];
+
           return label
             ? {
                 type: "element",
@@ -32,6 +33,7 @@ function rehypeCitations() {
       index += parts.length - 1;
     }
   }
+
   return visit;
 }
 
@@ -51,6 +53,7 @@ export function AnswerContent({
         components={{
           span: ({ node, children }) => {
             const label = node?.properties["data-citation"];
+
             return typeof label === "string"
               ? (renderCitation?.(label) ?? children)
               : children;

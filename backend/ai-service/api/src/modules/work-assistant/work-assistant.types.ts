@@ -1,4 +1,8 @@
-export type Audience = "mine" | "projects" | "calendar" | "project";
+export type Audience = "mine" | "projects" | "calendar";
+export type ConversationContext = {
+  contextType: "dashboard" | "projects" | "calendar" | "project_detail";
+  projectId?: string;
+};
 export type WorkScope = { projectId?: string; audience: Audience };
 export type WorkTask = {
   id: string;

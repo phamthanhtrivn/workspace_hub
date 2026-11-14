@@ -45,8 +45,8 @@ After retries are exhausted, the existing player retry action remains available.
 
 ## Setup and rollout
 
-1. Prepare the existing speech runtime using the
-   [speech-worker instructions](../backend/ai-service/speech-worker/README.md).
+1. Prepare the existing speech runtime in `deploy/ai/compose.yml`. For host execution, run
+   `node backend/scripts/start-local-speech.mjs` from the repository root.
    FFmpeg must be available at `MEETING_FFMPEG_PATH`; prepare the local multilingual
    model before starting speech-worker. Keep the existing service keys and media
    allowlist configured on the participating services.
@@ -79,23 +79,13 @@ has opened a pending transcript.
 From the repository root:
 
 ```powershell
-node tests/run-tests.mjs --suite system --match voice-transcript
 node tests/run-tests.mjs --project backend/communication-service --match voice-background
 node tests/run-tests.mjs --project frontend/web --match useAudioRecorder
 ```
 
-With the existing local Docker AI/speech containers running, also run:
-
-```powershell
-$env:WORKSPACEHUB_VOICE_RUNTIME='1'
-node tests/run-tests.mjs --suite integration --match voice-runtime
-```
-
-These opt-in checks execute the latest source in isolated child processes. They
-check real FFmpeg conversion, PostgreSQL constraints/deduplication in a temporary
-table, and local Whisper inference on silence. They do not restart services or
-write user tables. Override `VOICE_TEST_AI_CONTAINER` / `VOICE_TEST_SPEECH_CONTAINER`
-if your local container names differ.
+These fast checks use provider doubles for background dispatch and browser
+recording. They do not verify the complete AI transcript pipeline, real FFmpeg,
+PostgreSQL delivery constraints or local Whisper inference.
 
 From `backend/ai-service/speech-worker`, using the configured Python environment:
 

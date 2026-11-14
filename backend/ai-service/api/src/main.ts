@@ -3,13 +3,12 @@ import { NestFactory } from "@nestjs/core";
 import { json } from "express";
 import { AppModule } from "./app.module";
 import { config } from "./config/env.config";
-import { aiDatabase } from "./infrastructure/database/ai-database.client";
-import { aiQueues } from "./infrastructure/queue/ai-queue.client";
+import { db } from "./infrastructure/database/database";
+import { closeQueues } from "./infrastructure/queue/notebook.queue";
 import type { Server } from "node:http";
 import { createShutdownHandler, settleAll } from "./common/shutdown";
 import { logError } from "./common/errors/error-log";
-const db = aiDatabase.pool;
-const closeQueues = aiQueues.close;
+import { closeProviderConnections } from "./infrastructure/integrations/provider-http";
 
 async function main() {
   const app = await NestFactory.create(AppModule, { bodyParser: false });
@@ -27,7 +26,7 @@ async function main() {
         });
         await app.close();
       } finally {
-        await settleAll([closeQueues(), db.end()]);
+        await settleAll([closeQueues(), db.end(), closeProviderConnections()]);
       }
     },
     config.AI_SHUTDOWN_TIMEOUT_MS,

@@ -7,7 +7,6 @@ import { registerChatHistoryTests } from './meeting/chat-history.mjs';
 import { registerRecordingTests } from './meeting/recording.mjs';
 import { registerRealtimeRaceTests } from './meeting/realtime-races.mjs';
 import { registerIntegrationTests } from './meeting/integrations.mjs';
-import { registerAITests } from './meeting/ai-tests.mjs';
 
 describe(
   'Meeting isolated business audit',
@@ -63,6 +62,5 @@ describe(
     registerRecordingTests(h);
     registerRealtimeRaceTests(h);
     registerIntegrationTests(h);
-    registerAITests(h);
   },
 );

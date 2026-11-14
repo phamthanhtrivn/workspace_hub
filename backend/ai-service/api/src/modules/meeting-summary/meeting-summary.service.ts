@@ -1,10 +1,5 @@
-import {
-  Injectable,
-  ServiceUnavailableException,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import { matchesServiceKey } from "../../common/auth/service-key";
 import { config } from "../../config/env.config";
 import { rows } from "../../infrastructure/database/database";
 import { meetingSummaryQueue } from "../../infrastructure/queue/notebook.queue";
@@ -21,18 +16,6 @@ export class MeetingSummaryService {
     config.MEETING_STT_URL,
     config.MEETING_STT_SERVICE_KEY,
   );
-  authorize(key?: string) {
-    const expected = config.COMMUNICATION_TO_AI_KEY;
-    if (
-      config.AI_ENABLED !== "true" ||
-      config.MEETING_SUMMARY_ENABLED !== "true" ||
-      expected.length < 32
-    )
-      throw new ServiceUnavailableException(
-        "Meeting summaries are not configured",
-      );
-    if (!matchesServiceKey(key, expected)) throw new UnauthorizedException();
-  }
 
   async status(id: string) {
     const [summary] = await rows(

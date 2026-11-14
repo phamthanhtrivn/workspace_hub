@@ -15,6 +15,7 @@ export function pcmWaveSeconds(buffer: Buffer): number {
       byteRate = buffer.readUInt32LE(offset + 16);
     if (kind === "data") {
       if (byteRate !== 32000) throw new Error("Expected mono 16 kHz PCM16 WAV");
+
       return size / byteRate;
     }
     offset += 8 + size + (size % 2);

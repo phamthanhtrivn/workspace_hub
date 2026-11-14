@@ -15,18 +15,17 @@ function fixture() {
   let failSpeech = true,
     revoked = false;
   const stubs = {
-    "../../config/env.config": { config: { MEETING_STT_CONCURRENCY: 1 } },
-    "./media": {
+    "../../infrastructure/integrations/audio-chunks": {
       AUDIO_CHUNK_SECONDS: 45,
-      prepareMeetingAudio: async (_source, directory) => {
+      prepareAudioChunks: async (_source, directory) => {
         directories.push(directory);
         return [0, 1, 2].map((index) =>
           path.join(directory, `part-${index}.wav`),
         );
       },
     },
-    "./speech.client": {
-      recognizeMeetingChunk: async (filename) => {
+    "../../infrastructure/integrations/speech.client": {
+      recognizeSpeechChunk: async (filename) => {
         const index = Number(path.basename(filename).match(/part-(\d+)/)[1]);
         speechCalls.push(index);
         if (failSpeech && index === 1)

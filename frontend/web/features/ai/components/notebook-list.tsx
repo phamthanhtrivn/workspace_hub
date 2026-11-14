@@ -26,23 +26,26 @@ export function NotebookList() {
   });
   const create = useMutation({
     mutationFn: () => notebooksApi.create(title.trim()),
-    onSuccess: async (notebook) => {
-      await client.invalidateQueries({ queryKey: key });
+    onSuccess: (notebook) => {
       router.push(`/ai/notebooks/${notebook.id}`);
+      void client.invalidateQueries({ queryKey: key }).catch(() => {});
     },
   });
+
   return (
     <main className="mx-auto max-w-6xl space-y-8 p-4 md:p-8">
       <header>
         <h1 className="text-2xl font-semibold">Your notebooks</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Ask questions about your documents and keep notes. Only you can access your notebooks.
+          Ask questions about your documents and keep notes. Only you can access
+          your notebooks.
         </p>
       </header>
       <form
         className="flex flex-wrap gap-3"
         onSubmit={(event) => {
           event.preventDefault();
+          if (!title.trim() || create.isPending || !userId) return;
           create.mutate();
         }}
       >
@@ -55,7 +58,10 @@ export function NotebookList() {
           maxLength={200}
           onChange={(event) => setTitle(event.target.value)}
         />
-        <Button loading={create.isPending} disabled={!title.trim() || create.isPending || !userId}>
+        <Button
+          loading={create.isPending}
+          disabled={!title.trim() || create.isPending || !userId}
+        >
           <Plus />
           {create.isPending ? "Creating..." : "Create notebook"}
         </Button>

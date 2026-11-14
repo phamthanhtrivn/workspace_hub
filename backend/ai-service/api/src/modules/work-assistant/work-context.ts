@@ -4,167 +4,15 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { z } from "zod";
-import { config } from "../../config/env.config";
 import type { Actor } from "../../common/types";
-import type {
-  Metrics,
-  WorkContext,
-  WorkScope,
-  WorkTask,
-} from "./work-assistant.types";
-import { readResponseText } from "../../common/read-response";
+import type { Metrics, WorkContext, WorkScope } from "./work-assistant.types";
+import { workContextRequest } from "../../infrastructure/integrations/work-context.client";
+import { projectSchema, calendarSchema } from "./work-context.schemas";
+import { rankTasks } from "./work-task-ranking";
 import { freeSlots, workRange } from "./work-time";
 
-const metricsSchema = z.object({
-  open: z.number().int().nonnegative(),
-  overdue: z.number().int().nonnegative(),
-  dueToday: z.number().int().nonnegative(),
-  completedInPeriod: z.number().int().nonnegative(),
-  completedWithDeadline: z.number().int().nonnegative(),
-  onTime: z.number().int().nonnegative(),
-  late: z.number().int().nonnegative(),
-  onTimeRate: z.number().min(0).max(1).nullable(),
-  deadlineBasis: z.string(),
-  total: z.number().optional(),
-  byStatus: z.record(z.string(), z.number()).optional(),
-});
-const taskSchema = z.object({
-  id: z.string().uuid(),
-  kind: z.enum(["project", "calendar"]),
-  projectId: z.string().uuid().optional(),
-  project: z.string().max(200).optional(),
-  title: z.string().max(200),
-  description: z.string().max(800).nullable().optional(),
-  priority: z.string(),
-  status: z.string(),
-  startAt: z.string().nullable().optional(),
-  dueAt: z.string().nullable(),
-  allDay: z.boolean(),
-  overdue: z.boolean(),
-  dueToday: z.boolean(),
-  url: z.string().max(500),
-  checklist: z
-    .array(z.object({ title: z.string(), completed: z.boolean() }))
-    .max(8),
-  checklistCount: z.number(),
-  childCount: z.number(),
-  blockedBy: z
-    .array(z.object({ id: z.string().uuid(), title: z.string() }))
-    .max(8),
-  unblocks: z.number(),
-});
-const projectSchema = z.object({
-  available: z.literal(true),
-  projectIds: z.array(z.string().uuid()).max(1000),
-  partial: z.boolean(),
-  tasks: z.array(taskSchema).max(60),
-  metrics: metricsSchema,
-});
-const calendarSchema = z.object({
-  available: z.literal(true),
-  timeZone: z.string(),
-  partial: z.boolean(),
-  busyPartial: z.boolean(),
-  busy: z
-    .array(
-      z
-        .object({
-          startAt: z.string().datetime({ offset: true }),
-          endAt: z.string().datetime({ offset: true }),
-        })
-        .refine(
-          (interval) =>
-            Date.parse(interval.endAt) > Date.parse(interval.startAt),
-          "Invalid busy interval",
-        ),
-    )
-    .max(2000),
-  tasks: z.array(taskSchema).max(60),
-  metrics: metricsSchema,
-  focus: z.object({
-    seconds: z.number().nonnegative(),
-    sessions: z.number().nonnegative(),
-    perTask: z
-      .array(
-        z.object({
-          taskId: z.string().uuid().nullable(),
-          eventId: z.string().uuid().nullable(),
-          seconds: z.number(),
-          sessions: z.number(),
-        }),
-      )
-      .max(60),
-  }),
-});
-export function rankTasks(tasks: WorkTask[]) {
-  const priority: Record<string, number> = {
-    URGENT: 4,
-    HIGH: 3,
-    MEDIUM: 2,
-    LOW: 1,
-  };
-
-  return [...tasks].sort(
-    (a, b) =>
-      Number(b.overdue) - Number(a.overdue) ||
-      Number(b.dueToday) - Number(a.dueToday) ||
-      Number(!!a.blockedBy.length) - Number(!!b.blockedBy.length) ||
-      (priority[b.priority] ?? 0) - (priority[a.priority] ?? 0) ||
-      (Date.parse(a.dueAt ?? "") || Infinity) -
-        (Date.parse(b.dueAt ?? "") || Infinity) ||
-      b.unblocks - a.unblocks ||
-      a.id.localeCompare(b.id),
-  );
-}
 @Injectable()
 export class WorkContextService {
-  private async call(
-    service: "project" | "calendar",
-    path: string,
-    body: object,
-    signal?: AbortSignal,
-  ) {
-    const serviceKey =
-      service === "project"
-        ? config.AI_TO_PROJECT_KEY
-        : config.AI_TO_CALENDAR_KEY;
-    if (serviceKey.length < 32)
-      throw new ServiceUnavailableException(
-        "Trợ lý công việc chưa được cấu hình.",
-      );
-    const base =
-      service === "project"
-        ? config.WORK_ASSISTANT_PROJECT_URL
-        : config.WORK_ASSISTANT_CALENDAR_URL;
-    const response = await fetch(
-      base.replace(/\/$/, "") + "/internal/work-assistant/" + path,
-      {
-        method: "POST",
-        redirect: "error",
-        signal: signal
-          ? AbortSignal.any([signal, AbortSignal.timeout(10000)])
-          : AbortSignal.timeout(10000),
-        headers: {
-          "content-type": "application/json",
-          "x-internal-service-key": serviceKey,
-        },
-        body: JSON.stringify(body),
-      },
-    );
-    if (response.status === 403 || response.status === 404) {
-      await response.body?.cancel();
-      throw new ForbiddenException("Bạn không còn quyền xem dự án này.");
-    }
-    if (!response.ok) {
-      await response.body?.cancel();
-      throw new ServiceUnavailableException(
-        "Nguồn dữ liệu chưa truy cập được.",
-      );
-    }
-    const text = await readResponseText(response, 350000);
-
-    return (JSON.parse(text) as { data: unknown }).data;
-  }
   async authorize(actor: Actor, projectIds: string[], signal?: AbortSignal) {
     if (!projectIds.length) return new Set<string>();
     const ids = [...new Set(projectIds)];
@@ -173,7 +21,7 @@ export class WorkContextService {
     const data = z
       .object({ projectIds: z.array(z.string().uuid()).max(1000) })
       .parse(
-        await this.call(
+        await workContextRequest(
           "project",
           "authorize",
           { userId: actor.id, projectIds: ids },
@@ -209,7 +57,7 @@ export class WorkContextService {
       (scope.audience === "mine" || scope.audience === "calendar");
     const projectRead = async () =>
       projectSchema.parse(
-        await this.call(
+        await workContextRequest(
           "project",
           "context",
           {
@@ -226,7 +74,7 @@ export class WorkContextService {
       );
     const calendarRead = async () =>
       calendarSchema.parse(
-        await this.call(
+        await workContextRequest(
           "calendar",
           "context",
           {
@@ -307,15 +155,15 @@ export class WorkContextService {
           state: !includeCalendarContext
             ? "empty"
             : !calendar
-            ? "unavailable"
-            : calendar.partial || calendar.busyPartial
-              ? "partial"
-              : (calendar.tasks.length ||
-                  calendar.metrics.completedInPeriod) ||
-                  calendar.busy.length ||
-                  calendar.focus.sessions
-                ? "ready"
-                : "empty",
+              ? "unavailable"
+              : calendar.partial || calendar.busyPartial
+                ? "partial"
+                : calendar.tasks.length ||
+                    calendar.metrics.completedInPeriod ||
+                    calendar.busy.length ||
+                    calendar.focus.sessions
+                  ? "ready"
+                  : "empty",
         },
       },
       metrics: {
@@ -336,8 +184,11 @@ export class WorkContextService {
         (includeCalendarContext && calendar?.partial) ||
         tasks.length > 60
       ),
-      busyPartial: includeCalendarContext && (!calendar || calendar.busyPartial),
-      focusPerTask: includeCalendarContext ? (calendar?.focus.perTask ?? []) : [],
+      busyPartial:
+        includeCalendarContext && (!calendar || calendar.busyPartial),
+      focusPerTask: includeCalendarContext
+        ? (calendar?.focus.perTask ?? [])
+        : [],
       schedulingBasis: "calendar",
       freeSlots: includeCalendarContext
         ? freeSlots(

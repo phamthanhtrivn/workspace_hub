@@ -1,5 +1,5 @@
-import { verifyAccessClaims } from './access-token';
-import { assertActiveSession } from './session-authorization';
+import { verifyAccessClaims } from "./access-token";
+import { assertActiveSession } from "./session-authorization";
 import {
   CanActivate,
   ExecutionContext,
@@ -41,14 +41,20 @@ export class AuthGuard implements CanActivate {
     const result = gatewayIdentity.safeParse(req.headers);
     if (!result.success)
       throw new UnauthorizedException("Missing or invalid gateway identity");
-    const identity = verifyAccessClaims(req.headers.authorization?.match(/^Bearer\s+([^\s]+)$/i)?.[1]);
+    const identity = verifyAccessClaims(
+      req.headers.authorization?.match(/^Bearer\s+([^\s]+)$/i)?.[1],
+    );
     await assertActiveSession(identity);
-    if (identity.sub !== result.data['x-user-id'] || identity.email !== result.data['x-user-email'])
-      throw new UnauthorizedException('Identity mismatch');
+    if (
+      identity.sub !== result.data["x-user-id"] ||
+      identity.email !== result.data["x-user-email"]
+    )
+      throw new UnauthorizedException("Identity mismatch");
     req.actor = {
       id: result.data["x-user-id"],
       email: result.data["x-user-email"],
     };
+
     return true;
   }
 }

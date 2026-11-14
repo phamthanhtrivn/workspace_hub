@@ -1,17 +1,14 @@
 import type { Citation, Source, VisualInput } from "../../common/types";
 import { config } from "../../config/env.config";
 import { rows } from "../../infrastructure/database/database";
+import { plainText } from "../../common/text";
 
 export async function visualEvidence(
   question: string,
   evidence: Citation[],
   sources: Source[],
 ): Promise<VisualInput[]> {
-  const plain = question
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .replace(/đ/g, "d");
+  const plain = plainText(question);
   if (
     config.VISUAL_ENABLED !== "true" ||
     !/\b(hinh|anh|bieu do|so do|cong thuc|bang|image|picture|figure|chart|diagram|graph|table)\b/.test(
@@ -52,6 +49,7 @@ export async function visualEvidence(
     "SELECT requested.label,v.data_url FROM jsonb_to_recordset($1::jsonb) AS requested(source_id uuid,revision text,image_id text,label text,position int) JOIN notebook_ai.source_visuals v ON v.source_id=requested.source_id AND v.revision=requested.revision AND v.image_id=requested.image_id ORDER BY requested.position LIMIT 2",
     [JSON.stringify(candidates)],
   );
+
   return images.map((image) => ({
     label: image.label,
     dataUrl: image.data_url,

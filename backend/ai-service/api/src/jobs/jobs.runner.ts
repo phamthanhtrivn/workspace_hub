@@ -4,24 +4,23 @@ import { processVoiceTranscript } from "./voice-transcript.processor";
 import { VOICE_TRANSCRIPT } from "../modules/voice-transcript/voice.constants";
 import { Worker, UnrecoverableError, type Job } from "bullmq";
 import { config, connection } from "../config/env.config";
-import { aiDatabase } from "../infrastructure/database/ai-database.client";
-import { aiQueues } from "../infrastructure/queue/ai-queue.client";
-import { WORKER_HEARTBEAT_VALUE } from "../infrastructure/queue/notebook.queue";
-import { aiModels } from "../infrastructure/integrations/ai-model.provider";
+import { db } from "../infrastructure/database/database";
+import {
+  queue,
+  closeQueues,
+  WORKER_HEARTBEAT_VALUE,
+} from "../infrastructure/queue/notebook.queue";
+import { rag } from "../infrastructure/integrations/rag.client";
 import { reconcileQueuedJobs } from "./job-recovery";
 import { Profile } from "../common/profiling/pipeline-profiler";
 import { indexSource } from "./index.processor";
-import { summarize } from "./summary.processor";
 import { logError } from "../common/errors/error-log";
 import { createShutdownHandler, settleAll } from "../common/shutdown";
-const db = aiDatabase.pool;
-const queue = aiQueues.jobs;
-const closeQueues = aiQueues.close;
-const rag = aiModels.rag;
+import { closeProviderConnections } from "../infrastructure/integrations/provider-http";
 
 async function profileJob<T>(
   job: Job,
-  pipeline: "job_index" | "job_summary" | "job_cleanup" | "job_conversation",
+  pipeline: "job_index" | "job_cleanup" | "job_conversation",
   process: () => Promise<T>,
 ) {
   const timing = new Profile(pipeline);
@@ -33,6 +32,7 @@ async function profileJob<T>(
   try {
     const result = await timing.measure("processing_ms", process);
     completed = true;
+
     return result;
   } finally {
     timing.finish(completed ? "ok" : "failed");
@@ -57,10 +57,6 @@ async function processJob(job: Job) {
       return processConversationJob(job);
     case "index":
       return profileJob(job, "job_index", () => indexSource(job.data.sourceId));
-    case "summary":
-      return profileJob(job, "job_summary", () =>
-        summarize(job.data.artifactId),
-      );
     case "cleanup":
       return profileJob(job, "job_cleanup", () => rag("/delete", job.data));
     default:
@@ -72,18 +68,9 @@ export function startWorkers() {
   const worker = new Worker("notebook-jobs", processJob, {
     connection,
     prefix: "wh-notebook",
-    concurrency: 1,
+    concurrency: config.NOTEBOOK_INDEX_CONCURRENCY,
     autorun: false,
   });
-  const summaryWorker = new Worker(
-    "notebook-summary-jobs",
-    (job) => {
-      if (job.name !== "summary")
-        throw new UnrecoverableError("Unknown summary job");
-      return processJob(job);
-    },
-    { connection, prefix: "wh-notebook", concurrency: 1, autorun: false },
-  );
   const conversationWorker =
     config.CONVERSATION_AI_ENABLED === "true"
       ? new Worker(
@@ -91,6 +78,7 @@ export function startWorkers() {
           (job) => {
             if (job.name !== "conversation")
               throw new UnrecoverableError("Unknown conversation job");
+
             return processConversationJob(job);
           },
           {
@@ -120,6 +108,7 @@ export function startWorkers() {
               config.MEETING_SUMMARY_ENABLED !== "true"
             )
               throw new UnrecoverableError("Unknown meeting job");
+
             return processMeetingSummary(job.data.recordingId, job.data.runId);
           },
           {
@@ -133,7 +122,6 @@ export function startWorkers() {
       : undefined;
   const workers = [
     worker,
-    summaryWorker,
     ...(conversationWorker ? [conversationWorker] : []),
     ...(meetingWorker ? [meetingWorker] : []),
   ];
@@ -178,6 +166,7 @@ export function startWorkers() {
         recovery = undefined;
       });
     }
+
     return recovery;
   }
   const heartbeat = setInterval(() => {
@@ -208,6 +197,7 @@ export function startWorkers() {
             "ready:conversation-v1",
             { EX: 45 },
           );
+
         return client.set(
           "wh-notebook:worker-heartbeat",
           WORKER_HEARTBEAT_VALUE,
@@ -235,7 +225,7 @@ export function startWorkers() {
           ...(heartbeatTask ? [heartbeatTask] : []),
         ]);
       } finally {
-        await settleAll([closeQueues(), db.end()]);
+        await settleAll([closeQueues(), db.end(), closeProviderConnections()]);
       }
     },
     config.AI_SHUTDOWN_TIMEOUT_MS,
@@ -245,6 +235,7 @@ export function startWorkers() {
     recoveryAbort.abort();
     clearInterval(heartbeat);
     clearInterval(sweep);
+
     return finishShutdown();
   }
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, shutdown);

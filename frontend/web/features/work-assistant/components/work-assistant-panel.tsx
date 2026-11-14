@@ -10,7 +10,10 @@ import type { Audience } from "../types";
 import WorkConversationList from "./work-conversation-list";
 import Message from "./work-assistant-message";
 import WorkAssistantComposer from "./work-assistant-composer";
-import { WORK_SUGGESTIONS } from "../constants/work-assistant";
+import {
+  conversationContextKey,
+  WORK_SUGGESTIONS,
+} from "../constants/work-assistant";
 import { Spinner } from "@/components/ui/spinner";
 
 function Conversation({
@@ -30,9 +33,15 @@ function Conversation({
   contextLabel: string;
   onClose: () => void;
 }) {
-  const assistant = useWorkAssistant(userId, projectId, audience, sessionId);
-  const [question, setQuestion] = useState("");
   const [showConversations, setShowConversations] = useState(false);
+  const assistant = useWorkAssistant(
+    userId,
+    projectId,
+    audience,
+    sessionId,
+    showConversations,
+  );
+  const [question, setQuestion] = useState("");
   const bottom = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -67,14 +76,6 @@ function Conversation({
       modal={modal}
       id="work-assistant-panel"
       aria-label="AI Assistant"
-      onClick={(event) => {
-        if (
-          (event.target as HTMLElement).closest(
-            'a[href^="/projects/"],a[href^="/calendar?"]',
-          )
-        )
-          onClose();
-      }}
       className="fixed bottom-20 right-4 z-50 flex max-h-[calc(100dvh-6rem)] w-[min(440px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border bg-background text-foreground shadow-xl max-sm:inset-x-0 max-sm:bottom-0 max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:w-full max-sm:rounded-none"
     >
       <header className="flex shrink-0 items-center gap-2.5 border-b px-4 py-3">
@@ -113,7 +114,9 @@ function Conversation({
           aria-label="New conversation"
           title="New conversation"
           disabled={
-            !!assistant.status || assistant.createConversation.isPending
+            !!assistant.status ||
+            assistant.createConversation.isPending ||
+            !assistant.history.isSuccess
           }
           onClick={() =>
             assistant.createConversation.mutate(undefined, {
@@ -241,7 +244,16 @@ function Conversation({
             {assistant.reply &&
               !assistant.messages.some(
                 (message) => message.id === assistant.reply?.id,
-              ) && <Message message={assistant.reply} />}
+              ) && (
+                <div aria-busy={assistant.streaming}>
+                  <Message message={assistant.reply} />
+                  {assistant.streaming && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Writing response…
+                    </p>
+                  )}
+                </div>
+              )}
             {assistant.status && (
               <p
                 role="status"
@@ -269,9 +281,22 @@ function Conversation({
           busy={!!assistant.status}
           disabled={!assistant.history.isSuccess}
           error={error}
-          canRetry={assistant.history.isError}
+          canRetry={
+            assistant.history.isError ||
+            Boolean(assistant.error && assistant.pending)
+          }
           retrying={assistant.history.isFetching}
-          onRetry={() => void assistant.history.refetch()}
+          onRetry={() => {
+            if (assistant.history.isError) {
+              void assistant.history.refetch();
+            } else if (
+              assistant.error &&
+              assistant.pending &&
+              !assistant.status
+            ) {
+              void assistant.send(assistant.pending.content);
+            }
+          }}
         />
       )}
     </SheetPanel>
@@ -291,7 +316,7 @@ export default function WorkAssistantPanel({
   contextLabel: string;
   onClose: () => void;
 }) {
-  const scopeKey = projectId ?? "personal";
+  const scopeKey = conversationContextKey(projectId, audience);
   const [selectedSession, setSelectedSession] = useState<{
     scopeKey: string;
     sessionId?: string;

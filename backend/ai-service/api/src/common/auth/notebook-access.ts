@@ -7,5 +7,6 @@ export async function ownedNotebook(actor: Actor, id: string) {
     [id, actor.id],
   );
   if (!notebook) throw new NotFoundException();
+
   return notebook;
 }

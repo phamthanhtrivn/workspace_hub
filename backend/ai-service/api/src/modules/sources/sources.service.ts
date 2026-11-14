@@ -1,4 +1,4 @@
-import { documentPreviewUrl } from '../../infrastructure/integrations/document.client';
+import { documentPreviewUrl } from "../../infrastructure/integrations/document.client";
 import {
   BadRequestException,
   ForbiddenException,
@@ -13,13 +13,11 @@ import {
 } from "../../infrastructure/integrations/document.client";
 import { enqueue } from "../../infrastructure/queue/notebook.queue";
 import { ownedNotebook } from "../../common/auth/notebook-access";
-import {
-  checkManifests,
-  downloadSource,
-  validateContent,
-  withUploadCheck,
-} from "./upload-validation";
+import { validateContent, withUploadCheck } from "./upload-validation";
 import type { Actor, Source } from "../../common/types";
+import { checkManifests } from "./upload-rules";
+import { downloadSource } from "./source-download";
+import { deleteSource } from "../../common/delete-source";
 @Injectable()
 export class SourcesService {
   sources(id: string) {
@@ -33,6 +31,7 @@ export class SourcesService {
     if (sources.length > 1) {
       try {
         await authorizeSources(actor, sources);
+
         return sources;
       } catch (error) {
         if (!(error instanceof ForbiddenException)) throw error;
@@ -50,6 +49,7 @@ export class SourcesService {
         }
       }),
     );
+
     return sources;
   }
   async add(
@@ -58,30 +58,42 @@ export class SourcesService {
     refs: { documentId: string; versionId?: string }[],
   ) {
     await ownedNotebook(actor, id);
-    const manifests = await resolveDocuments(actor, refs);
+    const manifests = [
+      ...new Map(
+        (await resolveDocuments(actor, refs)).map((manifest) => [
+          `${manifest.documentId}:${manifest.versionId}`,
+          manifest,
+        ]),
+      ).values(),
+    ];
     const existingSources = await this.sources(id);
-    checkManifests(existingSources, manifests);
-    await withUploadCheck(async () => {
-      // Validate actual stored bytes, not a client assertion or the filename alone.
-      // Resolve signed URLs just in time, so later files cannot use expired URLs.
-      for (const m of manifests) {
-        const [current] = await resolveDocuments(
-          actor,
-          [{ documentId: m.documentId, versionId: m.versionId }],
-          true,
-        );
-        if (
-          !current?.current ||
-          current.documentId !== m.documentId ||
-          current.versionId !== m.versionId ||
-          current.revision !== m.revision
-        )
-          throw new BadRequestException(
-            "Nguồn đã thay đổi. Hãy chọn lại tài liệu.",
+    const fresh = checkManifests(existingSources, manifests);
+    if (fresh.length)
+      await withUploadCheck(async () => {
+        // Validate actual stored bytes, not a client assertion or the filename alone.
+        // Resolve signed URLs just in time, so later files cannot use expired URLs.
+        for (const m of fresh) {
+          const [current] = await resolveDocuments(
+            actor,
+            [{ documentId: m.documentId, versionId: m.versionId }],
+            true,
           );
-        await validateContent(current.name, await downloadSource(current), id);
-      }
-    });
+          if (
+            !current?.current ||
+            current.documentId !== m.documentId ||
+            current.versionId !== m.versionId ||
+            current.revision !== m.revision
+          )
+            throw new BadRequestException(
+              "Nguồn đã thay đổi. Hãy chọn lại tài liệu.",
+            );
+          await validateContent(
+            current.name,
+            await downloadSource(current),
+            id,
+          );
+        }
+      });
     const added = await transaction(async (client) => {
       const locked = await client.query(
         "SELECT id FROM notebook_ai.notebooks WHERE id=$1 AND owner_id=$2 FOR UPDATE",
@@ -113,11 +125,13 @@ export class SourcesService {
         );
         result.push(source);
       }
+
       return result;
     });
     for (const source of added)
       if (source.status === "QUEUED")
         await enqueue("index", source.id, { sourceId: source.id });
+
     return added;
   }
   async visual(actor: Actor, id: string, sourceId: string, imageId: string) {
@@ -134,6 +148,7 @@ export class SourcesService {
     );
     if (!image) throw new NotFoundException();
     await authorizeSources(actor, [source]);
+
     return { dataUrl: image.data_url, description: image.description };
   }
   async sourceAction(
@@ -149,27 +164,29 @@ export class SourcesService {
     );
     if (!source) throw new NotFoundException();
     if (action === "remove") {
-      await enqueue("cleanup", source.id, { scopeId: id, sourceId });
-      await rows("DELETE FROM notebook_ai.sources WHERE id=$1", [sourceId]);
+      await deleteSource(id, sourceId);
+
       return {};
     }
-    const [manifest] = await authorizeSources(
-      actor,
-      [source],
-      false,
-    );
-    if (action === "preview") return { url: await documentPreviewUrl(manifest.documentId, authorization) };
+    const [manifest] = await authorizeSources(actor, [source], false);
+    if (action === "preview")
+      return {
+        url: await documentPreviewUrl(manifest.documentId, authorization),
+      };
     if (!["FAILED", "QUEUED", "READY"].includes(source.status))
       throw new BadRequestException("Nguồn đang xử lý");
     await withUploadCheck(async () => {
       const [file] = await authorizeSources(actor, [source], true);
       await validateContent(file.name, await downloadSource(file), id);
     });
-    await rows(
-      "UPDATE notebook_ai.sources SET status='QUEUED',error=NULL,progress=0,updated_at=now() WHERE id=$1",
+    const updated = await rows(
+      "UPDATE notebook_ai.sources SET status='QUEUED',error=NULL,progress=0,updated_at=now() WHERE id=$1 AND status IN ('FAILED','QUEUED','READY') RETURNING id",
       [sourceId],
     );
+    if (!updated.length)
+      throw new BadRequestException("Nguồn đã bị xóa hoặc đang xử lý");
     await enqueue("index", sourceId, { sourceId });
+
     return {};
   }
 }

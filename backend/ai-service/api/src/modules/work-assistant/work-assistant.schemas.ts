@@ -1,5 +1,13 @@
 import { z } from "zod";
 import { timeZoneSchema } from "./work-time";
+import type { Audience, ConversationContext } from "./work-assistant.types";
+
+export function contextAudience(context: ConversationContext): Audience {
+  return context.contextType === "projects" ||
+    context.contextType === "calendar"
+    ? context.contextType
+    : "mine";
+}
 
 export const audienceSchema = z
   .enum(["mine", "projects", "calendar"])
@@ -7,7 +15,7 @@ export const audienceSchema = z
 
 export const scopeSchema = z
   .object({
-    projectId: z.string().uuid().optional(),
+    projectId: z.string().uuid().toLowerCase().optional(),
     audience: audienceSchema,
   })
   .strict()
@@ -15,30 +23,43 @@ export const scopeSchema = z
     (s) => !s.projectId || s.audience === "mine",
     "Project scope only supports mine audience",
   );
-export const querySchema = z
+export const conversationContextSchema = z
   .object({
-    projectId: z.string().uuid().optional(),
-    before: z.string().uuid().optional(),
+    contextType: z.enum([
+      "dashboard",
+      "projects",
+      "calendar",
+      "project_detail",
+    ]),
+    projectId: z.string().uuid().toLowerCase().optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (s) => (s.contextType === "project_detail") === !!s.projectId,
+    "Only Project Detail requires a projectId",
+  );
+export const querySchema = conversationContextSchema.safeExtend({
+  before: z.string().uuid().optional(),
+});
 
 export const overviewSchema = scopeSchema.safeExtend({
   timeZone: timeZoneSchema.optional(),
 });
-export const sessionSchema = querySchema.extend({
+export const sessionSchema = querySchema.safeExtend({
   sessionId: z.string().uuid().optional(),
 });
-export const sessionsSchema = querySchema.extend({
+export const sessionsSchema = querySchema.safeExtend({
   before: z.string().min(1).max(512).optional(),
 });
-export const createSessionSchema = z
-  .object({ projectId: z.string().uuid().optional() })
-  .strict();
-export const messageSchema = z
-  .object({
+export const createSessionSchema = conversationContextSchema;
+export const messageSchema = conversationContextSchema
+  .safeExtend({
     question: z.string().trim().min(1).max(4000),
     requestId: z.string().uuid(),
-    audience: audienceSchema,
+    audience: audienceSchema.removeDefault().optional(),
     timeZone: timeZoneSchema.optional(),
   })
-  .strict();
+  .refine(
+    (s) => s.audience === undefined || s.audience === contextAudience(s),
+    "Audience does not match conversation context",
+  );

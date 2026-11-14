@@ -137,8 +137,10 @@ class VisualExtractor:
                             with open_image(archive.read(entry)) as image:
                                 if min(image.size) < 96:
                                     continue
-                                text, _ = self.read_image(image)
-                                self.add_image(image, None, text)
+                                text, needs_vision = self.read_image(image)
+                                self.add_image(image, None, text, needs_vision)
+                                if text.strip():
+                                    pages.append({'text': text, 'page': None})
         return {"pages": pages, "images": self.images, "pipeline": PIPELINE_VERSION}
 
     def pdf(self, data):

@@ -1,11 +1,5 @@
-import {
-  Injectable,
-  ServiceUnavailableException,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
-import { config } from "../../config/env.config";
-import { matchesServiceKey } from "../../common/auth/service-key";
 import { rows } from "../../infrastructure/database/database";
 import { meetingSummaryQueue } from "../../infrastructure/queue/notebook.queue";
 import {
@@ -17,18 +11,6 @@ import { voiceSource } from "./voice-source";
 
 @Injectable()
 export class VoiceTranscriptService {
-  authorize(key?: string) {
-    if (
-      config.AI_ENABLED !== "true" ||
-      config.VOICE_TRANSCRIPTION_ENABLED !== "true" ||
-      config.COMMUNICATION_TO_AI_KEY.length < 32
-    ) {
-      throw new ServiceUnavailableException(VOICE_TRANSCRIPT.unavailable);
-    }
-    if (!matchesServiceKey(key, config.COMMUNICATION_TO_AI_KEY))
-      throw new UnauthorizedException();
-  }
-
   async status(mediaId: string, actorId: string, chatType: VoiceChatType) {
     const source = await voiceSource(
       mediaId,
@@ -36,6 +18,7 @@ export class VoiceTranscriptService {
       chatType,
       AbortSignal.timeout(VOICE_TRANSCRIPT.sourceTimeoutMs),
     );
+
     return this.readState(mediaId, chatType, source.revision);
   }
 
@@ -48,6 +31,7 @@ export class VoiceTranscriptService {
       `SELECT status,text,error FROM notebook_ai.voice_transcripts WHERE media_id=$1 AND chat_type=$2 AND revision=$3`,
       [mediaId, chatType, revision],
     );
+
     return state
       ? {
           status: state.status,
@@ -105,6 +89,7 @@ export class VoiceTranscriptService {
         throw new ServiceUnavailableException(VOICE_TRANSCRIPT.unavailable);
       }
     }
+
     return this.readState(mediaId, chatType, source.revision);
   }
 }

@@ -8,8 +8,14 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import * as workApi from "../api/work-assistant.api";
+import { cancelStream, confirmCancellation } from "../api/cancellation";
 import { getUserSettings } from "@/features/user-setting/api/user-setting.api";
 import type { Audience, WorkMessage } from "../types";
+import {
+  conversationContext,
+  conversationContextKey,
+} from "../constants/work-assistant";
+
 export function workError(error: unknown) {
   return aiErrorMessage(error, "Unable to connect to AI Assistant. Try again.");
 }
@@ -18,15 +24,28 @@ export function useWorkAssistant(
   projectId: string | undefined,
   audience: Audience,
   sessionId?: string,
+  conversationsOpen = false,
 ) {
   const client = useQueryClient();
-  const root = useMemo(() => ["work-assistant", userId] as const, [userId]);
+  const accountRoot = useMemo(
+    () => ["work-assistant", userId] as const,
+    [userId],
+  );
+  const context = useMemo(
+    () => conversationContext(projectId, audience),
+    [projectId, audience],
+  );
+  const root = useMemo(
+    () =>
+      [...accountRoot, conversationContextKey(projectId, audience)] as const,
+    [accountRoot, projectId, audience],
+  );
   const historyKey = useMemo(
-    () => [...root, "history", projectId ?? "personal", sessionId ?? "latest"],
-    [root, projectId, sessionId],
+    () => [...root, "history", sessionId ?? "latest"],
+    [root, sessionId],
   );
   const account = useQuery({
-    queryKey: [...root, "account-settings"],
+    queryKey: [...accountRoot, "account-settings"],
     queryFn: getUserSettings,
     retry: false,
     staleTime: 60000,
@@ -34,38 +53,53 @@ export function useWorkAssistant(
   const timeZone = account.data?.data.timezone;
   const history = useInfiniteQuery({
     queryKey: historyKey,
-    initialPageParam: undefined as string | undefined,
+    initialPageParam: undefined as
+      { before: string; sessionId: string } | undefined,
     queryFn: ({ pageParam, signal }) =>
-      workApi.getSession(projectId, pageParam, signal, sessionId),
-    getNextPageParam: (page) => page.nextCursor ?? undefined,
+      workApi.getSession(
+        context,
+        pageParam?.before,
+        signal,
+        pageParam?.sessionId ?? sessionId,
+      ),
+    getNextPageParam: (page) =>
+      page.nextCursor
+        ? { before: page.nextCursor, sessionId: page.id }
+        : undefined,
     refetchOnMount: "always",
     retry: false,
     staleTime: 0,
+    gcTime: 0,
   });
-  const conversationsKey = [...root, "sessions", projectId ?? "personal"];
+  const conversationsKey = [...root, "sessions"];
   const conversations = useInfiniteQuery({
     queryKey: conversationsKey,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
-      workApi.getConversations(projectId, pageParam, signal),
-    enabled: history.isSuccess,
+      workApi.getConversations(context, pageParam, signal),
+    enabled: history.isSuccess && conversationsOpen,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     refetchOnMount: "always",
     retry: false,
+    gcTime: 0,
   });
   const createConversation = useMutation({
-    mutationFn: () => workApi.createConversation(projectId),
+    mutationFn: () => workApi.createConversation(context),
     onSuccess: () =>
       client.invalidateQueries({ queryKey: [...root, "sessions"] }),
   });
   const [pending, setPending] = useState<WorkMessage | null>(null);
   const [reply, setReply] = useState<WorkMessage | null>(null);
+  const [streaming, setStreaming] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const active = useRef<{ id: string; controller: AbortController } | null>(
-    null,
-  );
+  const [stopping, setStopping] = useState(false);
+  const active = useRef<{
+    id: string;
+    sessionId: string;
+    controller: AbortController;
+  } | null>(null);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -75,19 +109,26 @@ export function useWorkAssistant(
       const request = active.current;
       if (request) {
         request.controller.abort();
-        void workApi.cancelRequest(request.id).catch(() => undefined);
+        void cancelStream(userId, request.id, request.sessionId).catch(
+          () => {},
+        );
       }
     };
-  }, []);
+  }, [userId]);
   const send = useCallback(
     async (question: string) => {
       const session = history.data?.pages[0];
       if (!session || active.current || !question.trim()) return;
       const request = {
         id: crypto.randomUUID(),
+        sessionId: session.id,
         controller: new AbortController(),
       };
       active.current = request;
+      const isCurrentRequest = () =>
+        alive.current &&
+        active.current === request &&
+        !request.controller.signal.aborted;
       setPending({
         id: request.id,
         role: "user",
@@ -96,31 +137,62 @@ export function useWorkAssistant(
         created_at: new Date().toISOString(),
       });
       setReply(null);
+      setStreaming(false);
       setError("");
       setNotice("");
       setStatus("Connecting...");
       try {
+        await confirmCancellation(userId);
+        request.controller.signal.throwIfAborted();
         await workApi.sendMessage(
           session.id,
           question.trim(),
           request.id,
-          audience,
+          context,
           request.controller.signal,
           (value) => {
-            if (alive.current) setStatus(assistantStatus(value));
+            if (isCurrentRequest()) setStatus(assistantStatus(value));
           },
           (message) => {
-            if (alive.current) setReply(message);
+            if (isCurrentRequest()) {
+              setReply(message);
+              setStreaming(false);
+            }
           },
           timeZone,
+          (text) => {
+            if (!isCurrentRequest()) return;
+            setStreaming(true);
+            setReply((current) => ({
+              id: `stream-${request.id}`,
+              role: "assistant",
+              content: (current?.content ?? "") + text,
+              sources: [],
+              created_at: current?.created_at ?? new Date().toISOString(),
+            }));
+          },
+          () => {
+            if (isCurrentRequest()) {
+              setReply(null);
+              setStreaming(false);
+            }
+          },
         );
-        if (alive.current) {
-          await client.invalidateQueries({ queryKey: historyKey });
-          await client.invalidateQueries({ queryKey: [...root, "sessions"] });
-          setPending(null);
-          setReply(null);
+        if (isCurrentRequest()) {
+          await Promise.all([
+            client.invalidateQueries({ queryKey: historyKey }),
+            client.invalidateQueries({ queryKey: [...root, "sessions"] }),
+          ]);
+          if (alive.current && active.current === request) {
+            setPending(null);
+            setReply(null);
+          }
         }
       } catch (cause) {
+        if (alive.current) {
+          setReply(null);
+          setStreaming(false);
+        }
         if (alive.current && !request.controller.signal.aborted)
           setError(workError(cause));
         if (alive.current)
@@ -130,20 +202,28 @@ export function useWorkAssistant(
         if (alive.current) setStatus("");
       }
     },
-    [history.data, audience, client, historyKey, timeZone, root],
+    [history.data, context, client, historyKey, timeZone, root, userId],
   );
   const stop = async () => {
     const request = active.current;
     if (!request) return;
-    try {
-      await workApi.cancelRequest(request.id);
-    } catch {
-      /* Closing the stream also cancels the server request. */
-    }
+    setStopping(true);
     request.controller.abort();
     if (alive.current) {
-      setStatus("Stopping...");
-      setNotice("Response stopped.");
+      setReply(null);
+      setStreaming(false);
+      setNotice("");
+    }
+    try {
+      await cancelStream(userId, request.id, request.sessionId);
+      if (alive.current) setNotice("Response stopped.");
+    } catch {
+      if (alive.current)
+        setError(
+          "Unable to confirm cancellation. Retry before asking another question.",
+        );
+    } finally {
+      if (alive.current) setStopping(false);
     }
   };
   const messages =
@@ -157,7 +237,8 @@ export function useWorkAssistant(
     messages,
     pending,
     reply,
-    status,
+    streaming,
+    status: stopping ? "Stopping response..." : status,
     error,
     notice,
     send,

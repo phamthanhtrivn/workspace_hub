@@ -11,12 +11,13 @@ type Stage =
   | "history_ms"
   | "context_ms"
   | "model_ms"
+  | "first_delta_ms"
+  | "delta_count"
   | "persist_ms";
 type Operation =
   | "index"
   | "preflight"
   | "job_index"
-  | "job_summary"
   | "job_cleanup"
   | "job_conversation"
   | "work_assistant";
@@ -28,6 +29,10 @@ export class Profile {
 
   set(stage: Stage, value: number) {
     if (Number.isFinite(value)) this.values[stage] = Math.max(0, value);
+  }
+
+  mark(stage: Stage) {
+    this.set(stage, performance.now() - this.started);
   }
 
   async measure<T>(stage: Stage, run: () => T | Promise<T>): Promise<T> {
@@ -66,6 +71,7 @@ export async function profiled<T>(
   try {
     const result = await run(timing);
     timing.finish("ok");
+
     return result;
   } catch (error) {
     timing.finish("failed");

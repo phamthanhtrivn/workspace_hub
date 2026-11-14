@@ -9,11 +9,12 @@ export function pollUntilAborted(
     checking = true;
     try {
       await check();
-    } catch {
-      controller.abort();
+    } catch (error) {
+      controller.abort(error);
     } finally {
       checking = false;
     }
   }, intervalMs);
+
   return () => clearInterval(timer);
 }

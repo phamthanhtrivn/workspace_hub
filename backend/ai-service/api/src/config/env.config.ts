@@ -3,7 +3,10 @@ import { z } from "zod";
 
 export const config = z
   .object({
-    MEETING_STT_CONCURRENCY: z.coerce.number().int().min(1).max(4).default(1),
+    USER_SERVICE_URL: z.string().url().default("http://localhost:8081"),
+    AI_TO_USER_KEY: z.string().trim().default(""),
+    JWT_SECRET_KEY: z.string().default(""),
+    JWT_ISSUER: z.string().trim().min(1).default("workspace-hub"),
     MEETING_STT_URL: z.string().url().default("http://127.0.0.1:8090"),
     MEETING_STT_SERVICE_KEY: z.string().default(""),
     MEETING_STT_TIMEOUT_MS: z.coerce
@@ -39,14 +42,23 @@ export const config = z
       .min(1)
       .max(8)
       .default(2),
-    CONVERSATION_AI_QUOTA_WAIT_MS: z.coerce
-      .number()
-      .int()
-      .min(0)
-      .max(60000)
-      .default(60000),
+    LLM_QUOTA_WAIT_MS: z.coerce.number().int().min(0).max(60000).default(60000),
     CONVERSATION_AI_MODEL: z.string().trim().min(1).optional(),
     CONVERSATION_AI_MAX_TOKENS: z.coerce
+      .number()
+      .int()
+      .min(256)
+      .max(8192)
+      .optional(),
+    WORK_ASSISTANT_MODEL: z.string().trim().min(1).optional(),
+    WORK_ASSISTANT_MAX_TOKENS: z.coerce
+      .number()
+      .int()
+      .min(256)
+      .max(2200)
+      .default(1800),
+    MEETING_SUMMARY_MODEL: z.string().trim().min(1).optional(),
+    MEETING_SUMMARY_MAX_TOKENS: z.coerce
       .number()
       .int()
       .min(256)
@@ -88,6 +100,18 @@ export const config = z
       .default("development"),
     BIND_HOST: z.string().default("127.0.0.1"),
     DATABASE_URL: z.string().min(1),
+    NOTEBOOK_INDEX_CONCURRENCY: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(5)
+      .default(1),
+    NOTEBOOK_INDEX_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(30000)
+      .max(1800000)
+      .default(240000),
     REDIS_URL: z.string().url(),
     AI_GATEWAY_KEY: z.string().trim().default(""),
     AI_GATEWAY_KEY_PREVIOUS: z.string().trim().default(""),
@@ -101,24 +125,15 @@ export const config = z
     LLM_MODEL: z.string().min(1),
     VISUAL_ENABLED: z.enum(["true", "false"]).default("false"),
     VISION_MAX_TOKENS: z.coerce.number().int().min(512).max(4096).default(2048),
+    VISION_CONCURRENCY: z.coerce.number().int().min(1).max(8).default(3),
     LLM_TIMEOUT_MS: z.coerce.number().min(1000).max(120000).default(90000),
-    LLM_MAX_TOKENS: z.coerce.number().int().min(256).max(8192).default(4096),
+    LLM_MAX_TOKENS: z.coerce.number().int().min(256).max(10000).default(4096),
     LLM_REQUESTS_PER_MINUTE: z.coerce.number().int().min(1).default(5),
     LLM_TOKENS_PER_MINUTE: z.coerce.number().int().min(1000).default(20000),
     LLM_REQUESTS_PER_DAY: z.coerce.number().int().min(1).default(100),
+    LLM_INTERACTIVE_RESERVE_PER_DAY: z.coerce.number().int().min(0).default(50),
   })
   .superRefine((value, context) => {
-    if (
-      (value.MEETING_SUMMARY_ENABLED === "true" ||
-        value.VOICE_TRANSCRIPTION_ENABLED === "true") &&
-      value.MEETING_STT_CONCURRENCY !== 1
-    )
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["MEETING_STT_CONCURRENCY"],
-        message:
-          "Local speech worker supports one audio chunk at a time; configure MEETING_STT_CONCURRENCY=1",
-      });
     if (
       (value.MEETING_SUMMARY_ENABLED === "true" ||
         value.VOICE_TRANSCRIPTION_ENABLED === "true") &&
@@ -157,6 +172,8 @@ export const config = z
       "AI_GATEWAY_KEY",
       "AI_DOCUMENT_SERVICE_KEY",
       "RAG_SERVICE_KEY",
+      "AI_TO_USER_KEY",
+      "JWT_SECRET_KEY",
     ] as const) {
       if (value[name].length < 32)
         context.addIssue({

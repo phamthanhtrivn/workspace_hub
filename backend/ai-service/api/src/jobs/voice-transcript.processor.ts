@@ -2,29 +2,30 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { rows } from "../infrastructure/database/database";
-import { prepareAudioChunks } from "../modules/meeting-summary/media";
-import { recognizeMeetingChunk } from "../modules/meeting-summary/speech.client";
+import { prepareAudioChunks } from "../infrastructure/integrations/audio-chunks";
+import { recognizeSpeechChunk } from "../infrastructure/integrations/speech.client";
 import { voiceSource } from "../modules/voice-transcript/voice-source";
 import {
   VOICE_TRANSCRIPT,
   type VoiceTranscriptState,
 } from "../modules/voice-transcript/voice.constants";
 import { pcmWaveSeconds } from "../modules/voice-transcript/wave-duration";
-import { pollUntilAborted } from "../common/abort-polling";
+import { createAbortGuard } from "../common/abort-guard";
+import { singleFlight } from "../common/single-flight";
 import { isRetryableVoiceFailure } from "../modules/voice-transcript/voice-transcript-retry";
 
-export async function processVoiceTranscript(runId: string, attemptsRemaining = 0) {
+export async function processVoiceTranscript(
+  runId: string,
+  attemptsRemaining = 0,
+) {
   const [state] = await rows<VoiceTranscriptState>(
     `UPDATE notebook_ai.voice_transcripts SET status='RUNNING',updated_at=now() WHERE run_id=$1 AND status='QUEUED' RETURNING *`,
     [runId],
   );
   if (!state) return;
-  const controller = new AbortController();
-  const signal = AbortSignal.any([
-    controller.signal,
-    AbortSignal.timeout(VOICE_TRANSCRIPT.timeoutMs),
-  ]);
-  const authorize = async () => {
+  const guard = createAbortGuard(VOICE_TRANSCRIPT.timeoutMs);
+  const { signal } = guard;
+  const authorize = singleFlight(async () => {
     signal.throwIfAborted();
     const source = await voiceSource(
       state.media_id,
@@ -34,13 +35,12 @@ export async function processVoiceTranscript(runId: string, attemptsRemaining = 
     );
     if (source.revision !== state.revision)
       throw new Error("Voice message changed");
+
+    signal.throwIfAborted();
+
     return source;
-  };
-  const stopPolling = pollUntilAborted(
-    controller,
-    VOICE_TRANSCRIPT.accessIntervalMs,
-    authorize,
-  );
+  });
+  guard.poll(VOICE_TRANSCRIPT.accessIntervalMs, authorize);
   let directory: string | undefined;
   try {
     const source = await authorize();
@@ -56,7 +56,7 @@ export async function processVoiceTranscript(runId: string, attemptsRemaining = 
     for (let index = 0; index < files.length; index++) {
       if (state.chunks.some((chunk) => chunk.index === index)) continue;
       await authorize();
-      const text = await recognizeMeetingChunk(files[index], signal, "auto");
+      const text = await recognizeSpeechChunk(files[index], signal, "auto");
       state.chunks.push({ index, text });
       if (
         state.chunks.reduce((size, chunk) => size + chunk.text.length, 0) >
@@ -88,6 +88,7 @@ export async function processVoiceTranscript(runId: string, attemptsRemaining = 
         [runId],
       );
       if (retried.length) throw new Error(VOICE_TRANSCRIPT.failed);
+
       return;
     }
     const message =
@@ -99,8 +100,7 @@ export async function processVoiceTranscript(runId: string, attemptsRemaining = 
       [runId, message],
     );
   } finally {
-    stopPolling();
-    controller.abort();
+    guard.stop();
     if (
       directory &&
       dirname(directory) === tmpdir() &&

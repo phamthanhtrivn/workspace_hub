@@ -1,4 +1,5 @@
 import { SseTransport } from "../../common/sse-transport";
+import { SSE_HEARTBEAT_MS } from "../../common/sse";
 import { Injectable } from "@nestjs/common";
 import type { Response } from "express";
 import type { Actor } from "../../common/types";
@@ -24,6 +25,7 @@ export class ChatSseService {
     const stream = this.sse.create(res);
     const disconnect = () => controller.abort();
     const detach = stream.onClose(disconnect);
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
     try {
       if (res.destroyed) return;
       const sources = await this.admission.prepare(
@@ -33,6 +35,9 @@ export class ChatSseService {
         requestId,
         controller.signal,
       );
+      heartbeat = setInterval(() => {
+        if (!controller.signal.aborted && !stream.destroyed) stream.heartbeat();
+      }, SSE_HEARTBEAT_MS);
       await this.workflow.streamAnswer({
         actor,
         notebookId,
@@ -44,6 +49,7 @@ export class ChatSseService {
         controller,
       });
     } finally {
+      clearInterval(heartbeat);
       controller.abort();
       detach();
     }

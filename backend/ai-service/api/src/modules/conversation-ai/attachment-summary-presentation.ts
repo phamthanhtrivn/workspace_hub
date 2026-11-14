@@ -47,5 +47,6 @@ export function presentAttachmentSummary(
     coverage.hasImages ? copy.images : "",
   ].filter(Boolean);
   const safeName = fileName.replace(/[\r\n[\]`*_<>]/g, " ");
+
   return `${copy.title}: ${safeName}\n\n${answer.content}${notes.length ? "\n\n" + notes.join("\n") : ""}`;
 }

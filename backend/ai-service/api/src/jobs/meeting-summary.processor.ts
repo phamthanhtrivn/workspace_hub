@@ -1,7 +1,7 @@
-import { config } from "../config/env.config";
+import { singleFlight } from "../common/single-flight";
 import { rows } from "../infrastructure/database/database";
 import { meetingSource } from "../modules/meeting-summary/source";
-import { SpeechRecognitionError } from "../modules/meeting-summary/speech.client";
+import { SpeechRecognitionError } from "../infrastructure/integrations/speech.client";
 import {
   transcribeMeeting,
   summarizeMeeting,
@@ -9,7 +9,7 @@ import {
   type MeetingSummaryState,
 } from "../modules/meeting-summary/pipeline";
 import { MEETING_LIMITS } from "../modules/meeting-summary/limits";
-import { pollUntilAborted } from "../common/abort-polling";
+import { createAbortGuard } from "../common/abort-guard";
 
 export async function processMeetingSummary(
   recordingId: string,
@@ -27,13 +27,11 @@ export async function processMeetingSummary(
       WHERE recording_id=$1 AND run_id=$2 AND status='RUNNING'`,
       [recordingId, runId],
     );
+
     return;
   }
-  const controller = new AbortController();
-  const signal = AbortSignal.any([
-    controller.signal,
-    AbortSignal.timeout(MEETING_LIMITS.requestTimeoutMs),
-  ]);
+  const guard = createAbortGuard(MEETING_LIMITS.requestTimeoutMs);
+  const { signal } = guard;
   const started = performance.now();
   let currentStage = "EXTRACTING";
   const timings: Record<string, number> = {};
@@ -46,18 +44,17 @@ export async function processMeetingSummary(
         (timings[stage] || 0) + Math.round(performance.now() - start);
     }
   };
-  const authorize = async () => {
+  const authorize = singleFlight(async () => {
     signal.throwIfAborted();
     const current = await meetingSource(recordingId, state.actor_id, signal);
     if (current.revision !== state.revision)
       throw new Error("Recording revision changed");
+
+    signal.throwIfAborted();
+
     return current;
-  };
-  const stopPolling = pollUntilAborted(
-    controller,
-    MEETING_LIMITS.accessCheckIntervalMs,
-    authorize,
-  );
+  });
+  guard.poll(MEETING_LIMITS.accessCheckIntervalMs, authorize);
   const checkpoint = async (stage: string) => {
     currentStage = stage;
     signal.throwIfAborted();
@@ -99,7 +96,6 @@ export async function processMeetingSummary(
         chunks: state.transcript.length,
         duration_ms: Math.round(performance.now() - started),
         timings,
-        stt_concurrency: config.MEETING_STT_CONCURRENCY,
       }),
     );
   } catch (error) {
@@ -124,7 +120,6 @@ export async function processMeetingSummary(
       [recordingId, runId],
     );
   } finally {
-    stopPolling();
-    controller.abort();
+    guard.stop();
   }
 }

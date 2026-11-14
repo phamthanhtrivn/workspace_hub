@@ -1589,67 +1589,64 @@
     "ai-service/api": {
       "current_variables": {
         "AI_DOCUMENT_SERVICE_KEY": [
-          "backend/ai-service/api/src/config/env.config.ts:89"
+          "backend/ai-service/api/src/config/env.config.ts:114"
         ],
         "AI_ENABLED": [
-          "backend/ai-service/api/src/config/env.config.ts:68"
+          "backend/ai-service/api/src/config/env.config.ts:81"
         ],
         "AI_GATEWAY_KEY": [
-          "backend/ai-service/api/src/config/env.config.ts:87"
+          "backend/ai-service/api/src/config/env.config.ts:112"
         ],
         "AI_GATEWAY_KEY_PREVIOUS": [
-          "backend/ai-service/api/src/config/env.config.ts:88"
+          "backend/ai-service/api/src/config/env.config.ts:113"
         ],
         "AI_SHUTDOWN_TIMEOUT_MS": [
-          "backend/ai-service/api/src/config/env.config.ts:69"
+          "backend/ai-service/api/src/config/env.config.ts:82"
         ],
         "AI_TO_CALENDAR_KEY": [
-          "backend/ai-service/api/src/config/env.config.ts:58"
+          "backend/ai-service/api/src/config/env.config.ts:71"
         ],
         "AI_TO_COMMUNICATION_KEY": [
-          "backend/ai-service/api/src/config/env.config.ts:50"
+          "backend/ai-service/api/src/config/env.config.ts:63"
         ],
         "AI_TO_PROJECT_KEY": [
-          "backend/ai-service/api/src/config/env.config.ts:57"
+          "backend/ai-service/api/src/config/env.config.ts:70"
         ],
         "AI_TO_USER_KEY": [
           "backend/ai-service/api/src/common/auth/session-authorization.ts:17"
         ],
         "BIND_HOST": [
-          "backend/ai-service/api/src/config/env.config.ts:84"
+          "backend/ai-service/api/src/config/env.config.ts:97"
         ],
         "CHAT_CANCEL_POLL_MS": [
-          "backend/ai-service/api/src/config/env.config.ts:75"
+          "backend/ai-service/api/src/config/env.config.ts:88"
         ],
         "COMMUNICATION_SERVICE_URL": [
-          "backend/ai-service/api/src/config/env.config.ts:52"
+          "backend/ai-service/api/src/config/env.config.ts:65"
         ],
         "COMMUNICATION_TO_AI_KEY": [
-          "backend/ai-service/api/src/config/env.config.ts:51"
+          "backend/ai-service/api/src/config/env.config.ts:64"
         ],
         "CONVERSATION_AI_CONCURRENCY": [
-          "backend/ai-service/api/src/config/env.config.ts:31"
+          "backend/ai-service/api/src/config/env.config.ts:35"
         ],
         "CONVERSATION_AI_ENABLED": [
-          "backend/ai-service/api/src/config/env.config.ts:30"
+          "backend/ai-service/api/src/config/env.config.ts:34"
         ],
         "CONVERSATION_AI_MAX_TOKENS": [
-          "backend/ai-service/api/src/config/env.config.ts:44"
-        ],
-        "CONVERSATION_AI_MODEL": [
           "backend/ai-service/api/src/config/env.config.ts:43"
         ],
-        "CONVERSATION_AI_QUOTA_WAIT_MS": [
-          "backend/ai-service/api/src/config/env.config.ts:37"
+        "CONVERSATION_AI_MODEL": [
+          "backend/ai-service/api/src/config/env.config.ts:42"
         ],
         "DATABASE_URL": [
-          "backend/ai-service/api/src/config/env.config.ts:85"
+          "backend/ai-service/api/src/config/env.config.ts:98"
         ],
         "DOCUMENT_SERVICE_URL": [
-          "backend/ai-service/api/src/config/env.config.ts:91"
+          "backend/ai-service/api/src/config/env.config.ts:116"
         ],
         "FRONTEND_URL": [
-          "backend/ai-service/api/src/config/env.config.ts:93"
+          "backend/ai-service/api/src/config/env.config.ts:118"
         ],
         "JWT_ISSUER": [
           "backend/ai-service/api/src/common/auth/access-token.ts:68"
@@ -1658,37 +1655,40 @@
           "backend/ai-service/api/src/common/auth/access-token.ts:28"
         ],
         "LLM_API_KEY": [
-          "backend/ai-service/api/src/config/env.config.ts:95"
+          "backend/ai-service/api/src/config/env.config.ts:120"
         ],
         "LLM_BASE_URL": [
-          "backend/ai-service/api/src/config/env.config.ts:94"
+          "backend/ai-service/api/src/config/env.config.ts:119"
+        ],
+        "LLM_INTERACTIVE_RESERVE_PER_DAY": [
+          "backend/ai-service/api/src/config/env.config.ts:130"
         ],
         "LLM_MAX_TOKENS": [
-          "backend/ai-service/api/src/config/env.config.ts:100"
+          "backend/ai-service/api/src/config/env.config.ts:126"
         ],
         "LLM_MODEL": [
-          "backend/ai-service/api/src/config/env.config.ts:96"
+          "backend/ai-service/api/src/config/env.config.ts:121"
+        ],
+        "LLM_QUOTA_WAIT_MS": [
+          "backend/ai-service/api/src/config/env.config.ts:41"
         ],
         "LLM_REQUESTS_PER_DAY": [
-          "backend/ai-service/api/src/config/env.config.ts:103"
+          "backend/ai-service/api/src/config/env.config.ts:129"
         ],
         "LLM_REQUESTS_PER_MINUTE": [
-          "backend/ai-service/api/src/config/env.config.ts:101"
+          "backend/ai-service/api/src/config/env.config.ts:127"
         ],
         "LLM_TIMEOUT_MS": [
-          "backend/ai-service/api/src/config/env.config.ts:99"
+          "backend/ai-service/api/src/config/env.config.ts:125"
         ],
         "LLM_TOKENS_PER_MINUTE": [
-          "backend/ai-service/api/src/config/env.config.ts:102"
+          "backend/ai-service/api/src/config/env.config.ts:128"
         ],
         "MEETING_FFMPEG_PATH": [
-          "backend/ai-service/api/src/config/env.config.ts:28"
+          "backend/ai-service/api/src/config/env.config.ts:32"
         ],
         "MEETING_MEDIA_HOSTS": [
-          "backend/ai-service/api/src/config/env.config.ts:29"
-        ],
-        "MEETING_STT_CONCURRENCY": [
-          "backend/ai-service/api/src/config/env.config.ts:6"
+          "backend/ai-service/api/src/config/env.config.ts:33"
         ],
         "MEETING_STT_CPU_THREADS": [
           "backend/scripts/start-local-speech.mjs"
@@ -1700,133 +1700,82 @@
           "backend/scripts/start-local-speech.mjs"
         ],
         "MEETING_STT_SERVICE_KEY": [
-          "backend/ai-service/api/src/config/env.config.ts:8"
-        ],
-        "MEETING_STT_TIMEOUT_MS": [
-          "backend/ai-service/api/src/config/env.config.ts:9"
-        ],
-        "MEETING_STT_URL": [
           "backend/ai-service/api/src/config/env.config.ts:7"
         ],
+        "MEETING_STT_TIMEOUT_MS": [
+          "backend/ai-service/api/src/config/env.config.ts:8"
+        ],
+        "MEETING_STT_URL": [
+          "backend/ai-service/api/src/config/env.config.ts:6"
+        ],
         "MEETING_SUMMARY_ENABLED": [
-          "backend/ai-service/api/src/config/env.config.ts:15"
+          "backend/ai-service/api/src/config/env.config.ts:14"
         ],
         "MEETING_SUMMARY_MAX_BYTES": [
-          "backend/ai-service/api/src/config/env.config.ts:22"
+          "backend/ai-service/api/src/config/env.config.ts:26"
         ],
         "MEETING_SUMMARY_MAX_SECONDS": [
-          "backend/ai-service/api/src/config/env.config.ts:16"
+          "backend/ai-service/api/src/config/env.config.ts:20"
+        ],
+        "MEETING_SUMMARY_MAX_TOKENS": [
+          "backend/ai-service/api/src/config/env.config.ts:57"
+        ],
+        "MEETING_SUMMARY_MODEL": [
+          "backend/ai-service/api/src/config/env.config.ts:56"
         ],
         "NODE_ENV": [
-          "backend/ai-service/api/src/config/env.config.ts:81"
+          "backend/ai-service/api/src/config/env.config.ts:94"
+        ],
+        "NOTEBOOK_INDEX_CONCURRENCY": [
+          "backend/ai-service/api/src/config/env.config.ts:99"
+        ],
+        "NOTEBOOK_INDEX_TIMEOUT_MS": [
+          "backend/ai-service/api/src/config/env.config.ts:105"
         ],
         "PORT": [
-          "backend/ai-service/api/src/config/env.config.ts:67"
+          "backend/ai-service/api/src/config/env.config.ts:80"
         ],
         "RAG_SERVICE_KEY": [
-          "backend/ai-service/api/src/config/env.config.ts:90"
+          "backend/ai-service/api/src/config/env.config.ts:115"
         ],
         "RAG_WORKER_URL": [
-          "backend/ai-service/api/src/config/env.config.ts:92"
+          "backend/ai-service/api/src/config/env.config.ts:117"
         ],
         "REDIS_URL": [
-          "backend/ai-service/api/src/config/env.config.ts:86"
+          "backend/ai-service/api/src/config/env.config.ts:111"
         ],
         "USER_SERVICE_URL": [
           "backend/ai-service/api/src/common/auth/session-authorization.ts:16"
         ],
+        "VISION_CONCURRENCY": [
+          "backend/ai-service/api/src/config/env.config.ts:124"
+        ],
         "VISION_MAX_TOKENS": [
-          "backend/ai-service/api/src/config/env.config.ts:98"
+          "backend/ai-service/api/src/config/env.config.ts:123"
         ],
         "VISUAL_ENABLED": [
-          "backend/ai-service/api/src/config/env.config.ts:97"
+          "backend/ai-service/api/src/config/env.config.ts:122"
+        ],
+        "VOICE_TRANSCRIPTION_ENABLED": [
+          "backend/ai-service/api/src/config/env.config.ts:15"
         ],
         "WORK_ASSISTANT_CALENDAR_URL": [
-          "backend/ai-service/api/src/config/env.config.ts:63"
+          "backend/ai-service/api/src/config/env.config.ts:76"
         ],
         "WORK_ASSISTANT_ENABLED": [
-          "backend/ai-service/api/src/config/env.config.ts:56"
+          "backend/ai-service/api/src/config/env.config.ts:69"
+        ],
+        "WORK_ASSISTANT_MAX_TOKENS": [
+          "backend/ai-service/api/src/config/env.config.ts:50"
+        ],
+        "WORK_ASSISTANT_MODEL": [
+          "backend/ai-service/api/src/config/env.config.ts:49"
         ],
         "WORK_ASSISTANT_PROJECT_URL": [
-          "backend/ai-service/api/src/config/env.config.ts:59"
+          "backend/ai-service/api/src/config/env.config.ts:72"
         ]
       },
       "variables": {
-        "BIND_HOST": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "FRONTEND_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "NODE_ENV": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "PORT": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "DATABASE_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "JWT_ISSUER": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "JWT_SECRET_KEY": {
-          "secret": true,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "COMMUNICATION_SERVICE_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": false
-        },
-        "DOCUMENT_SERVICE_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "MEETING_STT_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": false
-        },
-        "RAG_WORKER_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "USER_SERVICE_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "WORK_ASSISTANT_CALENDAR_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": false
-        },
-        "WORK_ASSISTANT_PROJECT_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": false
-        },
-        "REDIS_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
-        },
         "AI_DOCUMENT_SERVICE_KEY": {
           "secret": true,
           "source": "runtime",
@@ -1852,10 +1801,90 @@
           "source": "runtime",
           "requiredLocal": false
         },
+        "AI_TO_CALENDAR_KEY": {
+          "secret": true,
+          "source": "runtime",
+          "credentialEdge": {
+            "name": "AI_TO_CALENDAR_KEY",
+            "caller": "ai",
+            "receiver": "calendar",
+            "scopes": [
+              "assistant.calendar"
+            ]
+          },
+          "requiredLocal": true
+        },
+        "AI_TO_COMMUNICATION_KEY": {
+          "secret": true,
+          "source": "runtime",
+          "credentialEdge": {
+            "name": "AI_TO_COMMUNICATION_KEY",
+            "caller": "ai",
+            "receiver": "communication",
+            "scopes": [
+              "conversation.read",
+              "recording.read",
+              "ai.callback"
+            ]
+          },
+          "requiredLocal": true
+        },
+        "AI_TO_PROJECT_KEY": {
+          "secret": true,
+          "source": "runtime",
+          "credentialEdge": {
+            "name": "AI_TO_PROJECT_KEY",
+            "caller": "ai",
+            "receiver": "project",
+            "scopes": [
+              "assistant.project"
+            ]
+          },
+          "requiredLocal": true
+        },
+        "AI_TO_USER_KEY": {
+          "secret": true,
+          "source": "runtime",
+          "credentialEdge": {
+            "name": "AI_TO_USER_KEY",
+            "caller": "ai",
+            "receiver": "user",
+            "scopes": [
+              "session.authorize"
+            ]
+          },
+          "requiredLocal": true
+        },
+        "BIND_HOST": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
         "CHAT_CANCEL_POLL_MS": {
           "secret": false,
           "source": "runtime",
           "requiredLocal": false
+        },
+        "COMMUNICATION_SERVICE_URL": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": false
+        },
+        "COMMUNICATION_TO_AI_KEY": {
+          "secret": true,
+          "source": "runtime",
+          "credentialEdge": {
+            "name": "COMMUNICATION_TO_AI_KEY",
+            "caller": "communication",
+            "receiver": "ai",
+            "scopes": [
+              "conversation.enqueue",
+              "conversation.status",
+              "meeting.enqueue",
+              "meeting.status"
+            ]
+          },
+          "requiredLocal": true
         },
         "CONVERSATION_AI_CONCURRENCY": {
           "secret": false,
@@ -1877,10 +1906,30 @@
           "source": "runtime",
           "requiredLocal": false
         },
-        "CONVERSATION_AI_QUOTA_WAIT_MS": {
+        "DATABASE_URL": {
           "secret": false,
           "source": "runtime",
-          "requiredLocal": false
+          "requiredLocal": true
+        },
+        "DOCUMENT_SERVICE_URL": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
+        "FRONTEND_URL": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
+        "JWT_ISSUER": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
+        "JWT_SECRET_KEY": {
+          "secret": true,
+          "source": "runtime",
+          "requiredLocal": true
         },
         "LLM_API_KEY": {
           "secret": true,
@@ -1892,6 +1941,11 @@
           "source": "runtime",
           "requiredLocal": true
         },
+        "LLM_INTERACTIVE_RESERVE_PER_DAY": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": false
+        },
         "LLM_MAX_TOKENS": {
           "secret": true,
           "source": "runtime",
@@ -1901,6 +1955,11 @@
           "secret": false,
           "source": "runtime",
           "requiredLocal": true
+        },
+        "LLM_QUOTA_WAIT_MS": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": false
         },
         "LLM_REQUESTS_PER_DAY": {
           "secret": false,
@@ -1932,9 +1991,19 @@
           "source": "runtime",
           "requiredLocal": false
         },
-        "MEETING_STT_CONCURRENCY": {
+        "MEETING_STT_CPU_THREADS": {
           "secret": false,
-          "source": "runtime",
+          "source": "launcher",
+          "requiredLocal": false
+        },
+        "MEETING_STT_MODEL_PATH": {
+          "secret": false,
+          "source": "launcher",
+          "requiredLocal": false
+        },
+        "MEETING_STT_PYTHON": {
+          "secret": false,
+          "source": "launcher",
           "requiredLocal": false
         },
         "MEETING_STT_SERVICE_KEY": {
@@ -1943,6 +2012,11 @@
           "requiredLocal": false
         },
         "MEETING_STT_TIMEOUT_MS": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": false
+        },
+        "MEETING_STT_URL": {
           "secret": false,
           "source": "runtime",
           "requiredLocal": false
@@ -1962,8 +2036,58 @@
           "source": "runtime",
           "requiredLocal": false
         },
+        "MEETING_SUMMARY_MAX_TOKENS": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": false
+        },
+        "MEETING_SUMMARY_MODEL": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": false
+        },
+        "NODE_ENV": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
+        "NOTEBOOK_INDEX_CONCURRENCY": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": false
+        },
+        "NOTEBOOK_INDEX_TIMEOUT_MS": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": false
+        },
+        "PORT": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
         "RAG_SERVICE_KEY": {
           "secret": true,
+          "source": "runtime",
+          "requiredLocal": false
+        },
+        "RAG_WORKER_URL": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
+        "REDIS_URL": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
+        "USER_SERVICE_URL": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
+        "VISION_CONCURRENCY": {
+          "secret": false,
           "source": "runtime",
           "requiredLocal": false
         },
@@ -1977,94 +2101,34 @@
           "source": "runtime",
           "requiredLocal": true
         },
+        "VOICE_TRANSCRIPTION_ENABLED": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": false
+        },
+        "WORK_ASSISTANT_CALENDAR_URL": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": false
+        },
         "WORK_ASSISTANT_ENABLED": {
           "secret": false,
           "source": "runtime",
           "requiredLocal": true
         },
-        "AI_TO_USER_KEY": {
-          "secret": true,
-          "source": "runtime",
-          "credentialEdge": {
-            "name": "AI_TO_USER_KEY",
-            "caller": "ai",
-            "receiver": "user",
-            "scopes": [
-              "session.authorize"
-            ]
-          },
-          "requiredLocal": true
-        },
-        "AI_TO_PROJECT_KEY": {
-          "secret": true,
-          "source": "runtime",
-          "credentialEdge": {
-            "name": "AI_TO_PROJECT_KEY",
-            "caller": "ai",
-            "receiver": "project",
-            "scopes": [
-              "assistant.project"
-            ]
-          },
-          "requiredLocal": true
-        },
-        "AI_TO_CALENDAR_KEY": {
-          "secret": true,
-          "source": "runtime",
-          "credentialEdge": {
-            "name": "AI_TO_CALENDAR_KEY",
-            "caller": "ai",
-            "receiver": "calendar",
-            "scopes": [
-              "assistant.calendar"
-            ]
-          },
-          "requiredLocal": true
-        },
-        "AI_TO_COMMUNICATION_KEY": {
-          "secret": true,
-          "source": "runtime",
-          "credentialEdge": {
-            "name": "AI_TO_COMMUNICATION_KEY",
-            "caller": "ai",
-            "receiver": "communication",
-            "scopes": [
-              "conversation.read",
-              "recording.read",
-              "ai.callback"
-            ]
-          },
-          "requiredLocal": true
-        },
-        "COMMUNICATION_TO_AI_KEY": {
-          "secret": true,
-          "source": "runtime",
-          "credentialEdge": {
-            "name": "COMMUNICATION_TO_AI_KEY",
-            "caller": "communication",
-            "receiver": "ai",
-            "scopes": [
-              "conversation.enqueue",
-              "conversation.status",
-              "meeting.enqueue",
-              "meeting.status"
-            ]
-          },
-          "requiredLocal": true
-        },
-        "MEETING_STT_PYTHON": {
+        "WORK_ASSISTANT_MAX_TOKENS": {
           "secret": false,
-          "source": "launcher",
+          "source": "runtime",
           "requiredLocal": false
         },
-        "MEETING_STT_MODEL_PATH": {
+        "WORK_ASSISTANT_MODEL": {
           "secret": false,
-          "source": "launcher",
+          "source": "runtime",
           "requiredLocal": false
         },
-        "MEETING_STT_CPU_THREADS": {
+        "WORK_ASSISTANT_PROJECT_URL": {
           "secret": false,
-          "source": "launcher",
+          "source": "runtime",
           "requiredLocal": false
         }
       }

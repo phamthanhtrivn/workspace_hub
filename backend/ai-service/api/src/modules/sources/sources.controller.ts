@@ -16,13 +16,9 @@ import { SourcesService } from "./sources.service";
 import { ownedNotebook } from "../../common/auth/notebook-access";
 import { parse } from "../../common/validation";
 import type { Response } from "express";
-import {
-  checkCapacity,
-  checkFile,
-  readUpload,
-  validateContent,
-  withUploadCheck,
-} from "./upload-validation";
+import { validateContent, withUploadCheck } from "./upload-validation";
+import { checkCapacity, checkFile } from "./upload-rules";
+import { readUpload } from "./upload-stream";
 @Controller("api/ai")
 @UseGuards(AuthGuard)
 export class SourcesController {
@@ -35,6 +31,7 @@ export class SourcesController {
     @Res({ passthrough: true }) res: Response,
   ) {
     res.set("Cache-Control", "no-store");
+
     return {
       data: await this.sources.visual(req.actor, id, sourceId, imageId),
     };
@@ -66,6 +63,7 @@ export class SourcesController {
       );
       checkCapacity(await this.sources.sources(id), count, bytes);
       const content = await readUpload(req, size);
+
       return { data: await validateContent(name, content, id) };
     });
   }
@@ -88,6 +86,7 @@ export class SourcesController {
       }),
       body,
     );
+
     return { data: await this.sources.add(req.actor, id, refs) };
   }
   @Post("notebooks/:id/sources/:sourceId/:action") async source(

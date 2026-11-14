@@ -1,10 +1,16 @@
 """Deterministic policy helpers; no models, database or network required."""
 import re
 
+MAX_SOURCE_TOKENS = 100_000
+
 
 def reciprocal_rank(dense: list[str], lexical: list[str], limit: int = 8) -> list[str]:
+    return reciprocal_rank_many((dense, lexical), limit)
+
+
+def reciprocal_rank_many(rankings, limit: int = 8) -> list[str]:
     scores: dict[str, float] = {}
-    for ranking in (dense, lexical):
+    for ranking in rankings:
         for rank, item in enumerate(dict.fromkeys(ranking), start=1):
             scores[item] = scores.get(item, 0) + 1 / (60 + rank)
     return sorted(scores, key=lambda item: (-scores[item], item))[:limit]

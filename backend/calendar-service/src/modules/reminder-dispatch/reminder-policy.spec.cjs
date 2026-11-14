@@ -68,4 +68,3 @@ test('dispatch retries retain grouping while a changed start time uses a new gro
   await dispatch.dispatchOne(reminder);
   assert.notEqual(emitted[0].groupKey, emitted[2].groupKey);
 });
-

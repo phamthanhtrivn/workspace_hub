@@ -1,9 +1,11 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { join, dirname, basename } from "node:path";
 import { tmpdir } from "node:os";
-import { config } from "../../config/env.config";
-import { prepareMeetingAudio, AUDIO_CHUNK_SECONDS } from "./media";
-import { recognizeMeetingChunk } from "./speech.client";
+import {
+  prepareAudioChunks,
+  AUDIO_CHUNK_SECONDS,
+} from "../../infrastructure/integrations/audio-chunks";
+import { recognizeSpeechChunk } from "../../infrastructure/integrations/speech.client";
 import {
   meetingSummaryText,
   meetingSummaryCacheKey,
@@ -38,7 +40,7 @@ export async function transcribeMeeting(
   const directory = await mkdtemp(join(tmpdir(), "meeting-summary-"));
   try {
     const files = await measure("audio_ms", () =>
-      prepareMeetingAudio(source, directory, signal),
+      prepareAudioChunks(source, directory, signal),
     );
     const completed = new Set(
       state.transcript.map((chunk) => chunk.startSeconds / AUDIO_CHUNK_SECONDS),
@@ -55,32 +57,18 @@ export async function transcribeMeeting(
       .map((_file, index) => index)
       .filter((index) => !completed.has(index));
     await checkpoint("TRANSCRIBING");
-    for (
-      let offset = 0;
-      offset < pending.length;
-      offset += config.MEETING_STT_CONCURRENCY
-    ) {
-      const wave = pending.slice(
-        offset,
-        offset + config.MEETING_STT_CONCURRENCY,
+    for (const index of pending) {
+      await authorize();
+      const text = await measure("speech_ms", () =>
+        recognizeSpeechChunk(files[index], signal),
       );
-      const results = await measure("speech_ms", () =>
-        Promise.allSettled(
-          wave.map(async (index) => {
-            await authorize();
-            const text = await recognizeMeetingChunk(files[index], signal);
-            signal.throwIfAborted();
-            return { startSeconds: index * AUDIO_CHUNK_SECONDS, text };
-          }),
-        ),
-      );
-      // Drain all in-flight calls before cleanup, and preserve successes even if another chunk failed.
-      for (const result of results)
-        if (result.status === "fulfilled") state.transcript.push(result.value);
+      signal.throwIfAborted();
+      state.transcript.push({
+        startSeconds: index * AUDIO_CHUNK_SECONDS,
+        text,
+      });
       state.transcript.sort((a, b) => a.startSeconds - b.startSeconds);
       await checkpoint("TRANSCRIBING");
-      const failed = results.find((result) => result.status === "rejected");
-      if (failed?.status === "rejected") throw failed.reason;
     }
     state.transcript_complete = true;
     await checkpoint("TRANSCRIBING");
@@ -136,5 +124,6 @@ export async function summarizeMeeting(context: MeetingPipeline) {
   );
   await authorize();
   signal.throwIfAborted();
+
   return content;
 }

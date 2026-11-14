@@ -6,6 +6,7 @@ export const timeZoneSchema = z
   .refine((value) => {
     try {
       new Intl.DateTimeFormat("en", { timeZone: value }).format();
+
       return true;
     } catch {
       return false;
@@ -22,6 +23,7 @@ export function dateKey(date: Date, timeZone: string) {
 export function addDays(day: string, count: number) {
   const date = new Date(day + "T12:00:00Z");
   date.setUTCDate(date.getUTCDate() + count);
+
   return date.toISOString().slice(0, 10);
 }
 // Resolve wall time independently on each date so DST does not shift working hours.
@@ -65,6 +67,7 @@ export function wallTime(day: string, minute: number, timeZone: string) {
 }
 export function workRange(now: Date, timeZone: string, days: 7 | 30) {
   const today = dateKey(now, timeZone);
+
   return {
     today,
     from: wallTime(addDays(today, 1 - days), 0, timeZone).toISOString(),
@@ -114,5 +117,6 @@ export function freeSlots(
         endAt: new Date(end).toISOString(),
       });
   }
+
   return slots.slice(0, 40);
 }

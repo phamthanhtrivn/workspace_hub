@@ -11,12 +11,13 @@ import {
 import { AuthGuard, AuthRequest } from "../../common/auth/auth.guard";
 import { z } from "zod";
 import type { Response } from "express";
-import { ChatService } from "./chat.service";
+import { ChatSseService } from "./chat-sse.service";
+import { cancelChatRequest } from "./chat-request";
 import { parse } from "../../common/validation";
 @Controller("api/ai")
 @UseGuards(AuthGuard)
 export class ChatController {
-  constructor(private readonly chat: ChatService) {}
+  constructor(private readonly transport: ChatSseService) {}
   @Post("notebooks/:id/messages") async message(
     @Req() req: AuthRequest,
     @Param("id", ParseUUIDPipe) id: string,
@@ -31,7 +32,7 @@ export class ChatController {
       }),
       body,
     );
-    await this.chat.answer(
+    await this.transport.answer(
       req.actor,
       id,
       data.question,
@@ -43,7 +44,12 @@ export class ChatController {
   @Post("requests/:id/cancel") async cancel(
     @Req() req: AuthRequest,
     @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
   ) {
-    return { data: await this.chat.cancel(req.actor, id) };
+    const data = parse(z.object({ notebookId: z.string().uuid() }), body);
+
+    await cancelChatRequest(req.actor.id, data.notebookId, id);
+
+    return { data: {} };
   }
 }

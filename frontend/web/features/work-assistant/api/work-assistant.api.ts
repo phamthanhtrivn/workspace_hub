@@ -2,10 +2,9 @@ import { aiServiceMessage } from "@/lib/ai-feedback";
 import { z } from "zod";
 import { api } from "@/lib/axios";
 import type {
-  Audience,
+  ConversationContext,
   WorkMessage,
   WorkConversationPage,
-  WorkOverview,
   WorkSession,
 } from "../types";
 const base = "/api/ai/work-assistant";
@@ -39,12 +38,13 @@ const message = z.object({
 });
 const session = z.object({
   id: z.string().uuid(),
+  contextType: z.enum(["dashboard", "projects", "calendar", "project_detail"]),
   projectId: z.string().uuid().nullable(),
   messages: z.array(message),
   nextCursor: z.string().uuid().nullable(),
 });
 export async function getSession(
-  projectId?: string,
+  context: ConversationContext,
   before?: string,
   signal?: AbortSignal,
   sessionId?: string,
@@ -52,46 +52,31 @@ export async function getSession(
   return session.parse(
     (
       await api.get(base + "/session", {
-        params: { projectId, before, sessionId },
+        params: { ...context, before, sessionId },
         signal,
       })
     ).data.data,
   );
 }
-export async function getOverview(
-  projectId?: string,
-  audience: Audience = "mine",
-  signal?: AbortSignal,
-  timeZone?: string,
-): Promise<WorkOverview> {
-  return (
-    await api.get(base + "/overview", {
-      params: { projectId, audience, timeZone },
-      signal,
-    })
-  ).data.data;
-}
 export async function getConversations(
-  projectId?: string,
+  context: ConversationContext,
   before?: string,
   signal?: AbortSignal,
 ): Promise<WorkConversationPage> {
   const response = await api.get(base + "/sessions", {
-    params: { projectId, before },
+    params: { ...context, before },
     signal,
   });
 
   return response.data.data;
 }
 export async function createConversation(
-  projectId?: string,
+  context: ConversationContext,
 ): Promise<WorkSession> {
-  return session.parse(
-    (await api.post(base + "/sessions", { projectId })).data.data,
-  );
+  return session.parse((await api.post(base + "/sessions", context)).data.data);
 }
-export async function cancelRequest(id: string) {
-  await api.post(base + "/requests/" + id + "/cancel");
+export async function cancelRequest(id: string, sessionId: string) {
+  await api.post(base + "/requests/" + id + "/cancel", { sessionId });
 }
 export type StreamEvent = { event: string; data: unknown };
 export async function consumeEvents(
@@ -143,18 +128,32 @@ export async function sendMessage(
   id: string,
   question: string,
   requestId: string,
-  audience: Audience,
+  context: ConversationContext,
   signal: AbortSignal,
   onStatus: (status: string) => void,
   onDone: (message: WorkMessage) => void,
   timeZone?: string,
+  onDelta: (text: string) => void = () => {},
+  onReset: () => void = () => {},
 ) {
   const response = await api.post<ReadableStream<Uint8Array>>(
     base + "/sessions/" + id + "/messages",
-    { question, requestId, audience, timeZone },
+    {
+      question,
+      requestId,
+      ...context,
+      audience:
+        context.contextType === "projects" || context.contextType === "calendar"
+          ? context.contextType
+          : "mine",
+      timeZone,
+    },
     { adapter: "fetch", responseType: "stream", signal, timeout: 115000 },
   );
   await consumeEvents(response.data, ({ event, data }) => {
+    if (event === "delta")
+      onDelta(z.object({ text: z.string().max(16000) }).parse(data).text);
+    if (event === "answer-reset") onReset();
     if (event === "status")
       onStatus(z.object({ message: z.string() }).parse(data).message);
     if (event === "done")

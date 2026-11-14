@@ -3,13 +3,13 @@ import { config } from "../../config/env.config";
 import { db } from "../../infrastructure/database/database";
 import {
   queue,
-  summaryQueue,
   conversationQueue,
   WORKER_HEARTBEAT_VALUE,
   meetingSummaryQueue,
 } from "../../infrastructure/queue/notebook.queue";
 import { checkHttpDependencies } from "./http-dependencies";
 import { VOICE_TRANSCRIPT } from "../../modules/voice-transcript/voice.constants";
+import { logError } from "../errors/error-log";
 @Controller()
 export class HealthController {
   @Get("health") health() {
@@ -20,12 +20,21 @@ export class HealthController {
     };
   }
   @Get("ready") async ready() {
+    let stage = "DATABASE";
     try {
-      await db.query("SELECT id FROM notebook_ai.notebooks LIMIT 0");
       await Promise.all([
-        queue.getJobCounts("waiting"),
-        summaryQueue.getJobCounts("waiting"),
+        db.query("SELECT id FROM notebook_ai.notebooks LIMIT 0"),
+        db.query("SELECT id,status FROM notebook_ai.requests LIMIT 0"),
+        db.query("SELECT run_id FROM notebook_ai.sources LIMIT 0"),
+        db.query(
+          "SELECT id,status,content,citations FROM notebook_ai.artifacts LIMIT 0",
+        ),
+        db.query(
+          "SELECT id,scope_id,source_id FROM notebook_ai.cleanup_outbox LIMIT 0",
+        ),
       ]);
+      stage = "QUEUE";
+      await queue.getJobCounts("waiting");
       const redis = await queue.client;
       if (config.VOICE_TRANSCRIPTION_ENABLED === "true") {
         await db.query(
@@ -60,10 +69,16 @@ export class HealthController {
         )
           throw new Error("Conversation worker unavailable");
       }
-      await checkHttpDependencies();
-      return this.health();
-    } catch {
-      throw new ServiceUnavailableException();
+      stage = "DEPENDENCIES";
+      const capabilities = await checkHttpDependencies();
+
+      return { ...this.health(), capabilities };
+    } catch (error) {
+      logError("ai_readiness_failed", error, { stage });
+      throw new ServiceUnavailableException({
+        code: `AI_${stage}_UNAVAILABLE`,
+        message: `AI_${stage}_UNAVAILABLE: AI dependency is unavailable. Please try again later.`,
+      });
     }
   }
 }

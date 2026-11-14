@@ -49,7 +49,7 @@ inventory is `docs/local-env-contract.json`; no `.env.example` files are kept.
 | `FRONTEND_URL`, `CORS_ALLOWED_ORIGINS` | Configure the actual browser origin for HTTP/socket access; Kong uses `FRONTEND_URL`. |
 | Caller keys | Use the 16 directions in `backend/scripts/local-security/contract.mjs`; each key belongs at its caller and receiver only. |
 | `CALENDAR_DOCUMENT_SERVICE_KEY` | Calendar and Document, at least 32 random characters; optional `CALENDAR_DOCUMENT_SERVICE_KEY_PREVIOUS` on Document during rotation. |
-| `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY`, `RAG_SERVICE_KEY` | Dedicated AI links to Kong, Document and RAG; each purpose uses a different key. Document accepts `AI_DOCUMENT_SERVICE_KEY_PREVIOUS` during rotation. See [AI configuration](../deploy/ai/README.md#các-nhóm-biến-cấu-hình-ai). |
+| `AI_GATEWAY_KEY`, `AI_DOCUMENT_SERVICE_KEY`, `RAG_SERVICE_KEY` | Dedicated AI links to Kong, Document and RAG; each purpose uses a different key. Document accepts `AI_DOCUMENT_SERVICE_KEY_PREVIOUS` during rotation. |
 | `AI_TO_PROJECT_KEY`, `AI_TO_CALENDAR_KEY` | AI caller and its respective Work Assistant receiver. |
 | `AI_TO_COMMUNICATION_KEY`, `COMMUNICATION_TO_AI_KEY`, `AI_SERVICE_URL` | Separate credentials for each AI/Communication direction; Communication calls AI at `AI_SERVICE_URL`. |
 | `COMMUNICATION_SERVICE_URL` | Calendar's conference integration and other internal callers; use the host URL when running locally. |
@@ -123,8 +123,8 @@ hold database connections. Start consumers before producers after reset.
 Run `npm ci` in each Node application first and generate its Prisma client where
 applicable. User Service does not automatically load `.env`: supply the existing
 variables through your IDE run configuration or terminal environment before Maven.
-Notebook AI is a Node API/jobs service with separate Python workers; follow
-[Notebook AI setup](../deploy/ai/README.md). Install each Python worker from its
+Notebook AI is a Node API/jobs service with separate Python workers, configured
+in `deploy/ai/compose.yml`. Install each Python worker from its
 `requirements.txt`. Preserve existing `.env` files and runtime environments.
 
 AI shares `wh_postgres` (PostgreSQL 15) and `wh_redis`: dedicated database

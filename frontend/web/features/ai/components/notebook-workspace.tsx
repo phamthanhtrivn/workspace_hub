@@ -12,14 +12,15 @@ import { useNotebook, useNotebookChat } from "../hooks/use-notebook";
 import { Citations } from "./citations";
 import { AnswerContent } from "./answer-content";
 import { SourcePanel } from "./source-panel";
-import { StudioPanel } from "./studio-panel";
+import { NotesPanel } from "./notes-panel";
 import { LoadingState } from "@/components/ui/loading-state";
 import { Spinner } from "@/components/ui/spinner";
-import { Bot } from "lucide-react";
+import { ArrowLeft, Bot } from "lucide-react";
 import type { NotebookActionKey, NotebookActionRunner } from "../types";
 
 export function NotebookWorkspace({ id }: { id: string }) {
   const userId = useAppSelector((state) => state.auth.userId);
+
   return userId ? (
     <Workspace key={`${userId}-${id}`} id={id} />
   ) : (
@@ -36,16 +37,22 @@ function Workspace({ id }: { id: string }) {
   const [question, setQuestion] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState("");
-  const [pendingAction, setPendingAction] = useState<NotebookActionKey | null>(null);
+  const [pendingAction, setPendingAction] = useState<NotebookActionKey | null>(
+    null,
+  );
   const run: NotebookActionRunner = (action, key) => {
     setPendingAction(key ?? null);
-    void query.action(action).catch(() => {}).finally(() => setPendingAction(null));
+    void query
+      .action(action)
+      .catch(() => {})
+      .finally(() => setPendingAction(null));
   };
   if (query.isError)
     return (
       <div className="space-y-4 p-8" role="alert">
         <p>
-          Unable to load this notebook or verify source access. Content is temporarily hidden.
+          Unable to load this notebook or verify source access. Content is
+          temporarily hidden.
         </p>
         <Button onClick={() => query.refetch()}>Retry</Button>
         <Button variant="link" asChild>
@@ -69,23 +76,34 @@ function Workspace({ id }: { id: string }) {
         source.status === "READY",
     ),
   );
-  const panel = "min-h-0 rounded-xl border bg-background p-4 xl:block";
+  const panel = "min-h-0 min-w-0 rounded-xl border bg-background p-4 xl:block";
+
   return (
     <main className="flex min-h-0 flex-1 flex-col gap-4 bg-muted/30 p-3 md:p-5 xl:h-[calc(100dvh-100px)]">
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <Link
-            href="/ai"
-            className="text-xs text-muted-foreground hover:underline"
+        <div className="flex min-w-0 items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-9 shrink-0 rounded-full bg-background"
+            asChild
           >
-            Your notebooks
-          </Link>
-          <h1 className="mt-1 break-words text-xl font-semibold">
-            {notebook.title}
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Private · {notebook.sources.length} sources
-          </p>
+            <Link
+              href="/ai"
+              aria-label="Back to notebooks"
+              title="Back to notebooks"
+            >
+              <ArrowLeft aria-hidden="true" />
+            </Link>
+          </Button>
+          <div className="min-w-0">
+            <h1 className="break-words text-xl font-semibold">
+              {notebook.title}
+            </h1>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Private · {notebook.sources.length} sources
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           <Button
@@ -136,19 +154,25 @@ function Workspace({ id }: { id: string }) {
             value={name}
             onChange={(event) => setName(event.target.value)}
           />
-          <Button loading={query.saving && pendingAction === "rename"} disabled={query.saving || !name.trim()}>Save</Button>
+          <Button
+            loading={query.saving && pendingAction === "rename"}
+            disabled={query.saving || !name.trim()}
+          >
+            Save
+          </Button>
         </form>
       )}
       {query.actionError && (
         <p role="alert" className="text-sm text-destructive">
-          Unable to complete this action. Check source access and upload limits, then try again.
+          Unable to complete this action. Check source access and upload limits,
+          then try again.
         </p>
       )}
       <nav aria-label="Notebook workspace" className="flex gap-2 xl:hidden">
         {[
           ["sources", "Sources"],
           ["chat", "Chat"],
-          ["studio", "Studio"],
+          ["notes", "Notes"],
         ].map(([value, label]) => (
           <Button
             key={value}
@@ -186,7 +210,9 @@ function Workspace({ id }: { id: string }) {
           <h2 className="flex items-center gap-2 border-b pb-4 font-semibold">
             <Bot className="size-5 text-link" aria-hidden="true" />
             AI Assistant
-            <span className="ml-auto text-xs font-normal text-muted-foreground">{selected.length} sources selected</span>
+            <span className="ml-auto text-xs font-normal text-muted-foreground">
+              {selected.length} sources selected
+            </span>
           </h2>
           <div
             className="min-h-0 flex-1 space-y-5 overflow-y-auto py-5"
@@ -199,25 +225,30 @@ function Workspace({ id }: { id: string }) {
                   Ask about your documents
                 </h3>
                 <p>
-                  Add a source, wait until it is ready, then select it to ask questions with citations.
-                </p>
-                <p className="mt-3">
-                  For a full-document summary, use Studio.
+                  Add a source, wait until it is ready, then select it to ask
+                  questions with citations.
                 </p>
               </div>
             )}
             {notebook.messages.map((message) => (
               <article
                 key={message.id}
-                className={message.role === "USER" ? "ml-6 rounded-xl bg-muted p-4" : "min-w-0 py-3"}
+                className={
+                  message.role === "USER"
+                    ? "ml-6 rounded-xl bg-muted p-4"
+                    : "min-w-0 py-3"
+                }
               >
                 <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                  {message.role !== "USER" && <Bot className="size-4" aria-hidden="true" />}
+                  {message.role !== "USER" && (
+                    <Bot className="size-4" aria-hidden="true" />
+                  )}
                   {message.role === "USER" ? "You" : "AI Assistant"}
                 </p>
                 {message.hidden ? (
                   <p className="text-sm text-muted-foreground">
-                    Content is hidden because a source was removed, updated or is no longer accessible.
+                    Content is hidden because a source was removed, updated or
+                    is no longer accessible.
                   </p>
                 ) : (
                   <>
@@ -225,67 +256,44 @@ function Workspace({ id }: { id: string }) {
                       items={message.citations}
                       notebookId={id}
                       markdown={message.role !== "USER"}
-                      content={
-                        ["FAILED", "CANCELLED"].includes(
-                          message.summary_status || "",
-                        )
-                          ? "The summary is incomplete. Try again."
-                          : message.content
-                      }
+                      content={message.content}
                     />
-                    {message.artifact_id &&
-                      ["FAILED", "CANCELLED"].includes(
-                        message.summary_status || "",
-                      ) && (
-                        <Button loading={query.saving && pendingAction === `summary:${message.id}`}
-                          className="mt-3"
-                          size="sm"
-                          variant="outline"
-                          disabled={query.saving}
-                          onClick={() =>
-                            run(() =>
-                              notebooksApi.artifact(
-                                id,
-                                "SUMMARY",
-                                message.sources.map((source) => source.id),
-                              ),
-                              `summary:${message.id}`,
-                            )
-                          }
-                        >
-                          Retry summary
-                        </Button>
-                      )}
-                    {message.role === "ASSISTANT" &&
-                      (!message.artifact_id ||
-                        message.summary_status === "COMPLETED") && (
-                        <Button loading={query.saving && pendingAction === `note:${message.id}`}
-                          className="mt-3"
-                          size="sm"
-                          variant="outline"
-                          disabled={query.saving}
-                          onClick={() =>
-                            run(() =>
+                    {message.role === "ASSISTANT" && (
+                      <Button
+                        loading={
+                          query.saving && pendingAction === `note:${message.id}`
+                        }
+                        className="mt-3"
+                        size="sm"
+                        variant="outline"
+                        disabled={query.saving}
+                        onClick={() =>
+                          run(
+                            () =>
                               notebooksApi.note(id, {
                                 title: "Saved from chat",
                                 messageId: message.id,
                               }),
-                              `note:${message.id}`,
-                            )
-                          }
-                        >
-                          Save to notes
-                        </Button>
-                      )}
+                            `note:${message.id}`,
+                          )
+                        }
+                      >
+                        Save to notes
+                      </Button>
+                    )}
                   </>
                 )}
               </article>
             ))}
             {(chat.busy || chat.error) && visibleDraft && (
               <article className="rounded-lg border p-4">
-                <p role={chat.busy ? "status" : undefined} className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <p
+                  role={chat.busy ? "status" : undefined}
+                  className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"
+                >
                   {chat.busy && <Spinner size={14} />}
-                  {chat.busy ? chat.stage : "Response received so far"} · Incomplete
+                  {chat.busy ? chat.stage : "Response received so far"} ·
+                  Incomplete
                 </p>
                 {chat.draft?.text ? (
                   <AnswerContent content={chat.draft.text} />
@@ -297,9 +305,21 @@ function Workspace({ id }: { id: string }) {
               </article>
             )}
             {chat.error && (
-              <p role="alert" className="text-sm text-destructive">
-                {chat.error}
-              </p>
+              <div className="space-y-2">
+                <p role="alert" className="text-sm text-destructive">
+                  {chat.error}
+                </p>
+                {chat.retryQuestion && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={chat.busy || !selected.length}
+                    onClick={() => void chat.ask(chat.retryQuestion, selected)}
+                  >
+                    Retry question
+                  </Button>
+                )}
+              </div>
             )}
           </div>
           <form
@@ -307,7 +327,7 @@ function Workspace({ id }: { id: string }) {
             onSubmit={(event) => {
               event.preventDefault();
               const value = question.trim();
-              if (!value) return;
+              if (!value || chat.busy || !selected.length) return;
               setQuestion("");
               void chat.ask(value, selected);
             }}
@@ -322,6 +342,23 @@ function Workspace({ id }: { id: string }) {
               value={question}
               disabled={chat.busy}
               onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={(event) => {
+                if (
+                  event.key !== "Enter" ||
+                  event.shiftKey ||
+                  event.nativeEvent.isComposing ||
+                  event.nativeEvent.keyCode === 229
+                )
+                  return;
+                event.preventDefault();
+                if (
+                  !event.repeat &&
+                  !chat.busy &&
+                  question.trim() &&
+                  selected.length
+                )
+                  event.currentTarget.form?.requestSubmit();
+              }}
               placeholder="Ask a question about your sources..."
             />
             <div className="flex items-center justify-between gap-3">
@@ -340,8 +377,13 @@ function Workspace({ id }: { id: string }) {
             </div>
           </form>
         </section>
-        <aside className={`${panel} ${tab === "studio" ? "block" : "hidden"}`}>
-          <StudioPanel notebook={notebook} saving={query.saving} pendingAction={query.saving ? pendingAction : null} run={run} />
+        <aside className={`${panel} ${tab === "notes" ? "block" : "hidden"}`}>
+          <NotesPanel
+            notebook={notebook}
+            saving={query.saving}
+            pendingAction={query.saving ? pendingAction : null}
+            run={run}
+          />
         </aside>
       </div>
     </main>

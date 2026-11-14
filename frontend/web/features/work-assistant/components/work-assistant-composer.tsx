@@ -1,4 +1,4 @@
-import { ArrowUp, Square } from "lucide-react";
+import { ArrowUp, RotateCw, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -37,12 +37,20 @@ export default function WorkAssistantComposer({
     >
       {error && (
         <div className="space-y-2">
-          <p role="alert" className="text-xs text-destructive">{error}</p>
+          <p role="alert" className="text-xs text-destructive">
+            {error}
+          </p>
           {canRetry && (
-            <Button type="button" variant="outline" size="sm"
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               loading={retrying}
-              onClick={onRetry}>
-              Retry loading conversation
+              disabled={busy}
+              onClick={onRetry}
+            >
+              <RotateCw aria-hidden="true" />
+              Reload
             </Button>
           )}
         </div>

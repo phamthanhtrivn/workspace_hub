@@ -33,6 +33,7 @@ export function useSourceUpload(
             id,
             documentsApi,
           ));
+
           return uploadWithUniqueName(file.name, (name) =>
             documentsApi.uploadFile(
               name === file.name
@@ -60,5 +61,6 @@ export function useSourceUpload(
       active.current = false;
     }
   };
+
   return { uploadFiles, uploading: stage !== null, stage, error };
 }

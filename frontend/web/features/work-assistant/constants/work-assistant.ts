@@ -1,4 +1,27 @@
-import type { Audience, WorkScope } from "../types";
+import type { Audience, ConversationContext, WorkScope } from "../types";
+
+export function conversationContext(
+  projectId: string | undefined,
+  audience: Audience,
+): ConversationContext {
+  return {
+    contextType: projectId
+      ? "project_detail"
+      : audience === "projects" || audience === "calendar"
+        ? audience
+        : "dashboard",
+    ...(projectId ? { projectId } : {}),
+  };
+}
+
+export function conversationContextKey(
+  projectId: string | undefined,
+  audience: Audience,
+) {
+  const context = conversationContext(projectId, audience);
+
+  return `${context.contextType}:${projectId ?? ""}`;
+}
 
 export const WORK_SUGGESTIONS = [
   { label: "Plan my day", question: "What should I work on first today?" },
@@ -37,7 +60,9 @@ export interface ResolvedWorkContext {
 }
 
 export function resolveWorkContext(pathname: string): ResolvedWorkContext {
-  const projectId = /^\/projects\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname)?.[1];
+  const projectId = /^\/projects\/([0-9a-f-]{36})(?:\/|$)/i
+    .exec(pathname)?.[1]
+    ?.toLowerCase();
 
   if (projectId) {
     return {

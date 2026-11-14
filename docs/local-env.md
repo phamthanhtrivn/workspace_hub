@@ -52,6 +52,35 @@ as its other variables; merely editing `.env` does not load it into Java.
 Local S3 credentials, private asset references and bucket requirements are
 documented in [local S3](local-s3.md).
 
+AI model settings are independent per feature. `CONVERSATION_AI_MODEL` and
+`CONVERSATION_AI_MAX_TOKENS` apply only to chat mentions/attachments;
+`WORK_ASSISTANT_MODEL` and `WORK_ASSISTANT_MAX_TOKENS` apply to the work assistant;
+`MEETING_SUMMARY_MODEL` and `MEETING_SUMMARY_MAX_TOKENS` apply to meeting summaries.
+Models default to `LLM_MODEL`. The work assistant defaults to 1,800 output tokens
+(maximum 2,200); conversation and meeting token settings default to `LLM_MAX_TOKENS`,
+with the existing per-stage caps still applied.
+
+Rename `CONVERSATION_AI_QUOTA_WAIT_MS` to `LLM_QUOTA_WAIT_MS` (default 60,000,
+range 0–60,000). It bounds waiting for local minute-quota admission, without
+retrying a provider request. Notebook chat continues to fail immediately on a
+minute quota so its streaming request stays within the gateway timeout.
+Remove `MEETING_STT_CONCURRENCY`: the local speech pipeline is always serial.
+Existing private env files in this workspace have been updated for these names.
+Explicit Conversation AI model/token overrides were copied into the new feature
+settings where needed to preserve their previous effective values.
+
+Summary checkpoints from the old `synthesis:...` source-ID representation remain
+readable. RAG promotes existing SQLite routes to Qdrant when first read; new
+caches store only embedding vectors. No database reset or re-index is required.
+
+Before running the updated API and worker, apply migration
+`009_cleanup_outbox.sql` with the normal AI migration command (`npm run migrate`
+from `backend/ai-service/api` after building). Source/notebook deletion writes a
+cleanup outbox entry in the same transaction; the worker drains committed entries
+on startup and every 30 seconds. Failed cleanup remains available for retry.
+The migration also links chat requests to summary artifacts so cancellation can
+stop the corresponding background summary.
+
 ## Web Push provider hostnames
 
 `backend/notification-service/.env` must allow the exact hostname returned by the

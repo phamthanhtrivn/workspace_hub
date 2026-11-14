@@ -1,4 +1,4 @@
-import { AiDatabaseClient } from "../../infrastructure/database/ai-database.client";
+import { rows, transaction } from "../../infrastructure/database/database";
 import {
   ConflictException,
   Injectable,
@@ -7,30 +7,46 @@ import {
 import { randomUUID } from "node:crypto";
 import { TooManyRequestsException } from "../../common/errors/rate-limit.exception";
 import type { Actor } from "../../common/types";
-import type { StoredMessage, TaskReference } from "./work-assistant.types";
+import type {
+  ConversationContext,
+  StoredMessage,
+  TaskReference,
+} from "./work-assistant.types";
 import { conversationCursor, parseConversationCursor } from "./work-cursor";
+import { WORK_HISTORY_LIMIT } from "./work-history";
 export type WorkSession = {
   id: string;
   owner_id: string;
   project_id: string | null;
+  context_type: ConversationContext["contextType"];
   scope_key: string;
   updated_at: string;
 };
 @Injectable()
 export class WorkStore {
-  constructor(private readonly database: AiDatabaseClient) {}
-  async session(actor: Actor, projectId?: string, create = false) {
-    return this.database.transaction(async (client) => {
+  async session(actor: Actor, context: ConversationContext, create = false) {
+    const { projectId, contextType } = context;
+    const lookup =
+      "SELECT * FROM notebook_ai.work_assistant_sessions WHERE owner_id=$1 AND context_type=$2 AND " +
+      (projectId ? "project_id=$3::uuid" : "project_id IS NULL") +
+      " ORDER BY updated_at DESC,id DESC LIMIT 1";
+    const parameters = projectId
+      ? [actor.id, contextType, projectId]
+      : [actor.id, contextType];
+    if (!create) {
+      const [existing] = await rows<WorkSession>(lookup, parameters);
+      if (existing) return existing;
+    }
+
+    return transaction(async (client) => {
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
         [actor.id],
       );
       if (!create) {
         const { rows: existing } = await client.query<WorkSession>(
-          "SELECT * FROM notebook_ai.work_assistant_sessions WHERE owner_id=$1 AND " +
-            (projectId ? "project_id=$2::uuid" : "project_id IS NULL") +
-            " ORDER BY updated_at DESC,id DESC LIMIT 1",
-          projectId ? [actor.id, projectId] : [actor.id],
+          lookup,
+          parameters,
         );
         if (existing[0]) return existing[0];
       }
@@ -38,34 +54,39 @@ export class WorkStore {
       const {
         rows: [session],
       } = await client.query<WorkSession>(
-        "INSERT INTO notebook_ai.work_assistant_sessions(id,owner_id,project_id,scope_key) VALUES($1,$2,$3,$4) RETURNING *",
-        [sessionId, actor.id, projectId ?? null, sessionId],
+        "INSERT INTO notebook_ai.work_assistant_sessions(id,owner_id,project_id,scope_key,context_type) VALUES($1,$2,$3,$4,$5) RETURNING *",
+        [sessionId, actor.id, projectId ?? null, sessionId, contextType],
       );
+
       return session;
     });
   }
-  async list(actor: Actor, projectId?: string, before?: string) {
+  async list(actor: Actor, context: ConversationContext, before?: string) {
+    const { projectId, contextType } = context;
     const boundary = before ? parseConversationCursor(before) : undefined;
     if (boundary) {
-      const [cursor] = await this.database.rows<{ updated_at: string }>(
-        `SELECT to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') updated_at FROM notebook_ai.work_assistant_sessions WHERE id=$1 AND owner_id=$2 AND project_id IS NOT DISTINCT FROM $3::uuid`,
-        [boundary.id, actor.id, projectId ?? null],
+      const [cursor] = await rows<{ updated_at: string }>(
+        `SELECT to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') updated_at FROM notebook_ai.work_assistant_sessions WHERE id=$1 AND owner_id=$2 AND project_id IS NOT DISTINCT FROM $3::uuid AND context_type=$4`,
+        [boundary.id, actor.id, projectId ?? null, contextType],
       );
       if (!cursor) throw new NotFoundException("Conversation cursor not found");
       boundary.updatedAt ??= cursor.updated_at;
     }
-    const parameters = projectId ? [actor.id, projectId] : [actor.id];
+    const parameters = projectId
+      ? [actor.id, contextType, projectId]
+      : [actor.id, contextType];
     const cursorParameter = parameters.length + 1;
     if (boundary) parameters.push(boundary.updatedAt!, boundary.id);
-    const sessions = await this.database.rows<{
+    const sessions = await rows<{
       id: string;
       project_id: string | null;
+      context_type: ConversationContext["contextType"];
       updated_at: string;
       content: string | null;
       project_ids: string[];
     }>(
-      `SELECT s.id,s.project_id,to_char(s.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') updated_at,m.content,coalesce(m.project_ids,'[]'::jsonb) project_ids FROM (SELECT id,project_id,updated_at FROM notebook_ai.work_assistant_sessions WHERE owner_id=$1 AND ` +
-        (projectId ? "project_id=$2::uuid " : "project_id IS NULL ") +
+      `SELECT s.id,s.project_id,s.context_type,to_char(s.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') updated_at,m.content,coalesce(m.project_ids,'[]'::jsonb) project_ids FROM (SELECT id,project_id,context_type,updated_at FROM notebook_ai.work_assistant_sessions WHERE owner_id=$1 AND context_type=$2 AND ` +
+        (projectId ? "project_id=$3::uuid " : "project_id IS NULL ") +
         (boundary
           ? `AND (updated_at,id)<($${cursorParameter}::timestamptz,$${cursorParameter + 1}::uuid) `
           : "") +
@@ -73,6 +94,7 @@ export class WorkStore {
       parameters,
     );
     const page = sessions.slice(0, 30);
+
     return {
       sessions: page,
       nextCursor:
@@ -82,22 +104,23 @@ export class WorkStore {
     };
   }
   async owned(actor: Actor, id: string) {
-    const [session] = await this.database.rows<WorkSession>(
+    const [session] = await rows<WorkSession>(
       "SELECT * FROM notebook_ai.work_assistant_sessions WHERE id=$1 AND owner_id=$2",
       [id, actor.id],
     );
     if (!session) throw new NotFoundException();
+
     return session;
   }
   async history(session: WorkSession, before?: string) {
     if (before) {
-      const [cursor] = await this.database.rows(
+      const [cursor] = await rows(
         "SELECT id FROM notebook_ai.work_assistant_messages WHERE id=$1 AND session_id=$2",
         [before, session.id],
       );
       if (!cursor) throw new NotFoundException("History cursor not found");
     }
-    const messages = await this.database.rows<StoredMessage>(
+    const messages = await rows<StoredMessage>(
       "SELECT * FROM notebook_ai.work_assistant_messages WHERE session_id=$1 " +
         (before
           ? "AND (created_at,id)<(SELECT created_at,id FROM notebook_ai.work_assistant_messages WHERE id=$2 AND session_id=$1) "
@@ -106,24 +129,32 @@ export class WorkStore {
       before ? [session.id, before] : [session.id],
     );
     const page = messages.slice(0, 30).reverse();
+
     return {
       messages: page,
       nextCursor: messages.length > 30 ? page[0]?.id : null,
     };
   }
   async recent(session: WorkSession) {
-    const messages = await this.database.rows<StoredMessage>(
-      "SELECT * FROM notebook_ai.work_assistant_messages WHERE session_id=$1 ORDER BY created_at DESC,id DESC LIMIT 4",
+    const messages = await rows<StoredMessage>(
+      `SELECT * FROM notebook_ai.work_assistant_messages WHERE session_id=$1 ORDER BY created_at DESC,id DESC LIMIT ${WORK_HISTORY_LIMIT}`,
       [session.id],
     );
+
     return messages.reverse();
   }
-  async begin(actor: Actor, session: WorkSession, requestId: string) {
-    await this.database.transaction(async (client) => {
+  async begin(
+    actor: Actor,
+    session: WorkSession,
+    requestId: string,
+    signal?: AbortSignal,
+  ) {
+    await transaction(async (client) => {
       await client.query(
         "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
         [actor.id],
       );
+      signal?.throwIfAborted();
       const { rows: existing } = await client.query(
         "SELECT id FROM notebook_ai.work_assistant_requests WHERE id=$1",
         [requestId],
@@ -148,6 +179,7 @@ export class WorkStore {
         throw new TooManyRequestsException(
           "Bạn hỏi quá nhanh. Vui lòng thử lại sau một phút.",
         );
+      signal?.throwIfAborted();
       await client.query(
         "INSERT INTO notebook_ai.work_assistant_requests(id,session_id,owner_id) VALUES($1,$2,$3)",
         [requestId, session.id, actor.id],
@@ -155,21 +187,34 @@ export class WorkStore {
     });
   }
   async canceled(actor: Actor, id: string) {
-    const [row] = await this.database.rows<{
+    const [row] = await rows<{
       cancel_requested: boolean;
       status: string;
     }>(
       "SELECT cancel_requested,status FROM notebook_ai.work_assistant_requests WHERE id=$1 AND owner_id=$2",
       [id, actor.id],
     );
+
     return !row || row.cancel_requested || row.status !== "RUNNING";
   }
-  async cancel(actor: Actor, id: string) {
-    const result = await this.database.rows(
-      "UPDATE notebook_ai.work_assistant_requests SET cancel_requested=true WHERE id=$1 AND owner_id=$2 RETURNING id",
-      [id, actor.id],
-    );
-    if (!result.length) throw new NotFoundException();
+  async cancel(actor: Actor, id: string, sessionId: string) {
+    await transaction(async (client) => {
+      await client.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1,8087006))",
+        [actor.id],
+      );
+      const { rows: result } = await client.query(
+        `INSERT INTO notebook_ai.work_assistant_requests(id,session_id,owner_id,status,cancel_requested)
+         SELECT $1,id,$2,'CANCELED',true FROM notebook_ai.work_assistant_sessions
+         WHERE id=$3 AND owner_id=$2
+         ON CONFLICT(id) DO UPDATE SET cancel_requested=true,
+           status=CASE WHEN work_assistant_requests.status='RUNNING' THEN 'CANCELED' ELSE work_assistant_requests.status END,
+           updated_at=now()
+         WHERE work_assistant_requests.owner_id=$2 AND work_assistant_requests.session_id=$3 RETURNING id`,
+        [id, actor.id, sessionId],
+      );
+      if (!result.length) throw new NotFoundException();
+    });
   }
   async finish(
     actor: Actor,
@@ -181,10 +226,10 @@ export class WorkStore {
     projectIds: string[],
     metadata: StoredMessage["context"],
   ) {
-    return this.database.transaction(async (client) => {
+    return transaction(async (client) => {
       const { rows: changed } = await client.query(
-        "UPDATE notebook_ai.work_assistant_requests SET status='COMPLETED',updated_at=now() WHERE id=$1 AND owner_id=$2 AND status='RUNNING' AND NOT cancel_requested RETURNING id",
-        [requestId, actor.id],
+        "UPDATE notebook_ai.work_assistant_requests SET status='COMPLETED',updated_at=now() WHERE id=$1 AND owner_id=$2 AND session_id=$3 AND status='RUNNING' AND NOT cancel_requested RETURNING id",
+        [requestId, actor.id, session.id],
       );
       if (!changed.length) throw new ConflictException("Yêu cầu đã bị hủy.");
       const references = JSON.stringify(sources),
@@ -211,11 +256,12 @@ export class WorkStore {
         "UPDATE notebook_ai.work_assistant_sessions SET updated_at=clock_timestamp() WHERE id=$1 AND owner_id=$2",
         [session.id, actor.id],
       );
+
       return message;
     });
   }
   async fail(actor: Actor, id: string, canceled: boolean) {
-    await this.database.rows(
+    await rows(
       "UPDATE notebook_ai.work_assistant_requests SET status=$3,updated_at=now() WHERE id=$1 AND owner_id=$2 AND status='RUNNING' RETURNING id",
       [id, actor.id, canceled ? "CANCELED" : "FAILED"],
     );

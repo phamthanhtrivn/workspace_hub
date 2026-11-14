@@ -4,6 +4,7 @@ import {
 } from "@nestjs/common";
 import { config } from "../../config/env.config";
 import type { Evidence } from "../../common/types";
+import { internalPost, serviceUrl } from "./internal-http";
 export async function rag<T>(
   path: string,
   body: unknown,
@@ -11,15 +12,10 @@ export async function rag<T>(
 ): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${config.RAG_WORKER_URL}${path}`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-internal-service-key": config.RAG_SERVICE_KEY,
-      },
-      body: JSON.stringify(body),
+    response = await internalPost(serviceUrl(config.RAG_WORKER_URL, path), {
+      key: config.RAG_SERVICE_KEY,
+      body,
       signal,
-      redirect: "error",
     });
   } catch {
     throw new ServiceUnavailableException(
@@ -35,7 +31,7 @@ export async function rag<T>(
       PDF_OCR_REQUIRED:
         "PDF có trang scan chưa có lớp văn bản. Hãy OCR file trước khi tải lên.",
       SOURCE_TOKEN_LIMIT:
-        "Nội dung vượt 40.000 token/file. Hãy tách tài liệu thành file nhỏ hơn.",
+        "This file exceeds 100,000 tokens. Split it into smaller files and upload them again.",
       DOCX_EXPANDED_LIMIT:
         "Nội dung DOCX sau giải nén vượt 100 MiB. Hãy giảm ảnh hoặc tách file.",
       VISUAL_PAGE_LIMIT:
@@ -64,11 +60,17 @@ export async function rag<T>(
     try {
       const body = (await response.json()) as { detail?: { code?: string } };
       if (body.detail?.code === "RAG_BUSY") code = "RAG_BUSY";
+      if (body.detail?.code === "RAG_FALLBACK_PENDING")
+        code = "RAG_FALLBACK_PENDING";
       if (body.detail?.code === "RAG_MEMORY_PRESSURE")
         code = "RAG_MEMORY_PRESSURE";
     } catch {
       /* Never surface arbitrary upstream bodies. */
     }
+    if (code === "RAG_FALLBACK_PENDING")
+      throw new ServiceUnavailableException(
+        "RAG_FALLBACK_PENDING: Đang chuẩn bị chỉ mục local trong nền. Vui lòng thử lại sau ít giây.",
+      );
     if (code === "RAG_BUSY")
       throw new ServiceUnavailableException(
         "RAG đang xử lý file khác. Chưa thêm nguồn AI; vui lòng thử lại sau ít giây.",
@@ -77,6 +79,7 @@ export async function rag<T>(
       `${code}: RAG worker chưa xử lý được tài liệu (HTTP ${response.status}). Kiểm tra model, Qdrant và bộ nhớ.`,
     );
   }
+
   return (await response.json()) as T;
 }
 export function retrieve(

@@ -4,10 +4,13 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import { resolveChatAttachment } from "../../infrastructure/integrations/document.client";
 import { config } from "../../config/env.config";
-import { admitConversationModel } from "./model-admission";
+import { completedModelText } from "../../common/model-response";
+import { waitForModelAdmission } from "../../common/model-admission";
+import { singleFlight } from "../../common/single-flight";
+import { admitModel } from "../../common/model-quota";
 import { measureConversationStage } from "./telemetry";
 import { rag } from "../../infrastructure/integrations/rag.client";
-import { downloadSource } from "../sources/upload-validation";
+import { downloadSource } from "../sources/source-download";
 import { CONVERSATION_AI_MESSAGES } from "./conversation-ai.messages";
 import {
   ATTACHMENT_SUMMARY_INSTRUCTIONS,
@@ -75,8 +78,10 @@ export function attachmentExcerpts(
             .replace(/\uFFFD$/, "");
     truncated ||= text !== p.text;
     remaining -= Buffer.byteLength(text);
+
     return { page: p.page, text };
   });
+
   return { excerpts, truncated };
 }
 
@@ -106,7 +111,7 @@ export async function summarizeAttachment(
       sizeBytes: selected.sizeBytes,
       downloadUrl: original.downloadUrl,
     };
-    checkDocument = async () => {
+    checkDocument = singleFlight(async () => {
       const current = documentManifestSchema.parse(
         await resolveChatAttachment(selected.document, false, signal),
       );
@@ -117,7 +122,7 @@ export async function summarizeAttachment(
         current.sizeBytes !== original.sizeBytes
       )
         throw new ForbiddenException("Document version changed");
-    };
+    });
     onSourceGuard?.(checkDocument);
   } else {
     manifest = selected;
@@ -159,9 +164,12 @@ export async function summarizeAttachment(
       }),
     ),
   ];
-  await admitConversationModel(
-    Math.ceil(Buffer.byteLength(JSON.stringify(messages)) / 3) + maxTokens,
-    modelName,
+  await waitForModelAdmission(
+    () =>
+      admitModel(
+        Math.ceil(Buffer.byteLength(JSON.stringify(messages)) / 3) + maxTokens,
+        modelName,
+      ),
     signal,
   );
   signal.throwIfAborted();
@@ -171,15 +179,13 @@ export async function summarizeAttachment(
   );
   signal.throwIfAborted();
   await authorize();
-  if (
-    answer.response_metadata.finish_reason === "length" ||
-    typeof answer.content !== "string" ||
-    !answer.content.trim() ||
-    answer.content.length > 18000
-  )
-    throw new Error("Invalid attachment summary");
-  return presentAttachmentSummary(answer.content, manifest.name, {
-    truncated,
-    hasImages: extracted.images.length > 0,
-  });
+
+  return presentAttachmentSummary(
+    completedModelText(answer, 18000),
+    manifest.name,
+    {
+      truncated,
+      hasImages: extracted.images.length > 0,
+    },
+  );
 }

@@ -3,8 +3,13 @@ import { summarizeAttachment } from "../modules/conversation-ai/attachment-summa
 import { config } from "../config/env.config";
 import { conversationAnswer } from "../modules/conversation-ai/conversation-agent";
 import { setTimeout as pause } from "node:timers/promises";
-import { pollUntilAborted } from "../common/abort-polling";
+import { createAbortGuard } from "../common/abort-guard";
+import { singleFlight } from "../common/single-flight";
 import { CONVERSATION_AI_MESSAGES } from "../modules/conversation-ai/conversation-ai.messages";
+import {
+  internalPost,
+  serviceUrl,
+} from "../infrastructure/integrations/internal-http";
 
 type SavedAnswer = { token: string; content: string; failed: boolean };
 type ConversationCheckpoint = {
@@ -24,25 +29,18 @@ async function communication<T>(
   body: object = {},
   signal?: AbortSignal,
 ): Promise<T> {
-  const res = await fetch(
-    `${config.COMMUNICATION_SERVICE_URL}/internal/conversation-ai/${id}/${action}`,
-    {
-      method: "POST",
-      redirect: "error",
-      signal: signal
-        ? AbortSignal.any([signal, AbortSignal.timeout(15000)])
-        : AbortSignal.timeout(15000),
-      headers: {
-        "content-type": "application/json",
-        "x-internal-service-key": config.AI_TO_COMMUNICATION_KEY,
-      },
-      body: JSON.stringify(body),
-    },
+  const res = await internalPost(
+    serviceUrl(
+      config.COMMUNICATION_SERVICE_URL,
+      `/internal/conversation-ai/${id}/${action}`,
+    ),
+    { key: config.AI_TO_COMMUNICATION_KEY, body, signal, timeoutMs: 15000 },
   );
   if (!res.ok) {
     await res.body?.cancel();
     throw new CommunicationError(res.status);
   }
+
   return ((await res.json()) as { data: T }).data;
 }
 export async function processConversation(
@@ -67,15 +65,13 @@ export async function processConversation(
     } | null>(id, "claim");
     if (!claim) return;
     await checkpoint?.saveClaim?.(claim.token);
-    const controller = new AbortController();
-    const signal = AbortSignal.any([
-      controller.signal,
-      AbortSignal.timeout(180000),
-    ]);
-    const authorize = () =>
-      communication(id, "validate", { token: claim.token }, signal);
+    const guard = createAbortGuard(180000);
+    const { signal } = guard;
+    const authorize = singleFlight(() =>
+      communication(id, "validate", { token: claim.token }, signal),
+    );
     let authorizeSource: (() => Promise<void>) | undefined;
-    const stopPolling = pollUntilAborted(controller, 5000, async () => {
+    guard.poll(5000, async () => {
       await authorize();
       await authorizeSource?.();
     });
@@ -123,8 +119,7 @@ export async function processConversation(
         failed: true,
       };
     } finally {
-      stopPolling();
-      controller.abort();
+      guard.stop();
     }
     // Save before delivery. A BullMQ retry can resend this result without another model call.
     if (checkpoint) await checkpoint.save(answer);
@@ -132,6 +127,7 @@ export async function processConversation(
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       await communication(id, "complete", answer);
+
       return;
     } catch (error) {
       if (

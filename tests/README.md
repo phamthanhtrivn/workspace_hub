@@ -61,7 +61,7 @@ Cross-service contract tests using mocks and temporary loopback servers:
 node tests/run-tests.mjs --suite system
 ```
 
-These require the normal dependencies of the participating backend services and web. Docker integration remains explicitly opted in using its existing `WORKSPACEHUB_SECURITY_INTEGRATION`, `WORKSPACEHUB_MEETING_INTEGRATION` or `WORKSPACEHUB_VOICE_RUNTIME` flag. See [system tests](system/README.md) and [meeting audit](../docs/testing/meeting-business-audit.md). The voice runtime check uses existing containers with synthetic provider doubles; the security and meeting harnesses create isolated infrastructure.
+These require the normal dependencies of the participating backend services and web. Docker integration remains explicitly opted in using its existing `WORKSPACEHUB_SECURITY_INTEGRATION` or `WORKSPACEHUB_MEETING_INTEGRATION` flag. See [system tests](system/README.md) and [meeting audit](../docs/testing/meeting-business-audit.md). The security and meeting harnesses create isolated infrastructure; their meeting suite does not run the AI summary pipeline.
 
 No Python worker test files were removed or invented in this cleanup. The checked-in fast AI tests cover the Node API/pipeline with provider doubles; they do not certify real OCR, Whisper, model-provider quality, SMTP or LiveKit recording.
 

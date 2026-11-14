@@ -6,7 +6,7 @@
 
 /* Runtime source of truth. See docs/design-tokens.md for roles and usage. */
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-sans);
   --text-page-title: 1.375rem;
   --text-page-title--line-height: 1.25;

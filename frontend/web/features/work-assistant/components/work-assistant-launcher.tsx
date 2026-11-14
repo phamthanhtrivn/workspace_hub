@@ -5,7 +5,10 @@ import { useState } from "react";
 import { Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/store/store";
-import { resolveWorkContext } from "../constants/work-assistant";
+import {
+  conversationContextKey,
+  resolveWorkContext,
+} from "../constants/work-assistant";
 const Panel = dynamic(() => import("./work-assistant-panel"), {
   ssr: false,
   loading: () => (
@@ -31,7 +34,11 @@ export default function WorkAssistantLauncher() {
     <>
       {open && (
         <Panel
-          key={userId}
+          key={
+            userId +
+            ":" +
+            conversationContextKey(context.projectId, context.audience)
+          }
           userId={userId}
           projectId={context.projectId}
           audience={context.audience}

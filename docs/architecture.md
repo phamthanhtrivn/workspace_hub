@@ -58,4 +58,4 @@ Nguồn notebook trỏ tới phiên bản Document được cấp quyền. Worke
 
 Provider LLM/embedding và các tính năng tùy chọn được cấu hình bằng env. Readiness không chứng minh chất lượng câu trả lời; hoạt động với model thật, media thật và dữ liệu thật cần được xác minh riêng.
 
-Xem [chạy local](local-development.md), [Notebook AI](../deploy/ai/README.md), [migration](migrations.md) và [triển khai](deployment.md).
+Xem [chạy local](local-development.md), [migration](migrations.md) và [triển khai](deployment.md).

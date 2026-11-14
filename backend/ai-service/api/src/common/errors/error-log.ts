@@ -5,6 +5,9 @@ const SAFE_CODES = new Set([
   "ENOTFOUND",
   "EAI_AGAIN",
   "EPIPE",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_SOCKET",
   "NR_CLOSED",
   "23505",
   "40001",
@@ -23,7 +26,10 @@ export function logError(
   error: unknown,
   context: Record<string, string | number | boolean | undefined> = {},
 ) {
-  const code = (error as { code?: unknown } | null)?.code;
+  const detail = error as { code?: unknown; cause?: { code?: unknown } } | null;
+  const code = [detail?.code, detail?.cause?.code].find(
+    (candidate) => typeof candidate === "string" && SAFE_CODES.has(candidate),
+  );
   // Messages, stacks and upstream bodies can contain prompts or credentials.
   console.error(
     JSON.stringify({

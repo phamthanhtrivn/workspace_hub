@@ -13,6 +13,7 @@ export function createShutdownHandler(
   timeoutMs: number,
 ) {
   let shutdown: Promise<void> | undefined;
+
   return () => {
     if (shutdown) return shutdown;
     const deadline = setTimeout(() => {
@@ -30,6 +31,7 @@ export function createShutdownHandler(
         process.exitCode = 1;
       })
       .finally(() => clearTimeout(deadline));
+
     return shutdown;
   };
 }

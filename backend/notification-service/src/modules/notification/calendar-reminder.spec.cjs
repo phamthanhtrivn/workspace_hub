@@ -69,4 +69,3 @@ test('recipient failure does not prevent processing remaining recipients', async
   await assert.rejects(controller.handle(input));
   assert.equal(seen.length, 2);
 });
-

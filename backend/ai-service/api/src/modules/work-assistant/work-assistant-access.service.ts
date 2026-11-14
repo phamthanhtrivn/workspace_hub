@@ -1,10 +1,10 @@
-import { Injectable, ServiceUnavailableException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import type { Actor } from "../../common/types";
-import { config } from "../../config/env.config";
 import { WorkContextService } from "./work-context";
 import { WorkStore, type WorkSession } from "./work-store";
+import { contextAudience } from "./work-assistant.schemas";
 import type {
-  Audience,
+  ConversationContext,
   StoredMessage,
   WorkScope,
 } from "./work-assistant.types";
@@ -15,26 +15,18 @@ export class WorkAssistantAccessService {
     private readonly context: WorkContextService,
     private readonly store: WorkStore,
   ) {}
-  enabled() {
-    if (
-      config.WORK_ASSISTANT_ENABLED !== "true" ||
-      config.AI_TO_PROJECT_KEY.length < 32 ||
-      config.AI_TO_CALENDAR_KEY.length < 32
-    )
-      throw new ServiceUnavailableException(
-        "Trợ lý công việc chưa được bật hoặc cấu hình.",
-      );
+  scope(context: ConversationContext): WorkScope {
+    return {
+      ...(context.projectId ? { projectId: context.projectId } : {}),
+      audience: contextAudience(context),
+    };
   }
 
-  scope(session: WorkSession, audience: Audience = "mine"): WorkScope {
-    return {
-      ...(session.project_id ? { projectId: session.project_id } : {}),
-      audience: session.project_id
-        ? "mine"
-        : audience === "projects" || audience === "calendar"
-          ? audience
-          : "mine",
-    };
+  sessionScope(session: WorkSession): WorkScope {
+    return this.scope({
+      contextType: session.context_type,
+      projectId: session.project_id ?? undefined,
+    });
   }
 
   async visible(actor: Actor, messages: StoredMessage[], signal?: AbortSignal) {
@@ -54,9 +46,14 @@ export class WorkAssistantAccessService {
     );
   }
 
-  async owned(actor: Actor, id: string) {
+  async owned(actor: Actor, id: string, context: ConversationContext) {
     const session = await this.store.owned(actor, id);
-    await this.context.requireScope(actor, this.scope(session));
+    if (
+      session.context_type !== context.contextType ||
+      session.project_id !== (context.projectId ?? null)
+    )
+      throw new NotFoundException("Conversation not found in this context");
+    await this.context.requireScope(actor, this.sessionScope(session));
 
     return session;
   }
