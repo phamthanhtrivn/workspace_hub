@@ -8,12 +8,17 @@ import { ClientKafka } from '@nestjs/microservices';
 import { Cron } from '@nestjs/schedule';
 import { Prisma, ReminderDeliveryStatus } from '@prisma/client';
 import { lastValueFrom } from 'rxjs';
+import { createHash } from 'node:crypto';
 import { KAFKA_CONFIG } from '../../infrastructure/kafka/kafka.constants';
 import { CALENDAR_DEFAULTS } from '../../common/constants/calendar.constants';
 import { PrismaService } from '../../prisma/prisma.service';
 
 type ReminderWithEvent = Prisma.ReminderGetPayload<{
-  include: { event: { include: { attendees: true } } };
+  include: {
+    event: {
+      include: { attendees: true; calendar: true; recurrenceSeries: true };
+    };
+  };
 }>;
 
 @Injectable()
@@ -51,7 +56,7 @@ export class ReminderDispatchService implements OnApplicationBootstrap {
       },
       include: {
         event: {
-          include: { attendees: true },
+          include: { attendees: true, calendar: true, recurrenceSeries: true },
         },
       },
       orderBy: { scheduledAt: 'asc' },
@@ -88,6 +93,11 @@ export class ReminderDispatchService implements OnApplicationBootstrap {
         id: reminder.id,
         deliveryStatus: reminder.deliveryStatus,
         attemptCount: reminder.attemptCount,
+        scheduledAt: reminder.scheduledAt,
+        event: {
+          startAt: reminder.event.startAt,
+          status: { not: 'CANCELLED' },
+        },
       },
       data: {
         deliveryStatus: ReminderDeliveryStatus.PROCESSING,
@@ -96,6 +106,13 @@ export class ReminderDispatchService implements OnApplicationBootstrap {
       },
     });
     if (claimed.count === 0) return;
+    const claimIdentity: Prisma.ReminderWhereInput = {
+      id: reminder.id,
+      deliveryStatus: ReminderDeliveryStatus.PROCESSING,
+      attemptCount: reminder.attemptCount + 1,
+      scheduledAt: reminder.scheduledAt,
+      event: { startAt: reminder.event.startAt },
+    };
 
     try {
       const recipientIds = [
@@ -113,12 +130,31 @@ export class ReminderDispatchService implements OnApplicationBootstrap {
         this.kafka.emit(KAFKA_CONFIG.REMINDER_TOPIC, {
           eventType: 'CALENDAR_REMINDER_DUE',
           deliveryId: reminder.id,
+          groupKey: createHash('sha256')
+            .update(
+              JSON.stringify([
+                reminder.event.id,
+                reminder.event.startAt.toISOString(),
+                reminder.scheduledAt.toISOString(),
+              ]),
+            )
+            .digest('hex'),
+          scheduledAt: reminder.scheduledAt.toISOString(),
+          minutesBefore: reminder.minutesBefore,
           method: reminder.method,
           event: {
             id: reminder.event.id,
             title: reminder.event.title,
             startAt: reminder.event.startAt.toISOString(),
             location: reminder.event.location,
+            description: reminder.event.description,
+            endAt: reminder.event.endAt.toISOString(),
+            allDay: reminder.event.allDay,
+            sourceType: reminder.event.sourceType,
+            calendarName: reminder.event.calendar.name,
+            timeZone:
+              reminder.event.recurrenceSeries?.timeZone ??
+              reminder.event.calendar.timeZone,
           },
           recipients: recipientIds.map((userId) => ({
             userId,
@@ -128,8 +164,8 @@ export class ReminderDispatchService implements OnApplicationBootstrap {
         }),
       );
 
-      await this.prisma.reminder.update({
-        where: { id: reminder.id },
+      await this.prisma.reminder.updateMany({
+        where: claimIdentity,
         data: {
           deliveryStatus: ReminderDeliveryStatus.DISPATCHED,
           dispatchedAt: new Date(),
@@ -144,8 +180,8 @@ export class ReminderDispatchService implements OnApplicationBootstrap {
         60,
         2 ** Math.min(reminder.attemptCount + 1, 6),
       );
-      await this.prisma.reminder.update({
-        where: { id: reminder.id },
+      await this.prisma.reminder.updateMany({
+        where: claimIdentity,
         data: {
           deliveryStatus: reachedAttemptLimit
             ? ReminderDeliveryStatus.DEAD_LETTER

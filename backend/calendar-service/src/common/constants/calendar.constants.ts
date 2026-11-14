@@ -37,6 +37,7 @@ export const CALENDAR_ERROR_MESSAGES = {
   TASK_CONFERENCE_UNSUPPORTED: 'Tasks cannot have video meetings',
   TOO_MANY_ATTENDEES: 'Too many attendees',
   TOO_MANY_REMINDERS: 'Too many reminders',
+  DUPLICATE_REMINDER: 'A reminder with this method and time already exists',
   INVALID_QUERY_RANGE:
     'Both startAt and endAt are required and the range must not exceed 366 days',
   INVALID_RECURRENCE_RULE: 'Invalid recurrence rule',

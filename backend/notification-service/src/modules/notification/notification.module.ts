@@ -12,6 +12,8 @@ import { NotificationQueryService } from "./notification-query.service";
 import { NotificationMutationService } from "./notification-mutation.service";
 import { NotificationSubscriptionService } from "./notification-subscription.service";
 import { NotificationDeliveryService } from "./notification-delivery.service";
+import { CalendarReminderDeliveryService } from "./calendar-reminder-delivery.service";
+import { CalendarReminderEmailService } from "./calendar-reminder-email.service";
 
 @Module({
   imports: [],
@@ -27,6 +29,8 @@ import { NotificationDeliveryService } from "./notification-delivery.service";
     NotificationMutationService,
     NotificationSubscriptionService,
     NotificationDeliveryService,
+    CalendarReminderDeliveryService,
+    CalendarReminderEmailService,
     NotificationGateway,
     EmailService,
     PushService,

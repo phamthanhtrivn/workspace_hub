@@ -170,6 +170,9 @@ export function useNotificationSocket() {
 
     const handleUpdatedNotification = (notification: AppNotification) => {
       dispatch(updateNotificationSuccess(notification));
+      window.dispatchEvent(
+        new CustomEvent(NOTIFICATION_RECEIVED_EVENT, { detail: notification }),
+      );
       if (MEETING_NOTIFICATION_TYPES.has(notification.type)) {
         queryClient.invalidateQueries({
           queryKey: meetingKeys.upcomingRoot,

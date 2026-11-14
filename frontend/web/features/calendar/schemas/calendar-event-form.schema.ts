@@ -1,5 +1,6 @@
 import { getDateRangeErrors } from "@/lib/date-range";
 import { z } from "zod";
+import { isDuplicateReminder } from "../utils/calendar-reminder-policy";
 import { CALENDAR_FORM_COPY as copy } from "../constants/calendar-form-copy";
 import {
   CALENDAR_MAX_REMINDERS,
@@ -42,6 +43,11 @@ export const createCalendarEventFormSchema = (mode: "create" | "edit") => z
     sourceType: z.nativeEnum(EventSourceType).optional(),
   })
   .superRefine((values, context) => {
+    values.reminders.forEach((reminder, index) => {
+      if (isDuplicateReminder(values.reminders, reminder, index)) context.addIssue({
+        code: "custom", message: copy.reminderDuplicate, path: ["reminders", index, "minutesBefore"],
+      });
+    });
     const errors = getDateRangeErrors({
       start: values.startAt, end: values.endAt, mode,
       requireStart: true, requireEnd: true, minDurationMs: CALENDAR_MIN_EVENT_DURATION_MS,

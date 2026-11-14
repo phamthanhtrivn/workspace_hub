@@ -174,6 +174,8 @@ export function useCalendarEventForm({
     errors: FieldErrors<CalendarEventEditorValues>,
   ) => {
     const message =
+      errors.reminders?.find?.((reminder) => reminder?.minutesBefore?.message)
+        ?.minutesBefore?.message ||
       errors.endAt?.message ||
       errors.startAt?.message ||
       errors.title?.message ||

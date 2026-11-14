@@ -97,6 +97,7 @@ export function getNotificationCategoryWhere(
 }
 
 export interface PushNotificationPayload {
+  tag?: string;
   title: string;
   content: string;
   link?: string;

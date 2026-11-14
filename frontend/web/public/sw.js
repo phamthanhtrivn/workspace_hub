@@ -17,6 +17,7 @@ self.addEventListener("push", function (event) {
         link: data.link || "/chat",
       },
       tag:
+        data.tag ||
         data.metadata?.invitationId ||
         data.metadata?.spaceId ||
         "workspace-hub-space-notification",

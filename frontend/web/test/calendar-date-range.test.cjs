@@ -287,3 +287,96 @@ test('allowing past task dates does not permit reversed, invalid or short ranges
   }
   assert.deepEqual(getDateRangeErrors({ ...base, allowPastStart: true, start: '2030-01-01T23:55', end: '2030-01-02T00:10' }), {});
 });
+
+test('reminder policy compares normalized minutes, permits cross-channel offsets, and Add avoids duplicates', () => {
+  const { isDuplicateReminder, nextAvailableReminder } = loadCalendarModule('features/calendar/utils/calendar-reminder-policy.ts');
+  const { toReminderMinutes } = loadCalendarModule('features/calendar/utils/calendar-reminder.utils.ts');
+  const reminders = [{ method: 'ALERT', minutesBefore: 60 }];
+  assert.equal(isDuplicateReminder(reminders, { method: 'ALERT', minutesBefore: toReminderMinutes('1', 'hours') }), true);
+  assert.equal(isDuplicateReminder(reminders, { method: 'PUSH', minutesBefore: 60 }), false);
+  assert.equal(isDuplicateReminder(reminders, reminders[0], 0), false);
+  for (let count = 0; count < 5; count++) {
+    const next = nextAvailableReminder(reminders);
+    assert.equal(isDuplicateReminder(reminders, next), false);
+    reminders.push(next);
+  }
+});
+
+test('form schema rejects equivalent reminder duplicates at the row while preserving ALERT/PUSH', () => {
+  const { calendarEventFormSchema } = loadCalendarModule('features/calendar/schemas/calendar-event-form.schema.ts');
+  const { createCalendarEventFormDefaults } = loadCalendarModule('features/calendar/utils/calendar-event-form.utils.ts');
+  const values = createCalendarEventFormDefaults({ calendarId: 'calendar', draft: { startAt: new Date('2030-01-01T09:00:00'), endAt: new Date('2030-01-01T10:00:00') } }).values;
+  values.title = 'Reminder test';
+  values.reminders = [{ method: 'ALERT', minutesBefore: 60 }, { method: 'ALERT', minutesBefore: 60 }];
+  const duplicate = calendarEventFormSchema.safeParse(values);
+  assert.equal(duplicate.success, false);
+  assert.ok(duplicate.error.issues.some(issue => issue.path.join('.') === 'reminders.1.minutesBefore'));
+  values.reminders[1].method = 'PUSH';
+  assert.equal(calendarEventFormSchema.safeParse(values).success, true);
+});
+
+test('only live PUSH signals alert once, including an ALERT-to-PUSH upgrade and background consumption', () => {
+  const { consumeCalendarPush } = loadCalendarModule('features/notification/utils/calendar-reminder-alert.ts');
+  const notification = { id: 'notification', recipientId: 'user', type: 'CALENDAR_REMINDER', metadata: { groupKey: 'group', method: 'ALERT' } };
+  const seen = new Set();
+  assert.equal(consumeCalendarPush(notification, seen, true, true), false);
+  notification.metadata = { ...notification.metadata, method: 'PUSH', channels: ['ALERT', 'PUSH'] };
+  assert.equal(consumeCalendarPush(notification, seen, true, true), true);
+  assert.equal(consumeCalendarPush(notification, seen, true, true), false);
+  notification.metadata.groupKey = 'background';
+  assert.equal(consumeCalendarPush(notification, seen, false, false), false);
+  assert.equal(consumeCalendarPush(notification, seen, true, true), false);
+  notification.metadata.groupKey = 'other-window';
+  assert.equal(consumeCalendarPush(notification, seen, true, false), false);
+  assert.equal(consumeCalendarPush({ ...notification, type: 'PROJECT_TASK_UPDATED' }, new Set(), true, true), false);
+});
+
+test('Calendar PUSH manager keeps muted toasts, plays sound once when enabled, and opens the exact event', () => {
+  const oldWindow = global.window, oldDocument = global.document;
+  const { NOTIFICATION_RECEIVED_EVENT } = loadCalendarModule('features/notification/utils/notification-category.utils.ts');
+  try {
+    for (const soundEnabled of [true, false]) {
+      const target = new EventTarget(), toasts = [], routes = [];
+      let sounds = 0, cleanup;
+      global.window = target;
+      global.document = { visibilityState: 'visible', hasFocus: () => true };
+      const { default: Manager } = loadCalendarModule('features/notification/components/calendar-reminder-alert-manager.tsx', {
+        react: { ...require('react'), useRef: value => ({ current: value }), useEffect: effect => { cleanup = effect(); } },
+        'next/navigation': { useRouter: () => ({ push: route => routes.push(route) }) },
+        sonner: { toast: { info: (title, options) => toasts.push({ title, options }) } },
+        '@/features/user-setting/hooks/useNotificationAlertPreference': { useNotificationAlertPreference: () => soundEnabled },
+        '@/store/store': { useAppSelector: selector => selector({ auth: { userId: 'user' } }) },
+        '../utils/notification-alert.utils': { playNotificationSound: () => { sounds++; } },
+      });
+      Manager();
+      const signal = { id: 'bell', recipientId: 'user', type: 'CALENDAR_REMINDER', content: 'Starts at 10:00', metadata: { eventId: 'event', eventTitle: 'Test task', groupKey: 'group', method: 'ALERT' } };
+      const send = () => target.dispatchEvent(new CustomEvent(NOTIFICATION_RECEIVED_EVENT, { detail: signal }));
+      send(); assert.equal(toasts.length, 0); assert.equal(sounds, 0);
+      signal.metadata.method = 'PUSH';
+      send(); send();
+      assert.equal(toasts.length, 1); assert.equal(sounds, soundEnabled ? 1 : 0);
+      assert.equal(toasts[0].title, 'Test task');
+      toasts[0].options.action.onClick(); assert.deepEqual(routes, ['/calendar?eventId=event']);
+      cleanup();
+    }
+  } finally {
+    if (oldWindow === undefined) delete global.window; else global.window = oldWindow;
+    if (oldDocument === undefined) delete global.document; else global.document = oldDocument;
+  }
+});
+
+test('autoplay rejection is caught by the shared notification sound helper', async () => {
+  const oldAudio = global.Audio, oldWarn = console.warn;
+  let warnings = 0;
+  try {
+    global.Audio = class { play() { return Promise.reject(new Error('autoplay blocked')); } };
+    console.warn = () => { warnings++; };
+    const { playNotificationSound } = loadCalendarModule('features/notification/utils/notification-alert.utils.ts');
+    assert.doesNotThrow(playNotificationSound);
+    await Promise.resolve();
+    assert.equal(warnings, 1);
+  } finally {
+    if (oldAudio === undefined) delete global.Audio; else global.Audio = oldAudio;
+    console.warn = oldWarn;
+  }
+});

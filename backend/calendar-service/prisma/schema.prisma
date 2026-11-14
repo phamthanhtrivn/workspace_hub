@@ -221,6 +221,7 @@ model Reminder {
 
   event CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  @@unique([eventId, method, minutesBefore])
   @@index([eventId])
   @@index([deliveryStatus, scheduledAt, nextAttemptAt])
   @@map("reminders")
