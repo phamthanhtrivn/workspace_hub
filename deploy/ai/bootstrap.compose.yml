@@ -15,5 +15,5 @@ services:
     restart: 'no'
 networks:
   workspace:
-    name: ${AI_APP_NETWORK:-wh_network}
+    name: ${AI_APP_NETWORK:-workspacehub-app_default}
     external: true

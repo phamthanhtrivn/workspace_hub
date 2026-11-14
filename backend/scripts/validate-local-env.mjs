@@ -4,13 +4,13 @@ import { pathToFileURL } from 'node:url';
 import { CALLER_CREDENTIALS, LOCAL_SERVICE_DIRECTORIES } from './local-security/contract.mjs';
 import { REPOSITORY_ROOT, isPlaceholder, parse, readEnvironment } from './local-security/env-files.mjs';
 
-const manifestPath = 'docs/local-env-contract.json';
+const manifestPath = 'docs/development/environment-contract.json';
 const databaseNames = {
   user: 'user_db', project: 'project_db', communication: 'communication_db',
   document: 'document_db', calendar: 'calendar_db', notification: 'notification_db', ai: 'notebook_db',
 };
 const dedicated = [
-  ['AI_GATEWAY_KEY', 'ai-service/api', 'kong-gateway'],
+  ['AI_GATEWAY_KEY', 'ai-service/api', 'docker/gateway'],
   ['AI_DOCUMENT_SERVICE_KEY', 'ai-service/api', 'document-service'],
   ['RAG_SERVICE_KEY', 'ai-service/api', 'ai-service/rag-worker'],
   ['CALENDAR_DOCUMENT_SERVICE_KEY', 'calendar-service', 'document-service'],
@@ -79,7 +79,7 @@ export function validateLocalEnvironment({ root = REPOSITORY_ROOT } = {}) {
   }
   for (const [name, directory] of Object.entries(LOCAL_SERVICE_DIRECTORIES)) {
     const env = values(directory);
-    const postgres = values('docker');
+    const postgres = values('docker/infra');
     if (name === 'user') {
       if (env.POSTGRES_USERNAME !== postgres.POSTGRES_USER || env.POSTGRES_PASSWORD !== postgres.POSTGRES_PASSWORD
         || env.POSTGRES_HOST !== '127.0.0.1' || env.POSTGRES_PORT !== postgres.POSTGRES_PORT

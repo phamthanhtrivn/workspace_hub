@@ -33,7 +33,7 @@ The product connects personal productivity with team collaboration. Project task
 
 The implemented frontend is a Next.js App Router application using React, TypeScript, Tailwind CSS, shared UI primitives, React Query, Redux, FullCalendar, Recharts, and LiveKit. Keep server requests in feature API modules and server state in React Query. Redux owns existing global authentication, chat, and notification state.
 
-The standalone `/ai` and `/tasks` pages are introductory placeholders, not complete assistant or task-management experiences. Task functionality exists in projects, calendar, and dashboard. AI-related backend capabilities and product aspirations must not be presented as a fully implemented standalone assistant, quiz maker, or flashcard interface without verifying the relevant workflow.
+The `/ai` page provides personal notebooks with authorized document sources, cited Q&A, notes and summaries. Task functionality exists in projects, calendar and dashboard; the standalone `/tasks` route is not a replacement for those workflows. Conversation assistance, Work Assistant, meeting summaries and voice transcription depend on configured services and feature flags. Flashcards and quizzes remain outside the implemented feature set.
 
 Permissions, recurrence expansion, recording ownership, and durable operations remain backend responsibilities. Present only actions permitted by the current user. Preserve API contracts, identifiers, notification links, user-selected colors, timezone behavior, and source-specific task actions.
 
@@ -45,7 +45,7 @@ Use the existing WorkspaceHub name, assets, and clear action-oriented English in
 
 ## Evidence on Hand
 
-Routes, feature components, API integrations, and archived verification results provide evidence of current behavior. The repository README includes broader thesis ambitions and some older capability descriptions; resolve discrepancies against current implementation. Development and deployment instructions live in [local development](docs/local-development.md) and [deployment](docs/deployment.md). Recording setup and operational limits are documented in the [LiveKit guide](backend/livekit/README.md).
+Routes, feature components, API integrations, and archived verification results provide evidence of current behavior. The repository README includes broader thesis ambitions and some older capability descriptions; resolve discrepancies against current implementation. Development and deployment instructions live in [local development](docs/development/local-setup.md) and [deployment](docs/deployment/production.md). Recording setup and operational limits are documented in the [LiveKit guide](backend/livekit/README.md).
 
 ## Product Principles
 

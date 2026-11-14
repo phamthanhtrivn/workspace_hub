@@ -150,7 +150,7 @@ services:
         strip_path: false
 
   - name: notebook-ai-service
-    url: http://host.docker.internal:8087
+    url: http://notebook-api:8087
     connect_timeout: 5000
     read_timeout: 120000
     write_timeout: 10000

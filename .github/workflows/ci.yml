@@ -105,7 +105,7 @@ jobs:
         with:
           node-version: 22.22.0
       - name: Test discovery and local env tooling
-        run: node --test tests/support/discovery.spec.mjs backend/scripts/local-security/env-files.test.mjs
+        run: node --test tests/support/discovery.spec.mjs backend/scripts/local-security/env-files.test.mjs backend/scripts/local-docker-env.test.mjs
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

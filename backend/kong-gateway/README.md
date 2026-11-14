@@ -7,19 +7,19 @@ Kong is the API gateway for Workspace Hub. It verifies JWT tokens, injects trust
 Use one declarative config per runtime:
 
 - `kong.docker.yml`: for application containers. Upstreams use Docker service names on `wh_network`.
-- `kong.host.yml`: for running Kong in Docker while backend services run directly on the host machine. Upstreams use `host.docker.internal`.
+- `kong.host.yml`: for running Kong in Docker while business services run on the host. Business upstreams use `host.docker.internal`; AI uses `notebook-api`.
 
-For backend services running on the host, use the restored host Compose file:
+For backend services running on the host, use the combined local Compose entrypoint:
 
 ```powershell
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml up -d --build --no-deps kong
+docker compose -f backend/docker/compose.yml up -d --build --no-deps kong
 ```
 
 It mounts the host template at the path used by the current image renderer:
 
 ```yaml
 volumes:
-  - ../kong-gateway/kong.host.yml:/usr/local/kong/declarative/kong.template.yml:ro
+  - ../../kong-gateway/kong.host.yml:/usr/local/kong/declarative/kong.template.yml:ro
 ```
 
 See [host setup](../docker/README.md) for infrastructure, environment files and
@@ -33,7 +33,7 @@ API binds to loopback on port 8001. Host and release builds share
 disables the Admin API. Its startup renderer substitutes `FRONTEND_URL` and
 `JWT_SECRET_KEY` into the bundled template using quoted YAML scalars and writes
 the private runtime config to `/tmp/kong.yml`. Secrets are supplied at runtime.
-See [deployment documentation](../../docs/deployment.md) for validation and releases.
+See [deployment documentation](../../docs/deployment/production.md) for validation and releases.
 
 ## Security Notes
 
