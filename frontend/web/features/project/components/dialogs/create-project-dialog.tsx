@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { WorkspaceIconPicker } from "@/components/ui/custom/workspace-icon-picker";
+import { CustomColorPicker } from "@/components/ui/custom/custom-color-picker";
 import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import {
   PROJECT_COLOR_OPTIONS,
@@ -212,30 +214,9 @@ export default function CreateProjectDialog({
               <legend className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Project Icon
               </legend>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {PROJECT_ICON_OPTIONS.map((icon) => {
-                  const selected = selectedIcon === icon;
-
-                  return (
-                    <Button
-                      key={icon}
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Project icon: ${icon}`}
-                      aria-pressed={selected}
-                      onClick={() => setSelectedIcon(icon)}
-                      className={cn(
-                        "h-9 w-9 cursor-pointer rounded-control border text-base transition duration-150 p-0",
-                        selected
-                          ? "border-primary bg-primary-soft ring-1 ring-primary/20 hover:bg-primary-soft"
-                          : "border-transparent bg-muted hover:border-input hover:bg-accent"
-                      )}
-                    >
-                      {icon}
-                    </Button>
-                  );
-                })}
+              <div className="mt-2">
+                <WorkspaceIconPicker value={selectedIcon} onChange={icon => { if (icon) setSelectedIcon(icon); }}
+                  disabled={isSubmitting} ariaLabel="Project icon" />
               </div>
             </fieldset>
 
@@ -244,34 +225,8 @@ export default function CreateProjectDialog({
               <legend className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Project Color
               </legend>
-              <div className="mt-2 flex flex-wrap gap-2.5">
-                {PROJECT_COLOR_OPTIONS.map((color) => {
-                  const selected = selectedColor === color;
-
-                  return (
-                    <Button
-                      key={color}
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Project color: ${color}`}
-                      aria-pressed={selected}
-                      onClick={() => setSelectedColor(color)}
-                      className={cn(
-                        "h-8 w-8 cursor-pointer rounded-full border-2 border-border transition duration-150 p-0",
-                        selected
-                          ? "scale-110"
-                          : ""
-                      )}
-                      style={{
-                        backgroundColor: color,
-                        boxShadow: selected
-                          ? `0 0 0 2px var(--card), 0 0 0 4px var(--ring)`
-                          : undefined,
-                      }}
-                    />
-                  );
-                })}
+              <div className="mt-2">
+                <CustomColorPicker value={selectedColor} onChange={setSelectedColor} disabled={isSubmitting} ariaLabel="Project color" />
               </div>
             </fieldset>
 

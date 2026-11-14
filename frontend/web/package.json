@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "test:calendar-policy": "node --test test/calendar-date-range.test.cjs",
+    "test:calendar-appearance": "node --test test/calendar-appearance.test.cjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
