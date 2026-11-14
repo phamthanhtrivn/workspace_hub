@@ -36,12 +36,13 @@ Deploy the updated Communication service, AI API/worker, and frontend together.
 No database migration is required. Existing stored messages and checkpointed
 answers are preserved.
 
-Focused checks from the repository root:
+Run the maintained AI and Communication fast suites from the repository root:
 
 ```powershell
-node --test backend/security-tests/conversation-language.test.mjs
+node tests/run-tests.mjs --project backend/ai-service/api
+node tests/run-tests.mjs --project backend/communication-service
 ```
 
-The suite uses a mocked model and isolated service responses. It verifies prompt
-policy, question propagation, English service feedback, bilingual presentation,
-authorization checks, and single-call generation without contacting a provider.
+These suites do not provide dedicated coverage of the conversation language
+policy. Verify explicit English/Vietnamese requests, follow-up context, attachment
+summary language and access revocation against the configured stack before release.

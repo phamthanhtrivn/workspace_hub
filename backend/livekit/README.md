@@ -60,15 +60,15 @@ Focused checks (from each application directory):
 
 ```powershell
 # backend/communication-service
-node -r ts-node/register/transpile-only --test src/infrastructure/livekit/recording-readiness.spec.ts src/modules/meeting/services/meeting-recording.service.spec.ts src/modules/meeting/services/meeting-recording.worker.spec.ts src/modules/meeting/services/meeting-recording-segments.service.spec.ts src/modules/meeting/services/meeting-summary.service.spec.ts
+npm test -- --match recording
 npm run build
 
 # backend/ai-service/api
 npm run build
-node --test dist/modules/meeting-summary/availability.spec.js test/meeting-summary-pipeline.test.cjs
+npm test -- --match meeting-summary
 
 # frontend/web
-node --test test/meeting-recording.test.cjs
+npm test -- --match recording.spec
 npm run typecheck
 npm run build
 ```

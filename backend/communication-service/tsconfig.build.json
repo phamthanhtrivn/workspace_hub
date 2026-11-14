@@ -4,6 +4,14 @@
     "rootDir": "./src",
     "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "prisma.config.ts"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "prisma.config.ts",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
 }

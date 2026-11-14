@@ -10,7 +10,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:check": "eslint \"src/**/*.ts\"",
-    "lint:fix": "eslint \"src/**/*.ts\" --fix"
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "test": "node ../../../tests/run-tests.mjs",
+    "test:unit": "node ../../../tests/run-tests.mjs",
+    "test:integration": "node ../../../tests/run-tests.mjs --suite integration",
+    "test:typecheck": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@langchain/core": "^1.3.0",

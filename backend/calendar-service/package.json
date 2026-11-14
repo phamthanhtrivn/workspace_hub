@@ -6,8 +6,8 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "test:calendar-policy": "npm run build && node --test test/calendar-policy.test.cjs",
-    "test:reminders": "npm run build && node --test test/reminder-policy.test.cjs",
+    "test:calendar-policy": "node ../../tests/run-tests.mjs --match calendar-policy.spec",
+    "test:reminders": "node ../../tests/run-tests.mjs --match reminder-policy.spec",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "nest start",
@@ -18,7 +18,11 @@
     "lint:check": "eslint \"{src,apps,libs}/**/*.ts\"",
     "lint:fix": "eslint \"{src,apps,libs}/**/*.ts\" --fix",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "test": "node ../../tests/run-tests.mjs",
+    "test:unit": "node ../../tests/run-tests.mjs",
+    "test:integration": "node ../../tests/run-tests.mjs --suite integration",
+    "test:typecheck": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1162.0",

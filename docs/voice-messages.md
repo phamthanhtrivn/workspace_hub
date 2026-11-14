@@ -79,21 +79,13 @@ has opened a pending transcript.
 From the repository root:
 
 ```powershell
-node --test backend/security-tests/voice-transcript.test.mjs backend/security-tests/voice-background.test.mjs backend/security-tests/voice-recorder.test.mjs
+node tests/run-tests.mjs --project backend/communication-service --match voice-background
+node tests/run-tests.mjs --project frontend/web --match useAudioRecorder
 ```
 
-With the existing local Docker AI/speech containers running, also run:
-
-```powershell
-$env:WORKSPACEHUB_VOICE_RUNTIME='1'
-node --test backend/security-tests/voice-runtime.integration.test.mjs
-```
-
-These opt-in checks execute the latest source in isolated child processes. They
-check real FFmpeg conversion, PostgreSQL constraints/deduplication in a temporary
-table, and local Whisper inference on silence. They do not restart services or
-write user tables. Override `VOICE_TEST_AI_CONTAINER` / `VOICE_TEST_SPEECH_CONTAINER`
-if your local container names differ.
+These fast checks use provider doubles for background dispatch and browser
+recording. They do not verify the complete AI transcript pipeline, real FFmpeg,
+PostgreSQL delivery constraints or local Whisper inference.
 
 From `backend/ai-service/speech-worker`, using the configured Python environment:
 

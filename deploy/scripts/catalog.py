@@ -24,6 +24,8 @@ def tag_variable(service):
 def classify(paths):
     images, roles, checks = set(), set(), set()
     for path in paths:
+        if path.startswith('tests/'):
+            checks.update(RUNTIME)
         if any(part.startswith('.env') for part in path.split('/')):
             continue
         if path.startswith(('backend/docker/', 'backend/livekit/', 'backend/scripts/', 'deploy/dev/')) or path == 'backend/kong-gateway/kong.host.yml':
