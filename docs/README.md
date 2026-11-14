@@ -1,21 +1,22 @@
-# Tài liệu WorkSpaceHub
+# WorkspaceHub documentation
 
-| Tài liệu | Mục đích |
+The maintained guides describe the current repository. Completed implementation plans and dated audit reports have been removed; reusable checks remain in the testing guides.
+
+| Area | Guides |
 | --- | --- |
-| [Chạy local](local-development.md) | Môi trường, hạ tầng Docker, terminal ứng dụng, readiness |
-| [Kiến trúc](architecture.md) | Ranh giới dịch vụ, dữ liệu và các luồng liên dịch vụ |
-| [Triển khai](deployment.md) | CI, image, EC2, biến môi trường, release và rollback |
-| [Migration và reconciliation](migrations.md) | Lịch sử schema, thứ tự triển khai và xử lý dữ liệu cũ |
-| [Design tokens](design-tokens.md) | Token và quy tắc dùng UI chung |
-| [SEO](seo-metadata.md) | Domain, metadata, indexing và ảnh chia sẻ |
-| [Security rollout](security-rollout.md) | Migration, cấu hình và checklist kiểm tra quyền truy cập |
+| Architecture | [System architecture](architecture/system-architecture.md) |
+| Development | [Local setup](development/local-setup.md), [environment](development/environment.md), [private storage](development/private-storage.md) |
+| Deployment | [Production](deployment/production.md), [migrations](deployment/migrations.md), [security rollout](deployment/security-rollout.md) |
+| Features | [Calendar reminders](features/calendar-reminders.md), [conversation AI language](features/conversation-ai-language.md), [voice messages](features/voice-messages.md), [socket recovery](features/socket-session-recovery.md) |
+| Frontend | [Design tokens](frontend/design-tokens.md), [SEO metadata](frontend/seo-metadata.md) |
+| Verification | [Testing](../tests/README.md), [system verification](../tests/system/README.md) |
 
-Tài liệu theo thành phần:
+## Component guides
 
-- [Voice messages và speech runtime](voice-messages.md).
-- [LiveKit và recording](../backend/livekit/README.md).
-- [Kong](../backend/kong-gateway/README.md), [hạ tầng local](../backend/docker/README.md).
+- [Docker local infrastructure and AI](../backend/docker/README.md), [AI service](../backend/ai-service/README.md).
+- [LiveKit and recording](../backend/livekit/README.md), [Kong](../backend/kong-gateway/README.md).
 - [Project](../backend/project-service/README.md), [Communication](../backend/communication-service/README.md), [Calendar](../backend/calendar-service/README.md).
-- [Định hướng sản phẩm](../PRODUCT.md), [thiết kế](../DESIGN.md).
+- [Deployment entrypoints](../deploy/README.md), [production AI](../deploy/ai/README.md).
+- [Product context](../PRODUCT.md), [design direction](../DESIGN.md).
 
-Báo cáo kiểm thử/audit, kế hoạch cũ và ảnh thử nghiệm được lưu local tại `.tmp/codex-verification-report/evidence/document-archive/`; không dùng chúng như hướng dẫn vận hành hiện tại.
+The environment reader inventory is development/environment-contract.json. It is tooling input, not a place to store credentials.

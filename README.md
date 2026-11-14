@@ -1,40 +1,165 @@
-# WorkSpaceHub
+# WorkspaceHub — Intelligent All-in-One Management Platform
 
-Nền tảng quản lý công việc và cộng tác: project/task, lịch và nhắc nhở, chat, tài liệu, cuộc họp, Pomodoro và Notebook AI.
+WorkspaceHub brings project tasks, personal planning, communication, documents, meetings and focused work into one web workspace, with AI features connected to existing resource permissions.
 
-## Tài liệu cần dùng
+## Overview and Abstract
 
-- [Mục lục tài liệu](docs/README.md).
-- [Chạy local](docs/local-development.md): môi trường, hạ tầng và terminal ứng dụng.
-- [Kiến trúc](docs/architecture.md): ranh giới dịch vụ và dữ liệu.
-- [Triển khai](docs/deployment.md): CI, EC2, release, healthcheck và rollback.
-- [Migration](docs/migrations.md): schema và reconciliation dữ liệu cũ.
-- [Notebook AI](deploy/ai/README.md), [LiveKit/recording](backend/livekit/README.md).
-- [Sản phẩm](PRODUCT.md), [thiết kế](DESIGN.md), [design tokens](docs/design-tokens.md), [SEO](docs/seo-metadata.md).
+Fragmented tools make it difficult for individuals and small teams to keep work and its supporting information together. This graduation thesis implements a platform that connects task management, calendars, real-time conversations, document storage, meetings and Pomodoro sessions. AI provides cited document Q&A and summaries, conversation assistance, work assistance, meeting summaries and voice transcription. Access checks remain owned by the business services; AI does not grant access to otherwise private resources.
 
-## Cấu trúc chính
-
-| Thư mục | Vai trò |
+| Thesis detail | Description |
 | --- | --- |
-| `frontend/web` | Next.js/React/TypeScript |
-| `backend/user-service` | Java 21/Spring Boot: tài khoản và xác thực |
-| `backend/{project,communication,notification,document,calendar}-service` | NestJS: nghiệp vụ và dữ liệu theo dịch vụ |
-| `backend/kong-gateway` | HTTP/WebSocket gateway |
-| `backend/docker`, `backend/livekit` | Hạ tầng local và media |
-| `backend/ai-service` | AI API/jobs, retrieval và speech trong các thư mục con riêng |
-| `deploy` | Migration, image và vận hành EC2 |
+| Topic | Building an intelligent work support and management platform |
+| Intended users | Students, individuals and small teams collaborating on study or work |
+| Inputs | Accounts, project tasks, calendars, documents, messages, meeting recordings and focus sessions |
+| Outputs | Permission-aware web workflows, notifications, progress information and configured AI assistance |
+| Current delivery | Web application and backend microservices; provider-dependent features require configuration |
 
-PostgreSQL lưu dữ liệu theo dịch vụ; Redis phục vụ cache/session/queue/realtime; Kafka chuyển event. S3 lưu file gốc, LiveKit/Egress xử lý media, Qdrant phục vụ retrieval của stack AI riêng.
+### Current features
 
-## Bắt đầu local
+| Area | Implemented capabilities |
+| --- | --- |
+| Accounts | Registration/email verification, sign-in, sessions, password recovery, profiles, avatars and preferences |
+| Projects and tasks | Membership/roles, board/list/calendar/Gantt views, assignments, priorities, labels, checklists, comments and related documents/chat |
+| Calendar | Events and tasks, recurring occurrences, attendees, conference links, shared appearance controls and custom reminders |
+| Notifications | Categorized bell, real-time updates, foreground toast/sound, Web Push and email where configured; reminder delivery deduplication |
+| Communication | Spaces/channels, direct messages, threads, reactions, attachments, polls, notes, voice recording/playback and transcription |
+| Documents | Files/folders, versions, previews, sharing, public links, trash/archive workflows and controlled downloads |
+| Meetings | Scheduling, participation, devices, video/audio, screen sharing, meeting chat, recordings, sharing and owner-triggered AI summaries |
+| Productivity | Dashboard, Pomodoro focus/break sessions, task association, history/statistics and ambient audio |
+| AI | Personal notebooks with authorized sources, cited Q&A, notes/summaries, conversation bot and attachment summaries, Project/Calendar Work Assistant, meeting summaries and speech transcription |
 
-Cần Docker Desktop/Compose, Node 22 và Java 21/Maven. Giữ các private env và volume dữ liệu hiện có.
+AI flags, model capability, provider quota and dependent services determine availability. Meeting summaries are explicitly requested after a recording completes; readers with current recording access share the saved result. Flashcards, quizzes and a mobile application are not claimed as implemented features.
 
-```powershell
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml config --quiet
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml up -d --build
-```
+## System Architecture and Technology Stack
 
-Chạy ứng dụng trong các terminal riêng theo [hướng dẫn local](docs/local-development.md). Notebook AI có hướng dẫn và stack riêng. Không dùng reset database hoặc xóa volume để sửa migration drift.
+~~~mermaid
+flowchart TD
+    Web[Next.js Web] --> Kong[Kong Gateway]
+    Kong --> Business[User / Project / Communication / Document / Calendar / Notification]
+    Kong --> AI[AI API]
+    Business --> Postgres[(PostgreSQL)]
+    Business --> Redis[(Redis)]
+    Business <--> Kafka[Kafka]
+    Business --> S3[S3 Storage]
+    Business --> LiveKit[LiveKit and Egress]
+    AI --> Postgres
+    AI --> Redis
+    AI --> Jobs[AI Jobs]
+    Jobs --> RAG[RAG Worker and Qdrant]
+    Jobs --> Speech[Local Speech Worker]
+    AI --> Model[Configured AI Provider]
+    Jobs --> Model
+~~~
 
-CI hiện kiểm lint/build và cấu hình triển khai. Các bộ test và script test đã được gỡ theo yêu cầu; báo cáo lịch sử được giữ local trong `.tmp/codex-verification-report`, không nằm trong bộ tài liệu vận hành.
+| Layer | Technology and responsibility |
+| --- | --- |
+| Web | Next.js App Router, React, TypeScript, Tailwind, React Query, Redux, FullCalendar and LiveKit client |
+| User | Java 21, Spring Boot, Spring Security/JPA; authentication and accounts |
+| Business services | NestJS/TypeScript with Prisma/PostgreSQL; independent domain ownership |
+| AI API/jobs | NestJS, PostgreSQL SQL migrations, BullMQ and configurable model integrations |
+| AI workers | Python document parsing/OCR/retrieval and faster-whisper speech recognition |
+| Infrastructure | Kong, PostgreSQL, Redis, Kafka, LiveKit/Egress, S3 and Qdrant |
+| Operations | Docker Compose locally; image-based CI and EC2 production deployment |
+
+Kong validates public requests and forwards trusted context. Services enforce session and resource permissions; internal APIs use dedicated caller credentials. Socket subscriptions and asynchronous work also recheck access. See [architecture](docs/architecture/system-architecture.md).
+
+## Database Schemas and Storage Design
+
+- Each business service owns its PostgreSQL database. User uses JPA, the NestJS business services use Prisma, and AI uses SQL migrations for notebook/job/checkpoint data.
+- User records include accounts, profiles, preferences and session/token state. Project records include projects, membership, tasks, assignments, labels, checklists, comments and delivery intents.
+- Communication owns conversations, messages, attachments, meeting participation, recordings and recording access. Calendar owns event/series/occurrence, attendee, reminder and Pomodoro data.
+- Document owns file/folder metadata, versions, sharing and storage lifecycle. Notification stores notifications and delivery receipts in PostgreSQL, not MongoDB.
+- Redis supports sessions, realtime coordination and AI queues. Kafka carries business events. S3 stores private files/media; Qdrant stores retrieval indexes. AI accesses original files through authorized business-service APIs.
+
+Database ownership does not imply separate local database credentials: the existing local setup shares a PostgreSQL login. See [environment](docs/development/environment.md), [storage](docs/development/private-storage.md) and [migrations](docs/deployment/migrations.md).
+
+## Project Structure
+
+~~~text
+workspace_hub/
+├── backend/
+│   ├── docker/                 # Combined local Compose and component env files
+│   │   ├── infra/
+│   │   ├── gateway/
+│   │   ├── realtime/
+│   │   └── ai/
+│   ├── user-service/           # Java accounts and authentication
+│   ├── project-service/        # Projects and tasks
+│   ├── communication-service/  # Chat and meetings
+│   ├── document-service/       # Documents and sharing
+│   ├── calendar-service/       # Calendar and focus workflows
+│   ├── notification-service/   # Notifications and delivery
+│   ├── ai-service/             # API/jobs, RAG and speech source
+│   ├── kong-gateway/           # Gateway image, templates and plugins
+│   ├── livekit/                # Media configuration
+│   └── scripts/                # Local configuration and maintenance tooling
+├── frontend/web/               # Next.js web application
+├── docs/                       # Architecture, development, deployment and features
+├── tests/                      # Shared test tooling and system verification
+└── deploy/                     # Production configuration and deployment tools
+~~~
+
+## How to Run the Project
+
+Use Docker Desktop/Compose with include support (2.20+), Node.js 22, npm, Java 21 and Maven. Run the following from the repository root. Keep private env files outside Git.
+
+### 1. Configure environments
+
+Business services and web use their existing host env files. Docker groups each use their own private env under backend/docker. Existing credentials must match their callers/receivers; do not overwrite a working private env with sample values.
+
+~~~powershell
+node backend/scripts/prepare-local-docker-env.mjs
+# Apply after reviewing the dry-run file list.
+node backend/scripts/prepare-local-docker-env.mjs --write
+node backend/scripts/validate-local-docker-env.mjs
+~~~
+
+See [environment setup](docs/development/environment.md) for new-machine requirements and [Docker migration](backend/docker/README.md#transition-from-the-previous-ai-stack) before replacing the previous AI containers.
+
+### 2. Start infrastructure and AI
+
+~~~powershell
+docker compose -f backend/docker/compose.yml config --quiet
+docker compose -f backend/docker/compose.yml up -d --build
+docker compose -f backend/docker/compose.yml ps -a
+~~~
+
+This starts infrastructure, Kong, LiveKit/Egress and all AI processes. It does not start web or the six business-service applications. AI migration runs automatically; review and apply the business-service SQL/Prisma migrations as described in [local setup](docs/development/local-setup.md).
+
+### 3. Start host applications
+
+Run each in a separate terminal after installing dependencies and preparing its schema:
+
+| Directory | Start command |
+| --- | --- |
+| backend/user-service | mvn spring-boot:run |
+| backend/project-service | npm run start:dev |
+| backend/communication-service | npm run start:dev |
+| backend/notification-service | npm run start:dev |
+| backend/document-service | npm run start:dev |
+| backend/calendar-service | npm run start:dev |
+| frontend/web | npm run dev |
+
+User Service needs env values supplied through its JVM/IDE or terminal configuration. Stop a host AI process on port 8087 before running Docker AI. Open http://localhost:3000 and check service readiness; a healthy Kong alone does not mean all host services are ready.
+
+### 4. Inspect and stop Docker
+
+~~~powershell
+docker compose -f backend/docker/compose.yml logs -f notebook-api notebook-jobs livekit-egress
+docker compose -f backend/docker/compose.yml stop
+~~~
+
+Keep existing volumes and allow AI jobs time to checkpoint. Details and group-specific commands are in [Docker local](backend/docker/README.md).
+
+## Testing and Deployment
+
+~~~powershell
+node tests/run-tests.mjs --all
+node tests/run-tests.mjs --suite system
+node --test tests/support/discovery.spec.mjs backend/scripts/local-security/env-files.test.mjs backend/scripts/local-docker-env.test.mjs
+mvn -B -f backend/user-service/pom.xml test
+~~~
+
+Run test typechecking/builds from the changed application. Docker/database integration is opt-in and uses its own isolation requirements. Fast tests use provider doubles and do not certify SMTP, model output quality or real recording. See [testing](tests/README.md).
+
+Production uses separate APP, INFRA and REALTIME configurations; AI has its own production stack. See [deployment](deploy/README.md). A full Docker local application stack is deferred. Browse the [documentation index](docs/README.md) for feature and operational guides.

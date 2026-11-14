@@ -11,17 +11,17 @@ function fixture() {
   mkdirSync(parent, { recursive: true });
   const root = mkdtempSync(resolve(parent, 'security-env-test-'));
   const write = (file, value) => { mkdirSync(dirname(resolve(root, file)), { recursive: true }); writeFileSync(resolve(root, file), value); };
-  const directories = [...Object.values(LOCAL_SERVICE_DIRECTORIES), 'ai-service/rag-worker', 'ai-service/speech-worker', 'kong-gateway', 'docker', 'livekit'];
+  const directories = [...Object.values(LOCAL_SERVICE_DIRECTORIES), 'ai-service/rag-worker', 'ai-service/speech-worker', 'docker/gateway', 'docker/infra', 'docker/realtime'];
   const services = Object.fromEntries(directories.map((directory) => {
     write(`backend/${directory}/.env`, 'DATABASE_URL=postgresql://fixture:fixture@127.0.0.1:5433/fixture\n');
     return [directory, { variables: {}, current_variables: {} }];
   }));
-  write('docs/local-env-contract.json', JSON.stringify({ services }));
+  write('docs/development/environment-contract.json', JSON.stringify({ services }));
   const storage = 'AWS_S3_BUCKET_NAME=fixture-bucket\nAWS_REGION=fixture-region\n';
   const livekit = `LIVEKIT_API_KEY=${'a'.repeat(32)}\nLIVEKIT_API_SECRET=${'b'.repeat(64)}\n`;
   write('backend/user-service/.env', storage + `JWT_SECRET_KEY=${'j'.repeat(64)}\n`);
   write('backend/communication-service/.env', storage + livekit + 'MEETING_SUMMARY_ENABLED=false\n');
-  write('backend/livekit/.env', livekit);
+  write('backend/docker/realtime/.env', livekit);
   write('backend/ai-service/api/.env', 'FRONTEND_URL=http://localhost:3000\nMEETING_SUMMARY_ENABLED=false\nLLM_API_KEY=fixture-provider-credential\n');
   return { root, write, cleanup: () => {
     assert.ok(root.startsWith(parent + '\\') || root.startsWith(parent + '/'));

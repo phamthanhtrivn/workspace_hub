@@ -8,7 +8,7 @@ import { REPOSITORY_ROOT, readEnvironment, parse, isPlaceholder, setEnvironment,
 const usable = (value) => Boolean(value?.trim()) && !isPlaceholder(value);
 
 export function prepareLocalEnvironments({ root = REPOSITORY_ROOT } = {}) {
-  const inventory = JSON.parse(readFileSync(resolve(root, 'docs/local-env-contract.json'), 'utf8'));
+  const inventory = JSON.parse(readFileSync(resolve(root, 'docs/development/environment-contract.json'), 'utf8'));
   const entries = new Map(Object.keys(inventory.services).map((directory) => [directory, readEnvironment(`backend/${directory}/.env`, root)]));
   const service = (name) => entries.get(LOCAL_SERVICE_DIRECTORIES[name]);
   const warnings = [];
@@ -38,7 +38,7 @@ export function prepareLocalEnvironments({ root = REPOSITORY_ROOT } = {}) {
   // configured receiver/storage peer; never invent provider credentials.
   const communication = service('communication');
   for (const key of ['AWS_S3_BUCKET_NAME', 'AWS_REGION', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET']) {
-    const peer = key.startsWith('LIVEKIT_') ? entries.get('livekit') : service('user');
+    const peer = key.startsWith('LIVEKIT_') ? entries.get('docker/realtime') : service('user');
     const candidates = communication.raw.split(/\r?\n/).map((line) => parse(line)[key]).filter(usable);
     const recoverable = candidates.find((value) => value === peer.values[key]);
     if (recoverable) setEnvironment(communication, key, recoverable);
@@ -61,7 +61,7 @@ export function prepareLocalEnvironments({ root = REPOSITORY_ROOT } = {}) {
     }
   }
   pair('CALENDAR_DOCUMENT_SERVICE_KEY', [service('calendar'), service('document')]);
-  pair('AI_GATEWAY_KEY', [service('ai'), entries.get('kong-gateway')]);
+  pair('AI_GATEWAY_KEY', [service('ai'), entries.get('docker/gateway')]);
   pair('AI_DOCUMENT_SERVICE_KEY', [service('ai'), service('document')]);
   pair('RAG_SERVICE_KEY', [service('ai'), entries.get('ai-service/rag-worker')]);
   pair('MEETING_STT_SERVICE_KEY', [service('ai'), entries.get('ai-service/speech-worker')], ['MEETING_STT_SERVICE_KEY', 'SPEECH_SERVICE_KEY']);

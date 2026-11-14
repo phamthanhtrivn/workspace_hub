@@ -45,7 +45,7 @@ After retries are exhausted, the existing player retry action remains available.
 
 ## Setup and rollout
 
-1. Prepare the existing speech runtime in `deploy/ai/compose.yml`. For host execution, run
+1. Prepare the speech runtime in `backend/docker/ai/compose.yml` through the [combined Docker stack](../../backend/docker/README.md). For host execution, run
    `node backend/scripts/start-local-speech.mjs` from the repository root.
    FFmpeg must be available at `MEETING_FFMPEG_PATH`; prepare the local multilingual
    model before starting speech-worker. Keep the existing service keys and media
@@ -61,7 +61,7 @@ After retries are exhausted, the existing player retry action remains available.
    table. Stop Communication before generation on Windows if its Prisma engine
    DLL is in use. Existing message payloads remain unchanged.
 4. Restart speech-worker, AI API, AI jobs and Communication before deploying the
-   frontend. Docker uses the existing `meeting-summary` profile to start speech;
+   frontend. Docker starts speech by default with the combined stack;
    the migration container runs before API/jobs.
 5. `VOICE_TRANSCRIPTION_ENABLED=true` enables voice transcription on both AI API/jobs
    and Communication. If omitted, it inherits `MEETING_SUMMARY_ENABLED`. Set it to

@@ -18,21 +18,21 @@ Preparation is a dry run unless `--write` is supplied. It generates a distinct
 credential for each caller/receiver edge only when missing, preserves existing
 provider keys and database URLs, and backs up each changed file under ignored
 `.tmp/security-env-backups`. The validator reports variable **names** only.
-Its reader inventory is `docs/local-env-contract.json`; the 16 caller/receiver
+Its reader inventory is `docs/development/environment-contract.json`; the 16 caller/receiver
 edges and route scopes are defined in `backend/scripts/local-security/contract.mjs`.
 
 The current local setup uses the same `postgres` username/password from
-`backend/docker/.env` in all seven application `.env` files. Each service still
+`backend/docker/infra/.env` in all seven application `.env` files. Each service still
 uses its own database on the single `wh_postgres` container, including AI's
 `notebook_db`. This shared administrator credential does not provide database
 permission isolation. The private, Git-ignored
 `backend/.env.security-db-plan.json` remains available for migration tooling
 and must not be published. Restricted `wh_*` roles are an optional later cutover.
 
-Compose needs both infrastructure and LiveKit interpolation files:
+Compose loads the private env of each included component:
 
 ```powershell
-docker compose --env-file backend/docker/.env --env-file backend/livekit/.env -f backend/docker/docker-compose.host.yml config --quiet
+docker compose -f backend/docker/compose.yml config --quiet
 ```
 
 For host services, use the published PostgreSQL/Redis/Kafka ports and local
@@ -50,7 +50,7 @@ Supply this setting to the User JVM through the same IDE or terminal environment
 as its other variables; merely editing `.env` does not load it into Java.
 
 Local S3 credentials, private asset references and bucket requirements are
-documented in [local S3](local-s3.md).
+documented in [local S3](private-storage.md).
 
 AI model settings are independent per feature. `CONVERSATION_AI_MODEL` and
 `CONVERSATION_AI_MAX_TOKENS` apply only to chat mentions/attachments;
@@ -95,3 +95,9 @@ different Windows endpoint must be added explicitly after checking its provider.
 Restart notification-service after changing this value, then refresh the web app
 to retry subscription registration. A rejected push subscription affects browser
 push delivery; notification persistence and bell updates use separate paths.
+
+## Docker and host configuration
+
+Docker uses backend/docker/{infra,gateway,realtime,ai}/.env. Run node backend/scripts/prepare-local-docker-env.mjs to preview synchronization, add --write to apply it with private backups, and run node backend/scripts/validate-local-docker-env.mjs afterward. The AI model/quota/timeout/concurrency settings come from the host AI env, but database/Redis/worker URLs and bind addresses are rewritten for Docker. Host application env files stay in place.
+
+The AI env contains notebook runtime and worker settings. The Compose API/jobs environment is allowlisted to runtime config readers; RAG receives only its own key/embedding settings and speech receives only its speech key/model settings. Shared credentials are compared, never silently rotated. Docker env must not contain obsolete CONVERSATION_AI_QUOTA_WAIT_MS or MEETING_STT_CONCURRENCY settings; use LLM_QUOTA_WAIT_MS and the maintained worker concurrency configuration.

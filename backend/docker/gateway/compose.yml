@@ -1,0 +1,36 @@
+services:
+  kong:
+    build:
+      context: ../../kong-gateway
+      dockerfile: Dockerfile.production
+    container_name: wh_kong
+    environment:
+      KONG_DATABASE: "off"
+      KONG_PROXY_ACCESS_LOG: "off"
+      KONG_PROXY_ERROR_LOG: /dev/null
+      KONG_DECLARATIVE_CONFIG: /tmp/kong.yml
+      KONG_PLUGINS: bundled,gateway-boundary,jwt-user-context
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required}
+      AI_GATEWAY_KEY: ${AI_GATEWAY_KEY:?AI_GATEWAY_KEY is required}
+    ports:
+      - 127.0.0.1:8000:8000
+      - 127.0.0.1:8443:8443
+      - 127.0.0.1:8001:8001
+      - 127.0.0.1:8444:8444
+    volumes:
+      - ../../kong-gateway/kong.host.yml:/usr/local/kong/declarative/kong.template.yml:ro
+    networks:
+      - wh_network
+    healthcheck:
+      test:
+        - CMD
+        - kong
+        - health
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    restart: on-failure
+    extra_hosts:
+      - host.docker.internal:host-gateway

@@ -22,13 +22,7 @@ separately. Keep real env files outside Git.
 
 ## Local development
 
-Applications run on the host. Docker runs infrastructure and Kong only.
-Follow [local development](local-development.md) for environment scopes,
-application terminals, explicit SQL/Prisma/Alembic migrations and recording.
-The infrastructure Docker entry point is `backend/docker/docker-compose.host.yml`;
-optional AI uses the separate stack described above.
-GitHub Actions validates application builds and deployment configuration.
-Production retains image build/push, EC2 pull/run, migrations and rollback.
+Web and the business applications run on the host; infrastructure, Kong, LiveKit/Egress and all AI processes use backend/docker/compose.yml. Follow [local setup](../development/local-setup.md). Local component env files are separate from production secrets. A full Docker local application setup is deferred.
 
 ## Images and GitHub configuration
 
@@ -68,7 +62,7 @@ Create the GitHub **production** environment and restrict deployment branches to
 
 SEO is currently disabled because no production domain is configured. Leave
 `SITE_URL` unset and `SITE_INDEXABLE=false`. Every page remains `noindex` and the
-sitemap is empty. See [SEO metadata configuration](seo-metadata.md) before enabling
+sitemap is empty. See [SEO metadata configuration](../frontend/seo-metadata.md) before enabling
 indexing. These two values are embedded in both the web build and the resulting
 image environment; changing them requires a new web image/commit. Do not override
 them only at container startup or promote a production-indexable image to a preview

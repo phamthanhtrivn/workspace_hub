@@ -1,6 +1,6 @@
 # WorkspaceHub design tokens
 
-The runtime source of truth is [globals.css](../frontend/web/app/globals.css). This reference describes the implemented system; [DESIGN.md](../DESIGN.md) explains its application and [PRODUCT.md](../PRODUCT.md) records product context.
+The runtime source of truth is [globals.css](../../frontend/web/app/globals.css). This reference describes the implemented system; [DESIGN.md](../../DESIGN.md) explains its application and [PRODUCT.md](../../PRODUCT.md) records product context.
 
 ## Brand primitives
 
@@ -117,6 +117,6 @@ Hidden file inputs and poll form controls are intentional native exceptions. Ful
 
 ## Verification
 
-Historical audit reports are archived locally; they are not runtime configuration. The repository's test suites and test-only tooling have been removed.
+Use the maintained [test suites](../../tests/README.md) alongside manual visual verification.
 
 Run commands from `frontend/web`. Also run TypeScript, lint, and a production build. Check both themes on desktop/mobile, saved/failed preferences, account changes, keyboard focus, overlays, emoji pickers, chart tooltips, and loading/empty/error states. Normal text must reach 4.5:1 contrast; meaningful control boundaries must reach 3:1.

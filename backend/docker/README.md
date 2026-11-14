@@ -1,48 +1,86 @@
-# Backend services on the host
+# Local infrastructure and AI
 
-`docker-compose.host.yml` runs PostgreSQL, Redis, Kafka, Kong and LiveKit in
-Docker. Run the backend services and frontend directly on the host.
-See [local development](../../docs/local-development.md) for application terminals and migrations.
+The backend applications and web run on the host. This Compose project runs PostgreSQL, Redis, Kafka, Kong, LiveKit, Egress and all AI processes, including speech. Production is configured separately under [deploy](../../deploy/README.md).
 
-Run from the repository root, using the existing environment files:
+## Configuration
 
-- `backend/docker/.env`: database credentials, infrastructure ports and LiveKit.
-- `backend/kong-gateway/.env`: `FRONTEND_URL` and `JWT_SECRET_KEY`.
-- `backend/livekit/.env`: the included LiveKit/recording configuration.
-- Node applications use their own env files. Inject User Service variables through the IDE or terminal; Java does not automatically load .env.
+Run commands from the repository root. Docker Compose with include support (2.20 or newer) is required.
 
-Validate the configuration:
+| Folder | Private environment | Responsibility |
+| --- | --- | --- |
+| infra | infra/.env | PostgreSQL credentials and published infrastructure ports |
+| gateway | gateway/.env | Frontend origin, JWT verifier and AI gateway proof |
+| realtime | realtime/.env | LiveKit keys, webhook and published media/health ports |
+| ai | ai/.env | AI credentials, feature flags, models, quotas, worker settings and Docker URLs |
 
-```powershell
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml config --quiet
-```
+Compose loads each environment through its include entry. Do not pass a global application env file: it can override component-specific interpolation. Keep conflicting variables out of your shell environment as well.
 
-Start the infrastructure and gateway:
+The existing local private files have been migrated. On another checkout with the old private files and host AI configuration, preview and apply:
 
-```powershell
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml up -d --build
-```
+~~~powershell
+node backend/scripts/prepare-local-docker-env.mjs
+node backend/scripts/prepare-local-docker-env.mjs --write
+node backend/scripts/validate-local-docker-env.mjs
+~~~
 
-If the infrastructure is already running and only Kong needs the updated routes:
+The preparation tool copies model, quota, timeout and concurrency choices from the host AI env, preserves credentials, rewrites connection URLs for Docker, and retains the configured media hostname allowlist. It backs up source files in ignored .tmp/local-docker-env-backups before retiring legacy Docker env locations. Host application env files remain in place. Run it again after intentionally changing host AI settings to synchronize Docker; inspect its dry run first. It never generates or rotates credentials.
 
-```powershell
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml up -d --build --no-deps kong
-```
+For a new machine, provision private component files using the variable names in each Compose file and [environment guide](../../docs/development/environment.md). Preparation requires configured host application credentials; it is not a secret generator.
 
-Kong loads `kong.host.yml` through the image's startup template renderer and
-forwards application calls to `host.docker.internal`. Proxy HTTP is on port 8000;
-the local Admin API is bound to loopback on port 8001. After starting host services,
-check `/health/document` through Kong. Gateway readiness itself
-does not imply that the host application services are running.
+## Start, inspect and stop
 
-The Compose project remains `docker`, with `wh_*` container names, `wh_network`,
-`docker_postgres_data` and `docker_redis_data`. The infrastructure image digests
-match the existing local stack. Rebuilding only Kong does not recreate the database,
-Redis, Kafka or LiveKit. Stop services without removing their volumes; do not use
-`down -v` for this stack if you want to retain your local data.
+~~~powershell
+docker compose -f backend/docker/compose.yml config --quiet
+docker compose -f backend/docker/compose.yml up -d --build
+docker compose -f backend/docker/compose.yml ps -a
+docker compose -f backend/docker/compose.yml logs -f notebook-api notebook-jobs livekit-egress
+docker compose -f backend/docker/compose.yml stop
+~~~
 
-Recording remains optional:
+Egress and speech start by default. Allow enough Docker memory for Egress (4 GiB limit), speech (3 GiB), RAG (2 GiB by default) and the shared services; limits do not allocate memory or guarantee that the Docker VM has enough RAM. Cold builds/model preparation take longer than warm starts. AI readiness also requires host User/Document and the configured integration services.
 
-```powershell
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml --profile recording up -d
-```
+Keep the four-minute jobs shutdown grace period so in-flight work can checkpoint. Do not remove volumes when stopping.
+
+## Select a group
+
+Component files are composed through the root entrypoint because they share networks and dependencies. From the repository root:
+
+~~~powershell
+# Infrastructure; AI and realtime dependencies also start it when needed.
+docker compose -f backend/docker/compose.yml up -d postgres redis kafka kafka-init
+# Gateway
+docker compose -f backend/docker/compose.yml up -d --build kong
+# Meetings and recording
+docker compose -f backend/docker/compose.yml up -d livekit egress-storage-init livekit-egress
+# AI (includes dependency startup and database migration)
+docker compose -f backend/docker/compose.yml up -d --build notebook-api notebook-jobs
+# Stop AI without stopping the shared infrastructure.
+docker compose -f backend/docker/compose.yml stop notebook-api notebook-jobs rag-worker speech-worker notebook-qdrant
+~~~
+
+## Transition from the previous AI stack
+
+Stop and remove only the old AI containers before the first combined start, otherwise the API port and queue consumers can conflict. Inspect the names and labels first:
+
+~~~powershell
+docker ps -a --filter label=com.docker.compose.project=wh-notebook --format '{{.Names}}'
+$legacyAIContainers = @(docker ps -a --filter label=com.docker.compose.project=wh-notebook --format '{{.Names}}')
+if ($legacyAIContainers.Count -gt 0) {
+    docker stop --timeout 240 $legacyAIContainers
+    docker rm $legacyAIContainers
+}
+docker compose -f backend/docker/compose.yml up -d --build
+~~~
+
+These commands remove containers, not volumes. Keep wh-notebook_notebook-qdrant and wh-notebook_notebook-models: the combined project explicitly reuses them. Compose may report their previous project ownership; do not delete them to silence that warning. PostgreSQL, Redis and recording retain project docker and their existing volume names. The AI private network is recreated independently of data; wh_network is preserved.
+
+The local notebook-db-init job creates notebook_db only if missing, verifies access, and never alters an existing owner/password. Migration runs before API/jobs. Other application migrations remain explicit; see [migrations](../../docs/deployment/migrations.md). Successful initializer/migration containers normally exit with code 0.
+
+## Readiness
+
+~~~powershell
+Invoke-RestMethod http://127.0.0.1:8087/ready
+Invoke-RestMethod http://127.0.0.1:7981/
+~~~
+
+Health checks do not certify media connectivity, provider quota or output quality. Check [local setup](../../docs/development/local-setup.md) for host terminals and [recording](../livekit/README.md) for Communication settings. Never run a second host AI API on port 8087 while Docker AI is running.

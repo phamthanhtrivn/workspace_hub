@@ -1,10 +1,10 @@
 # LiveKit infrastructure
 
-Local LiveKit is included by `backend/docker/docker-compose.host.yml`.
-Applications run on the host. See [local setup](../../docs/local-development.md)
-and the [migration guide](../../docs/migrations.md) before changing existing databases.
+Local LiveKit, Egress and the storage initializer start by default through `backend/docker/compose.yml`.
+Applications run on the host. See [local setup](../../docs/development/local-setup.md)
+and the [migration guide](../../docs/deployment/migrations.md) before changing existing databases.
 
-Keep existing `backend/docker/.env` and `backend/livekit/.env` values. Share
+Keep the migrated `backend/docker/realtime/.env` values. Share
 LIVEKIT_API_KEY/SECRET with Communication Service. Host/browser use
 `ws://localhost:7880`; Egress uses `ws://livekit:7880`. Local webhook:
 `http://host.docker.internal:8083/api/meetings/livekit/webhook`.
@@ -15,8 +15,8 @@ in Communication's env. `/meetings/recording-template` is not the recording page
 an HTTP response from that URL does not mean the recorder template is loaded.
 
 ```powershell
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml --profile recording config --quiet
-docker compose --env-file backend/docker/.env -f backend/docker/docker-compose.host.yml --profile recording up -d livekit livekit-egress
+docker compose -f backend/docker/compose.yml config --quiet
+docker compose -f backend/docker/compose.yml up -d livekit livekit-egress
 ```
 
 Egress retains recording_backup/recording_tmp volumes, Chrome seccomp and resource
@@ -74,7 +74,7 @@ npm run build
 ```
 
 Production retains REALTIME EC2, private INFRA Redis and image deployment through
-GitHub Actions. See [deployment](../../docs/deployment.md).
+GitHub Actions. See [deployment](../../docs/deployment/production.md).
 
 ## Recording environment
 
@@ -93,7 +93,7 @@ host or Docker execution.
 | Recording features | `MEETING_RECORDING_ENABLED`, `MEETING_RECORDING_PAUSE_ENABLED`; enable only with the corresponding media/storage setup ready. |
 | Worker/limits | `MEETING_RECORDING_WORKER_ROLE`, `MEETING_RECORDING_MAX_CONCURRENT`, `MEETING_RECORDING_MAX_MINUTES`, `MEETING_RECORDING_UPLOAD_PART_MIB`, `MEETING_RECORDING_UPLOAD_CONCURRENCY`; preserve the deployment's existing worker role and capacity settings. |
 | FFmpeg/workspace | `RECORDING_FFMPEG_PATH`, `RECORDING_WORK_ROOT`, `RECORDING_BACKUP_ROOT`; paths must be accessible to the host/container that reads them. |
-| Storage | Keep the S3 credentials used by Communication Service in its env. The local LiveKit Compose file does not interpolate AWS variables from `backend/livekit/.env`. Configure Egress storage separately when enabling recording. |
+| Storage | Keep the S3 credentials used by Communication Service in its env. The local LiveKit Compose file does not interpolate AWS variables from `backend/docker/realtime/.env`. Configure Egress storage separately when enabling recording. |
 
 Meeting summaries use a separate speech worker and dedicated AI credentials,
-configured in `deploy/ai/compose.yml`.
+configured in `backend/docker/ai/compose.yml`. Speech starts by default with the combined stack; see [AI setup](../ai-service/README.md).

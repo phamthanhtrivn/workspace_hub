@@ -710,6 +710,12 @@
         "USER_SERVICE_URL": [
           "backend/communication-service/src/common/config/runtime-config.service.ts:7",
           "backend/communication-service/src/common/auth/session-authorization.ts:16"
+        ],
+        "VOICE_TRANSCRIPTION_ENABLED": [
+          "backend/communication-service/src/modules/media/voice-transcript.config.ts"
+        ],
+        "LIVEKIT_EGRESS_HEALTH_URL": [
+          "backend/communication-service/src/infrastructure/livekit/livekit.service.ts"
         ]
       },
       "variables": {
@@ -2266,57 +2272,25 @@
         }
       }
     },
-    "kong-gateway": {
+    "docker/infra": {
       "current_variables": {
-        "AI_GATEWAY_KEY": [
-          "backend/kong-gateway/render-config.lua:13"
-        ],
-        "FRONTEND_URL": [
-          "backend/kong-gateway/render-config.lua:4"
-        ],
-        "JWT_SECRET_KEY": [
-          "backend/kong-gateway/render-config.lua:4"
-        ]
-      },
-      "variables": {
-        "FRONTEND_URL": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "JWT_SECRET_KEY": {
-          "secret": true,
-          "source": "runtime",
-          "requiredLocal": true
-        },
-        "AI_GATEWAY_KEY": {
-          "secret": true,
-          "source": "runtime",
-          "requiredLocal": false
-        }
-      }
-    },
-    "docker": {
-      "current_variables": {
-        "KAFKA_PORT": [
-          "backend/docker/docker-compose.host.yml:79",
-          "backend/docker/docker-compose.host.yml:84"
-        ],
-        "POSTGRES_DB": [
-          "backend/docker/docker-compose.host.yml:45"
+        "POSTGRES_USER": [
+          "backend/docker/infra/compose.yml"
         ],
         "POSTGRES_PASSWORD": [
-          "backend/docker/docker-compose.host.yml:44"
+          "backend/docker/infra/compose.yml"
+        ],
+        "POSTGRES_DB": [
+          "backend/docker/infra/compose.yml"
         ],
         "POSTGRES_PORT": [
-          "backend/docker/docker-compose.host.yml:47"
-        ],
-        "POSTGRES_USER": [
-          "backend/docker/docker-compose.host.yml:43",
-          "backend/docker/docker-compose.host.yml:52"
+          "backend/docker/infra/compose.yml"
         ],
         "REDIS_PORT": [
-          "backend/docker/docker-compose.host.yml:64"
+          "backend/docker/infra/compose.yml"
+        ],
+        "KAFKA_PORT": [
+          "backend/docker/infra/compose.yml"
         ]
       },
       "variables": {
@@ -2352,31 +2326,61 @@
         }
       }
     },
-    "livekit": {
+    "docker/gateway": {
+      "current_variables": {
+        "JWT_SECRET_KEY": [
+          "backend/docker/gateway/compose.yml"
+        ],
+        "FRONTEND_URL": [
+          "backend/docker/gateway/compose.yml"
+        ],
+        "AI_GATEWAY_KEY": [
+          "backend/docker/gateway/compose.yml"
+        ]
+      },
+      "variables": {
+        "FRONTEND_URL": {
+          "secret": false,
+          "source": "runtime",
+          "requiredLocal": true
+        },
+        "JWT_SECRET_KEY": {
+          "secret": true,
+          "source": "runtime",
+          "requiredLocal": true
+        },
+        "AI_GATEWAY_KEY": {
+          "secret": true,
+          "source": "runtime",
+          "requiredLocal": false
+        }
+      }
+    },
+    "docker/realtime": {
       "current_variables": {
         "LIVEKIT_API_KEY": [
-          "backend/livekit/docker-compose.yml:7",
-          "backend/livekit/docker-compose.yml:8",
-          "backend/livekit/docker-compose.yml:37"
+          "backend/docker/realtime/compose.yml"
         ],
         "LIVEKIT_API_SECRET": [
-          "backend/livekit/docker-compose.yml:7",
-          "backend/livekit/docker-compose.yml:38"
-        ],
-        "LIVEKIT_EGRESS_SECCOMP_PROFILE": [
-          "backend/livekit/docker-compose.yml:42"
+          "backend/docker/realtime/compose.yml"
         ],
         "LIVEKIT_EGRESS_WEBHOOK_URL": [
-          "backend/livekit/docker-compose.yml:9"
+          "backend/docker/realtime/compose.yml"
         ],
         "LIVEKIT_PORT": [
-          "backend/livekit/docker-compose.yml:11"
+          "backend/docker/realtime/compose.yml"
         ],
         "LIVEKIT_RTC_TCP_PORT": [
-          "backend/livekit/docker-compose.yml:12"
+          "backend/docker/realtime/compose.yml"
         ],
         "LIVEKIT_RTC_UDP_PORT": [
-          "backend/livekit/docker-compose.yml:13"
+          "backend/docker/realtime/compose.yml"
+        ],
+        "LIVEKIT_EGRESS_HEALTH_PORT": [
+          "backend/docker/realtime/compose.yml"
+        ],
+        "LIVEKIT_EGRESS_SECCOMP_PROFILE": [
+          "backend/docker/realtime/compose.yml"
         ]
       },
       "variables": {
@@ -2389,11 +2393,6 @@
           "secret": true,
           "source": "runtime",
           "requiredLocal": true
-        },
-        "LIVEKIT_EGRESS_SECCOMP_PROFILE": {
-          "secret": false,
-          "source": "runtime",
-          "requiredLocal": false
         },
         "LIVEKIT_EGRESS_WEBHOOK_URL": {
           "secret": false,

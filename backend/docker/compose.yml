@@ -1,0 +1,16 @@
+name: docker
+include:
+  - path: ./infra/compose.yml
+    env_file: ./infra/.env
+  - path: ./gateway/compose.yml
+    env_file: ./gateway/.env
+  - path: ./realtime/compose.yml
+    env_file: ./realtime/.env
+  - path: ./ai/compose.yml
+    env_file: ./ai/.env
+networks:
+  wh_network:
+    name: wh_network
+    driver: bridge
+  ai_internal:
+    name: docker_ai_internal
