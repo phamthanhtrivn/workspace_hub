@@ -37,14 +37,8 @@ import { SheetPanel } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/components/ui/use-media-query";
 import { cn } from "@/lib/utils";
 
-export type ProjectViewMode =
-  | "overview"
-  | "board"
-  | "list"
-  | "calendar"
-  | "gantt"
-  | "documents"
-  | "members";
+import type { ProjectViewMode } from "../../utils/project-navigation";
+export type { ProjectViewMode } from "../../utils/project-navigation";
 
 interface ProjectDetailSidebarProps {
   project: Project;

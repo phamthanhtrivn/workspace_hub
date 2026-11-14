@@ -2,6 +2,7 @@
 
 import { PERMISSION_REASON,  getActionErrorMessage } from "@/lib/permission-feedback";
 import { useMemo, useState } from "react";
+import { useProjectMemberFilters } from "../../hooks/use-project-member-filters";
 import { toast } from "sonner";
 import {
   Briefcase,
@@ -47,8 +48,6 @@ interface ProjectMembersViewProps {
   onInviteClick?: () => void;
 }
 
-type RoleFilterTab = "ALL" | "ADMIN" | "MEMBER" | "PENDING";
-
 export default function ProjectMembersView({
   projectId,
   members,
@@ -58,8 +57,7 @@ export default function ProjectMembersView({
   canManagePermissions = false,
   currentUserId,
 }: ProjectMembersViewProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<RoleFilterTab>("ALL");
+  const { searchQuery, setSearchQuery, role: activeTab, setRole: setActiveTab } = useProjectMemberFilters();
   const [permissionMember, setPermissionMember] =
     useState<ProjectMember | null>(null);
   const { dialogProps, confirm } = useProjectConfirmDialog();
@@ -83,6 +81,7 @@ export default function ProjectMembersView({
         map.set(assignee.userId, (map.get(assignee.userId) ?? 0) + 1);
       }
     }
+
     return map;
   }, [tasks]);
 
@@ -109,12 +108,15 @@ export default function ProjectMembersView({
         // Search query
         if (searchQuery.trim()) {
           const query = searchQuery.toLowerCase().trim();
+
           return member.displayName.toLowerCase().includes(query);
         }
+
         return true;
       })
       .sort((a, b) => {
         const order = { ADMIN: 0, MEMBER: 1 };
+
         return order[a.role] - order[b.role];
       });
   }, [members, activeTab, searchQuery]);
@@ -165,6 +167,7 @@ export default function ProjectMembersView({
     if (!isoString) return "—";
     try {
       const date = new Date(isoString);
+
       return date.toLocaleDateString();
     } catch {
       return "—";

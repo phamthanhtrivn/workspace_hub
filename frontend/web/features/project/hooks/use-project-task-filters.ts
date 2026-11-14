@@ -1,4 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type SetStateAction } from "react";
+import { useUrlQuery } from "@/hooks/use-url-query";
+import type { ProjectTaskFilters } from "../project-task-view";
+import {
+  parseProjectTaskFilters,
+  projectTaskFilterQuery,
+} from "../utils/project-navigation";
 import {
   buildProjectTaskQuery,
   enrichProjectTasks,
@@ -16,17 +22,43 @@ export function useProjectTaskFilters(
   serverTasks: Task[],
   members: ProjectMember[],
 ) {
-  const [searchQuery, setSearchQuery] = useState("");
+  const { params, updateQuery } = useUrlQuery();
+  const query = params.toString();
+  const {
+    searchQuery,
+    assigneeIds,
+    status,
+    priority,
+    quickAssignee,
+    onlyMyIssues,
+  } = useMemo(
+    () => parseProjectTaskFilters(new URLSearchParams(query)),
+    [query],
+  );
+  const setFilter = <Key extends keyof ProjectTaskFilters>(
+    key: Key,
+    value: SetStateAction<ProjectTaskFilters[Key]>,
+  ) =>
+    updateQuery(
+      (current) => {
+        const filters = parseProjectTaskFilters(current);
+        const nextValue =
+          typeof value === "function" ? value(filters[key]) : value;
+
+        return projectTaskFilterQuery(current, {
+          ...filters,
+          [key]: nextValue,
+        });
+      },
+      key === "searchQuery" ? "replace" : "push",
+    );
   const debouncedSearchQuery = useDebouncedValue(
     searchQuery,
     PROJECT_TASK_SEARCH_DEBOUNCE_MS,
   );
-  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
-  const [status, setStatus] = useState<TaskStatus | "">("");
-  const [priority, setPriority] = useState<TaskPriority | "">("");
-  const [quickAssignee, setQuickAssignee] = useState("");
-  const [onlyMyIssues, setOnlyMyIssues] = useState(false);
-  const [statusOverrides, setStatusOverrides] = useState<Record<string, TaskStatus>>({});
+  const [statusOverrides, setStatusOverrides] = useState<
+    Record<string, TaskStatus>
+  >({});
 
   const tasks = useMemo(
     () => enrichProjectTasks(serverTasks, members, statusOverrides),
@@ -54,20 +86,27 @@ export function useProjectTaskFilters(
   const hasApiFilters = Object.keys(taskQuery).length > 0;
 
   const toggleAssignee = (userId: string) => {
-    setQuickAssignee("");
-    setAssigneeIds((current) =>
-      current.includes(userId)
-        ? current.filter((id) => id !== userId)
-        : [...current, userId],
-    );
+    updateQuery((current) => {
+      const filters = parseProjectTaskFilters(current);
+
+      return projectTaskFilterQuery(current, {
+        ...filters,
+        quickAssignee: "",
+        assigneeIds: filters.assigneeIds.includes(userId)
+          ? filters.assigneeIds.filter((id) => id !== userId)
+          : [...filters.assigneeIds, userId],
+      });
+    }, "push");
   };
   const clear = () => {
-    setAssigneeIds([]);
-    setOnlyMyIssues(false);
-    setSearchQuery("");
-    setStatus("");
-    setPriority("");
-    setQuickAssignee("");
+    updateQuery(
+      (current) =>
+        projectTaskFilterQuery(
+          current,
+          parseProjectTaskFilters(new URLSearchParams()),
+        ),
+      "push",
+    );
   };
   const isActive =
     assigneeIds.length > 0 ||
@@ -82,17 +121,26 @@ export function useProjectTaskFilters(
     taskQuery,
     hasApiFilters,
     searchQuery,
-    setSearchQuery,
+    setSearchQuery: (value: string) => setFilter("searchQuery", value),
     assigneeIds,
-    setAssigneeIds,
     status,
-    setStatus,
+    setStatus: (value: TaskStatus | "") => setFilter("status", value),
     priority,
-    setPriority,
+    setPriority: (value: TaskPriority | "") => setFilter("priority", value),
     quickAssignee,
-    setQuickAssignee,
+    setQuickAssignee: (value: string) =>
+      updateQuery(
+        (current) =>
+          projectTaskFilterQuery(current, {
+            ...parseProjectTaskFilters(current),
+            quickAssignee: value,
+            assigneeIds: [],
+          }),
+        "push",
+      ),
     onlyMyIssues,
-    setOnlyMyIssues,
+    setOnlyMyIssues: (value: SetStateAction<boolean>) =>
+      setFilter("onlyMyIssues", value),
     statusOverrides,
     setStatusOverrides,
     toggleAssignee,
