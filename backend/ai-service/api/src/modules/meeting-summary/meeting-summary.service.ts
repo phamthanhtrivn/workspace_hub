@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { Injectable, ServiceUnavailableException } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { config } from "../../config/env.config";
@@ -62,9 +63,9 @@ export class MeetingSummaryService {
         );
       } catch {
         await rows(
-          `UPDATE notebook_ai.meeting_summaries SET status='FAILED',stage='FAILED',error='Không thể xếp lịch xử lý. Vui lòng thử lại.',updated_at=now()
+          `UPDATE notebook_ai.meeting_summaries SET status='FAILED',stage='FAILED',error=$3,updated_at=now()
           WHERE recording_id=$1 AND run_id=$2 AND status='QUEUED'`,
-          [id, runId],
+          [id, runId, AI_UI_MESSAGES.PROCESSING_QUEUE_FAILED],
         );
         throw new ServiceUnavailableException("Meeting queue unavailable");
       }

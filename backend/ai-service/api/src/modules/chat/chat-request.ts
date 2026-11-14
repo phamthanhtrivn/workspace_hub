@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { ConflictException, NotFoundException } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import { transaction } from "../../infrastructure/database/database";
@@ -27,7 +28,7 @@ export async function startChatRequest(
       );
       if (usage.active >= 2 || usage.recent >= 10)
         throw new TooManyRequestsException(
-          "Bạn đang có nhiều yêu cầu; chờ hoặc hủy câu trả lời trước.",
+          AI_UI_MESSAGES.CHAT_BUSY,
         );
       await client.query(
         "INSERT INTO notebook_ai.requests(id,notebook_id,owner_id) VALUES($1,$2,$3)",
@@ -38,7 +39,7 @@ export async function startChatRequest(
   } catch (error) {
     if ((error as { code?: string }).code === "23505")
       throw new ConflictException(
-        "Notebook đang có câu trả lời hoặc request đã được gửi",
+        AI_UI_MESSAGES.CHAT_ALREADY_RUNNING,
       );
     throw error;
   }
@@ -86,7 +87,7 @@ export async function completeChatRequest(
       "SELECT status FROM notebook_ai.requests WHERE id=$1 FOR UPDATE",
       [requestId],
     );
-    if (request?.status !== "RUNNING") throw new Error("Yêu cầu đã hủy");
+    if (request?.status !== "RUNNING") throw new Error(AI_UI_MESSAGES.CHAT_CANCELED);
     await client.query(
       "INSERT INTO notebook_ai.messages(id,notebook_id,role,content,citations,sources) VALUES($1,$2,'ASSISTANT',$3,$4,$5)",
       [

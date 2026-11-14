@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import {
   BadRequestException,
   PayloadTooLargeException,
@@ -29,7 +30,7 @@ export function readUpload(
       if (size > MAX_FILE_BYTES || size > expectedSize)
         finish(
           new PayloadTooLargeException(
-            "File vượt kích thước khai báo hoặc 20 MiB.",
+            AI_UI_MESSAGES.UPLOAD_DECLARED_SIZE,
           ),
         );
       else parts.push(chunk);
@@ -38,14 +39,14 @@ export function readUpload(
       finish(
         size === expectedSize
           ? undefined
-          : new BadRequestException("Kích thước file không khớp."),
+          : new BadRequestException(AI_UI_MESSAGES.UPLOAD_SIZE_MISMATCH),
       );
     const onError = () =>
-      finish(new BadRequestException("Không đọc được file tải lên."));
-    const onAbort = () => finish(new BadRequestException("Đã ngắt tải file."));
+      finish(new BadRequestException(AI_UI_MESSAGES.UPLOAD_READ_FAILED));
+    const onAbort = () => finish(new BadRequestException(AI_UI_MESSAGES.UPLOAD_ABORTED));
     const timer = setTimeout(
       () =>
-        finish(new RequestTimeoutException("Tải file quá thời gian cho phép.")),
+        finish(new RequestTimeoutException(AI_UI_MESSAGES.UPLOAD_TIMEOUT)),
       timeoutMs,
     );
     stream.on("data", onData);

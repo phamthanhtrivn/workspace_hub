@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import {
   AIMessage,
   AIMessageChunk,
@@ -175,7 +176,7 @@ export async function workAnswer(
     signal,
   );
   signal.throwIfAborted();
-  onStatus("Đang phân tích công việc…");
+  onStatus(AI_UI_MESSAGES.ANALYZING_WORK);
   await authorize();
   signal.throwIfAborted();
   const model = createChatModel(modelName, maxTokens);

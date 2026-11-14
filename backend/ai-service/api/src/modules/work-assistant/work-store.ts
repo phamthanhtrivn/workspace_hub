@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { rows, transaction } from "../../infrastructure/database/database";
 import {
   ConflictException,
@@ -161,7 +162,7 @@ export class WorkStore {
       );
       if (existing.length)
         throw new ConflictException(
-          "Yêu cầu đã được xử lý. Hãy tải lại hội thoại.",
+          AI_UI_MESSAGES.REQUEST_PROCESSED,
         );
       await client.query(
         "UPDATE notebook_ai.work_assistant_requests SET status='INTERRUPTED',updated_at=now() WHERE owner_id=$1 AND status='RUNNING' AND created_at<now()-interval '3 minutes'",
@@ -174,10 +175,10 @@ export class WorkStore {
         [actor.id],
       );
       if (usage.active)
-        throw new ConflictException("Một câu hỏi khác đang được xử lý.");
+        throw new ConflictException(AI_UI_MESSAGES.QUESTION_RUNNING);
       if (usage.recent >= 8)
         throw new TooManyRequestsException(
-          "Bạn hỏi quá nhanh. Vui lòng thử lại sau một phút.",
+          AI_UI_MESSAGES.REQUEST_RATE_LIMIT,
         );
       signal?.throwIfAborted();
       await client.query(
@@ -231,7 +232,7 @@ export class WorkStore {
         "UPDATE notebook_ai.work_assistant_requests SET status='COMPLETED',updated_at=now() WHERE id=$1 AND owner_id=$2 AND session_id=$3 AND status='RUNNING' AND NOT cancel_requested RETURNING id",
         [requestId, actor.id, session.id],
       );
-      if (!changed.length) throw new ConflictException("Yêu cầu đã bị hủy.");
+      if (!changed.length) throw new ConflictException(AI_UI_MESSAGES.REQUEST_CANCELED);
       const references = JSON.stringify(sources),
         ids = JSON.stringify(projectIds);
       await client.query(

@@ -1,10 +1,11 @@
+import { AI_UI_MESSAGES } from "./ai-ui.messages";
 import { ServiceUnavailableException } from "@nestjs/common";
 
 export async function readResponseText(
   response: Response,
   maxBytes: number,
   sizeError: Error = new ServiceUnavailableException(
-    "Nguồn dữ liệu vượt giới hạn.",
+    AI_UI_MESSAGES.DATA_SIZE_LIMIT,
   ),
 ) {
   if (Number(response.headers.get("content-length")) > maxBytes) {

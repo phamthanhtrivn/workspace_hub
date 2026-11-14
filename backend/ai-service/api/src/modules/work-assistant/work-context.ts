@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import {
   ForbiddenException,
   Injectable,
@@ -17,7 +18,7 @@ export class WorkContextService {
     if (!projectIds.length) return new Set<string>();
     const ids = [...new Set(projectIds)];
     if (ids.length > 1000)
-      throw new ServiceUnavailableException("Quá nhiều dự án trong lịch sử.");
+      throw new ServiceUnavailableException(AI_UI_MESSAGES.TOO_MANY_HISTORY_PROJECTS);
     const data = z
       .object({ projectIds: z.array(z.string().uuid()).max(1000) })
       .parse(
@@ -38,7 +39,7 @@ export class WorkContextService {
         scope.projectId,
       )
     )
-      throw new ForbiddenException("Bạn không còn quyền xem dự án này.");
+      throw new ForbiddenException(AI_UI_MESSAGES.PROJECT_FORBIDDEN);
   }
   async read(
     actor: Actor,

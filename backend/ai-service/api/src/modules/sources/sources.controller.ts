@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import {
   BadRequestException,
   Body,
@@ -45,7 +46,7 @@ export class SourcesController {
       await ownedNotebook(req.actor, id);
       if (req.headers["content-type"] !== "application/octet-stream")
         throw new BadRequestException(
-          "Gửi file dưới dạng application/octet-stream.",
+          AI_UI_MESSAGES.UPLOAD_CONTENT_TYPE,
         );
       const size = parse(
         z.coerce.number().int().positive(),

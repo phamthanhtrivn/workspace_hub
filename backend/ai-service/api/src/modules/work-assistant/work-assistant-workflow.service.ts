@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import {
   ApplicationEventStream,
   SseTransport,
@@ -74,7 +75,7 @@ export class WorkAssistantWorkflowService {
     let deltaCount = 0;
     let completed = false;
     try {
-      stream.emit("status", { message: "Đang lấy dữ liệu mới…" });
+      stream.emit("status", { message: AI_UI_MESSAGES.FETCHING_CONTEXT });
       const result = await this.generation.generateAnswer(
         { actor, session, input, signal, timing },
         (message) => stream.emit("status", { message }),
@@ -117,13 +118,13 @@ export class WorkAssistantWorkflowService {
   }
 
   failureMessage(status: number, timedOut: boolean, canceled: boolean) {
-    if (timedOut) return "Hết thời gian chờ AI. Vui lòng thử lại sau.";
-    if (canceled) return "Yêu cầu đã dừng.";
+    if (timedOut) return AI_UI_MESSAGES.WORK_TIMEOUT;
+    if (canceled) return AI_UI_MESSAGES.WORK_STOPPED;
     if (status === 403)
-      return "Quyền truy cập đã thay đổi. Vui lòng mở lại trợ lý.";
-    if (status === 429) return "AI đang chờ hạn mức. Hãy thử lại sau.";
+      return AI_UI_MESSAGES.WORK_ACCESS_CHANGED;
+    if (status === 429) return AI_UI_MESSAGES.WORK_QUOTA;
 
-    return "Chưa thể trả lời lúc này. Vui lòng thử lại; trợ lý chưa thay đổi dữ liệu công việc.";
+    return AI_UI_MESSAGES.WORK_FAILED;
   }
 
   async cancel(actor: Actor, requestId: string, sessionId: string) {

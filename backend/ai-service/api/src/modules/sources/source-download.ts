@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import {
   BadRequestException,
   PayloadTooLargeException,
@@ -12,7 +13,7 @@ export async function downloadSource(
 ): Promise<Buffer> {
   checkFile(manifest.name, manifest.sizeBytes);
   if (!manifest.downloadUrl)
-    throw new ServiceUnavailableException("Không lấy được liên kết file gốc.");
+    throw new ServiceUnavailableException(AI_UI_MESSAGES.SOURCE_URL_UNAVAILABLE);
   let response: Response;
   try {
     response = await fetch(manifest.downloadUrl, {
@@ -23,13 +24,13 @@ export async function downloadSource(
     });
   } catch {
     throw new ServiceUnavailableException(
-      "Không tải được file gốc để kiểm tra. Hãy thử lại.",
+      AI_UI_MESSAGES.SOURCE_DOWNLOAD_FAILED,
     );
   }
   if (!response.ok || !response.body) {
     await response.body?.cancel();
     throw new ServiceUnavailableException(
-      "Không tải được file gốc để kiểm tra. Hãy thử lại.",
+      AI_UI_MESSAGES.SOURCE_DOWNLOAD_FAILED,
     );
   }
   const reader = response.body.getReader();
@@ -42,7 +43,7 @@ export async function downloadSource(
       size += value.length;
       if (size > MAX_FILE_BYTES || size > manifest.sizeBytes)
         throw new PayloadTooLargeException(
-          "File vượt 20 MiB hoặc kích thước phiên bản không khớp.",
+          AI_UI_MESSAGES.SOURCE_FILE_MISMATCH,
         );
       parts.push(value);
     }
@@ -50,7 +51,7 @@ export async function downloadSource(
     await reader.cancel().catch(() => {});
   }
   if (size !== manifest.sizeBytes)
-    throw new BadRequestException("Kích thước phiên bản nguồn không khớp.");
+    throw new BadRequestException(AI_UI_MESSAGES.SOURCE_SIZE_MISMATCH);
 
   return Buffer.concat(parts, size);
 }

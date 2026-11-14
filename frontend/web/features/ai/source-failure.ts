@@ -10,7 +10,7 @@ export function sourceFailure(error: string | null) {
     };
   const limits: [RegExp, string][] = [
     [
-      /VISUAL_PAGE_LIMIT|vượt 24 trang\/hình|16 MiB ảnh trích xuất/i,
+      /VISUAL_PAGE_LIMIT|vượt 24 trang\/hình|16 MiB ảnh trích xuất|exceeds 24 pages\/images|16 MiB of extracted images/i,
       "This file exceeds the Vision limit: 24 pages/images requiring analysis or 16 MiB of extracted images. Split it into smaller files and upload them again. Retrying the unchanged file will not help.",
     ],
     [
@@ -18,11 +18,11 @@ export function sourceFailure(error: string | null) {
       "This file exceeds 100,000 tokens. Split it into smaller files and upload them again.",
     ],
     [
-      /PDF_PAGE_LIMIT|PDF vượt 100 trang/i,
+      /PDF_PAGE_LIMIT|PDF vượt 100 trang|PDF exceeds 100 pages/i,
       "This PDF exceeds 100 pages. Split it into smaller files and upload them again.",
     ],
     [
-      /DOCX_EXPANDED_LIMIT|sau giải nén vượt 100 MiB/i,
+      /DOCX_EXPANDED_LIMIT|sau giải nén vượt 100 MiB|DOCX exceeds 100 MiB after decompression/i,
       "This DOCX exceeds 100 MiB after decompression. Reduce its images or split the file before uploading again.",
     ],
   ];

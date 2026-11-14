@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { documentPreviewUrl } from "../../infrastructure/integrations/document.client";
 import {
   BadRequestException,
@@ -45,7 +46,7 @@ export class SourcesService {
         } catch (error) {
           if (!(error instanceof ForbiddenException)) throw error;
           source.status = "UNAVAILABLE";
-          source.error = "Mất quyền hoặc phiên bản nguồn đã thay đổi";
+          source.error = AI_UI_MESSAGES.SOURCE_ACCESS_CHANGED;
         }
       }),
     );
@@ -85,7 +86,7 @@ export class SourcesService {
             current.revision !== m.revision
           )
             throw new BadRequestException(
-              "Nguồn đã thay đổi. Hãy chọn lại tài liệu.",
+              AI_UI_MESSAGES.SOURCE_RESELECT,
             );
           await validateContent(
             current.name,
@@ -174,7 +175,7 @@ export class SourcesService {
         url: await documentPreviewUrl(manifest.documentId, authorization),
       };
     if (!["FAILED", "QUEUED", "READY"].includes(source.status))
-      throw new BadRequestException("Nguồn đang xử lý");
+      throw new BadRequestException(AI_UI_MESSAGES.SOURCE_PROCESSING);
     await withUploadCheck(async () => {
       const [file] = await authorizeSources(actor, [source], true);
       await validateContent(file.name, await downloadSource(file), id);
@@ -184,7 +185,7 @@ export class SourcesService {
       [sourceId],
     );
     if (!updated.length)
-      throw new BadRequestException("Nguồn đã bị xóa hoặc đang xử lý");
+      throw new BadRequestException(AI_UI_MESSAGES.SOURCE_REMOVED_OR_PROCESSING);
     await enqueue("index", sourceId, { sourceId });
 
     return {};

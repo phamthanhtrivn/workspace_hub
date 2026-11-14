@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../ai-ui.messages";
 import { verifyAccessClaims } from "./access-token";
 import { assertActiveSession } from "./session-authorization";
 import {
@@ -24,7 +25,7 @@ const gatewayIdentity = z
 export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext) {
     if (config.AI_ENABLED !== "true")
-      throw new ServiceUnavailableException("Notebook AI chưa được bật");
+      throw new ServiceUnavailableException(AI_UI_MESSAGES.NOTEBOOK_DISABLED);
     const req = context.switchToHttp().getRequest<AuthRequest>();
     const proof = req.headers["x-workspace-gateway-key"];
     const keys = [config.AI_GATEWAY_KEY, config.AI_GATEWAY_KEY_PREVIOUS].filter(

@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../common/ai-ui.messages";
 import type { Job } from "bullmq";
 import { rows } from "../infrastructure/database/database";
 import {
@@ -84,7 +85,7 @@ export function recoverInterruptedJobs(signal?: AbortSignal) {
          WHERE id=$1 AND status='INDEXING' AND updated_at<now()-interval '6 minutes' RETURNING id`,
         [
           item.id,
-          "INDEX_INTERRUPTED: Worker bị gián đoạn. Bấm Thử lại để lập chỉ mục.",
+          AI_UI_MESSAGES.INDEX_INTERRUPTED,
         ],
       );
     },
@@ -159,10 +160,10 @@ export async function reconcileQueuedJobs(
             (await jobIsGone(job)) &&
             changed(
               `UPDATE notebook_ai.meeting_summaries SET status='FAILED',stage='FAILED',
-        error='Xử lý bị gián đoạn. Bạn có thể bấm thử lại.',updated_at=now()
+        error=$3,updated_at=now()
         WHERE recording_id=$1 AND run_id=$2 AND status IN ('QUEUED','RUNNING')
         AND updated_at<now()-interval '2 minutes' RETURNING recording_id`,
-              [item.id, item.run_id],
+              [item.id, item.run_id, AI_UI_MESSAGES.PROCESSING_INTERRUPTED],
             )
           );
         },

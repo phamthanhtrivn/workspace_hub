@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import {
   ForbiddenException,
   ServiceUnavailableException,
@@ -41,7 +42,7 @@ async function documentRequest<T>(
       throw new ForbiddenException(messages.forbidden);
     if (response.status === 401)
       throw new ServiceUnavailableException(
-        "Khóa nội bộ giữa AI và Document Service chưa khớp cấu hình",
+        AI_UI_MESSAGES.DOCUMENT_KEY_MISMATCH,
       );
     throw new ServiceUnavailableException(messages.unavailable);
   }
@@ -61,9 +62,9 @@ export function resolveDocuments(
     "/internal/notebook-documents/resolve",
     { userId: actor.id, userEmail: actor.email, refs, download },
     {
-      verify: "Không xác minh được quyền tài liệu",
-      forbidden: "Nguồn đã bị xóa hoặc mất quyền truy cập",
-      unavailable: "Document Service chưa sẵn sàng",
+      verify: AI_UI_MESSAGES.DOCUMENT_VERIFY_FAILED,
+      forbidden: AI_UI_MESSAGES.DOCUMENT_FORBIDDEN,
+      unavailable: AI_UI_MESSAGES.DOCUMENT_UNAVAILABLE,
     },
     signal,
   );
@@ -97,7 +98,7 @@ export async function authorizeSources(
       !manifest.current
     )
       throw new ForbiddenException(
-        "Nguồn đã thay đổi. Hãy thêm phiên bản mới.",
+        AI_UI_MESSAGES.SOURCE_NEW_VERSION,
       );
   }
 
@@ -119,9 +120,9 @@ export function resolveChatAttachment(
     "/internal/notebook-documents/resolve-chat-attachment",
     { ...ref, download },
     {
-      verify: "Không xác minh được quyền tài liệu gốc.",
-      forbidden: "Tài liệu gốc đã bị xóa hoặc bạn chưa có quyền đọc.",
-      unavailable: "Document Service chưa sẵn sàng xác minh file.",
+      verify: AI_UI_MESSAGES.ORIGINAL_ACCESS_UNVERIFIED,
+      forbidden: AI_UI_MESSAGES.ORIGINAL_FORBIDDEN,
+      unavailable: AI_UI_MESSAGES.ORIGINAL_UNAVAILABLE,
     },
     signal,
   );

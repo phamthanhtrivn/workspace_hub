@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 import {
@@ -59,9 +60,9 @@ export class WorkAssistantQueryService {
           contextType: s.context_type,
           updatedAt: s.updated_at,
           title: s.project_ids.some((id) => !allowed.has(id))
-            ? "Cuộc trò chuyện trước đây"
+            ? AI_UI_MESSAGES.PREVIOUS_CONVERSATION
             : s.content?.replace(/\s+/g, " ").trim().slice(0, 100) ||
-              "Cuộc trò chuyện mới",
+              AI_UI_MESSAGES.NEW_CONVERSATION,
         })),
         nextCursor: page.nextCursor,
       },
