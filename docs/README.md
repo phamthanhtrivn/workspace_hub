@@ -7,7 +7,7 @@ The maintained guides describe the current repository. Completed implementation 
 | Architecture | [System architecture](architecture/system-architecture.md) |
 | Development | [Local setup](development/local-setup.md), [environment](development/environment.md), [private storage](development/private-storage.md) |
 | Deployment | [Production](deployment/production.md), [migrations](deployment/migrations.md), [security rollout](deployment/security-rollout.md) |
-| Features | [Calendar reminders](features/calendar-reminders.md), [conversation AI language](features/conversation-ai-language.md), [voice messages](features/voice-messages.md), [socket recovery](features/socket-session-recovery.md) |
+| Features | [Calendar reminders](features/calendar-reminders.md), [chat mentions](features/chat-mentions.md), [conversation AI language](features/conversation-ai-language.md), [voice messages](features/voice-messages.md), [socket recovery](features/socket-session-recovery.md) |
 | Frontend | [Design tokens](frontend/design-tokens.md), [SEO metadata](frontend/seo-metadata.md) |
 | Verification | [Testing](../tests/README.md), [system verification](../tests/system/README.md) |
 

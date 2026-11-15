@@ -5,19 +5,25 @@ import {
   UserProfileSnapshotResponse,
 } from "../types/chat.types";
 import { AI_BOT } from "../constants/chat-identity";
+import {
+  CHAT_GROUP_MENTION,
+  type ChatGroupMention,
+} from "../constants/group-mention";
 
 export interface MentionMemberOption {
   id: string;
   name: string;
   avatarUrl?: string | null;
-  isAll?: boolean;
+  isGroup?: boolean;
 }
 
-export function shouldShowAllMentionOption(searchQuery: string) {
+function shouldShowGroupMentionOption(searchQuery: string) {
   const normalizedQuery = searchQuery.trim().toLowerCase();
+
   return (
     normalizedQuery === "" ||
     "all".includes(normalizedQuery) ||
+    "channel".includes(normalizedQuery) ||
     "everyone".includes(normalizedQuery)
   );
 }
@@ -25,7 +31,11 @@ export function shouldShowAllMentionOption(searchQuery: string) {
 export function getChannelMentionOptions(
   membersResponse: ChannelMembersListResponse | undefined,
   currentUserId?: string | null,
-  options: { includeAll?: boolean; searchQuery?: string; limit?: number } = {},
+  options: {
+    groupMention?: ChatGroupMention;
+    searchQuery?: string;
+    limit?: number;
+  } = {},
 ): MentionMemberOption[] {
   const limit = options.limit ?? 4;
   const members = [
@@ -35,32 +45,27 @@ export function getChannelMentionOptions(
     .filter((member) => member.userId !== currentUserId)
     .map(toChannelMentionOption);
 
-  const aiOption = AI_BOT.name.toLowerCase().includes(
-    (options.searchQuery ?? "").trim().toLowerCase(),
-  )
+  const aiOption = AI_BOT.name
+    .toLowerCase()
+    .includes((options.searchQuery ?? "").trim().toLowerCase())
     ? [{ id: AI_BOT.mentionId, name: AI_BOT.name }]
     : [];
   members.unshift(...aiOption);
-  const limitedMembers = options.includeAll
-    ? members.slice(0, limit - 1)
-    : members.slice(0, limit);
-
   if (
-    options.includeAll &&
-    shouldShowAllMentionOption(options.searchQuery ?? "")
+    options.groupMention &&
+    shouldShowGroupMentionOption(options.searchQuery ?? "")
   ) {
     return [
       {
-        id: "all",
-        name: "All",
+        ...CHAT_GROUP_MENTION[options.groupMention],
         avatarUrl: undefined,
-        isAll: true,
+        isGroup: true,
       },
-      ...limitedMembers,
+      ...members.slice(0, Math.max(0, limit - 1)),
     ];
   }
 
-  return limitedMembers;
+  return members.slice(0, limit);
 }
 
 export function getCachedMentionOptions(
@@ -80,6 +85,7 @@ export function getCachedMentionOptions(
       .filter((member) => member.userId !== currentUserId)
       .map((member) => {
         const profile = profiles[member.userId];
+
         return {
           id: member.userId,
           name: getDisplayName(member.nickname, profile, member.userId),

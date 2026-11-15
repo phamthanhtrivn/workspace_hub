@@ -16,6 +16,10 @@ import { getMediaType } from '../../common/utils/file.util';
 import { MESSAGE_ERROR_MESSAGES } from './types/message.enums';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { isTaskCardContent } from './utils/is-task-card-content';
+import {
+  resolveChannelMentions,
+  type ResolvedChannelMentions,
+} from './utils/channel-mentions';
 
 @Injectable()
 export class MessageMutationService {
@@ -50,9 +54,11 @@ export class MessageMutationService {
     },
     threadParentId?: string,
     attachmentMediaId?: string,
+    mentions?: string[],
   ) {
     assertClientMessageType(type, true);
     const createdMessage = await this.prisma.$transaction(async (tx) => {
+      let resolvedMentions: ResolvedChannelMentions = { content, mentions: [] };
       if (type !== MessageType.SYSTEM) {
         const member = await tx.channelMember.findUnique({
           where: { channelId_userId: { channelId, userId: senderId } },
@@ -112,6 +118,15 @@ export class MessageMutationService {
           if (!setting.allowCreateTask && isTaskCardContent(type, content)) {
             throw new BadRequestException(MESSAGE_ERROR_MESSAGES.TASK_DISABLED);
           }
+        }
+        if (type === MessageType.TEXT) {
+          resolvedMentions = await resolveChannelMentions(
+            tx,
+            member.channel,
+            senderId,
+            content,
+            mentions,
+          );
         }
       }
 
@@ -176,7 +191,7 @@ export class MessageMutationService {
         data: {
           channelId,
           senderId,
-          content,
+          content: resolvedMentions.content,
           type,
           threadParentId,
           medias:
@@ -263,7 +278,8 @@ export class MessageMutationService {
         VoiceChatType.CHANNEL,
         tx,
       );
-      return message;
+
+      return { ...message, mentions: resolvedMentions.mentions };
     });
     this.conversationAi.notify(createdMessage);
     this.voiceTranscripts.notify();

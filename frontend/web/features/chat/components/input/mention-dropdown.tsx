@@ -42,7 +42,7 @@ export default React.memo(function MentionDropdown({
           }`}
         >
           <div className="w-6 h-6 rounded-full bg-info-soft flex items-center justify-center text-info-content font-medium text-xs flex-shrink-0 overflow-hidden">
-            {user.id === "all" ? (
+            {user.isGroup ? (
               <Users size={15} className="text-info-content" />
             ) : user.id === AI_BOT.mentionId ? (
               <Bot size={15} aria-hidden="true" />

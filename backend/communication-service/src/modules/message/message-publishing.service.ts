@@ -53,6 +53,7 @@ export class MessagePublishingService {
       noteData,
       threadParentId,
       attachmentMediaId,
+      mentions,
     );
 
     const threadFollowers = threadParentId
@@ -64,7 +65,7 @@ export class MessagePublishingService {
       chatType: CHAT_CONTEXT_TYPE.CHANNEL,
       channelId,
       medias: mapMediaWithUrl(message.medias),
-      mentions,
+      mentions: message.mentions,
       threadFollowers,
     };
 

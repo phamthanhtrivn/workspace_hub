@@ -154,7 +154,7 @@ export function useChatSocket() {
           }
           const hasMention =
             message.mentions?.includes(currentUserId) ||
-            message.mentions?.includes("all");
+            (channel.isDefault === true && message.mentions?.includes("all"));
 
           const updatedChannel = {
             ...channel,
