@@ -61,7 +61,7 @@ function NotebookLibrary({ userId }: { userId: string }) {
       <div className="flex flex-wrap items-center gap-3 rounded-panel border border-border bg-card p-3">
         <div className="relative min-w-0 basis-full sm:min-w-48 sm:flex-1 sm:basis-auto">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
           />
           <Input
