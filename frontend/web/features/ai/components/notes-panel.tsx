@@ -9,6 +9,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -56,11 +57,13 @@ export function NotesPanel({
       className="flex h-full min-h-0 min-w-0 flex-col"
     >
       <header className="flex shrink-0 items-center gap-2 border-b border-border p-4">
-        <NotebookPen className="size-4 text-link" aria-hidden="true" />
-        <h2 className="font-semibold">Notes</h2>
-        <span className="ml-auto text-xs tabular-nums text-muted-foreground">
-          {notebook.notes.length}
+        <span className="grid size-8 place-items-center rounded-control bg-warning-soft text-warning-content">
+          <NotebookPen className="size-4" aria-hidden="true" />
         </span>
+        <h2 className="font-semibold">Notes</h2>
+        <Badge variant="secondary" className="ml-auto tabular-nums">
+          {notebook.notes.length}
+        </Badge>
         {collapseControl}
       </header>
       <div className="shrink-0 p-3">
@@ -81,11 +84,7 @@ export function NotesPanel({
               className="mx-auto size-7 text-muted-foreground"
               aria-hidden="true"
             />
-            <p className="text-sm font-medium">Keep what matters</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Write a note or save an AI answer from Chat. Its citations stay
-              with it.
-            </p>
+            <p className="text-sm font-medium">No notes yet</p>
           </div>
         )}
         {notebook.notes.map((note) => (
@@ -103,6 +102,9 @@ export function NotesPanel({
                   setExpanded(expanded === note.id ? null : note.id)
                 }
               >
+                <span className="grid size-7 shrink-0 place-items-center rounded-control bg-warning-soft text-warning-content">
+                  <NotebookPen className="size-4" aria-hidden="true" />
+                </span>
                 <ChevronDown
                   className={`mt-0.5 size-4 shrink-0 ${expanded === note.id ? "" : "-rotate-90"}`}
                   aria-hidden="true"

@@ -1,6 +1,7 @@
 import { aiErrorMessage } from "@/lib/ai-feedback";
 
 type FileInfo = { name: string; size: number };
+export const NOTEBOOK_SOURCE_LIMIT = 5;
 type StoredSource = { size_bytes: number };
 export type UploadBatch = { count: number; bytes: number };
 export type UploadStage = "CHECKING" | "UPLOADING" | "ADDING";
@@ -79,7 +80,7 @@ export function validateUploadBatch(
   files: FileInfo[],
   sources: StoredSource[],
 ): UploadBatch {
-  if (!files.length || files.length + sources.length > 5)
+  if (!files.length || files.length + sources.length > NOTEBOOK_SOURCE_LIMIT)
     throw new Error(
       "A notebook can have up to 5 files. Select fewer files or remove a source.",
     );

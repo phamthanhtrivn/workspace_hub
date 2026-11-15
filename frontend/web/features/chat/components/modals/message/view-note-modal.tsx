@@ -51,11 +51,12 @@ export default function ViewNoteModal({
           <NoteMessage
             note={note}
             onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
-            onEditNote={(title, content) => {
-              void editChannelNote(conversationId, note.messageId, {
+            onEditNote={async (title, content) => {
+              const result = await editChannelNote(conversationId, note.messageId, {
                   title,
                   content,
                 });
+              return result.success;
             }}
           />
         </div>

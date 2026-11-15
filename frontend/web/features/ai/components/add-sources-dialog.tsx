@@ -17,7 +17,8 @@ import { NotebookDocumentPicker } from "./notebook-document-picker";
 import type { Source } from "../types";
 import type { useSourceUpload } from "../hooks/use-source-upload";
 
-export const NOTEBOOK_SOURCE_LIMIT = 5;
+import { NOTEBOOK_SOURCE_LIMIT } from "../utils/notebook-source-selection";
+export { NOTEBOOK_SOURCE_LIMIT } from "../utils/notebook-source-selection";
 
 export function AddSourcesDialog({
   id,
@@ -55,8 +56,7 @@ export function AddSourcesDialog({
             Add sources
           </DialogTitle>
           <DialogDescription>
-            Upload files or choose documents you can access. {sources.length}/
-            {NOTEBOOK_SOURCE_LIMIT} sources added.
+            {sources.length}/{NOTEBOOK_SOURCE_LIMIT} sources added.
           </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="upload" className={`${dialogLayout.body} mt-5`}>
@@ -73,7 +73,6 @@ export function AddSourcesDialog({
           <TabsContent value="upload" className="space-y-4 p-1">
             <div className="flex flex-col items-center gap-3 rounded-panel border border-dashed border-border px-5 py-8 text-center">
               <Upload className="size-8 text-link" aria-hidden="true" />
-              <p className="font-medium">Add documents to your notebook</p>
               <p className="max-w-prose text-sm text-muted-foreground">
                 PDF, DOCX, TXT, MD, PNG, JPEG and WebP. Up to 20 MiB per file
                 and 50 MiB per notebook.
@@ -112,7 +111,7 @@ export function AddSourcesDialog({
           <TabsContent value="documents" className="p-1">
             <NotebookDocumentPicker
               notebookId={id}
-              addedIds={sources.map((source) => source.document_id)}
+              sources={sources}
               onAdded={refresh}
               disabled={locked || full}
               onPending={setPickerBusy}

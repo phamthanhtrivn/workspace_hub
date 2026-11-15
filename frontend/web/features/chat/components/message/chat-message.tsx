@@ -1,3 +1,4 @@
+import type { NoteSaveResult } from "@/components/notes/note.constants";
 import { AI_BOT, isAiBot } from "../../constants/chat-identity";
 import { useId as useControlledPopupId } from "react";
 import React, { useMemo, useRef, useState } from "react";
@@ -63,7 +64,7 @@ interface ChatMessageProps {
     anonymous: boolean,
     isLocked: boolean,
   ) => void | Promise<unknown>;
-  onNoteEdit?: (messageId: string, title: string, content: string) => void;
+  onNoteEdit?: (messageId: string, title: string, content: string) => NoteSaveResult | Promise<NoteSaveResult>;
   onEditMessage?: (msg: RenderableChatMessage) => void;
   onRecallMessage?: (msg: RenderableChatMessage) => void;
   onJumpToMessage?: (messageId: string) => void;

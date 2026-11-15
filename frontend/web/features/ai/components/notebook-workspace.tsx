@@ -61,12 +61,16 @@ function Workspace({ id, userId }: { id: string; userId: string }) {
   );
   const running = useRef(false);
   const run: NotebookActionRunner = (operation, key) => {
-    if (running.current) return;
+    if (running.current) return Promise.resolve(false);
     running.current = true;
     setPendingAction(key ?? null);
-    void query
+
+    return query
       .action(operation)
-      .catch(() => {})
+      .then(
+        () => true,
+        () => false,
+      )
       .finally(() => {
         running.current = false;
         setPendingAction(null);

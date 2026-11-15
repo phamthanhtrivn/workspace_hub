@@ -45,40 +45,16 @@ test("notes render content only when expanded and remove an editor when its sour
   assert.match(html, /hidden because a source/);
 });
 
-test("saving a note blocks duplicate submits and closes only after the API succeeds", async () => {
-  let calls = 0, closed = 0, release;
-  const wait = new Promise(resolve => { release = resolve; });
-  let saving;
+test("Notebook notes use the shared editor with mandatory title, limits and citation-aware preview", async () => {
+  let saved;
   const { NoteDialog } = load("features/ai/components/note-dialog.tsx", {
-    react: { ...React, useId: () => "note", useRef: value => ({ current: value }), useState: value => [value, noop] },
-    "../api/notebooks.api": { notebooksApi: { note: async () => { calls++; await wait; } } },
+    "../api/notebooks.api": { notebooksApi: { note: async (_id, draft) => { saved = draft; } } },
   });
-  const tree = NoteDialog({ notebookId: "notebook", note: { id: "note", title: "Title", content: "Body" }, saving: false, onClose: () => { closed++; }, run: operation => { saving = operation(); } });
-  const form = tree.props.children.props.children.find(child => child?.type === "form");
-  form.props.onSubmit({ preventDefault: noop });
-  form.props.onSubmit({ preventDefault: noop });
-  assert.equal(calls, 1);
-  assert.equal(closed, 0);
-  release();
-  await saving;
-  assert.equal(closed, 1);
-});
-
-test("a failed note save keeps the editor open and allows one explicit retry", async () => {
-  let calls = 0, closed = 0, running;
-  const errors = [];
-  const { NoteDialog } = load("features/ai/components/note-dialog.tsx", {
-    react: { ...React, useId: () => "note", useRef: value => ({ current: value }), useState: value => [value, update => errors.push(update)] },
-    "../api/notebooks.api": { notebooksApi: { note: async () => { if (++calls === 1) throw Error("Unavailable"); } } },
-  });
-  const tree = NoteDialog({ notebookId: "notebook", note: { id: "note", title: "Title", content: "Body" }, saving: false, onClose: () => { closed++; }, run: operation => { running = operation(); } });
-  const form = tree.props.children.props.children.find(child => child?.type === "form");
-  form.props.onSubmit({ preventDefault: noop });
-  await assert.rejects(running);
-  assert.equal(closed, 0);
-  assert.ok(errors.some(error => error.includes("Unable to save")));
-  form.props.onSubmit({ preventDefault: noop });
-  await running;
-  assert.equal(calls, 2);
-  assert.equal(closed, 1);
+  const tree = NoteDialog({ notebookId: "notebook", note: { id: "note", title: "Title", content: "Body", citations: [] }, saving: false, onClose: noop, run: operation => operation().then(() => true) });
+  assert.equal(tree.props.initialTitle, "Title");
+  assert.equal(tree.props.maxContentLength, 20000);
+  assert.equal(tree.props.maxTitleLength, 200);
+  assert.equal(await tree.props.onSave({ title: "Updated", content: "Text [[S1]]" }), true);
+  assert.deepEqual(saved, { title: "Updated", content: "Text [[S1]]", noteId: "note" });
+  assert.deepEqual(tree.props.renderPreview("Preview").props.items, []);
 });

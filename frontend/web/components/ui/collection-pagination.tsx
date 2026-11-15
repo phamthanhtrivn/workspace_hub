@@ -12,6 +12,7 @@ interface CollectionPaginationProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   showSinglePage?: boolean;
+  disabled?: boolean;
 }
 
 export function CollectionPagination({
@@ -21,6 +22,7 @@ export function CollectionPagination({
   totalPages,
   onPageChange,
   showSinglePage = false,
+  disabled = false,
 }: CollectionPaginationProps) {
   const safePage = Math.min(Math.max(1, page), Math.max(1, totalPages));
   const start = total === 0 ? 0 : (safePage - 1) * limit + 1;
@@ -45,7 +47,7 @@ export function CollectionPagination({
           type="button"
           variant="outline"
           size="sm"
-          disabled={safePage === 1}
+          disabled={disabled || safePage === 1}
           onClick={() => onPageChange(Math.max(1, safePage - 1))}
           className="cursor-pointer"
           aria-label="Previous"
@@ -59,6 +61,7 @@ export function CollectionPagination({
               variant="unstyled"
               key={pageNumber}
               type="button"
+              disabled={disabled}
               onClick={() => onPageChange(pageNumber)}
               className={cn(
                 "h-9 min-w-9 cursor-pointer rounded-control px-3 text-xs font-medium tabular-nums transition-colors duration-150",
@@ -84,7 +87,7 @@ export function CollectionPagination({
           type="button"
           variant="outline"
           size="sm"
-          disabled={safePage === totalPages}
+          disabled={disabled || safePage === totalPages}
           onClick={() => onPageChange(Math.min(totalPages, safePage + 1))}
           className="cursor-pointer"
           aria-label="Next"

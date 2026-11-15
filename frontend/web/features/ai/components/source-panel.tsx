@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Clock3,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/spinner";
@@ -61,11 +62,13 @@ export function SourcePanel({
       className="flex h-full min-h-0 min-w-0 flex-col"
     >
       <header className="flex shrink-0 items-center gap-2 border-b border-border p-4">
-        <FileText className="size-4 text-link" aria-hidden="true" />
-        <h2 className="font-semibold">Sources</h2>
-        <span className="ml-auto text-xs tabular-nums text-muted-foreground">
-          {sources.length}/{NOTEBOOK_SOURCE_LIMIT}
+        <span className="grid size-8 place-items-center rounded-control bg-primary-soft text-primary-soft-foreground">
+          <FileText className="size-4" aria-hidden="true" />
         </span>
+        <h2 className="font-semibold">Sources</h2>
+        <Badge variant="secondary" className="ml-auto tabular-nums">
+          {sources.length}/{NOTEBOOK_SOURCE_LIMIT}
+        </Badge>
         {collapseControl}
       </header>
       <div className="shrink-0 space-y-2 p-3">
@@ -78,21 +81,15 @@ export function SourcePanel({
           <Plus aria-hidden="true" />
           Add sources
         </Button>
-        <p className="text-xs text-muted-foreground">
-          Select ready sources to use in Chat.
-        </p>
       </div>
       <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3">
         {!sources.length && (
           <div className="space-y-2 py-6 text-center">
             <FileText
-              className="mx-auto size-7 text-muted-foreground"
+              className="mx-auto size-8 text-primary-soft-foreground"
               aria-hidden="true"
             />
             <p className="text-sm font-medium">No sources yet</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Upload a file or choose from Documents to get started.
-            </p>
           </div>
         )}
         {sources.map((source) => {

@@ -73,8 +73,8 @@ export function NotebookChatPanel({
         </h2>
         <Button
           size="sm"
-          variant="ghost"
-          className="text-xs text-muted-foreground"
+          variant="info-soft"
+          className="text-xs"
           onClick={onSources}
         >
           <FileText aria-hidden="true" />
@@ -89,7 +89,7 @@ export function NotebookChatPanel({
           followLatest.current =
             view.scrollHeight - view.scrollTop - view.clientHeight < 80;
         }}
-        className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 md:p-5"
+        className={`min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4 md:p-5 ${!notebook.messages.length && !chat.busy && !chat.error ? "flex flex-col justify-center" : ""}`}
         aria-busy={chat.busy}
       >
         {!notebook.messages.length && !chat.busy && (
@@ -99,12 +99,10 @@ export function NotebookChatPanel({
             </span>
             <h3 className="text-lg font-semibold">Ask about your documents</h3>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              Add a source, wait until it is ready, then select it to ask
-              questions with citations.
+              Add sources to start chatting.
             </p>
             {!selected.length && (
               <Button
-                variant="outline"
                 onClick={notebook.sources.length ? onSources : onAddSources}
               >
                 <FileText aria-hidden="true" />
