@@ -1,4 +1,8 @@
 import {
+  parseAttachmentSummaryOptions,
+  type AttachmentSummaryOptions,
+} from '../conversation-ai/attachment-summary-cache';
+import {
   Controller,
   Get,
   Post,
@@ -33,6 +37,7 @@ export class MessageController {
     @Body()
     data: {
       attachmentMediaId?: string;
+      summaryOptions?: AttachmentSummaryOptions;
       content?: string;
       type?: MessageType;
       medias?: {
@@ -78,6 +83,7 @@ export class MessageController {
       data.threadParentId,
       data.mentions,
       data.attachmentMediaId,
+      parseAttachmentSummaryOptions(data.summaryOptions),
     );
 
     return {
@@ -92,6 +98,7 @@ export class MessageController {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_USER_ID);
     }
     const threads = await this.messageService.getFollowedThreads(userId);
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREADS_LISTED,
       data: threads,
@@ -117,6 +124,7 @@ export class MessageController {
       parsedLimit,
       direction,
     );
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.HISTORY_RETRIEVED,
       data: messages,
@@ -144,6 +152,7 @@ export class MessageController {
       mediaType,
       q,
     );
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.MEDIA_RETRIEVED,
       data: media,
@@ -169,6 +178,7 @@ export class MessageController {
       parsedLimit,
       q,
     );
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.PINNED_RETRIEVED,
       data: messages,
@@ -191,6 +201,7 @@ export class MessageController {
       senderId,
       type,
     );
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.SEARCH_COMPLETED,
       data: messages,
@@ -204,6 +215,7 @@ export class MessageController {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
     const result = await this.messageService.getThreadMessages(messageId);
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREAD_RETRIEVED,
       data: result,
@@ -370,6 +382,7 @@ export class MessageController {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
     }
     const threads = await this.messageService.getConversationThreads(channelId);
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREADS_LISTED,
       data: threads,
@@ -389,6 +402,7 @@ export class MessageController {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
     const result = await this.messageService.followThread(userId, messageId);
+
     return {
       message: result.following
         ? THREAD_FOLLOW_LABEL.FOLLOWING
@@ -410,6 +424,7 @@ export class MessageController {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
     const result = await this.messageService.unfollowThread(userId, messageId);
+
     return {
       message: result.following
         ? THREAD_FOLLOW_LABEL.FOLLOWING
@@ -434,6 +449,7 @@ export class MessageController {
       userId,
       messageId,
     );
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.READ_RECEIPT_UPDATED,
       data: result,

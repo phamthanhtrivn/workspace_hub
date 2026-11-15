@@ -3,6 +3,9 @@
 This policy applies to AI chat in direct conversations, channels, and threads,
 including summaries of attached documents.
 
+See [AI request lifecycle](ai-request-lifecycle.md) for Work Assistant caching,
+safe request retries, attachment-summary reuse, and local rollout commands.
+
 ## Mention activation
 
 - A newly sent text message can invoke `@AI Bot` anywhere in its authored text

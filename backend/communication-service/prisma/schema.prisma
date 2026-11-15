@@ -897,6 +897,8 @@ model ConversationAiRequest {
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
   attachmentMediaId String? @map("attachment_media_id") @db.Uuid
   attachmentHash String? @map("attachment_hash")
+  summaryKey String? @map("summary_key")
+  summaryActionId String? @unique(map:"conversation_ai_summary_action") @map("summary_action_id") @db.Uuid
   questionHash String? @map("question_hash")
   dispatchAfter DateTime @default(now()) @map("dispatch_after") @db.Timestamptz
   dispatchAttempts Int @default(0) @map("dispatch_attempts")

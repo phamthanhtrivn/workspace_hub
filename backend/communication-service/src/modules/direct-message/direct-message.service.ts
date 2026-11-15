@@ -1,3 +1,4 @@
+import type { AttachmentSummaryOptions } from '../conversation-ai/attachment-summary-cache';
 import { Injectable } from '@nestjs/common';
 import { MessageType } from '@prisma/client';
 import {
@@ -27,6 +28,7 @@ export class DirectMessageService {
     threadParentId?: string,
     mentions?: string[],
     attachmentMediaId?: string,
+    summaryOptions?: AttachmentSummaryOptions,
   ) {
     return this.mutations.createDirectMessage(
       conversationId,
@@ -37,6 +39,7 @@ export class DirectMessageService {
       threadParentId,
       mentions,
       attachmentMediaId,
+      summaryOptions,
     );
   }
 

@@ -1,4 +1,9 @@
 export const CONVERSATION_AI_MESSAGES = {
+  invalidSummaryRequest: 'Invalid summary request.',
+  summaryActionConflict:
+    'This summary action belongs to another file or conversation.',
+  summaryNoLongerAvailable:
+    'The previous summary is no longer available. Start a new summary action.',
   emptyQuestion: 'How can you help?',
   invalidAttachmentId: 'Invalid attachment ID.',
   invalidAttachmentRequest:

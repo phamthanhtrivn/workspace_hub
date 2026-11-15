@@ -1,11 +1,16 @@
 import { assertClientMessageType } from '../../common/auth/client-message-type';
 import { ConversationAiService } from '../conversation-ai/conversation-ai.service';
+import type {
+  AttachmentSummaryOptions,
+  AttachmentSummaryReceipt,
+} from '../conversation-ai/attachment-summary-cache';
 import { VoiceTranscriptDispatchService } from '../media/voice-transcript-dispatch.service';
 import { VoiceChatType } from '../media/types/voice-transcript.constants';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { MessageType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -54,8 +59,11 @@ export class DirectMessageMutationService {
     threadParentId?: string,
     mentions?: string[],
     attachmentMediaId?: string,
+    summaryOptions?: AttachmentSummaryOptions,
   ) {
     assertClientMessageType(type);
+    if (attachmentMediaId && (type !== MessageType.TEXT || medias?.length))
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
     await this.directMessagePermissionService.assertCanSend(
       conversationId,
       senderId,
@@ -80,6 +88,27 @@ export class DirectMessageMutationService {
         throw new BadRequestException(
           MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
         );
+      }
+
+      const summaryReservation = attachmentMediaId
+        ? await this.conversationAi.prepareAttachmentSummary(
+            tx,
+            senderId,
+            conversationId,
+            'DIRECT_MESSAGE',
+            threadParentId ?? null,
+            attachmentMediaId,
+            content,
+            summaryOptions,
+          )
+        : undefined;
+      if (summaryReservation?.reused) {
+        if (!('conversationId' in summaryReservation.reused))
+          throw new ForbiddenException();
+        return {
+          ...this.presentation.mapDirectMessage(summaryReservation.reused),
+          summary: summaryReservation.reused.summary,
+        };
       }
 
       if (threadParentId) {
@@ -181,6 +210,9 @@ export class DirectMessageMutationService {
         'DIRECT_MESSAGE',
         tx,
         attachmentMediaId,
+        summaryReservation
+          ? { key: summaryReservation.key, actionId: summaryOptions?.actionId }
+          : undefined,
       );
       await this.voiceTranscripts.register(
         message.medias,
@@ -188,21 +220,29 @@ export class DirectMessageMutationService {
         VoiceChatType.DIRECT_MESSAGE,
         tx,
       );
-      return this.presentation.mapDirectMessage(message);
+      return {
+        ...this.presentation.mapDirectMessage(message),
+        summary: summaryReservation
+          ? ({ reused: false, status: 'QUEUED' } as AttachmentSummaryReceipt)
+          : undefined,
+      };
     });
-    this.conversationAi.notify(createdMessage);
-    this.voiceTranscripts.notify();
+    if (!createdMessage.summary?.reused) {
+      this.conversationAi.notify(createdMessage);
+      this.voiceTranscripts.notify();
+    }
 
     const message =
       await this.userProfileSnapshotService.attachSenderProfileToMessage(
         createdMessage,
       );
 
-    await this.events.publishDirectMessageCreated(conversationId, message, {
-      medias,
-      threadParentId,
-      mentions,
-    });
+    if (!createdMessage.summary?.reused)
+      await this.events.publishDirectMessageCreated(conversationId, message, {
+        medias,
+        threadParentId,
+        mentions,
+      });
 
     return message;
   }

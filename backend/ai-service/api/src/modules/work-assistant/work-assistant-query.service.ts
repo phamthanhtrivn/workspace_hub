@@ -1,4 +1,5 @@
 import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
+import { createHash } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 import {
@@ -19,6 +20,38 @@ export class WorkAssistantQueryService {
     private readonly store: WorkStore,
     private readonly access: WorkAssistantAccessService,
   ) {}
+  async cacheAccess(actor: Actor, context: ConversationContext) {
+    await this.context.requireScope(actor, this.access.scope(context));
+    const projects = (
+      await this.store.referencedProjects(actor, context)
+    ).sort();
+    const allowed = await this.context.authorize(actor, projects);
+    const denied = projects.filter((project) => !allowed.has(project));
+
+    return {
+      data: {
+        permissionStamp: createHash("sha256")
+          .update(JSON.stringify(denied))
+          .digest("hex"),
+      },
+    };
+  }
+
+  async requestStatus(
+    actor: Actor,
+    sessionId: string,
+    requestId: string,
+    context: ConversationContext,
+  ) {
+    await this.access.owned(actor, sessionId, context);
+
+    return {
+      data: {
+        status: await this.store.requestStatus(actor, sessionId, requestId),
+      },
+    };
+  }
+
   async overview(actor: Actor, input: z.infer<typeof overviewSchema>) {
     const { timeZone, ...scope } = input;
 

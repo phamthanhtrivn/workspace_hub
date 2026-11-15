@@ -19,6 +19,7 @@ import {
   sessionSchema,
   sessionsSchema,
   createSessionSchema,
+  conversationContextSchema,
   messageSchema,
 } from "./work-assistant.schemas";
 import { WorkAssistantEnabledGuard } from "./work-assistant-enabled.guard";
@@ -41,6 +42,29 @@ export class WorkAssistantController {
   @Get("session")
   async session(@Req() req: AuthRequest, @Query() query: unknown) {
     return this.queries.session(req.actor, parse(sessionSchema, query));
+  }
+
+  @Get("cache-access")
+  async cacheAccess(@Req() req: AuthRequest, @Query() query: unknown) {
+    return this.queries.cacheAccess(
+      req.actor,
+      parse(conversationContextSchema, query),
+    );
+  }
+
+  @Get("sessions/:id/requests/:requestId")
+  async requestStatus(
+    @Req() req: AuthRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Param("requestId", ParseUUIDPipe) requestId: string,
+    @Query() query: unknown,
+  ) {
+    return this.queries.requestStatus(
+      req.actor,
+      id,
+      requestId,
+      parse(conversationContextSchema, query),
+    );
   }
 
   @Get("sessions")

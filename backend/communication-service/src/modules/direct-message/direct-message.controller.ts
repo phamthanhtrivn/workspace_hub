@@ -1,4 +1,8 @@
 import {
+  parseAttachmentSummaryOptions,
+  type AttachmentSummaryOptions,
+} from '../conversation-ai/attachment-summary-cache';
+import {
   BadRequestException,
   Body,
   Controller,
@@ -30,6 +34,7 @@ export class DirectMessageController {
     @Body()
     data: {
       attachmentMediaId?: string;
+      summaryOptions?: AttachmentSummaryOptions;
       content?: string;
       type?: MessageType;
       medias?: {
@@ -59,6 +64,7 @@ export class DirectMessageController {
       data.threadParentId,
       data.mentions,
       data.attachmentMediaId,
+      parseAttachmentSummaryOptions(data.summaryOptions),
     );
 
     return {
@@ -193,6 +199,7 @@ export class DirectMessageController {
 
     const threads =
       await this.directMessageService.getFollowedDirectThreads(userId);
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREADS_LISTED,
       data: threads,
@@ -222,6 +229,7 @@ export class DirectMessageController {
         parsedLimit,
         senderId,
       );
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREADS_LISTED,
       data: threads,
@@ -241,6 +249,7 @@ export class DirectMessageController {
       messageId,
       userId,
     );
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREAD_RETRIEVED,
       data: result,
@@ -428,6 +437,7 @@ export class DirectMessageController {
       messageId,
       userId,
     );
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREAD_FOLLOW_UPDATED,
       data: result,
@@ -447,6 +457,7 @@ export class DirectMessageController {
       messageId,
       userId,
     );
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREAD_FOLLOW_UPDATED,
       data: result,
@@ -466,6 +477,7 @@ export class DirectMessageController {
       messageId,
       userId,
     );
+
     return {
       message: MESSAGE_SUCCESS_MESSAGES.READ_RECEIPT_UPDATED,
       data: result,

@@ -14,6 +14,7 @@ const {
   WORK_ASSISTANT_READ_POLICY,
 } = require("../constants/work-assistant-query.ts");
 const { aiErrorMessage } = require("../../../lib/ai-feedback.ts");
+const { verifyWorkCacheAccess } = require("../api/cache-access.ts");
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function until(check) {
   const deadline = Date.now() + 2000;
@@ -44,6 +45,9 @@ function clientFor(t) {
   client.mount();
   t.after(() => {
     client.unmount();
+    for (const query of client.getQueryCache().getAll()) {
+      for (const observer of [...query.observers]) observer.destroy();
+    }
     client.clear();
     focusManager.setFocused(previousFocus);
     onlineManager.setOnline(previousOnline);
@@ -80,14 +84,14 @@ test("failed history reads wait for explicit retry or reopening, including focus
   await pause(30);
   assert.equal(calls, 2, "one click on Retry makes exactly one request");
   unsubscribe();
-  await until(() => client.getQueryCache().getAll().length === 0);
+  assert.ok(client.getQueryCache().getAll().length > 0);
   const reopened = new InfiniteQueryObserver(client, options);
   unsubscribe = reopened.subscribe(() => {});
   await until(() => reopened.getCurrentResult().isError);
   assert.equal(calls, 3, "explicit reopening starts a fresh read");
 });
 
-test("manual paging works and closed history cannot leak into another account/context", async (t) => {
+test("manual paging stays cached while account/context keys remain isolated", async (t) => {
   const client = clientFor(t);
   const pages = [];
   const options = {
@@ -111,7 +115,7 @@ test("manual paging works and closed history cannot leak into another account/co
   assert.deepEqual(pages, [undefined, "older"]);
   assert.equal(first.getCurrentResult().data.pages.length, 2);
   unsubscribe();
-  await until(() => client.getQueryCache().getAll().length === 0);
+  assert.ok(client.getQueryData(options.queryKey));
   const second = new InfiniteQueryObserver(client, {
     ...options,
     queryKey: ["work-assistant", "user-b", "calendar:", "history", "latest"],
@@ -151,4 +155,62 @@ test("gateway 502/503 feedback is actionable while specific AI diagnostics are r
     ),
     /AI database is unavailable/,
   );
+});
+
+test("fresh history is reused on reopen and stale history is fetched once after 30 seconds", async (t) => {
+  const client = clientFor(t);
+  let calls = 0;
+  const options = {
+    ...WORK_ASSISTANT_READ_POLICY,
+    queryKey: ["work-assistant", "user", "scope", "history"],
+    initialPageParam: undefined,
+    queryFn: async () => {
+      calls++;
+      return { messages: [] };
+    },
+    getNextPageParam: () => undefined,
+  };
+  const first = new InfiniteQueryObserver(client, options);
+  const stop = first.subscribe(() => {});
+  await until(() => first.getCurrentResult().isSuccess);
+  stop();
+  const second = new InfiniteQueryObserver(client, options);
+  const stopSecond = second.subscribe(() => {});
+  await pause(20);
+  assert.equal(calls, 1);
+  stopSecond();
+  client
+    .getQueryCache()
+    .find({ queryKey: options.queryKey })
+    .setState({ dataUpdatedAt: Date.now() - 31_000 });
+  const third = new InfiniteQueryObserver(client, options);
+  const stopThird = third.subscribe(() => {});
+  t.after(stopThird);
+  await until(() => calls === 2);
+  assert.equal(WORK_ASSISTANT_READ_POLICY.staleTime, 30_000);
+  assert.equal(WORK_ASSISTANT_READ_POLICY.gcTime, 300_000);
+});
+
+test("permission changes or verification failure clear only the affected cached scope", async (t) => {
+  const client = clientFor(t);
+  const root = ["work-assistant", "user", "project:a"];
+  const other = ["work-assistant", "other", "project:a", "history"];
+  client.setQueryData([...root, "cache-access"], { permissionStamp: "before" });
+  client.setQueryData(other, "Other account");
+  for (const outcome of ["after", new Error("Unavailable")]) {
+    client.setQueryData([...root, "history", "latest"], "Private messages");
+    client.setQueryData([...root, "sessions"], "Private titles");
+    const result = verifyWorkCacheAccess(client, root, async () => {
+      if (outcome instanceof Error) throw outcome;
+      return { permissionStamp: outcome };
+    });
+    if (outcome instanceof Error) await assert.rejects(result);
+    else await result;
+    assert.equal(
+      client.getQueryData([...root, "history", "latest"]),
+      undefined,
+    );
+    assert.equal(client.getQueryData([...root, "sessions"]), undefined);
+    assert.equal(client.getQueryData(other), "Other account");
+  }
 });

@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { WORK_ASSISTANT_QUERY_ROOT } from "@/features/work-assistant/constants/work-assistant-query";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { RootState, useAppDispatch, useAppSelector } from "@/store/store";
@@ -99,6 +100,9 @@ export function useNotificationSocket() {
         void queryClient.invalidateQueries({ queryKey: ['documents'] });
       }
       if (noti.type.startsWith('PROJECT_')) {
+        if (noti.type === NotificationType.PROJECT_PERMISSIONS_UPDATED || noti.type === NotificationType.PROJECT_MEMBER_REMOVED || noti.type === NotificationType.PROJECT_INVITATION_ACCEPTED) {
+          void queryClient.resetQueries({ queryKey: WORK_ASSISTANT_QUERY_ROOT });
+        }
         void queryClient.invalidateQueries({ queryKey: ['projects'] });
       }
 

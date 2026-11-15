@@ -8,6 +8,50 @@ import type {
   WorkSession,
 } from "../types";
 const base = "/api/ai/work-assistant";
+class WorkAssistantStreamError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+}
+export async function getCacheAccess(
+  context: ConversationContext,
+  signal?: AbortSignal,
+) {
+  const response = await api.get(base + "/cache-access", {
+    params: context,
+    signal,
+  });
+
+  return z
+    .object({ permissionStamp: z.string().regex(/^[a-f0-9]{64}$/) })
+    .parse(response.data.data);
+}
+export async function getRequestStatus(
+  sessionId: string,
+  requestId: string,
+  context: ConversationContext,
+) {
+  const response = await api.get(
+    `${base}/sessions/${sessionId}/requests/${requestId}`,
+    { params: context },
+  );
+
+  return z
+    .object({
+      status: z.enum([
+        "NOT_FOUND",
+        "RUNNING",
+        "COMPLETED",
+        "FAILED",
+        "CANCELED",
+        "INTERRUPTED",
+      ]),
+    })
+    .parse(response.data.data).status;
+}
 const reference = z.object({
   id: z.string().uuid(),
   kind: z.enum(["project", "calendar"]),
@@ -158,12 +202,17 @@ export async function sendMessage(
       onStatus(z.object({ message: z.string() }).parse(data).message);
     if (event === "done")
       onDone(message.parse(z.object({ message }).parse(data).message));
-    if (event === "error")
-      throw new Error(
+    if (event === "error") {
+      const failure = z
+        .object({ message: z.string(), status: z.number().int().optional() })
+        .parse(data);
+      throw new WorkAssistantStreamError(
         aiServiceMessage(
-          z.object({ message: z.string() }).parse(data).message,
+          failure.message,
           "Unable to complete your request. Check your access and try again.",
         ),
+        failure.status,
       );
+    }
   });
 }

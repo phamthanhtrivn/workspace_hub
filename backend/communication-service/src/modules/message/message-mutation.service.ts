@@ -1,5 +1,9 @@
 import { assertClientMessageType } from '../../common/auth/client-message-type';
 import { ConversationAiService } from '../conversation-ai/conversation-ai.service';
+import type {
+  AttachmentSummaryOptions,
+  AttachmentSummaryReceipt,
+} from '../conversation-ai/attachment-summary-cache';
 import { VoiceTranscriptDispatchService } from '../media/voice-transcript-dispatch.service';
 import { VoiceChatType } from '../media/types/voice-transcript.constants';
 import {
@@ -55,8 +59,14 @@ export class MessageMutationService {
     threadParentId?: string,
     attachmentMediaId?: string,
     mentions?: string[],
+    summaryOptions?: AttachmentSummaryOptions,
   ) {
     assertClientMessageType(type, true);
+    if (
+      attachmentMediaId &&
+      (type !== MessageType.TEXT || medias?.length || pollData || noteData)
+    )
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
     const createdMessage = await this.prisma.$transaction(async (tx) => {
       let resolvedMentions: ResolvedChannelMentions = { content, mentions: [] };
       if (type !== MessageType.SYSTEM) {
@@ -129,6 +139,21 @@ export class MessageMutationService {
           );
         }
       }
+
+      const summaryReservation = attachmentMediaId
+        ? await this.conversationAi.prepareAttachmentSummary(
+            tx,
+            senderId,
+            channelId,
+            'CHANNEL',
+            threadParentId ?? null,
+            attachmentMediaId,
+            resolvedMentions.content,
+            summaryOptions,
+          )
+        : undefined;
+      if (summaryReservation?.reused)
+        return { ...summaryReservation.reused, mentions: [] };
 
       if (medias?.length)
         await this.s3Service.assertAttachments(medias, {
@@ -271,6 +296,9 @@ export class MessageMutationService {
         'CHANNEL',
         tx,
         attachmentMediaId,
+        summaryReservation
+          ? { key: summaryReservation.key, actionId: summaryOptions?.actionId }
+          : undefined,
       );
       await this.voiceTranscripts.register(
         message.medias,
@@ -279,10 +307,18 @@ export class MessageMutationService {
         tx,
       );
 
-      return { ...message, mentions: resolvedMentions.mentions };
+      return {
+        ...message,
+        mentions: resolvedMentions.mentions,
+        summary: summaryReservation
+          ? ({ reused: false, status: 'QUEUED' } as AttachmentSummaryReceipt)
+          : undefined,
+      };
     });
-    this.conversationAi.notify(createdMessage);
-    this.voiceTranscripts.notify();
+    if (!createdMessage.summary?.reused) {
+      this.conversationAi.notify(createdMessage);
+      this.voiceTranscripts.notify();
+    }
 
     return this.userProfileSnapshotService.attachSenderProfileToMessage(
       createdMessage,

@@ -82,3 +82,82 @@ test("conversation labels are English while authorized user titles and paging ar
   assert.equal(data.nextCursor, "next-page");
   assert.equal(sessions[1].content, "Private project title");
 });
+
+test("cache permission stamps change on revocation and verification failures never approve cached content", async () => {
+  const { WorkAssistantQueryService } = load(
+    "src/modules/work-assistant/work-assistant-query.service.ts",
+    {
+      "./work-context": { WorkContextService: class {} },
+      "./work-store": { WorkStore: class {} },
+      "./work-assistant-access.service": {
+        WorkAssistantAccessService: class {},
+      },
+    },
+  );
+  let allowed = new Set(["a", "b"]);
+  const queries = new WorkAssistantQueryService(
+    { requireScope: async () => {}, authorize: async () => allowed },
+    { referencedProjects: async () => ["b", "a"] },
+    { scope: () => ({}) },
+  );
+  const first = await queries.cacheAccess(
+    { id: "owner" },
+    { contextType: "dashboard" },
+  );
+  allowed = new Set(["a"]);
+  const revoked = await queries.cacheAccess(
+    { id: "owner" },
+    { contextType: "dashboard" },
+  );
+  assert.notEqual(first.data.permissionStamp, revoked.data.permissionStamp);
+  queries.context.authorize = async () => {
+    throw Error("Project unavailable");
+  };
+  await assert.rejects(
+    queries.cacheAccess({ id: "owner" }, { contextType: "dashboard" }),
+  );
+});
+
+test("request reconciliation checks session ownership/context before reading status and never starts generation", async () => {
+  const { WorkAssistantQueryService } = load(
+    "src/modules/work-assistant/work-assistant-query.service.ts",
+    {
+      "./work-context": { WorkContextService: class {} },
+      "./work-store": { WorkStore: class {} },
+      "./work-assistant-access.service": {
+        WorkAssistantAccessService: class {},
+      },
+    },
+  );
+  const calls = [];
+  const queries = new WorkAssistantQueryService(
+    {},
+    {
+      requestStatus: async () => {
+        calls.push("status");
+        return "COMPLETED";
+      },
+    },
+    {
+      owned: async () => {
+        calls.push("access");
+      },
+    },
+  );
+  assert.deepEqual(
+    await queries.requestStatus({ id: "owner" }, "session", "request", {
+      contextType: "projects",
+    }),
+    { data: { status: "COMPLETED" } },
+  );
+  assert.deepEqual(calls, ["access", "status"]);
+  queries.access.owned = async () => {
+    throw Error("Forbidden");
+  };
+  await assert.rejects(
+    queries.requestStatus({ id: "other" }, "session", "request", {
+      contextType: "projects",
+    }),
+  );
+  assert.deepEqual(calls, ["access", "status"]);
+});

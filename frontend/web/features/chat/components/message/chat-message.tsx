@@ -3,6 +3,7 @@ import { useId as useControlledPopupId } from "react";
 import React, { useMemo, useRef, useState } from "react";
 import { MoreHorizontal, Pin, MessageSquare, SmilePlus, Sparkles } from "lucide-react";
 import { useAttachmentSummary } from "../../hooks/message/useAttachmentSummary";
+import { AttachmentSummaryDialog } from "./attachment-summary-dialog";
 import { summaryAttachments } from "../../utils/attachment-summary";
 import { MessageOptionsDropdown } from "./message-options-dropdown";
 import { toast } from "sonner";
@@ -90,7 +91,7 @@ const ChatMessage = React.memo(function ChatMessage({
   onPinMessage,
   onThreadReply,
 }: ChatMessageProps) {
-  const { summarize, isRequesting } = useAttachmentSummary(msg);
+  const { summarize, isRequesting, completed, closeSummary } = useAttachmentSummary(msg);
   const summaryFiles = msg.recalled ? [] : summaryAttachments(msg.medias);
   const controlledPopupId = useControlledPopupId();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -465,6 +466,12 @@ const ChatMessage = React.memo(function ChatMessage({
         onRecall={() => onRecallMessage?.(msg)}
         onPin={() => onPinMessage?.(msg)}
       />
+
+      {completed?.receipt.reply && <AttachmentSummaryDialog
+        fileName={completed.file.name} content={completed.receipt.reply.content}
+        busy={isRequesting} onClose={closeSummary}
+        onRegenerate={() => void summarize(completed.file, true)}
+      />}
 
       {previewIndex !== null && visualMedias.length > 0 && (
         <MediaLightbox

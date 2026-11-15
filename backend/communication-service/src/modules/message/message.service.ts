@@ -1,3 +1,4 @@
+import type { AttachmentSummaryOptions } from '../conversation-ai/attachment-summary-cache';
 import { Injectable } from '@nestjs/common';
 import { MessageType } from '@prisma/client';
 import { MESSAGE_DIRECTION, MESSAGE_CONSTANTS } from './types/message.enums';
@@ -75,6 +76,7 @@ export class MessageService {
     threadParentId?: string,
     mentions?: string[],
     attachmentMediaId?: string,
+    summaryOptions?: AttachmentSummaryOptions,
   ) {
     return this.publishing.createMessageAndPublish(
       channelId,
@@ -87,6 +89,7 @@ export class MessageService {
       threadParentId,
       mentions,
       attachmentMediaId,
+      summaryOptions,
     );
   }
 

@@ -17,6 +17,10 @@ import { S3Service } from '../../infrastructure/s3/s3.service';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 
 import { AI_BOT_ID, AI_BOT_NAME, aiQuestion } from './conversation-ai-mention';
+import {
+  reuseAttachmentSummary,
+  type AttachmentSummaryOptions,
+} from './attachment-summary-cache';
 import { CONVERSATION_AI_MESSAGES } from './conversation-ai.messages';
 import {
   historyContent,
@@ -51,6 +55,89 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
   enabled() {
     return process.env.CONVERSATION_AI_ENABLED === 'true';
   }
+  async prepareAttachmentSummary(
+    tx: Prisma.TransactionClient,
+    actorId: string,
+    chatId: string,
+    chatType: 'CHANNEL' | 'DIRECT_MESSAGE',
+    threadParentId: string | null,
+    mediaId: string,
+    question: string,
+    options?: AttachmentSummaryOptions,
+  ) {
+    if (!this.enabled()) throw new ServiceUnavailableException();
+    if (!aiQuestion(question))
+      throw new BadRequestException(
+        CONVERSATION_AI_MESSAGES.invalidAttachmentRequest,
+      );
+    if (threadParentId) {
+      const parent =
+        chatType === 'CHANNEL'
+          ? await tx.message.findUnique({ where: { id: threadParentId } })
+          : await tx.directMessage.findUnique({
+              where: { id: threadParentId },
+            });
+      if (
+        !parent ||
+        parent.deletedAt ||
+        parent.recalled ||
+        ('channelId' in parent ? parent.channelId : parent.conversationId) !==
+          chatId
+      )
+        throw new ForbiddenException();
+    }
+    const media = await this.summaryMedia(chatType, mediaId, tx);
+    this.assertSummaryMedia(media, chatId, threadParentId);
+    let version = createHash('sha256')
+      .update(JSON.stringify([media.s3Key, media.mimeType, media.sizeBytes]))
+      .digest('hex');
+    if (media.s3Key.startsWith('documents/')) {
+      const aiUrl = process.env.AI_SERVICE_URL;
+      if (!aiUrl) throw new ServiceUnavailableException();
+      const response = await fetch(
+        `${aiUrl.replace(/\/$/, '')}/internal/conversation-ai/attachments/resolve`,
+        {
+          method: 'POST',
+          redirect: 'error',
+          signal: AbortSignal.timeout(2000),
+          headers: {
+            'content-type': 'application/json',
+            'x-internal-service-key': process.env.COMMUNICATION_TO_AI_KEY!,
+          },
+          body: JSON.stringify({ userId: actorId, s3Key: media.s3Key }),
+        },
+      ).catch(() => {
+        throw new ServiceUnavailableException();
+      });
+      if (!response.ok) {
+        await response.body?.cancel();
+        if (response.status === 403 || response.status === 404)
+          throw new ForbiddenException();
+        throw new ServiceUnavailableException();
+      }
+      const manifest = (await response.json()) as {
+        revision?: unknown;
+        versionId?: unknown;
+        sizeBytes?: unknown;
+      };
+      if (
+        typeof manifest.revision !== 'string' ||
+        !/^[a-f0-9]{64}$/.test(manifest.revision) ||
+        typeof manifest.versionId !== 'string' ||
+        manifest.sizeBytes !== media.sizeBytes
+      )
+        throw new ForbiddenException();
+      version += ':' + manifest.versionId + ':' + manifest.revision;
+    }
+
+    return reuseAttachmentSummary(
+      tx,
+      [chatType, chatId, threadParentId, version, this.questionHash(question)],
+      chatType,
+      options,
+      (id) => this.replyId(id),
+    );
+  }
   onModuleInit() {
     if (!this.enabled()) return;
     if ((process.env.COMMUNICATION_TO_AI_KEY?.length ?? 0) < 32)
@@ -74,6 +161,7 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
     chatType: 'CHANNEL' | 'DIRECT_MESSAGE',
     tx: Prisma.TransactionClient,
     attachmentMediaId?: string,
+    summaryIdentity?: { key: string; actionId?: string },
   ) {
     if (
       attachmentMediaId !== undefined &&
@@ -113,7 +201,11 @@ export class ConversationAiService implements OnModuleInit, OnModuleDestroy {
       attachmentHash = this.mediaHash(media);
     }
     const hash = this.questionHash(message.content || '');
-    await tx.$executeRaw`INSERT INTO conversation_ai_requests(id,actor_id,chat_id,chat_type,question_hash,attachment_media_id,attachment_hash) VALUES(${message.id}::uuid,${actorId}::uuid,${chatId}::uuid,${chatType},${hash},${attachmentMediaId ?? null}::uuid,${attachmentHash}) ON CONFLICT DO NOTHING`;
+    if (summaryIdentity) {
+      await tx.$executeRaw`INSERT INTO conversation_ai_requests(id,actor_id,chat_id,chat_type,question_hash,attachment_media_id,attachment_hash,summary_key,summary_action_id) VALUES(${message.id}::uuid,${actorId}::uuid,${chatId}::uuid,${chatType},${hash},${attachmentMediaId ?? null}::uuid,${attachmentHash},${summaryIdentity.key},${summaryIdentity.actionId ?? null}::uuid) ON CONFLICT DO NOTHING`;
+    } else {
+      await tx.$executeRaw`INSERT INTO conversation_ai_requests(id,actor_id,chat_id,chat_type,question_hash,attachment_media_id,attachment_hash) VALUES(${message.id}::uuid,${actorId}::uuid,${chatId}::uuid,${chatType},${hash},${attachmentMediaId ?? null}::uuid,${attachmentHash}) ON CONFLICT DO NOTHING`;
+    }
   }
 
   notify(message: { content?: string | null; type?: string }) {
