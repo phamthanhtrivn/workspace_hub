@@ -22,7 +22,10 @@ import { buildCalendarMeetingUrl } from "../../utils/calendar-conference.utils";
 
 import { CalendarEventReadonlyDetails } from "./calendar-event-readonly-details";
 import { CalendarEventRecurrenceDetails } from "./calendar-event-recurrence-details";
-import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
+import {
+  CALENDAR_FORM_COPY as copy,
+  CALENDAR_RECURRING_DELETE_COPY,
+} from "../../constants/calendar-form-copy";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
@@ -89,11 +92,13 @@ export function EventDetailModal({
 
   const isRecurring = Boolean(event.recurrenceRule || event.recurrenceParentId);
   const isTask = isTaskCalendarEvent(event);
+  const deleteCopy = CALENDAR_RECURRING_DELETE_COPY[isTask ? "task" : "event"];
   const isCompletedTask = isTask && Boolean(event.completedAt);
 
   const handleDelete = () => {
     setPendingAction("delete");
     if (isRecurring) {
+      setCancelScope(RecurrenceScope.THIS);
       setShowDeleteScopeModal(true);
       return;
     }
@@ -127,7 +132,7 @@ export function EventDetailModal({
     "var(--warning)";
 
 
-  return typeof document === "undefined" ? null : <DialogSurface onClose={onClose}>{(
+  return typeof document === "undefined" ? null : <><DialogSurface onClose={onClose}>{(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/40 p-4"
       onWheelCapture={(event) => {
@@ -167,8 +172,8 @@ export function EventDetailModal({
                 variant="ghost"
                 size="icon"
                 onClick={onEdit}
-                aria-label="Edit event"
-                title="Edit event"
+                aria-label={isTask ? copy.editTask : copy.editEvent}
+                title={isTask ? copy.editTask : copy.editEvent}
                 className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <Pencil className="h-4 w-4" />
@@ -181,8 +186,8 @@ export function EventDetailModal({
                 onClick={handleDelete}
                 loading={busy && pendingAction === "delete"}
                 disabled={busy}
-                aria-label="Cancel event"
-                title="Cancel event"
+                aria-label={deleteCopy.confirm}
+                title={deleteCopy.confirm}
                 className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-destructive-content disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
@@ -360,42 +365,47 @@ export function EventDetailModal({
           </div>
         )}
 
-        {/* Recurrence Delete Confirmation Dialog */}
-        {showDeleteScopeModal && (
-          <CalendarConfirmDialog
-            open={showDeleteScopeModal}
-            title="Delete recurring event"
-            description="Choose the scope you want to apply when deleting this event:"
-            confirmLabel="Delete event"
-            cancelLabel="Cancel"
-            variant="danger"
-            isLoading={busy}
-            onCancel={() => setShowDeleteScopeModal(false)}
-            onConfirm={handleConfirmDeleteScope}
-          >
-            <CalendarRadioGroup<RecurrenceScope>
-              name="recurrence-delete-scope"
-              value={cancelScope}
-              ariaLabel="Delete event"
-              onChange={setCancelScope}
-              options={[
-                {
-                  value: RecurrenceScope.THIS,
-                  label: "This event",
-                },
-                {
-                  value: RecurrenceScope.THIS_AND_FOLLOWING,
-                  label: "This and following events",
-                },
-                {
-                  value: RecurrenceScope.ALL,
-                  label: "All events in series",
-                },
-              ]}
-            />
-          </CalendarConfirmDialog>
-        )}
       </div>
     </div>
-  )}</DialogSurface>;
+  )}</DialogSurface>
+    {/* Keep the portaled confirmation outside the detail's scroll guards. */}
+    {showDeleteScopeModal && (
+      <CalendarConfirmDialog
+        open={showDeleteScopeModal}
+        nested
+        title={deleteCopy.title}
+        description={deleteCopy.description}
+        confirmLabel={deleteCopy.confirm}
+        cancelLabel={copy.cancel}
+        variant="danger"
+        isLoading={busy}
+        onCancel={() => {
+          setShowDeleteScopeModal(false);
+          setPendingAction(null);
+        }}
+        onConfirm={handleConfirmDeleteScope}
+      >
+        <CalendarRadioGroup<RecurrenceScope>
+          name="recurrence-delete-scope"
+          value={cancelScope}
+          ariaLabel={deleteCopy.confirm}
+          onChange={setCancelScope}
+          options={[
+            {
+              value: RecurrenceScope.THIS,
+              label: deleteCopy.thisOccurrence,
+            },
+            {
+              value: RecurrenceScope.THIS_AND_FOLLOWING,
+              label: deleteCopy.following,
+            },
+            {
+              value: RecurrenceScope.ALL,
+              label: deleteCopy.all,
+            },
+          ]}
+        />
+      </CalendarConfirmDialog>
+    )}
+  </>;
 }

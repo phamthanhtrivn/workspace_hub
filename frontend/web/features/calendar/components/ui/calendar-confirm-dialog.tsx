@@ -29,6 +29,7 @@ export interface CalendarConfirmDialogProps {
   cancelLabel?: string;
   variant?: CalendarConfirmVariant;
   isLoading?: boolean;
+  nested?: boolean;
   children?: ReactNode;
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
@@ -65,6 +66,7 @@ export function CalendarConfirmDialog({
   cancelLabel = "Cancel",
   variant = "danger",
   isLoading = false,
+  nested = false,
   children,
   onConfirm,
   onCancel,
@@ -74,11 +76,17 @@ export function CalendarConfirmDialog({
   return (
     <AlertDialog
       open={open}
+      closeOnOutsideClick={!nested}
       onOpenChange={(nextOpen) => !nextOpen && !isLoading && onCancel()}
     >
       <AlertDialogContent
         role="alertdialog"
-        className={`${dialogLayout.surface} max-w-md rounded-panel border-border bg-card p-6 text-foreground sm:rounded-panel`}
+        className={cn(
+          dialogLayout.surface,
+          "max-w-md rounded-panel border-border bg-card p-6 text-foreground sm:rounded-panel",
+          nested && "z-[130]",
+        )}
+        overlayClassName={nested ? "z-[120] backdrop-blur-sm" : undefined}
         showCloseButton={false}
       >
         <AlertDialogHeader className="text-left">
@@ -110,6 +118,7 @@ export function CalendarConfirmDialog({
           <Button
             type="button"
             variant="outline"
+            data-modal-initial-focus={nested || undefined}
             disabled={isLoading}
             onClick={onCancel}
             className="h-9 cursor-pointer rounded-control border-border px-4 text-xs font-semibold text-muted-foreground hover:bg-background hover:text-foreground disabled:opacity-50"

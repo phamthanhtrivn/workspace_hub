@@ -6,6 +6,25 @@ import type {
 
 export const CALENDAR_FORM_LOCALE = "en-US";
 
+export const CALENDAR_RECURRING_DELETE_COPY = {
+  task: {
+    title: "Delete recurring task",
+    description: "Choose which tasks to delete. This cannot be undone.",
+    confirm: "Delete task",
+    thisOccurrence: "This task",
+    following: "This and following tasks",
+    all: "All tasks in series",
+  },
+  event: {
+    title: "Delete recurring event",
+    description: "Choose which events to delete. This cannot be undone.",
+    confirm: "Delete event",
+    thisOccurrence: "This event",
+    following: "This and following events",
+    all: "All events in series",
+  },
+} as const;
+
 export const CALENDAR_FORM_COPY = {
   add: "Add",
   addConference: "Add video conferencing",
