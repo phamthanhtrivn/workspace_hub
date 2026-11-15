@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import {
   CanActivate,
   Injectable,
@@ -15,7 +16,7 @@ export class WorkAssistantEnabledGuard implements CanActivate {
       config.AI_TO_CALENDAR_KEY.length < 32
     )
       throw new ServiceUnavailableException(
-        "Trợ lý công việc chưa được bật hoặc cấu hình.",
+        AI_UI_MESSAGES.WORK_ASSISTANT_DISABLED,
       );
 
     return true;

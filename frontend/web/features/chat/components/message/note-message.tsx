@@ -1,4 +1,5 @@
 "use client";
+import type { NoteSaveResult } from "@/components/notes/note.constants";
 
 import React, { useState } from "react";
 import { FileText, Edit2 } from "lucide-react";
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 interface NoteMessageProps {
   note: NoteResponse;
   onUserClick?: (userId: string) => void;
-  onEditNote?: (title: string, content: string) => void;
+  onEditNote?: (title: string, content: string) => NoteSaveResult | Promise<NoteSaveResult>;
 }
 
 const NoteMessage = React.memo(function NoteMessage({
@@ -93,9 +94,7 @@ const NoteMessage = React.memo(function NoteMessage({
         onClose={() => setIsEditModalOpen(false)}
         initialTitle={note.title}
         initialContent={note.content}
-        onSave={(title, content) => {
-          onEditNote?.(title, content);
-        }}
+        onSave={(title, content) => onEditNote?.(title, content)}
       />
     </div>
   );

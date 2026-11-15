@@ -32,12 +32,37 @@ export class S3Service {
   private readonly s3Client: S3Client;
   private readonly bucketName: string;
 
-  async readAuthorizedContent(key: string, range: string | undefined, head: boolean, signal: AbortSignal) {
-    if (range && !/^bytes=(\d+-\d*|-\d+)$/.test(range)) throw new HttpException('Invalid byte range', 416);
-    if (head) return { ...await this.s3Client.send(new HeadObjectCommand({ Bucket: this.bucketName, Key: key }), { abortSignal: signal }), Body: undefined };
-    try { return await this.s3Client.send(new GetObjectCommand({ Bucket: this.bucketName, Key: key, Range: range }), { abortSignal: signal }); }
-    catch (error) {
-      if ((error as { $metadata?: { httpStatusCode?: number } }).$metadata?.httpStatusCode === 416) throw new HttpException('Invalid byte range', 416);
+  async readAuthorizedContent(
+    key: string,
+    range: string | undefined,
+    head: boolean,
+    signal: AbortSignal,
+  ) {
+    if (range && !/^bytes=(\d+-\d*|-\d+)$/.test(range))
+      throw new HttpException('Invalid byte range', 416);
+    if (head)
+      return {
+        ...(await this.s3Client.send(
+          new HeadObjectCommand({ Bucket: this.bucketName, Key: key }),
+          { abortSignal: signal },
+        )),
+        Body: undefined,
+      };
+    try {
+      return await this.s3Client.send(
+        new GetObjectCommand({
+          Bucket: this.bucketName,
+          Key: key,
+          Range: range,
+        }),
+        { abortSignal: signal },
+      );
+    } catch (error) {
+      if (
+        (error as { $metadata?: { httpStatusCode?: number } }).$metadata
+          ?.httpStatusCode === 416
+      )
+        throw new HttpException('Invalid byte range', 416);
       throw error;
     }
   }
@@ -199,17 +224,61 @@ export class S3Service {
     return key;
   }
 
+  async copySnapshot(sourceKey: string, targetKey: string): Promise<void> {
+    await this.s3Client.send(
+      new CopyObjectCommand({
+        Bucket: this.bucketName,
+        Key: targetKey,
+        CopySource: `${this.bucketName}/${sourceKey.split('/').map(encodeURIComponent).join('/')}`,
+      }),
+    );
+  }
+
+  async putSnapshot(key: string, body: Buffer, mimeType: string) {
+    validateUploadContent(
+      body.subarray(0, UPLOAD_POLICY.SIGNATURE_BYTES),
+      mimeType,
+    );
+    await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: body,
+        ContentLength: body.length,
+        ContentType: mimeType,
+      }),
+    );
+  }
+
+  snapshotUploadUrl(key: string, mimeType: string, sizeBytes: number) {
+    validateUploadMetadata(key.split('/').at(-1)!, mimeType);
+
+    return getSignedUrl(
+      this.s3Client,
+      new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        ContentType: mimeType,
+        ContentLength: sizeBytes,
+        IfNoneMatch: '*',
+      }),
+      { expiresIn: UPLOAD_POLICY.URL_LIFETIME_SECONDS },
+    );
+  }
+
   /**
    * Streams a file directly from S3 as a Node.js Readable.
    * Used for piping files into a ZIP archive without buffering to disk.
    */
-  async getFileStream(s3Key: string): Promise<Readable> {
+  async getFileStream(s3Key: string, signal?: AbortSignal): Promise<Readable> {
     try {
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: s3Key,
       });
-      const response = await this.s3Client.send(command);
+      const response = await this.s3Client.send(command, {
+        abortSignal: signal,
+      });
       if (!response.Body) {
         throw new InternalServerErrorException('Empty S3 response body');
       }

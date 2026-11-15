@@ -1,11 +1,25 @@
+import { reserveImportedAttachments } from '../media/imported-attachment-reservation';
+import { ConflictException } from '@nestjs/common';
+import { parseClientRequestId } from '../../common/dto/message-delivery.dto';
+import {
+  reserveMessageDelivery,
+  recordMessageDelivery,
+  DELIVERY_CONFLICT,
+  type MessageDeliveryIdentity,
+} from '../../common/utils/message-delivery';
 import { assertClientMessageType } from '../../common/auth/client-message-type';
 import { ConversationAiService } from '../conversation-ai/conversation-ai.service';
+import type {
+  AttachmentSummaryOptions,
+  AttachmentSummaryReceipt,
+} from '../conversation-ai/attachment-summary-cache';
 import { VoiceTranscriptDispatchService } from '../media/voice-transcript-dispatch.service';
 import { VoiceChatType } from '../media/types/voice-transcript.constants';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { MessageType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -54,8 +68,12 @@ export class DirectMessageMutationService {
     threadParentId?: string,
     mentions?: string[],
     attachmentMediaId?: string,
+    summaryOptions?: AttachmentSummaryOptions,
+    clientRequestId?: string,
   ) {
     assertClientMessageType(type);
+    if (attachmentMediaId && (type !== MessageType.TEXT || medias?.length))
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
     await this.directMessagePermissionService.assertCanSend(
       conversationId,
       senderId,
@@ -66,6 +84,29 @@ export class DirectMessageMutationService {
         referenceId: conversationId,
         chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
       });
+    const requestId = parseClientRequestId(clientRequestId);
+    if (
+      requestId &&
+      (attachmentMediaId ||
+        summaryOptions ||
+        (type !== MessageType.TEXT && type !== MessageType.DOCUMENT))
+    )
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    const delivery: MessageDeliveryIdentity | undefined = requestId
+      ? {
+          senderId,
+          requestId,
+          chatId: conversationId,
+          chatType: 'DIRECT_MESSAGE',
+          payload: {
+            content,
+            type,
+            mentions: mentions ?? [],
+            ...(medias?.length ? { medias } : {}),
+            ...(threadParentId ? { threadParentId } : {}),
+          },
+        }
+      : undefined;
     const createdMessage = await this.prisma.$transaction(async (tx) => {
       const participant = await tx.directConversationParticipant.findUnique({
         where: {
@@ -80,6 +121,59 @@ export class DirectMessageMutationService {
         throw new BadRequestException(
           MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
         );
+      }
+
+      const priorMessageId = delivery
+        ? await reserveMessageDelivery(tx, delivery)
+        : undefined;
+      if (priorMessageId) {
+        const prior = await tx.directMessage.findUnique({
+          where: { id: priorMessageId },
+          include: { medias: true, threadFollowers: true },
+        });
+        if (
+          !prior ||
+          prior.deletedAt ||
+          prior.recalled ||
+          prior.senderId !== senderId ||
+          prior.conversationId !== conversationId
+        )
+          throw new ConflictException(DELIVERY_CONFLICT);
+
+        return {
+          ...this.presentation.mapDirectMessage(prior),
+          deliveryReused: true,
+          summary: undefined,
+        };
+      }
+
+      await reserveImportedAttachments(
+        tx,
+        senderId,
+        conversationId,
+        'DIRECT_MESSAGE',
+        medias,
+      );
+      const summaryReservation = attachmentMediaId
+        ? await this.conversationAi.prepareAttachmentSummary(
+            tx,
+            senderId,
+            conversationId,
+            'DIRECT_MESSAGE',
+            threadParentId ?? null,
+            attachmentMediaId,
+            content,
+            summaryOptions,
+          )
+        : undefined;
+      if (summaryReservation?.reused) {
+        if (!('conversationId' in summaryReservation.reused))
+          throw new ForbiddenException();
+        return {
+          ...this.presentation.mapDirectMessage(summaryReservation.reused),
+          summary: summaryReservation.reused.summary,
+          deliveryReused: false,
+        };
       }
 
       if (threadParentId) {
@@ -156,6 +250,8 @@ export class DirectMessageMutationService {
         },
       });
 
+      if (delivery) await recordMessageDelivery(tx, delivery, message.id);
+
       await tx.directConversation.update({
         where: { id: conversationId },
         data: { updatedAt: new Date() },
@@ -181,6 +277,9 @@ export class DirectMessageMutationService {
         'DIRECT_MESSAGE',
         tx,
         attachmentMediaId,
+        summaryReservation
+          ? { key: summaryReservation.key, actionId: summaryOptions?.actionId }
+          : undefined,
       );
       await this.voiceTranscripts.register(
         message.medias,
@@ -188,21 +287,30 @@ export class DirectMessageMutationService {
         VoiceChatType.DIRECT_MESSAGE,
         tx,
       );
-      return this.presentation.mapDirectMessage(message);
+      return {
+        ...this.presentation.mapDirectMessage(message),
+        deliveryReused: false,
+        summary: summaryReservation
+          ? ({ reused: false, status: 'QUEUED' } as AttachmentSummaryReceipt)
+          : undefined,
+      };
     });
-    this.conversationAi.notify(createdMessage);
-    this.voiceTranscripts.notify();
+    if (!createdMessage.summary?.reused && !createdMessage.deliveryReused) {
+      this.conversationAi.notify(createdMessage);
+      this.voiceTranscripts.notify();
+    }
 
     const message =
       await this.userProfileSnapshotService.attachSenderProfileToMessage(
         createdMessage,
       );
 
-    await this.events.publishDirectMessageCreated(conversationId, message, {
-      medias,
-      threadParentId,
-      mentions,
-    });
+    if (!createdMessage.summary?.reused && !createdMessage.deliveryReused)
+      await this.events.publishDirectMessageCreated(conversationId, message, {
+        medias,
+        threadParentId,
+        mentions,
+      });
 
     return message;
   }

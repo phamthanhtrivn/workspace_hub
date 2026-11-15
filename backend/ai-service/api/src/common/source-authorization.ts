@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "./ai-ui.messages";
 import { visibleSnapshot } from "./evidence-policy";
 import { singleFlight } from "./single-flight";
 import type { Actor, Snapshot, Source } from "./types";
@@ -20,7 +21,7 @@ export function createSourceAuthorization(options: {
     const current = await options.loadSources();
     options.signal.throwIfAborted();
     if (!visibleSnapshot(options.snapshot, current))
-      throw new Error("Nguồn đã thay đổi");
+      throw new Error(AI_UI_MESSAGES.SOURCE_CHANGED);
     await authorizeSources(
       options.actor,
       options.sources,

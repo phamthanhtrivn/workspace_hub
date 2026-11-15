@@ -1,11 +1,9 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Param,
   ParseUUIDPipe,
   Post,
-  Query,
   Req,
   Res,
   UseGuards,
@@ -13,16 +11,56 @@ import {
 import { AuthGuard, AuthRequest } from "../../common/auth/auth.guard";
 import { z } from "zod";
 import { SourcesService } from "./sources.service";
-import { ownedNotebook } from "../../common/auth/notebook-access";
 import { parse } from "../../common/validation";
 import type { Response } from "express";
-import { validateContent, withUploadCheck } from "./upload-validation";
-import { checkCapacity, checkFile } from "./upload-rules";
-import { readUpload } from "./upload-stream";
 @Controller("api/ai")
 @UseGuards(AuthGuard)
 export class SourcesController {
   constructor(private readonly sources: SourcesService) {}
+  @Post("notebooks/:id/uploads/confirm") async confirmUploads(
+    @Req() req: AuthRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
+    const upload = parse(
+      z.object({ snapshotIds: z.array(z.string().uuid()).min(1).max(5) }),
+      body,
+    );
+
+    return {
+      data: await this.sources.confirmUploads(
+        req.actor,
+        id,
+        upload.snapshotIds,
+      ),
+    };
+  }
+  @Post("notebooks/:id/uploads") async beginUpload(
+    @Req() req: AuthRequest,
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body() body: unknown,
+  ) {
+    const upload = parse(
+      z.object({
+        operationId: z.string().uuid(),
+        name: z.string().min(1).max(255),
+        mimeType: z.string().min(1).max(100),
+        sizeBytes: z.number().int().positive(),
+      }),
+      body,
+    );
+
+    return {
+      data: await this.sources.beginUpload(
+        req.actor,
+        id,
+        upload.operationId,
+        upload.name,
+        upload.mimeType,
+        upload.sizeBytes,
+      ),
+    };
+  }
   @Post("notebooks/:id/sources/:sourceId/images/:imageId") async visual(
     @Req() req: AuthRequest,
     @Param("id", ParseUUIDPipe) id: string,
@@ -36,44 +74,14 @@ export class SourcesController {
       data: await this.sources.visual(req.actor, id, sourceId, imageId),
     };
   }
-  @Post("notebooks/:id/upload-checks") async checkUpload(
-    @Req() req: AuthRequest,
-    @Param("id", ParseUUIDPipe) id: string,
-    @Query("name") name: string,
-  ) {
-    return withUploadCheck(async () => {
-      await ownedNotebook(req.actor, id);
-      if (req.headers["content-type"] !== "application/octet-stream")
-        throw new BadRequestException(
-          "Gửi file dưới dạng application/octet-stream.",
-        );
-      const size = parse(
-        z.coerce.number().int().positive(),
-        req.headers["x-file-size"],
-      );
-      name = parse(z.string().min(1).max(300), name);
-      checkFile(name, size);
-      const count = parse(
-        z.coerce.number().int().min(1).max(5),
-        req.headers["x-upload-count"],
-      );
-      const bytes = parse(
-        z.coerce.number().int().min(size),
-        req.headers["x-upload-bytes"],
-      );
-      checkCapacity(await this.sources.sources(id), count, bytes);
-      const content = await readUpload(req, size);
-
-      return { data: await validateContent(name, content, id) };
-    });
-  }
   @Post("notebooks/:id/sources") async add(
     @Req() req: AuthRequest,
     @Param("id", ParseUUIDPipe) id: string,
     @Body() body: unknown,
   ) {
-    const { refs } = parse(
+    const { refs, operationId } = parse(
       z.object({
+        operationId: z.string().uuid().optional(),
         refs: z
           .array(
             z.object({
@@ -87,7 +95,7 @@ export class SourcesController {
       body,
     );
 
-    return { data: await this.sources.add(req.actor, id, refs) };
+    return { data: await this.sources.add(req.actor, id, refs, operationId) };
   }
   @Post("notebooks/:id/sources/:sourceId/:action") async source(
     @Req() req: AuthRequest,

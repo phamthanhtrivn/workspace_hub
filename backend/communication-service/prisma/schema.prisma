@@ -290,6 +290,42 @@ model ChannelSetting {
  * MESSAGE (GROUP CHANNEL MESSAGE)
  * ========================================================= */
 
+// Kept independently of message rows so deleted messages cannot be recreated by retry.
+model MediaCopyCleanup {
+  s3Key String @id @map("s3_key")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@map("media_copy_cleanup")
+}
+
+model DocumentAttachmentImport {
+  id          String   @id @default(uuid()) @db.Uuid
+  actorId     String   @map("actor_id") @db.Uuid
+  operationId String   @map("operation_id") @db.Uuid
+  fingerprint String
+  chatId      String   @map("chat_id") @db.Uuid
+  chatType    String   @map("chat_type")
+  status      String   @default("PREPARING")
+  result      Json?
+  leaseToken  String?  @map("lease_token") @db.Uuid
+  leaseUntil  DateTime? @map("lease_until")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  @@unique([actorId, operationId])
+  @@index([status, createdAt])
+  @@map("document_attachment_imports")
+}
+
+model MessageDeliveryReceipt {
+  senderId    String   @map("sender_id")
+  requestId   String   @db.Uuid @map("request_id")
+  fingerprint String
+  messageId   String   @map("message_id")
+  createdAt   DateTime @default(now()) @db.Timestamptz @map("created_at")
+
+  @@id([senderId, requestId])
+  @@map("message_delivery_receipts")
+}
+
 model Message {
   id                String           @id @default(uuid()) @db.Uuid
   channelId         String           @map("channel_id") @db.Uuid
@@ -897,6 +933,8 @@ model ConversationAiRequest {
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
   attachmentMediaId String? @map("attachment_media_id") @db.Uuid
   attachmentHash String? @map("attachment_hash")
+  summaryKey String? @map("summary_key")
+  summaryActionId String? @unique(map:"conversation_ai_summary_action") @map("summary_action_id") @db.Uuid
   questionHash String? @map("question_hash")
   dispatchAfter DateTime @default(now()) @map("dispatch_after") @db.Timestamptz
   dispatchAttempts Int @default(0) @map("dispatch_attempts")

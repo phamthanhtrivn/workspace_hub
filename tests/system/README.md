@@ -2,6 +2,18 @@
 
 Fast service/web tests now live beside their source; see [testing guide](../README.md). This directory retains cross-service contracts, opt-in infrastructure suites and their harnesses.
 
+## Local gateway DNS regression
+
+The opt-in DNS check uses cached images referenced by the existing local Kong and AI API containers. It starts an isolated Kong and lightweight Node HTTP backends on a labeled test network, with no host ports or access to application data. It does not start/restart the real stack or call a model. The old backend address is deliberately occupied by a process without HTTP while the replacement API receives a different address, checking DNS recovery with proxy retries disabled.
+
+```powershell
+$env:WORKSPACEHUB_GATEWAY_DNS_INTEGRATION='1'
+node tests/run-tests.mjs --suite integration --match gateway-dns
+Remove-Item Env:WORKSPACEHUB_GATEWAY_DNS_INTEGRATION
+```
+
+The test requires Docker, prebuilt local images and the component env files for Compose rendering. Containers/networks are removed only after matching the test run label; the temporary declarative file is also removed. This synthetic probe verifies DNS recovery, not authentication, real conversations, provider output or application availability during a rebuild.
+
 ```powershell
 node tests/run-tests.mjs --suite system
 node tests/run-tests.mjs --suite integration --list

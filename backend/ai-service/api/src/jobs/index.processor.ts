@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../common/ai-ui.messages";
 import { UnrecoverableError } from "bullmq";
 import { randomUUID } from "node:crypto";
 import { HttpException } from "@nestjs/common";
@@ -32,7 +33,7 @@ export async function indexSource(id: string) {
       downloadSource(manifest),
     );
     if (data.length !== Number(source.size_bytes))
-      throw new UnrecoverableError("Kích thước phiên bản nguồn không khớp");
+      throw new UnrecoverableError(AI_UI_MESSAGES.SOURCE_SIZE_CHANGED);
     await rows(
       "UPDATE notebook_ai.sources SET progress=30,updated_at=now() WHERE id=$1 AND run_id=$2 AND status='INDEXING'",
       [id, runId],
@@ -103,7 +104,7 @@ export async function indexSource(id: string) {
           ? failure.message
           : failure instanceof Error && "getStatus" in failure
             ? failure.message
-            : "INDEX_DEPENDENCY_FAILED: Không tải hoặc xử lý được nguồn. Kiểm tra Document Service, RAG worker và bộ nhớ; thử lại khi dịch vụ sẵn sàng.",
+            : AI_UI_MESSAGES.INDEX_FAILED,
         runId,
       ],
     );

@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { config } from "../../config/env.config";
 import type { Citation } from "../../common/types";
 import { admitModel } from "../../common/model-quota";
@@ -78,7 +79,7 @@ export async function* modelAnswer(
   );
   if (!response.ok || !response.body) {
     await response.body?.cancel().catch(() => {});
-    throw new Error(`Nhà cung cấp AI trả HTTP ${response.status}`);
+    throw new Error(AI_UI_MESSAGES.PROVIDER_HTTP(response.status));
   }
   let stopped = false;
   const scoped = !!clarification?.onOutOfScope;
@@ -100,7 +101,7 @@ export async function* modelAnswer(
         }[];
       };
       if (event.error)
-        throw new Error("Nhà cung cấp AI không hoàn tất câu trả lời");
+        throw new Error(AI_UI_MESSAGES.PROVIDER_INCOMPLETE);
       const choice = event.choices?.[0];
       if (choice?.finish_reason) finishReason = choice.finish_reason;
       contentChars += choice?.delta?.content?.length ?? 0;
@@ -126,7 +127,7 @@ export async function* modelAnswer(
             const text = trimmed.slice(marker.length).trimStart();
             if (text) yield text;
           } else if (!markers.some((item) => item.startsWith(trimmed))) {
-            if (scoped) throw new Error("AI chưa xác định phạm vi câu hỏi");
+            if (scoped) throw new Error(AI_UI_MESSAGES.AI_SCOPE_MISSING);
             prefixResolved = true;
             yield prefix;
           }
@@ -134,11 +135,11 @@ export async function* modelAnswer(
       }
       if (choice?.finish_reason === "length")
         throw new Error(
-          `Câu trả lời bị cắt ở giới hạn ${config.LLM_MAX_TOKENS} token. Phần đã hiển thị chưa hoàn tất. Hãy hỏi một phần nội dung cụ thể hơn.`,
+          AI_UI_MESSAGES.RESPONSE_TRUNCATED(config.LLM_MAX_TOKENS),
         );
     }
-    if (!stopped) throw new Error("Kết nối AI kết thúc trước khi hoàn tất");
-    if (!prefixResolved) throw new Error("AI chưa hoàn tất câu hỏi làm rõ");
+    if (!stopped) throw new Error(AI_UI_MESSAGES.AI_STREAM_INTERRUPTED);
+    if (!prefixResolved) throw new Error(AI_UI_MESSAGES.AI_CLARIFICATION_INCOMPLETE);
   } finally {
     console.info(
       JSON.stringify({

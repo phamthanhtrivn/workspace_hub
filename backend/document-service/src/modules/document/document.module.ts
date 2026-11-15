@@ -1,4 +1,7 @@
 import { DocumentContentService } from './document-content.service';
+import { ModuleFileSnapshotService } from './module-file-snapshot.service';
+import { DocumentPickerController } from './document-picker.controller';
+import { DocumentPickerService } from './document-picker.service';
 import { DocumentContentController } from './document-content.controller';
 import { DocumentAccessService } from './document-access.service';
 import { DocumentLocationService } from './document-location.service';
@@ -12,7 +15,6 @@ import { DocumentLifecycleService } from './document-lifecycle.service';
 import { DocumentSharingService } from './document-sharing.service';
 import { DocumentShareNotificationService } from './document-share-notification.service';
 import { DocumentNotificationOutboxService } from './document-notification-outbox.service';
-import { DocumentChatSharingService } from './document-chat-sharing.service';
 import { DocumentBulkService } from './document-bulk.service';
 import { DocumentBulkController } from './document-bulk.controller';
 import { ProjectDocumentAttachmentService } from './project-document-attachment.service';
@@ -39,12 +41,15 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     UserProfileSnapshotModule,
   ],
   controllers: [
+    DocumentPickerController,
     DocumentContentController,
     DocumentBulkController,
     DocumentController,
     InternalDocumentAccessController,
   ],
   providers: [
+    ModuleFileSnapshotService,
+    DocumentPickerService,
     DocumentService,
     DocumentAccessService,
     DocumentLocationService,
@@ -58,7 +63,6 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     DocumentSharingService,
     DocumentShareNotificationService,
     DocumentNotificationOutboxService,
-    DocumentChatSharingService,
     DocumentBulkService,
     ProjectDocumentAttachmentService,
     DocumentDownloadService,
@@ -68,6 +72,6 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     StorageCleanupService,
     DocumentAccessRealtimePublisher,
   ],
-  exports: [DocumentService, DocumentAccessService],
+  exports: [DocumentService, DocumentAccessService, ModuleFileSnapshotService],
 })
 export class DocumentModule {}

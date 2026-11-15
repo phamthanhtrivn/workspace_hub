@@ -1,13 +1,5 @@
 "use client";
-import { useId as useInputFieldId } from "react";
-
-import dialogLayout from "@/components/ui/responsive-dialog.module.css";
-
-import React from "react";
-import { Send, Users, MessageSquare, TriangleAlert } from "lucide-react";
-import { DocumentItem } from "../../types/documents.types";
-import { ShareTabType } from "../../types/documents.enums";
-import { useShareToChat } from "../../hooks/useShareToChat";
+import { Send } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,278 +8,188 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Textarea } from "@/components/ui/textarea";
-
-interface ShareToChatModalProps {
+import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import dialogLayout from "@/components/ui/responsive-dialog.module.css";
+import type { DocumentItem } from "../../types/documents.types";
+import { DocumentItemType } from "../../types/documents.enums";
+import { DocumentIcon } from "../common/document-icon";
+import { useShareToChat } from "../../hooks/useShareToChat";
+interface Props {
   open?: boolean;
   isOpen?: boolean;
   onClose: () => void;
   item: DocumentItem | null;
   projectId?: string;
 }
+export function ShareToChatModal(props: Props) {
+  const open = props.open ?? props.isOpen ?? false;
 
-export function ShareToChatModal({
-  open,
-  isOpen,
-  onClose,
-  item,
-  projectId,
-}: ShareToChatModalProps) {
-  const inputFieldId = useInputFieldId();
-  const isModalOpen = open ?? isOpen ?? false;
+  return open && props.item ? (
+    <SendCopyForm key={props.item.id} {...props} item={props.item} />
+  ) : null;
+}
+function SendCopyForm({ item, onClose }: Props & { item: DocumentItem }) {
+  const share = useShareToChat({ item, onSuccess: onClose });
+  const options =
+    share.activeTab === "channel"
+      ? share.channels.map((channel) => ({
+          value: channel.id,
+          label: "#" + channel.name,
+        }))
+      : share.activeTab === "direct"
+        ? share.directConversations.map((conversation) => {
+            const other = conversation.members?.find(
+              (member) => member.userId !== share.currentUserId,
+            );
 
-  const {
-    activeTab,
-    setActiveTab,
-    selectedChatId,
-    setSelectedChatId,
-    selectedSpaceId,
-    setSelectedSpaceId,
-    introMessage,
-    setIntroMessage,
-    isSubmitting,
-    spaces,
-    channels,
-    directConversations,
-    handleShare,
-    inheritedEditorWarningCount,
-    clearInheritedEditorWarning,
-    currentUserId,
-    isProjectDocuments,
-    isLoadingProjectSpace,
-    projectSpaceUnavailable,
-  } = useShareToChat({
-    item,
-    projectId: projectId ?? item?.projectId ?? undefined,
-    onSuccess: onClose,
-  });
-
-  if (!isModalOpen || !item) return null;
-  const selectedTab = isProjectDocuments ? ShareTabType.CHANNEL : activeTab;
-
-  const spaceOptions =
-    spaces?.map((space) => ({
-      value: space.id,
-      label: space.name,
-    })) || [];
-
-  const channelOptions = [
-    {
-      value: "",
-      label: projectSpaceUnavailable
-        ? "Project chat space unavailable"
-        : channels.length > 0
-          ? "Select channel..."
-          : "No channels allow sending",
-    },
-    ...channels.map((ch) => ({
-      value: ch.id,
-      label: `# ${ch.name}`,
-    })),
-  ];
-
-  const dmOptions = [
-    { value: "", label: "Select conversation..." },
-    ...directConversations.map((conv) => {
-      const otherMember = conv.members?.find((m) => m.userId !== currentUserId);
-      const name =
-        otherMember?.profile?.fullName ||
-        otherMember?.nickname ||
-        "Direct Message";
-
-      return { value: conv.id, label: name };
-    }),
-  ];
+            return {
+              value: conversation.id,
+              label:
+                other?.profile?.fullName || other?.nickname || "Direct message",
+            };
+          })
+        : share.activeTab === "meeting"
+          ? (share.meetings.data ?? []).map((meeting) => ({
+              value: meeting.id,
+              label: meeting.title || "Meeting",
+            }))
+          : share.writableProjects.map((project) => ({
+              value: project.id,
+              label: project.name,
+            }));
 
   return (
-    <>
-      <Dialog
-        open={isModalOpen}
-        onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && onClose()}
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !share.isSubmitting) onClose();
+      }}
+    >
+      <DialogContent
+        className={`${dialogLayout.surface} max-w-lg bg-card p-0 text-card-foreground`}
+        showCloseButton={!share.isSubmitting}
       >
-        <DialogContent
-          className={`${dialogLayout.surface} max-w-md border-border bg-card p-6 text-foreground rounded-dialog`}
-          showCloseButton={!isSubmitting}
-        >
-          <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-panel bg-info-soft text-info-content ring-1 ring-ring">
-              <Send className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <DialogTitle className="text-base font-semibold text-foreground">
-                Share to chat
-              </DialogTitle>
-              <p className="mt-0.5 truncate text-xs text-muted-foreground font-semibold">
-                {item.name}
-              </p>
-            </div>
-          </DialogHeader>
-
-          {!isProjectDocuments ? (
-            <div className="mt-3 flex items-center border-b border-border gap-6">
-              <Button
-                variant="unstyled"
-                type="button"
-                onClick={() => setActiveTab(ShareTabType.CHANNEL)}
-                className={`relative focus-visible:z-10 focus-visible:ring-inset flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
-                  activeTab === ShareTabType.CHANNEL
-                    ? "border-info-outline text-info-content"
-                    : "border-transparent text-muted-foreground hover:text-muted-foreground"
-                }`}
-              >
-                <Users className="h-4 w-4" />
-                <span>Channels</span>
-              </Button>
-              <Button
-                variant="unstyled"
-                type="button"
-                onClick={() => setActiveTab(ShareTabType.DM)}
-                className={`relative focus-visible:z-10 focus-visible:ring-inset flex items-center gap-2 pb-3 pt-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
-                  activeTab === ShareTabType.DM
-                    ? "border-info-outline text-info-content"
-                    : "border-transparent text-muted-foreground hover:text-muted-foreground"
-                }`}
-              >
-                <MessageSquare className="h-4 w-4" />
-                <span>Direct messages</span>
-              </Button>
-            </div>
-          ) : null}
-
-          <div className={`${dialogLayout.body} mt-4 space-y-4 p-1`}>
-            {inheritedEditorWarningCount > 0 ? (
-              <div
-                role="alert"
-                className="flex items-start gap-3 rounded-panel border border-warning-outline bg-warning-soft/40 p-3 text-sm"
-              >
-                <TriangleAlert
-                  className="mt-0.5 size-5 shrink-0 text-warning-content"
-                  aria-hidden="true"
-                />
-                <div className="min-w-0">
-                  <p className="font-semibold text-foreground">
-                    Permission notice
-                  </p>
-                  <p className="mt-1 text-muted-foreground">
-                    {inheritedEditorWarningCount === 1
-                      ? "One recipient already has"
-                      : `${inheritedEditorWarningCount} recipients already have`}{" "}
-                    Editor access through a parent folder. They will keep Editor
-                    access while this item stays there and retain Viewer access
-                    if it is moved out.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="mt-2 h-8 px-2 text-xs"
-                    onClick={clearInheritedEditorWarning}
-                  >
-                    Go back
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-            {selectedTab === ShareTabType.CHANNEL ? (
-              <>
-                {!isProjectDocuments ? (
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Space
-                    </label>
-                    <CustomSelect
-                      value={selectedSpaceId}
-                      options={spaceOptions}
-                      onChange={setSelectedSpaceId}
-                      ariaLabel="Select Space"
-                      triggerClassName="h-10 rounded-panel border border-input bg-background text-sm font-semibold text-foreground hover:bg-muted"
-                    />
-                  </div>
-                ) : null}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Channel
-                  </label>
-                  <CustomSelect
-                    value={selectedChatId}
-                    options={channelOptions}
-                    onChange={setSelectedChatId}
-                    ariaLabel="Select Channel"
-                    triggerClassName="h-10 rounded-panel border border-input bg-background text-sm font-semibold text-foreground hover:bg-muted"
-                  />
-                </div>
-                {projectSpaceUnavailable ? (
-                  <p className="text-xs font-semibold text-warning-content">
-                    Project chat space is not available.
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Recipient
-                </label>
-                <CustomSelect
-                  value={selectedChatId}
-                  options={dmOptions}
-                  onChange={setSelectedChatId}
-                  ariaLabel="Select Recipient"
-                  triggerClassName="h-10 rounded-panel border border-input bg-background text-sm font-semibold text-foreground hover:bg-muted"
-                />
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <label
-                htmlFor={`${inputFieldId}-field-206`}
-                className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider"
-              >
-                Message (optional)
-              </label>
-              <Textarea
-                id={`${inputFieldId}-field-206`}
-                aria-label="Message (optional)"
-                value={introMessage}
-                onChange={(e) => setIntroMessage(e.target.value)}
-                placeholder="Add a message..."
-                className="min-h-[80px] rounded-control border border-input bg-background p-3 text-sm font-semibold text-foreground"
-              />
-            </div>
+        <DialogHeader className="border-b border-border">
+          <DialogTitle>Send a copy</DialogTitle>
+          <div className="flex min-w-0 items-center gap-2 text-sm">
+            <DocumentIcon
+              item={item}
+              iconSize={18}
+              className="size-8 shrink-0"
+            />
+            <span className="truncate">{item.name}</span>
           </div>
-
-          <DialogFooter className="mt-5 flex items-center justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={isSubmitting}
-              onClick={onClose}
-              className="h-10 rounded-control border border-border bg-card px-5 text-sm font-semibold text-muted-foreground hover:bg-background hover:text-foreground"
-            >
-              Cancel
-            </Button>
-            <Button
-              loading={isSubmitting || isLoadingProjectSpace}
-              type="button"
-              disabled={
-                isSubmitting ||
-                isLoadingProjectSpace ||
-                projectSpaceUnavailable ||
-                !selectedChatId
-              }
-              onClick={handleShare}
-              className="h-10 rounded-control bg-primary hover:bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-            >
-              {isSubmitting || isLoadingProjectSpace
-                ? "Sharing..."
-                : inheritedEditorWarningCount > 0
-                  ? "Continue sharing"
-                  : "Share"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+        </DialogHeader>
+        <div className={`${dialogLayout.body} space-y-4 p-5`}>
+          <Tabs
+            value={share.activeTab}
+            onValueChange={(value) =>
+              share.changeTab(value as typeof share.activeTab)
+            }
+          >
+            <TabsList className="grid h-auto w-full grid-cols-2 sm:grid-cols-4">
+              {(["channel", "direct", "meeting", "project"] as const).map(
+                (tab, index) => (
+                  <TabsTrigger
+                    key={tab}
+                    value={tab}
+                    disabled={
+                      share.isSubmitting ||
+                      (tab === "project" &&
+                        item.type === DocumentItemType.FOLDER)
+                    }
+                  >
+                    {["Channels", "DMs", "Meetings", "Projects"][index]}
+                  </TabsTrigger>
+                ),
+              )}
+            </TabsList>
+          </Tabs>
+          {share.activeTab === "channel" && (
+            <CustomSelect
+              ariaLabel="Space"
+              value={share.selectedSpaceId}
+              onChange={share.setSelectedSpaceId}
+              disabled={share.isSubmitting}
+              options={[
+                { value: "", label: "Select space..." },
+                ...share.spaces.map((space) => ({
+                  value: space.id,
+                  label: space.name,
+                })),
+              ]}
+            />
+          )}
+          <CustomSelect
+            ariaLabel="Destination"
+            value={share.selectedChatId}
+            onChange={(value) => {
+              share.setSelectedChatId(value);
+              share.setTaskId("");
+            }}
+            disabled={share.isSubmitting}
+            options={[
+              { value: "", label: "Select destination..." },
+              ...options,
+            ]}
+          />
+          {share.activeTab === "project" && share.selectedChatId && (
+            <CustomSelect
+              ariaLabel="Task (optional)"
+              value={share.taskId}
+              onChange={share.setTaskId}
+              disabled={share.isSubmitting}
+              options={[
+                { value: "", label: "Project Documents only" },
+                ...share.tasks.map((task) => ({
+                  value: task.id,
+                  label: task.title,
+                })),
+              ]}
+            />
+          )}
+          {share.activeTab !== "project" && (
+            <Textarea
+              aria-label="Message (optional)"
+              value={share.introMessage}
+              onChange={(event) => share.setIntroMessage(event.target.value)}
+              disabled={share.isSubmitting}
+              placeholder="Message (optional)"
+              className="min-h-20"
+            />
+          )}
+          {share.targetError && (
+            <p role="alert" className="text-sm text-destructive-content">
+              Unable to load destinations. Reopen this dialog to retry.
+            </p>
+          )}
+          {share.error && (
+            <p role="alert" className="text-sm text-destructive-content">
+              {share.error}
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            disabled={share.isSubmitting}
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            disabled={!share.selectedChatId}
+            loading={share.isSubmitting}
+            onClick={() => void share.handleShare()}
+          >
+            <Send aria-hidden="true" />
+            Send copy
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
-
 export default ShareToChatModal;

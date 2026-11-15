@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../common/ai-ui.messages";
 import { singleFlight } from "../common/single-flight";
 import { rows } from "../infrastructure/database/database";
 import { meetingSource } from "../modules/meeting-summary/source";
@@ -23,9 +24,9 @@ export async function processMeetingSummary(
   if (!state) {
     // A stalled worker may have sent a paid request before dying. Require explicit retry.
     await rows(
-      `UPDATE notebook_ai.meeting_summaries SET status='FAILED',error='Xử lý bị gián đoạn. Bạn có thể bấm thử lại.',updated_at=now()
+      `UPDATE notebook_ai.meeting_summaries SET status='FAILED',error=$3,updated_at=now()
       WHERE recording_id=$1 AND run_id=$2 AND status='RUNNING'`,
-      [recordingId, runId],
+      [recordingId, runId, AI_UI_MESSAGES.PROCESSING_INTERRUPTED],
     );
 
     return;
@@ -115,9 +116,9 @@ export async function processMeetingSummary(
     );
     await rows(
       `UPDATE notebook_ai.meeting_summaries SET status='FAILED',stage='FAILED',
-      error='Chưa thể tóm tắt bản ghi. Vui lòng kiểm tra cấu hình hoặc thử lại. Các phần đã xong được giữ lại.',updated_at=now()
+      error=$3,updated_at=now()
       WHERE recording_id=$1 AND run_id=$2 AND status='RUNNING'`,
-      [recordingId, runId],
+      [recordingId, runId, AI_UI_MESSAGES.MEETING_SUMMARY_FAILED],
     );
   } finally {
     guard.stop();

@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import {
   BadRequestException,
   ServiceUnavailableException,
@@ -19,31 +20,31 @@ export async function rag<T>(
     });
   } catch {
     throw new ServiceUnavailableException(
-      "RAG worker chưa sẵn sàng hoặc đã hết thời gian chờ",
+      AI_UI_MESSAGES.RAG_UNAVAILABLE,
     );
   }
   if (response.status === 422) {
     const messages: Record<string, string> = {
       PDF_PAGE_LIMIT:
-        "PDF vượt 100 trang. Hãy tách thành file nhỏ hơn trước khi tải lên.",
+        AI_UI_MESSAGES.PDF_PAGE_LIMIT,
       PDF_ENCRYPTED:
-        "PDF được mã hóa hoặc có mật khẩu. Hãy dùng bản không mã hóa.",
+        AI_UI_MESSAGES.PDF_ENCRYPTED,
       PDF_OCR_REQUIRED:
-        "PDF có trang scan chưa có lớp văn bản. Hãy OCR file trước khi tải lên.",
+        AI_UI_MESSAGES.PDF_OCR_REQUIRED,
       SOURCE_TOKEN_LIMIT:
         "This file exceeds 100,000 tokens. Split it into smaller files and upload them again.",
       DOCX_EXPANDED_LIMIT:
-        "Nội dung DOCX sau giải nén vượt 100 MiB. Hãy giảm ảnh hoặc tách file.",
+        AI_UI_MESSAGES.DOCX_EXPANDED_LIMIT,
       VISUAL_PAGE_LIMIT:
-        "File vượt 24 trang/hình cần Vision hoặc 16 MiB ảnh trích xuất. Hãy tách tài liệu nhỏ hơn.",
+        AI_UI_MESSAGES.VISUAL_PAGE_LIMIT,
       IMAGE_DIMENSION_LIMIT:
-        "Ảnh vượt 20 triệu điểm ảnh, quá nhỏ hoặc ảnh trích xuất quá lớn. Hãy giảm kích thước hoặc tách trang.",
+        AI_UI_MESSAGES.IMAGE_DIMENSIONS,
       IMAGE_FORMAT_INVALID:
-        "Ảnh hỏng hoặc định dạng không khớp. Hãy dùng PNG, JPEG hoặc WebP hợp lệ.",
-      IMAGE_ANIMATED: "Chưa hỗ trợ ảnh động. Hãy dùng một ảnh tĩnh.",
+        AI_UI_MESSAGES.IMAGE_INVALID,
+      IMAGE_ANIMATED: AI_UI_MESSAGES.IMAGE_ANIMATED,
       OCR_PROCESSING_LIMIT:
-        "OCR vượt thời gian xử lý. Hãy tách tài liệu ít trang hơn.",
-      VISUAL_DISABLED: "Chức năng đọc ảnh chưa bật trên máy chủ.",
+        AI_UI_MESSAGES.OCR_TIMEOUT,
+      VISUAL_DISABLED: AI_UI_MESSAGES.VISUAL_DISABLED,
     };
     const body = (await response.json().catch(() => null)) as {
       detail?: { code?: string };
@@ -52,7 +53,7 @@ export async function rag<T>(
     throw new BadRequestException(
       Object.hasOwn(messages, code)
         ? messages[code]
-        : "File hỏng, rỗng hoặc không đọc được nội dung. Hãy kiểm tra định dạng tài liệu hoặc ảnh.",
+        : AI_UI_MESSAGES.FILE_INVALID,
     );
   }
   if (!response.ok) {
@@ -69,14 +70,14 @@ export async function rag<T>(
     }
     if (code === "RAG_FALLBACK_PENDING")
       throw new ServiceUnavailableException(
-        "RAG_FALLBACK_PENDING: Đang chuẩn bị chỉ mục local trong nền. Vui lòng thử lại sau ít giây.",
+        AI_UI_MESSAGES.RAG_FALLBACK_PENDING,
       );
     if (code === "RAG_BUSY")
       throw new ServiceUnavailableException(
-        "RAG đang xử lý file khác. Chưa thêm nguồn AI; vui lòng thử lại sau ít giây.",
+        AI_UI_MESSAGES.RAG_BUSY,
       );
     throw new ServiceUnavailableException(
-      `${code}: RAG worker chưa xử lý được tài liệu (HTTP ${response.status}). Kiểm tra model, Qdrant và bộ nhớ.`,
+      AI_UI_MESSAGES.RAG_DEPENDENCY_FAILED(code, response.status),
     );
   }
 

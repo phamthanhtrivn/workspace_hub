@@ -26,7 +26,7 @@ Fragmented tools make it difficult for individuals and small teams to keep work 
 | Documents | Files/folders, versions, previews, sharing, public links, trash/archive workflows and controlled downloads |
 | Meetings | Scheduling, participation, devices, video/audio, screen sharing, meeting chat, recordings, sharing and owner-triggered AI summaries |
 | Productivity | Dashboard, Pomodoro focus/break sessions, task association, history/statistics and ambient audio |
-| AI | Personal notebooks with authorized sources, cited Q&A, notes/summaries, conversation bot and attachment summaries, Project/Calendar Work Assistant, meeting summaries and speech transcription |
+| AI | Personal notebooks with independent source copies, cited Q&A and saved notes, conversation bot and attachment summaries, Project/Calendar Work Assistant, meeting summaries and speech transcription |
 
 AI flags, model capability, provider quota and dependent services determine availability. Meeting summaries are explicitly requested after a recording completes; readers with current recording access share the saved result. Flashcards, quizzes and a mobile application are not claimed as implemented features.
 
@@ -69,7 +69,7 @@ Kong validates public requests and forwards trusted context. Services enforce se
 - User records include accounts, profiles, preferences and session/token state. Project records include projects, membership, tasks, assignments, labels, checklists, comments and delivery intents.
 - Communication owns conversations, messages, attachments, meeting participation, recordings and recording access. Calendar owns event/series/occurrence, attendee, reminder and Pomodoro data.
 - Document owns file/folder metadata, versions, sharing and storage lifecycle. Notification stores notifications and delivery receipts in PostgreSQL, not MongoDB.
-- Redis supports sessions, realtime coordination and AI queues. Kafka carries business events. S3 stores private files/media; Qdrant stores retrieval indexes. AI accesses original files through authorized business-service APIs.
+- Redis supports sessions, realtime coordination and AI queues. Kafka carries business events. S3 stores private files/media; Qdrant stores retrieval indexes. Notebook AI uses private source snapshots; legacy linked sources retain their original permission checks.
 
 Database ownership does not imply separate local database credentials: the existing local setup shares a PostgreSQL login. See [environment](docs/development/environment.md), [storage](docs/development/private-storage.md) and [migrations](docs/deployment/migrations.md).
 

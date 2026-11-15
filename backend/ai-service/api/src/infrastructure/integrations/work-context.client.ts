@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import {
   ForbiddenException,
   ServiceUnavailableException,
@@ -18,7 +19,7 @@ export async function workContextRequest(
       : config.AI_TO_CALENDAR_KEY;
   if (serviceKey.length < 32)
     throw new ServiceUnavailableException(
-      "Trợ lý công việc chưa được cấu hình.",
+      AI_UI_MESSAGES.WORK_ASSISTANT_UNCONFIGURED,
     );
   const base =
     service === "project"
@@ -30,11 +31,11 @@ export async function workContextRequest(
   );
   if (response.status === 403 || response.status === 404) {
     await response.body?.cancel();
-    throw new ForbiddenException("Bạn không còn quyền xem dự án này.");
+    throw new ForbiddenException(AI_UI_MESSAGES.PROJECT_FORBIDDEN);
   }
   if (!response.ok) {
     await response.body?.cancel();
-    throw new ServiceUnavailableException("Nguồn dữ liệu chưa truy cập được.");
+    throw new ServiceUnavailableException(AI_UI_MESSAGES.DATA_UNAVAILABLE);
   }
   const text = await readResponseText(response, 350000);
 

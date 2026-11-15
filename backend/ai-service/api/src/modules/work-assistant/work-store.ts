@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { rows, transaction } from "../../infrastructure/database/database";
 import {
   ConflictException,
@@ -24,6 +25,28 @@ export type WorkSession = {
 };
 @Injectable()
 export class WorkStore {
+  async referencedProjects(actor: Actor, context: ConversationContext) {
+    const projects = await rows<{ id: string }>(
+      `SELECT DISTINCT p.id FROM notebook_ai.work_assistant_sessions s
+       JOIN notebook_ai.work_assistant_messages m ON m.session_id=s.id
+       CROSS JOIN LATERAL jsonb_array_elements_text(m.project_ids) p(id)
+       WHERE s.owner_id=$1 AND s.context_type=$2 AND s.project_id IS NOT DISTINCT FROM $3::uuid
+       LIMIT 1001`,
+      [actor.id, context.contextType, context.projectId ?? null],
+    );
+
+    return projects.map((project) => project.id);
+  }
+
+  async requestStatus(actor: Actor, sessionId: string, requestId: string) {
+    const [request] = await rows<{ status: string }>(
+      "SELECT status FROM notebook_ai.work_assistant_requests WHERE id=$1 AND owner_id=$2 AND session_id=$3",
+      [requestId, actor.id, sessionId],
+    );
+
+    return request?.status ?? "NOT_FOUND";
+  }
+
   async session(actor: Actor, context: ConversationContext, create = false) {
     const { projectId, contextType } = context;
     const lookup =
@@ -160,9 +183,7 @@ export class WorkStore {
         [requestId],
       );
       if (existing.length)
-        throw new ConflictException(
-          "Yêu cầu đã được xử lý. Hãy tải lại hội thoại.",
-        );
+        throw new ConflictException(AI_UI_MESSAGES.REQUEST_PROCESSED);
       await client.query(
         "UPDATE notebook_ai.work_assistant_requests SET status='INTERRUPTED',updated_at=now() WHERE owner_id=$1 AND status='RUNNING' AND created_at<now()-interval '3 minutes'",
         [actor.id],
@@ -174,11 +195,9 @@ export class WorkStore {
         [actor.id],
       );
       if (usage.active)
-        throw new ConflictException("Một câu hỏi khác đang được xử lý.");
+        throw new ConflictException(AI_UI_MESSAGES.QUESTION_RUNNING);
       if (usage.recent >= 8)
-        throw new TooManyRequestsException(
-          "Bạn hỏi quá nhanh. Vui lòng thử lại sau một phút.",
-        );
+        throw new TooManyRequestsException(AI_UI_MESSAGES.REQUEST_RATE_LIMIT);
       signal?.throwIfAborted();
       await client.query(
         "INSERT INTO notebook_ai.work_assistant_requests(id,session_id,owner_id) VALUES($1,$2,$3)",
@@ -231,7 +250,8 @@ export class WorkStore {
         "UPDATE notebook_ai.work_assistant_requests SET status='COMPLETED',updated_at=now() WHERE id=$1 AND owner_id=$2 AND session_id=$3 AND status='RUNNING' AND NOT cancel_requested RETURNING id",
         [requestId, actor.id, session.id],
       );
-      if (!changed.length) throw new ConflictException("Yêu cầu đã bị hủy.");
+      if (!changed.length)
+        throw new ConflictException(AI_UI_MESSAGES.REQUEST_CANCELED);
       const references = JSON.stringify(sources),
         ids = JSON.stringify(projectIds);
       await client.query(

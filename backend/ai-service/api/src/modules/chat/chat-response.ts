@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import type { Citation, VisualInput } from "../../common/types";
 import { inspectAnswerCitations } from "./citation-check";
 import { modelAnswer } from "../../infrastructure/integrations/llm.client";
@@ -80,7 +81,7 @@ export function notebookIntent(question: string): NotebookIntent {
 function validateClarification(content: string) {
   const text = content.trim();
   if (text.length > 300 || !/[?？]$/.test(text) || /[\r\n]|\[\[/.test(text))
-    throw new Error("Câu hỏi làm rõ không hợp lệ");
+    throw new Error(AI_UI_MESSAGES.INVALID_CLARIFICATION);
 }
 
 /** Final replies bypass the model; clarification fallbacks are used only without history. */
@@ -118,7 +119,7 @@ export async function generateChatResponse(
     signal.throwIfAborted();
     content += delta;
     if (content.length > (clarification ? 300 : 20000))
-      throw new Error("Câu trả lời quá dài");
+      throw new Error(AI_UI_MESSAGES.ANSWER_TOO_LONG);
     if (!clarification) emit(delta);
   }
   signal.throwIfAborted();
@@ -137,7 +138,7 @@ export async function generateChatResponse(
   const checked = inspectAnswerCitations(content, evidence);
   if (checked.uncitedBlocks.length) {
     const note =
-      "\n\nLưu ý: Một số đoạn chưa có trích dẫn trực tiếp. Bạn nên đối chiếu với nguồn trước khi sử dụng.";
+      AI_UI_MESSAGES.UNCITED_CONTENT;
     content += note;
     emit(note);
   }

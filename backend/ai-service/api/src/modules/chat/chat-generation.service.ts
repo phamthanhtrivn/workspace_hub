@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { rows } from "../../infrastructure/database/database";
 import { retrieve } from "../../infrastructure/integrations/rag.client";
 import { ChatGenerationInput } from "./chat-stream.types";
@@ -67,10 +68,10 @@ export class ChatGenerationService {
         await authorize();
         signal.throwIfAborted();
         const content = !first
-          ? "Trước câu hỏi này, bạn chưa gửi câu hỏi nào trong Notebook này."
+          ? AI_UI_MESSAGES.NO_PREVIOUS_QUESTION
           : !visibleSnapshot(first.sources ?? [], sources)
-            ? "Câu hỏi đầu tiên gắn với nguồn hiện không được chọn hoặc đã thay đổi. Mình không thể hiển thị nội dung đó trong phạm vi nguồn hiện tại."
-            : `Câu hỏi đầu tiên bạn đã gửi trong Notebook này là:\n\n${JSON.stringify(first.content)}`;
+            ? AI_UI_MESSAGES.FIRST_QUESTION_HIDDEN
+            : AI_UI_MESSAGES.FIRST_QUESTION(first.content);
         stream.emit("delta", { text: content });
 
         return { content, citations: [] };

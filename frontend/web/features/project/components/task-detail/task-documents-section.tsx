@@ -1,42 +1,36 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useRef, useState } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import {
-  Check,
-  Download,
-  FileText,
-  FolderOpen,
-  Paperclip,
-  Trash2,
-  Upload,
-} from "lucide-react";
+import { Download, FolderOpen, Paperclip, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { documentsApi } from "@/features/documents/api/documents.api";
+import { DocumentFilePicker } from "@/features/documents/components/picker/document-file-picker";
+import { DocumentIcon } from "@/features/documents/components/common/document-icon";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
-import type { DocumentItem } from "@/features/documents/types/documents.types";
+import { fileCopyApi } from "@/features/documents/api/file-copy.api";
+import { documentsApi } from "@/features/documents/api/documents.api";
 import { formatBytes } from "@/features/documents/utils/documents.utils";
 import {
   TaskDocumentAttachmentSource,
   type Task,
 } from "@/features/project/types/project";
-import { useProjectDocuments } from "@/features/project/hooks/use-projects";
 import {
   useAttachTaskDocuments,
   useDetachTaskDocument,
   useTaskDocuments,
 } from "@/features/project/hooks/use-tasks";
 import { Spinner } from "@/components/ui/spinner";
-import { getActionErrorMessage,  PERMISSION_REASON } from "@/lib/permission-feedback";
+import {
+  getActionErrorMessage,
+  PERMISSION_REASON,
+} from "@/lib/permission-feedback";
 
 type PickerMode = "MY_FILES" | "PROJECT_DOCUMENT";
 
@@ -50,6 +44,7 @@ interface TaskDocumentsSectionProps {
 function sourceLabel(source: TaskDocumentAttachmentSource) {
   if (source === TaskDocumentAttachmentSource.DEVICE_UPLOAD) return "Upload";
   if (source === TaskDocumentAttachmentSource.MY_FILES) return "My Files";
+
   return "Project";
 }
 
@@ -70,13 +65,15 @@ function getTaskDocumentErrorMessage(
         error.response?.status === 403 &&
         responseMessage.includes("not allowed to edit")
       ) {
-        return "You do not have permission to upload into Project Documents. Ask a project admin for document edit access, or attach from My Files/Project Documents instead.";
+        return "You do not have permission to upload into Project Documents. Ask a project admin for document edit access.";
       }
+
       return responseMessage;
     }
   }
 
   if (error instanceof Error && error.message) return error.message;
+
   return fallbackMessage;
 }
 
@@ -96,18 +93,30 @@ export default function TaskDocumentsSection({
   const attachments = documentsQuery.data ?? task.documentAttachments;
   const isBusy =
     isUploading || attachDocuments.isPending || detachDocument.isPending;
-  const uploadReason = isReadOnly ? readOnlyReason : !canEditDocuments ? PERMISSION_REASON.projectDocuments : undefined;
+  const uploadReason = isReadOnly
+    ? readOnlyReason
+    : !canEditDocuments
+      ? PERMISSION_REASON.projectDocuments
+      : undefined;
 
   const handleUploadFiles = async (files: FileList | null) => {
     const selectedFiles = Array.from(files ?? []);
     if (selectedFiles.length === 0) return;
-    if (uploadReason) { toast.error(`You can't upload files to Project Documents. ${uploadReason}`); return; }
+    if (uploadReason) {
+      toast.error(
+        `You can't upload files to Project Documents. ${uploadReason}`,
+      );
+
+      return;
+    }
 
     setIsUploading(true);
     try {
       const uploaded = [];
       for (const file of selectedFiles) {
-        uploaded.push(await documentsApi.uploadFile(file, null, task.projectId));
+        uploaded.push(
+          await documentsApi.uploadFile(file, null, task.projectId),
+        );
       }
       await attachDocuments.mutateAsync({
         documentItemIds: uploaded.map((item) => item.id),
@@ -120,7 +129,10 @@ export default function TaskDocumentsSection({
       );
     } catch (error) {
       toast.error(
-        getActionErrorMessage(error, getTaskDocumentErrorMessage(error, "Failed to attach files")),
+        getActionErrorMessage(
+          error,
+          getTaskDocumentErrorMessage(error, "Failed to attach files"),
+        ),
       );
     } finally {
       setIsUploading(false);
@@ -133,18 +145,27 @@ export default function TaskDocumentsSection({
       const url = await documentsApi.getDownloadUrl(documentItemId);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (permissionError) {
-      toast.error(getActionErrorMessage(permissionError, "Failed to open document"));
+      toast.error(
+        getActionErrorMessage(permissionError, "Failed to open document"),
+      );
     }
   };
 
   const handleRemove = async (attachmentId: string) => {
-    if (isReadOnly) { toast.error(`You can't remove task attachments. ${readOnlyReason}`); return; }
+    if (isReadOnly) {
+      toast.error(`You can't remove task attachments. ${readOnlyReason}`);
+
+      return;
+    }
     try {
       await detachDocument.mutateAsync(attachmentId);
       toast.success("Attachment removed");
     } catch (error) {
       toast.error(
-        getActionErrorMessage(error, getTaskDocumentErrorMessage(error, "Failed to remove attachment")),
+        getActionErrorMessage(
+          error,
+          getTaskDocumentErrorMessage(error, "Failed to remove attachment"),
+        ),
       );
     }
   };
@@ -159,7 +180,7 @@ export default function TaskDocumentsSection({
             {attachments.length}
           </span>
         </h3>
-        {(
+        {
           <div className="flex flex-wrap justify-end gap-1.5">
             <input
               ref={fileInputRef}
@@ -169,7 +190,8 @@ export default function TaskDocumentsSection({
               className="hidden"
               onChange={(event) => void handleUploadFiles(event.target.files)}
             />
-            <Button aria-busy={isUploading || undefined}
+            <Button
+              aria-busy={isUploading || undefined}
               type="button"
               size="sm"
               variant="outline"
@@ -208,11 +230,14 @@ export default function TaskDocumentsSection({
               Project
             </Button>
           </div>
-        )}
+        }
       </div>
 
       {documentsQuery.isLoading ? (
-        <div role="status" className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
+        <div
+          role="status"
+          className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground"
+        >
           <Spinner size={14} />
           Loading attachments...
         </div>
@@ -227,7 +252,15 @@ export default function TaskDocumentsSection({
               key={attachment.id}
               className="flex items-center gap-2 rounded-lg border border-border bg-card px-2.5 py-2"
             >
-              <FileText className="h-4 w-4 shrink-0 text-info-content" />
+              <DocumentIcon
+                item={{
+                  type: DocumentItemType.FILE,
+                  name: attachment.name,
+                  mimeType: attachment.mimeType,
+                }}
+                iconSize={18}
+                className="size-8 shrink-0 rounded-control"
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold text-foreground">
                   {attachment.name}
@@ -248,8 +281,12 @@ export default function TaskDocumentsSection({
               >
                 <Download className="h-3.5 w-3.5" />
               </Button>
-              {(
-                <Button loading={detachDocument.isPending && detachDocument.variables === attachment.id}
+              {
+                <Button
+                  loading={
+                    detachDocument.isPending &&
+                    detachDocument.variables === attachment.id
+                  }
                   type="button"
                   size="icon"
                   variant="ghost"
@@ -262,13 +299,14 @@ export default function TaskDocumentsSection({
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
-              )}
+              }
             </div>
           ))}
         </div>
       )}
 
       <TaskDocumentPickerDialog
+        canEditDocuments={canEditDocuments}
         task={task}
         isReadOnly={isReadOnly}
         readOnlyReason={readOnlyReason}
@@ -283,196 +321,94 @@ export default function TaskDocumentsSection({
 }
 
 interface TaskDocumentPickerDialogProps {
+  mode: PickerMode | null;
+  canEditDocuments: boolean;
   task: Task;
   isReadOnly: boolean;
   readOnlyReason: string;
-  mode: PickerMode | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 function TaskDocumentPickerDialog({
+  mode,
   task,
   isReadOnly,
+  canEditDocuments,
   readOnlyReason,
-  mode,
   open,
   onOpenChange,
 }: TaskDocumentPickerDialogProps) {
-  const [search, setSearch] = useState("");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const projectDocumentsQuery = useProjectDocuments(task.projectId, open);
+  const [pending, setPending] = useState(false);
   const attachDocuments = useAttachTaskDocuments(task.projectId, task.id);
-  const rootFolderId = projectDocumentsQuery.data?.folderId;
-
-  const query = useQuery({
-    queryKey: [
-      "task-document-picker",
-      mode,
-      task.projectId,
-      rootFolderId,
-      search,
-    ],
-    queryFn: async () => {
-      if (mode === "PROJECT_DOCUMENT") {
-        if (!rootFolderId) return [];
-        const response = await documentsApi.getDocuments({
-          folderId: rootFolderId,
-          page: 1,
-          limit: 50,
-          search: search.trim() || undefined,
-        });
-        return response.data;
-      }
-
-      const response = await documentsApi.getDocuments({
-        page: 1,
-        limit: 50,
-        search: search.trim() || undefined,
-      });
-      return response.data;
-    },
-    enabled: open && Boolean(mode) && (mode !== "PROJECT_DOCUMENT" || Boolean(rootFolderId)),
-  });
-
-  const files = useMemo(
-    () => (query.data ?? []).filter((item) => item.type === DocumentItemType.FILE),
-    [query.data],
-  );
-
-  const toggleSelected = (item: DocumentItem) => {
-    setSelectedIds((current) =>
-      current.includes(item.id)
-        ? current.filter((id) => id !== item.id)
-        : [...current, item.id],
-    );
-  };
-
-  const handleAttach = async () => {
-    if (!mode || selectedIds.length === 0) return;
-    if (isReadOnly) { toast.error(`You can't attach documents to this task. ${readOnlyReason}`); return; }
-    try {
-      await attachDocuments.mutateAsync({
-        documentItemIds: selectedIds,
-        source:
-          mode === "MY_FILES"
-            ? TaskDocumentAttachmentSource.MY_FILES
-            : TaskDocumentAttachmentSource.PROJECT_DOCUMENT,
-      });
-      toast.success(
-        selectedIds.length === 1
-          ? "Document attached"
-          : `${selectedIds.length} documents attached`,
-      );
-      setSelectedIds([]);
-      setSearch("");
-      onOpenChange(false);
-    } catch (error) {
-      toast.error(
-        getActionErrorMessage(error, getTaskDocumentErrorMessage(error, "Failed to attach documents")),
-      );
-    }
-  };
+  if (!open) return null;
 
   return (
     <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          setSelectedIds([]);
-          setSearch("");
-        }
-        onOpenChange(nextOpen);
+      open
+      onOpenChange={(next) => {
+        if (!pending) onOpenChange(next);
       }}
     >
-      <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-dialog border-border bg-card p-0">
-        <DialogHeader className="border-b border-border px-5 py-4 text-left">
-          <DialogTitle className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <FolderOpen className="h-4 w-4 text-info-content" />
-            {mode === "PROJECT_DOCUMENT"
-              ? "Attach project documents"
-              : "Attach from My Files"}
+      <DialogContent
+        className="max-w-2xl gap-0 overflow-hidden rounded-dialog bg-card p-0"
+        showCloseButton={!pending}
+      >
+        <DialogHeader className="border-b border-border">
+          <DialogTitle className="flex items-center gap-2">
+            <FolderOpen className="size-4" aria-hidden="true" />
+            {mode === "PROJECT_DOCUMENT" ? "Project documents" : "Attach files"}
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 p-5">
-          <Input aria-label="Search files"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search files"
-            className="h-9 rounded-control text-sm"
+        <div className="min-h-0 overflow-y-auto p-4">
+          <DocumentFilePicker
+            key={task.id + ":" + mode}
+            context={"task:" + task.id}
+            projectId={mode === "PROJECT_DOCUMENT" ? task.projectId : undefined}
+            disabled={isReadOnly}
+            onPending={setPending}
+            isAdded={(file) =>
+              task.documentAttachments.some(
+                (attachment) => attachment.documentItemId === file.id,
+              )
+            }
+            validate={(files) =>
+              !canEditDocuments &&
+              files.some((file) => file.projectId !== task.projectId)
+                ? "Document edit access is required to copy files into this project."
+                : files.some((file) => file.sizeBytes > 10 * 1024 * 1024)
+                  ? "Project files support up to 10 MiB."
+                  : ""
+            }
+            onConfirm={async (files, operationId, signal, assertActor) => {
+              if (isReadOnly) throw new Error(readOnlyReason);
+              assertActor();
+              const external = files.filter(
+                (file) => file.projectId !== task.projectId,
+              );
+              const imported = external.length
+                ? await fileCopyApi.project(
+                    task.projectId,
+                    external,
+                    operationId,
+                    signal,
+                  )
+                : [];
+              assertActor();
+              await attachDocuments.mutateAsync({
+                documentItemIds: [
+                  ...files
+                    .filter((file) => file.projectId === task.projectId)
+                    .map((file) => file.id),
+                  ...imported.map((file) => file.id),
+                ],
+                source: TaskDocumentAttachmentSource.PROJECT_DOCUMENT,
+              });
+              assertActor();
+              toast.success("Files attached");
+              onOpenChange(false);
+            }}
           />
-
-          <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
-            {query.isLoading ? (
-              <div role="status" className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
-                <Spinner />
-                Loading files...
-              </div>
-            ) : files.length === 0 ? (
-              <div className="px-3 py-6 text-sm text-muted-foreground">
-                No files found.
-              </div>
-            ) : (
-              files.map((item) => {
-                const selected = selectedIds.includes(item.id);
-                return (
-                  <Button variant="unstyled"
-                    key={item.id}
-                    disabledReason={isReadOnly ? readOnlyReason : undefined}
-                    type="button"
-                    onClick={() => toggleSelected(item)}
-                    className={[
-                      "flex w-full items-center gap-2 border-b border-border px-3 py-2 text-left last:border-b-0",
-                      selected ? "bg-info-soft" : "bg-card hover:bg-background",
-                    ].join(" ")}
-                  >
-                    <span
-                      className={[
-                        "flex h-4 w-4 shrink-0 items-center justify-center rounded border text-xs",
-                        selected
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-input bg-card text-transparent",
-                      ].join(" ")}
-                    >
-                      <Check className="h-3 w-3" />
-                    </span>
-                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-foreground">
-                        {item.name}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {formatBytes(item.sizeBytes)}
-                      </span>
-                    </span>
-                  </Button>
-                );
-              })
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="h-8 rounded-control px-3 text-xs"
-            >
-              Cancel
-            </Button>
-            <Button aria-busy={attachDocuments.isPending || undefined}
-              disabledReason={isReadOnly ? readOnlyReason : undefined}
-              type="button"
-              disabled={selectedIds.length === 0 || attachDocuments.isPending}
-              onClick={() => void handleAttach()}
-              className="h-8 rounded-control bg-primary px-3 text-xs text-primary-foreground hover:bg-primary-hover"
-            >
-              {attachDocuments.isPending && (
-                <Spinner size={14} tone="inherit" className="mr-1" />
-              )}
-              Attach {selectedIds.length || ""}
-            </Button>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

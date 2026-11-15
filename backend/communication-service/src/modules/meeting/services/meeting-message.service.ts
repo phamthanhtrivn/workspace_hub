@@ -1,5 +1,7 @@
+import { reserveImportedAttachments } from '../../media/imported-attachment-reservation';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -33,6 +35,13 @@ import type {
 import { MeetingPolicyService } from './meeting-policy.service';
 import { MeetingRealtimeService } from './meeting-realtime.service';
 import { MESSAGE_UPDATE_WINDOW_MS } from '../types/meeting.constants';
+import {
+  DELIVERY_CONFLICT,
+  recordMessageDelivery,
+  reserveMessageDelivery,
+  type MessageDeliveryIdentity,
+} from '../../../common/utils/message-delivery';
+import { parseClientRequestId } from '../../../common/dto/message-delivery.dto';
 
 @Injectable()
 export class MeetingMessageService {
@@ -123,6 +132,16 @@ export class MeetingMessageService {
       });
     const content = dto.content?.trim() ?? '';
     const medias = dto.medias ?? [];
+    const requestId = parseClientRequestId(dto.clientRequestId);
+    const delivery: MessageDeliveryIdentity | undefined = requestId
+      ? {
+          senderId: userId,
+          requestId,
+          chatId: meeting.id,
+          chatType: 'MEETING',
+          payload: { content, ...(medias.length ? { medias } : {}) },
+        }
+      : undefined;
 
     this.assertChatEnabled(meeting.chatEnabled, participant.role);
 
@@ -168,6 +187,32 @@ export class MeetingMessageService {
         current.meeting.chatEnabled,
         current.participant.role,
       );
+      const priorId = delivery
+        ? await reserveMessageDelivery(tx, delivery)
+        : undefined;
+      if (priorId) {
+        const prior = await tx.meetingMessage.findUnique({
+          where: { id: priorId },
+          include: this.getMessageInclude(),
+        });
+        if (
+          !prior ||
+          prior.meetingId !== meeting.id ||
+          prior.senderId !== userId ||
+          prior.deletedAt ||
+          prior.recalled
+        )
+          throw new ConflictException(DELIVERY_CONFLICT);
+
+        return { message: prior, reused: true };
+      }
+      await reserveImportedAttachments(
+        tx,
+        userId,
+        meeting.id,
+        'MEETING',
+        medias,
+      );
       const message = await tx.meetingMessage.create({
         data: {
           meetingId: meeting.id,
@@ -203,15 +248,18 @@ export class MeetingMessageService {
         },
       });
 
-      return message;
-    });
-    const payload = await this.mapMeetingMessagePayload(createdMessage);
+      if (delivery) await recordMessageDelivery(tx, delivery, message.id);
 
-    this.meetingRealtimeService.emitMeetingEvent(
-      meeting.id,
-      MeetingEvent.MESSAGE_SENT,
-      payload,
-    );
+      return { message, reused: false };
+    });
+    const payload = await this.mapMeetingMessagePayload(createdMessage.message);
+
+    if (!createdMessage.reused)
+      this.meetingRealtimeService.emitMeetingEvent(
+        meeting.id,
+        MeetingEvent.MESSAGE_SENT,
+        payload,
+      );
 
     return payload;
   }

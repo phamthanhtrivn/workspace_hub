@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { ChannelAccessService } from '../channel/access/channel-access.service';
@@ -17,24 +22,55 @@ export class MediaAccessService {
   ) {}
 
   async assertCanRead(key: string, userId: string) {
-    if (!userId || !key || key.length > 1024 || !key.startsWith(`${S3_UPLOAD_TYPE.CHAT_MEDIA}/`) || /(^|\/)\.\.?($|\/)/.test(key)) {
+    if (
+      !userId ||
+      !key ||
+      key.length > 1024 ||
+      !key.startsWith(`${S3_UPLOAD_TYPE.CHAT_MEDIA}/`) ||
+      /(^|\/)\.\.?($|\/)/.test(key)
+    ) {
       throw new NotFoundException(MEDIA_ERROR_MESSAGES.ATTACHMENT_NOT_FOUND);
     }
     const where = { s3Key: key, message: { recalled: false, deletedAt: null } };
     const [channel, direct, meeting] = await Promise.all([
-      this.prisma.media.findMany({ where, select: { message: { select: { channelId: true } } } }),
-      this.prisma.directMedia.findMany({ where, select: { message: { select: { conversationId: true } } } }),
-      this.prisma.meetingMedia.findMany({ where, select: { message: { select: { meeting: { select: { joinToken: true } } } } } }),
+      this.prisma.media.findMany({
+        where,
+        select: { message: { select: { channelId: true } } },
+      }),
+      this.prisma.directMedia.findMany({
+        where,
+        select: { message: { select: { conversationId: true } } },
+      }),
+      this.prisma.meetingMedia.findMany({
+        where,
+        select: {
+          message: { select: { meeting: { select: { joinToken: true } } } },
+        },
+      }),
     ]);
     const checks = [
-      ...[...new Set(channel.map((row) => row.message.channelId))].map((id) => () => this.channels.assertPrivateAccess(id, userId)),
-      ...[...new Set(direct.map((row) => row.message.conversationId))].map((id) => () => this.directMessages.assertCanRead(id, userId)),
-      ...[...new Set(meeting.map((row) => row.message.meeting.joinToken))].map((joinToken) => () => this.meetings.assertJoinedMeetingParticipant({ joinToken, userId })),
+      ...[...new Set(channel.map((row) => row.message.channelId))].map(
+        (id) => () => this.channels.assertPrivateAccess(id, userId),
+      ),
+      ...[...new Set(direct.map((row) => row.message.conversationId))].map(
+        (id) => () => this.directMessages.assertCanRead(id, userId),
+      ),
+      ...[...new Set(meeting.map((row) => row.message.meeting.joinToken))].map(
+        (joinToken) => () =>
+          this.meetings.assertJoinedMeetingParticipant({ joinToken, userId }),
+      ),
     ];
     for (const check of checks) {
-      try { await check(); return; }
-      catch (error) {
-        if (!(error instanceof ForbiddenException || error instanceof NotFoundException)) throw error;
+      try {
+        await check();
+
+        return;
+      } catch (error) {
+        if (!(
+          error instanceof ForbiddenException ||
+          error instanceof NotFoundException
+        ))
+          throw error;
       }
     }
     throw new NotFoundException(MEDIA_ERROR_MESSAGES.ATTACHMENT_NOT_FOUND);
@@ -47,6 +83,24 @@ export class MediaAccessService {
   ) {
     if (chatType === CHAT_CONTEXT_TYPE.CHANNEL) {
       await this.channels.assertPrivateAccess(referenceId, userId);
+      const channel = await this.prisma.channel.findUnique({
+        where: { id: referenceId },
+        include: { setting: true },
+      });
+      const membership =
+        channel &&
+        (await this.prisma.spaceMember.findUnique({
+          where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
+        }));
+      if (
+        !channel ||
+        !membership ||
+        (membership.role === 'MEMBER' &&
+          channel.setting?.allowSendMessage === false)
+      )
+        throw new ForbiddenException(
+          'You cannot send attachments to this channel.',
+        );
     } else if (chatType === CHAT_CONTEXT_TYPE.DIRECT_MESSAGE) {
       await this.directMessages.assertCanSend(referenceId, userId);
     } else if (chatType === CHAT_CONTEXT_TYPE.MEETING) {
@@ -54,10 +108,18 @@ export class MediaAccessService {
         where: { id: referenceId },
         select: { joinToken: true },
       });
-      await this.meetings.assertJoinedMeetingParticipant({
+      const current = await this.meetings.assertJoinedMeetingParticipant({
         joinToken: meeting?.joinToken ?? '',
         userId,
       });
+      if (
+        current.meeting.status !== 'LIVE' ||
+        (current.meeting.chatEnabled === false &&
+          current.participant.role === 'PARTICIPANT')
+      )
+        throw new ForbiddenException(
+          'Meeting chat is not available for sending.',
+        );
     } else {
       throw new BadRequestException('Invalid attachment chat context');
     }

@@ -555,6 +555,7 @@ export interface UpdateMeetingParticipantViewPreferencePayload {
 }
 
 export interface CreateMeetingMessagePayload {
+  clientRequestId?: string;
   content?: string;
   medias?: MeetingMessageMediaPayload[];
 }

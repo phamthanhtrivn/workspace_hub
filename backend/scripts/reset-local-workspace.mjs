@@ -6,8 +6,6 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { connect, identifier, loadDatabasePlan } from './local-security/database-plan.mjs';
 import { applyDatabaseRoles, verifyDatabaseRoles } from './local-security/database-roles.mjs';
-import { applyFullMigrations } from './local-security/full-migrations.mjs';
-import { rehearseFreshDatabases } from './rehearse-local-databases.mjs';
 import { REPOSITORY_ROOT, readEnvironment } from './local-security/env-files.mjs';
 
 const require = createRequire(resolve(REPOSITORY_ROOT, 'backend/ai-service/api/package.json'));
@@ -110,14 +108,21 @@ async function backupDatabases(plan, directory, admin) {
   }
 }
 
-async function assertStopped(plan, admin) {
+export async function assertApplicationsStopped(plan, admin) {
   const databases = Object.values(plan.services).map((service) => service.database);
-  const active = await admin.query('SELECT datname, count(*)::int AS count FROM pg_stat_activity WHERE datname = ANY($1) AND pid <> pg_backend_pid() GROUP BY datname', [databases]);
-  if (active.rowCount) throw new Error(`Application DB connections remain: ${active.rows.map((row) => row.datname).join(', ')}.`);
+  const active = await admin.query('SELECT datname,application_name,count(*)::int AS count FROM pg_stat_activity WHERE datname = ANY($1) AND pid <> pg_backend_pid() GROUP BY datname,application_name ORDER BY datname,application_name', [databases]);
+  if (active.rowCount) {
+    const message = 'Disconnect DBeaver/other DB clients and stop host services plus Docker notebook-api/notebook-jobs before retrying. Idle connections also block reset.';
+    throw Object.assign(new Error(message), { resetFailure: {
+      phase: 'preflight', code: 'ACTIVE_DATABASE_CONNECTIONS', message,
+      databases: active.rows.map(row => ({ database: row.datname, connections: row.count,
+        client: /dbeaver/i.test(row.application_name) ? 'DBeaver' : /pgadmin/i.test(row.application_name) ? 'pgAdmin' : 'application' })),
+    } });
+  }
 }
 
 async function recreate(admin, plan, service) {
-  await assertStopped(plan, admin);
+  await assertApplicationsStopped(plan, admin);
   await admin.query(`DROP DATABASE ${identifier(service.database)}`);
   await admin.query(`CREATE DATABASE ${identifier(service.database)} OWNER ${identifier(plan.admin.user)}`);
 }
@@ -196,98 +201,86 @@ async function resetRedis() {
   console.log(JSON.stringify({ redisWorkspaceKeysRemoved: removed }));
 }
 
-export async function resetQdrant() {
-  const env = readEnvironment('backend/ai-service/rag-worker/.env').values;
-  const url = new URL(env.QDRANT_URL);
-  if (!['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)) throw new Error('Qdrant cleanup requires a local endpoint.');
-  const headers = env.QDRANT_API_KEY ? { 'api-key': env.QDRANT_API_KEY } : {};
-  let response;
-  try { response = await fetch(new URL('/collections', url), { headers, signal: AbortSignal.timeout(2000) }); }
-  catch { response = undefined; }
-  let names, remove, finish = async () => {};
-  if (response) {
-    if (!response.ok) throw new Error('Qdrant collection listing failed.');
-    const payload = await response.json();
-    names = payload?.result?.collections?.map((item) => item.name) ?? [];
-    remove = async (name) => {
-      const deleted = await fetch(new URL(`/collections/${name}`, url), { method: 'DELETE', headers, signal: AbortSignal.timeout(10000) });
-      if (!deleted.ok) throw new Error('Qdrant collection deletion failed.');
-      await deleted.body?.cancel();
-    };
-  } else {
-    // The local Notebook Compose project may be stopped while its volume remains.
-    // Inspect the exact volume and temporarily start only its Qdrant container.
-    const container = 'wh-notebook-notebook-qdrant-1';
-    let detail;
-    try { detail = await dockerCapture(['inspect', container, '--format', '{{.State.Running}} {{range .Mounts}}{{.Name}}{{end}}']); }
-    catch { console.log(JSON.stringify({ qdrant: 'unavailable-no-container' })); return; }
-    const [running, volume] = detail.split(' ');
-    if (volume !== 'wh-notebook_notebook-qdrant') throw new Error('Unexpected Qdrant volume; cleanup refused.');
-    if (env.QDRANT_API_KEY) throw new Error('Authenticated Qdrant needs an accessible local API.');
-    await dockerCapture(['image', 'inspect', 'curlimages/curl:8.11.1', '--format', '{{.Id}}']);
-    if (running !== 'true') await dockerCapture(['start', container]);
-    if (running !== 'true') finish = () => dockerCapture(['stop', container]);
-    try {
-      const base = ['run', '--rm', '--network', 'wh-notebook_default', 'curlimages/curl:8.11.1', '-fsS'];
-      let listing;
-      for (let attempt = 0; attempt < 15; attempt++) {
-        try { listing = await dockerCapture([...base, 'http://notebook-qdrant:6333/collections']); break; }
-        catch { await sleep(1000); }
-      }
-      if (!listing) throw new Error('Qdrant container did not become ready.');
-      const payload = JSON.parse(listing);
-      names = payload?.result?.collections?.map((item) => item.name) ?? [];
-      remove = async (name) => {
-        await dockerCapture([...base, '-X', 'DELETE', `http://notebook-qdrant:6333/collections/${name}`]);
-      };
-    } catch (error) { await finish(); throw error; }
-  }
-  const owned = names.filter((name) => /^wh_notebook_[a-f0-9]{16}$/.test(name));
-  try { for (const name of owned) await remove(name); }
-  finally { await finish(); }
-  console.log(JSON.stringify({ qdrantWorkspaceCollectionsRemoved: owned.length }));
+/** Retain schema, native migration histories and grants while clearing app rows. */
+export async function clearApplicationTables(database) {
+  await database.query('BEGIN');
+  try {
+    await database.query("SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='90s'");
+    const tables = (await database.query(`SELECT schemaname,tablename FROM pg_tables
+      WHERE schemaname IN ('public','notebook_ai')
+      AND tablename NOT IN ('_prisma_migrations','flyway_schema_history','workspacehub_schema_history','workspacehub_local_security_history','schema_migrations')
+      ORDER BY schemaname,tablename`)).rows;
+    if (tables.length) await database.query('TRUNCATE TABLE ' + tables.map(row => identifier(row.schemaname) + '.' + identifier(row.tablename)).join(',') + ' RESTART IDENTITY CASCADE');
+    await database.query('COMMIT');
+    return tables.length;
+  } catch (error) { await database.query('ROLLBACK'); throw error; }
+}
+
+/** Use the current Compose network without starting any helper containers/models. */
+export async function resetQdrant({ apply = true, capture = dockerCapture } = {}) {
+  const python = `import json, os, re, urllib.request, urllib.parse
+base = os.environ['QDRANT_URL']
+url = urllib.parse.urlparse(base)
+if url.scheme not in ('http', 'https') or url.hostname not in ('notebook-qdrant', 'localhost', '127.0.0.1', '::1'):
+    raise RuntimeError('Only local Compose Qdrant is supported')
+headers = {'api-key': os.environ['QDRANT_API_KEY']} if os.environ.get('QDRANT_API_KEY') else {}
+def request(path, method='GET'):
+    req = urllib.request.Request(base.rstrip('/') + path, headers=headers, method=method)
+    with urllib.request.urlopen(req, timeout=15) as response:
+        return json.load(response)
+listing = request('/collections')['result']['collections']
+owned = [entry['name'] for entry in listing if re.fullmatch(r'wh_notebook_[a-f0-9]{16}', entry['name']) or entry['name'] == 'wh_notebook_manifests_v1']
+if ${apply ? 'True' : 'False'}:
+    for name in owned:
+        request('/collections/' + urllib.parse.quote(name, safe=''), 'DELETE')
+print(json.dumps({'qdrantWorkspaceCollections': len(owned), 'removed': ${apply ? 'True' : 'False'}}))`;
+  const output = await capture(['compose', '-f', resolve(REPOSITORY_ROOT, 'backend/docker/compose.yml'), 'exec', '-T', 'rag-worker', 'python', '-c', python]);
+  const report = JSON.parse(output);
+  if (!Number.isSafeInteger(report.qdrantWorkspaceCollections) || report.removed !== apply) throw new Error('Unexpected local Qdrant reset report.');
+  console.log(JSON.stringify(report));
+  return report;
 }
 
 export async function resetLocalWorkspace({ apply = false } = {}) {
   const plan = loadDatabasePlan();
   requireLocal(plan);
   const credentialMode = runtimeDatabaseMode(plan);
-  if (!apply) return { mode: 'dry-run', credentialMode, databases: Object.values(plan.services).map((service) => service.database), kafkaTopics: TOPICS, redisPrefixes: REDIS_PREFIXES, qdrantPrefix: 'wh_notebook_', noVolumesRemoved: true };
+  if (!apply) return { mode: 'dry-run', credentialMode, databases: Object.values(plan.services).map((service) => service.database), preserveSchemaAndMigrationHistory: true, kafkaTopics: TOPICS, redisPrefixes: REDIS_PREFIXES, qdrantPrefix: 'wh_notebook_', noVolumesRemoved: true };
   const admin = await connect(plan.admin);
   const directory = resolve(REPOSITORY_ROOT, '.tmp/security-fresh-backups', new Date().toISOString().replace(/[:.]/g, '-'));
   try {
     const role = await admin.query('SELECT rolsuper FROM pg_roles WHERE rolname=current_user');
     if (!role.rows[0]?.rolsuper) throw new Error('Local reset requires migration administrator.');
-    await assertStopped(plan, admin);
-    await rehearseFreshDatabases(plan);
-    await assertStopped(plan, admin);
+    await assertApplicationsStopped(plan, admin);
+    // Prove the current Docker RAG/Qdrant path works before touching application data.
+    await resetQdrant({ apply: false });
     await backupDatabases(plan, directory, admin);
+    console.log(JSON.stringify({ backupDirectory: directory, databasesBackedUp: Object.keys(plan.services).length }));
     try {
       for (const [name, service] of Object.entries(plan.services)) {
-        await recreate(admin, plan, service);
-        const migrations = await applyFullMigrations(plan, name, service.database);
-        console.log(JSON.stringify({ rebuilt: name, migrations }));
-      }
-      if (credentialMode === 'restricted') {
-        await applyDatabaseRoles(plan);
-        await verifyDatabaseRoles(plan);
+        await assertApplicationsStopped(plan, admin);
+        const database = await connect({ ...plan.admin, database: service.database });
+        try {
+          const tables = await clearApplicationTables(database);
+          console.log(JSON.stringify({ cleared: name, tables, migrationHistoryPreserved: true }));
+        } finally { await database.end(); }
       }
     } catch (error) {
       try { await restoreAll(admin, plan, directory, credentialMode); }
-      catch { throw new Error(`Database rebuild failed and automatic rollback failed. Preserve backups at ${directory}.`); }
-      throw new Error(`Database rebuild failed; seven databases restored from backups at ${directory}.`);
+      catch { throw new Error(`Database cleanup failed and automatic rollback failed. Preserve backups at ${directory}.`); }
+      throw new Error(`Database cleanup failed; seven databases restored from backups at ${directory}.`);
     }
     await resetKafka();
     await resetRedis();
     await resetQdrant();
-    return { mode: 'applied', credentialMode, backupDirectory: directory, databases: Object.values(plan.services).map((service) => service.database), noVolumesRemoved: true };
+    return { mode: 'applied', credentialMode, backupDirectory: directory, databases: Object.values(plan.services).map((service) => service.database), preserveSchemaAndMigrationHistory: true, noVolumesRemoved: true };
   } finally { await admin.end(); }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   if (process.argv.slice(2).some((arg) => arg !== '--apply')) throw new Error('Only --apply is supported.');
-  resetLocalWorkspace({ apply: process.argv.includes('--apply') }).then((result) => console.log(JSON.stringify(result, null, 2))).catch(() => {
-    console.error('Local reset failed. Review the preceding phase status and private backup directory; no secret values displayed.');
+  resetLocalWorkspace({ apply: process.argv.includes('--apply') }).then((result) => console.log(JSON.stringify(result, null, 2))).catch((error) => {
+    console.error(JSON.stringify(error.resetFailure ?? { code: 'LOCAL_RESET_FAILED', message: 'Local reset failed. Review the preceding phase status and private backup directory; no secret values displayed.' }, null, 2));
     process.exitCode = 1;
   });
 }

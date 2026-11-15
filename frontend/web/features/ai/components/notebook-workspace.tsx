@@ -1,93 +1,126 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  FileText,
+  MessageSquare,
+  MoreHorizontal,
+  NotebookPen,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Pencil,
+  RotateCcw,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { LoadingState } from "@/components/ui/loading-state";
 import { useAppSelector } from "@/store/store";
-import { notebooksApi } from "../api/notebooks.api";
 import { useNotebook, useNotebookChat } from "../hooks/use-notebook";
-import { Citations } from "./citations";
-import { AnswerContent } from "./answer-content";
+import type { NotebookActionKey, NotebookActionRunner } from "../types";
+import type { NotebookDialogAction } from "../types/notebook-list";
 import { SourcePanel } from "./source-panel";
 import { NotesPanel } from "./notes-panel";
-import { LoadingState } from "@/components/ui/loading-state";
-import { Spinner } from "@/components/ui/spinner";
-import { ArrowLeft, Bot } from "lucide-react";
-import type { NotebookActionKey, NotebookActionRunner } from "../types";
+import { NotebookChatPanel } from "./notebook-chat-panel";
+import { NotebookDialog } from "./notebook-dialog";
 
 export function NotebookWorkspace({ id }: { id: string }) {
   const userId = useAppSelector((state) => state.auth.userId);
 
   return userId ? (
-    <Workspace key={`${userId}-${id}`} id={id} />
+    <Workspace key={`${userId}:${id}`} id={id} userId={userId} />
   ) : (
-    <p className="p-8">Please sign in to open your notebooks.</p>
+    <p className="p-6">Please sign in to open your notebooks.</p>
   );
 }
 
-function Workspace({ id }: { id: string }) {
+function Workspace({ id, userId }: { id: string; userId: string }) {
   const query = useNotebook(id);
   const chat = useNotebookChat(id, query.refresh);
   const router = useRouter();
   const [tab, setTab] = useState("chat");
+  const [sourcesOpen, setSourcesOpen] = useState(true);
+  const [notesOpen, setNotesOpen] = useState(true);
+  const [addOpen, setAddOpen] = useState(false);
   const [excluded, setExcluded] = useState<string[]>([]);
-  const [question, setQuestion] = useState("");
-  const [renaming, setRenaming] = useState(false);
-  const [name, setName] = useState("");
+  const [action, setAction] = useState<NotebookDialogAction | null>(null);
   const [pendingAction, setPendingAction] = useState<NotebookActionKey | null>(
     null,
   );
-  const run: NotebookActionRunner = (action, key) => {
+  const running = useRef(false);
+  const run: NotebookActionRunner = (operation, key) => {
+    if (running.current) return Promise.resolve(false);
+    running.current = true;
     setPendingAction(key ?? null);
-    void query
-      .action(action)
-      .catch(() => {})
-      .finally(() => setPendingAction(null));
+
+    return query
+      .action(operation)
+      .then(
+        () => true,
+        () => false,
+      )
+      .finally(() => {
+        running.current = false;
+        setPendingAction(null);
+      });
   };
   if (query.isError)
     return (
-      <div className="space-y-4 p-8" role="alert">
+      <div className="space-y-4 p-6" role="alert">
         <p>
           Unable to load this notebook or verify source access. Content is
           temporarily hidden.
         </p>
-        <Button onClick={() => query.refetch()}>Retry</Button>
-        <Button variant="link" asChild>
-          <Link href="/ai">Back to notebooks</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void query.refetch()}>
+            <RotateCcw aria-hidden="true" />
+            Try again
+          </Button>
+          <Button variant="ghost" asChild>
+            <Link href="/ai">
+              <ArrowLeft aria-hidden="true" />
+              Back to notebooks
+            </Link>
+          </Button>
+        </div>
       </div>
     );
   if (!query.data)
-    return (
-      <LoadingState label="Loading notebook..." size={32} className="p-8" />
-    );
+    return <LoadingState label="Loading notebook..." className="p-6" />;
   const notebook = query.data;
   const selected = notebook.sources.filter(
     (source) => source.status === "READY" && !excluded.includes(source.id),
   );
-  const visibleDraft = chat.draft?.refs.every((ref) =>
-    notebook.sources.some(
-      (source) =>
-        source.id === ref.id &&
-        source.revision === ref.revision &&
-        source.status === "READY",
-    ),
-  );
-  const panel = "min-h-0 min-w-0 rounded-xl border bg-background p-4 xl:block";
+  const selectSources = () => {
+    setSourcesOpen(true);
+    setTab("sources");
+  };
+  const panel =
+    "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-panel border border-border bg-card text-card-foreground";
+  const slot =
+    "m-0 hidden min-h-0 min-w-0 data-[state=active]:flex @min-[68rem]/notebook:flex";
 
   return (
-    <main className="flex min-h-0 flex-1 flex-col gap-4 bg-muted/30 p-3 md:p-5 xl:h-[calc(100dvh-100px)]">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+    <Tabs
+      value={tab}
+      onValueChange={setTab}
+      className="@container/notebook flex min-h-0 min-w-0 w-full flex-1 flex-col gap-4 overflow-hidden bg-muted/30 p-3 md:p-5"
+    >
+      <header className="flex shrink-0 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-9 shrink-0 rounded-full bg-background"
-            asChild
-          >
+          <Button asChild variant="outline" size="icon" className="shrink-0">
             <Link
               href="/ai"
               aria-label="Back to notebooks"
@@ -97,295 +130,202 @@ function Workspace({ id }: { id: string }) {
             </Link>
           </Button>
           <div className="min-w-0">
-            <h1 className="break-words text-xl font-semibold">
+            <h1
+              className="line-clamp-2 text-page-title font-semibold [overflow-wrap:anywhere]"
+              title={notebook.title}
+            >
               {notebook.title}
             </h1>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Private · {notebook.sources.length} sources
+            <p className="mt-1 text-xs text-muted-foreground">
+              Private · {notebook.sources.length}{" "}
+              {notebook.sources.length === 1 ? "source" : "sources"}
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setName(notebook.title);
-              setRenaming((value) => !value);
-            }}
-          >
-            Rename
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            loading={query.saving && pendingAction === "remove"}
-            disabled={chat.busy || query.saving}
-            onClick={() => {
-              if (
-                window.confirm(
-                  "Delete this notebook and its history? Original files in Documents will be kept.",
-                )
-              )
-                run(async () => {
-                  await notebooksApi.remove(id);
-                  router.push("/ai");
-                }, "remove");
-            }}
-          >
-            Delete notebook
-          </Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={query.saving}
+              aria-label="Notebook actions"
+            >
+              <MoreHorizontal aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              className="w-full"
+              onClick={() => setAction({ type: "rename", notebook })}
+            >
+              <Pencil className="size-4" aria-hidden="true" />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="w-full text-destructive-content data-[highlighted]:bg-destructive-soft data-[highlighted]:text-destructive-content"
+              disabled={chat.busy}
+              onClick={() => setAction({ type: "delete", notebook })}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+              Delete notebook
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
-      {renaming && (
-        <form
-          className="flex gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            run(async () => {
-              await notebooksApi.rename(id, name);
-              setRenaming(false);
-            }, "rename");
-          }}
-        >
-          <Input
-            aria-label="Notebook title"
-            maxLength={200}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-          <Button
-            loading={query.saving && pendingAction === "rename"}
-            disabled={query.saving || !name.trim()}
-          >
-            Save
-          </Button>
-        </form>
-      )}
       {query.actionError && (
-        <p role="alert" className="text-sm text-destructive">
+        <p
+          role="alert"
+          className="shrink-0 rounded-control border border-destructive-outline bg-destructive-soft px-3 py-2 text-sm text-destructive-content"
+        >
           Unable to complete this action. Check source access and upload limits,
           then try again.
         </p>
       )}
-      <nav aria-label="Notebook workspace" className="flex gap-2 xl:hidden">
-        {[
-          ["sources", "Sources"],
-          ["chat", "Chat"],
-          ["notes", "Notes"],
-        ].map(([value, label]) => (
-          <Button
-            key={value}
-            aria-pressed={tab === value}
-            variant={tab === value ? "default" : "outline"}
-            onClick={() => setTab(value)}
-          >
-            {label}
-          </Button>
-        ))}
-      </nav>
-      <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[260px_minmax(0,1fr)_300px]">
-        <aside className={`${panel} ${tab === "sources" ? "block" : "hidden"}`}>
-          <SourcePanel
-            id={id}
-            sources={notebook.sources}
-            selected={selected.map((source) => source.id)}
-            busy={chat.busy}
-            run={run}
-            pendingAction={query.saving ? pendingAction : null}
-            refresh={query.refresh}
-            toggle={(sourceId) =>
-              setExcluded((current) =>
-                current.includes(sourceId)
-                  ? current.filter((value) => value !== sourceId)
-                  : [...current, sourceId],
-              )
-            }
-          />
-        </aside>
-        <section
-          aria-label="Chat with sources"
-          className={`${panel} ${tab === "chat" ? "flex" : "hidden"} flex-col xl:flex`}
+      <TabsList
+        aria-label="Notebook workspace"
+        className="flex w-full @min-[68rem]/notebook:hidden"
+      >
+        <TabsTrigger value="sources" className="min-w-0 flex-1">
+          <FileText className="size-4" aria-hidden="true" />
+          Sources
+        </TabsTrigger>
+        <TabsTrigger value="chat" className="min-w-0 flex-1">
+          <MessageSquare className="size-4" aria-hidden="true" />
+          Chat
+        </TabsTrigger>
+        <TabsTrigger value="notes" className="min-w-0 flex-1">
+          <NotebookPen className="size-4" aria-hidden="true" />
+          Notes
+        </TabsTrigger>
+      </TabsList>
+      <div
+        className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-3 [--sources-width:clamp(15rem,22cqw,19rem)] [--notes-width:clamp(16rem,23cqw,21rem)] data-[sources-open=false]:[--sources-width:3.25rem] data-[notes-open=false]:[--notes-width:3.25rem] @min-[68rem]/notebook:grid-cols-[var(--sources-width)_minmax(0,1fr)_var(--notes-width)]"
+        data-sources-open={sourcesOpen}
+        data-notes-open={notesOpen}
+      >
+        <TabsContent
+          forceMount
+          value="sources"
+          className={slot}
+          data-collapsed={!sourcesOpen}
         >
-          <h2 className="flex items-center gap-2 border-b pb-4 font-semibold">
-            <Bot className="size-5 text-link" aria-hidden="true" />
-            AI Assistant
-            <span className="ml-auto text-xs font-normal text-muted-foreground">
-              {selected.length} sources selected
-            </span>
-          </h2>
           <div
-            className="min-h-0 flex-1 space-y-5 overflow-y-auto py-5"
-            aria-live="polite"
-            aria-busy={chat.busy}
+            className={`${panel} ${sourcesOpen ? "" : "@min-[68rem]/notebook:hidden"}`}
           >
-            {!notebook.messages.length && (
-              <div className="py-8 text-sm leading-relaxed text-muted-foreground">
-                <h3 className="mb-3 font-semibold text-foreground">
-                  Ask about your documents
-                </h3>
-                <p>
-                  Add a source, wait until it is ready, then select it to ask
-                  questions with citations.
-                </p>
-              </div>
-            )}
-            {notebook.messages.map((message) => (
-              <article
-                key={message.id}
-                className={
-                  message.role === "USER"
-                    ? "ml-6 rounded-xl bg-muted p-4"
-                    : "min-w-0 py-3"
-                }
-              >
-                <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                  {message.role !== "USER" && (
-                    <Bot className="size-4" aria-hidden="true" />
-                  )}
-                  {message.role === "USER" ? "You" : "AI Assistant"}
-                </p>
-                {message.hidden ? (
-                  <p className="text-sm text-muted-foreground">
-                    Content is hidden because a source was removed, updated or
-                    is no longer accessible.
-                  </p>
-                ) : (
-                  <>
-                    <Citations
-                      items={message.citations}
-                      notebookId={id}
-                      markdown={message.role !== "USER"}
-                      content={message.content}
-                    />
-                    {message.role === "ASSISTANT" && (
-                      <Button
-                        loading={
-                          query.saving && pendingAction === `note:${message.id}`
-                        }
-                        className="mt-3"
-                        size="sm"
-                        variant="outline"
-                        disabled={query.saving}
-                        onClick={() =>
-                          run(
-                            () =>
-                              notebooksApi.note(id, {
-                                title: "Saved from chat",
-                                messageId: message.id,
-                              }),
-                            `note:${message.id}`,
-                          )
-                        }
-                      >
-                        Save to notes
-                      </Button>
-                    )}
-                  </>
-                )}
-              </article>
-            ))}
-            {(chat.busy || chat.error) && visibleDraft && (
-              <article className="rounded-lg border p-4">
-                <p
-                  role={chat.busy ? "status" : undefined}
-                  className="mb-2 flex items-center gap-2 text-xs text-muted-foreground"
+            <SourcePanel
+              id={id}
+              sources={notebook.sources}
+              selected={selected.map((source) => source.id)}
+              busy={chat.busy}
+              run={run}
+              pendingAction={query.saving ? pendingAction : null}
+              refresh={query.refresh}
+              toggle={(sourceId) =>
+                setExcluded((current) =>
+                  current.includes(sourceId)
+                    ? current.filter((value) => value !== sourceId)
+                    : [...current, sourceId],
+                )
+              }
+              addOpen={addOpen}
+              onAddOpenChange={setAddOpen}
+              collapseControl={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="hidden @min-[68rem]/notebook:inline-flex"
+                  aria-label="Collapse Sources"
+                  title="Collapse Sources"
+                  onClick={() => setSourcesOpen(false)}
                 >
-                  {chat.busy && <Spinner size={14} />}
-                  {chat.busy ? chat.stage : "Response received so far"} ·
-                  Incomplete
-                </p>
-                {chat.draft?.text ? (
-                  <AnswerContent content={chat.draft.text} />
-                ) : (
-                  <div className="whitespace-pre-wrap break-words text-sm leading-7">
-                    {chat.draft?.question}
-                  </div>
-                )}
-              </article>
-            )}
-            {chat.error && (
-              <div className="space-y-2">
-                <p role="alert" className="text-sm text-destructive">
-                  {chat.error}
-                </p>
-                {chat.retryQuestion && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={chat.busy || !selected.length}
-                    onClick={() => void chat.ask(chat.retryQuestion, selected)}
-                  >
-                    Retry question
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-          <form
-            className="space-y-2 border-t pt-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const value = question.trim();
-              if (!value || chat.busy || !selected.length) return;
-              setQuestion("");
-              void chat.ask(value, selected);
-            }}
-          >
-            <label htmlFor="notebook-question" className="text-sm font-medium">
-              Question
-            </label>
-            <Textarea
-              id="notebook-question"
-              rows={3}
-              maxLength={4000}
-              value={question}
-              disabled={chat.busy}
-              onChange={(event) => setQuestion(event.target.value)}
-              onKeyDown={(event) => {
-                if (
-                  event.key !== "Enter" ||
-                  event.shiftKey ||
-                  event.nativeEvent.isComposing ||
-                  event.nativeEvent.keyCode === 229
-                )
-                  return;
-                event.preventDefault();
-                if (
-                  !event.repeat &&
-                  !chat.busy &&
-                  question.trim() &&
-                  selected.length
-                )
-                  event.currentTarget.form?.requestSubmit();
-              }}
-              placeholder="Ask a question about your sources..."
+                  <PanelLeftClose aria-hidden="true" />
+                </Button>
+              }
             />
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground">
-                AI can make mistakes. Check the citations.
-              </p>
-              {chat.busy ? (
-                <Button type="button" variant="outline" onClick={chat.cancel}>
-                  Stop response
+          </div>
+          <div
+            className={`hidden flex-col items-center gap-3 rounded-panel border border-border bg-card py-3 ${sourcesOpen ? "" : "@min-[68rem]/notebook:flex"}`}
+          >
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Expand Sources"
+              title="Expand Sources"
+              onClick={() => setSourcesOpen(true)}
+            >
+              <PanelLeftOpen aria-hidden="true" />
+            </Button>
+            <FileText className="size-4 text-link" aria-hidden="true" />
+          </div>
+        </TabsContent>
+        <TabsContent forceMount value="chat" className={slot}>
+          <div className={panel}>
+            <NotebookChatPanel
+              notebook={notebook}
+              selected={selected}
+              chat={chat}
+              saving={query.saving}
+              pendingAction={pendingAction}
+              run={run}
+              onSources={selectSources}
+              onAddSources={() => setAddOpen(true)}
+            />
+          </div>
+        </TabsContent>
+        <TabsContent
+          forceMount
+          value="notes"
+          className={slot}
+          data-collapsed={!notesOpen}
+        >
+          <div
+            className={`${panel} ${notesOpen ? "" : "@min-[68rem]/notebook:hidden"}`}
+          >
+            <NotesPanel
+              notebook={notebook}
+              saving={query.saving}
+              pendingAction={pendingAction}
+              run={run}
+              collapseControl={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="hidden @min-[68rem]/notebook:inline-flex"
+                  aria-label="Collapse Notes"
+                  title="Collapse Notes"
+                  onClick={() => setNotesOpen(false)}
+                >
+                  <PanelRightClose aria-hidden="true" />
                 </Button>
-              ) : (
-                <Button disabled={!selected.length || !question.trim()}>
-                  Send
-                </Button>
-              )}
-            </div>
-          </form>
-        </section>
-        <aside className={`${panel} ${tab === "notes" ? "block" : "hidden"}`}>
-          <NotesPanel
-            notebook={notebook}
-            saving={query.saving}
-            pendingAction={query.saving ? pendingAction : null}
-            run={run}
-          />
-        </aside>
+              }
+            />
+          </div>
+          <div
+            className={`hidden flex-col items-center gap-3 rounded-panel border border-border bg-card py-3 ${notesOpen ? "" : "@min-[68rem]/notebook:flex"}`}
+          >
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Expand Notes"
+              title="Expand Notes"
+              onClick={() => setNotesOpen(true)}
+            >
+              <PanelRightOpen aria-hidden="true" />
+            </Button>
+            <NotebookPen className="size-4 text-link" aria-hidden="true" />
+          </div>
+        </TabsContent>
       </div>
-    </main>
+      {action && (
+        <NotebookDialog
+          key={action.type}
+          userId={userId}
+          action={action}
+          onClose={() => setAction(null)}
+          onDeleted={() => router.push("/ai")}
+        />
+      )}
+    </Tabs>
   );
 }

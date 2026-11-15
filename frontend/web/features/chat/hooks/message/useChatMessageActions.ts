@@ -357,18 +357,20 @@ export function useChatMessageActions({
 
   const handleCreateNote = useCallback(
     async (data: CreateNotePayload) => {
-      if (!conversationId) return;
+      if (!conversationId) return false;
       try {
         const response = await sendChannelMessage(conversationId, {
           content: "",
           type: MessageType.NOTE,
           noteData: data,
         });
-        if (response.data) {
+        if (response.success && response.data) {
           appendRealtimeMessage(response.data);
         }
+        return response.success && Boolean(response.data);
       } catch (error: unknown) {
         toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to send note")));
+        return false;
       }
     },
     [appendRealtimeMessage, conversationId, getErrorMessage],
@@ -376,14 +378,16 @@ export function useChatMessageActions({
 
   const handleNoteEditMessage = useCallback(
     async (messageId: string, title: string, content: string) => {
-      if (!conversationId) return;
+      if (!conversationId) return false;
       try {
-        await editChannelNote(conversationId, messageId, {
+        const response = await editChannelNote(conversationId, messageId, {
           title,
           content,
         });
+        return response.success;
       } catch (error: unknown) {
         toast.error(getActionErrorMessage(error, getErrorMessage(error, "Failed to edit note")));
+        return false;
       }
     },
     [conversationId, getErrorMessage],

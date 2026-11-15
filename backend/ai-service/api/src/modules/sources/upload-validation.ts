@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { HttpException } from "@nestjs/common";
 import { rag } from "../../infrastructure/integrations/rag.client";
 import { profiled } from "../../common/profiling/pipeline-profiler";
@@ -8,7 +9,7 @@ let checking = false;
 export async function withUploadCheck<T>(run: () => Promise<T>): Promise<T> {
   if (checking)
     throw new HttpException(
-      "Đang kiểm tra file khác. Vui lòng thử lại sau ít giây.",
+      AI_UI_MESSAGES.UPLOAD_BUSY,
       429,
     );
   checking = true;

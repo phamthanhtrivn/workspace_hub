@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { Injectable, NotFoundException } from "@nestjs/common";
 import type { Actor } from "../../common/types";
 import { WorkContextService } from "./work-context";
@@ -37,7 +38,7 @@ export class WorkAssistantAccessService {
       m.project_ids.some((id) => !allowed.has(id))
         ? {
             ...m,
-            content: "Nội dung đã được ẩn vì quyền truy cập dự án đã thay đổi.",
+            content: AI_UI_MESSAGES.HIDDEN_PROJECT_CONTENT,
             sources: [],
             project_ids: [],
             hidden: true,

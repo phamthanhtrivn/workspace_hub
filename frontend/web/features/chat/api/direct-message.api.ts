@@ -1,3 +1,4 @@
+import { copiedAttachmentDelivery } from "./copied-attachment-delivery";
 import { api } from "@/lib/axios";
 import {
   ApiResponse,
@@ -59,6 +60,7 @@ export const getDirectMessageSendPermission = async (
 export const sendDirectMessage = async (
   conversationId: string,
   payload: {
+    clientRequestId?: string;
     content?: string;
     type?: string;
     medias?: {
@@ -71,11 +73,18 @@ export const sendDirectMessage = async (
     mentions?: string[];
   },
 ): Promise<ApiResponse<ChatMessageResponse>> => {
-  const response = await api.post(
-    `/api/direct-conversations/${conversationId}/messages`,
+  return copiedAttachmentDelivery(
+    "direct:" + conversationId,
     payload,
+    async (next) => {
+      const response = await api.post(
+        `/api/direct-conversations/${conversationId}/messages`,
+        next,
+      );
+
+      return normalizeApiResponse<ChatMessageResponse>(response.data);
+    },
   );
-  return normalizeApiResponse<ChatMessageResponse>(response.data);
 };
 
 export const getDirectConversationMessages = async (

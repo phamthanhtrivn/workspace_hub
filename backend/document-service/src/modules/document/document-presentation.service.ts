@@ -7,6 +7,9 @@ export class DocumentPresentationService {
   constructor(
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
+  enrichDocumentItems<T extends { ownerUserId: string }>(items: T[]) {
+    return this.userProfileSnapshotService.attachProfilesToDocumentItems(items);
+  }
   async enrichDocumentItem<T extends { ownerUserId: string }>(
     item: T,
   ): Promise<T & { ownerProfile: UserProfileSnapshotResponse | null }> {

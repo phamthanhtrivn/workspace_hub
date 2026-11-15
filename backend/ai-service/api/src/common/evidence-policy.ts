@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "./ai-ui.messages";
 import type { Citation, Evidence, Snapshot, Source } from "./types";
 
 export function visibleSnapshot(snapshot: Snapshot[], sources: Source[]) {
@@ -13,14 +14,14 @@ export function visibleSnapshot(snapshot: Snapshot[], sources: Source[]) {
 
 export function selectSources(ids: string[], sources: Source[]) {
   if (!ids.length || ids.length > 5 || new Set(ids).size !== ids.length)
-    throw new Error("Chọn từ 1 đến 5 nguồn");
+    throw new Error(AI_UI_MESSAGES.SOURCE_COUNT);
 
   return ids.map((id) => {
     const source = sources.find(
       (item) => item.id === id && item.status === "READY",
     );
     if (!source)
-      throw new Error("Nguồn chưa sẵn sàng hoặc không thuộc notebook");
+      throw new Error(AI_UI_MESSAGES.SOURCE_NOT_READY);
 
     return source;
   });
@@ -53,7 +54,7 @@ export function validateCitations(content: string, evidence: Citation[]) {
     !labels.length ||
     labels.some((label) => !evidence.some((item) => item.label === label))
   )
-    throw new Error("AI trả lời thiếu trích dẫn hợp lệ. Hãy thử lại.");
+    throw new Error(AI_UI_MESSAGES.CITATIONS_INVALID);
 
   return evidence.filter((item) => labels.includes(item.label));
 }

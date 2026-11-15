@@ -1,5 +1,18 @@
+import { reserveImportedAttachments } from '../media/imported-attachment-reservation';
+import { ConflictException } from '@nestjs/common';
+import { parseClientRequestId } from '../../common/dto/message-delivery.dto';
+import {
+  reserveMessageDelivery,
+  recordMessageDelivery,
+  DELIVERY_CONFLICT,
+  type MessageDeliveryIdentity,
+} from '../../common/utils/message-delivery';
 import { assertClientMessageType } from '../../common/auth/client-message-type';
 import { ConversationAiService } from '../conversation-ai/conversation-ai.service';
+import type {
+  AttachmentSummaryOptions,
+  AttachmentSummaryReceipt,
+} from '../conversation-ai/attachment-summary-cache';
 import { VoiceTranscriptDispatchService } from '../media/voice-transcript-dispatch.service';
 import { VoiceChatType } from '../media/types/voice-transcript.constants';
 import {
@@ -16,6 +29,10 @@ import { getMediaType } from '../../common/utils/file.util';
 import { MESSAGE_ERROR_MESSAGES } from './types/message.enums';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { isTaskCardContent } from './utils/is-task-card-content';
+import {
+  resolveChannelMentions,
+  type ResolvedChannelMentions,
+} from './utils/channel-mentions';
 
 @Injectable()
 export class MessageMutationService {
@@ -50,9 +67,43 @@ export class MessageMutationService {
     },
     threadParentId?: string,
     attachmentMediaId?: string,
+    mentions?: string[],
+    summaryOptions?: AttachmentSummaryOptions,
+    clientRequestId?: string,
   ) {
     assertClientMessageType(type, true);
+    if (
+      attachmentMediaId &&
+      (type !== MessageType.TEXT || medias?.length || pollData || noteData)
+    )
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    const requestId = parseClientRequestId(clientRequestId);
+    if (
+      requestId &&
+      (attachmentMediaId ||
+        summaryOptions ||
+        pollData ||
+        noteData ||
+        (type !== MessageType.TEXT && type !== MessageType.DOCUMENT))
+    )
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    const delivery: MessageDeliveryIdentity | undefined = requestId
+      ? {
+          senderId,
+          requestId,
+          chatId: channelId,
+          chatType: 'CHANNEL',
+          payload: {
+            content,
+            type,
+            mentions: mentions ?? [],
+            ...(medias?.length ? { medias } : {}),
+            ...(threadParentId ? { threadParentId } : {}),
+          },
+        }
+      : undefined;
     const createdMessage = await this.prisma.$transaction(async (tx) => {
+      let resolvedMentions: ResolvedChannelMentions = { content, mentions: [] };
       if (type !== MessageType.SYSTEM) {
         const member = await tx.channelMember.findUnique({
           where: { channelId_userId: { channelId, userId: senderId } },
@@ -113,7 +164,64 @@ export class MessageMutationService {
             throw new BadRequestException(MESSAGE_ERROR_MESSAGES.TASK_DISABLED);
           }
         }
+        if (type === MessageType.TEXT) {
+          resolvedMentions = await resolveChannelMentions(
+            tx,
+            member.channel,
+            senderId,
+            content,
+            mentions,
+          );
+        }
       }
+
+      const priorMessageId = delivery
+        ? await reserveMessageDelivery(tx, delivery)
+        : undefined;
+      if (priorMessageId) {
+        const prior = await tx.message.findUnique({
+          where: { id: priorMessageId },
+          include: {
+            medias: true,
+            poll: { include: { options: { include: { votes: true } } } },
+            note: true,
+          },
+        });
+        if (
+          !prior ||
+          prior.deletedAt ||
+          prior.recalled ||
+          prior.senderId !== senderId ||
+          prior.channelId !== channelId
+        )
+          throw new ConflictException(DELIVERY_CONFLICT);
+
+        return {
+          ...prior,
+          mentions: [],
+          deliveryReused: true,
+          summary: undefined,
+        };
+      }
+
+      const summaryReservation = attachmentMediaId
+        ? await this.conversationAi.prepareAttachmentSummary(
+            tx,
+            senderId,
+            channelId,
+            'CHANNEL',
+            threadParentId ?? null,
+            attachmentMediaId,
+            resolvedMentions.content,
+            summaryOptions,
+          )
+        : undefined;
+      if (summaryReservation?.reused)
+        return {
+          ...summaryReservation.reused,
+          mentions: [],
+          deliveryReused: false,
+        };
 
       if (medias?.length)
         await this.s3Service.assertAttachments(medias, {
@@ -122,6 +230,13 @@ export class MessageMutationService {
           chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         });
 
+      await reserveImportedAttachments(
+        tx,
+        senderId,
+        channelId,
+        'CHANNEL',
+        medias,
+      );
       if (threadParentId) {
         const parentMsg = await tx.message.findUnique({
           where: { id: threadParentId },
@@ -176,7 +291,7 @@ export class MessageMutationService {
         data: {
           channelId,
           senderId,
-          content,
+          content: resolvedMentions.content,
           type,
           threadParentId,
           medias:
@@ -229,6 +344,8 @@ export class MessageMutationService {
         },
       });
 
+      if (delivery) await recordMessageDelivery(tx, delivery, message.id);
+
       await tx.channel.update({
         where: { id: channelId },
         data: { updatedAt: new Date() },
@@ -256,6 +373,9 @@ export class MessageMutationService {
         'CHANNEL',
         tx,
         attachmentMediaId,
+        summaryReservation
+          ? { key: summaryReservation.key, actionId: summaryOptions?.actionId }
+          : undefined,
       );
       await this.voiceTranscripts.register(
         message.medias,
@@ -263,10 +383,20 @@ export class MessageMutationService {
         VoiceChatType.CHANNEL,
         tx,
       );
-      return message;
+
+      return {
+        ...message,
+        mentions: resolvedMentions.mentions,
+        deliveryReused: false,
+        summary: summaryReservation
+          ? ({ reused: false, status: 'QUEUED' } as AttachmentSummaryReceipt)
+          : undefined,
+      };
     });
-    this.conversationAi.notify(createdMessage);
-    this.voiceTranscripts.notify();
+    if (!createdMessage.summary?.reused && !createdMessage.deliveryReused) {
+      this.conversationAi.notify(createdMessage);
+      this.voiceTranscripts.notify();
+    }
 
     return this.userProfileSnapshotService.attachSenderProfileToMessage(
       createdMessage,

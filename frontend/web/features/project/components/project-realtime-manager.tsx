@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useAppSelector } from "@/store/store";
+import { WORK_ASSISTANT_QUERY_ROOT } from "@/features/work-assistant/constants/work-assistant-query";
 import {
   getProjects,
   type ProjectListQuery,
@@ -56,6 +57,9 @@ export default function ProjectRealtimeManager() {
       }
     };
     const handleChange = (event: ProjectChangedEvent) => {
+      if (event.resource === "MEMBER" || (event.resource === "PROJECT" && event.action === "DELETED")) {
+        void queryClient.resetQueries({ queryKey: WORK_ASSISTANT_QUERY_ROOT });
+      }
       if (event.resource === "TASK") {
         queryClient.setQueryData<Task[]>(
           taskKeys.project(event.projectId),
@@ -79,6 +83,7 @@ export default function ProjectRealtimeManager() {
     };
 
     const reconcileProjects = () => {
+      void queryClient.resetQueries({ queryKey: WORK_ASSISTANT_QUERY_ROOT });
       void queryClient.invalidateQueries({ queryKey: projectKeys.all });
       void queryClient.invalidateQueries({ queryKey: ["tasks"] });
       void syncProjects();

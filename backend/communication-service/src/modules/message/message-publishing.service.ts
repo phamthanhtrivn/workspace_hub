@@ -7,6 +7,7 @@ import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { MessageMutationService } from './message-mutation.service';
 import { MessageQueryService } from './message-query.service';
 import { MessagePresentationService } from './message-presentation.service';
+import type { AttachmentSummaryOptions } from '../conversation-ai/attachment-summary-cache';
 
 @Injectable()
 export class MessagePublishingService {
@@ -41,6 +42,8 @@ export class MessagePublishingService {
     threadParentId?: string,
     mentions?: string[],
     attachmentMediaId?: string,
+    summaryOptions?: AttachmentSummaryOptions,
+    clientRequestId?: string,
   ) {
     assertClientMessageType(type);
     const message = await this.mutations.createMessage(
@@ -53,6 +56,9 @@ export class MessagePublishingService {
       noteData,
       threadParentId,
       attachmentMediaId,
+      mentions,
+      summaryOptions,
+      clientRequestId,
     );
 
     const threadFollowers = threadParentId
@@ -64,15 +70,16 @@ export class MessagePublishingService {
       chatType: CHAT_CONTEXT_TYPE.CHANNEL,
       channelId,
       medias: mapMediaWithUrl(message.medias),
-      mentions,
+      mentions: message.mentions,
       threadFollowers,
     };
 
-    await this.chatSocketPublisher.publishChannelMessageCreated(
-      channelId,
-      messagePayload,
-      { medias, pollData, noteData },
-    );
+    if (!message.summary?.reused && !message.deliveryReused)
+      await this.chatSocketPublisher.publishChannelMessageCreated(
+        channelId,
+        messagePayload,
+        { medias, pollData, noteData },
+      );
 
     return messagePayload;
   }

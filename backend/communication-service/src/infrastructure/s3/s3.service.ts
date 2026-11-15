@@ -101,6 +101,33 @@ export class S3Service {
     );
   }
 
+  async putImportedAttachment(
+    key: string,
+    bytes: Buffer,
+    mimeType: string,
+    scope: AttachmentUploadScope,
+  ) {
+    validateUploadContent(
+      bytes.subarray(0, UPLOAD_POLICY.SIGNATURE_BYTES),
+      mimeType,
+    );
+    await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: this.bucketName,
+        Key: key,
+        Body: bytes,
+        ContentType: mimeType,
+        ContentLength: bytes.length,
+        Metadata: {
+          actor: scope.actorId,
+          reference: scope.referenceId,
+          context: String(scope.chatType),
+          size: String(bytes.length),
+        },
+      }),
+    );
+  }
+
   async downloadRecording(
     key: string,
     path: string,

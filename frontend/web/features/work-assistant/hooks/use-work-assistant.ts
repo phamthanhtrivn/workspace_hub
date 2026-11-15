@@ -8,6 +8,11 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import * as workApi from "../api/work-assistant.api";
+import {
+  WORK_ASSISTANT_READ_POLICY,
+  WORK_ASSISTANT_QUERY_ROOT,
+} from "../constants/work-assistant-query";
+import { verifyWorkCacheAccess, workAccessDenied } from "../api/cache-access";
 import { cancelStream, confirmCancellation } from "../api/cancellation";
 import { getUserSettings } from "@/features/user-setting/api/user-setting.api";
 import type { Audience, WorkMessage } from "../types";
@@ -28,7 +33,7 @@ export function useWorkAssistant(
 ) {
   const client = useQueryClient();
   const accountRoot = useMemo(
-    () => ["work-assistant", userId] as const,
+    () => [...WORK_ASSISTANT_QUERY_ROOT, userId] as const,
     [userId],
   );
   const context = useMemo(
@@ -44,6 +49,19 @@ export function useWorkAssistant(
     () => [...root, "history", sessionId ?? "latest"],
     [root, sessionId],
   );
+  const accessKey = [...root, "cache-access"];
+  const access = useQuery({
+    ...WORK_ASSISTANT_READ_POLICY,
+    queryKey: accessKey,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnReconnect: false,
+    queryFn: ({ signal }) =>
+      verifyWorkCacheAccess(client, root, () =>
+        workApi.getCacheAccess(context, signal),
+      ),
+  });
+  const accessReady = access.isSuccess && !access.isFetching;
   const account = useQuery({
     queryKey: [...accountRoot, "account-settings"],
     queryFn: getUserSettings,
@@ -52,7 +70,9 @@ export function useWorkAssistant(
   });
   const timeZone = account.data?.data.timezone;
   const history = useInfiniteQuery({
+    ...WORK_ASSISTANT_READ_POLICY,
     queryKey: historyKey,
+    enabled: accessReady,
     initialPageParam: undefined as
       { before: string; sessionId: string } | undefined,
     queryFn: ({ pageParam, signal }) =>
@@ -66,27 +86,29 @@ export function useWorkAssistant(
       page.nextCursor
         ? { before: page.nextCursor, sessionId: page.id }
         : undefined,
-    refetchOnMount: "always",
-    retry: false,
-    staleTime: 0,
-    gcTime: 0,
   });
   const conversationsKey = [...root, "sessions"];
+  useEffect(() => {
+    if (workAccessDenied(history.error))
+      void client.resetQueries({ queryKey: root });
+  }, [history.error, client, root]);
   const conversations = useInfiniteQuery({
+    ...WORK_ASSISTANT_READ_POLICY,
     queryKey: conversationsKey,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       workApi.getConversations(context, pageParam, signal),
-    enabled: history.isSuccess && conversationsOpen,
+    enabled: accessReady && history.isSuccess && conversationsOpen,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
-    refetchOnMount: "always",
-    retry: false,
-    gcTime: 0,
   });
   const createConversation = useMutation({
     mutationFn: () => workApi.createConversation(context),
-    onSuccess: () =>
-      client.invalidateQueries({ queryKey: [...root, "sessions"] }),
+    onSuccess: async (session) => {
+      const cached = { pages: [session], pageParams: [undefined] };
+      client.setQueryData([...root, "history", "latest"], cached);
+      client.setQueryData([...root, "history", session.id], cached);
+      await client.invalidateQueries({ queryKey: [...root, "sessions"] });
+    },
   });
   const [pending, setPending] = useState<WorkMessage | null>(null);
   const [reply, setReply] = useState<WorkMessage | null>(null);
@@ -99,8 +121,36 @@ export function useWorkAssistant(
     id: string;
     sessionId: string;
     controller: AbortController;
+    permissionStamp?: string;
   } | null>(null);
   const alive = useRef(true);
+  const retryRequest = useRef<{
+    id: string;
+    sessionId: string;
+    question: string;
+  } | null>(null);
+  const retrying = useRef(false);
+  const permissionStamp = access.data?.permissionStamp;
+  useEffect(() => {
+    const request = active.current;
+    if (!request) return;
+    const accessChanged =
+      access.isSuccess &&
+      !access.isFetching &&
+      request.permissionStamp !== undefined &&
+      permissionStamp !== request.permissionStamp;
+    if (!accessChanged && !workAccessDenied(access.error)) return;
+    request.controller.abort();
+    setReply(null);
+    setPending(null);
+    void cancelStream(userId, request.id, request.sessionId).catch(() => {});
+  }, [
+    access.isSuccess,
+    access.isFetching,
+    access.error,
+    permissionStamp,
+    userId,
+  ]);
   useEffect(() => {
     alive.current = true;
 
@@ -116,15 +166,28 @@ export function useWorkAssistant(
     };
   }, [userId]);
   const send = useCallback(
-    async (question: string) => {
+    async (question: string, reuseRequestId?: string, reconciled = false) => {
       const session = history.data?.pages[0];
-      if (!session || active.current || !question.trim()) return;
+      if (
+        !accessReady ||
+        !session ||
+        active.current ||
+        (retrying.current && !reconciled) ||
+        !question.trim()
+      )
+        return;
       const request = {
-        id: crypto.randomUUID(),
+        id: reuseRequestId ?? crypto.randomUUID(),
         sessionId: session.id,
         controller: new AbortController(),
+        permissionStamp,
       };
       active.current = request;
+      retryRequest.current = {
+        id: request.id,
+        sessionId: session.id,
+        question: question.trim(),
+      };
       const isCurrentRequest = () =>
         alive.current &&
         active.current === request &&
@@ -184,11 +247,17 @@ export function useWorkAssistant(
             client.invalidateQueries({ queryKey: [...root, "sessions"] }),
           ]);
           if (alive.current && active.current === request) {
+            const refreshed = client.getQueryData(historyKey);
+            if (refreshed)
+              client.setQueryData([...root, "history", "latest"], refreshed);
             setPending(null);
             setReply(null);
+            retryRequest.current = null;
           }
         }
       } catch (cause) {
+        if (workAccessDenied(cause))
+          void client.resetQueries({ queryKey: root });
         if (alive.current) {
           setReply(null);
           setStreaming(false);
@@ -202,8 +271,59 @@ export function useWorkAssistant(
         if (alive.current) setStatus("");
       }
     },
-    [history.data, context, client, historyKey, timeZone, root, userId],
+    [
+      history.data,
+      context,
+      client,
+      historyKey,
+      timeZone,
+      root,
+      userId,
+      accessReady,
+      permissionStamp,
+    ],
   );
+  const retry = async () => {
+    if (retrying.current || active.current || !accessReady) return;
+    const previous = retryRequest.current;
+    if (!previous) return;
+    retrying.current = true;
+    setStatus("Checking previous response...");
+    try {
+      const state = await workApi.getRequestStatus(
+        previous.sessionId,
+        previous.id,
+        context,
+      );
+      if (!alive.current) return;
+      if (state === "COMPLETED") {
+        await client.invalidateQueries({ queryKey: historyKey });
+        if (!alive.current) return;
+        const refreshed = client.getQueryData(historyKey);
+        if (refreshed)
+          client.setQueryData([...root, "history", "latest"], refreshed);
+        retryRequest.current = null;
+        setPending(null);
+        setError("");
+      } else if (state === "RUNNING") {
+        setError(
+          "Your previous question is still processing. Check again before sending another request.",
+        );
+      } else {
+        await send(
+          previous.question,
+          state === "NOT_FOUND" ? previous.id : undefined,
+          true,
+        );
+      }
+    } catch (cause) {
+      if (workAccessDenied(cause)) void client.resetQueries({ queryKey: root });
+      if (alive.current) setError(workError(cause));
+    } finally {
+      retrying.current = false;
+      if (alive.current) setStatus("");
+    }
+  };
   const stop = async () => {
     const request = active.current;
     if (!request) return;
@@ -227,23 +347,39 @@ export function useWorkAssistant(
     }
   };
   const messages =
-    history.data?.pages
+    (accessReady && history.isSuccess ? history.data : undefined)?.pages
       .slice()
       .reverse()
       .flatMap((page) => page.messages) ?? [];
 
   return {
-    history,
+    history: accessReady
+      ? history
+      : {
+          ...history,
+          data: undefined,
+          isSuccess: false,
+          isPending: access.isPending,
+          isFetching: access.isFetching,
+          hasNextPage: false,
+          isError: access.isError,
+          error: access.error,
+          refetch: access.refetch,
+        },
     messages,
-    pending,
-    reply,
+    pending: accessReady ? pending : null,
+    reply: accessReady ? reply : null,
     streaming,
     status: stopping ? "Stopping response..." : status,
     error,
     notice,
     send,
+    retry,
     stop,
-    conversations,
+    conversations:
+      accessReady && history.isSuccess
+        ? conversations
+        : { ...conversations, data: undefined, hasNextPage: false },
     createConversation,
   };
 }

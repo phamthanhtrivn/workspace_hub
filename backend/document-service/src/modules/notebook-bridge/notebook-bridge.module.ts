@@ -1,4 +1,5 @@
 import { DocumentModule } from '../document/document.module';
+import { NotebookSnapshotController } from './notebook-snapshot.controller';
 import { DocumentAccessService } from '../document/document-access.service';
 import { DocumentRole } from '../../common/enums/document.enum';
 import {
@@ -89,7 +90,11 @@ export class NotebookBridgeController {
       throw new ForbiddenException(
         'Document attachment unavailable or access revoked',
       );
-    await this.access.checkPermission(version.documentItemId, body.userId, email);
+    await this.access.checkPermission(
+      version.documentItemId,
+      body.userId,
+      email,
+    );
     const sizeBytes = Number(version.sizeBytes);
     if (
       !Number.isSafeInteger(sizeBytes) ||
@@ -186,8 +191,14 @@ export class NotebookBridgeController {
         ? item.versions.find((v) => v.id === ref.versionId)
         : item.versions[0];
       if (!version) throw new ForbiddenException('File version unavailable');
-      await this.access.checkPermission(item.id, actor.sub, actor.email,
-        version.id === item.versions[0]?.id ? DocumentRole.VIEWER : DocumentRole.EDITOR);
+      await this.access.checkPermission(
+        item.id,
+        actor.sub,
+        actor.email,
+        version.id === item.versions[0]?.id
+          ? DocumentRole.VIEWER
+          : DocumentRole.EDITOR,
+      );
       const revision = createHash('sha256')
         .update(`${version.id}:${version.s3Key}:${version.sizeBytes}`)
         .digest('hex');
@@ -214,5 +225,8 @@ export class NotebookBridgeController {
   }
 }
 
-@Module({ imports: [S3Module, DocumentModule], controllers: [NotebookBridgeController] })
+@Module({
+  imports: [S3Module, DocumentModule],
+  controllers: [NotebookBridgeController, NotebookSnapshotController],
+})
 export class NotebookBridgeModule {}

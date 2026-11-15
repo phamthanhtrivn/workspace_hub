@@ -110,6 +110,10 @@ const ThreadChatInput = React.memo(
     const dragCounter = useRef(0);
 
     const { activeChat: activeConversation, activeChatType } = useActiveChat();
+    const groupMention =
+      activeConversation && "spaceId" in activeConversation
+        ? activeConversation.isDefault ? "all" : "channel"
+        : undefined;
     const memberProfiles = useChatMemberProfiles();
     const authUserId = useAppSelector((state) => state.auth.userId);
 
@@ -272,7 +276,10 @@ const ThreadChatInput = React.memo(
       if (mentionQuery === null) return [];
 
       if (activeChatType === ChatContextType.CHANNEL) {
-        return getChannelMentionOptions(membersResponse, authUserId, {searchQuery: mentionQuery});
+        return getChannelMentionOptions(membersResponse, authUserId, {
+          groupMention,
+          searchQuery: mentionQuery,
+        });
       }
 
       return getCachedMentionOptions(
@@ -283,6 +290,7 @@ const ThreadChatInput = React.memo(
       );
     }, [
       activeChatType,
+      groupMention,
       activeConversation?.members,
       authUserId,
       memberProfiles,

@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { HttpException, Injectable } from "@nestjs/common";
 import { z } from "zod";
 import { messageSchema } from "./work-assistant.schemas";
@@ -85,7 +86,7 @@ export class WorkAssistantGenerationService {
     const authorize = async () => {
       const allowed = await this.context.authorize(actor, projectIds, signal);
       if (projectIds.some((id) => !allowed.has(id)))
-        throw new HttpException("Quyền truy cập dự án đã thay đổi.", 403);
+        throw new HttpException(AI_UI_MESSAGES.PROJECT_ACCESS_CHANGED, 403);
     };
     let lastAuthorization = 0;
     const result = await timing.measure("model_ms", () =>

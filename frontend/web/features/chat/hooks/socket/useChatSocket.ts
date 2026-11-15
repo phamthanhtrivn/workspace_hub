@@ -154,7 +154,7 @@ export function useChatSocket() {
           }
           const hasMention =
             message.mentions?.includes(currentUserId) ||
-            message.mentions?.includes("all");
+            (channel.isDefault === true && message.mentions?.includes("all"));
 
           const updatedChannel = {
             ...channel,
@@ -484,14 +484,11 @@ export function useChatSocket() {
           queryKey: chatKeys.spaceDetails(data.spaceId),
         });
         queryClient.invalidateQueries({
-          queryKey: chatKeys.channels(data.spaceId),
-        });
-        queryClient.invalidateQueries({
           queryKey: chatKeys.allSpaces(),
         });
         queryClient.invalidateQueries({
           queryKey: chatKeys.allChannels(),
-        });
+        }, { cancelRefetch: false });
       }
       if (chatId) queryClient.invalidateQueries({ queryKey: [ChatQueryRoot.CHANNEL_MEMBERS, chatId] });
       if (!chatId || !data.setting) return;
@@ -613,7 +610,7 @@ export function useChatSocket() {
         if (typeof documentId !== "string" || !documentId) continue;
         void queryClient.invalidateQueries({
           queryKey: chatDocumentMetadataKey(currentUserId, documentId),
-        });
+        }, { cancelRefetch: false });
       }
     };
 

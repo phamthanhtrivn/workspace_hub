@@ -1,5 +1,6 @@
 export type Actor = { id: string; email: string };
 export type Source = {
+  snapshot_id?: string | null;
   id: string;
   notebook_id: string;
   document_id: string;
@@ -14,6 +15,7 @@ export type Source = {
   error: string | null;
 };
 export type Manifest = {
+  snapshotId?: string;
   documentId: string;
   versionId: string;
   revision: string;

@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../common/ai-ui.messages";
 import type { Job } from "bullmq";
 import { rows } from "../infrastructure/database/database";
 import {
@@ -10,6 +11,7 @@ import { logError } from "../common/errors/error-log";
 import { config } from "../config/env.config";
 import { VOICE_TRANSCRIPT } from "../modules/voice-transcript/voice.constants";
 import { rag } from "../infrastructure/integrations/rag.client";
+import { notebookSnapshots } from "../infrastructure/integrations/document.client";
 
 const RECOVERY_BATCH_SIZE = 100;
 // BullMQ owns stalled-job detection and locks. Never steal active/waiting work.
@@ -82,10 +84,7 @@ export function recoverInterruptedJobs(signal?: AbortSignal) {
       return changed(
         `UPDATE notebook_ai.sources SET status='FAILED',error=$2,updated_at=now()
          WHERE id=$1 AND status='INDEXING' AND updated_at<now()-interval '6 minutes' RETURNING id`,
-        [
-          item.id,
-          "INDEX_INTERRUPTED: Worker bị gián đoạn. Bấm Thử lại để lập chỉ mục.",
-        ],
+        [item.id, AI_UI_MESSAGES.INDEX_INTERRUPTED],
       );
     },
     signal,
@@ -99,6 +98,7 @@ export async function reconcileQueuedJobs(
   const started = performance.now();
   const stages: RecoveryCounts[] = [];
   const cleanup = await rows<{
+    snapshot_cleanup: { snapshotId: string; actorId: string }[];
     id: string;
     scope_id: string;
     source_id: string | null;
@@ -112,6 +112,16 @@ export async function reconcileQueuedJobs(
         scopeId: item.scope_id,
         sourceId: item.source_id,
       });
+      for (const snapshot of item.snapshot_cleanup ?? [])
+        await notebookSnapshots(
+          "remove",
+          {
+            userId: snapshot.actorId,
+            notebookId: item.scope_id,
+            ids: [snapshot.snapshotId],
+          },
+          signal,
+        );
       await rows("DELETE FROM notebook_ai.cleanup_outbox WHERE id=$1", [
         item.id,
       ]);
@@ -159,10 +169,10 @@ export async function reconcileQueuedJobs(
             (await jobIsGone(job)) &&
             changed(
               `UPDATE notebook_ai.meeting_summaries SET status='FAILED',stage='FAILED',
-        error='Xử lý bị gián đoạn. Bạn có thể bấm thử lại.',updated_at=now()
+        error=$3,updated_at=now()
         WHERE recording_id=$1 AND run_id=$2 AND status IN ('QUEUED','RUNNING')
         AND updated_at<now()-interval '2 minutes' RETURNING recording_id`,
-              [item.id, item.run_id],
+              [item.id, item.run_id, AI_UI_MESSAGES.PROCESSING_INTERRUPTED],
             )
           );
         },

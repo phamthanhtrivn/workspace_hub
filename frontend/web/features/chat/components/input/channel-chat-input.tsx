@@ -142,6 +142,10 @@ const ChannelChatInput = React.memo(
       });
 
       const { activeChat: activeChannel, activeChatType } = useActiveChat();
+      const groupMention =
+        activeChannel && "spaceId" in activeChannel
+          ? activeChannel.isDefault ? "all" : "channel"
+          : undefined;
       const memberProfiles = useChatMemberProfiles();
       const authUserId = useAppSelector((state) => state.auth.userId);
       const currentMember = activeChannel?.members?.find(
@@ -341,11 +345,11 @@ const ChannelChatInput = React.memo(
         if (mentionQuery === null) return [];
 
         return getChannelMentionOptions(membersResponse, authUserId, {
-          includeAll: true,
+          groupMention,
           searchQuery: mentionQuery,
           limit: 4,
         });
-      }, [mentionQuery, membersResponse, authUserId]);
+      }, [mentionQuery, membersResponse, authUserId, groupMention]);
 
       useEffect(() => {
         if (selectedIndex >= filteredMembers.length) {

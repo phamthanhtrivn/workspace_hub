@@ -66,3 +66,31 @@ for (const direct of [false, true]) {
     assert.equal(notices.mock.callCount(), 2);
   });
 }
+
+test("channel notes report success only after the server accepts them", async context => {
+  const originalAdapter = api.defaults.adapter;
+  context.after(() => { api.defaults.adapter = originalAdapter; });
+  const response = Promise.withResolvers<AxiosResponse>();
+  const appended: string[] = [];
+  api.defaults.adapter = config => response.promise.then(value => ({ ...value, config }));
+  const actions = getActions(false, message => appended.push(message.id));
+  const pending = actions.handleCreateNote({ title: "Title", content: "Body" });
+  assert.deepEqual(appended, []);
+  response.resolve({ status: 200, statusText: "OK", config: {} as AxiosResponse["config"], headers: {}, data: { success: true, data: { id: "note" } } });
+  assert.equal(await pending, true);
+  assert.deepEqual(appended, ["note"]);
+});
+
+test("channel note create/edit failures return false so the shared editor retains its draft", async context => {
+  const originalAdapter = api.defaults.adapter;
+  context.after(() => { api.defaults.adapter = originalAdapter; });
+  context.mock.method(toast, "error", () => 0);
+  let appended = 0;
+  api.defaults.adapter = async config => {
+    throw new AxiosError("Unavailable", "ERR_BAD_RESPONSE", config, undefined, { status: 503, statusText: "Unavailable", config, headers: {}, data: { message: "Unavailable" } });
+  };
+  const actions = getActions(false, () => { appended++; });
+  assert.equal(await actions.handleCreateNote({ title: "Title", content: "Body" }), false);
+  assert.equal(await actions.handleNoteEditMessage("note-message", "Title", "Body"), false);
+  assert.equal(appended, 0);
+});

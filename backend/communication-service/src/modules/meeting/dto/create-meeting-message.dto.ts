@@ -3,6 +3,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -22,6 +23,9 @@ class CreateMeetingMessageMediaDto {
 }
 
 export class CreateMeetingMessageDto {
+  @IsOptional()
+  @IsUUID()
+  clientRequestId?: string;
   @IsOptional()
   @IsString()
   content?: string;

@@ -1,4 +1,5 @@
 "use client";
+import { documentListOptions } from "../api/document-list.query";
 import { LoadingState } from "@/components/ui/loading-state";
 
 import { QueryFeedback } from "@/components/common/query-feedback";
@@ -39,7 +40,6 @@ import { useDocumentActions } from "../hooks/useDocumentActions";
 import { useDocumentUpload } from "../hooks/useDocumentUpload";
 import { useDocumentDragAndDrop } from "../hooks/useDocumentDragAndDrop";
 import { useDocumentModals } from "../hooks/useDocumentModals";
-import { getDocumentListPage } from "../api/document-list.api";
 import { useDocumentBulkSelection } from "../hooks/useDocumentBulkSelection";
 import { DocumentBulkControls } from "./explorer/document-bulk-controls";
 import { DocumentActionsMenu } from "./explorer/document-actions-menu";
@@ -50,6 +50,7 @@ import { resolveDocumentProjectContext } from "../utils/project-documents";
 import { documentFolderAccessKey } from "../utils/document-navigation";
 
 interface DocumentExplorerProps {
+  copyAction?: React.ReactNode;
   currentFolderId: string | null;
   onNavigate: (folderId: string | null, folderName?: string) => void;
   activeView: DocumentViewType;
@@ -64,6 +65,7 @@ interface DocumentExplorerProps {
 }
 
 export function DocumentExplorer({
+  copyAction,
   currentFolderId,
   onNavigate,
   activeView,
@@ -208,26 +210,13 @@ export function DocumentExplorer({
     refetch,
     isFetching,
   } = useInfiniteQuery({
-    queryKey: [
-      "documents",
+    ...documentListOptions(currentUserId, {
       activeView,
       projectId,
       currentFolderId,
       sortBy,
       searchQuery,
-    ],
-    initialPageParam: 1,
-    queryFn: ({ pageParam = 1, signal }) =>
-      getDocumentListPage(
-        { activeView, projectId, currentFolderId, sortBy, searchQuery },
-        Number(pageParam),
-        signal,
-      ),
-    getNextPageParam: (lastPage) => {
-      const meta = lastPage.meta;
-
-      return meta.page < meta.totalPages ? meta.page + 1 : undefined;
-    },
+    }),
   });
 
   const items = useMemo(
@@ -367,15 +356,18 @@ export function DocumentExplorer({
           ) : (
             <ExplorerToolbar
               actions={
-                <DocumentActionsMenu
-                  items={items}
-                  activeView={activeView}
-                  currentFolderId={currentFolderId}
-                  projectId={projectId}
-                  hasMore={!!hasNextPage}
-                  disabled={isLoading || bulkSelection.busy}
-                  onChoose={startBulkAction}
-                />
+                <>
+                  {copyAction}
+                  <DocumentActionsMenu
+                    items={items}
+                    activeView={activeView}
+                    currentFolderId={currentFolderId}
+                    projectId={projectId}
+                    hasMore={!!hasNextPage}
+                    disabled={isLoading || bulkSelection.busy}
+                    onChoose={startBulkAction}
+                  />
+                </>
               }
               activeView={activeView}
               viewLayout={viewLayout}

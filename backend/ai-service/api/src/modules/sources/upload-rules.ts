@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../../common/ai-ui.messages";
 import { BadRequestException, PayloadTooLargeException } from "@nestjs/common";
 import { config } from "../../config/env.config";
 import type { Manifest, Source } from "../../common/types";
@@ -12,13 +13,13 @@ export function checkFile(name: string, size: number) {
       : /\.(pdf|docx|txt|md)$/i;
   if (!name || name.length > 300 || !supported.test(name))
     throw new BadRequestException(
-      "Chỉ nhận PDF, DOCX, TXT, MD hoặc ảnh PNG/JPEG/WebP khi bật đọc ảnh (tên tối đa 300 ký tự).",
+      AI_UI_MESSAGES.UPLOAD_TYPE,
     );
   if (!Number.isSafeInteger(size) || size <= 0)
-    throw new BadRequestException("File rỗng hoặc kích thước không hợp lệ.");
+    throw new BadRequestException(AI_UI_MESSAGES.UPLOAD_EMPTY);
   if (size > MAX_FILE_BYTES)
     throw new PayloadTooLargeException(
-      "File vượt 20 MiB. Hãy tách thành file nhỏ hơn.",
+      AI_UI_MESSAGES.UPLOAD_FILE_LIMIT,
     );
 }
 
@@ -29,7 +30,7 @@ export function checkCapacity(
 ) {
   if (!Number.isSafeInteger(count) || count < 1 || existing.length + count > 5)
     throw new BadRequestException(
-      "Notebook tối đa 5 file. Hãy bỏ bớt nguồn trước khi tải lên.",
+      AI_UI_MESSAGES.UPLOAD_SOURCE_LIMIT,
     );
   if (
     !Number.isSafeInteger(bytes) ||
@@ -38,7 +39,7 @@ export function checkCapacity(
       MAX_NOTEBOOK_BYTES
   )
     throw new PayloadTooLargeException(
-      "Tổng dung lượng notebook vượt 50 MiB. Hãy giảm số lượng hoặc dung lượng file.",
+      AI_UI_MESSAGES.UPLOAD_TOTAL_LIMIT,
     );
 }
 
@@ -46,7 +47,7 @@ export function checkManifests(existing: Source[], manifests: Manifest[]) {
   for (const m of manifests) {
     checkFile(m.name, m.sizeBytes);
     if (!m.current)
-      throw new BadRequestException("Chỉ nhận phiên bản tài liệu hiện tại.");
+      throw new BadRequestException(AI_UI_MESSAGES.CURRENT_VERSION_REQUIRED);
     if (
       existing.some(
         (source) =>
@@ -56,7 +57,7 @@ export function checkManifests(existing: Source[], manifests: Manifest[]) {
       )
     )
       throw new BadRequestException(
-        "Nguồn đã thay đổi. Hãy chọn lại tài liệu.",
+        AI_UI_MESSAGES.SOURCE_RESELECT,
       );
   }
   const unique = [

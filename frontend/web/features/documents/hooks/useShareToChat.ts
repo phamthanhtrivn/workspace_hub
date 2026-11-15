@@ -1,244 +1,189 @@
-import {
-  logActionError,
-  getActionErrorMessage,
-} from "@/lib/permission-feedback";
-import { useState, useEffect, useMemo, useRef } from "react";
+"use client";
+import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAppSelector } from "@/store/store";
+import { toast } from "sonner";
+import { store, useAppSelector } from "@/store/store";
 import {
   useSpacesQuery,
   useSpaceChannelsQuery,
   useDirectMessagesQuery,
-  type SpaceChannelsQueryData,
 } from "@/features/chat/hooks/useChatQueries";
-import { getProjectSpaceStatus } from "@/features/project/api/project.api";
-import { ChatEvent } from "@/features/chat/api/chat.events";
-import { socketService } from "@/features/chat/api/chat-socket.service";
 import { SpaceRole } from "@/features/chat/types/chat.enums";
-import { chatKeys } from "@/features/chat/types/chat.constant";
-import type {
-  ConversationSetting,
-  SpaceChannel,
-} from "@/features/chat/types/chat.types";
-import type { ChatSocketSettingUpdatedPayload } from "@/features/chat/types/chat-socket.types";
-import { shareDocumentToChat } from "../utils/share-document-to-chat";
-import { DOCUMENT_CHAT_SHARE_SUCCESS } from "../types/document-chat-sharing.constants";
-import { METADATA_QUERY_KEY } from "@/features/chat/types/document.constants";
-import { DocumentItem } from "../types/documents.types";
-import { ShareTabType } from "../types/documents.enums";
-import { toast } from "sonner";
-
-interface UseShareToChatProps {
-  item: DocumentItem | null;
-  onSuccess: () => void;
-  projectId?: string;
-}
-
-function canShareDocumentToChannel(
-  channel: SpaceChannel,
-  currentUserId?: string | null,
-) {
-  if (!currentUserId) return false;
-
-  const currentMember = channel.members?.find(
-    (member) => member.userId === currentUserId,
-  );
-  if (!currentMember) return false;
-
-  if (currentMember.role === SpaceRole.MEMBER) {
-    return channel.setting?.allowSendMessage !== false;
-  }
-
-  return true;
-}
-
-function patchChannelSetting(
-  data: SpaceChannelsQueryData | undefined,
-  channelId: string,
-  setting: ConversationSetting,
-) {
-  if (!data?.channels) return data;
-
-  let didPatch = false;
-  const channels = data.channels.map((channel) => {
-    if (channel.id !== channelId) return channel;
-    didPatch = true;
-
-    return {
-      ...channel,
-      setting,
-    };
-  });
-
-  return didPatch ? { ...data, channels } : data;
-}
-
+import { getProjects } from "@/features/project/api/project.api";
+import { getProjectTasks } from "@/features/project/api/task.api";
+import { fetchAllPages } from "@/features/project/api/pagination";
+import { getProjectPermissions } from "@/features/project/project-permissions";
+import { invalidateProjectChange } from "@/features/project/api/project-invalidation";
+import { getActionErrorMessage } from "@/lib/permission-feedback";
+import { fileCopyApi } from "../api/file-copy.api";
+import type { DocumentItem } from "../types/documents.types";
+import {
+  shareDocumentToChat,
+  type DocumentChatShareTarget,
+} from "../utils/share-document-to-chat";
+import { DocumentItemType } from "../types/documents.enums";
 export function useShareToChat({
   item,
   onSuccess,
-  projectId,
-}: UseShareToChatProps) {
-  const [requestedActiveTab, setActiveTab] = useState<ShareTabType>(
-    ShareTabType.CHANNEL,
-  );
-  const [chosenChatId, setSelectedChatId] = useState<string>("");
-  const [chosenSpaceId, setSelectedSpaceId] = useState<string>("");
-  const [introMessage, setIntroMessage] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [inheritedEditorWarningCount, setInheritedEditorWarningCount] =
-    useState(0);
-  const sharing = useRef(false);
-
-  const queryClient = useQueryClient();
+  enabled = true,
+}: {
+  item: DocumentItem | null;
+  onSuccess: () => void;
+  projectId?: string;
+  enabled?: boolean;
+}) {
   const currentUserId = useAppSelector((state) => state.auth.userId);
-  const accessToken = useAppSelector((state) => state.auth.accessToken);
-  const activeSpaceIdFromStore = useAppSelector(
-    (state) => state.chat.activeSpaceId,
-  );
-  const isProjectDocuments = Boolean(projectId);
-  const activeTab = isProjectDocuments
-    ? ShareTabType.CHANNEL
-    : requestedActiveTab;
-
-  const { data: spaces } = useSpacesQuery(
-    isProjectDocuments ? null : currentUserId,
-  );
-  const { data: projectSpaceStatus, isLoading: isLoadingProjectSpace } =
-    useQuery({
-      queryKey: ["projects", projectId, "space-status"],
-      queryFn: () => getProjectSpaceStatus(projectId!),
-      enabled: isProjectDocuments && !!item,
-    });
-  const projectSpaceId = projectSpaceStatus?.spaceId ?? "";
-
-  const selectedSpaceId = isProjectDocuments
-    ? projectSpaceId
-    : spaces?.some((space) => space.id === chosenSpaceId)
-      ? chosenSpaceId
-      : spaces?.some((space) => space.id === activeSpaceIdFromStore)
-        ? activeSpaceIdFromStore!
-        : (spaces?.[0]?.id ?? "");
-
-  const channelSpaceId = isProjectDocuments ? projectSpaceId : selectedSpaceId;
+  const [activeTab, setActiveTab] =
+    useState<DocumentChatShareTarget["type"]>("channel");
+  const [chosenChatId, setSelectedChatId] = useState("");
+  const [chosenSpaceId, setSelectedSpaceId] = useState("");
+  const [taskId, setTaskId] = useState("");
+  const [introMessage, setIntroMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const sharing = useRef(false);
+  const queryClient = useQueryClient();
+  const actor = enabled && item ? currentUserId : null;
+  const { data: spaces = [] } = useSpacesQuery(actor);
+  const selectedSpaceId = spaces.some((space) => space.id === chosenSpaceId)
+    ? chosenSpaceId
+    : (spaces[0]?.id ?? "");
   const { data: channelsData } = useSpaceChannelsQuery(
-    channelSpaceId,
+    selectedSpaceId,
     undefined,
-    {
-      enabled: !!item && activeTab === ShareTabType.CHANNEL && !!channelSpaceId,
-    },
+    { enabled: !!actor && activeTab === "channel" && !!selectedSpaceId },
   );
-  const channels = useMemo(() => {
-    const allChannels = channelsData?.channels || [];
-
-    return allChannels.filter((channel) =>
-      canShareDocumentToChannel(channel, currentUserId),
+  const channels = (channelsData?.channels ?? []).filter((channel) => {
+    const member = channel.members?.find(
+      (member) => member.userId === currentUserId,
     );
-  }, [channelsData?.channels, currentUserId]);
 
-  const { data: directConversationsData } = useDirectMessagesQuery(
-    isProjectDocuments ? null : currentUserId,
-  );
-  const directConversations = directConversationsData?.directMessages || [];
-
-  const [selectionContext, setSelectionContext] = useState({
-    activeTab,
-    channelSpaceId,
+    return (
+      !!member &&
+      (member.role !== SpaceRole.MEMBER ||
+        channel.setting?.allowSendMessage !== false)
+    );
   });
-  if (
-    selectionContext.activeTab !== activeTab ||
-    selectionContext.channelSpaceId !== channelSpaceId
-  ) {
-    setSelectionContext({ activeTab, channelSpaceId });
+  const { data: conversations } = useDirectMessagesQuery(
+    actor && activeTab === "direct" ? actor : null,
+  );
+  const directConversations = conversations?.directMessages ?? [];
+  const projects = useQuery({
+    queryKey: ["document-copy-targets", currentUserId, "projects"],
+    enabled: !!actor && activeTab === "project",
+    staleTime: 30000,
+    gcTime: 300000,
+    queryFn: () =>
+      fetchAllPages(async (page, limit) => {
+        const result = await getProjects({ page, limit });
+
+        return { items: result.data, meta: result.meta };
+      }),
+  });
+  const writableProjects = (projects.data ?? []).filter(
+    (project) =>
+      getProjectPermissions(project, project.members, currentUserId)
+        .canEditDocuments,
+  );
+  const meetings = useQuery({
+    queryKey: ["document-copy-targets", currentUserId, "meetings"],
+    queryFn: fileCopyApi.meetings,
+    enabled: !!actor && activeTab === "meeting",
+    staleTime: 0,
+    retry: false,
+  });
+  const tasks = useQuery({
+    queryKey: ["document-copy-targets", currentUserId, "tasks", chosenChatId],
+    queryFn: () => getProjectTasks(chosenChatId),
+    enabled:
+      !!actor &&
+      activeTab === "project" &&
+      writableProjects.some((project) => project.id === chosenChatId),
+    staleTime: 30000,
+  });
+  const project = writableProjects.find(
+    (project) => project.id === chosenChatId,
+  );
+  const attachableTasks = (tasks.data ?? []).filter(
+    (task) =>
+      project &&
+      !task.completedAt &&
+      getProjectPermissions(
+        project,
+        project.members,
+        currentUserId,
+      ).canEditTask(task),
+  );
+  const availableIds =
+    activeTab === "channel"
+      ? channels.map((channel) => channel.id)
+      : activeTab === "direct"
+        ? directConversations.map((conversation) => conversation.id)
+        : activeTab === "meeting"
+          ? (meetings.data ?? []).map((meeting) => meeting.id)
+          : writableProjects.map((project) => project.id);
+  const selectedChatId = availableIds.includes(chosenChatId)
+    ? chosenChatId
+    : "";
+  const changeTab = (tab: typeof activeTab) => {
+    setActiveTab(tab);
     setSelectedChatId("");
-  }
-  const selectedChatId =
-    activeTab === ShareTabType.CHANNEL || isProjectDocuments
-      ? channels.some((channel) => channel.id === chosenChatId)
-        ? chosenChatId
-        : ""
-      : chosenChatId;
-
-  useEffect(() => {
-    setInheritedEditorWarningCount(0);
-  }, [chosenChatId, activeTab, item?.id]);
-
-  useEffect(() => {
-    if (!item || !accessToken || !channelSpaceId) return;
-    if (activeTab !== ShareTabType.CHANNEL && !isProjectDocuments) return;
-
-    const socket = socketService.connect(accessToken);
-    const handleChannelSettingUpdated = (
-      data: ChatSocketSettingUpdatedPayload,
-    ) => {
-      const channelId = data.channelId ?? data.chatId;
-      if (!channelId || data.eventType === "space_setting_updated") return;
-      if (data.spaceId && data.spaceId !== channelSpaceId) return;
-
-      const setting = data.setting as ConversationSetting;
-      queryClient.setQueriesData<SpaceChannelsQueryData>(
-        { queryKey: chatKeys.allChannels() },
-        (oldData) => patchChannelSetting(oldData, channelId, setting),
-      );
-
-      queryClient.invalidateQueries({
-        queryKey: chatKeys.channels(data.spaceId ?? channelSpaceId),
-      });
-    };
-
-    socket.on(ChatEvent.CHANNEL_SETTING_UPDATED, handleChannelSettingUpdated);
-
-    return () => {
-      socket.off(
-        ChatEvent.CHANNEL_SETTING_UPDATED,
-        handleChannelSettingUpdated,
-      );
-    };
-  }, [
-    accessToken,
-    activeTab,
-    channelSpaceId,
-    isProjectDocuments,
-    item,
-    queryClient,
-  ]);
-
+    setTaskId("");
+    setError("");
+  };
   const handleShare = async () => {
     if (!item || !selectedChatId || !currentUserId || sharing.current) return;
     sharing.current = true;
     setIsSubmitting(true);
+    setError("");
+    const assertCurrentActor = () => {
+      if (store.getState().auth.userId !== currentUserId)
+        throw new Error("Your account changed. Reopen sharing.");
+    };
     try {
-      const result = await shareDocumentToChat({
+      await shareDocumentToChat({
         documentId: item.id,
+        currentUserId,
+        introMessage,
+        isFolder: item.type === DocumentItemType.FOLDER,
+        assertCurrentActor,
         target: {
           type: activeTab,
           chatId: selectedChatId,
-          spaceId: channelSpaceId,
+          taskId:
+            activeTab === "project" &&
+            attachableTasks.some((task) => task.id === taskId)
+              ? taskId
+              : undefined,
+          joinToken: meetings.data?.find(
+            (meeting) => meeting.id === selectedChatId,
+          )?.joinToken,
         },
-        currentUserId,
-        introMessage,
-        confirmInheritedEditorAccess: inheritedEditorWarningCount > 0,
       });
-      if (result.requiresConfirmation) {
-        setInheritedEditorWarningCount(result.inheritedEditorCount);
-        return;
-      }
-      setInheritedEditorWarningCount(0);
-      toast.success(DOCUMENT_CHAT_SHARE_SUCCESS);
-      onSuccess();
-    } catch (error) {
-      logActionError(error);
-      toast.error(
-        getActionErrorMessage(error, "Failed to share document to chat."),
+      assertCurrentActor();
+      if (activeTab === "project")
+        await invalidateProjectChange(queryClient, {
+          projectId: selectedChatId,
+          resource: taskId ? "TASK_DOCUMENT" : "DOCUMENT",
+          taskId: taskId || undefined,
+        });
+      toast.success(
+        activeTab === "project"
+          ? "File added to Project Documents"
+          : "Attachment sent",
       );
+      onSuccess();
+    } catch (cause) {
+      if (store.getState().auth.userId === currentUserId)
+        setError(
+          getActionErrorMessage(
+            cause,
+            cause instanceof Error
+              ? cause.message
+              : "Unable to send this copy. Try again.",
+          ),
+        );
     } finally {
-      // Refresh document access and shares after a confirmation or send attempt.
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["document-sharing", item.id],
-        }),
-        queryClient.invalidateQueries({ queryKey: [METADATA_QUERY_KEY] }),
-        queryClient.invalidateQueries({ queryKey: ["documents"] }),
-      ]);
       sharing.current = false;
       setIsSubmitting(false);
     }
@@ -246,24 +191,25 @@ export function useShareToChat({
 
   return {
     activeTab,
-    setActiveTab,
+    changeTab,
     selectedChatId,
     setSelectedChatId,
     selectedSpaceId,
     setSelectedSpaceId,
+    taskId,
+    setTaskId,
     introMessage,
     setIntroMessage,
-    inheritedEditorWarningCount,
-    clearInheritedEditorWarning: () => setInheritedEditorWarningCount(0),
     isSubmitting,
+    error,
     spaces,
     channels,
     directConversations,
+    writableProjects,
+    meetings,
+    tasks: attachableTasks,
     handleShare,
     currentUserId,
-    isProjectDocuments,
-    isLoadingProjectSpace,
-    projectSpaceUnavailable:
-      isProjectDocuments && !isLoadingProjectSpace && !projectSpaceId,
+    targetError: projects.isError || meetings.isError || tasks.isError,
   };
 }

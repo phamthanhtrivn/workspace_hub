@@ -64,4 +64,4 @@ export type NotebookActionKey =
 export type NotebookActionRunner = (
   action: () => Promise<unknown>,
   key?: NotebookActionKey,
-) => void;
+) => Promise<boolean>;

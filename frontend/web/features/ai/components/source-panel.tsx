@@ -1,40 +1,31 @@
 "use client";
 
-import { sourceFailure } from "../source-failure";
-
-import { useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Folder, Upload, X } from "lucide-react";
+import type { ReactNode } from "react";
+import {
+  FileText,
+  Plus,
+  RotateCcw,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  Clock3,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { documentsApi } from "@/features/documents/api/documents.api";
-import { useAppSelector } from "@/store/store";
-import { notebooksApi } from "../api/notebooks.api";
-import type { Source } from "../types";
-import { useSourceUpload } from "../hooks/use-source-upload";
-import { uploadError } from "../upload";
-import { LoadingState } from "@/components/ui/loading-state";
 import { Spinner } from "@/components/ui/spinner";
-import { Details, DetailsSummary } from "@/components/ui/details";
-import type { NotebookActionKey, NotebookActionRunner } from "../types";
+import { notebooksApi } from "../api/notebooks.api";
+import type { Source, NotebookActionKey, NotebookActionRunner } from "../types";
+import { useSourceUpload } from "../hooks/use-source-upload";
+import { sourceFailure } from "../source-failure";
+import { AddSourcesDialog, NOTEBOOK_SOURCE_LIMIT } from "./add-sources-dialog";
 
-const states: Record<string, string> = {
+const statusLabels: Record<string, string> = {
   QUEUED: "Queued",
   INDEXING: "Indexing",
   READY: "Ready",
   FAILED: "Failed",
-  UNAVAILABLE: "Source unavailable",
-};
-type Props = {
-  id: string;
-  sources: Source[];
-  selected: string[];
-  toggle: (id: string) => void;
-  busy: boolean;
-  run: NotebookActionRunner;
-  pendingAction?: NotebookActionKey | null;
-  refresh: () => Promise<unknown>;
+  UNAVAILABLE: "Unavailable",
 };
 
 export function SourcePanel({
@@ -46,387 +37,186 @@ export function SourcePanel({
   run,
   pendingAction,
   refresh,
-}: Props) {
-  const upload = useRef<HTMLInputElement>(null);
-  const [picker, setPicker] = useState(false);
-  const [pickerBusy, setPickerBusy] = useState(false);
-  const { uploadFiles, uploading, stage, error } = useSourceUpload(
-    id,
-    sources,
-    refresh,
-  );
-  const sourceBusy = busy || uploading || pickerBusy;
+  collapseControl,
+  addOpen,
+  onAddOpenChange,
+}: {
+  id: string;
+  sources: Source[];
+  selected: string[];
+  toggle: (id: string) => void;
+  busy: boolean;
+  run: NotebookActionRunner;
+  pendingAction?: NotebookActionKey | null;
+  refresh: () => Promise<unknown>;
+  collapseControl?: ReactNode;
+  addOpen: boolean;
+  onAddOpenChange: (open: boolean) => void;
+}) {
+  const upload = useSourceUpload(id, sources, refresh);
+  const locked = busy || upload.uploading || Boolean(pendingAction);
 
   return (
     <section
-      className="flex h-full min-w-0 flex-col gap-4"
       aria-label="Document sources"
+      className="flex h-full min-h-0 min-w-0 flex-col"
     >
-      <header className="flex items-center justify-between">
-        <h2 className="font-semibold">Sources</h2>
-        <span className="text-xs text-muted-foreground">
-          {sources.length}/5 files
+      <header className="flex shrink-0 items-center gap-2 border-b border-border p-4">
+        <span className="grid size-8 place-items-center rounded-control bg-primary-soft text-primary-soft-foreground">
+          <FileText className="size-4" aria-hidden="true" />
         </span>
+        <h2 className="font-semibold">Sources</h2>
+        <Badge variant="secondary" className="ml-auto tabular-nums">
+          {sources.length}/{NOTEBOOK_SOURCE_LIMIT}
+        </Badge>
+        {collapseControl}
       </header>
-      <div className="grid gap-2">
-        <Button
-          loading={uploading}
-          variant="outline"
-          disabled={sourceBusy || sources.length >= 5}
-          onClick={() => upload.current?.click()}
-        >
-          <Upload />
-          {stage === "CHECKING"
-            ? "Checking file..."
-            : stage === "ADDING"
-              ? "Adding source..."
-              : uploading
-                ? "Uploading..."
-                : "Upload file"}
-        </Button>
+      <div className="shrink-0 space-y-2 p-3">
         <Button
           variant="outline"
-          disabled={sourceBusy || sources.length >= 5}
-          onClick={() => setPicker((value) => !value)}
+          className="w-full"
+          disabled={locked || sources.length >= NOTEBOOK_SOURCE_LIMIT}
+          onClick={() => onAddOpenChange(true)}
         >
-          {picker ? "Close document picker" : "Choose from Documents"}
+          <Plus aria-hidden="true" />
+          Add sources
         </Button>
       </div>
-      <input
-        hidden
-        ref={upload}
-        type="file"
-        accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp"
-        multiple
-        onChange={(event) => {
-          void uploadFiles(Array.from(event.target.files || []));
-          event.target.value = "";
-        }}
-      />
-      <Details className="text-xs leading-relaxed text-muted-foreground">
-        <DetailsSummary className="cursor-pointer">
-          File types & limits
-        </DetailsSummary>
-        <p className="mt-2">
-          PDF, DOCX, TXT, MD, PNG, JPEG and WebP. Up to 20 MiB per file and 50
-          MiB per notebook.
-        </p>
-        <p className="mt-2">
-          PDFs: up to 100 pages. Each file supports up to 100,000 tokens and 24
-          scanned pages or images requiring image analysis.
-        </p>
-      </Details>
-      {error && (
-        <p role="alert" className="text-xs text-destructive">
-          {error}
-        </p>
-      )}
-      {picker && (
-        <DocumentPicker
-          notebookId={id}
-          addedIds={sources.map((source) => source.document_id)}
-          onAdded={refresh}
-          disabled={busy || uploading}
-          onPending={setPickerBusy}
-        />
-      )}
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3">
         {!sources.length && (
-          <p className="py-8 text-sm text-muted-foreground">
-            Upload a file or choose from Documents to get started.
-          </p>
+          <div className="space-y-2 py-6 text-center">
+            <FileText
+              className="mx-auto size-8 text-primary-soft-foreground"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-medium">No sources yet</p>
+          </div>
         )}
-        {sources.map((source) => (
-          <article
-            key={source.id}
-            className={`rounded-lg border p-3 ${selected.includes(source.id) ? "border-primary/30 bg-primary/5" : "bg-background"}`}
-          >
-            <label className="flex items-start gap-2 text-sm font-medium">
-              <Checkbox
-                className="mt-1"
-                checked={selected.includes(source.id)}
-                disabled={source.status !== "READY" || sourceBusy}
-                onCheckedChange={() => toggle(source.id)}
-              />
-              <span className="min-w-0 break-words">{source.name}</span>
-            </label>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {states[source.status] || source.status}
-              {source.status === "READY"
-                ? ` · ${source.chunk_count} passages`
-                : ""}
-            </p>
-            {source.status === "INDEXING" && (
-              <p role="status" className="mt-1 flex items-center gap-2 text-xs">
-                <Spinner size={14} />
-                {source.progress < 40
-                  ? "Reading document and recognizing text..."
-                  : source.progress < 85
-                    ? "Analyzing images..."
-                    : "Indexing..."}
-                {` ${source.progress}%`}
-              </p>
-            )}
-            {source.error && (
+        {sources.map((source) => {
+          const ready = source.status === "READY";
+          const indexing = source.status === "INDEXING";
+          const failed =
+            source.status === "FAILED" || source.status === "UNAVAILABLE";
+          const StatusIcon = ready
+            ? CheckCircle2
+            : failed
+              ? AlertCircle
+              : Clock3;
+
+          return (
+            <article
+              key={source.id}
+              className={`min-w-0 rounded-control border p-3 ${selected.includes(source.id) ? "border-primary/30 bg-primary-soft/40" : "border-border bg-card"}`}
+            >
+              <label className="flex items-start gap-2 text-sm font-medium">
+                <Checkbox
+                  className="mt-0.5 shrink-0"
+                  checked={selected.includes(source.id)}
+                  disabled={!ready || locked}
+                  onCheckedChange={() => toggle(source.id)}
+                />
+                <span className="min-w-0 [overflow-wrap:anywhere]">
+                  {source.name}
+                </span>
+              </label>
               <p
-                id={`source-error-${source.id}`}
-                className="mt-2 break-words text-xs text-destructive"
+                className={`mt-2 flex items-center gap-1.5 text-xs ${ready ? "text-success-content" : failed ? "text-destructive-content" : "text-muted-foreground"}`}
               >
-                {sourceFailure(source.error).message}
+                <StatusIcon className="size-3.5 shrink-0" aria-hidden="true" />
+                {statusLabels[source.status] || source.status}
+                {ready && (
+                  <span className="text-muted-foreground">
+                    · {source.chunk_count} passages
+                  </span>
+                )}
               </p>
-            )}
-            <div className="mt-2 flex flex-wrap gap-2 [&>button]:h-auto [&>button]:min-h-8 [&>button]:max-w-full [&>button]:whitespace-normal [&>button]:py-2">
-              {source.status === "FAILED" && (
-                <Button
-                  loading={pendingAction === `retry:${source.id}`}
-                  size="sm"
-                  variant="outline"
-                  disabled={sourceBusy || !sourceFailure(source.error).canRetry}
-                  aria-describedby={
-                    source.error ? `source-error-${source.id}` : undefined
-                  }
-                  onClick={() =>
-                    run(
-                      () => notebooksApi.source(id, source.id, "retry"),
-                      `retry:${source.id}`,
-                    )
-                  }
-                >
-                  Retry
-                </Button>
+              {indexing && (
+                <div className="mt-2 space-y-1.5">
+                  <p
+                    role="status"
+                    className="flex items-start gap-2 text-xs text-muted-foreground"
+                  >
+                    <Spinner size={12} />
+                    {source.progress < 40
+                      ? "Reading document..."
+                      : source.progress < 85
+                        ? "Analyzing images..."
+                        : "Indexing..."}{" "}
+                    {source.progress}%
+                  </p>
+                  <progress
+                    className="h-1 w-full accent-primary"
+                    value={source.progress}
+                    max={100}
+                    aria-label={`Indexing ${source.name}`}
+                  />
+                </div>
               )}
-              {source.status === "READY" && (
+              {source.error && (
+                <p
+                  id={`source-error-${source.id}`}
+                  className="mt-2 text-xs text-destructive-content [overflow-wrap:anywhere]"
+                >
+                  {sourceFailure(source.error).message}
+                </p>
+              )}
+              <div className="mt-2 flex flex-wrap items-center gap-1">
+                {(ready || source.status === "FAILED") && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    loading={pendingAction === `retry:${source.id}`}
+                    disabled={
+                      locked ||
+                      (!ready && !sourceFailure(source.error).canRetry)
+                    }
+                    onClick={() =>
+                      run(
+                        () => notebooksApi.source(id, source.id, "retry"),
+                        `retry:${source.id}`,
+                      )
+                    }
+                  >
+                    <RotateCcw aria-hidden="true" />
+                    {ready ? "Reindex" : "Retry"}
+                  </Button>
+                )}
                 <Button
-                  loading={pendingAction === `retry:${source.id}`}
                   size="sm"
                   variant="ghost"
-                  disabled={sourceBusy}
+                  className="ml-auto text-muted-foreground hover:text-destructive-content"
+                  aria-label={`Remove ${source.name}`}
+                  title="Remove source"
+                  loading={pendingAction === `remove:${source.id}`}
+                  disabled={locked}
                   onClick={() =>
                     run(
-                      () => notebooksApi.source(id, source.id, "retry"),
-                      `retry:${source.id}`,
+                      () => notebooksApi.source(id, source.id, "remove"),
+                      `remove:${source.id}`,
                     )
                   }
                 >
-                  Reindex
+                  <Trash2 aria-hidden="true" />
                 </Button>
-              )}
-              <Button
-                loading={pendingAction === `remove:${source.id}`}
-                size="sm"
-                variant="ghost"
-                disabled={sourceBusy}
-                onClick={() =>
-                  run(
-                    () => notebooksApi.source(id, source.id, "remove"),
-                    `remove:${source.id}`,
-                  )
-                }
-              >
-                <X />
-                Remove
-              </Button>
-            </div>
-          </article>
-        ))}
+              </div>
+            </article>
+          );
+        })}
       </div>
-      <p className="border-t pt-3 text-xs text-muted-foreground">
-        Selected: {selected.length} ready sources
+      <p className="shrink-0 border-t border-border px-4 py-3 text-xs tabular-nums text-muted-foreground">
+        {selected.length} ready {selected.length === 1 ? "source" : "sources"}{" "}
+        selected
       </p>
-    </section>
-  );
-}
-
-function DocumentPicker({
-  notebookId,
-  addedIds,
-  onAdded,
-  disabled,
-  onPending,
-}: {
-  notebookId: string;
-  addedIds: string[];
-  onAdded: () => Promise<unknown>;
-  disabled: boolean;
-  onPending: (value: boolean) => void;
-}) {
-  const userId = useAppSelector((state) => state.auth.userId);
-  const [shared, setShared] = useState(false);
-  const [folders, setFolders] = useState<string[]>([]);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [term, setTerm] = useState("");
-  const [pending, setPending] = useState(false);
-  const [pendingDocumentId, setPendingDocumentId] = useState<string | null>(
-    null,
-  );
-  const [error, setError] = useState("");
-  const folderId = folders.at(-1);
-  const query = useQuery({
-    queryKey: [
-      "notebook-document-picker",
-      userId,
-      shared,
-      folderId,
-      page,
-      term,
-    ],
-    queryFn: () =>
-      shared
-        ? documentsApi.getSharedDocuments({ page, limit: 10, search: term })
-        : documentsApi.getDocuments({
-            folderId,
-            page,
-            limit: 10,
-            search: term,
-          }),
-    retry: false,
-    gcTime: 0,
-  });
-  const add = async (documentId: string) => {
-    if (pending || disabled) return;
-    setPending(true);
-    setPendingDocumentId(documentId);
-    onPending(true);
-    setError("");
-    try {
-      await notebooksApi.add(notebookId, [documentId]);
-      await onAdded();
-    } catch (cause) {
-      setError(uploadError(cause));
-    } finally {
-      setPending(false);
-      setPendingDocumentId(null);
-      onPending(false);
-    }
-  };
-
-  return (
-    <div className="space-y-2 rounded-lg border bg-muted/40 p-2">
-      <div className="flex gap-1">
-        <Button
-          size="sm"
-          variant={!shared ? "outline" : "ghost"}
-          onClick={() => {
-            setShared(false);
-            setFolders([]);
-            setPage(1);
-          }}
-        >
-          My files
-        </Button>
-        <Button
-          size="sm"
-          variant={shared ? "outline" : "ghost"}
-          onClick={() => {
-            setShared(true);
-            setFolders([]);
-            setPage(1);
-          }}
-        >
-          Shared with me
-        </Button>
-      </div>
-      <form
-        className="flex gap-1"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setTerm(search);
-          setPage(1);
-        }}
-      >
-        <Input
-          aria-label="Search documents"
-          placeholder="File name..."
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
+      {addOpen && (
+        <AddSourcesDialog
+          id={id}
+          sources={sources}
+          upload={upload}
+          busy={busy}
+          refresh={refresh}
+          onClose={() => onAddOpenChange(false)}
         />
-        <Button size="sm" variant="outline">
-          Search
-        </Button>
-      </form>
-      {folders.length > 0 && (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => {
-            setFolders((value) => value.slice(0, -1));
-            setPage(1);
-          }}
-        >
-          Parent folder
-        </Button>
       )}
-      {query.isPending && (
-        <LoadingState label="Loading documents..." className="text-xs" />
-      )}
-      {query.isError && (
-        <p role="alert" className="text-xs text-destructive">
-          Unable to load documents. Try again.
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="text-xs text-destructive">
-          {error}
-        </p>
-      )}
-      {!query.isError &&
-        query.data?.data.map((file) => (
-          <div
-            key={file.id}
-            className="flex items-center justify-between gap-2 border-b py-2 text-xs"
-          >
-            <span className="min-w-0 break-words">{file.name}</span>
-            {file.type === "FOLDER" ? (
-              <Button
-                size="icon-sm"
-                variant="ghost"
-                aria-label={`Open ${file.name}`}
-                disabled={shared}
-                onClick={() => {
-                  setFolders((value) => [...value, file.id]);
-                  setPage(1);
-                }}
-              >
-                <Folder />
-              </Button>
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                loading={pending && pendingDocumentId === file.id}
-                disabled={
-                  pending ||
-                  disabled ||
-                  addedIds.includes(file.id) ||
-                  addedIds.length >= 5
-                }
-                onClick={() => void add(file.id)}
-              >
-                {addedIds.includes(file.id) ? "Added" : "Add"}
-              </Button>
-            )}
-          </div>
-        ))}
-      <div className="flex items-center justify-between">
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={page === 1}
-          onClick={() => setPage((value) => value - 1)}
-        >
-          Previous
-        </Button>
-        <span className="text-xs">{page}</span>
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={!query.data?.meta || page >= query.data.meta.totalPages}
-          onClick={() => setPage((value) => value + 1)}
-        >
-          Next
-        </Button>
-      </div>
-    </div>
+    </section>
   );
 }

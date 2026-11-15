@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../ai-ui.messages";
 import { TooManyRequestsException } from "./rate-limit.exception";
 import { BadRequestException } from "@nestjs/common";
 
@@ -5,7 +6,7 @@ import { BadRequestException } from "@nestjs/common";
 export class ModelMinuteQuotaException extends TooManyRequestsException {
   constructor(readonly retryAfterMs = 2000) {
     super({
-      message: "AI đang chờ hạn mức theo phút. Vui lòng thử lại sau.",
+      message: AI_UI_MESSAGES.MINUTE_QUOTA,
       code: "MODEL_MINUTE_QUOTA",
       retryAfterMs,
     });
@@ -19,8 +20,8 @@ export class ModelDailyQuotaException extends TooManyRequestsException {
   ) {
     super({
       message: vision
-        ? "VISION_DAILY_QUOTA: Hết ngân sách đọc hình hôm nay. Hạn mức đặt lại lúc 07:00 giờ Việt Nam."
-        : "MODEL_DAILY_QUOTA: Hết hạn mức AI hôm nay. Hạn mức đặt lại lúc 07:00 giờ Việt Nam.",
+        ? AI_UI_MESSAGES.VISION_DAILY_QUOTA
+        : AI_UI_MESSAGES.MODEL_DAILY_QUOTA,
       code: vision ? "VISION_DAILY_QUOTA" : "MODEL_DAILY_QUOTA",
       retryAfterMs,
     });
@@ -31,7 +32,7 @@ export class ModelInputBudgetException extends BadRequestException {
   constructor() {
     super({
       message:
-        "MODEL_INPUT_BUDGET: Nội dung yêu cầu vượt ngân sách token. Hãy giảm nội dung hoặc chia nhỏ yêu cầu.",
+        AI_UI_MESSAGES.MODEL_INPUT_BUDGET,
       code: "MODEL_INPUT_BUDGET",
     });
   }

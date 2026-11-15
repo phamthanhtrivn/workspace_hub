@@ -1,3 +1,4 @@
+import { copiedAttachmentDelivery } from "@/features/chat/api/copied-attachment-delivery";
 import { meetingHttp as api } from "./meeting-http";
 import { meetingRoomSignal } from "./meeting-room-requests";
 import { DEFAULT_UPLOAD_MIME_TYPE } from "@/lib/upload-policy";
@@ -147,7 +148,10 @@ export const getMeetingAccess = async (
   joinToken: string,
   signal?: AbortSignal,
 ): Promise<ApiResponse<MeetingAccessResponse>> => {
-  const response = await api.get(MEETING_API_PATHS.access(joinToken), { signal });
+  const response = await api.get(MEETING_API_PATHS.access(joinToken), {
+    signal,
+  });
+
   return normalizeApiResponse<MeetingAccessResponse>(response.data);
 };
 
@@ -170,7 +174,11 @@ export const updateMeetingHistoryVisibility = async (
   meetingId: string,
   hidden: boolean,
 ): Promise<ApiResponse<MeetingHistoryVisibilityResponse>> => {
-  const response = await api.patch(MEETING_API_PATHS.historyVisibility(meetingId), { hidden });
+  const response = await api.patch(
+    MEETING_API_PATHS.historyVisibility(meetingId),
+    { hidden },
+  );
+
   return normalizeApiResponse<MeetingHistoryVisibilityResponse>(response.data);
 };
 
@@ -184,15 +192,26 @@ export const getMeetingHistorySummary = async (): Promise<
 export const updateMeetingHistoryBulkVisibility = async (
   payload: MeetingHistoryBulkVisibilityPayload,
 ): Promise<ApiResponse<MeetingHistoryBulkVisibilityResponse>> => {
-  const response = await api.patch(MEETING_API_PATHS.HISTORY_BULK_VISIBILITY, payload);
-  return normalizeApiResponse<MeetingHistoryBulkVisibilityResponse>(response.data);
+  const response = await api.patch(
+    MEETING_API_PATHS.HISTORY_BULK_VISIBILITY,
+    payload,
+  );
+
+  return normalizeApiResponse<MeetingHistoryBulkVisibilityResponse>(
+    response.data,
+  );
 };
 
 export const undoMeetingHistoryBatch = async (
   batchId: string,
 ): Promise<ApiResponse<MeetingHistoryBulkVisibilityResponse>> => {
-  const response = await api.post(MEETING_API_PATHS.HISTORY_UNDO_BATCH, { batchId });
-  return normalizeApiResponse<MeetingHistoryBulkVisibilityResponse>(response.data);
+  const response = await api.post(MEETING_API_PATHS.HISTORY_UNDO_BATCH, {
+    batchId,
+  });
+
+  return normalizeApiResponse<MeetingHistoryBulkVisibilityResponse>(
+    response.data,
+  );
 };
 
 export const updateMeetingSettings = async (
@@ -312,11 +331,16 @@ export const getMeetingMediaPresignedUrls = async ({
   meetingId: string;
   files: MeetingPresignRequest[];
 }): Promise<MeetingPresignResponse[]> => {
-  const response = await api.post("/api/medias/presign", {
-    chatId: meetingId,
-    chatType: ChatContextType.MEETING,
-    files,
-  }, { signal: meetingRoomSignal(meetingId) });
+  const response = await api.post(
+    "/api/medias/presign",
+    {
+      chatId: meetingId,
+      chatType: ChatContextType.MEETING,
+      files,
+    },
+    { signal: meetingRoomSignal(meetingId) },
+  );
+
   return normalizeApiResponse<MeetingPresignResponse[]>(response.data).data;
 };
 
@@ -342,11 +366,18 @@ export const sendMeetingMessage = async (
   joinToken: string,
   payload: CreateMeetingMessagePayload,
 ): Promise<ApiResponse<MeetingMessageResponse>> => {
-  const response = await api.post(
-    MEETING_API_PATHS.messages(joinToken),
+  return copiedAttachmentDelivery(
+    "meeting:" + joinToken,
     payload,
+    async (next) => {
+      const response = await api.post(
+        MEETING_API_PATHS.messages(joinToken),
+        next,
+      );
+
+      return normalizeApiResponse<MeetingMessageResponse>(response.data);
+    },
   );
-  return normalizeApiResponse<MeetingMessageResponse>(response.data);
 };
 
 export const editMeetingMessage = async (

@@ -294,7 +294,7 @@ function Conversation({
               assistant.pending &&
               !assistant.status
             ) {
-              void assistant.send(assistant.pending.content);
+              void assistant.retry();
             }
           }}
         />

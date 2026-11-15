@@ -1,41 +1,35 @@
-import { documentsApi } from "@/features/documents/api/documents.api";
-import type { DocumentItem } from "@/features/documents/types/documents.types";
-import { assertAttachmentSize, getUploadMimeType } from "@/lib/upload-policy";
-import { getPresignedUrls, uploadToS3, type GetPresignedUrlsParams } from "./media.api";
-
-export type AttachmentChatContext = Pick<GetPresignedUrlsParams, "chatId" | "chatType">;
-
+import { api } from "@/lib/axios";
+import type { PickerDocument } from "@/features/documents/api/file-copy.api";
+import type { GetPresignedUrlsParams } from "./media.api";
+export type AttachmentChatContext = Pick<
+  GetPresignedUrlsParams,
+  "chatId" | "chatType"
+>;
+export interface CopiedChatAttachment {
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  s3Key: string;
+}
+const DOCUMENT_IMPORT_ROUTE = "/api/medias/import-documents";
 export async function copyDocumentsToChat(
-  documents: DocumentItem[],
+  documents: Pick<PickerDocument, "id" | "versionId">[],
   context: AttachmentChatContext,
   signal: AbortSignal,
-) {
-  const attachments = [];
-  for (const document of documents) {
-    signal.throwIfAborted();
-    assertAttachmentSize({ size: document.sizeBytes });
-    const downloadUrl = await documentsApi.getDownloadUrl(document.id);
-    signal.throwIfAborted();
-    const response = await fetch(downloadUrl, { signal });
-    if (!response.ok) throw new Error("Could not download the selected document.");
-    const blob = await response.blob();
-    assertAttachmentSize(blob);
-    if (blob.size !== document.sizeBytes) {
-      throw new Error("The document changed. Select it again to attach the current version.");
-    }
-    const mimeType = getUploadMimeType(document.name, document.mimeType || blob.type);
-    const file = new File([blob], document.name, { type: mimeType });
-    const [upload] = await getPresignedUrls({
-      ...context,
-      files: [{ fileName: file.name, mimeType, sizeBytes: file.size }],
-    });
-    signal.throwIfAborted();
-    if (!upload || !(await uploadToS3(file, upload.presignedUrl, signal))) {
-      signal.throwIfAborted();
-      throw new Error("Could not upload the selected document to this conversation.");
-    }
-    signal.throwIfAborted();
-    attachments.push({ name: file.name, mimeType, sizeBytes: file.size, s3Key: upload.s3Key });
-  }
-  return attachments;
+  operationId: string = crypto.randomUUID(),
+): Promise<CopiedChatAttachment[]> {
+  return (
+    await api.post(
+      DOCUMENT_IMPORT_ROUTE,
+      {
+        ...context,
+        operationId,
+        refs: documents.map((document) => ({
+          documentId: document.id,
+          versionId: document.versionId,
+        })),
+      },
+      { signal, timeout: 180000 },
+    )
+  ).data.data;
 }

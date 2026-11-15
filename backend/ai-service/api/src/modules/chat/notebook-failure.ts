@@ -31,19 +31,19 @@ export function notebookFailureMessage(error: unknown): string {
     return "The AI provider rejected access. Check the provider credentials and model permissions.";
   if (status)
     return `An AI dependency returned HTTP ${status}. Please try again later.`;
-  if (/bị cắt ở giới hạn/.test(message))
+  if (/bị cắt ở giới hạn|reached the .*output limit/i.test(message))
     return "The AI response reached its output limit. Ask a more specific question or select fewer sources.";
-  if (/trích dẫn/.test(message))
+  if (/trích dẫn|source citations/i.test(message))
     return "The AI response did not include valid source citations. Please try again.";
-  if (/phạm vi|làm rõ/.test(message))
+  if (/phạm vi|làm rõ|question scope|clarification response/i.test(message))
     return "The AI returned an invalid response format. Please try again.";
-  if (/Nguồn đã thay đổi|phiên bản|Mất quyền/.test(message))
+  if (/Nguồn đã thay đổi|phiên bản|Mất quyền|source.*(?:changed|version|revoked)/i.test(message))
     return "Source access or version changed. Refresh the notebook and select your sources again.";
   if (/RAG|chỉ mục|Chỉ mục/.test(message))
     return "Document retrieval is unavailable or incomplete. Check source status before trying again.";
-  if (/kết thúc trước khi hoàn tất|không hoàn tất/.test(message))
+  if (/kết thúc trước khi hoàn tất|không hoàn tất|ended before completion|did not complete/i.test(message))
     return "The AI response was interrupted before completion. It was not resent automatically.";
-  if (/vượt giới hạn|quá dài|size limit/.test(message))
+  if (/vượt giới hạn|quá dài|size limit|response is too long/i.test(message))
     return "The response exceeds the size limit. Ask about a smaller section.";
 
   return "AI could not complete the request. Please try again; the request was not resent automatically.";

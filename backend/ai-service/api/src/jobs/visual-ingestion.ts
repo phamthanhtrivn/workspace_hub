@@ -1,3 +1,4 @@
+import { AI_UI_MESSAGES } from "../common/ai-ui.messages";
 import { createHash } from "node:crypto";
 import { createAbortGuard } from "../common/abort-guard";
 import { singleFlight } from "../common/single-flight";
@@ -49,7 +50,7 @@ const EXTRACTION_PIPELINE = "visual-v1";
 function validateImages(extraction: Extraction) {
   for (const image of extraction.images) {
     if (hash(Buffer.from(image.dataUrl.split(",")[1], "base64")) !== image.hash)
-      throw new UnrecoverableError("Ảnh trích xuất không khớp mã kiểm tra");
+      throw new UnrecoverableError(AI_UI_MESSAGES.IMAGE_CHECKSUM);
   }
 }
 
@@ -151,7 +152,7 @@ export async function enrichVisualSource(
       current.revision !== source.revision ||
       current.status !== "INDEXING"
     )
-      throw new UnrecoverableError("Nguồn đã bị xóa hoặc thay đổi khi đọc ảnh");
+      throw new UnrecoverableError(AI_UI_MESSAGES.IMAGE_SOURCE_CHANGED);
     await authorizeSources(actor, [source]);
     signal.throwIfAborted();
   });

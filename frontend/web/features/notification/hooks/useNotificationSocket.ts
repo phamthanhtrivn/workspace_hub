@@ -1,4 +1,6 @@
+import { invalidateDocumentPermissions } from "@/features/documents/utils/document-cache";
 import { toast } from "sonner";
+import { WORK_ASSISTANT_QUERY_ROOT } from "@/features/work-assistant/constants/work-assistant-query";
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { RootState, useAppDispatch, useAppSelector } from "@/store/store";
@@ -75,7 +77,7 @@ function dispatchNotificationCollectionChanged(
  * Mount this once at the WorkspaceShell / WorkspaceHeader level.
  */
 export function useNotificationSocket() {
-  const { accessToken } = useAppSelector((state: RootState) => state.auth);
+  const { accessToken, userId: currentUserId } = useAppSelector((state: RootState) => state.auth);
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
 
@@ -96,9 +98,13 @@ export function useNotificationSocket() {
       dispatch(addNotification(noti));
       window.dispatchEvent(new CustomEvent(NOTIFICATION_RECEIVED_EVENT, { detail: noti }));
       if (noti.type.startsWith('DOCUMENT_')) {
-        void queryClient.invalidateQueries({ queryKey: ['documents'] });
+        const documentId = typeof noti.metadata?.documentId === "string" ? noti.metadata.documentId : undefined;
+        if (currentUserId) void invalidateDocumentPermissions(queryClient, currentUserId, documentId);
       }
       if (noti.type.startsWith('PROJECT_')) {
+        if (noti.type === NotificationType.PROJECT_PERMISSIONS_UPDATED || noti.type === NotificationType.PROJECT_MEMBER_REMOVED || noti.type === NotificationType.PROJECT_INVITATION_ACCEPTED) {
+          void queryClient.resetQueries({ queryKey: WORK_ASSISTANT_QUERY_ROOT });
+        }
         void queryClient.invalidateQueries({ queryKey: ['projects'] });
       }
 
@@ -258,5 +264,5 @@ export function useNotificationSocket() {
       }
       cleanupSocketListeners?.();
     };
-  }, [accessToken, dispatch, queryClient]);
+  }, [accessToken, currentUserId, dispatch, queryClient]);
 }

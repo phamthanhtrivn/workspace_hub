@@ -148,7 +148,7 @@ export function getDocumentIconConfig(
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export interface DocumentIconProps {
-  item: DocumentItem;
+  item: Pick<DocumentItem, "type" | "name" | "mimeType">;
   iconSize?: number;
   isSelected?: boolean;
   className?: string;
