@@ -2,6 +2,14 @@ import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { openCopyDatabases } from "./file-copy-maintenance/runtime.mjs";
+
+export function isNotebookSnapshotKey(key, actorId) {
+  return (
+    typeof key === "string" &&
+    (key.startsWith("module-snapshots/notebook/") ||
+      key.startsWith(`documents/${actorId}/module-snapshots/notebook/`))
+  );
+}
 export async function reconcileNotebookSnapshots(args = process.argv.slice(2)) {
   if (args.includes("--help"))
     return {
@@ -44,7 +52,7 @@ export async function reconcileNotebookSnapshots(args = process.argv.slice(2)) {
           [copy.id],
         );
       else {
-        if (!copy.s3_key.startsWith("module-snapshots/notebook/"))
+        if (!isNotebookSnapshotKey(copy.s3_key, copy.actor_id))
           throw new Error("Unexpected private copy scope.");
         await db.document.query("BEGIN");
         try {

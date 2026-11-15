@@ -22,48 +22,42 @@ export function DocumentFilePicker(
   const field = useId();
   const picker = useFilePicker(props);
   const label =
-    picker.scope === "personal"
-      ? "My files"
-      : picker.scope === "shared"
-        ? "Shared with me"
-        : "Project documents";
+    picker.scope === "project"
+      ? "Project documents"
+      : picker.scope === "personal"
+        ? "My files"
+        : "Shared with me";
   const rows = picker.query.data?.data ?? [];
 
   return (
     <section aria-label="Choose files" className="min-w-0 space-y-3">
-      <Tabs
-        value={picker.scope}
-        onValueChange={(scope) => {
-          picker.setScope(scope as typeof picker.scope);
-          picker.navigate([]);
-        }}
-      >
-        <TabsList className="w-full">
-          <TabsTrigger
-            value="personal"
-            className="flex-1"
-            disabled={picker.locked}
-          >
-            My files
-          </TabsTrigger>
-          <TabsTrigger
-            value="shared"
-            className="flex-1"
-            disabled={picker.locked}
-          >
-            Shared with me
-          </TabsTrigger>
-          {props.projectId && (
+      {!props.projectId && (
+        <Tabs
+          value={picker.scope}
+          onValueChange={(scope) => {
+            if (scope === "personal" || scope === "shared")
+              picker.setScope(scope);
+            picker.navigate([]);
+          }}
+        >
+          <TabsList className="w-full">
             <TabsTrigger
-              value="project"
+              value="personal"
               className="flex-1"
               disabled={picker.locked}
             >
-              Project documents
+              My files
             </TabsTrigger>
-          )}
-        </TabsList>
-      </Tabs>
+            <TabsTrigger
+              value="shared"
+              className="flex-1"
+              disabled={picker.locked}
+            >
+              Shared with me
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
       <SearchInput
         aria-label="Search files"
         placeholder="Search files..."

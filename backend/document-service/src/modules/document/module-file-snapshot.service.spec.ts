@@ -10,6 +10,7 @@ function fixture() {
     reads = 0,
     copies = 0,
     fail = false;
+  const cleanupKeys: string[] = [];
   let wait = Promise.resolve();
   const source = {
     id: 'source',
@@ -23,8 +24,9 @@ function fixture() {
   };
   const version = { id: 'version', s3Key: source.s3Key, sizeBytes: 10n };
   const prisma = {
+    $transaction: async <T>(run: (tx: unknown) => Promise<T>) => run(prisma),
     moduleFileSnapshot: {
-      findUnique: async () => row,
+      findUnique: async () => (row ? { ...row } : null),
       findFirst: async ({
         where,
       }: {
@@ -36,14 +38,15 @@ function fixture() {
         row.notebookId === where.notebookId
           ? row
           : null,
-      upsert: async ({ create }: { create: ModuleFileSnapshot }) =>
-        (row ??= {
+      upsert: async ({ create }: { create: ModuleFileSnapshot }) => ({
+        ...(row ??= {
           ...create,
           notebookId: create.notebookId ?? null,
           status: 'PREPARING',
           leaseToken: null,
           leaseUntil: null,
         }),
+      }),
       updateMany: async ({
         where,
         data,
@@ -87,7 +90,11 @@ function fixture() {
       },
     } as unknown as ConstructorParameters<typeof ModuleFileSnapshotService>[2],
     {} as ConstructorParameters<typeof ModuleFileSnapshotService>[3],
-    {} as ConstructorParameters<typeof ModuleFileSnapshotService>[4],
+    {
+      enqueue: async (_tx: unknown, keys: string[]) => {
+        cleanupKeys.push(...keys);
+      },
+    } as unknown as ConstructorParameters<typeof ModuleFileSnapshotService>[4],
   );
 
   return {
@@ -96,6 +103,7 @@ function fixture() {
     row: () => row!,
     copies: () => copies,
     reads: () => reads,
+    cleanupKeys,
     fail: (next: boolean) => {
       fail = next;
     },
@@ -165,7 +173,23 @@ void test('Notebook private uploads accept more than 10 MiB, enforce 20 MiB and 
     size,
   );
   assert.ok(upload.presignedUrl);
-  assert.ok(snapshot!.s3Key.startsWith('module-snapshots/notebook/'));
+  assert.ok(
+    snapshot!.s3Key.startsWith('documents/owner/module-snapshots/notebook/'),
+  );
+  const currentKey = snapshot!.s3Key;
+  snapshot!.s3Key = `module-snapshots/notebook/${upload.snapshotId}/report.pdf`;
+  await assert.rejects(
+    service.upload(
+      'owner',
+      'book',
+      'operation',
+      'report.pdf',
+      'application/pdf',
+      size,
+    ),
+    /older storage location/,
+  );
+  snapshot!.s3Key = currentKey;
   await assert.rejects(
     service.confirmUpload('another-user', 'book', upload.snapshotId),
     /unavailable/,
@@ -208,6 +232,55 @@ void test('a readable shared file is copied once and completed retries survive o
   assert.equal(f.copies(), 1);
   assert.equal(f.reads(), reads);
   assert.notEqual(f.row().s3Key, f.source.s3Key);
+  assert.ok(
+    f.row().s3Key.startsWith('documents/viewer/module-snapshots/chat/'),
+  );
+});
+
+void test('retry relocates a failed legacy copy under the authorized Documents namespace', async () => {
+  const f = fixture();
+  f.fail(true);
+  await assert.rejects(
+    f.service.copy('viewer', 'viewer@example.invalid', request, {
+      scope: 'CHAT',
+    }),
+  );
+  const id = f.row().id;
+  f.row().s3Key = `module-snapshots/chat/${id}`;
+  f.fail(false);
+  const retried = await f.service.copy(
+    'viewer',
+    'viewer@example.invalid',
+    request,
+    { scope: 'CHAT' },
+  );
+  assert.equal(retried.snapshotId, id);
+  assert.equal(f.row().s3Key, `documents/viewer/module-snapshots/chat/${id}`);
+  assert.equal(f.row().status, 'READY');
+  assert.deepEqual(f.cleanupKeys, [`module-snapshots/chat/${id}`]);
+});
+
+void test('completed legacy copies keep their stored object key and remain independently readable', async () => {
+  const f = fixture();
+  const first = await f.service.copy(
+    'viewer',
+    'viewer@example.invalid',
+    request,
+    { scope: 'CHAT' },
+  );
+  const oldKey = `module-snapshots/chat/${first.snapshotId}`;
+  f.row().s3Key = oldKey;
+  f.source.isArchived = true;
+  const replay = await f.service.copy(
+    'viewer',
+    'viewer@example.invalid',
+    request,
+    { scope: 'CHAT' },
+  );
+  assert.equal(replay.snapshotId, first.snapshotId);
+  assert.equal(f.row().s3Key, oldKey);
+  assert.equal(f.copies(), 1);
+  assert.deepEqual(f.cleanupKeys, []);
 });
 void test('concurrent calls claim one lease; another target cannot reuse the operation', async () => {
   const f = fixture();

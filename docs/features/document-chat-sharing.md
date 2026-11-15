@@ -2,7 +2,7 @@
 
 ## Destination-owned files
 
-Message, meeting chat, Project and Notebook AI use the same file picker. It supports My files, Shared with me, folder navigation, name search, multiple selection, file-type icons and numbered pagination. Project task pickers also expose the current project's documents. Personal picker roots exclude project folders and include starred personal files.
+Message, meeting chat, Project and Notebook AI use the same file picker. It supports My files, Shared with me, folder navigation, name search, multiple selection, file-type icons and numbered pagination. Task attachments keep separate Upload, My Files and Project buttons. My Files offers only My files and Shared with me; Project opens a picker fixed to the current project, without source tabs. The Project Documents page remains available. Personal picker roots exclude project folders and include starred personal files.
 
 **Send a copy** in Documents supports channels, direct conversations, live meeting chats the sender has joined, and writable projects. A project task is optional. File/folder access and destination permissions are checked on the server. A Viewer or Editor who can download a source can copy it; the source's sharing grants and public links are not propagated or modified. Account/link sharing inside Documents remains separate.
 
@@ -54,7 +54,7 @@ npm run build
 Pop-Location
 ```
 
-Communication needs DOCUMENT_SERVICE_URL pointing to the host Document Service. The private local environment was updated without changing credentials. Docker AI continues using its existing Document URL and AI_DOCUMENT_SERVICE_KEY; no new secret is required. The Document storage identity needs object read/write/delete access to its module-snapshots prefix as well as its existing document prefix.
+Communication needs DOCUMENT_SERVICE_URL pointing to the host Document Service. The private local environment was updated without changing credentials. Docker AI continues using its existing Document URL and AI_DOCUMENT_SERVICE_KEY; no new secret is required. New private copies use documents/{actorId}/module-snapshots/{chat|notebook}/{snapshotId} inside the existing Documents storage namespace. They remain separate snapshot metadata, not DocumentItems or My files entries. This reuses the current storage policy without requiring a new top-level S3 permission. Completed copies at the legacy module-snapshots prefix remain readable from their saved keys; incomplete copies relocate atomically when their lease is claimed again. Older unfinished Notebook upload attempts return 410 so the client can prepare a fresh upload. Keep legacy read/delete access while such records exist.
 
 Build AI, apply its additive migration, then recreate only its API/jobs:
 

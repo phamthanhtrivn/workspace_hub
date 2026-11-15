@@ -157,3 +157,20 @@ test("rapid checkbox changes cannot bypass selection capacity; cache is account/
   assert.equal(options.gcTime, 300000);
   assert.ok(options.queryKey.includes("owner"));
 });
+
+test("the Project button keeps a fixed project source and isolates selections and cache between projects", () => {
+  const options = { projectId: "project-a" };
+  const f = fixture(async () => {}, options);
+  const first = f.render();
+  assert.equal(first.scope, "project");
+  first.toggle(file("one"));
+  first.setScope("shared");
+  assert.equal(f.render().scope, "project");
+  assert.ok(f.queries.at(-1).queryKey.includes("project-a"));
+  options.projectId = "project-b";
+  f.render();
+  const next = f.render();
+  assert.equal(next.scope, "project");
+  assert.equal(next.selected.length, 0);
+  assert.ok(f.queries.at(-1).queryKey.includes("project-b"));
+});

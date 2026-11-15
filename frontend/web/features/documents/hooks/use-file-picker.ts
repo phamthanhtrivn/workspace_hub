@@ -16,7 +16,7 @@ import { fileCopyAttempt } from "../utils/file-copy-attempt";
 export interface FilePickerProps {
   context: string;
   projectId?: string;
-  initialScope?: PickerScope;
+  initialScope?: Exclude<PickerScope, "project">;
   allowFolders?: boolean;
   disabled?: boolean;
   maxSelection?: number;
@@ -32,7 +32,7 @@ export interface FilePickerProps {
 }
 export function useFilePicker(props: FilePickerProps) {
   const actorId = useAppSelector((state) => state.auth.userId);
-  const [scope, setScope] = useState<PickerScope>(
+  const [scope, setScope] = useState<Exclude<PickerScope, "project">>(
     props.initialScope ?? "personal",
   );
   const [folders, setFolders] = useState<{ id: string; name: string }[]>([]);
@@ -64,10 +64,11 @@ export function useFilePicker(props: FilePickerProps) {
     setScope(props.initialScope ?? "personal");
   }
   const locked = pending || props.disabled;
+  const queryScope = props.projectId ? "project" : scope;
   const query = useQuery({
     queryKey: [
       ...filePickerKey(actorId),
-      scope,
+      queryScope,
       props.projectId,
       folders.at(-1)?.id,
       page,
@@ -76,7 +77,7 @@ export function useFilePicker(props: FilePickerProps) {
     queryFn: ({ signal }) =>
       fileCopyApi.list(
         {
-          scope,
+          scope: queryScope,
           projectId: props.projectId,
           folderId: folders.at(-1)?.id,
           page,
@@ -174,7 +175,7 @@ export function useFilePicker(props: FilePickerProps) {
 
   return {
     actorId,
-    scope,
+    scope: queryScope,
     setScope,
     folders,
     navigate,

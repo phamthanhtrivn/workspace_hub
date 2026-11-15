@@ -16,6 +16,37 @@ import {
 } from "../purge-legacy-file-references.mjs";
 import { clearApplicationTables, resetQdrant } from "../reset-local-workspace.mjs";
 
+import { isNotebookSnapshotKey } from "../reconcile-notebook-snapshots.mjs";
+
+test("Notebook cleanup accepts current and legacy private keys but rejects another owner or module", () => {
+  assert.equal(
+    isNotebookSnapshotKey(
+      "documents/owner/module-snapshots/notebook/id/file.pdf",
+      "owner",
+    ),
+    true,
+  );
+  assert.equal(
+    isNotebookSnapshotKey("module-snapshots/notebook/id", "owner"),
+    true,
+  );
+  assert.equal(
+    isNotebookSnapshotKey(
+      "documents/other/module-snapshots/notebook/id",
+      "owner",
+    ),
+    false,
+  );
+  assert.equal(
+    isNotebookSnapshotKey("documents/owner/module-snapshots/chat/id", "owner"),
+    false,
+  );
+  assert.equal(
+    isNotebookSnapshotKey("documents/owner/original.pdf", "owner"),
+    false,
+  );
+});
+
 const enabled =
   process.env.WORKSPACEHUB_FILE_COPY_DB_TESTS === "1" &&
   existsSync(resolve(REPOSITORY_ROOT, DATABASE_PLAN_PATH));

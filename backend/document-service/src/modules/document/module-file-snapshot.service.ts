@@ -15,12 +15,17 @@ import { S3Service } from '../../infrastructure/s3/s3.service';
 import { DocumentAccessService } from './document-access.service';
 import { DocumentTreeService } from './document-tree.service';
 import { StorageCleanupService } from './storage-cleanup.service';
-import { FILE_COPY, FILE_COPY_MESSAGES } from './file-copy.constants';
+import {
+  FILE_COPY,
+  FILE_COPY_MESSAGES,
+  moduleSnapshotKey,
+  type ModuleSnapshotScope,
+} from './file-copy.constants';
 import { zipSnapshot } from './folder-snapshot';
 import type { CopyDocumentDto } from './dto/copy-document.dto';
 import { validateUploadMetadata } from '../../infrastructure/s3/upload-policy';
 
-export type SnapshotScope = { scope: 'CHAT' | 'NOTEBOOK'; notebookId?: string };
+export type SnapshotScope = { scope: ModuleSnapshotScope; notebookId?: string };
 const digest = (value: unknown) =>
   createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
@@ -159,31 +164,44 @@ export class ModuleFileSnapshotService {
         name,
         mimeType,
         sizeBytes: BigInt(sizeBytes),
-        s3Key: `module-snapshots/${target.scope.toLowerCase()}/${id}`,
+        s3Key: moduleSnapshotKey(actorId, target.scope, id),
         expiresAt: new Date(Date.now() + FILE_COPY.EXPORT_TTL_MS),
       },
     });
     if (snapshot.status === 'READY') return this.manifest(snapshot, true);
     const leaseToken = randomUUID();
-    const claimed = await this.prisma.moduleFileSnapshot.updateMany({
-      where: {
-        id: snapshot.id,
-        OR: [
-          { status: 'FAILED' },
-          {
-            status: 'PREPARING',
-            OR: [{ leaseUntil: null }, { leaseUntil: { lt: new Date() } }],
-          },
-        ],
-      },
-      data: {
-        leaseToken,
-        leaseUntil: new Date(Date.now() + FILE_COPY.LEASE_MS),
-        status: 'PREPARING',
-      },
+    const destinationKey = moduleSnapshotKey(
+      actorId,
+      target.scope,
+      snapshot.id,
+    );
+    const claimed = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.moduleFileSnapshot.updateMany({
+        where: {
+          id: snapshot.id,
+          OR: [
+            { status: 'FAILED' },
+            {
+              status: 'PREPARING',
+              OR: [{ leaseUntil: null }, { leaseUntil: { lt: new Date() } }],
+            },
+          ],
+        },
+        data: {
+          leaseToken,
+          leaseUntil: new Date(Date.now() + FILE_COPY.LEASE_MS),
+          status: 'PREPARING',
+          s3Key: destinationKey,
+        },
+      });
+      if (result.count && snapshot.s3Key !== destinationKey)
+        await this.cleanup.enqueue(tx, [snapshot.s3Key]);
+
+      return result;
     });
     if (!claimed.count)
       throw new ConflictException(FILE_COPY_MESSAGES.preparing);
+    snapshot.s3Key = destinationKey;
     try {
       let actualBytes = sizeBytes;
       if (entries) {
@@ -328,7 +346,7 @@ export class ModuleFileSnapshotService {
         mimeType,
         sizeBytes: BigInt(sizeBytes),
         revision: digest([id, sizeBytes]),
-        s3Key: `module-snapshots/notebook/${id}/${name}`,
+        s3Key: `${moduleSnapshotKey(actorId, 'NOTEBOOK', id)}/${name}`,
         status: 'UPLOADING',
         expiresAt: new Date(Date.now() + FILE_COPY.EXPORT_TTL_MS),
       },
@@ -344,6 +362,13 @@ export class ModuleFileSnapshotService {
     if (snapshot.expiresAt && snapshot.expiresAt <= new Date())
       throw new GoneException(
         'This upload has expired. Upload the file again.',
+      );
+    if (
+      snapshot.status === 'UPLOADING' &&
+      snapshot.s3Key.startsWith('module-snapshots/')
+    )
+      throw new GoneException(
+        'This upload uses an older storage location. Select the file again to retry.',
       );
 
     return {

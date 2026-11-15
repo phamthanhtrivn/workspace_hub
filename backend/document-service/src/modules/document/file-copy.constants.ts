@@ -1,3 +1,5 @@
+import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
+
 export const FILE_COPY = {
   CHAT_BYTES: 10 * 1024 * 1024,
   NOTEBOOK_BYTES: 20 * 1024 * 1024,
@@ -15,3 +17,13 @@ export const FILE_COPY_MESSAGES = {
   folders: 'Folders can only be sent to chat as ZIP attachments.',
   tooLarge: 'The attachment exceeds 10 MiB. Select fewer files.',
 } as const;
+
+export type ModuleSnapshotScope = 'CHAT' | 'NOTEBOOK';
+
+/** Private metadata stays separate while storage uses the existing Documents IAM namespace. */
+export const moduleSnapshotKey = (
+  actorId: string,
+  scope: ModuleSnapshotScope,
+  id: string,
+) =>
+  `${DOCUMENT_CONSTANTS.S3_FOLDER}/${actorId}/module-snapshots/${scope.toLowerCase()}/${id}`;

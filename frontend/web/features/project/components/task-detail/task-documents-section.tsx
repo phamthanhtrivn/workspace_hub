@@ -44,6 +44,7 @@ interface TaskDocumentsSectionProps {
 function sourceLabel(source: TaskDocumentAttachmentSource) {
   if (source === TaskDocumentAttachmentSource.DEVICE_UPLOAD) return "Upload";
   if (source === TaskDocumentAttachmentSource.MY_FILES) return "My Files";
+
   return "Project";
 }
 
@@ -64,13 +65,15 @@ function getTaskDocumentErrorMessage(
         error.response?.status === 403 &&
         responseMessage.includes("not allowed to edit")
       ) {
-        return "You do not have permission to upload into Project Documents. Ask a project admin for document edit access, or attach from My Files/Project Documents instead.";
+        return "You do not have permission to upload into Project Documents. Ask a project admin for document edit access.";
       }
+
       return responseMessage;
     }
   }
 
   if (error instanceof Error && error.message) return error.message;
+
   return fallbackMessage;
 }
 
@@ -318,21 +321,21 @@ export default function TaskDocumentsSection({
 }
 
 interface TaskDocumentPickerDialogProps {
+  mode: PickerMode | null;
   canEditDocuments: boolean;
   task: Task;
   isReadOnly: boolean;
   readOnlyReason: string;
-  mode: PickerMode | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 function TaskDocumentPickerDialog({
+  mode,
   task,
   isReadOnly,
   canEditDocuments,
   readOnlyReason,
-  mode,
   open,
   onOpenChange,
 }: TaskDocumentPickerDialogProps) {
@@ -354,15 +357,14 @@ function TaskDocumentPickerDialog({
         <DialogHeader className="border-b border-border">
           <DialogTitle className="flex items-center gap-2">
             <FolderOpen className="size-4" aria-hidden="true" />
-            Attach files
+            {mode === "PROJECT_DOCUMENT" ? "Project documents" : "Attach files"}
           </DialogTitle>
         </DialogHeader>
         <div className="min-h-0 overflow-y-auto p-4">
           <DocumentFilePicker
             key={task.id + ":" + mode}
             context={"task:" + task.id}
-            projectId={task.projectId}
-            initialScope={mode === "PROJECT_DOCUMENT" ? "project" : "personal"}
+            projectId={mode === "PROJECT_DOCUMENT" ? task.projectId : undefined}
             disabled={isReadOnly}
             onPending={setPending}
             isAdded={(file) =>
