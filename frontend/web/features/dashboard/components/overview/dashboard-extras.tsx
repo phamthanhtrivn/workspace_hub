@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { readableTextOnColor } from "@/lib/color";
+import { DASHBOARD_ACCENTS } from "../../constants/dashboard-appearance";
 
 
 export function DashboardExtras({
@@ -85,7 +86,7 @@ export function DashboardExtras({
                 >
                   <span
                     aria-hidden
-                    className="grid size-10 shrink-0 place-items-center rounded-control bg-secondary text-xl text-secondary-foreground ring-1 ring-inset ring-input"
+                    className={`grid size-10 shrink-0 place-items-center rounded-control text-xl ${project.color ? "ring-1 ring-inset ring-input" : DASHBOARD_ACCENTS.project}`}
                     style={project.color ? { backgroundColor: project.color, color: readableTextOnColor(project.color) } : undefined}
                   >
                     {project.icon &&
@@ -126,8 +127,8 @@ export function DashboardExtras({
                       />
                     </Progress>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge>{counts.IN_PROGRESS} in progress</Badge>
-                      <Badge variant="secondary">{counts.IN_REVIEW} in review</Badge>
+                      <Badge className={DASHBOARD_ACCENTS.calendar}>{counts.IN_PROGRESS} in progress</Badge>
+                      <Badge variant="secondary" className={DASHBOARD_ACCENTS.project}>{counts.IN_REVIEW} in review</Badge>
                     </div>
                   </>
                 )}
@@ -154,13 +155,13 @@ export function DashboardExtras({
                 onClick={() => openNotification(item)}
                 className={`flex w-full min-w-0 cursor-pointer flex-wrap items-start gap-3 rounded-control p-3 text-left hover:bg-muted active:bg-accent motion-safe:transition-colors motion-safe:duration-150 ${item.isRead ? "" : "bg-info-soft"}`}
               >
-                <span className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-control ${item.isRead ? "bg-secondary text-secondary-foreground" : "bg-info-soft text-info-content"}`}><Bell aria-hidden size={16} /></span>
+                <span className={`mt-0.5 grid size-8 shrink-0 place-items-center rounded-control ${DASHBOARD_ACCENTS.notification}`}><Bell aria-hidden size={16} /></span>
                 <span className="min-w-0 flex-1 basis-24">
                   <span className="flex min-w-0 flex-wrap items-center gap-2">
                     <span className="min-w-0 flex-1 basis-24 truncate text-sm font-medium text-foreground">
                     {item.title}
                     </span>
-                    {!item.isRead && <Badge>Unread</Badge>}
+                    {!item.isRead && <Badge className={DASHBOARD_ACCENTS.notification}>Unread</Badge>}
                   </span>
                   <span className={`mt-1 block truncate text-xs ${item.isRead ? "text-muted-foreground" : "text-info-content"}`}>
                     {item.content}

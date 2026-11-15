@@ -57,6 +57,16 @@
   --color-info-soft: var(--info-soft);
   --color-info-content: var(--info-content);
   --color-info-outline: var(--info-outline);
+  --color-dashboard-project-soft: var(--dashboard-project-soft);
+  --color-dashboard-project-content: var(--dashboard-project-content);
+  --color-dashboard-calendar-soft: var(--dashboard-calendar-soft);
+  --color-dashboard-calendar-content: var(--dashboard-calendar-content);
+  --color-dashboard-focus-soft: var(--dashboard-focus-soft);
+  --color-dashboard-focus-content: var(--dashboard-focus-content);
+  --color-dashboard-meeting-soft: var(--dashboard-meeting-soft);
+  --color-dashboard-meeting-content: var(--dashboard-meeting-content);
+  --color-dashboard-notification-soft: var(--dashboard-notification-soft);
+  --color-dashboard-notification-content: var(--dashboard-notification-content);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -152,6 +162,16 @@
   --info-content: #22396F;
   --info-soft: #EAF0F8;
   --info-outline: color-mix(in srgb, var(--info-content) 75%, var(--info-soft));
+  --dashboard-project-soft: #f3edff;
+  --dashboard-project-content: #6d28d9;
+  --dashboard-calendar-soft: #e8f4fd;
+  --dashboard-calendar-content: #0369a1;
+  --dashboard-focus-soft: #fff2df;
+  --dashboard-focus-content: #9a4b0b;
+  --dashboard-meeting-soft: #e6f5f1;
+  --dashboard-meeting-content: #0f766e;
+  --dashboard-notification-soft: #fbeaf2;
+  --dashboard-notification-content: #a32963;
   --chart-1: #22396F;
   --chart-2: #616161;
   --chart-3: #795418;
@@ -175,6 +195,16 @@
 
 .dark {
   color-scheme: dark;
+  --dashboard-project-soft: #302645;
+  --dashboard-project-content: #c4b5fd;
+  --dashboard-calendar-soft: #1b3148;
+  --dashboard-calendar-content: #93c5fd;
+  --dashboard-focus-soft: #3a2b1c;
+  --dashboard-focus-content: #fdba74;
+  --dashboard-meeting-soft: #163732;
+  --dashboard-meeting-content: #7dd3c7;
+  --dashboard-notification-soft: #3c2434;
+  --dashboard-notification-content: #f5a7cc;
   --background: #1F1F1F;
   --foreground: #CCCCCC;
   --card: #252526;
