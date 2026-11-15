@@ -56,8 +56,9 @@ export function aiErrorMessage(error: unknown, fallback: string): string {
         return "This file is too large. Choose a smaller file and try again.";
       case 429:
         return "Too many AI requests. Wait a minute, then try again.";
+      case 502:
       case 503:
-        return "AI is unavailable. Try again later.";
+        return "AI is temporarily unavailable. Check that the AI services are running, then try again.";
       default:
         return aiServiceMessage(message, fallback);
     }

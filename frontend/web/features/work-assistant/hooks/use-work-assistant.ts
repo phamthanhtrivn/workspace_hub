@@ -8,6 +8,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import * as workApi from "../api/work-assistant.api";
+import { WORK_ASSISTANT_READ_POLICY } from "../constants/work-assistant-query";
 import { cancelStream, confirmCancellation } from "../api/cancellation";
 import { getUserSettings } from "@/features/user-setting/api/user-setting.api";
 import type { Audience, WorkMessage } from "../types";
@@ -52,6 +53,7 @@ export function useWorkAssistant(
   });
   const timeZone = account.data?.data.timezone;
   const history = useInfiniteQuery({
+    ...WORK_ASSISTANT_READ_POLICY,
     queryKey: historyKey,
     initialPageParam: undefined as
       { before: string; sessionId: string } | undefined,
@@ -66,22 +68,16 @@ export function useWorkAssistant(
       page.nextCursor
         ? { before: page.nextCursor, sessionId: page.id }
         : undefined,
-    refetchOnMount: "always",
-    retry: false,
-    staleTime: 0,
-    gcTime: 0,
   });
   const conversationsKey = [...root, "sessions"];
   const conversations = useInfiniteQuery({
+    ...WORK_ASSISTANT_READ_POLICY,
     queryKey: conversationsKey,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       workApi.getConversations(context, pageParam, signal),
     enabled: history.isSuccess && conversationsOpen,
     getNextPageParam: (page) => page.nextCursor ?? undefined,
-    refetchOnMount: "always",
-    retry: false,
-    gcTime: 0,
   });
   const createConversation = useMutation({
     mutationFn: () => workApi.createConversation(context),

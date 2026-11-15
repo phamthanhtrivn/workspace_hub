@@ -84,3 +84,25 @@ Invoke-RestMethod http://127.0.0.1:7981/
 ~~~
 
 Health checks do not certify media connectivity, provider quota or output quality. Check [local setup](../../docs/development/local-setup.md) for host terminals and [recording](../livekit/README.md) for Communication settings. Never run a second host AI API on port 8087 while Docker AI is running.
+
+## Troubleshooting AI gateway errors
+
+A healthy Kong does not mean the AI stack is running. If only PostgreSQL, Redis, Kafka and Kong were started, AI routes can return 503 with `name resolution failed`: a stopped API has no usable Docker DNS endpoint. Check the full stack before retrying in the app:
+
+~~~powershell
+docker compose -f backend/docker/compose.yml ps -a
+docker compose -f backend/docker/compose.yml up -d --build
+Invoke-RestMethod http://127.0.0.1:8087/ready
+~~~
+
+Start the host User/Document and other required applications as well. API, jobs, RAG, speech and Qdrant must be running; database/migration initializers should normally exit 0. Inspect exit codes and `OOMKilled` before diagnosing a memory problem: exit 137 alone is not proof of OOM.
+
+Intermittent 502 immediately after API recreation can indicate a cached old IP. The local gateway limits positive DNS TTL and stale records to five seconds each, and negative/error records to one second. The AI route still has zero proxy retries: requests that might generate model output must not be replayed automatically. These settings apply only to local Docker, not production.
+
+After applying gateway environment changes, first make sure the API is available, then explicitly recreate only Kong to clear every worker's previous DNS cache:
+
+~~~powershell
+docker compose -f backend/docker/compose.yml up -d --no-deps --force-recreate kong
+~~~
+
+Short DNS caches cannot make an unavailable API serve traffic during a rebuild. Work Assistant stops background retries after a failed history/list read; use **Retry** after recovery or close and reopen the panel. Existing conversation content is not retained after panel closure, and failed generation requests are not automatically resent. Logs remain available with the existing sanitization/throttling.
