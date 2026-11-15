@@ -4,9 +4,23 @@ import { store } from "@/store/store";
 import { notebookListSchema, notebookSchema } from "../types";
 import { readAnswer, type StreamEvent } from "./stream";
 import type { UploadBatch } from "../upload";
+import {
+  notebookPageSchema,
+  NOTEBOOK_PAGE_SIZE,
+  type NotebookListParams,
+} from "../types/notebook-list";
 
 const path = (id: string) => `/api/ai/notebooks/${id}`;
 export const notebooksApi = {
+  page: async (params: NotebookListParams, signal?: AbortSignal) =>
+    notebookPageSchema.parse(
+      (
+        await api.get("/api/ai/notebooks", {
+          params: { ...params, limit: NOTEBOOK_PAGE_SIZE },
+          signal,
+        })
+      ).data,
+    ),
   list: async () =>
     notebookListSchema.parse((await api.get("/api/ai/notebooks")).data.data),
   get: async (id: string, signal?: AbortSignal) =>

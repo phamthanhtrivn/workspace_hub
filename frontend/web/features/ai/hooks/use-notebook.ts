@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
 import { notebooksApi } from "../api/notebooks.api";
 import type { Source } from "../types";
+import { notebookKeys } from "../types/notebook-list";
 
 export function useNotebook(id: string) {
   const userId = useAppSelector((state) => state.auth.userId);
@@ -24,10 +25,14 @@ export function useNotebook(id: string) {
     refetchIntervalInBackground: false,
     gcTime: 0,
   });
-  const refresh = useCallback(
-    () => client.invalidateQueries({ queryKey: ["notebook-ai", userId, id] }),
-    [client, userId, id],
-  );
+  const refresh = useCallback(async () => {
+    await Promise.all([
+      client.invalidateQueries({ queryKey: ["notebook-ai", userId, id] }),
+      userId
+        ? client.invalidateQueries({ queryKey: notebookKeys.lists(userId) })
+        : Promise.resolve(),
+    ]);
+  }, [client, userId, id]);
   const mutation = useMutation({
     mutationFn: (action: () => Promise<unknown>) => action(),
     onSuccess: () => refresh(),

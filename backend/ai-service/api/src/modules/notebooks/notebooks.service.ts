@@ -7,14 +7,35 @@ import type { Actor, Source, Snapshot } from "../../common/types";
 import { randomUUID } from "node:crypto";
 import { deleteSource } from "../../common/delete-source";
 import { notebookMessages } from "./notebook-messages";
+import {
+  notebookListSql,
+  notebookListQuery,
+  type NotebookListQuery,
+  type NotebookListRow,
+} from "./notebook-list";
 @Injectable()
 export class NotebooksService {
   constructor(private readonly sourcesService: SourcesService) {}
-  list(actor: Actor) {
-    return rows(
-      "SELECT * FROM notebook_ai.notebooks WHERE owner_id=$1 ORDER BY updated_at DESC LIMIT 100",
-      [actor.id],
-    );
+  async list(
+    actor: Actor,
+    query: NotebookListQuery = notebookListQuery.parse({}),
+  ) {
+    const [page] = await rows<NotebookListRow>(notebookListSql(query.sort), [
+      actor.id,
+      query.search,
+      query.limit,
+      query.page,
+    ]);
+
+    return {
+      data: page.items,
+      meta: {
+        page: page.page,
+        limit: query.limit,
+        total: page.total,
+        totalPages: page.total_pages,
+      },
+    };
   }
   async create(actor: Actor, title: string) {
     return (

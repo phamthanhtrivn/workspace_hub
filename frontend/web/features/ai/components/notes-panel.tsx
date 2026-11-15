@@ -1,157 +1,184 @@
 "use client";
 
-import { Details, DetailsSummary } from "@/components/ui/details";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import {
+  ChevronDown,
+  MoreHorizontal,
+  NotebookPen,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { notebooksApi } from "../api/notebooks.api";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import type {
   Notebook,
-  NotebookActionKey,
   NotebookActionRunner,
+  NotebookActionKey,
 } from "../types";
 import { Citations } from "./citations";
+import { NoteDialog } from "./note-dialog";
 
-type Props = {
+export function NotesPanel({
+  notebook,
+  saving,
+  run,
+  collapseControl,
+}: {
   notebook: Notebook;
   saving: boolean;
   run: NotebookActionRunner;
   pendingAction?: NotebookActionKey | null;
-};
-export function NotesPanel({ notebook, saving, pendingAction, run }: Props) {
-  const [content, setContent] = useState("");
-  const [title, setTitle] = useState("");
-
-  return (
-    <section aria-label="Notes" className="h-full space-y-5 overflow-y-auto">
-      <h2 className="font-semibold">Notes</h2>
-      <form
-        className="space-y-2 border-t pt-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          run(async () => {
-            await notebooksApi.note(notebook.id, {
-              title: title.trim() || "Notes",
-              content,
-            });
-            setContent("");
-            setTitle("");
-          }, "create-note");
-        }}
-      >
-        <h3 className="text-sm font-semibold">New note</h3>
-        <Input
-          aria-label="Note title"
-          placeholder="Title"
-          maxLength={200}
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-        />
-        <Textarea
-          aria-label="Note content"
-          placeholder="What would you like to remember?"
-          maxLength={20000}
-          value={content}
-          onChange={(event) => setContent(event.target.value)}
-        />
-        <Button
-          loading={saving && pendingAction === "create-note"}
-          size="sm"
-          disabled={saving || !content.trim()}
-        >
-          Save note
-        </Button>
-      </form>
-      {notebook.notes.map((note) => (
-        <Details key={note.id} className="rounded-lg border p-3">
-          <DetailsSummary className="cursor-pointer break-words text-sm font-medium">
-            {note.title}
-          </DetailsSummary>
-          {note.hidden ? (
-            <p className="mt-2 text-xs">
-              This note is hidden because a source is no longer available.
-            </p>
-          ) : (
-            <NoteEditor
-              key={`${note.id}-${note.content}`}
-              note={note}
-              notebookId={notebook.id}
-              run={run}
-              saving={saving}
-              pendingAction={pendingAction}
-            />
-          )}
-          <Button
-            size="sm"
-            variant="ghost"
-            className="mt-2 text-destructive"
-            loading={saving && pendingAction === `remove:${note.id}`}
-            onClick={() =>
-              run(
-                () => notebooksApi.deleteNote(notebook.id, note.id),
-                `remove:${note.id}`,
-              )
-            }
-          >
-            Delete note
-          </Button>
-        </Details>
-      ))}
-    </section>
-  );
-}
-
-function NoteEditor({
-  note,
-  notebookId,
-  run,
-  saving,
-  pendingAction,
-}: {
-  note: Notebook["notes"][number];
-  notebookId: string;
-  run: Props["run"];
-  saving: boolean;
-  pendingAction?: NotebookActionKey | null;
+  collapseControl?: ReactNode;
 }) {
-  const [title, setTitle] = useState(note.title);
-  const [content, setContent] = useState(note.content);
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<{
+    type: "create" | "edit" | "delete";
+    id?: string;
+  } | null>(null);
+  const activeNote = notebook.notes.find((note) => note.id === dialog?.id);
+  if (dialog?.type === "edit" && (!activeNote || activeNote.hidden))
+    setDialog(null);
+  const canShowDialog =
+    dialog &&
+    (dialog.type === "create" ||
+      (activeNote && (dialog.type === "delete" || !activeNote.hidden)));
 
   return (
-    <form
-      className="mt-3 space-y-2"
-      onSubmit={(event) => {
-        event.preventDefault();
-        run(
-          () =>
-            notebooksApi.note(notebookId, { title, content, noteId: note.id }),
-          `note:${note.id}`,
-        );
-      }}
+    <section
+      aria-label="Notes"
+      className="flex h-full min-h-0 min-w-0 flex-col"
     >
-      <Input
-        aria-label="Edit note title"
-        maxLength={200}
-        value={title}
-        onChange={(event) => setTitle(event.target.value)}
-      />
-      <Textarea
-        aria-label="Edit note content"
-        maxLength={20000}
-        rows={8}
-        value={content}
-        onChange={(event) => setContent(event.target.value)}
-      />
-      <Citations notebookId={notebookId} items={note.citations} />
-      <Button
-        size="sm"
-        variant="outline"
-        loading={saving && pendingAction === `note:${note.id}`}
-        disabled={saving || !content.trim() || !title.trim()}
-      >
-        Save changes
-      </Button>
-    </form>
+      <header className="flex shrink-0 items-center gap-2 border-b border-border p-4">
+        <NotebookPen className="size-4 text-link" aria-hidden="true" />
+        <h2 className="font-semibold">Notes</h2>
+        <span className="ml-auto text-xs tabular-nums text-muted-foreground">
+          {notebook.notes.length}
+        </span>
+        {collapseControl}
+      </header>
+      <div className="shrink-0 p-3">
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={saving}
+          onClick={() => setDialog({ type: "create" })}
+        >
+          <Plus aria-hidden="true" />
+          New note
+        </Button>
+      </div>
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3">
+        {!notebook.notes.length && (
+          <div className="space-y-2 py-6 text-center">
+            <NotebookPen
+              className="mx-auto size-7 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <p className="text-sm font-medium">Keep what matters</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Write a note or save an AI answer from Chat. Its citations stay
+              with it.
+            </p>
+          </div>
+        )}
+        {notebook.notes.map((note) => (
+          <article
+            key={note.id}
+            className="min-w-0 rounded-control border border-border bg-card"
+          >
+            <div className="flex items-start gap-1 p-2">
+              <Button
+                variant="unstyled"
+                className="flex min-w-0 flex-1 items-start gap-2 rounded-control p-1 text-left text-sm font-medium whitespace-normal"
+                aria-expanded={expanded === note.id}
+                aria-controls={`note-content-${note.id}`}
+                onClick={() =>
+                  setExpanded(expanded === note.id ? null : note.id)
+                }
+              >
+                <ChevronDown
+                  className={`mt-0.5 size-4 shrink-0 ${expanded === note.id ? "" : "-rotate-90"}`}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 [overflow-wrap:anywhere]">
+                  {note.title}
+                </span>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Actions for ${note.title}`}
+                    disabled={saving}
+                  >
+                    <MoreHorizontal aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    className="w-full"
+                    disabled={note.hidden}
+                    onClick={() => setDialog({ type: "edit", id: note.id })}
+                  >
+                    <Pencil className="size-4" aria-hidden="true" />
+                    Edit note
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="w-full text-destructive-content data-[highlighted]:bg-destructive-soft data-[highlighted]:text-destructive-content"
+                    onClick={() => setDialog({ type: "delete", id: note.id })}
+                  >
+                    <Trash2 className="size-4" aria-hidden="true" />
+                    Delete note
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <div
+              id={`note-content-${note.id}`}
+              hidden={expanded !== note.id}
+              className="min-w-0 border-t border-border px-3 py-3"
+            >
+              {expanded === note.id &&
+                (note.hidden ? (
+                  <p className="text-xs text-muted-foreground">
+                    This note is hidden because a source is no longer available.
+                  </p>
+                ) : (
+                  <Citations
+                    notebookId={notebook.id}
+                    items={note.citations}
+                    markdown
+                    content={note.content}
+                  />
+                ))}
+            </div>
+          </article>
+        ))}
+      </div>
+      {canShowDialog && dialog && (
+        <NoteDialog
+          key={
+            dialog.type === "create"
+              ? "create"
+              : `${dialog.type}:${activeNote?.id}`
+          }
+          notebookId={notebook.id}
+          note={activeNote}
+          deleting={dialog.type === "delete"}
+          saving={saving}
+          run={run}
+          onClose={() => setDialog(null)}
+        />
+      )}
+    </section>
   );
 }

@@ -8,18 +8,23 @@ import {
   Patch,
   Post,
   Req,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard, AuthRequest } from "../../common/auth/auth.guard";
 import { z } from "zod";
 import { NotebooksService } from "./notebooks.service";
 import { parse, title } from "../../common/validation";
+import { notebookListQuery } from "./notebook-list";
 @Controller("api/ai")
 @UseGuards(AuthGuard)
 export class NotebooksController {
   constructor(private readonly notebooks: NotebooksService) {}
-  @Get("notebooks") async list(@Req() req: AuthRequest) {
-    return { data: await this.notebooks.list(req.actor) };
+  @Get("notebooks") async list(
+    @Req() req: AuthRequest,
+    @Query() query: unknown,
+  ) {
+    return this.notebooks.list(req.actor, parse(notebookListQuery, query));
   }
   @Post("notebooks") async create(
     @Req() req: AuthRequest,
