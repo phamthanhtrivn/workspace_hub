@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { Clock3, KeyRound, Settings, Shield, User, X } from "lucide-react";
+import { Clock3, KeyRound, LogOut, Settings, Shield, User, X } from "lucide-react";
+import { useSignOut } from "@/features/auth/hooks/use-sign-out";
+import { SIGN_OUT_COPY } from "@/features/auth/types/auth.constants";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,10 +29,11 @@ const PANES = [
   { tab: UserSettingTab.PASSWORD, label: "Password", icon: KeyRound },
 ];
 const SAVE_ORDER = [UserSettingTab.PROFILE, UserSettingTab.GENERAL, UserSettingTab.POMODORO];
-type ExitDestination = "close" | UserSettingTab;
+type ExitDestination = "close" | "sign-out" | UserSettingTab;
 
 function SettingsSession({ isOpen, onClose, initialTab = UserSettingTab.PROFILE }: UserSettingsModalProps) {
   const profileQuery = useUserProfileQuery();
+  const { signOut, isSigningOut } = useSignOut();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [visited, setVisited] = useState(() => new Set([initialTab]));
   const [summaries, setSummaries] = useState<Partial<Record<UserSettingTab, { dirty: boolean; pending: boolean }>>>({});
@@ -47,16 +50,17 @@ function SettingsSession({ isOpen, onClose, initialTab = UserSettingTab.PROFILE 
       return next;
     });
   }, []);
-  const pending = saving || Object.values(summaries).some(draft => draft?.pending);
+  const pending = saving || isSigningOut || Object.values(summaries).some(draft => draft?.pending);
   const dirty = Object.values(summaries).some(draft => draft?.dirty);
 
   const navigate = (next: ExitDestination) => {
     if (next === "close") onClose();
+    else if (next === "sign-out") signOut();
     else { setActiveTab(next); setVisited(current => new Set([...current, next])); }
   };
   const requestExit = (next: ExitDestination) => {
     if (pending) return;
-    if (next === "close" ? dirty : activeTab === UserSettingTab.PASSWORD && summaries[UserSettingTab.PASSWORD]?.dirty) setDestination(next);
+    if (next === "close" || next === "sign-out" ? dirty : activeTab === UserSettingTab.PASSWORD && summaries[UserSettingTab.PASSWORD]?.dirty) setDestination(next);
     else navigate(next);
   };
   const saveAndClose = async () => {
@@ -72,26 +76,34 @@ function SettingsSession({ isOpen, onClose, initialTab = UserSettingTab.PROFILE 
         }
       }
       drafts.current.get(UserSettingTab.PASSWORD)?.discard();
-      setDestination(null); onClose();
+      const next = destination ?? "close";
+      setDestination(null); navigate(next);
     } finally { setSaving(false); }
   };
-  const passwordOnly = destination !== "close" || !SAVE_ORDER.some(tab => summaries[tab]?.dirty);
+  const leavingSettings = destination === "close" || destination === "sign-out";
+  const passwordOnly = !leavingSettings || !SAVE_ORDER.some(tab => summaries[tab]?.dirty);
 
   return <SettingsDraftContext.Provider value={register}>
     <Dialog open={isOpen} onOpenChange={open => { if (!open) requestExit("close"); }}>
       <DialogContent showCloseButton={false} className="flex h-[550px] max-h-[90dvh] w-full max-w-3xl flex-col overflow-hidden rounded-dialog border-none bg-card p-0">
         <DialogTitle className="sr-only">User settings</DialogTitle>
         <Tabs value={activeTab} orientation={desktop ? "vertical" : "horizontal"} activationMode="manual" onValueChange={value => requestExit(value as UserSettingTab)} className="flex min-h-0 flex-1 flex-col gap-0 md:flex-row">
-          <div className="w-full shrink-0 border-b border-border bg-background p-4 md:w-56 md:border-b-0 md:border-r">
+          <div className="flex w-full shrink-0 flex-col border-b border-border bg-background p-4 md:w-56 md:min-h-0 md:border-b-0 md:border-r">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-section-title font-semibold">Settings</h2>
               <Button type="button" variant="ghost" size="icon" className="md:hidden" aria-label="Close settings" disabled={pending} onClick={() => requestExit("close")}><X /></Button>
             </div>
-            <TabsList aria-label="Settings sections" className="flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-none bg-transparent p-0 md:flex-col md:items-stretch">
+            <TabsList aria-label="Settings sections" className="flex h-auto w-full justify-start gap-1 overflow-x-auto rounded-none bg-transparent p-0 md:min-h-0 md:flex-1 md:flex-col md:items-stretch md:overflow-y-auto">
               {PANES.map(({ tab, label, icon: Icon }) => <TabsTrigger unstyled key={tab} value={tab} disabled={pending} className={cn("flex min-w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-control px-3 py-2.5 text-xs font-semibold md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm", activeTab === tab ? "bg-primary-soft text-primary-soft-foreground" : "text-muted-foreground hover:bg-muted")}>
                 <span className="relative shrink-0"><Icon className="size-5 md:size-4" />{tab === UserSettingTab.PASSWORD && profileQuery.data?.data?.hasPassword === false && <span aria-hidden className="absolute -right-1 -top-1 size-2 rounded-full bg-warning-content ring-2 ring-border" />}</span><span>{label}</span>{summaries[tab]?.dirty && <span className="text-xs"><span aria-hidden>*</span><span className="sr-only">Unsaved changes</span></span>}
               </TabsTrigger>)}
             </TabsList>
+            <div className="mt-3 shrink-0 border-t border-border pt-3 md:mt-auto md:pt-4">
+              <Button type="button" variant="ghost" aria-label={SIGN_OUT_COPY.label} onClick={() => requestExit("sign-out")} disabled={pending} aria-busy={isSigningOut || undefined}
+                className="min-h-11 w-full justify-start gap-3 rounded-control px-4 text-sm font-medium text-destructive-content hover:bg-destructive-soft hover:text-destructive-content">
+                <LogOut aria-hidden="true" className="size-4" />{isSigningOut ? SIGN_OUT_COPY.pending : SIGN_OUT_COPY.label}
+              </Button>
+            </div>
           </div>
           <div className="relative min-h-0 min-w-0 flex-1 overflow-y-auto p-5 md:p-6">
             <Button type="button" variant="ghost" size="icon" className="absolute right-6 top-6 hidden md:inline-flex" aria-label="Close settings" disabled={pending} onClick={() => requestExit("close")}><X /></Button>
@@ -114,10 +126,10 @@ function SettingsSession({ isOpen, onClose, initialTab = UserSettingTab.PROFILE 
         <AlertDialogFooter className="flex-wrap">
           <Button type="button" variant="outline" disabled={saving} data-modal-initial-focus onClick={() => setDestination(null)}>Keep editing</Button>
           <Button type="button" variant="destructive" disabled={saving} onClick={() => {
-            if (destination === "close") drafts.current.forEach(draft => draft.discard()); else drafts.current.get(UserSettingTab.PASSWORD)?.discard();
+            if (leavingSettings) drafts.current.forEach(draft => draft.discard()); else drafts.current.get(UserSettingTab.PASSWORD)?.discard();
             const next = destination; setDestination(null); if (next !== null) navigate(next);
-          }}>Discard</Button>
-          {!passwordOnly && <Button loading={saving} type="button" disabled={saving} onClick={() => void saveAndClose()}>{saving ? "Saving…" : "Save changes"}</Button>}
+          }}>{destination === "sign-out" ? "Discard & sign out" : "Discard"}</Button>
+          {!passwordOnly && <Button loading={saving} type="button" disabled={saving} onClick={() => void saveAndClose()}>{saving ? "Saving…" : destination === "sign-out" ? "Save & sign out" : "Save changes"}</Button>}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

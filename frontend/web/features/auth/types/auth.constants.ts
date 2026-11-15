@@ -15,6 +15,13 @@ export const AUTH_API_ROUTES = {
 
 export const SESSION_REQUEST_TIMEOUT_MS = 5_000;
 
+export const SIGN_OUT_COPY = {
+  label: "Sign out",
+  pending: "Signing out...",
+  success: "Signed out successfully",
+  failed: "Sign out failed",
+} as const;
+
 export enum AuthRouteTarget {
   ADMIN_HOME = "/",
   USER_DASHBOARD = "/dashboard",

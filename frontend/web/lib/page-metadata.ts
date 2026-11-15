@@ -5,7 +5,7 @@ export const HOME_TITLE = "WorkspaceHub — Projects, Tasks & Team Collaboration
 export const PAGE_METADATA = {
   "/": {
     title: HOME_TITLE,
-    description: "Manage projects, tasks, calendars, documents, team conversations and focus sessions in one connected workspace with WorkspaceHub.",
+    description: "Connect projects, conversations, documents, meetings and focus sessions with source-grounded Notebook AI and assistance for your tasks and calendar in WorkspaceHub.",
   },
   "/login": {
     title: "Sign In",

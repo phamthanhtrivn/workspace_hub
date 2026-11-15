@@ -4,19 +4,11 @@ import { useId as useControlledPopupId } from "react";
 
 import React, { useRef, useState } from "react";
 
-import { useRouter } from "next/navigation";
-import { WorkspaceHelpDialog } from "./workspace-help-dialog";
+import { useWorkspaceHelp } from "@/features/help/hooks/use-workspace-help";
 import { HelpCircle, LogOut, Settings, User } from "lucide-react";
-import { toast } from "sonner";
-import { useAppDispatch, useAppSelector } from "@/store/store";
-import { clearCredentials } from "@/store/auth/auth-slice";
-import { clearLocalPomodoroData } from "@/features/pomodoro/utils/pomodoro-local-storage";
-import { useLogoutMutation } from "@/features/auth/hooks/useAuthMutations";
-import { useQueryClient } from "@tanstack/react-query";
-import { AuthRouteTarget } from "@/features/auth/types/auth.constants";
-import { getAuthErrorMessage } from "@/features/auth/utils/auth-error";
-import { socketService } from "@/features/chat/api/chat-socket.service";
-import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
+import { useAppSelector } from "@/store/store";
+import { useSignOut } from "@/features/auth/hooks/use-sign-out";
+import { SIGN_OUT_COPY } from "@/features/auth/types/auth.constants";
 import { useUserProfileQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { Button } from "@/components/ui/button";
@@ -31,19 +23,15 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   onOpenSettings,
 }: UserProfileDropdownProps) {
   const controlledPopupId = useControlledPopupId();
-  const router = useRouter();
-  const dispatch = useAppDispatch();
-  const logoutMutation = useLogoutMutation();
-  const queryClient = useQueryClient();
+  const { signOut, isSigningOut } = useSignOut();
   const {
-    userId,
     email,
     fullName: authFullName,
     avatarUrl: authAvatarUrl,
   } = useAppSelector((state) => state.auth);
   const { data: profileResponse } = useUserProfileQuery();
 
-  const [helpOpen, setHelpOpen] = useState(false);
+  const { openHelp } = useWorkspaceHelp();
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -51,33 +39,6 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   const userProfile = profileResponse?.data;
   const avatarUrl = userProfile ? userProfile.avatarUrl : authAvatarUrl;
   const fullName = userProfile?.fullName || authFullName;
-
-  const finishLogout = () => {
-    if (userId) clearLocalPomodoroData(userId);
-    notificationSocketService.disconnect();
-    socketService.disconnect();
-    dispatch(clearCredentials());
-    queryClient.clear();
-    router.push(AuthRouteTarget.LOGIN);
-  };
-
-  const handleLogout = () => {
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        toast.success("Signed out successfully");
-      },
-      onError: (error) => {
-        console.error("Logout error:", error);
-        toast.error(
-          getAuthErrorMessage(
-            error,
-            "Sign out failed",
-          ),
-        );
-      },
-      onSettled: finishLogout,
-    });
-  };
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -131,19 +92,18 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
               <Settings className="h-4 w-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem closeOnClick={false} onClick={() => { setIsUserDropdownOpen(false); triggerRef.current?.focus(); setHelpOpen(true); }}><HelpCircle className="size-4" />Help & shortcuts</DropdownMenuItem>
+            <DropdownMenuItem closeOnClick={false} onClick={() => { setIsUserDropdownOpen(false); triggerRef.current?.focus(); openHelp(); }}><HelpCircle className="size-4" />Help & shortcuts<kbd className="ml-auto text-xs text-muted-foreground">?</kbd></DropdownMenuItem>
             <DropdownMenuItem closeOnClick={false}
-              onClick={handleLogout}
-              disabled={logoutMutation.isPending}
+              onClick={signOut}
+              disabled={isSigningOut}
               className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-sm font-semibold text-destructive-content hover:bg-destructive-soft transition cursor-pointer mt-1 disabled:opacity-50"
             >
               <LogOut className="h-4 w-4" />
-              {logoutMutation.isPending ? "Signing out..." : "Sign Out"}
+              {isSigningOut ? SIGN_OUT_COPY.pending : SIGN_OUT_COPY.label}
             </DropdownMenuItem>
           </div>
         </AnchoredMenu>
       )}
-      <WorkspaceHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 });

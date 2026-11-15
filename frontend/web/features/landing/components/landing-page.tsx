@@ -5,6 +5,7 @@ import { LANDING_LINKS } from "../landing-content";
 import { LandingHeader, LandingLogo } from "./landing-header";
 import { LandingWorkflow } from "./landing-workflow";
 import { LandingFaq } from "./landing-faq";
+import { LandingAi } from "./landing-ai";
 import { ProductPreview } from "./product-preview";
 import { SlideIn } from "./motion/slide-in";
 import { LandingHeroMotion } from "./motion/landing-hero-motion";
@@ -23,7 +24,7 @@ export function LandingPage() {
           <section aria-labelledby="hero-heading" className="mx-auto max-w-6xl px-5 pb-10 pt-10 text-center sm:px-8 sm:pb-12 sm:pt-12 lg:pt-14">
             <LandingHeroMotion
               heading={<h1 id="hero-heading" className="text-balance text-[clamp(3.25rem,6.5vw,5rem)] font-semibold leading-[1.06] tracking-[-0.04em]">Your work, <span className="text-link">connected.</span></h1>}
-              description={<p className="mx-auto mt-6 max-w-xl text-base leading-7 text-muted-foreground sm:mt-7 sm:text-lg sm:leading-8">Projects, conversations, meetings, documents, and your calendar. Brought together, with space to focus.</p>}
+              description={<p className="mx-auto mt-6 max-w-xl text-base leading-7 text-muted-foreground sm:mt-7 sm:text-lg sm:leading-8">Projects, conversations, documents, meetings and your calendar. Connected with AI to explore your sources and help you plan what comes next.</p>}
               actions={<div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-9 sm:flex-row sm:gap-4">
                 <Button asChild size="lg" className="landing-action h-12 w-full gap-3 px-6 text-sm sm:w-auto"><Link href="/register">Get Started<ArrowRight aria-hidden="true" /></Link></Button>
                 <Button asChild variant="ghost" size="lg" className="landing-action landing-action-down h-12 w-full gap-3 px-5 text-sm sm:w-auto"><Link href="#product">Explore the Workspace<ArrowDown aria-hidden="true" /></Link></Button>
@@ -32,6 +33,7 @@ export function LandingPage() {
             <p className="mt-6 text-xs leading-5 text-muted-foreground">For your own plans. And the ones you share.</p>
           </section>
           <ProductPreview />
+          <LandingAi />
           <LandingWorkflow />
           <LandingFaq />
           <section aria-labelledby="get-started-heading" className="mx-auto max-w-6xl px-5 pb-16 sm:px-8 sm:pb-20">
