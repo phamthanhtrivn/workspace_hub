@@ -28,7 +28,7 @@ export async function reserveMessageDelivery(
   tx: Prisma.TransactionClient,
   identity: MessageDeliveryIdentity,
 ): Promise<string | undefined> {
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${identity.senderId + ':' + identity.requestId}), ${DELIVERY_LOCK_NAMESPACE})`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${identity.senderId + ':' + identity.requestId}), ${DELIVERY_LOCK_NAMESPACE}::integer)`;
   const [receipt] = await tx.$queryRaw<
     { fingerprint: string; messageId: string }[]
   >`SELECT fingerprint, message_id AS "messageId" FROM message_delivery_receipts
