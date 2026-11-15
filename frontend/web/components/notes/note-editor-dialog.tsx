@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FIELD_FOCUS_CONTAINER_CLASS_NAME } from "@/components/ui/field-focus";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 import { MarkdownNoteEditor } from "./markdown-note-editor";
 import {
@@ -74,7 +75,7 @@ export function NoteEditorDialog({
       >
         <DialogContent
           overlayClassName="z-[120]"
-          className={`${dialogLayout.surface} z-[130] w-[calc(100%-2rem)] overflow-hidden rounded-panel bg-card p-0 text-card-foreground ${editing ? "max-w-md" : "max-w-lg"}`}
+          className={`${dialogLayout.surface} z-[130] w-[calc(100%-2rem)] max-w-3xl overflow-hidden rounded-panel bg-card p-0 text-card-foreground`}
         >
           <DialogHeader className="border-b border-border p-4 text-left">
             <DialogTitle className="flex items-center gap-2">
@@ -124,18 +125,23 @@ export function NoteEditorDialog({
               >
                 Note Title
               </label>
-              <Input
-                id={`${field}-title`}
-                unstyled
-                required
-                autoFocus
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                disabled={locked}
-                maxLength={maxTitleLength}
-                placeholder="Enter note title..."
-                className="w-full rounded-control border border-input px-4 py-2 outline-none transition-all"
-              />
+              <div
+                className={`${FIELD_FOCUS_CONTAINER_CLASS_NAME} rounded-control border border-input bg-card p-0.5`}
+              >
+                <Input
+                  id={`${field}-title`}
+                  unstyled
+                  focusMode="container"
+                  required
+                  autoFocus
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  disabled={locked}
+                  maxLength={maxTitleLength}
+                  placeholder="Enter note title..."
+                  className="block w-full rounded-[calc(var(--radius-control)-2px)] bg-transparent px-3.5 py-1.5"
+                />
+              </div>
             </div>
             <div>
               <label

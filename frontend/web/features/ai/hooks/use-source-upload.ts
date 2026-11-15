@@ -4,7 +4,12 @@ import { isAxiosError } from "axios";
 import { store } from "@/store/store";
 import { getUploadMimeType } from "@/lib/upload-policy";
 import { notebooksApi } from "../api/notebooks.api";
-import { validateUploadBatch, uploadError, type UploadStage } from "../upload";
+import {
+  selectUploadFiles,
+  uploadError,
+  type UploadStage,
+  type UploadRejection,
+} from "../upload";
 import type { Source } from "../types";
 export function useSourceUpload(
   id: string,
@@ -15,10 +20,15 @@ export function useSourceUpload(
   const attempts = useRef(new Map<string, string>());
   const [stage, setStage] = useState<UploadStage | null>(null);
   const [error, setError] = useState("");
-  const uploadFiles = async (files: File[]) => {
-    if (active.current || !files.length) return;
+  const [rejections, setRejections] = useState<UploadRejection[]>([]);
+  const uploadFiles = async (
+    files: File[],
+    unreadable: UploadRejection[] = [],
+  ) => {
+    if (active.current || (!files.length && !unreadable.length)) return;
     active.current = true;
     setError("");
+    setRejections([]);
     const actorId = store.getState().auth.userId;
     const assertActor = () => {
       if (!actorId || store.getState().auth.userId !== actorId)
@@ -26,11 +36,13 @@ export function useSourceUpload(
     };
     try {
       assertActor();
-      validateUploadBatch(files, sources);
+      const selection = selectUploadFiles(files, sources);
+      setRejections([...unreadable, ...selection.rejected]);
+      if (!selection.accepted.length) return;
       setStage("UPLOADING");
       const ids: string[] = [];
       const completedKeys: string[] = [];
-      for (const file of files) {
+      for (const file of selection.accepted) {
         const digest = await crypto.subtle.digest(
           "SHA-256",
           await file.arrayBuffer(),
@@ -88,5 +100,5 @@ export function useSourceUpload(
     }
   };
 
-  return { uploadFiles, uploading: stage !== null, stage, error };
+  return { uploadFiles, uploading: stage !== null, stage, error, rejections };
 }

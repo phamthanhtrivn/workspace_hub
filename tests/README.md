@@ -7,7 +7,7 @@ Tests belong to the feature or service whose behavior they protect. Node project
 ```text
 backend/<service>/src/**/<feature>.spec.{ts,cjs,mjs}   # Fast service tests
 backend/<service>/tests/fixtures/                    # Reusable service fixtures
-backend/<service>/tests/integration/*.test.cjs        # Explicit database tests
+backend/<service>/tests/integration/*.test.{cjs,mjs}  # Explicit database tests
 backend/user-service/src/test/java/                  # JUnit tests
 frontend/web/{features,components,hooks,lib,store}/**/*.spec.*
 tests/support/                                      # Discovery and TS loaders
@@ -54,6 +54,14 @@ node tests/run-tests.mjs --suite integration --list
 ```
 
 Calendar and Notification each have `npm run test:integration`. They require `REMINDER_TEST_DATABASE_URL`, whose database name must be exactly `reminder_verification`, and the corresponding service migrations must already be applied. Never point them at application data. Without that variable, those tests skip rather than using `DATABASE_URL`.
+
+Communication's delivery-lock regression uses the configured local PostgreSQL through Prisma and requires an explicit opt-in. It shadows the receipt table with a session-local temporary table, checks locking/replay for Channel, DM and Meeting, then drops the table at transaction end. It does not create messages or modify application receipts. From the repository root:
+
+```powershell
+$env:WORKSPACEHUB_MESSAGE_DELIVERY_DB_TESTS = "1"
+node tests/run-tests.mjs --project backend/communication-service --suite integration --match message-delivery
+Remove-Item Env:WORKSPACEHUB_MESSAGE_DELIVERY_DB_TESTS
+```
 
 Cross-service contract tests using mocks and temporary loopback servers:
 

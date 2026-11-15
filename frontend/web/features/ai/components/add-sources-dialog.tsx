@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Files, FolderOpen, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import dialogLayout from "@/components/ui/responsive-dialog.module.css";
 import { NotebookDocumentPicker } from "./notebook-document-picker";
+import { SourceUploadDropzone } from "./source-upload-dropzone";
 import type { Source } from "../types";
 import type { useSourceUpload } from "../hooks/use-source-upload";
 
@@ -35,10 +36,22 @@ export function AddSourcesDialog({
   refresh: () => Promise<unknown>;
   onClose: () => void;
 }) {
-  const input = useRef<HTMLInputElement>(null);
   const [pickerBusy, setPickerBusy] = useState(false);
   const locked = busy || upload.uploading || pickerBusy;
   const full = sources.length >= NOTEBOOK_SOURCE_LIMIT;
+  useEffect(() => {
+    const preventFileNavigation = (event: DragEvent) => {
+      if (Array.from(event.dataTransfer?.types ?? []).includes("Files"))
+        event.preventDefault();
+    };
+    window.addEventListener("dragover", preventFileNavigation);
+    window.addEventListener("drop", preventFileNavigation);
+
+    return () => {
+      window.removeEventListener("dragover", preventFileNavigation);
+      window.removeEventListener("drop", preventFileNavigation);
+    };
+  }, []);
 
   return (
     <Dialog
@@ -71,36 +84,11 @@ export function AddSourcesDialog({
             </TabsTrigger>
           </TabsList>
           <TabsContent value="upload" className="space-y-4 p-1">
-            <div className="flex flex-col items-center gap-3 rounded-panel border border-dashed border-border px-5 py-8 text-center">
-              <Upload className="size-8 text-link" aria-hidden="true" />
-              <p className="max-w-prose text-sm text-muted-foreground">
-                PDF, DOCX, TXT, MD, PNG, JPEG and WebP. Up to 20 MiB per file
-                and 50 MiB per notebook.
-              </p>
-              <Button
-                loading={upload.uploading}
-                disabled={locked || full}
-                onClick={() => input.current?.click()}
-              >
-                <Upload aria-hidden="true" />
-                {upload.stage === "ADDING"
-                  ? "Adding sources..."
-                  : upload.uploading
-                    ? "Uploading..."
-                    : "Choose files"}
-              </Button>
-              <input
-                ref={input}
-                type="file"
-                hidden
-                multiple
-                accept=".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp"
-                onChange={(event) => {
-                  void upload.uploadFiles(Array.from(event.target.files || []));
-                  event.target.value = "";
-                }}
-              />
-            </div>
+            <SourceUploadDropzone
+              disabled={locked || full}
+              stage={upload.stage}
+              onFiles={upload.uploadFiles}
+            />
             <p className="text-xs leading-relaxed text-muted-foreground">
               PDFs support up to 100 pages. Each file supports up to 100,000
               tokens and 24 scanned pages or images requiring image analysis.
@@ -126,6 +114,21 @@ export function AddSourcesDialog({
           <p role="alert" className="mt-3 text-sm text-destructive-content">
             {upload.error}
           </p>
+        )}
+        {upload.rejections.length > 0 && (
+          <div
+            role="alert"
+            className="mt-3 space-y-1 text-sm text-destructive-content"
+          >
+            <p className="font-medium">
+              Skipped files ({upload.rejections.length})
+            </p>
+            <ul className="max-h-32 space-y-1 overflow-y-auto break-words">
+              {upload.rejections.map((file, index) => (
+                <li key={`${index}:${file.name}`}>{file.message}</li>
+              ))}
+            </ul>
+          </div>
         )}
         <DialogFooter className="mt-4">
           <Button variant="outline" disabled={locked} onClick={onClose}>

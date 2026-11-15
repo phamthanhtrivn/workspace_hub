@@ -5,6 +5,38 @@ export const NOTEBOOK_SOURCE_LIMIT = 5;
 type StoredSource = { size_bytes: number };
 export type UploadBatch = { count: number; bytes: number };
 export type UploadStage = "UPLOADING" | "ADDING";
+export const NOTEBOOK_UPLOAD_ACCEPT =
+  ".pdf,.docx,.txt,.md,.png,.jpg,.jpeg,.webp";
+export type UploadRejection = { name: string; message: string };
+
+/** Preserve file order and accept every file that still fits the existing limits. */
+export function selectUploadFiles<T extends FileInfo>(
+  files: T[],
+  sources: StoredSource[],
+) {
+  const accepted: T[] = [];
+  const rejected: UploadRejection[] = [];
+  for (const file of files) {
+    try {
+      validateUploadBatch([file], []);
+      validateUploadBatch([...accepted, file], sources);
+      accepted.push(file);
+    } catch (error) {
+      const reason =
+        error instanceof Error
+          ? error.message
+          : "This file cannot be uploaded.";
+      rejected.push({
+        name: file.name,
+        message: reason.startsWith(`${file.name}:`)
+          ? reason
+          : `${file.name}: ${reason}`,
+      });
+    }
+  }
+
+  return { accepted, rejected };
+}
 
 export function validateUploadBatch(
   files: FileInfo[],
