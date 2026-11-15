@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useRef, useState, type ReactNode } from "react";
-import { FilePenLine, Save } from "lucide-react";
+import { FileText } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -74,19 +74,24 @@ export function NoteEditorDialog({
       >
         <DialogContent
           overlayClassName="z-[120]"
-          className={`${dialogLayout.surface} z-[130] max-w-3xl rounded-dialog bg-card p-6 text-card-foreground`}
+          className={`${dialogLayout.surface} z-[130] w-[calc(100%-2rem)] overflow-hidden rounded-panel bg-card p-0 text-card-foreground ${editing ? "max-w-md" : "max-w-lg"}`}
         >
-          <DialogHeader className="text-left">
+          <DialogHeader className="border-b border-border p-4 text-left">
             <DialogTitle className="flex items-center gap-2">
-              <FilePenLine className="size-5 text-link" aria-hidden="true" />
-              {editing ? "Edit note" : "New note"}
+              {editing && (
+                <FileText
+                  className="size-5 text-warning-content"
+                  aria-hidden="true"
+                />
+              )}
+              {editing ? "Edit Note" : "Create Note"}
             </DialogTitle>
             {description && (
               <DialogDescription>{description}</DialogDescription>
             )}
           </DialogHeader>
           <form
-            className="mt-4 space-y-4"
+            className={`${dialogLayout.body} space-y-5 p-6`}
             onSubmit={async (event) => {
               event.preventDefault();
               if (
@@ -112,28 +117,33 @@ export function NoteEditorDialog({
               }
             }}
           >
-            <div className="space-y-2">
-              <label htmlFor={`${field}-title`} className="text-sm font-medium">
-                Title
+            <div>
+              <label
+                htmlFor={`${field}-title`}
+                className="mb-1 block text-sm font-medium text-foreground"
+              >
+                Note Title
               </label>
               <Input
                 id={`${field}-title`}
+                unstyled
                 required
                 autoFocus
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 disabled={locked}
                 maxLength={maxTitleLength}
-                placeholder="Note title"
+                placeholder="Enter note title..."
+                className="w-full rounded-control border border-input px-4 py-2 outline-none transition-all"
               />
             </div>
-            <div className="space-y-2">
+            <div>
               <label
                 id={`${field}-label`}
                 htmlFor={`${field}-content`}
-                className="text-sm font-medium"
+                className="mb-1 block text-sm font-medium text-foreground"
               >
-                Note
+                Note Content
               </label>
               <MarkdownNoteEditor
                 id={`${field}-content`}
@@ -143,12 +153,12 @@ export function NoteEditorDialog({
                 disabled={locked}
                 maxLength={maxContentLength}
                 renderPreview={renderPreview}
-                placeholder="What would you like to remember?"
-                minHeightClassName="min-h-48"
+                placeholder="Enter note content..."
+                minHeightClassName={editing ? "min-h-[150px]" : "min-h-[160px]"}
               />
               {maxContentLength && (
                 <p
-                  className={`text-right text-xs tabular-nums ${tooLong ? "text-destructive-content" : "text-muted-foreground"}`}
+                  className={`mt-2 text-right text-xs tabular-nums ${tooLong ? "text-destructive-content" : "text-muted-foreground"}`}
                 >
                   {content.length.toLocaleString("en-US")} /{" "}
                   {maxContentLength.toLocaleString("en-US")}
@@ -160,24 +170,27 @@ export function NoteEditorDialog({
                 {error}
               </p>
             )}
-            <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={locked}
-                onClick={requestClose}
-              >
-                Cancel
-              </Button>
+            <div className={`pt-2 ${editing ? "flex justify-end gap-3" : ""}`}>
+              {editing && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={locked}
+                  onClick={requestClose}
+                >
+                  Cancel
+                </Button>
+              )}
               <Button
                 type="submit"
+                variant="warning"
+                className={editing ? "" : "w-full"}
                 loading={locked}
                 disabled={!title.trim() || !content.trim() || tooLong}
               >
-                <Save aria-hidden="true" />
-                {editing ? "Save changes" : "Save note"}
+                {editing ? "Save Changes" : "Create Note"}
               </Button>
-            </DialogFooter>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
