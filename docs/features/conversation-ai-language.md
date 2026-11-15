@@ -3,6 +3,23 @@
 This policy applies to AI chat in direct conversations, channels, and threads,
 including summaries of attached documents.
 
+## Mention activation
+
+- A newly sent text message can invoke `@AI Bot` anywhere in its authored text
+  in channels, direct conversations, and their threads. The legacy `@ai` alias
+  remains supported; both names are case-insensitive and require token boundaries.
+- All active bot mentions are removed from the question. The remaining full
+  message is retained, up to the existing 4,000-character question limit. Repeated
+  mentions create one request per message, using the existing message-ID constraint.
+- Mentions inside Markdown inline code, fenced/indented code, or block quotes do
+  not activate the bot. If an authored mention activates it, those literal code
+  and quoted sections remain in the question as context.
+- Editing an existing message to add a mention does not create an AI request.
+  Send a new message to ask a new question. A mention without other content keeps
+  the existing default question, `How can you help?`.
+
+## Response language and context
+
 - Interface labels, toasts, validation errors, availability feedback, empty-history
   notices, and interrupted-request messages are English.
 - Generated answers prioritize an explicit request for English or Vietnamese.
